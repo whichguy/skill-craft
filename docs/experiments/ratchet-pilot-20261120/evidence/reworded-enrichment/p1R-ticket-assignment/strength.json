@@ -1,0 +1,3679 @@
+{
+ "case": "ticket-assignment",
+ "graded_with": "57fac46cf90b231e3d0b856f040280c815b5f84a",
+ "reference": {
+  "failing": [
+   "C-36",
+   "C-42",
+   "C-44"
+  ],
+  "unstable": [],
+  "did_not_end": [],
+  "ids": [
+   "C-1",
+   "C-10",
+   "C-11",
+   "C-12",
+   "C-13",
+   "C-14",
+   "C-15",
+   "C-16",
+   "C-17",
+   "C-18",
+   "C-19",
+   "C-2",
+   "C-20",
+   "C-21",
+   "C-22",
+   "C-23",
+   "C-24",
+   "C-25",
+   "C-26",
+   "C-27",
+   "C-28",
+   "C-29",
+   "C-3",
+   "C-30",
+   "C-31",
+   "C-32",
+   "C-33",
+   "C-34",
+   "C-35",
+   "C-36",
+   "C-37",
+   "C-38",
+   "C-39",
+   "C-4",
+   "C-40",
+   "C-41",
+   "C-42",
+   "C-43",
+   "C-44",
+   "C-5",
+   "C-6",
+   "C-7",
+   "C-8",
+   "C-9",
+   "U-1",
+   "U-2",
+   "U-3",
+   "U-4",
+   "U-5",
+   "U-6",
+   "U-7",
+   "U-8",
+   "U-9"
+  ],
+  "seconds": 77.1,
+  "tails": {
+   "C-36": [
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 911.225125"
+   ],
+   "C-42": [
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 1342.356084"
+   ],
+   "C-44": [
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 233.561333"
+   ]
+  }
+ },
+ "controls": {
+  "alternative": {
+   "failing": [
+    "C-19",
+    "C-22",
+    "C-36",
+    "C-42",
+    "C-44",
+    "U-3"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "seconds": 79.2,
+   "tails": {
+    "C-19": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 992.043458"
+    ],
+    "C-22": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 332.047167"
+    ],
+    "C-36": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 920.179791"
+    ],
+    "C-42": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1264.546959"
+    ],
+    "C-44": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 204.18975"
+    ],
+    "U-3": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 228.540625"
+    ]
+   }
+  }
+ },
+ "raw": {
+  "filter-or": {
+   "failing": [
+    "C-32",
+    "C-36",
+    "C-42",
+    "C-44",
+    "U-4",
+    "U-9"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "seconds": 79.6,
+   "tails": {
+    "C-32": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 193.947584"
+    ],
+    "C-36": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 671.840208"
+    ],
+    "C-42": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1301.796667"
+    ],
+    "C-44": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 208.322083"
+    ],
+    "U-4": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 214.859875"
+    ],
+    "U-9": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1772.697375"
+    ]
+   }
+  },
+  "filter-after-page": {
+   "failing": [
+    "C-33",
+    "C-36",
+    "C-42",
+    "C-44",
+    "U-4"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "seconds": 78.0,
+   "tails": {
+    "C-33": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 213.860917"
+    ],
+    "C-36": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 913.0555"
+    ],
+    "C-42": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1295.65825"
+    ],
+    "C-44": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 206.725"
+    ],
+    "U-4": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 214.205959"
+    ]
+   }
+  },
+  "no-envelope": {
+   "failing": [
+    "C-11",
+    "C-17",
+    "C-36",
+    "C-42",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-2",
+    "U-9"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "seconds": 81.6,
+   "tails": {
+    "C-5": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 202.292083"
+    ],
+    "C-6": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 199.901459"
+    ],
+    "C-7": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 300.809708"
+    ],
+    "C-8": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 298.710334"
+    ],
+    "C-9": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 181.704"
+    ],
+    "C-11": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 281.883417"
+    ],
+    "C-17": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 333.719583"
+    ],
+    "C-36": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 901.910875"
+    ],
+    "C-42": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1206.495459"
+    ],
+    "C-44": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 183.896917"
+    ],
+    "U-2": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 214.012542"
+    ],
+    "U-9": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1648.169459"
+    ]
+   }
+  },
+  "conflict-as-invalid": {
+   "failing": [
+    "C-11",
+    "C-17",
+    "C-36",
+    "C-42",
+    "C-44",
+    "C-5",
+    "U-2",
+    "U-9"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "seconds": 92.5,
+   "tails": {
+    "C-5": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 203.146667"
+    ],
+    "C-11": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 274.637791"
+    ],
+    "C-17": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 328.756375"
+    ],
+    "C-36": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 920.375375"
+    ],
+    "C-42": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1094.59925"
+    ],
+    "C-44": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 183.1145"
+    ],
+    "U-2": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 193.273833"
+    ],
+    "U-9": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1414.355083"
+    ]
+   }
+  },
+  "closed-assignable": {
+   "failing": [
+    "C-10",
+    "C-11",
+    "C-17",
+    "C-36",
+    "C-42",
+    "C-44",
+    "C-5",
+    "U-2",
+    "U-9"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "seconds": 80.1,
+   "tails": {
+    "C-5": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 194.341333"
+    ],
+    "C-10": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 231.121333"
+    ],
+    "C-11": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 274.1905"
+    ],
+    "C-17": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 345.644125"
+    ],
+    "C-36": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 891.452583"
+    ],
+    "C-42": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1099.761625"
+    ],
+    "C-44": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 202.317708"
+    ],
+    "U-2": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 206.70375"
+    ],
+    "U-9": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1654.030958"
+    ]
+   }
+  },
+  "notify-inline": {
+   "failing": [
+    "C-18",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-27",
+    "C-36",
+    "C-4",
+    "C-42",
+    "C-44",
+    "U-3",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "seconds": 96.9,
+   "tails": {
+    "C-4": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 5396.119416"
+    ],
+    "C-18": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 216.083791"
+    ],
+    "C-20": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 179.915959"
+    ],
+    "C-21": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 181.356667"
+    ],
+    "C-22": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 10279.899583"
+    ],
+    "C-23": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 178.155375"
+    ],
+    "C-24": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 175.435791"
+    ],
+    "C-25": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 288.05825"
+    ],
+    "C-27": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 5963.960416"
+    ],
+    "C-36": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 978.247416"
+    ],
+    "C-42": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 926.406334"
+    ],
+    "C-44": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 183.818417"
+    ],
+    "U-3": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 5191.530875"
+    ],
+    "U-7": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 259.764167"
+    ],
+    "U-8": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 245.204084"
+    ],
+    "U-9": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 14941.331875"
+    ]
+   }
+  },
+  "notify-no-template": {
+   "failing": [
+    "C-19",
+    "C-22",
+    "C-25",
+    "C-27",
+    "C-36",
+    "C-4",
+    "C-42",
+    "C-44",
+    "U-3",
+    "U-8"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "seconds": 141.7,
+   "tails": {
+    "C-4": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 5369.1465"
+    ],
+    "C-19": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 5192.512125"
+    ],
+    "C-22": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 10289.680375"
+    ],
+    "C-25": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 5403.13825"
+    ],
+    "C-27": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 5796.503334"
+    ],
+    "C-36": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 906.591917"
+    ],
+    "C-42": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 992.001583"
+    ],
+    "C-44": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 216.541834"
+    ],
+    "U-3": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 5191.980166"
+    ],
+    "U-8": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 5268.177375"
+    ]
+   }
+  },
+  "notify-key-per-ticket": {
+   "failing": [
+    "C-18",
+    "C-19",
+    "C-21",
+    "C-36",
+    "C-42",
+    "C-44",
+    "U-9"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "seconds": 88.2,
+   "tails": {
+    "C-18": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 261.801042"
+    ],
+    "C-19": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 5988.509959"
+    ],
+    "C-21": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 183.925667"
+    ],
+    "C-36": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 885.52325"
+    ],
+    "C-42": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 951.976208"
+    ],
+    "C-44": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 191.344708"
+    ],
+    "U-9": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1460.140209"
+    ]
+   }
+  },
+  "notify-requester": {
+   "failing": [
+    "C-18",
+    "C-19",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-27",
+    "C-36",
+    "C-4",
+    "C-42",
+    "C-44",
+    "U-3",
+    "U-8",
+    "U-9"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "seconds": 106.4,
+   "tails": {
+    "C-4": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 5357.6335"
+    ],
+    "C-18": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 218.122375"
+    ],
+    "C-19": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 5194.524042"
+    ],
+    "C-20": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 183.382625"
+    ],
+    "C-21": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 180.466458"
+    ],
+    "C-22": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 10279.02225"
+    ],
+    "C-23": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 5219.973875"
+    ],
+    "C-24": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1797.911583"
+    ],
+    "C-25": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 309.939708"
+    ],
+    "C-27": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 5766.689333"
+    ],
+    "C-36": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 926.368958"
+    ],
+    "C-42": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 978.879375"
+    ],
+    "C-44": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 190.831084"
+    ],
+    "U-3": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 5191.235125"
+    ],
+    "U-8": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 246.4135"
+    ],
+    "U-9": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1461.163416"
+    ]
+   }
+  },
+  "audit-bypassed": {
+   "failing": [
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-27",
+    "C-36",
+    "C-42",
+    "C-44",
+    "U-6",
+    "U-7",
+    "U-9"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "seconds": 79.5,
+   "tails": {
+    "C-15": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 199.48125"
+    ],
+    "C-16": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 182.066875"
+    ],
+    "C-17": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 321.749792"
+    ],
+    "C-18": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 225.870416"
+    ],
+    "C-27": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 848.026166"
+    ],
+    "C-36": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 954.086792"
+    ],
+    "C-42": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 951.298834"
+    ],
+    "C-44": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 190.013834"
+    ],
+    "U-6": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 188.136583"
+    ],
+    "U-7": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 189.6825"
+    ],
+    "U-9": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1608.917792"
+    ]
+   }
+  },
+  "actor-ignored": {
+   "failing": [
+    "C-16",
+    "C-36",
+    "C-42",
+    "C-44",
+    "U-6",
+    "U-9"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "seconds": 78.6,
+   "tails": {
+    "C-16": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 188.042542"
+    ],
+    "C-36": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 907.410333"
+    ],
+    "C-42": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1021.508375"
+    ],
+    "C-44": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 207.643834"
+    ],
+    "U-6": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 210.812834"
+    ],
+    "U-9": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1564.628625"
+    ]
+   }
+  },
+  "same-agent-not-noop": {
+   "failing": [
+    "C-18",
+    "C-36",
+    "C-4",
+    "C-42",
+    "C-44",
+    "U-1",
+    "U-3",
+    "U-9"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "seconds": 79.9,
+   "tails": {
+    "C-4": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 462.500417"
+    ],
+    "C-18": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 230.702125"
+    ],
+    "C-36": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 967.124209"
+    ],
+    "C-42": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1004.033916"
+    ],
+    "C-44": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 184.872833"
+    ],
+    "U-1": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 204.834917"
+    ],
+    "U-3": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 384.336708"
+    ],
+    "U-9": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1526.907084"
+    ]
+   }
+  },
+  "memory-only-assignee": {
+   "failing": [
+    "C-25",
+    "C-27",
+    "C-28",
+    "C-36",
+    "C-42",
+    "C-44",
+    "U-5",
+    "U-7"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "seconds": 77.1,
+   "tails": {
+    "C-25": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 386.12975"
+    ],
+    "C-27": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 792.044125"
+    ],
+    "C-28": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 179.085167"
+    ],
+    "C-36": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 597.499583"
+    ],
+    "C-42": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1040.80925"
+    ],
+    "C-44": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 206.515625"
+    ],
+    "U-5": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 334.78175"
+    ],
+    "U-7": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 203.505083"
+    ]
+   }
+  },
+  "old-data-refused": {
+   "failing": [
+    "C-28",
+    "C-33",
+    "C-36",
+    "C-42",
+    "C-44",
+    "U-7"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "seconds": 77.2,
+   "tails": {
+    "C-28": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 179.104417"
+    ],
+    "C-33": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 181.52725"
+    ],
+    "C-36": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 894.804917"
+    ],
+    "C-42": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 997.778167"
+    ],
+    "C-44": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 189.570625"
+    ],
+    "U-7": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 179.478042"
+    ]
+   }
+  },
+  "old-assignee-undefined": {
+   "failing": [
+    "C-28",
+    "C-36",
+    "C-42",
+    "C-44",
+    "U-7"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "seconds": 77.5,
+   "tails": {
+    "C-28": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 174.502417"
+    ],
+    "C-36": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 877.476417"
+    ],
+    "C-42": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1032.581416"
+    ],
+    "C-44": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 211.753917"
+    ],
+    "U-7": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 204.349209"
+    ]
+   }
+  },
+  "raw-column-inserted": {
+   "failing": [
+    "C-36",
+    "C-37",
+    "C-42",
+    "C-44",
+    "U-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "seconds": 77.4,
+   "tails": {
+    "C-36": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 979.882958"
+    ],
+    "C-37": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 292.881042"
+    ],
+    "C-42": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 977.396334"
+    ],
+    "C-44": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 188.983209"
+    ],
+    "U-5": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 426.213584"
+    ]
+   }
+  },
+  "cli-no-assignee": {
+   "failing": [
+    "C-36",
+    "C-42",
+    "C-44",
+    "U-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "seconds": 75.2,
+   "tails": {
+    "C-36": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 442.607667"
+    ],
+    "C-42": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1009.351708"
+    ],
+    "C-44": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 202.545084"
+    ],
+    "U-5": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 270.037875"
+    ]
+   }
+  },
+  "no-unassign": {
+   "failing": [
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-27",
+    "C-3",
+    "C-30",
+    "C-33",
+    "C-36",
+    "C-37",
+    "C-4",
+    "C-42",
+    "C-44",
+    "C-5",
+    "C-7",
+    "U-2",
+    "U-6",
+    "U-9"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "seconds": 82.5,
+   "tails": {
+    "C-2": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 261.509333"
+    ],
+    "C-3": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 202.875791"
+    ],
+    "C-4": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 427.077625"
+    ],
+    "C-5": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 253.277042"
+    ],
+    "C-7": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 344.165875"
+    ],
+    "C-14": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 240.767125"
+    ],
+    "C-15": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 248.059"
+    ],
+    "C-16": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 208.078875"
+    ],
+    "C-19": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 225.504458"
+    ],
+    "C-20": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 244.275083"
+    ],
+    "C-27": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 907.532792"
+    ],
+    "C-30": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 181.201459"
+    ],
+    "C-33": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 233.095792"
+    ],
+    "C-36": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 621.773458"
+    ],
+    "C-37": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 444.49825"
+    ],
+    "C-42": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 961.411625"
+    ],
+    "C-44": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 188.396375"
+    ],
+    "U-2": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 185.301375"
+    ],
+    "U-6": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 219.151667"
+    ],
+    "U-9": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1613.276084"
+    ]
+   }
+  },
+  "empty-filter-ignored": {
+   "failing": [
+    "C-30",
+    "C-32",
+    "C-36",
+    "C-42",
+    "C-44",
+    "U-2",
+    "U-4",
+    "U-9"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "seconds": 79.5,
+   "tails": {
+    "C-30": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 186.712958"
+    ],
+    "C-32": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 192.003375"
+    ],
+    "C-36": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 922.2025"
+    ],
+    "C-42": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1093.287208"
+    ],
+    "C-44": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 246.810375"
+    ],
+    "U-2": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 203.7065"
+    ],
+    "U-4": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 218.267375"
+    ],
+    "U-9": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1572.86525"
+    ]
+   }
+  },
+  "name-limit-off-by-one": {
+   "failing": [
+    "C-36",
+    "C-42",
+    "C-44",
+    "C-7"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "seconds": 77.4,
+   "tails": {
+    "C-7": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 301.555125"
+    ],
+    "C-36": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1017.254125"
+    ],
+    "C-42": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1043.661667"
+    ],
+    "C-44": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 203.981541"
+    ]
+   }
+  },
+  "listing-hides-assignee": {
+   "failing": [
+    "C-12",
+    "C-36",
+    "C-42",
+    "C-44",
+    "U-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "seconds": 76.3,
+   "tails": {
+    "C-12": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 187.349833"
+    ],
+    "C-36": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 514.444791"
+    ],
+    "C-42": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1072.976208"
+    ],
+    "C-44": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 201.694042"
+    ],
+    "U-5": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 319.368417"
+    ]
+   }
+  },
+  "update-rejects-resolved": {
+   "failing": [
+    "C-36",
+    "C-42",
+    "C-44"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "seconds": 76.8,
+   "tails": {
+    "C-36": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 945.282625"
+    ],
+    "C-42": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 993.330708"
+    ],
+    "C-44": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 188.215"
+    ]
+   }
+  },
+  "default-limit-changed": {
+   "failing": [
+    "C-34",
+    "C-36",
+    "C-41",
+    "C-42",
+    "C-44",
+    "U-9"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "seconds": 80.4,
+   "tails": {
+    "C-34": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 314.227292"
+    ],
+    "C-36": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 953.909125"
+    ],
+    "C-41": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1203.215583"
+    ],
+    "C-42": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1004.837792"
+    ],
+    "C-44": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 200.342292"
+    ],
+    "U-9": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1876.1425"
+    ]
+   }
+  },
+  "resolved-template-replaced": {
+   "failing": [
+    "C-26",
+    "C-36",
+    "C-41",
+    "C-42",
+    "C-44",
+    "U-9"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "seconds": 90.3,
+   "tails": {
+    "C-26": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 5244.983875"
+    ],
+    "C-36": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 947.44225"
+    ],
+    "C-41": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1161.060917"
+    ],
+    "C-42": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1015.081542"
+    ],
+    "C-44": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 213.793125"
+    ],
+    "U-9": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1528.085833"
+    ]
+   }
+  },
+  "audit-not-saved": {
+   "failing": [
+    "C-27",
+    "C-36",
+    "C-41",
+    "C-42",
+    "C-44",
+    "U-7",
+    "U-9"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "seconds": 82.2,
+   "tails": {
+    "C-27": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 899.940917"
+    ],
+    "C-36": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1084.940125"
+    ],
+    "C-41": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1201.960125"
+    ],
+    "C-42": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1347.140625"
+    ],
+    "C-44": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 207.952958"
+    ],
+    "U-7": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 365.391458"
+    ],
+    "U-9": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1447.925"
+    ]
+   }
+  },
+  "backoff-linear": {
+   "failing": [
+    "C-24",
+    "C-36",
+    "C-41",
+    "C-42",
+    "C-44"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "seconds": 47.4,
+   "tails": {
+    "C-24": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 3267.157584"
+    ],
+    "C-36": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1137.970792"
+    ],
+    "C-41": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 116.276917"
+    ],
+    "C-42": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1041.005625"
+    ],
+    "C-44": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 207.476"
+    ]
+   }
+  },
+  "validate-renamed": {
+   "failing": [
+    "C-36",
+    "C-41",
+    "C-42",
+    "C-44"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "seconds": 77.7,
+   "tails": {
+    "C-36": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1036.543625"
+    ],
+    "C-41": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 124.980958"
+    ],
+    "C-42": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 1124.877375"
+    ],
+    "C-44": [
+     "# cancelled 0",
+     "# skipped 0",
+     "# todo 0",
+     "# duration_ms 231.687041"
+    ]
+   }
+  }
+ },
+ "items": 53,
+ "clauses": 44,
+ "use_cases": 9,
+ "fails_on_reference": [
+  "C-36",
+  "C-42",
+  "C-44"
+ ],
+ "clauses_failing_on_reference": [
+  "C-36",
+  "C-42",
+  "C-44"
+ ],
+ "use_cases_failing_on_reference": [],
+ "defects": {
+  "filter-or": {
+   "caught": true,
+   "by": [
+    "C-32",
+    "U-4",
+    "U-9"
+   ]
+  },
+  "filter-after-page": {
+   "caught": true,
+   "by": [
+    "C-33",
+    "U-4"
+   ]
+  },
+  "no-envelope": {
+   "caught": true,
+   "by": [
+    "C-11",
+    "C-17",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-2",
+    "U-9"
+   ]
+  },
+  "conflict-as-invalid": {
+   "caught": true,
+   "by": [
+    "C-11",
+    "C-17",
+    "C-5",
+    "U-2",
+    "U-9"
+   ]
+  },
+  "closed-assignable": {
+   "caught": true,
+   "by": [
+    "C-10",
+    "C-11",
+    "C-17",
+    "C-5",
+    "U-2",
+    "U-9"
+   ]
+  },
+  "notify-inline": {
+   "caught": true,
+   "by": [
+    "C-18",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-27",
+    "C-4",
+    "U-3",
+    "U-7",
+    "U-8",
+    "U-9"
+   ]
+  },
+  "notify-no-template": {
+   "caught": true,
+   "by": [
+    "C-19",
+    "C-22",
+    "C-25",
+    "C-27",
+    "C-4",
+    "U-3",
+    "U-8"
+   ]
+  },
+  "notify-key-per-ticket": {
+   "caught": true,
+   "by": [
+    "C-18",
+    "C-19",
+    "C-21",
+    "U-9"
+   ]
+  },
+  "notify-requester": {
+   "caught": true,
+   "by": [
+    "C-18",
+    "C-19",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-27",
+    "C-4",
+    "U-3",
+    "U-8",
+    "U-9"
+   ]
+  },
+  "audit-bypassed": {
+   "caught": true,
+   "by": [
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-27",
+    "U-6",
+    "U-7",
+    "U-9"
+   ]
+  },
+  "actor-ignored": {
+   "caught": true,
+   "by": [
+    "C-16",
+    "U-6",
+    "U-9"
+   ]
+  },
+  "same-agent-not-noop": {
+   "caught": true,
+   "by": [
+    "C-18",
+    "C-4",
+    "U-1",
+    "U-3",
+    "U-9"
+   ]
+  },
+  "memory-only-assignee": {
+   "caught": true,
+   "by": [
+    "C-25",
+    "C-27",
+    "C-28",
+    "U-5",
+    "U-7"
+   ]
+  },
+  "old-data-refused": {
+   "caught": true,
+   "by": [
+    "C-28",
+    "C-33",
+    "U-7"
+   ]
+  },
+  "old-assignee-undefined": {
+   "caught": true,
+   "by": [
+    "C-28",
+    "U-7"
+   ]
+  },
+  "raw-column-inserted": {
+   "caught": true,
+   "by": [
+    "C-37",
+    "U-5"
+   ]
+  },
+  "cli-no-assignee": {
+   "caught": true,
+   "by": [
+    "U-5"
+   ]
+  },
+  "no-unassign": {
+   "caught": true,
+   "by": [
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-27",
+    "C-3",
+    "C-30",
+    "C-33",
+    "C-37",
+    "C-4",
+    "C-5",
+    "C-7",
+    "U-2",
+    "U-6",
+    "U-9"
+   ]
+  },
+  "empty-filter-ignored": {
+   "caught": true,
+   "by": [
+    "C-30",
+    "C-32",
+    "U-2",
+    "U-4",
+    "U-9"
+   ]
+  },
+  "name-limit-off-by-one": {
+   "caught": true,
+   "by": [
+    "C-7"
+   ]
+  },
+  "listing-hides-assignee": {
+   "caught": true,
+   "by": [
+    "C-12",
+    "U-5"
+   ]
+  },
+  "update-rejects-resolved": {
+   "caught": false,
+   "by": []
+  },
+  "default-limit-changed": {
+   "caught": true,
+   "by": [
+    "C-34",
+    "C-41",
+    "U-9"
+   ]
+  },
+  "resolved-template-replaced": {
+   "caught": true,
+   "by": [
+    "C-26",
+    "C-41",
+    "U-9"
+   ]
+  },
+  "audit-not-saved": {
+   "caught": true,
+   "by": [
+    "C-27",
+    "C-41",
+    "U-7",
+    "U-9"
+   ]
+  },
+  "backoff-linear": {
+   "caught": true,
+   "by": [
+    "C-24",
+    "C-41"
+   ]
+  },
+  "validate-renamed": {
+   "caught": true,
+   "by": [
+    "C-41"
+   ]
+  }
+ },
+ "caught": 26,
+ "pool": 27,
+ "not_judged": []
+}

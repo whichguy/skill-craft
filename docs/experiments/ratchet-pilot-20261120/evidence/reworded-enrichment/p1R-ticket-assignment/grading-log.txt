@@ -1,0 +1,33 @@
+== strength grading, ticket assignment 07:44:13
+p1R-ticket-assignment: 44 clauses and 9 use cases tested; on the correct reference 3 clauses and 0 use cases fail: ['C-36', 'C-42', 'C-44']
+  control alternative: fails C-19, C-22, U-3
+  filter-or                   caught     C-32, U-4, U-9
+  filter-after-page           caught     C-33, U-4
+  no-envelope                 caught     C-11, C-17, C-5, C-6, C-7, C-8, C-9, U-2, U-9
+  conflict-as-invalid         caught     C-11, C-17, C-5, U-2, U-9
+  closed-assignable           caught     C-10, C-11, C-17, C-5, U-2, U-9
+  notify-inline               caught     C-18, C-20, C-21, C-22, C-23, C-24, C-25, C-27, C-4, U-3, U-7, U-8, U-9
+  notify-no-template          caught     C-19, C-22, C-25, C-27, C-4, U-3, U-8
+  notify-key-per-ticket       caught     C-18, C-19, C-21, U-9
+  notify-requester            caught     C-18, C-19, C-20, C-21, C-22, C-23, C-24, C-25, C-27, C-4, U-3, U-8, U-9
+  audit-bypassed              caught     C-15, C-16, C-17, C-18, C-27, U-6, U-7, U-9
+  actor-ignored               caught     C-16, U-6, U-9
+  same-agent-not-noop         caught     C-18, C-4, U-1, U-3, U-9
+  memory-only-assignee        caught     C-25, C-27, C-28, U-5, U-7
+  old-data-refused            caught     C-28, C-33, U-7
+  old-assignee-undefined      caught     C-28, U-7
+  raw-column-inserted         caught     C-37, U-5
+  cli-no-assignee             caught     U-5
+  no-unassign                 caught     C-14, C-15, C-16, C-19, C-2, C-20, C-27, C-3, C-30, C-33, C-37, C-4, C-5, C-7, U-2, U-6, U-9
+  empty-filter-ignored        caught     C-30, C-32, U-2, U-4, U-9
+  name-limit-off-by-one       caught     C-7
+  listing-hides-assignee      caught     C-12, U-5
+  update-rejects-resolved     MISSED     
+  default-limit-changed       caught     C-34, C-41, U-9
+  resolved-template-replaced  caught     C-26, C-41, U-9
+  audit-not-saved             caught     C-27, C-41, U-7, U-9
+  backoff-linear              caught     C-24, C-41
+  validate-renamed            caught     C-41
+  caught 26 of 27 calibrated defects
+strength exit: 0
+== done 07:54:52

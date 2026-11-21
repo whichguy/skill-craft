@@ -1,0 +1,441 @@
+{
+ "runs": {
+  "reworded:orders": {
+   "case": "stand-in-rules",
+   "enrich": "reworded",
+   "counts": {
+    "written": {
+     "clauses": {
+      "request": 24,
+      "implied": 2,
+      "existing": 1
+     },
+     "use_cases": {
+      "request": 4,
+      "implied": 1
+     }
+    },
+    "failing": {
+     "clauses": {
+      "request": 2
+     },
+     "use_cases": {
+      "request": 1
+     }
+    }
+   },
+   "request_clauses_failing": [
+    "C-25",
+    "C-26"
+   ],
+   "request_clauses_about_tests": [
+    "C-25",
+    "C-26"
+   ],
+   "refusing": {
+    "written": {
+     "request": 9,
+     "implied": 1
+    },
+    "failing": {
+     "request": 0,
+     "implied": 0
+    }
+   },
+   "choice_clauses": [],
+   "plan_added": [
+    "C-27"
+   ],
+   "plan_added_failing": [],
+   "failing_not_in_spec": [],
+   "failing_items": [
+    {
+     "id": "U-5",
+     "kind": "request",
+     "plan_added": false,
+     "refuses": false,
+     "statement": "A maintainer runs the project tests to verify the order helpers",
+     "source": "request"
+    },
+    {
+     "id": "C-25",
+     "kind": "request",
+     "plan_added": false,
+     "refuses": false,
+     "statement": "The order helpers are covered by node:test tests",
+     "source": "request"
+    },
+    {
+     "id": "C-26",
+     "kind": "request",
+     "plan_added": false,
+     "refuses": false,
+     "statement": "npm test passes with the order helpers included",
+     "source": "request"
+    }
+   ]
+  },
+  "lens:orders": {
+   "case": "stand-in-rules",
+   "enrich": "lenses",
+   "counts": {
+    "written": {
+     "clauses": {
+      "implied": 24,
+      "request": 26,
+      "choice": 20,
+      "existing": 12
+     },
+     "use_cases": {
+      "request": 3,
+      "implied": 4,
+      "existing": 1
+     }
+    },
+    "failing": {
+     "clauses": {
+      "choice": 6,
+      "request": 3
+     },
+     "use_cases": {
+      "existing": 1
+     }
+    }
+   },
+   "request_clauses_failing": [
+    "C-78",
+    "C-79",
+    "C-80"
+   ],
+   "request_clauses_about_tests": [
+    "C-78",
+    "C-79",
+    "C-80"
+   ],
+   "refusing": {
+    "written": {
+     "request": 6,
+     "choice": 6,
+     "implied": 2,
+     "existing": 4
+    },
+    "failing": {
+     "request": 0,
+     "choice": 5,
+     "implied": 0,
+     "existing": 0
+    }
+   },
+   "choice_clauses": [
+    {
+     "id": "C-6",
+     "failing": true,
+     "refuses": false,
+     "statement": "Physical line breaks also include CRLF, bare CR, U+2028, and U+2029",
+     "source": "choice: use the ECMAScript line-terminator set, with CRLF counted as one break, to accept text from different environments"
+    },
+    {
+     "id": "C-14",
+     "failing": false,
+     "refuses": false,
+     "statement": "The first equals sign separates the key from the full field value",
+     "source": "choice: keep the entire value available to its field's validation so a suffix cannot be discarded silently"
+    },
+    {
+     "id": "C-15",
+     "failing": false,
+     "refuses": false,
+     "statement": "Leading, repeated, or trailing semicolons introduce an empty field",
+     "source": "choice: interpret the delimiter as a separator so blank field fragments receive the same error as other fields without an equals sign"
+    },
+    {
+     "id": "C-17",
+     "failing": false,
+     "refuses": false,
+     "statement": "Trimming and judging blank lines use the same whitespace definition",
+     "source": "choice: use Node.js string whitespace semantics consistently for values and blanks"
+    },
+    {
+     "id": "C-18",
+     "failing": false,
+     "refuses": false,
+     "statement": "Surrounding whitespace on a field key is accepted",
+     "source": "choice: accept harmless spacing around the key\u2013value separator"
+    },
+    {
+     "id": "C-19",
+     "failing": false,
+     "refuses": false,
+     "statement": "Field names use the listed case-sensitive spellings",
+     "source": "choice: use the five spellings given for the input schema, with case normalization reserved for status values"
+    },
+    {
+     "id": "C-20",
+     "failing": false,
+     "refuses": false,
+     "statement": "Named fields can appear in any order",
+     "source": "choice: the keys identify fields without imposing a position on callers"
+    },
+    {
+     "id": "C-21",
+     "failing": true,
+     "refuses": true,
+     "statement": "Omitting any expected key makes a record a syntax error",
+     "source": "choice: treat the listed keys as the record schema so absent fields and present empty values remain distinguishable"
+    },
+    {
+     "id": "C-22",
+     "failing": true,
+     "refuses": true,
+     "statement": "A field outside the expected schema makes a record a syntax error",
+     "source": "choice: surface misspellings and unsupported data instead of silently dropping a submitted field"
+    },
+    {
+     "id": "C-23",
+     "failing": true,
+     "refuses": true,
+     "statement": "Repeating any key within one record makes that record a syntax error",
+     "source": "choice: reject ambiguous record definitions without picking a field by position"
+    },
+    {
+     "id": "C-26",
+     "failing": false,
+     "refuses": false,
+     "statement": "Numeric field text uses full-string ECMAScript Number conversion for nonempty values",
+     "source": "choice: accept numeric spellings the runtime can read in full without a special decimal spelling requirement or silent acceptance of a numeric prefix"
+    },
+    {
+     "id": "C-27",
+     "failing": true,
+     "refuses": true,
+     "statement": "An ID without a finite numeric value throws SyntaxError",
+     "source": "choice: the request requires a numeric ID and assigns range errors specifically to quantity and price"
+    },
+    {
+     "id": "C-28",
+     "failing": false,
+     "refuses": false,
+     "statement": "Finite IDs have no sign or whole-number restriction",
+     "source": "choice: apply the request's whole-number and minimum rules only to qty and price"
+    },
+    {
+     "id": "C-35",
+     "failing": true,
+     "refuses": true,
+     "statement": "Empty text in a numeric quantity or price field is invalid",
+     "source": "choice: an empty value supplies no quantity or cents even though ECMAScript Number conversion of an empty string yields zero"
+    },
+    {
+     "id": "C-36",
+     "failing": false,
+     "refuses": false,
+     "statement": "Whole-number validation uses the numeric value produced by conversion",
+     "source": "choice: use ECMAScript binary64 Number semantics, whose largest safe integer is `9,007,199,254,740,991`, without adding a smaller application ceiling"
+    },
+    {
+     "id": "C-42",
+     "failing": false,
+     "refuses": false,
+     "statement": "Date validation uses the stated shape as the complete test for a nonempty date",
+     "source": "choice: the request specifies a textual date shape and leaves calendar validity open"
+    },
+    {
+     "id": "C-47",
+     "failing": false,
+     "refuses": true,
+     "statement": "With invalid records on multiple lines, the earliest failing line is reported",
+     "source": "choice: match the order in which the importer encounters records"
+    },
+    {
+     "id": "C-48",
+     "failing": false,
+     "refuses": false,
+     "statement": "A line with multiple violations can report any one of its applicable violations",
+     "source": "choice: the request assigns each rule an error type while leaving precedence inside a single line open"
+    },
+    {
+     "id": "C-53",
+     "failing": false,
+     "refuses": false,
+     "statement": "Total accepts arrays of orders with valid numeric quantities and prices",
+     "source": "choice: support array inputs with the two values used by the calculation without requiring caller metadata or specifying an error protocol for unsupported inputs"
+    },
+    {
+     "id": "C-57",
+     "failing": false,
+     "refuses": false,
+     "statement": "The cents calculation follows JavaScript Number arithmetic in array order",
+     "source": "choice: use the runtime's numeric multiplication and addition for the requested sum without introducing an overflow error or another return type"
+    }
+   ],
+   "plan_added": [],
+   "plan_added_failing": [],
+   "failing_not_in_spec": [],
+   "failing_items": [
+    {
+     "id": "U-8",
+     "kind": "existing",
+     "plan_added": false,
+     "refuses": false,
+     "statement": "A maintainer checks that existing meter consumers still work",
+     "source": "existing: README.md, src/meter.js, test/meter.test.js and package.json"
+    },
+    {
+     "id": "C-6",
+     "kind": "choice",
+     "plan_added": false,
+     "refuses": false,
+     "statement": "Physical line breaks also include CRLF, bare CR, U+2028, and U+2029",
+     "source": "choice: use the ECMAScript line-terminator set, with CRLF counted as one break, to accept text from different environments"
+    },
+    {
+     "id": "C-21",
+     "kind": "choice",
+     "plan_added": false,
+     "refuses": true,
+     "statement": "Omitting any expected key makes a record a syntax error",
+     "source": "choice: treat the listed keys as the record schema so absent fields and present empty values remain distinguishable"
+    },
+    {
+     "id": "C-22",
+     "kind": "choice",
+     "plan_added": false,
+     "refuses": true,
+     "statement": "A field outside the expected schema makes a record a syntax error",
+     "source": "choice: surface misspellings and unsupported data instead of silently dropping a submitted field"
+    },
+    {
+     "id": "C-23",
+     "kind": "choice",
+     "plan_added": false,
+     "refuses": true,
+     "statement": "Repeating any key within one record makes that record a syntax error",
+     "source": "choice: reject ambiguous record definitions without picking a field by position"
+    },
+    {
+     "id": "C-27",
+     "kind": "choice",
+     "plan_added": false,
+     "refuses": true,
+     "statement": "An ID without a finite numeric value throws SyntaxError",
+     "source": "choice: the request requires a numeric ID and assigns range errors specifically to quantity and price"
+    },
+    {
+     "id": "C-35",
+     "kind": "choice",
+     "plan_added": false,
+     "refuses": true,
+     "statement": "Empty text in a numeric quantity or price field is invalid",
+     "source": "choice: an empty value supplies no quantity or cents even though ECMAScript Number conversion of an empty string yields zero"
+    },
+    {
+     "id": "C-78",
+     "kind": "request",
+     "plan_added": false,
+     "refuses": false,
+     "statement": "The node:test suite covers the order parser",
+     "source": "request"
+    },
+    {
+     "id": "C-79",
+     "kind": "request",
+     "plan_added": false,
+     "refuses": false,
+     "statement": "The node:test suite covers the order total",
+     "source": "request"
+    },
+    {
+     "id": "C-80",
+     "kind": "request",
+     "plan_added": false,
+     "refuses": false,
+     "statement": "The complete suite passes through npm test",
+     "source": "request"
+    }
+   ]
+  }
+ },
+ "pooled": {
+  "reworded": {
+   "runs": [
+    "reworded:orders"
+   ],
+   "plan_added": 1,
+   "plan_added_failing": 0,
+   "request_clauses_about_tests": 2,
+   "refusing": {
+    "written": {
+     "request": 9,
+     "implied": 1
+    },
+    "failing": {
+     "request": 0,
+     "implied": 0
+    }
+   },
+   "written": {
+    "clauses": {
+     "request": 24,
+     "implied": 2,
+     "existing": 1
+    },
+    "use_cases": {
+     "request": 4,
+     "implied": 1
+    }
+   },
+   "failing": {
+    "clauses": {
+     "request": 2
+    },
+    "use_cases": {
+     "request": 1
+    }
+   }
+  },
+  "lens": {
+   "runs": [
+    "lens:orders"
+   ],
+   "plan_added": 0,
+   "plan_added_failing": 0,
+   "request_clauses_about_tests": 3,
+   "refusing": {
+    "written": {
+     "request": 6,
+     "choice": 6,
+     "implied": 2,
+     "existing": 4
+    },
+    "failing": {
+     "request": 0,
+     "choice": 5,
+     "implied": 0,
+     "existing": 0
+    }
+   },
+   "written": {
+    "clauses": {
+     "implied": 24,
+     "request": 26,
+     "choice": 20,
+     "existing": 12
+    },
+    "use_cases": {
+     "request": 3,
+     "implied": 4,
+     "existing": 1
+    }
+   },
+   "failing": {
+    "clauses": {
+     "choice": 6,
+     "request": 3
+    },
+    "use_cases": {
+     "existing": 1
+    }
+   }
+  }
+ }
+}

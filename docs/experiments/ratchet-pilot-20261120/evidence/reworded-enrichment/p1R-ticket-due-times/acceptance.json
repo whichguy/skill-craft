@@ -1,0 +1,119 @@
+{
+  "U-1": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^U-1 ' acceptance/flows.cjs"
+  },
+  "U-2": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^U-2 ' acceptance/flows.cjs"
+  },
+  "U-3": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^U-3 ' acceptance/flows.cjs"
+  },
+  "U-4": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^U-4 ' acceptance/flows.cjs"
+  },
+  "U-5": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^U-5 ' acceptance/flows.cjs"
+  },
+  "U-6": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^U-6 ' acceptance/operators.cjs"
+  },
+  "U-7": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^U-7 ' acceptance/operators.cjs"
+  },
+  "U-8": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^U-8 ' acceptance/operators.cjs"
+  },
+  "C-1": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-1 ' acceptance/http.cjs"
+  },
+  "C-2": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-2 ' acceptance/http.cjs"
+  },
+  "C-3": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-3 ' acceptance/http.cjs"
+  },
+  "C-4": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-4 ' acceptance/http.cjs"
+  },
+  "C-5": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-5 ' acceptance/http.cjs"
+  },
+  "C-6": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-6 ' acceptance/http.cjs"
+  },
+  "C-7": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-7 ' acceptance/http.cjs"
+  },
+  "C-8": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-8 ' acceptance/http.cjs"
+  },
+  "C-9": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-9 ' acceptance/http.cjs"
+  },
+  "C-10": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-10 ' acceptance/http.cjs"
+  },
+  "C-11": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-11 ' acceptance/files.cjs"
+  },
+  "C-12": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-12 ' acceptance/http.cjs"
+  },
+  "C-13": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-13 ' acceptance/http.cjs"
+  },
+  "C-14": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-14 ' acceptance/http.cjs"
+  },
+  "C-15": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-15 ' acceptance/http.cjs"
+  },
+  "C-16": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-16 ' acceptance/http.cjs"
+  },
+  "C-17": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-17 ' acceptance/files.cjs"
+  },
+  "C-18": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-18 ' acceptance/files.cjs"
+  },
+  "C-19": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-19 ' acceptance/files.cjs"
+  },
+  "C-20": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-20 ' acceptance/files.cjs"
+  },
+  "C-21": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-21 ' acceptance/files.cjs"
+  },
+  "C-22": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-22 ' acceptance/files.cjs"
+  },
+  "C-23": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-23 ' acceptance/files.cjs"
+  },
+  "C-24": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-24 ' acceptance/files.cjs"
+  },
+  "C-25": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-25 ' acceptance/files.cjs"
+  },
+  "C-26": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-26 ' acceptance/operators.cjs"
+  },
+  "C-27": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-27 ' acceptance/operators.cjs"
+  },
+  "C-28": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-28 ' acceptance/operators.cjs"
+  },
+  "C-29": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-29 ' acceptance/operators.cjs"
+  },
+  "C-30": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-30 ' acceptance/operators.cjs"
+  },
+  "C-31": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-31 ' acceptance/files.cjs"
+  }
+}

@@ -1,0 +1,47 @@
+== reworded:orders (stand-in-rules; run.json says enrich=reworded): 5 use cases, 1 fail on the reference; clauses:
+   request      written   24   failing   2   (8.3% of its kind)
+   implied      written    2   failing   0   (0.0% of its kind)
+   existing     written    1   failing   0   (0.0% of its kind)
+   all          written   27   failing   2   (7.4%)
+   not existing written   26   failing   2   (7.7%)
+   the plan stage added ['C-27']; of those failing: none
+   request-clauses-about-tests: of the request clauses failing ['C-25', 'C-26'], about the tests the request asks for: ['C-25', 'C-26']
+== lens:orders (stand-in-rules; run.json says enrich=lenses): 8 use cases, 1 fail on the reference; clauses:
+   request      written   26   failing   3   (11.5% of its kind)
+   implied      written   24   failing   0   (0.0% of its kind)
+   existing     written   12   failing   0   (0.0% of its kind)
+   choice       written   20   failing   6   (30.0% of its kind)
+   all          written   82   failing   9   (11.0%)
+   not existing written   70   failing   9   (12.9%)
+   the plan stage added nothing; of those failing: none
+   request-clauses-about-tests: of the request clauses failing ['C-78', 'C-79', 'C-80'], about the tests the request asks for: ['C-78', 'C-79', 'C-80']
+
+#### pooled, text reworded (1 runs): use cases written 5, failing 1 {'request': 1}; clauses:
+   request      written   24   failing   2   (8.3% of its kind)
+   implied      written    2   failing   0   (0.0% of its kind)
+   existing     written    1   failing   0   (0.0% of its kind)
+   all          written   27   failing   2   (7.4%)
+   not existing written   26   failing   2   (7.7%)
+   clauses the plan stage added: 1, failing on the reference: 0
+   request clauses failing that are about the tests the request asks for: 2
+   clauses whose statement makes the product refuse or require something, against the rest of their kind:
+      request    refuses: written   9, failing   0 (0.0%);   rest: written  15, failing   2 (13.3%)
+      implied    refuses: written   1, failing   0 (0.0%);   rest: written   1, failing   0 (0.0%)
+      existing   refuses: written   0, failing   0 (-);   rest: written   1, failing   0 (0.0%)
+
+#### pooled, text lens (1 runs): use cases written 8, failing 1 {'existing': 1}; clauses:
+   request      written   26   failing   3   (11.5% of its kind)
+   implied      written   24   failing   0   (0.0% of its kind)
+   existing     written   12   failing   0   (0.0% of its kind)
+   choice       written   20   failing   6   (30.0% of its kind)
+   all          written   82   failing   9   (11.0%)
+   not existing written   70   failing   9   (12.9%)
+   clauses the plan stage added: 0, failing on the reference: 0
+   request clauses failing that are about the tests the request asks for: 3
+   clauses whose statement makes the product refuse or require something, against the rest of their kind:
+      request    refuses: written   6, failing   0 (0.0%);   rest: written  20, failing   3 (15.0%)
+      implied    refuses: written   2, failing   0 (0.0%);   rest: written  22, failing   0 (0.0%)
+      existing   refuses: written   4, failing   0 (0.0%);   rest: written   8, failing   0 (0.0%)
+      choice     refuses: written   6, failing   5 (83.3%);   rest: written  14, failing   1 (7.1%)
+
+wrote /Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-lens-08805f/docs/experiments/ratchet-pilot-20261120/evidence/reworded-enrichment/rung-2-orders-by-source.json

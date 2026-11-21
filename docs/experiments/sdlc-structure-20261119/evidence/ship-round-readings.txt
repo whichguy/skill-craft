@@ -1,0 +1,181 @@
+The E2E round on the three ShipLoop text corrections (commit c138c061c9e7eb236a374198645362450e6f94aa), 2026-11-21.
+Every value of the LEARNINGS.md entry of that date, with the file it was read from, and the three readings of the
+change (A: run options at the start; B: how each session stopped processes; C: the rule in the packets).
+
+How this file was made: a Sonnet worker read the two run folders and wrote the lines from "FACTS FOR" down; nothing
+was graded. Checked afterwards in the main session, by separate scripts: every harness verdict, the case checks, the
+held-out set, the span, turns, model calls and cost, the product heads, the options in state.md, the trace's accepted
+revisions and refusals, the review pass tables, the step plans, the first start command and the stop commands of the
+Claude run, and a count in both event streams of lines holding pkill or killall outside the rule's own text (0 in
+each). What that check changed or added is in the next block.
+
+== ADDED OR CORRECTED IN THE MAIN SESSION (separate parse of the Claude runs' events.jsonl: tool_use blocks of
+   assistant events; Bash commands only)
+[corrected] This round's Sonnet session ran `pgrep -f "node.*server.js"` in two commands, not one: events.jsonl index
+  1774 (a count: `... | head -2 | wc -l`) and index 1779 (the listing). Neither stops anything.
+[corrected] The path of the unrelated server that the listing matched is left out of this file.
+[added] Reference files opened, this round's Sonnet session: tool inputs naming `behavioral-requirements`: 0; naming
+  `run-options.md`: 0; naming `references/`: 8 (other reference files). The Sol events were not parsed here; the
+  spec-elaboration session's reading (its journal, section 34) is that neither session opened either file.
+[added] Background starts, this round's Sonnet session: 6 Bash commands hold a shell background `&`; 2 of them hold no
+  `$!` (indexes 1435 and 1604: `(./run/scratch/w2-mutants.sh ... &)` and `(./run/scratch/w3-mutants.sh ... &)`, each
+  followed by a bounded wait). No Bash call used run_in_background.
+[added] The same case on the earlier text: /Users/dadleet/e2e-runs-sdlc8/20261120/shared-expenses-sonnet-high
+  (claude-sonnet-5-5 at high, the round journaled on 2026-11-20, before the PID rule), parsed the same way.
+  Commands that stop by name: 3.
+    index 820: kill -TERM $(pgrep -f "node server.js" | head -1)
+    index 978: pkill -f "node --test" ; pkill -f "server.js"
+    index 987: pkill -f "server.js"
+  Commands that stop by a recorded id or variable: 1 (index 1402).
+  Bash commands with a shell background `&`: 6; without `$!` in the same command: 5 (indexes 820, 1055, 1167, 1278,
+  1385).
+  This round's run, same parse: stops by name 0; by a recorded id 4 (indexes 1483, 1528, 1686, 1871); background
+  starts 6, without `$!` 2.
+  One run each on different days: a lead, not a measured effect. The spec-elaboration session found this pair first.
+[added] The write-back refusal at `document` (metrics gate `spec_writeback`): in 5 of the 14 metrics.json files under
+  /Users/dadleet/e2e-runs-sdlc9/ (the review round of 2026-11-20) and 1 of the 64 under /Users/dadleet/e2e-runs-sdlc10/
+  (most of those 64 are samples ended before `document`).
+
+The run folders are outside the repository and may be pruned: /Users/dadleet/e2e-runs-sdlc11/20261121/.
+
+FACTS FOR THE 2026-11-21 LEARNINGS ENTRY
+Run root: /Users/dadleet/e2e-runs-sdlc11/20261121/
+Run A = ticket-assignment-sol-high (RA)   Run B = shared-expenses-sonnet-high (RB)
+ShipLoop run dirs: RA/.shiploop-runs/work-20261121-160256-461680/run ; RB/.shiploop-runs/work-20261121-160245-f59548/run
+Files read: result.json, invocation.json, metrics.json, sessions.jsonl, events.jsonl, run/trace.jsonl, run/state.md, run/results/*.md, run/improve/*/passes.md, run/packets/
+(Events line numbers below are 0-based indexes into events.jsonl.)
+
+== 0. COMMON (invocation.json "versions", result.json "versions")
+A. source: checkout (both)  (invocation.json versions.source)
+A. local_head: c138c061c9e7eb236a374198645362450e6f94aa (both)  (invocation.json versions.local_head)
+A. plugin fingerprint plugin_sha256: 7180edb8236c (both)  (invocation.json versions.plugin_sha256)
+A. plugin version label: 4.2.0 (both)  (invocation.json versions.plugin_version)
+A. ShipLoop version label: 2.4.0 (both)  (invocation.json versions.shiploop_version)
+A. outcome_class: PASS, basis "every verdict passed" (both)  (result.json outcome_class, outcome_basis)
+A. the two runs overlapped in time by 990.0 s (ran at the same time on one machine, 18 cpus, loadavg 7.6 at start)  (result.json environment.overlap)
+A. no run option passed on the ShipLoop start command; invocation.json planning_review: null, improve_skill: null (both)  (invocation.json)
+
+== 1. BUILDER
+RA builder: Codex CLI 0.171.0 (host_build "codex-cli 0.171.0"), model gpt-6.2-sol, effort high  (invocation.json host_build, model, effort; result.json host_build)
+RA sessions: 1 start row (kind first), 0 resumes, session stop end_turn  (sessions.jsonl; result.json process.resumes, termination.session_stops)
+RA argv extras: -s danger-full-access, agents.default_subagent_model gpt-6.2-sol, subagent effort high  (invocation.json argv)
+RB builder: Claude Code 2.1.330 (result.json host_build "2.1.330"; metrics.json claude_code_version "2.1.330"; invocation.json host_build null, identity read from the init event after the run), model claude-sonnet-5-5, effort high, backend anthropic  (invocation.json, result.json)
+RB sessions: 1 start row (kind first), 0 resumes, session stop success  (sessions.jsonl; result.json process.resumes, termination.session_stops)
+RB argv extras: --max-budget-usd 40.0, --permission-mode auto, --no-session-persistence  (invocation.json argv)
+
+== 2. HARNESS VERDICTS
+RA invoked: pass true, skill skill-craft:shiploop, evidence "ShipLoop CLI ran"  (result.json invoked)
+RA plugin: pass true, loaded skill-craft@whichguy 4.2.0  (result.json plugin)
+RA process: pass true, exited returncode 0, elapsed 992.3 s  (result.json process)
+RA shiploop: pass true, status done, stage done, revision 34, report_html true  (result.json shiploop)
+RA committed: pass true, start_head ef789422183e864df47476f648de1cbe57e391aa, head 7cfb37762f6c0553ec4130fd24c7f10063dceedb, head_files 65, uncommitted []  (result.json committed)
+RA overall pass: true; engine final stage: done, engine_status done  (result.json pass, termination.engine_stage, engine_status)
+RB invoked: pass true, skill skill-craft:shiploop  (result.json invoked)
+RB plugin: pass true, loaded plugin dir  (result.json plugin)
+RB process: pass true, exited returncode 0, elapsed 4981.7 s  (result.json process)
+RB shiploop: pass true, status done, stage done, revision 37, report_html true  (result.json shiploop)
+RB committed: pass true, start_head null (empty repository), head d4fdf5bf218e8af954775e2d5427a761c306fb05, head_files 19, uncommitted []  (result.json committed)
+RB overall pass: true; engine final stage: done, engine_status done  (result.json pass, termination.engine_stage, engine_status)
+
+== 3. CASE CHECKS AND HELD-OUT ACCEPTANCE
+RA case checks: 3 of 3 pass (suite: delivery's own node --test passes 121 tests, the base's 117 and 4 more; pristine: base's 18 test files pass, 117 of 117 tests; HTTP/serve check)  (result.json checks)
+RA held-out acceptance: 18 of 18 ids passed, none failed  (result.json quality.acceptance.ids, passed; quality.held_out_seen 0)
+RB case checks: 6 of 6 pass (unit, contract, split, settle, restart, concurrency)  (result.json checks)
+RB held-out acceptance: none declared; quality.observed false, reason "the case declares no quality measures (no mutation command, no held-out acceptance)"  (result.json quality)
+
+== 4. STEP PLAN (accepted step-plan results, run/results/*.md, embedded shiploop-state, stage step-plan, outcome done)
+RA work items with a step plan: 1 (W1). One step-plan result file only.  (run/results/nav-f6662bd4aa68417488e26555c85809e0.md)
+RA W1: 4 criteria, 2 steps. S1 = criteria C1,C2, 8 paths (src/app.js, src/tickets/validate.js, src/store.js, src/persistence.js, src/templates.js, docs/api.md, README.md, test/assignment.test.js); S2 = criteria C3,C4, 5 paths (src/tickets/query.js, src/format.js, docs/api.md, README.md, test/assignment-list.test.js). Summary: assignment write and durable notification first, then filters and the terminal listing.  (same file)
+RB work items with a step plan: 2 (W1, W2); both are in the plan stage's work_items (W1 'Domain core: ledger rules and persistent store', W2 'HTTP service, server.js wiring, test harness and end-to-end cases'); no later item added; one product-acceptance result.  (run/results/*.md)
+RB W1: 11 criteria, 1 step (S1 = C1..C11; paths lib/ledger.js, lib/store.js, test/ledger.test.js, test/store.test.js). Plan text: "11 criteria and 2 product files are within the step size".  (run/results/nav-8fc7db23a26541869cd317a3063dd1c0.md)
+RB W2: 12 criteria, 1 step (S1 = C1..C12; paths lib/app.js, server.js, test-support/harness.js, 8 test files, README.md). Plan text: "12 criteria and 2 product files are within the step size, and splitting would leave a first step whose tests cannot run without the second".  (run/results/nav-d31255b729774f47ad561cfd3bd0597e.md)
+
+== 5. START TO END
+RA span: started 1795276958.427 = 16:02:38Z, ended 1795277948.441 = 16:19:08Z, 990.0 s = 16.5 minutes  (result.json span)
+RB span: started 1795276957.053 = 16:02:37Z, ended 1795281937.743 = 17:25:37Z, 4980.7 s = 83.0 minutes  (result.json span)
+
+== 6. ACCEPTED REVISIONS (trace.jsonl rows kind command, verb complete, exit 0)
+RA accepted revisions: 34  (run/trace.jsonl; equals result.json shiploop.revision 34; sessions.jsonl end row says "accepted": 26, a different count)
+RB accepted revisions: 37  (run/trace.jsonl; equals result.json shiploop.revision 37; sessions.jsonl end row says "accepted": 30, a different count)
+
+== 7. IMPROVE REVIEWS (run/improve/*/passes.md) AND PLANNING-REVIEW OPTION
+RA planning_review recorded in state.md: "stage"  (run/state.md); also "delegation": "inline", "lint": "fix"
+RA improve reviews: 9 (metrics improve_children 9; trace improve-pass rows 9, all exit 0). Stages: spec, test-strategy, plan, step-plan, document x2, carry-forward, system-test-author, release-plan. Each review had 1 pass, labelled trivial; tree changed n, result changed n, 0 lines, in all 9. Reviews that changed anything: 0 of 9. Seconds per pass: 6 to 30.  (run/improve/*/passes.md)
+RB planning_review recorded in state.md: "stage"  (run/state.md); also "delegation": "inline", "lint": "fix"
+RB improve reviews: 9 (metrics improve_children 9), 19 passes (trace improve-pass rows 19 exit 0 + 1 exit 2). Stages: spec (4 passes), test-strategy (3), plan (4), step-plan (1), document x2 (2 and 1), carry-forward (2), system-test-author (1), release-plan (1). Reviews that changed anything (a row with y under tree changed or result changed): 6 of 9 (spec, test-strategy, plan, document x2, carry-forward). Reviews with no change: step-plan, system-test-author, release-plan. Rows with y: 13 of 19 passes. Lines edited, first passes: spec 65, test-strategy 55, plan 31, document 58, carry-forward 161. Result changed y in: plan (3 passes), document (1st), carry-forward (1st). Step-plan review: 1 pass, trivial, no change.  (run/improve/*/passes.md)
+
+== 8. REFUSALS (trace.jsonl kind command, verb check or complete, exit != 0; stage = first element; error first 120 chars)
+RA refusals: 5 (3 complete, 2 check). All later followed by accepted revisions.  (run/trace.jsonl; metrics.json shiploop_failures lists the same 5)
+RA refusal 1: complete, test-strategy: "test_layers[1].layer is one of unit, component, e2e"
+RA refusal 2: complete, test-strategy: "test_layers gives CLI, worker and complete service no unit or component row. All code the run writes is tested below the"
+RA refusal 3: complete, step-plan: "the step-plan loop is still active: run the receipt's next_argv once, follow each instruction it returns until its statu"
+RA refusal 4: check, implement: "not_covered is [{"behaviour": "<what this step added that no test case covers>", "reason": "<why>"}], each nonblank, or "
+RA refusal 5: check, test: "ShipLoop mutation check: test is not done. 2 of 8 mutants of this item's changed product lines survived the focused test"
+RB refusals: 9 (3 complete, 6 check). All later followed by accepted revisions (run reached done).  (run/trace.jsonl)
+RB refusal 1: complete, test-strategy: "test_layers gives server.js no unit or component row. All code the run writes is tested below the e2e layer: add its uni"
+RB refusal 2: check, step-plan: "step S1's Proof runs test/ledger.test.js, which the item base does not have and no earlier step declares: implement writ"
+RB refusal 3: check, test: "ShipLoop mutation check: test is not done. 1 of 8 mutants of this item's changed product lines survived the focused test"
+RB refusal 4: check, document: "Restore /Users/dadleet/e2e-runs-sdlc11/20261121/shared-expenses-sonnet-high/.shiploop-runs/work-20261121-160245-f59548/w"
+RB refusal 5: check, step-plan: "these step paths have no expectation listing them in paths: test-support/harness.js (item paths, needs absent); README.m"
+RB refusal 6: check, step-plan: "open plan assumptions A5, A6, A7 name W2 as due_item; settle each here: an executed criterion with "from": "<assumption "
+RB refusal 7: complete, implement: "ShipLoop step proof: step S1's Proof did not pass, so its implement is not done. ShipLoop ran it from /Users/dadleet/e2"
+RB refusal 8: check, test: "ShipLoop mutation check: test is not done. 2 of 8 mutants of this item's changed product lines survived the focused test"
+RB refusal 9: complete, improve: "added_tests is allowed only on a done document result"
+RB extra (not counted above): 1 improve-pass refusal, exit 2, stage improve: "Add a line `Regression test: <the ID of the test in this commit that fails without the fix>` to /Users/..." (run/trace.jsonl). metrics.json shiploop_failures lists 12 rows for RB: the 9 above, that improve-pass row, a "lint" row exit 129 and an "unknown" row (no exit).
+RA/RB by stage, step-plan: RA 1, RB 3.
+
+== 9. TURNS, MODEL CALLS, DOLLARS
+RA turns 289, model_calls 79, cost_usd null (not recorded; no dollar figure from this host); cli.num_turns 289; tokens processed 10,216,193, output 35,922; compactions 0  (result.json metrics, metrics.json)
+RB turns 510, model_calls 286, cost_usd 20.4834; cli.num_turns 319 (session result count, differs from metrics.turns 510); tokens processed 133,521,243, output 417,835  (result.json metrics, cli; metrics.json)
+RB budget cap: --max-budget-usd 40.0 (invocation.json argv); result.json budget null
+RB tmp_writes: ["/tmp/_ignore"] (one write outside RUN/scratch); RA tmp_writes: []  (metrics.json)
+
+== 10. RETURNED SOURCE AND LEFT BEHIND
+RA returned source: clean committed product 7cfb37762f6c0553ec4130fd24c7f10063dceedb (65 files, delivery tree ef43672793b5ffcbfd84d23e67bf30b4f9b54d42, status [] before and after, bundle delivery/work.bundle)  (result.json committed, delivery)
+RB returned source: clean committed product d4fdf5bf218e8af954775e2d5427a761c306fb05 (19 files, tree b59cf57f415e5dc1323647be27be1a4175e242f0, status [] before and after)  (result.json committed, delivery)
+RA left behind: observed, reaped [], survived [] (quality.left_behind and top-level left_behind); resources cleanup end stopped [], survived []; lease port-4180  (result.json)
+RB left behind: top-level left_behind observed, reaped [], survived []; resources cleanup end stopped [], survived []; quality.left_behind not recorded (case declares no quality measure)  (result.json)
+
+== CHECK A: FIRST SHIPLOOP START COMMAND (events.jsonl)
+RA command (events.jsonl index 9, tool run_terminal_command), first 200 chars: /bin/zsh -lc "python3 '/Users/dadleet/e2e-runs-sdlc11/20261121/ticket-assignment-sol-high/home/.codex/plugins/cache/whichguy/skill-craft/4.2.0/skills/shiploop/scripts/shiploop' workspace start --repo
+RA command, path-shortened: python3 '.../skills/shiploop/scripts/shiploop' workspace start --repo "$PWD" --prompt='$skill-craft:shiploop This directory is an existing Node.js service ...'
+RA flags found in the command: --repo, --prompt. Run options passed: none (--planning-review no, --delegation no, --lint no, --improve-skill no). workspace-start commands in the whole run: 1.
+RB command (events.jsonl index 11, tool Bash), first 200 chars: SKILL_ROOT="/Users/dadleet/e2e-runs-sdlc11/20261121/shared-expenses-sonnet-high/build/plugins/skill-craft/skills/shiploop"; CLI="$SKILL_ROOT/scripts/shiploop"; python3 "$CLI" workspace start --repo /U
+RB command, path-shortened: python3 "$CLI" workspace start --repo /Users/.../work --prompt='Build a small shared-expenses service in Node.js (no npm dependencies). ...'
+RB flags found in the command: --repo, --prompt (a "--test" in the text is part of the request: "node --test"). Run options passed: none (--planning-review no, --delegation no, --lint no, --improve-skill no). workspace-start commands in the whole run: 1.
+A result: both runs passed no run option. state.md then records planning_review "stage" in both = the default the change documents. Previous entry (2026-11-20) Sol run recorded planning-review "none" (LEARNINGS.md).
+
+== CHECK B: COMMANDS THAT STOP A PROCESS (commands the session ran: Bash/run_terminal_command/Monitor/TaskStop tool inputs; tool results and file reads not counted)
+Commands counted: RA 272 shell commands (+7 file edits); RB 245 Bash + 3 Monitor + 1 TaskStop (+17 Edit, 11 Write, 15 Read, 9 Skill). Extracted from events.jsonl; searched for pkill, killall, kill, taskkill, pgrep, process.kill, .kill(, trap.
+RA pkill commands: 0
+RA killall commands: 0
+RA shell kill with a PID or PID variable: 0 commands
+RA other: 1 command (index 420) wrote a test file whose code does process.kill(-service.pid, 'SIGTERM') on a child it spawned with detached:true; quote: "& service.exitCode === null && service.signalCode === null) { process.kill(-service.pid, 'SIGTERM'); } await closed; } finally {". That is test code in a file, not a shell stop command.
+RB pkill commands: 0
+RB killall commands: 0
+RB shell kill with a PID or PID variable: 4 commands.
+  (1) index 1483, 160 chars: mbers":["a","b"]}'; echo; } > $R/run/scratch/readme-session.txt 2>&1; kill $(cat $D/pid); cat $R/run/scratch/readme-session.txt; cat $D/data.json; ech
+  (2) index 1528, 160 chars: $B/groups/c/balances; } 2>&1 | tee ../run/scratch/w2-edge-probe.out; kill $(cat $D/pid); echo "stderr:"; cat $D/err.txt; rm -rf $D
+  (3) index 1871, 160 chars: 'content-type: application/json' -d '{"id":"h","members":["a","b"]}'; kill $(cat $D/pid); echo "--- stdout:"; cat $D/out.txt; echo "--- stderr:"; cat
+  (4) index 1686 writes a script (system-smoke.sh) whose text holds `PID=$!` after `node "$ROOT/server.js" ... &` and `cleanup() { [ -n "$PID" ] && kill "$PID" 2>/dev/null; wait "$PID" ...` plus `kill "$PID"; wait "$PID"`; the script's own comment says "stops it by the PID it started". The same command then runs the script.
+  In (1)(2)(3) the PID is recorded by `( ... node server.js > out 2> err & echo $! > $D/pid )` and stopped by `kill $(cat $D/pid)`.
+  None of the four commands checks that the PID is still this run's before the kill (nothing in the command text does).
+RB other stop-related commands: TaskStop with task_id "bdtwlqcaw" (index 1084; a harness task id, no name or pattern). 3 Monitor commands are wait loops (until ...; sleep 5), not stops. One `ps -o pid,ppid,etime,command -p $(pgrep -f "node.*server.js" ...)` (index 1779, description "Inspect any remaining server processes"): a name search to LIST processes, not to stop them; it returned one unrelated process (a server of another project on this machine) and nothing was stopped (next command is a ShipLoop callback).
+RB other (not shell kill): test or script code that calls child.kill(...) on a handle: index 273 `h.child.kill('SIGKILL')`, index 1215 `server.child.kill(signal)`, index 1768 (ran) `s.c.kill()`; indexes 1072, 1192, 1774 also hold such code.
+B result: pkill/killall 0 in both runs; kill by recorded PID: RA 0 commands, RB 4 commands.
+
+== CHECK C: THE NEW RULE IN THE PACKETS (phrase "stop it by that PID")
+Rule text in the packets (RA packet nav-07d857bb...md lines 44-45): "Record the PID of a background process you start and stop it by that PID, once you have confirmed it is still this run's. Never choose processes to stop by name or pattern (`pkill`, `killall`, a name search piped to `kill`)."
+RA packets: run/packets/ holds 35 files at top level plus a sent/ folder with 36 files (copies of the 37 printed packets; trace.jsonl has 37 packet rows). Top-level files containing the phrase: 25 of 35. sent/ files containing it: 26 of 36. All 51 recursive. Files without it: 9 improve hand-off packets (first line "ShipLoop navigator | improve | ...") and the final "done" packet. events.jsonl lines containing the phrase: 27.
+RB packets: run/packets/ holds 38 files at top level plus a sent/ folder with 38 files (trace.jsonl has 38 packet rows). Top-level files containing the phrase: 28 of 38. sent/ files containing it: 28 of 38. All 56 recursive. Files without it: 9 improve hand-off packets and the final "done" packet. events.jsonl lines containing the phrase: 19.
+C result: the rule is in every stage packet (spec, test, implement, release and the rest) in both runs; only the improve hand-off packets and the done packet lack it.
+
+== NOT FOUND / NOT RECORDED
+- RA dollar cost: not recorded (cost_usd null).
+- RB quality.left_behind and held-out acceptance: not recorded (no quality measure declared).
+- Whether the model read or obeyed the rule: not recorded; events show the packet text printed, nothing more.
+- Whether the card text change (run option is the user's / planning-review defaults to stage) or the KNOWLEDGE/spec.md sentence changed any behaviour: no earlier run on the same source in the folder to compare with (no baseline row read).
+- 0 pkill/killall in these runs says nothing about how often earlier text produced them: not looked at here.
+
+== EXTRA: spec path sentence (third correction)
+Packets name KNOWLEDGE/spec.md: top-level packet files containing it RA 25, RB 28 (grep). The spec file each run records is a tracked file in the worktree (docs/shiploop/spec.md; result.json shiploop.knowledge.spec true, spec_tracked true; requirement ids RA R-1..R-4, RB R-1..R-12). Nothing read here shows whether the corrected sentence changed behaviour.

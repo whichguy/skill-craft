@@ -1,0 +1,11 @@
+== strength grading, due times 07:41:33
+p1R-ticket-due-times: 31 clauses and 8 use cases tested; on the correct reference 3 clauses and 1 use cases fail: ['C-19', 'C-29', 'C-3', 'U-8']
+  version-two                 caught     C-25, C-30, U-5
+  priority-moves-due          caught     C-10, C-11, U-1
+  due-not-persisted           caught     C-10, C-11, C-12, C-14, C-15, C-17, C-18, C-20, C-7, U-3, U-4
+  no-backfill                 caught     C-17, C-18, C-20, U-4
+  flag-ignored                caught     U-4
+  overdue-active              caught     C-12, C-14, C-15, U-2
+  caught 6 of 6 calibrated defects
+strength exit: 0
+== done 07:42:38

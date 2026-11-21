@@ -1,0 +1,98 @@
+{
+  "U-1": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^U-1 ' acceptance/orders.cjs"
+  },
+  "U-2": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^U-2 ' acceptance/orders.cjs"
+  },
+  "U-3": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^U-3 ' acceptance/orders.cjs"
+  },
+  "U-4": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^U-4 ' acceptance/orders.cjs"
+  },
+  "U-5": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^U-5 ' acceptance/orders.cjs"
+  },
+  "C-1": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^C-1 ' acceptance/orders.cjs"
+  },
+  "C-2": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^C-2 ' acceptance/orders.cjs"
+  },
+  "C-3": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^C-3 ' acceptance/orders.cjs"
+  },
+  "C-4": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^C-4 ' acceptance/orders.cjs"
+  },
+  "C-5": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^C-5 ' acceptance/orders.cjs"
+  },
+  "C-6": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^C-6 ' acceptance/orders.cjs"
+  },
+  "C-7": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^C-7 ' acceptance/orders.cjs"
+  },
+  "C-8": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^C-8 ' acceptance/orders.cjs"
+  },
+  "C-9": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^C-9 ' acceptance/orders.cjs"
+  },
+  "C-10": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^C-10 ' acceptance/orders.cjs"
+  },
+  "C-11": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^C-11 ' acceptance/orders.cjs"
+  },
+  "C-12": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^C-12 ' acceptance/orders.cjs"
+  },
+  "C-13": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^C-13 ' acceptance/orders.cjs"
+  },
+  "C-14": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^C-14 ' acceptance/orders.cjs"
+  },
+  "C-15": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^C-15 ' acceptance/orders.cjs"
+  },
+  "C-16": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^C-16 ' acceptance/orders.cjs"
+  },
+  "C-17": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^C-17 ' acceptance/orders.cjs"
+  },
+  "C-18": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^C-18 ' acceptance/orders.cjs"
+  },
+  "C-19": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^C-19 ' acceptance/orders.cjs"
+  },
+  "C-20": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^C-20 ' acceptance/orders.cjs"
+  },
+  "C-21": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^C-21 ' acceptance/orders.cjs"
+  },
+  "C-22": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^C-22 ' acceptance/orders.cjs"
+  },
+  "C-23": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^C-23 ' acceptance/orders.cjs"
+  },
+  "C-24": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^C-24 ' acceptance/orders.cjs"
+  },
+  "C-25": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^C-25 ' acceptance/orders.cjs"
+  },
+  "C-26": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^C-26 ' acceptance/orders.cjs"
+  },
+  "C-27": {
+    "command": "node --test --test-reporter=spec --test-timeout=45000 --test-force-exit --test-name-pattern='^C-27 ' acceptance/orders.cjs"
+  }
+}

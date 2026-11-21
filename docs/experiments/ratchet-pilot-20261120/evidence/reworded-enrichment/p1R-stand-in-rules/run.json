@@ -1,0 +1,218 @@
+{
+ "case": "stand-in-rules",
+ "host": "codex",
+ "model": "gpt-6.2-sol",
+ "effort": "high",
+ "started": "2026-11-21T07:03:50-0800",
+ "start_tree": null,
+ "frozen_from": null,
+ "build_from": "/Users/dadleet/e2e-runs/ratchet-pilot-20261120-b6eab2/refs/stand-in-rules/reference",
+ "bare": false,
+ "sessions": [
+  {
+   "number": 1,
+   "role": "plan",
+   "label": "plan-1",
+   "seconds": 174.2,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 174.2,
+   "held_out_marks": []
+  },
+  {
+   "number": 2,
+   "role": "tests",
+   "label": "tests-1-1",
+   "seconds": 746.7,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 746.7,
+   "held_out_marks": []
+  }
+ ],
+ "gates": [
+  {
+   "number": 1,
+   "label": "after-given-build",
+   "pass": true,
+   "failing": [],
+   "passing": [],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [],
+   "clauses": 0,
+   "at": 174.9
+  },
+  {
+   "number": 2,
+   "label": "cycle-1-first",
+   "pass": false,
+   "failing": [
+    "U-5",
+    "C-25",
+    "C-26"
+   ],
+   "passing": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-27",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4"
+   ],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [],
+   "clauses": 32,
+   "at": 930.2
+  },
+  {
+   "number": 3,
+   "label": "final",
+   "pass": false,
+   "failing": [
+    "U-5",
+    "C-25",
+    "C-26"
+   ],
+   "passing": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-27",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4"
+   ],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [],
+   "clauses": 32,
+   "at": 938.5
+  }
+ ],
+ "snapshots": [
+  {
+   "label": "base",
+   "commit": "26cf79cc07061348c98f94723d9ebdd92db328c4",
+   "tree": "dba046f01be392a106d4b8a6ea3c1185c6fdf007",
+   "at": 0.1
+  },
+  {
+   "label": "spec",
+   "commit": "80b7fa1b736f03a51e733b97484b24187e496170",
+   "tree": "312407dc75d9182201baf4eeb55c96ac16675e8e",
+   "at": 0.1
+  },
+  {
+   "label": "plan-1",
+   "commit": "312b1313863e7ebf53ab0137d2a837eaa51c1dbf",
+   "tree": "10dbf665972a2897b01a05d7dffe6eec060adf27",
+   "at": 174.5
+  },
+  {
+   "label": "build-1",
+   "commit": "efe3a9a6b307233fc6bb78e25ebd8ef859440880",
+   "tree": "7d33e2eee3f539933202159a7502c8bf25c826ea",
+   "at": 175.0
+  },
+  {
+   "label": "tests-1",
+   "commit": "e52b990615f94d4655506f4506ad00513a0de000",
+   "tree": "9818469f5f6d80104185ef0eb1040f3084406df9",
+   "at": 921.7
+  },
+  {
+   "label": "final",
+   "commit": "c7a335bafaa187cd949b174bdf6805555aa0117f",
+   "tree": "9818469f5f6d80104185ef0eb1040f3084406df9",
+   "at": 938.5
+  }
+ ],
+ "cycles": [
+  {
+   "cycle": 1,
+   "clauses_at_start": 31,
+   "new_clauses": [],
+   "plan_loops": [
+    {
+     "name": "plan-1",
+     "session": "exited",
+     "loop": "complete",
+     "iterations": 2,
+     "trivial_streak": 1
+    }
+   ],
+   "plan_added": [
+    "C-27"
+   ],
+   "first_gate_failing": [
+    "U-5",
+    "C-25",
+    "C-26"
+   ]
+  }
+ ],
+ "reverted": [],
+ "spec_violations": [],
+ "local_head": "eace670d53149a866eb82dd1b87edb82fd53c111",
+ "named_checks": true,
+ "enrich": "reworded",
+ "spec_from": "/Users/dadleet/e2e-runs/ratchet-reworded-20261121-08805f/r1-orders",
+ "spec_from_seconds": 155.9,
+ "stop": "stop-after-tests",
+ "final_pass": false,
+ "seconds": 938.5,
+ "clauses": 27,
+ "use_cases": 5,
+ "tamper": [],
+ "finished": "2026-11-21T07:19:29-0800"
+}

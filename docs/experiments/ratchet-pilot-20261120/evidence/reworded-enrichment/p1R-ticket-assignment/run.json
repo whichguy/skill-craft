@@ -1,0 +1,260 @@
+{
+ "case": "ticket-assignment",
+ "host": "codex",
+ "model": "gpt-6.2-sol",
+ "effort": "high",
+ "started": "2026-11-21T07:20:52-0800",
+ "start_tree": null,
+ "frozen_from": null,
+ "build_from": "/Users/dadleet/e2e-runs/ratchet-pilot-20261120-b6eab2/refs/ticket-assignment/reference",
+ "bare": false,
+ "sessions": [
+  {
+   "number": 1,
+   "role": "plan",
+   "label": "plan-1",
+   "seconds": 285.8,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 285.8,
+   "held_out_marks": []
+  },
+  {
+   "number": 2,
+   "role": "tests",
+   "label": "tests-1-1",
+   "seconds": 941.7,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 941.7,
+   "held_out_marks": []
+  }
+ ],
+ "gates": [
+  {
+   "number": 1,
+   "label": "after-given-build",
+   "pass": true,
+   "failing": [],
+   "passing": [],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [],
+   "clauses": 0,
+   "at": 287.2
+  },
+  {
+   "number": 2,
+   "label": "cycle-1-first",
+   "pass": false,
+   "failing": [
+    "C-36",
+    "C-42",
+    "C-44"
+   ],
+   "passing": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-43",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [],
+   "clauses": 53,
+   "at": 1310.3
+  },
+  {
+   "number": 3,
+   "label": "final",
+   "pass": false,
+   "failing": [
+    "C-36",
+    "C-42",
+    "C-44"
+   ],
+   "passing": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-43",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8",
+    "U-9"
+   ],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [],
+   "clauses": 53,
+   "at": 1385.9
+  }
+ ],
+ "snapshots": [
+  {
+   "label": "base",
+   "commit": "e23e194ab7db10dd889613ee79a2823128bd75ba",
+   "tree": "99d92357c06060cc6c277e7115a92b32c1852140",
+   "at": 0.1
+  },
+  {
+   "label": "spec",
+   "commit": "9ac6f1ffd93173ee2a0b9233c5c9c44f9c6e92cb",
+   "tree": "6a39d279fb3709fa9c0dec2754c92100b9f76bbb",
+   "at": 0.2
+  },
+  {
+   "label": "plan-1",
+   "commit": "f4519ee65e3ff5cb0bf4b388acf07ecf6fab7036",
+   "tree": "49b26b05991fa95d57aaccffe87d952d0a22923f",
+   "at": 286.1
+  },
+  {
+   "label": "build-1",
+   "commit": "07069d0826dc614965fdd4e4e833ccdd1596c8fb",
+   "tree": "13431c708d09cf570983a2bf8051c817818ec671",
+   "at": 287.3
+  },
+  {
+   "label": "tests-1",
+   "commit": "1b05830fc6f5e3ded9dda92d7d1378b929010c2d",
+   "tree": "5047b79a7f181444f36bb030cfd78dc5f92737e7",
+   "at": 1229.1
+  },
+  {
+   "label": "final",
+   "commit": "950eb7a601aace0c1643f7502f88b618014eff6c",
+   "tree": "5047b79a7f181444f36bb030cfd78dc5f92737e7",
+   "at": 1385.9
+  }
+ ],
+ "cycles": [
+  {
+   "cycle": 1,
+   "clauses_at_start": 52,
+   "new_clauses": [],
+   "plan_loops": [
+    {
+     "name": "plan-1",
+     "session": "exited",
+     "loop": "complete",
+     "iterations": 2,
+     "trivial_streak": 1
+    }
+   ],
+   "plan_added": [
+    "C-44"
+   ],
+   "first_gate_failing": [
+    "C-36",
+    "C-42",
+    "C-44"
+   ]
+  }
+ ],
+ "reverted": [],
+ "spec_violations": [],
+ "local_head": "80d2f064fc7cb984ad46526c5ce2948857d5d384",
+ "named_checks": true,
+ "enrich": "reworded",
+ "spec_from": "/Users/dadleet/e2e-runs/ratchet-reworded-20261121-08805f/r1-ticket-assignment",
+ "spec_from_seconds": 227.5,
+ "stop": "stop-after-tests",
+ "final_pass": false,
+ "seconds": 1385.9,
+ "clauses": 44,
+ "use_cases": 9,
+ "tamper": [],
+ "finished": "2026-11-21T07:43:58-0800"
+}

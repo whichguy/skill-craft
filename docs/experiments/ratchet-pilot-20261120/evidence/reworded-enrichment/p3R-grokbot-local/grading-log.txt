@@ -1,0 +1,9 @@
+== grokbot grading, first yardstick 07:35:20
+p3R-grokbot-local                 build-1     passed 49  failed []
+p3R-grokbot-local                 final       passed 49  failed []
+snapshots exit: 0
+== second yardstick 07:36:41
+p3R-grokbot-local                 build-1     passed 28  failed []  stated 23 of 23, implied 5 of 5
+p3R-grokbot-local                 final       passed 28  failed []  stated 23 of 23, implied 5 of 5
+second exit: 0
+== done 07:37:50

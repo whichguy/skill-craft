@@ -1,0 +1,17 @@
+{
+ "observed": true,
+ "passed": [
+  "suite",
+  "pristine",
+  "migrate",
+  "restart",
+  "switch",
+  "rollback",
+  "off",
+  "cli"
+ ],
+ "failed": {},
+ "kind": "due-times",
+ "work": "/Users/dadleet/e2e-runs/ratchet-reworded-20261121-08805f/p3R-ticket-due-times-a/work",
+ "commit": "3f1e98405b15b2bfd5e390f1f9569f993139919c"
+}

@@ -1,0 +1,155 @@
+Each due-times specification of rung 1: the clauses that touch the tickets already in the data file, the switch and
+the start, with their Source and any Open: line (word match on the statement, Observable and Open: line).
+
+===== r1-due-times-1: 30 clauses, 8 use cases
+U-4 [request] An operator prepares the production data file before enabling deadlines
+U-5 [request] An operator rolls back to 1.4.0 to recover normal ticket service
+U-6 [existing: README.md and docs/operations.md] An operator reads saved tickets from the command line to inspect their state
+U-7 [existing: README.md and docs/operations.md] A support lead runs the weekly report to get counts by status and priority
+C-1 [existing: README.md, package.json, src/config.js and src/ser] The service still starts through `npm start` on its configured port
+      Observable: On the supported Node.js runtime (22 or later), `npm start` serves `GET /health` with 200 and `{"status":"ok"}`. `PORT` accepts whole numbers from 0 through 65535 inclusive, with 0 selecting a free port and an unset or empty setting using 4180. An unusable value stops startup with a diagnostic namin
+C-2 [request] Running the service requires no npm dependencies
+      Observable: With Node.js and npm available, a checkout without installed packages can start the service and use its ticket API.
+C-6 [existing: README.md and src/config.js] An unusable response-hours setting is diagnosed when starting with that setting in use
+      Observable: Starting the service with an unusable response-hours setting that it needs for deadline assignment fails with a diagnostic naming the setting, consistent with the existing startup configuration errors.
+C-7 [existing: docs/api.md and the Node.js date range verified wi] An assigned `due` uses the API's UTC timestamp convention
+      Observable: `due` is an ISO 8601 UTC timestamp with millisecond precision, for example `2025-09-01T12:15:00.000Z`. The service's date range runs from `-271821-04-20T00:00:00.000Z` to `+275760-09-13T00:00:00.000Z`, inclusive (±8,640,000,000,000,000 milliseconds from the Unix epoch). A result outside that range c
+      Open: The help-desk owner decides how an operator should handle an otherwise valid legacy ticket whose calculated deadline falls outside the representable range.
+C-11 [implied: the deadline is set once and tickets keep it from t] The new release retains assigned deadlines across data-file saves
+      Observable: A successful create with due times enabled and `DATA_FILE` set is readable after restarting, even if the previous process stopped before a graceful shutdown. Ticket edits, outbox saves and shutdown saves retain assigned deadlines. Restarting the new release with due times disabled, saving further ch
+C-13 [existing: src/tickets/query.js] Omitting `overdue` keeps ordinary ticket listing selection
+      Observable: With due times enabled, a listing without `overdue` includes tickets according to the existing listing rules regardless of their deadlines. With no filters it lists tickets of all statuses and priorities. With both legacy filters, the shipped 1.4.0 listing accepts a match on either `status` or `prio
+      Open: The API owner decides which enabled-mode `overdue` values other than the single `true` request are accepted, including `false`, empty values, case variants and repeated parameters, and how accepted values affect selection.
+C-14 [implied: U-2 and the existing listing filters in docs/api.md] The overdue condition remains mandatory when other ticket filters are supplied
+      Observable: With `overdue=true`, adding only `status=open` restricts the overdue matches to open tickets, adding only `priority=urgent` restricts them to urgent tickets, and adding only `status=resolved` or `status=closed` returns no matches. With both legacy filters supplied, no result can be resolved, closed 
+      Open: The API owner decides whether an overdue ticket must match either or both of `status` and `priority` when both are supplied with `overdue=true`. Release 1.4.0 implements either in src/tickets/query.js, while docs/api.md specifies both.
+C-15 [existing: docs/api.md and docs/decisions/0005-cursor-paginat] Overdue listings use the existing cursor page contract
+      Observable: With due times enabled, overdue matches fill `items` in ascending numeric ticket ID order, including `T-9999` before `T-10000`. The page limit defaults to 20 and accepts whole numbers 1 through 100 inclusive. `next` is an opaque cursor if further matching tickets remain. Passing it as `cursor` with 
+C-17 [request] Every previously saved ticket without a deadline gets one based on its own creation time and priority
+      Observable: Given a valid 1.4.0 data file, preparation fills in the missing deadlines for `open`, `in_progress`, `resolved` and `closed` tickets. The calculation uses each ticket's own `created` plus the configured response hours for the priority used in its assignment. For example, a ticket created at `2025-09
+      Open: For an older ticket whose priority changed before its first deadline is assigned, the help-desk owner decides whether to use the priority saved on the ticket at assignment or its original priority from history.
+C-18 [implied: U-4 and the requirement to switch on in production ] Operators can complete deadline preparation before turning on the feature
+      Observable: With `DUE_TIMES` unset or elsewhere than `on`, the operator can prepare the production data file and verify that all saved tickets have retained deadlines. The result holds when the file is reopened, including if the original file needs no assignments or contains a mix of assigned and unassigned tic
+      Open: The operator and help-desk owner decide when tickets created while the feature is disabled receive their first deadline. The supported rollout procedure must account for them before exposing due times.
+C-19 [request] Production exposes due times only after its data file contains the assigned deadlines
+      Observable: A service with `DUE_TIMES=on` and a prepared `DATA_FILE` shows the saved deadlines on startup. If the file contains tickets missing deadlines, the service does not expose deadline-bearing responses or an overdue listing until all those deadlines are durably assigned.
+      Open: The operator decides how an attempted enabled start with an incomplete file is handled, for example by requiring preparation first or completing preparation before serving enabled requests.
+C-20 [implied: U-4 and the whole-file crash behavior in docs/decis] Deadline preparation can be retried without losing saved state
+      Observable: If preparation of a usable file is interrupted or a write fails, the file still opens as a complete snapshot with all the tickets present at the last successful save. After the underlying problem is resolved, the operator can retry preparation. Each still-missing deadline is assigned, and each alrea
+C-21 [existing: docs/operations.md and src/persistence.js] An unusable saved record retains the existing data-file failure diagnostic
+      Observable: If the production file cannot be used because a record is invalid, the operator sees the file path, the record and the reason for refusal. For example, `tickets[3].priority` equal to `critical` still prevents startup.
+C-22 [implied: U-4 and the saved ticket identity rules in docs/dec] Deadline preparation preserves the original ticket data
+      Observable: For tickets matched by ID before and after preparation, `id`, `title`, `priority`, `requester`, `status`, `created` and `updated` are unchanged by preparation alone. The next ticket created still uses the saved sequence, so no ticket number is reused.
+C-23 [existing: docs/decisions/0007-append-only-audit-log.md] Existing ticket history stays intact when due times are assigned
+      Observable: After preparation or normal ticket activity in the new release, previously recorded entries are still returned by `GET /tickets/:id/audit` with their original sequence numbers, order, actor, time, action and changes. Ordinary edits and transitions still appear in the history as before.
+      Open: The help desk's audit owner decides whether deadline assignment at creation or during preparation is itself shown in the enabled audit view. Any new audit detail must preserve existing entries and the disabled API responses.
+C-24 [existing: docs/operations.md and docs/decisions/0006-notific] Deadline assignment and expiry leave the existing notification behavior in place
+      Observable: With the worker stopped, preparing saved deadlines or advancing time past a deadline leaves the existing pending, sent and dead outbox entries unchanged and adds no notification by itself. Creating and resolving a ticket still enqueue the existing `ticket.created` and `ticket.resolved` notifications
+C-25 [request] Release 1.4.0 can start on the production data file written by the new release
+      Observable: Stop the new service and start the unmodified 1.4.0 release with `DATA_FILE` pointing to the same file, without converting it or restoring a backup. The old release reaches `GET /health` and can list every ticket by paging through `GET /tickets`. This includes assigned and newly created tickets afte
+      Open: The operator and help-desk owner decide whether a later re-upgrade must recover the original deadlines after 1.4.0 itself rewrites the file. Its writer retains only the fields it knows, including on a normal shutdown.
+C-26 [existing: README.md and docs/operations.md] The human-readable CLI still reads the production data file without changing it
+      Observable: Using `DATA_FILE` or `--data FILE`, `bin/tickets.js list` displays saved tickets and accepts the existing status and priority options, while `bin/tickets.js show ID` displays the saved ticket and its history. Both commands work on files with assigned deadlines and leave the file unchanged.
+      Open: The help-desk owner decides whether `due` also appears in the human-readable `show` or `list` output and, if so, when the CLI displays it.
+C-28 [existing: README.md and scripts/weekly-report.js] The weekly report continues to count tickets from the production data file
+      Observable: The report run as `npm run report:weekly` or with `scripts/weekly-report.js` still reports the same total and counts by status and priority for the same saved tickets after deadlines are assigned. The dashboard's `--json` output still provides `total`, `byStatus` and `byPriority`.
+
+===== r1-due-times-2: 34 clauses, 8 use cases
+U-4 [request] A production operator prepares the live data file, to enable due times for existing tickets
+U-5 [request] An existing API client keeps using the service with due times disabled, to continue its normal workflow during rollout
+U-6 [request] A production operator rolls back to 1.4.0, to restore service after a bad release
+U-7 [existing: README.md and docs/operations.md] An operator or support lead reads the ticket file, to inspect tickets or produce the weekly counts
+C-1 [existing: README.md, src/config.js and src/server.js] `npm start` runs the Node.js ticket API on the configured port.
+      Observable: Start with Node.js 22 or later and `PORT=8080` where that port is free. On that port, `GET /health` returns HTTP 200 with `{"status":"ok"}`. An unset or empty `PORT` uses `4180`. The accepted port range is `0` through `65535` inclusive, with `0` letting the operating system choose a free port.
+C-2 [existing: README.md and CONTRIBUTING.md] The service runs without npm dependencies.
+      Observable: `npm start` and `npm test` work from a checkout with Node.js and no installed npm packages.
+C-3 [request] With `DUE_TIMES` other than `on`, HTTP responses retain 1.4.0 behavior.
+      Observable: With `DUE_TIMES` unset, empty or set to a value other than `on`, the same requests against equivalent legacy ticket data have the 1.4.0 statuses and JSON payloads. This includes ticket payloads without `due` and the legacy treatment of `overdue` as an ignored query parameter, even after deadlines ha
+C-7 [existing: README.md, Configuration, and src/server.js] An unusable response-hours setting used on service startup is reported as a configuration error.
+      Observable: Start the service with an hours setting it needs for startup set to a value it cannot use. The process exits without serving and reports the setting by name, as it does for an unusable `PORT` value.
+C-17 [request] Preparation assigns a missing deadline to every ticket already in the data file.
+      Observable: Prepare a 1.4.0 file containing `open`, `in_progress`, `resolved` and `closed` tickets. Each ticket gets its saved `created` instant plus the response hours for its recorded priority under the settings used to prepare the file. At defaults, a ticket recorded as `high` and created at `2025-09-01T08:1
+C-18 [request] Enabled production responses start only after the configured data file holds all required deadlines.
+      Observable: Start from a production file with tickets missing deadlines. The first HTTP response exhibiting due-time behavior occurs only after the file durably holds deadlines for all existing tickets. If preparation cannot save the required values, the service does not expose enabled responses for that file. 
+      Open: The requester decides the operator workflow for preparation and early activation, such as a preparation step before starting the enabled server or startup preparation that finishes before any enabled response. The handling and operator diagnosis when a legacy creation instant plus the configured hours lies outside the time range used for due timestamps is also undecided. Node's built-in `Date` represents instants from `-8640000000000000` to `8640000000000000` milliseconds from the Unix epoch, inclusive.
+C-19 [implied: README.md's memory-only mode and the request's prod] Due times can be used with the existing memory-only service mode.
+      Observable: Start with no `DATA_FILE` and with `DUE_TIMES=on`. The service starts empty, returns a deadline for a newly created ticket and supports overdue queries for tickets in that process. A fresh process without a file again starts empty.
+C-20 [implied: the set-once rule and docs/decisions/0008-json-data] A successfully created ticket's deadline survives a restart with its data file.
+      Observable: With due times enabled and `DATA_FILE` configured, create a ticket and restart from that file. The ticket has the same `due` from the successful creation even when response hours differ at restart.
+C-21 [implied: the set-once rule and the rollout sequence in U-4 a] Once saved by the new release, an assigned deadline survives subsequent processing of that file by the new release.
+      Observable: Run preparation again or restart with different response hours after a ticket's deadline has been saved. A repeat preparation fills missing deadlines while the assigned value stays the same. Start with the switch disabled, let the new release save the file through an ordinary ticket or outbox change
+      Open: The requester decides what a subsequent upgrade must do after 1.4.0 has rewritten the file. Its writer retains only fields it knows, so a legacy save can discard data that a startup and read in 1.4.0 could tolerate.
+C-22 [existing: docs/operations.md and docs/decisions/0008-json-da] An interrupted preparation preserves a readable production state.
+      Observable: Interrupt preparation during a save of an existing production file. The active file remains a complete state from before or after the interrupted save, with all its tickets. The operator can resume preparation on that file once the interruption or write fault is resolved.
+C-23 [implied: U-4 assigns deadlines to the existing tickets] Preparing deadlines preserves the existing ticket records' business data.
+      Observable: Compare tickets before and after preparation by ID. Each keeps its title, requester, status, priority and creation timestamp.
+      Open: The requester decides whether deadline preparation counts as a change to `updated` in the enabled API. During the disabled rollout, the HTTP response remains governed by C-3.
+C-24 [existing: docs/decisions/0002-prefixed-sequential-ids.md and] Preparing deadlines preserves ticket numbering.
+      Observable: After preparing and reopening a file whose next ticket number is 43, the next successful creation yields `T-0043`.
+C-25 [existing: docs/decisions/0007-append-only-audit-log.md] Deadline assignment preserves existing audit history.
+      Observable: Audit entries already present before preparation retain their sequence numbers, order, actor, timestamps, actions and field changes in `GET /tickets/:id/audit`. Ordinary ticket edits and transitions still append their usual entries.
+      Open: The requester decides whether the initial deadline is included in the enabled creation audit entry or recorded as an operational audit change for backfilled tickets. The preexisting entries are append-only and the disabled HTTP behavior remains governed by C-3.
+C-27 [existing: docs/operations.md and docs/decisions/0006-notific] Deadline handling preserves the service's notification behavior.
+      Observable: With delivery paused using `WORKER_INTERVAL_MS=0`, creating and resolving a ticket still enqueue the existing `ticket.created` and `ticket.resolved` notifications, with the existing pending-key deduplication. In the absence of ordinary notification activity, preparation and the passage of a deadline
+C-28 [request] The 1.4.0 release starts directly on the data file written by the new release.
+      Observable: Point the original 1.4.0 `npm start` at the saved `DATA_FILE` produced by the new release before or after activation. The file is readable as version `1`, and 1.4.0 serves `GET /health` on its configured port without converting the file or restoring an earlier copy.
+C-29 [request] The rolled-back 1.4.0 release can show every ticket in the new release's saved file.
+      Observable: Follow the ordinary ticket listing's cursors in 1.4.0 after rolling back. The listing includes every saved ticket ID with its ordinary ticket data, including migrated tickets and tickets created under the new release. A direct fetch by any of those IDs succeeds.
+C-30 [existing: README.md, docs/operations.md and bin/tickets.js] The operator's existing commands can read the ticket file through rollout.
+      Observable: With `DATA_FILE` or `--data FILE`, run `bin/tickets.js list` with its existing filters and `bin/tickets.js show` for a saved ticket. Both can read the file before or after deadline preparation and do not write it. The table still shows its existing ticket information and `show` still gives the ticke
+      Open: The requester decides whether the human-readable table or `show` should also display `due` during the enabled rollout. The API exposure is specified in C-8.
+C-31 [existing: README.md and src/format.js] The raw CLI list retains its existing row layout.
+      Observable: Run `node bin/tickets.js --data FILE list --raw` against a file with saved due times. Each selected ticket occupies one line of four tab-separated fields in the existing positions: id, status, priority, title.
+
+===== r1-due-times-3: 34 clauses, 7 use cases
+U-2 [request] A help-desk operator changes the response schedule for future assignments
+U-4 [request] A production operator prepares existing tickets before exposing deadlines
+U-5 [request] A production operator restores 1.4.0 to recover from a bad release
+C-1 [existing: README.md] The service runs on Node.js 22 or later without npm dependencies
+      Observable: On a supported Node.js installation, an operator can run `npm start` without installing any packages.
+C-2 [existing: src/config.js] `npm start` serves the API on the port selected by `PORT`
+      Observable: With an available configured port, `GET /health` there returns `{"status":"ok"}`. The port defaults to 4180 when unset or empty, and setting 0 lets the system choose a free port. `PORT` accepts whole numbers from 0 through 65535, subject to the operating system allowing the bind.
+C-5 [existing: src/server.js] An unusable response-hours setting follows the existing startup configuration error contract
+      Observable: Starting the service with a response-hours value it needs to use but cannot interpret reports the offending setting at startup and exits with status 2.
+C-6 [request] A new ticket's deadline is its creation instant plus the effective response duration for its priority at creation
+      Observable: Subtract the returned `created` instant from the returned `due` instant. The elapsed time is the configured hours multiplied by 3,600,000 milliseconds per hour, including across calendar or daylight-saving changes. Node.js represents timestamps from −8,640,000,000,000,000 through +8,640,000,000,000,
+      Open: The requester decides how to handle an otherwise usable schedule and creation instant whose sum is outside Node.js's timestamp range. This can also arise during preparation of an existing file.
+C-11 [request] Without `DUE_TIMES=on`, the API answers as in 1.4.0
+      Observable: With `DUE_TIMES` unset, empty, or set to a value other than `on`, equivalent requests against equivalent ticket state return the existing status codes and bodies, including ticket representations without `due`. This holds even when the data file already contains deadlines.
+C-14 [implied: U-3 and the list filters in docs/api.md] The overdue filter narrows each existing ticket filter
+      Observable: With due times on, `?overdue=true&status=open` returns only overdue open tickets, `?overdue=true&status=resolved` has no matches, and `?overdue=true&priority=urgent` returns only overdue urgent tickets. A ticket that fails the overdue check can never appear even if both other filters are supplied.
+      Open: The requester decides how `status` and `priority` combine with each other when both accompany `overdue=true`. The API docs promise intersection for the existing filters, while 1.4.0 actually returns their union.
+C-18 [existing: docs/decisions/0005-cursor-pagination.md] The overdue listing retains the existing cursor pagination contract
+      Observable: The response is `{ "items": [...], "next": ... }`. With the same filters, passing an issued `next` as `cursor` starts after the last ticket ID served. The final page has `next: null`, including when it is full. No matches gives `{"items":[],"next":null}`. A malformed cursor such as `abc` returns HTT
+C-19 [request] Preparation assigns missing deadlines to tickets in a 1.4.0 production data file
+      Observable: A valid existing file can be prepared for the new release. A saved high-priority ticket with `created` equal to `2025-09-01T08:15:00.000Z` receives `2025-09-02T08:15:00.000Z` under the default schedule, even if its `updated` time differs. Preparation uses each ticket's stored priority and the effect
+C-20 [request] Production exposes due times only after the data file holds the required deadlines
+      Observable: An operator can take an existing production file from no saved deadlines to saved deadlines with no deadline visible before the file is ready and `DUE_TIMES=on` is in effect. At the first enabled response for an existing ticket, the deadline is already recoverable from the saved data. Successful tic
+      Open: The requester decides how operators initiate preparation and confirm readiness, including whether setting `DUE_TIMES=on` on an unprepared file waits for preparation or requires a prior operation. The requester also decides whether feature-on operation without a configured `DATA_FILE` is supported outside production.
+C-21 [implied: the request says tickets keep their due times from ] The new release preserves an assigned deadline through subsequent saves of the data file
+      Observable: After a deadline is saved, a ticket edit, an outbox delivery that saves the file, or a shutdown while the feature is off leaves that deadline available after the new release restarts with the feature on. Repeating preparation on a file that already holds deadlines preserves those deadlines.
+C-22 [existing: docs/decisions/0008-json-data-file.md] Preparing deadlines preserves each ticket's existing record
+      Observable: Before and after preparation, the data file contains the same ticket IDs and their same titles, priorities, requesters, statuses, creation times, and update times. The next created ticket continues the saved numbering sequence.
+C-23 [existing: docs/decisions/0007-append-only-audit-log.md] Preparing deadlines preserves the existing append-only ticket history
+      Observable: Previously recorded entries returned by `GET /tickets/:id/audit` retain their original sequence numbers, actor, timestamp, action, and changes. A ticket creation, edit, or transition keeps its existing audit record for the ordinary ticket fields.
+      Open: The requester decides whether first assignment of `due` should appear in enabled audit output, including in the creation entry or as a new entry for a backfilled ticket.
+C-24 [existing: docs/decisions/0006-notification-outbox.md] Deadline preparation preserves the existing notification workflow
+      Observable: With `WORKER_INTERVAL_MS=0`, preparing deadlines leaves the existing pending, sent, and dead outbox entries intact and queues no notification. Creating or resolving a ticket still enqueues its existing requester notification, subject to the existing pending-key deduplication.
+C-25 [existing: docs/decisions/0008-json-data-file.md] A save made while preparing or serving deadlines leaves a whole production data file
+      Observable: If a save is interrupted, the retained file represents either the state before that save or the complete state after it, including tickets, audit history, and outbox. The preparation operation leaves already committed ticket changes in place.
+C-26 [implied: U-4 and the request's one-time assignment rule] The operator can retry incomplete preparation
+      Observable: After an interrupted preparation or a failed write, the operator can address the cause and retry against the intact file. Tickets that still lack deadlines receive them, and deadlines committed before the interruption retain their values.
+C-27 [existing: docs/operations.md] The existing invalid-data-file startup behavior still applies
+      Observable: A file with an existing invalid record, such as a ticket whose priority is `critical`, is refused at startup with a diagnostic identifying the file and record. The service exits with status 2 before listening.
+      Open: The requester decides how operators should recover if an already stored deadline is corrupt, as distinct from a legacy ticket whose deadline is absent.
+C-28 [request] Release 1.4.0 can serve every ticket from the production file written by the new release
+      Observable: After the new release prepares old tickets and saves new ones, stop it and start unmodified 1.4.0 on the same file. The file remains readable under 1.4.0's version-1 rules. Paging through its ordinary listing shows all saved ticket IDs, and looking up any one of them returns the saved ticket through
+      Open: The requester decides whether re-upgrading after 1.4.0 has itself rewritten the file must recover the original deadlines. The 1.4.0 writer keeps only the fields it knows.
+C-29 [existing: README.md] The operator CLI can read tickets from files with saved deadlines
+      Observable: With `DATA_FILE` or `--data FILE`, `list` still returns the matching tickets for its existing options and `show ID` still presents the named ticket and its history. Valid files written by 1.4.0 remain usable by both commands.
+      Open: The requester decides whether the human-readable `list` table or `show` must display the deadline, and whether the production visibility flag should govern any such display.
+C-30 [existing: docs/operations.md] The operator CLI remains read-only
+      Observable: Running `list` or `show` leaves the selected data file unchanged, whether or not it contains saved deadlines.
+C-32 [existing: scripts/weekly-report.js] The weekly report still counts tickets from the saved file
+      Observable: For the same tickets, `npm run report:weekly` returns the same totals by status and priority before and after deadline preparation. Its `--json` output still supplies `total`, `byStatus`, and `byPriority`.
+

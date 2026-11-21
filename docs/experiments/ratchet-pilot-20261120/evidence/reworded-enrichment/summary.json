@@ -1,0 +1,661 @@
+[
+ {
+  "run": "r1-chess",
+  "case": "node-chess-engine",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "stop-after-spec",
+  "final_pass": null,
+  "minutes": 4.2,
+  "sessions": 1,
+  "clauses": 56,
+  "use_cases": 7,
+  "kind": "whole loop",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "spec": 4.2,
+   "gates and script": 0.0
+  },
+  "tokens": {
+   "input": 177732,
+   "cached": 145280,
+   "output": 11806,
+   "reasoning": 4754
+  },
+  "minutes_to_first_build": null,
+  "cycles": []
+ },
+ {
+  "run": "r1-due-times-1",
+  "case": "ticket-due-times",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "stop-after-spec",
+  "final_pass": null,
+  "minutes": 4.9,
+  "sessions": 1,
+  "clauses": 30,
+  "use_cases": 8,
+  "kind": "whole loop",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "spec": 4.9,
+   "gates and script": 0.0
+  },
+  "tokens": {
+   "input": 407002,
+   "cached": 350592,
+   "output": 11577,
+   "reasoning": 5569
+  },
+  "minutes_to_first_build": null,
+  "cycles": []
+ },
+ {
+  "run": "r1-due-times-2",
+  "case": "ticket-due-times",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "stop-after-spec",
+  "final_pass": null,
+  "minutes": 4.6,
+  "sessions": 1,
+  "clauses": 34,
+  "use_cases": 8,
+  "kind": "whole loop",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "spec": 4.6,
+   "gates and script": 0.0
+  },
+  "tokens": {
+   "input": 405948,
+   "cached": 357376,
+   "output": 10945,
+   "reasoning": 4504
+  },
+  "minutes_to_first_build": null,
+  "cycles": []
+ },
+ {
+  "run": "r1-due-times-3",
+  "case": "ticket-due-times",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "stop-after-spec",
+  "final_pass": null,
+  "minutes": 4.3,
+  "sessions": 1,
+  "clauses": 34,
+  "use_cases": 7,
+  "kind": "whole loop",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "spec": 4.3,
+   "gates and script": 0.0
+  },
+  "tokens": {
+   "input": 328218,
+   "cached": 274944,
+   "output": 10526,
+   "reasoning": 5026
+  },
+  "minutes_to_first_build": null,
+  "cycles": []
+ },
+ {
+  "run": "r1-grokbot",
+  "case": "grokbot-local",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "stop-after-spec",
+  "final_pass": null,
+  "minutes": 4.6,
+  "sessions": 1,
+  "clauses": 100,
+  "use_cases": 15,
+  "kind": "whole loop",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "spec": 4.6,
+   "gates and script": 0.0
+  },
+  "tokens": {
+   "input": 140187,
+   "cached": 109184,
+   "output": 13189,
+   "reasoning": 3033
+  },
+  "minutes_to_first_build": null,
+  "cycles": []
+ },
+ {
+  "run": "r1-orders",
+  "case": "stand-in-rules",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "stop-after-spec",
+  "final_pass": null,
+  "minutes": 2.6,
+  "sessions": 1,
+  "clauses": 26,
+  "use_cases": 5,
+  "kind": "whole loop",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "spec": 2.6,
+   "gates and script": 0.0
+  },
+  "tokens": {
+   "input": 131116,
+   "cached": 118016,
+   "output": 6324,
+   "reasoning": 2853
+  },
+  "minutes_to_first_build": null,
+  "cycles": []
+ },
+ {
+  "run": "r1-ticket-assignment",
+  "case": "ticket-assignment",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "stop-after-spec",
+  "final_pass": null,
+  "minutes": 3.8,
+  "sessions": 1,
+  "clauses": 43,
+  "use_cases": 9,
+  "kind": "whole loop",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "spec": 3.8,
+   "gates and script": 0.0
+  },
+  "tokens": {
+   "input": 353881,
+   "cached": 299520,
+   "output": 9044,
+   "reasoning": 3359
+  },
+  "minutes_to_first_build": null,
+  "cycles": []
+ },
+ {
+  "run": "p1R-stand-in-rules",
+  "case": "stand-in-rules",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "stop-after-tests",
+  "final_pass": false,
+  "minutes": 15.6,
+  "sessions": 2,
+  "clauses": 27,
+  "use_cases": 5,
+  "kind": "test strength",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "plan": 2.9,
+   "tests": 12.4,
+   "gates and script": 0.3
+  },
+  "tokens": {
+   "input": 1624188,
+   "cached": 1499136,
+   "output": 36287,
+   "reasoning": 17733
+  },
+  "minutes_to_first_build": 2.9,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [
+     "C-27"
+    ],
+    "first_gate": "29 of 32",
+    "first_gate_failing": [
+     "U-5",
+     "C-25",
+     "C-26"
+    ],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": null
+   }
+  ],
+  "strength": {
+   "clauses": 27,
+   "use_cases": 5,
+   "caught": 4,
+   "pool": 4,
+   "not_judged": [],
+   "graded_with": "80d2f064fc7cb984ad46526c5ce2948857d5d384",
+   "clauses_failing_on_reference": 2,
+   "use_cases_failing_on_reference": 1,
+   "missed": []
+  }
+ },
+ {
+  "run": "p1R-ticket-assignment",
+  "case": "ticket-assignment",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "stop-after-tests",
+  "final_pass": false,
+  "minutes": 23.1,
+  "sessions": 2,
+  "clauses": 44,
+  "use_cases": 9,
+  "kind": "test strength",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "plan": 4.8,
+   "tests": 15.7,
+   "gates and script": 2.6
+  },
+  "tokens": {
+   "input": 3194439,
+   "cached": 2914304,
+   "output": 54574,
+   "reasoning": 18056
+  },
+  "minutes_to_first_build": 4.8,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [
+     "C-44"
+    ],
+    "first_gate": "50 of 53",
+    "first_gate_failing": [
+     "C-36",
+     "C-42",
+     "C-44"
+    ],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": null
+   }
+  ]
+ },
+ {
+  "run": "p1R-ticket-due-times",
+  "case": "ticket-due-times",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "stop-after-tests",
+  "final_pass": false,
+  "minutes": 20.4,
+  "sessions": 2,
+  "clauses": 31,
+  "use_cases": 8,
+  "kind": "test strength",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "plan": 4.6,
+   "tests": 14.8,
+   "gates and script": 1.0
+  },
+  "tokens": {
+   "input": 2687362,
+   "cached": 2508800,
+   "output": 50756,
+   "reasoning": 16359
+  },
+  "minutes_to_first_build": 4.6,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [
+     "C-31"
+    ],
+    "first_gate": "35 of 39",
+    "first_gate_failing": [
+     "U-8",
+     "C-3",
+     "C-19",
+     "C-29"
+    ],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": null
+   }
+  ],
+  "strength": {
+   "clauses": 31,
+   "use_cases": 8,
+   "caught": 6,
+   "pool": 6,
+   "not_judged": [],
+   "graded_with": "57fac46cf90b231e3d0b856f040280c815b5f84a",
+   "clauses_failing_on_reference": 3,
+   "use_cases_failing_on_reference": 1,
+   "missed": []
+  }
+ },
+ {
+  "run": "p3R-grokbot-local",
+  "case": "grokbot-local",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "stop-after-build",
+  "final_pass": true,
+  "minutes": 22.3,
+  "sessions": 2,
+  "clauses": 100,
+  "use_cases": 15,
+  "kind": "whole loop",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "plan": 7.0,
+   "build": 15.0,
+   "gates and script": 0.2
+  },
+  "tokens": {
+   "input": 4019181,
+   "cached": 3771392,
+   "output": 58709,
+   "reasoning": 11592
+  },
+  "minutes_to_first_build": 22.2,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [],
+    "first_gate": null,
+    "first_gate_failing": null,
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": null
+   }
+  ],
+  "hidden": {
+   "build-1": {
+    "passed": 49,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "final": {
+    "passed": 49,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   }
+  },
+  "hidden_first_build": {
+   "passed": 49,
+   "failed": [],
+   "observed": true,
+   "rerun": false
+  },
+  "hidden_start": null,
+  "hidden_final": {
+   "passed": 49,
+   "failed": [],
+   "observed": true,
+   "rerun": false
+  }
+ },
+ {
+  "run": "p3R-node-chess-engine",
+  "case": "node-chess-engine",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "stop-after-build",
+  "final_pass": true,
+  "minutes": 10.5,
+  "sessions": 2,
+  "clauses": 56,
+  "use_cases": 7,
+  "kind": "whole loop",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "plan": 4.7,
+   "build": 5.8,
+   "gates and script": 0.0
+  },
+  "tokens": {
+   "input": 1208647,
+   "cached": 1110400,
+   "output": 26565,
+   "reasoning": 5844
+  },
+  "minutes_to_first_build": 10.5,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [],
+    "first_gate": null,
+    "first_gate_failing": null,
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": null
+   }
+  ],
+  "hidden": {
+   "build-1": {
+    "passed": 10,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "final": {
+    "passed": 10,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   }
+  },
+  "hidden_first_build": {
+   "passed": 10,
+   "failed": [],
+   "observed": true,
+   "rerun": false
+  },
+  "hidden_start": null,
+  "hidden_final": {
+   "passed": 10,
+   "failed": [],
+   "observed": true,
+   "rerun": false
+  }
+ },
+ {
+  "run": "p3R-ticket-due-times-a",
+  "case": "ticket-due-times",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "stop-after-tests",
+  "final_pass": false,
+  "minutes": 34.3,
+  "sessions": 3,
+  "clauses": 34,
+  "use_cases": 8,
+  "kind": "whole loop",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "plan": 6.9,
+   "build": 9.0,
+   "tests": 16.7,
+   "gates and script": 1.7
+  },
+  "tokens": {
+   "input": 6322373,
+   "cached": 6037760,
+   "output": 85284,
+   "reasoning": 27231
+  },
+  "minutes_to_first_build": 15.9,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [],
+    "first_gate": "41 of 42",
+    "first_gate_failing": [
+     "C-31"
+    ],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": null
+   }
+  ],
+  "hidden": {
+   "build-1": {
+    "passed": 8,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "final": {
+    "passed": 8,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   }
+  },
+  "hidden_first_build": {
+   "passed": 8,
+   "failed": [],
+   "observed": true,
+   "rerun": false
+  },
+  "hidden_start": null,
+  "hidden_final": {
+   "passed": 8,
+   "failed": [],
+   "observed": true,
+   "rerun": false
+  }
+ },
+ {
+  "run": "p3R-ticket-due-times-b",
+  "case": "ticket-due-times",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "stop-after-tests",
+  "final_pass": true,
+  "minutes": 28.5,
+  "sessions": 3,
+  "clauses": 34,
+  "use_cases": 7,
+  "kind": "whole loop",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [
+   "skill-craft"
+  ],
+  "minutes_by_stage": {
+   "plan": 5.0,
+   "build": 8.7,
+   "tests": 13.4,
+   "gates and script": 1.3
+  },
+  "tokens": {
+   "input": 5174649,
+   "cached": 4886144,
+   "output": 68827,
+   "reasoning": 21143
+  },
+  "minutes_to_first_build": 13.8,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [],
+    "first_gate": "41 of 41",
+    "first_gate_failing": [],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": null
+   }
+  ],
+  "hidden": {
+   "build-1": {
+    "passed": 8,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "final": {
+    "passed": 8,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   }
+  },
+  "hidden_first_build": {
+   "passed": 8,
+   "failed": [],
+   "observed": true,
+   "rerun": false
+  },
+  "hidden_start": null,
+  "hidden_final": {
+   "passed": 8,
+   "failed": [],
+   "observed": true,
+   "rerun": false
+  }
+ }
+]

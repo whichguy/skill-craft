@@ -1,0 +1,107 @@
+run                                clauses use c. request implied existing choice added refusals Open: lines minutes
+sonnet-reworded:s1-orders               21      4      18       2        1      0              0           9     1.0
+sonnet-reworded:s1-ticket-assignment      32      6      16      10        6      0              2           7     2.0
+sonnet-reworded:s1-due-times-1          22      6      12       5        3      2              0          12     1.4
+sonnet-reworded:s1-due-times-2          28      6      18       4        6      0              1           8     2.6
+sonnet-reworded:s1-due-times-3          22      6      12       3        6      1              1           6     1.6
+sonnet-lens:s1L-orders                  39      7      23       4        2     10              6           0     1.7
+sonnet-lens:s1L-ticket-assignment       79     13      24      19       24     12              4           0     3.2
+sonnet-lens:s1L-due-times-1             57      9      20      11       17      8              2           0     3.1   (1 with an unexpected Source)
+sonnet-lens:s1L-due-times-2             66      9      21      12       21     12              3           0     2.6
+sonnet-lens:s1L-due-times-3             80     13      28      16       27      9              1           0     3.5
+
+== sonnet-reworded:s1-orders: Open: lines
+   C-2 [request] `parseOrders` returns one order per non-blank line, in line order
+        Open: Whether a whitespace-only line counts as blank, and how `\r\n` line endings are treated, are not stated; the requester settles it. Only lines that are empty (zero characters) are certainly blank.
+   C-3 [request] A line is a list of `key=value` fields joined by `;`, and values are trimmed
+        Open: Whether whitespace around a key (e.g. `id=1; qty=2`) is accepted, and what happens with a repeated key, an unknown key, or a missing key, are not stated; the requester settles it. A line holding each of the five keys once, with no whitespace around keys, is the only form the request defines.
+   C-4 [request] Each parsed order has `id`, `qty` and `price` as numbers
+        Open: What happens for an `id` that is not a number (e.g. `id=abc`) is not stated (no error class is named for it); the requester settles it.
+   C-6 [request] `shippedAt` is the shipped_at text, `''` when empty
+        Open: A line with no `shipped_at` field at all (as opposed to an empty one) is not stated; the requester settles whether it equals an empty value.
+   C-8 [request] A qty that is not a whole number of at least 1 throws RangeError naming the line
+        Open: Whether other spellings of a whole number (`2.0`, `1e2`, `+3`, `0x10`) are accepted is not stated; the requester settles it. Plain digit strings and the values above are the certain cases.
+   C-9 [request] A price that is not whole cents of at least 0 throws RangeError naming the line
+        Open: Same as C-8 for other spellings of a whole number (`150.0`, `1e2`); the requester settles it.
+   C-12 [request] A shipped_at that is not `YYYY-MM-DD` throws SyntaxError naming the line
+        Open: Whether a well-formed but impossible date (`2026-02-30`, `2026-13-01`) is rejected is not stated; the requester settles it. The shape four digits, `-`, two digits, `-`, two digits is the certain rule.
+   C-15 [request] The line number in an error message is 1-based
+        Open: With blank lines in the text, whether "line" counts physical lines (the faulty order in `ok\n\nbad` is line 3) or non-blank lines (line 2) is not stated; the requester settles it. Where no blank line precedes the faulty one the two readings agree. Likewise, which error is thrown when one line has several faults is not stated; only lines with a single fault are certain.
+   C-19 [implied] `total` past the meter's limit lets the meter's LimitError through
+        Open: Whether `total` should avoid the error for lists over 10,000 orders is not stated and would conflict with one tick per order; the requester settles it. The meter's count is shared state: ticks from earlier calls in the same process also count toward the limit.
+
+== sonnet-reworded:s1-ticket-assignment: Open: lines
+   C-3 [request] An agent is a non-empty name of at most 64 characters
+        Open: Whether a name made only of spaces counts as empty, and whether spaces around a name are trimmed before the length is counted or the name is stored (the existing requester and title fields are trimmed). The requester of the change decides; tests use names without surrounding spaces.
+   C-8 [request] Resolved and closed tickets cannot be assigned or unassigned
+        Open: What a resolved or closed ticket answers when the request asks for the value it already has (the same agent, or `null` on an unassigned ticket): 409 or 200 with nothing changed. The requester decides; either way nothing changes, and tests check only the different-value case.
+   C-15 [implied] Each assignment change is one audit entry
+        Open: The entry's `action` name (such as `ticket.assigned`) is not fixed by the request or the audit decision; tests do not check it.
+   C-17 [request] Assigning a ticket queues a notification for the assigned agent
+        Open: Whether the agent's name is a deliverable address or the relay maps it to one. The help desk's operators decide; the event's `to` is the agent's name.
+   C-22 [request] `GET /tickets?assignee=<agent>` keeps that agent's tickets
+        Open: What a filter value over 64 characters, or with surrounding spaces, does (matches nothing, or 400 `invalid`, or is trimmed). The requester decides; tests use ordinary names.
+   C-28 [request] The command-line table shows each ticket's assignee
+        Open: How an unassigned ticket's cell reads (empty, `-`, `unassigned`); the requester decides. Tests check only that it names no agent.
+   C-29 [existing] The first four columns of `list --raw` keep their positions
+        Open: Whether `list --raw` also shows the assignee, as a fifth tab-separated column after the title. The requester decides ("the command-line listing" may mean the table only); tests do not require a fifth column and do not forbid one.
+
+== sonnet-reworded:s1-due-times-1: Open: lines
+   C-4 [request] With due times on, `GET /tickets?overdue=true` lists only open and in-progress tickets whose due time has passed
+        Open: The instant at which a ticket is exactly due (`due` equal to the current time). The loosest reading is that it is not yet overdue; the requester decides if "has passed" includes the exact instant. A check can be made at least one millisecond either side of `due`.
+   C-5 [implied] `overdue=true` combines with the other listing parameters
+        Open: The existing listing code combines `status` and `priority` with "either matches" rather than "both match", which is not what docs/api.md says. Whether to fix that is the requester's decision. This clause asks only that `overdue` is required in addition to whatever else is given, and that a ticket which is not overdue is never listed under `overdue=true`.
+   C-6 [choice] `overdue` values other than `true`
+        Open: Whether other values are refused as `invalid` (400), as a bad `status` is, or ignored, and whether `overdue=false` lists the tickets that are not overdue. The requester decides. A test must not assert either way.
+   C-7 [request] The hours for each priority are configuration, not code
+        Open: The names of the settings and whether a restart is the way a change takes effect. The loosest reading is one environment variable per priority, read at start. The requester decides the names; a check must find them in the README configuration table, not assume them.
+   C-8 [existing] A value for the hours that the service cannot use stops it at start
+        Open: Whether zero, a fraction or a negative number is usable. Only a value that is not a number is required to be refused.
+   C-9 [request] Existing tickets in the data file get due times from their own creation time and priority
+        Open: The hours used are those configured when the file is first started with the new release. Whether tickets that already had a due time and lost it (C-12) are given one by the same rule is the same question; this clause assumes yes.
+   C-11 [request] The data file holds every ticket's due time before due times are switched on
+        Open: When the file is written. The loosest reading is that the file holds them after the service has started and stopped normally; a deploy that must be checked before switching on relies on this. The requester decides if an operator has to run a separate step instead.
+   C-12 [implied] After a rollback and a new upgrade, tickets are not left without due times
+        Open: 1.4.0 drops fields it does not know when it saves, so tickets that existed before the rollback may lose `due` in the file it writes. What to do with these is decided by the requester. The only requirement here is that no ticket is left without a due time and that a ticket whose `due` survived keeps it.
+   C-13 [request] The data file stays one that 1.4.0 starts on and shows every ticket from
+        Open: What the key for the due time is called in the file. Any key that 1.4.0 loads without refusing is acceptable.
+   C-15 [request] With `DUE_TIMES` not `on`, the API answers exactly as 1.4.0 does
+        Open: Whether `on` is case-sensitive (`ON`, `On`). The loosest reading is that exactly `on` switches due times on and the request's wording is `on`; the requester decides about other spellings. A check should use `on` and unset only.
+   C-19 [choice] Creating a ticket does not change its audit entry or notification because of due times
+        Open: Whether `due` should be recorded in the audit log is for the requester to decide; it is not required.
+   C-21 [existing] The command line and the weekly report keep working on a data file that holds due times
+        Open: Whether `show` or `list` should print the due time, and whether that depends on `DUE_TIMES`. The request does not ask for it, so it is not required; the requester decides.
+
+== sonnet-reworded:s1-due-times-2: Open: lines
+   C-3 [request] An operator can change the hours for each priority in the service's settings, without a code change; an unset or empty setting means the hours in C-1
+        Open: the names of the four variables, whether a change must take effect without a restart, and who may change them are not in the request; the requester decides. The names are documented (C-27).
+   C-4 [existing] A hours setting the service cannot use stops it at start with a message naming the variable
+        Open: whether `0` and fractional hours (`1.5`) are usable; whether the same refusal applies while `DUE_TIMES` is not `on` (the request says the service then answers "exactly as it does today", which started with any value). The requester decides.
+   C-5 [implied] An hours setting too large for a due time to be represented stops the service at start, like C-4, instead of failing later
+        Open: the exact largest accepted value; the requester decides, any cap below the runtime limit is acceptable.
+   C-9 [request] `GET /tickets?overdue=true` lists only tickets that are `open` or `in_progress` and whose due time has passed
+        Open: what `overdue` means with a value other than `true` (`false`, `1`, empty): ignored, or 400 `invalid` in the envelope, or the opposite listing. The request defines only `true`; the requester decides. No check relies on any other value.
+   C-13 [existing] `status` and `priority` filtering without `overdue` behaves as it does today
+        Open: docs/api.md says combined filters must all match, but `matchesFilters` in src/tickets/query.js lists a ticket matching either. Whether to fix that is the requester's; nothing here depends on it.
+   C-15 [request] Due times are switched on only by `DUE_TIMES=on`
+        Open: what other values do (`ON`, `1`, `true`, `off`): treated as not on, or refused at start. The requester decides.
+   C-21 [request] The data file holds every ticket's due time once the new release has started on it, with `DUE_TIMES` not yet `on`
+        Open: whether operators prefer an explicit one-off migration instead of a write at start; the requester decides. Whatever is chosen, the observable result for an operator, using only the new release, is a file that holds every due time while `DUE_TIMES` is not `on`.
+   C-26 [existing] The operator command line and the weekly report keep working on a file that holds due times
+        Open: whether `list` or `show` should also print the due time. Nothing is required by the request beyond the API; the requester decides.
+
+== sonnet-reworded:s1-due-times-3: Open: lines
+   C-4 [request] The response hours are configurable, per priority, without a code change
+        Open: The names of the four settings are not given. The builder chooses them and documents them in the README table; a test must find them there, not assume them. What range of hours is accepted (zero, fractions, an upper limit) is the requester's to decide; a test uses whole numbers of hours from 1 to 1000 only.
+   C-7 [implied] A ticket created while DUE_TIMES is off still gets its due time in the data file
+        Open: The field's name in the data file is not given; `due`, the same as the API, is the builder's choice and a test may check it only through the restart.
+   C-14 [request] Until DUE_TIMES is `on`, the service answers exactly as 1.4.0 does
+        Open: What the service does with a DUE_TIMES value that is neither `on`, `off`, unset nor empty (for example `ON`, `yes`, `1`): treat as off, or refuse to start under the rule of C-6. The requester decides; a test uses only `on`, `off`, unset and empty.
+   C-16 [request] `GET /tickets?overdue=true` lists only the open and in-progress tickets whose due time has passed
+        Open: Whether a ticket is overdue at exactly the instant of its `due` is not given ("has passed" suggests later than `due`); a test does not check that instant.
+   C-17 [existing] The overdue listing is paged and combines with the other filters like any listing
+        Open: Today's code combines `status` and `priority` with "or", not "and" as docs/api.md says (`matchesFilters` in src/tickets/query.js). Whether to correct that is the requester's to decide; this clause is about `overdue` only, and a test of `overdue` combined with another filter uses a combination that gives the same answer under both readings, or the stated "every" rule.
+   C-18 [choice] A value of `overdue` other than `true` is not specified
+        Open: Whether `overdue=false` lists the tickets not overdue, all tickets, or is `invalid` (400, as an unusable `status` is today) is the requester's to decide.
+
+wrote /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-HghS6v/b19aa551-77eb-41d9-9e58-240ed0fb7345/scratchpad/lens/sonnet-specs.json

@@ -1,0 +1,32 @@
+Clauses of the three lens specifications of the due-times request that say what a start with due times on does
+over a file whose tickets lack them (found by search; the full specifications stay in the runs folder).
+
+p1L-ticket-due-times
+### C-48: Startup prepares unassigned file-backed tickets before serving
+Observable: Start the new release on a readable legacy or mixed file with the switch off. By the first successful health response, all tickets in the file have deadlines. Starting with the switch on also completes preparation before serving; there is no window of enabled responses with missing deadlines.
+Source: choice: startup preparation supports staged activation without a new command or a background dependency
+
+p3L-ticket-due-times-a
+### C-48: A present stored deadline must be a real UTC instant in the same Date timestamp form the service writes.
+Observable: A valid value such as "2025-09-01T12:00:00.000Z" is accepted, including representable dates using the Date rule for expanded years where needed. Preparation and enabled startup reject a present null, empty string, number, object, invalid date, or value outside the Date range. The diagnostic identifies the affected ticket record and its due field.
+Source: choice: distinguish missing legacy data from damaged assigned values using the service's timestamp convention
+
+p3L-ticket-due-times-a
+### C-58: Enabled startup refuses a persisted ticket collection with an unassigned deadline.
+Observable: Start with DUE_TIMES=on on a version-1 file with one missing due, including a missing due on a resolved or closed row. The process reports the file and missing record to standard error, exits 2, and never answers GET /health. Startup does not assign the missing due or rewrite the file.
+Source: choice: fail before serving when an operator enables the feature before completing preparation
+
+p3L-ticket-due-times-b
+### C-67: Enabled persistent startup refuses an existing file with missing due
+Observable: Start on a valid 1.4.0 file with any missing due, including a mixed file. Startup exits 2 before listening or delivering notifications, identifies the file and missing record or field, and leaves the file unchanged.
+Source: choice: make the production readiness order enforceable and avoid automatic startup backfill
+
+p3L-ticket-due-times-b
+### C-69: Enabled startup accepts a prepared file
+Observable: Start DUE_TIMES=on with a valid file in which all tickets have valid due, even using different valid durations from preparation. A valid empty file also qualifies.
+Source: implied: readiness is satisfied when there are no missing or invalid assignments
+
+p3L-ticket-due-times-b
+### C-83: Recovery after a writing rollback keeps prior assignments and later ticket state
+Observable: Follow the documented offline recovery using the consistent pre-rollback copy and latest file from the same ticket history. Reattach prior due values by ticket ID before preparing newly unassigned records. Enabled startup then shows the original dues and the current tickets, audit, outbox and counters from the rollback period. The instructions describe why erased assignments without a copy may be unrecoverable.
+Source: choice: preserve issued promises using the saved copy without requiring a new live sidecar or changing 1.4.0

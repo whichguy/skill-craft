@@ -1,0 +1,438 @@
+[
+ {
+  "run": "p1L-stand-in-rules",
+  "case": "stand-in-rules",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "stop-after-tests",
+  "final_pass": false,
+  "minutes": 23.7,
+  "sessions": 3,
+  "clauses": 82,
+  "use_cases": 8,
+  "kind": "test strength",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "spec": 5.0,
+   "plan": 3.3,
+   "tests": 14.4,
+   "gates and script": 0.9
+  },
+  "tokens": {
+   "input": 2597102,
+   "cached": 2354560,
+   "output": 61805,
+   "reasoning": 22632
+  },
+  "minutes_to_first_build": 8.3,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [],
+    "first_gate": "80 of 90",
+    "first_gate_failing": [
+     "C-6",
+     "C-21",
+     "C-22",
+     "C-23",
+     "C-27",
+     "C-35",
+     "C-78",
+     "C-79",
+     "C-80",
+     "U-8"
+    ],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": null
+   }
+  ],
+  "strength": {
+   "clauses": 82,
+   "use_cases": 8,
+   "caught": 4,
+   "pool": 4,
+   "not_judged": [],
+   "graded_with": "43d5486168448f221763d9413f7ea02878f6d237 (with uncommitted changes to the pilot folder)",
+   "clauses_failing_on_reference": 9,
+   "use_cases_failing_on_reference": 1,
+   "missed": []
+  }
+ },
+ {
+  "run": "p1L-ticket-assignment",
+  "case": "ticket-assignment",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "stop-after-tests",
+  "final_pass": false,
+  "minutes": 38.0,
+  "sessions": 3,
+  "clauses": 153,
+  "use_cases": 11,
+  "kind": "test strength",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [
+   "skill-craft"
+  ],
+  "minutes_by_stage": {
+   "spec": 7.0,
+   "plan": 5.1,
+   "tests": 22.6,
+   "gates and script": 3.3
+  },
+  "tokens": {
+   "input": 5091242,
+   "cached": 4779776,
+   "output": 96512,
+   "reasoning": 19164
+  },
+  "minutes_to_first_build": 12.1,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [
+     "C-152",
+     "C-153"
+    ],
+    "first_gate": "148 of 164",
+    "first_gate_failing": [
+     "U-3",
+     "U-5",
+     "U-7",
+     "C-42",
+     "C-51",
+     "C-58",
+     "C-61",
+     "C-112",
+     "C-123",
+     "C-127",
+     "C-128",
+     "C-130",
+     "C-131",
+     "C-150",
+     "C-152",
+     "C-153"
+    ],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": null
+   }
+  ],
+  "strength": {
+   "clauses": 153,
+   "use_cases": 11,
+   "caught": 26,
+   "pool": 27,
+   "not_judged": [],
+   "graded_with": "43d5486168448f221763d9413f7ea02878f6d237 (with uncommitted changes to the pilot folder)",
+   "clauses_failing_on_reference": 13,
+   "use_cases_failing_on_reference": 3,
+   "control_alternative_fails_beyond_reference": 15,
+   "missed": [
+    "cli-no-assignee"
+   ]
+  }
+ },
+ {
+  "run": "p1L-ticket-due-times",
+  "case": "ticket-due-times",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "stop-after-tests",
+  "final_pass": false,
+  "minutes": 44.2,
+  "sessions": 3,
+  "clauses": 191,
+  "use_cases": 12,
+  "kind": "test strength",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [
+   "skill-craft"
+  ],
+  "minutes_by_stage": {
+   "spec": 8.0,
+   "plan": 5.2,
+   "tests": 27.8,
+   "gates and script": 3.2
+  },
+  "tokens": {
+   "input": 6480380,
+   "cached": 6175360,
+   "output": 112503,
+   "reasoning": 22762
+  },
+  "minutes_to_first_build": 13.2,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [
+     "C-191"
+    ],
+    "first_gate": "171 of 203",
+    "first_gate_failing": [
+     "U-5",
+     "U-6",
+     "U-7",
+     "U-8",
+     "U-9",
+     "U-10",
+     "U-12",
+     "C-5",
+     "C-6",
+     "C-8",
+     "C-9",
+     "C-12",
+     "C-15",
+     "C-34",
+     "C-36",
+     "C-47",
+     "C-48",
+     "C-49",
+     "C-54",
+     "C-55",
+     "C-56",
+     "C-63",
+     "C-64",
+     "C-70",
+     "C-71",
+     "C-73",
+     "C-112",
+     "C-140",
+     "C-181",
+     "C-182",
+     "C-190",
+     "C-191"
+    ],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": null
+   }
+  ],
+  "strength": {
+   "clauses": 191,
+   "use_cases": 12,
+   "caught": 6,
+   "pool": 6,
+   "not_judged": [],
+   "graded_with": "43d5486168448f221763d9413f7ea02878f6d237 (with uncommitted changes to the pilot folder)",
+   "clauses_failing_on_reference": 25,
+   "use_cases_failing_on_reference": 7,
+   "missed": []
+  }
+ },
+ {
+  "run": "p3L-ticket-due-times-a",
+  "case": "ticket-due-times",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "stop-after-tests",
+  "final_pass": true,
+  "minutes": 57.8,
+  "sessions": 4,
+  "clauses": 173,
+  "use_cases": 11,
+  "kind": "whole loop",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "spec": 7.6,
+   "plan": 8.1,
+   "build": 12.3,
+   "tests": 26.7,
+   "gates and script": 3.1
+  },
+  "tokens": {
+   "input": 9173354,
+   "cached": 8731904,
+   "output": 148407,
+   "reasoning": 28252
+  },
+  "minutes_to_first_build": 28.1,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [
+     "C-171",
+     "C-172",
+     "C-173"
+    ],
+    "first_gate": "184 of 184",
+    "first_gate_failing": [],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": null
+   }
+  ],
+  "hidden": {
+   "build-1": {
+    "passed": 3,
+    "failed": [
+     "cli",
+     "migrate",
+     "restart",
+     "rollback",
+     "switch"
+    ],
+    "observed": true,
+    "rerun": false
+   },
+   "final": {
+    "passed": 3,
+    "failed": [
+     "cli",
+     "migrate",
+     "restart",
+     "rollback",
+     "switch"
+    ],
+    "observed": true,
+    "rerun": false
+   }
+  },
+  "hidden_first_build": {
+   "passed": 3,
+   "failed": [
+    "cli",
+    "migrate",
+    "restart",
+    "rollback",
+    "switch"
+   ],
+   "observed": true,
+   "rerun": false
+  },
+  "hidden_start": null,
+  "hidden_final": {
+   "passed": 3,
+   "failed": [
+    "cli",
+    "migrate",
+    "restart",
+    "rollback",
+    "switch"
+   ],
+   "observed": true,
+   "rerun": false
+  }
+ },
+ {
+  "run": "p3L-ticket-due-times-b",
+  "case": "ticket-due-times",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "stop-after-tests",
+  "final_pass": true,
+  "minutes": 61.9,
+  "sessions": 4,
+  "clauses": 199,
+  "use_cases": 16,
+  "kind": "whole loop",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "spec": 13.3,
+   "plan": 7.2,
+   "build": 11.4,
+   "tests": 25.7,
+   "gates and script": 4.4
+  },
+  "tokens": {
+   "input": 10213345,
+   "cached": 9684224,
+   "output": 157262,
+   "reasoning": 29679
+  },
+  "minutes_to_first_build": 31.9,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [
+     "C-198",
+     "C-199"
+    ],
+    "first_gate": "215 of 215",
+    "first_gate_failing": [],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": null
+   }
+  ],
+  "hidden": {
+   "build-1": {
+    "passed": 2,
+    "failed": [
+     "cli",
+     "migrate",
+     "restart",
+     "rollback",
+     "suite",
+     "switch"
+    ],
+    "observed": true,
+    "rerun": false
+   },
+   "final": {
+    "passed": 2,
+    "failed": [
+     "cli",
+     "migrate",
+     "restart",
+     "rollback",
+     "suite",
+     "switch"
+    ],
+    "observed": true,
+    "rerun": false
+   }
+  },
+  "hidden_first_build": {
+   "passed": 2,
+   "failed": [
+    "cli",
+    "migrate",
+    "restart",
+    "rollback",
+    "suite",
+    "switch"
+   ],
+   "observed": true,
+   "rerun": false
+  },
+  "hidden_start": null,
+  "hidden_final": {
+   "passed": 2,
+   "failed": [
+    "cli",
+    "migrate",
+    "restart",
+    "rollback",
+    "suite",
+    "switch"
+   ],
+   "observed": true,
+   "rerun": false
+  }
+ }
+]
