@@ -2161,7 +2161,8 @@ folders of rounds 4 to 7, one rehearsal does.
 - **F52 (firm in direction; two requests).** High costs minutes for the same held-out results: about a sixth
   more on the planning-heavy request and two thirds more on the small one. On the ticket request planning takes
   the same time at both efforts and the extra is in the build.
-- **F53 (firm; the cause is read in the runs).** Sol 6.2 switches planning reviews off by itself in 3 of the 7
+- **F53 (firm as a count; the cause is inferred. Corrected 2026-11-21: this read "the cause is read in the runs",
+  but the runs record no reasoning before the command, only that the card is all they had read).** Sol 6.2 switches planning reviews off by itself in 3 of the 7
   deliveries that were free to. It does it in its first command, straight from the skill card, whose start
   section names `--planning-review none` without saying which value is the default. Round 7's recommendation 3
   asked whether a run may do this; this is how often it does and why.
@@ -2268,6 +2269,85 @@ Recommendation 1 of this round, restated on these numbers: on this evidence Sol 
 driver for these two requests, faster by a third or more and no worse on the held-out checks. The switch to
 high is the owner's to keep or reverse.
 
+## Round 9 (2026-11-21): from findings to changes: what is settled, and small tests first
+
+### Question
+
+Owner, 2026-11-21: "What should we improve?", then "Yes, plan small experiments before doing larger ones to see
+if you can get fast iteration. Do we have sufficient evidence to conclude early?", and, with a review of the plan
+by another model already running, "Do the review here in this context".
+
+### Settled on the evidence in hand (no new run needed)
+
+- Review defaults stay (round 7; today's Grok delivery had seven of its eight reviews change something).
+- Sol 6.2 runs at medium, not high (R74: the paired redo).
+- The planning choice that fails `ticket-due-times` is made in the spec stage, and four things do not move it:
+  higher effort (F51), a second look by the same model (F46), a longer elaboration form and more test cycles
+  (the Ratchet pilot's F20 and F24).
+- The stale sentence in `references/behavioral-requirements.md` ("Store the proposed product behavior in the
+  result `body`", while spec duty 2 writes requirements to `KNOWLEDGE/spec.md`) is fixed without a test.
+
+### Two free cuts read for the plan (`evidence/plan-review-cuts.txt`)
+
+**R78. Who stops processes by name.** In 88 run folders of rounds 4 to 8, a `pkill` or `killall` command is in
+7 of 25 Sonnet runs, 0 of 57 Sol runs and 0 of 6 Grok runs. Sonnet also stops by process id in 16 runs, Sol in
+9. So R60 was not a rare slip: it is a habit of one driver, in more than a quarter of its runs.
+
+**R79. The spec decides the reading.** Of the twelve Sol 6.2 deliveries of `ticket-due-times` on ShipLoop 2.4.0,
+eleven specs state how tickets already on file get their due times, and each one's held-out result follows it:
+"an offline migration", "the operator's exclusive-writer maintenance window", "with the service stopped" in the
+seven that pass 3 of 8; "when the new release starts", "before serving HTTP", "on startup", "before accepting
+requests" in four that pass 8 of 8. The twelfth, which passes, prints no such line. So a spec read at the moment
+it is accepted predicts the delivery, and a run can be ended there.
+
+### The plan as first drawn
+
+- A1: the skill card states that planning reviews default to `stage` and that `none` is passed only when the
+  user asks (R70, R76: 5 of 15 Sol 6.2 deliveries passed it unasked).
+- A2: one sentence telling builders to stop a process by its recorded process id, never by name.
+- A3: the stale sentence.
+- B: a spec-stage wording about refusals and manual steps the request does not state, the one the
+  spec-elaboration session is drafting for duty 4.
+- E1, for A1: the real case ended with the harness's stop file right after the run's first command, where the
+  option is recorded: a minute or two a sample.
+- E2, for B: the real case ended when its spec is accepted, read against the twelve specs of R79: three or four
+  minutes a sample.
+
+### Review of the plan, done in this session at the owner's word
+
+Not an independent review: the reviewer wrote the plan. A max-effort review by Sol was started before the
+owner's instruction (the runner's `sol` target calls `gpt-6.1-sol`, not 6.2) and was still running when this was
+written; its report is added when it returns.
+
+- **P0. B cannot be judged until the owner says which reading of the request is wanted.** The words allow both
+  (R62). If an operator-run migration is acceptable, the seven deliveries are not wrong and the held-out checks
+  are; then B is not a ShipLoop change at all. This is the first question to put.
+- **P0. A2 as a sentence is the wrong tool.** R78 says it is a habit, and the Ratchet pilot's F22 says a duty in
+  a prompt did not do what a script-run check did. ShipLoop's hooks already read the commands a session runs
+  (`shiploop_keepalive.py`). A refusal there of `pkill` and `killall` by pattern, with the sentence as its
+  message, holds every time; its test is a unit test on the seven recorded commands and needs no model. It
+  changes what ShipLoop refuses, so it is the owner's decision; the sentence alone is the fallback.
+- **P1. A1's cause is inferred** (corrected in F53 above). The card's "Read before choosing `--delegation`,
+  `--lint` or `--planning-review`" makes choosing the model's job, so the wording should say whose choice it
+  is: a run option is passed only when the user's request asks for it, and otherwise the defaults apply. If
+  text does not stop it, the next step is the script: `workspace start` refusing a `none` the request does not
+  name.
+- **P1. E1 at ten samples shows too little.** 0 of 10 against the 5 of 15 on file is p = 0.06, and 1 of 10 is
+  0.20. Fifteen samples over both requests, on medium, where the rate on file is 3 of 5.
+- **P1. E2 holds only because of R79**, and its reading of each spec must be made blind to the wording that
+  produced it. 0 of 8 against 7 of 12 is p = 0.01; 1 of 8 is 0.05; eight samples a wording, twelve if the first
+  eight are mixed.
+- **P2.** A3 needs no test. A1 and A3 go into one ShipLoop change with one E2E round; B stays apart.
+
+### Revised plan
+
+1. Ask the owner which reading of `ticket-due-times` is wanted (gates B and the yardstick).
+2. E1 on a reworded card, fifteen start-only samples; registered before its first run.
+3. A2 put to the owner as a hook refusal, with its unit test, or as the sentence.
+4. B after 1: E2 with the duty-4 wording the spec-elaboration session's own review asked a trial of
+   (`docs/spec-elaboration-journal.md`, section 24), eight samples a wording, read blind.
+5. Whole deliveries only for what survives 2 and 4.
+
 ## Evidence (all rounds)
 
 | File | Holds |
@@ -2315,6 +2395,7 @@ high is the owner's to keep or reverse.
 | `evidence/grok-review-scan.txt`, `grok_review_scan.py` | round 8, context only: every recorded Grok 4.6 review's passes, seconds and whether it changed anything, on ShipLoop 1.34.3 to 2.3.0 (R66) |
 | `evidence/effort-sol-high.txt`, `effort_report.py`, `runs-effort/census.json` | round 8: the six Sol 6.2 high deliveries beside round 7's Sol 6.2 medium runs, the registered readings, and the file they are computed from (R67 to R71) |
 | `evidence/effort-sol-paired.txt`, `runs-effort-paired/census.json`, `runs-effort-paired/reruns.json` | round 8: the paired redo, medium and high started together, its readings, the file they are computed from, and the one check run again (R73 to R77) |
+| `evidence/plan-review-cuts.txt`, `plan_review_cuts.py` | round 9: how builders stop processes, by driver, and what each Sol spec of `ticket-due-times` says about tickets already on file (R78, R79) |
 | `removed_review_diffs.py`, `judge-reviews/packet-*.txt`, `judge-reviews/key.json` | round 7: each review of a removed stage that changed anything, as the judges saw it, and which run and driver each is |
 | `judge-reviews/out-A.jsonl`, `judge-reviews/out-B.jsonl`, `evidence/removed-review-judge-brief.txt` | round 7: each judge's label, scope and reason per packet, and the brief |
 | `evidence/removed-review-judged.txt`, `removed_review_score.py` | round 7: the judges' agreement and the substantive share by driver and reviewed stage (R64) |

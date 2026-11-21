@@ -1,0 +1,41 @@
+== A. how builders stop processes (88 run folders) ==
+  driver    runs   stop by name or pattern  kill by a process id
+  grok         6                         0                     0
+  sol         57                         0                     9
+  sonnet      25                         7                    16
+  runs with a stop by name or pattern: sonnet-high-expenses-L0-1, sonnet-high-expenses-2, sonnet-high-expenses-F1-1, sonnet-high-tickets-F1-2, sonnet-high-due-2, shared-expenses-sonnet-high, sonnet-high-due-S-2
+
+== B. what each Sol spec of ticket-due-times says about tickets already on file ==
+  sol-medium-due-L-1: held-out 3 of 8
+      - An offline migration fills missing due values from stored creation and priority without changing existing due, IDs, next numbering, timestamps, audit, or outbox. Repeat with different hours and verify file bytes stay unchanged o
+      Ticket HTTP API, v1 data file, read-only operator CLI and existing notification/reporting integrations. The due-time requirements below come from the help desk request dated 2026-11-20 and supplement docs/api.md and docs/operation
+  sol-medium-due-L-2: held-out 8 of 8
+  sol-medium-due-S-1: held-out 3 of 8
+      Based on S6–S8. In the operator's exclusive-writer maintenance window, the backfill fills missing due fields using the stored created and priority values. It preserves due values on reruns, and changes neither history nor pending 
+      Based on S5, S7 and S9. With literal DUE_TIMES=on, create, get, list, update and transition ticket objects include the UTC ISO due value. The list intersects strictly expired open or in_progress tickets with the existing status/pr
+  sol-medium-due-S-2: held-out 8 of 8
+      The exact environment value DUE_TIMES=on exposes due on create, list, get, patch and transition. No API request can set due. Other flag values preserve ticket response fields and ignore overdue as an unknown query parameter. Verif
+      For a version-1 row missing due, use that row's stored creation time and saved priority when the new release starts. A row with due keeps it. The new service persists missing values before serving; activation follows an off-mode s
+  sol-high-due-1: held-out 8 of 8
+      - DUE-8. Preserve data version, ticket IDs, audit and outbox during migration. Start release 1.4.0 against a copy of a candidate-written file and list every migrated and newly created ticket.
+      - DUE-7. Backfill missing due values from each saved ticket's created and current priority before serving HTTP, including when the flag is off. Check the file before any request and check that subsequent starts retain existing val
+  sol-high-due-2: held-out 8 of 8
+      Basis: S4, S6 and S7. The service owns the configured JSON file. On startup a record missing due gets a due from its saved creation time and priority. Backfill happens with exposure disabled too and is saved before the server list
+      Component tests in test/due-times.test.js confirmed durable mixed-file backfill, idempotence and failed-write startup behavior (W1/S1).
+  sol-high-due-3: held-out 3 of 8
+      The single owner of the data file runs the explicit backfill with the service stopped. Verify migration of every status from each row's saved creation time and priority, persistence before enable, retry without changing an assigne
+      Version 1.4.0 must start on a candidate-written file and list every ticket. Verify the actual starting release locally. Save the complete file before running a legacy writer and restore its assignments through the backfill when re
+  sol-high-due-4: held-out 3 of 8
+      Basis: 2026-11-20 request S6–S7 and decision 8. With the service stopped, the migration assigns missing due values from each saved ticket's created time and priority, retains existing deadlines and writes the whole file atomically
+      Basis: 2026-11-20 request S5 and S7. Only exact DUE_TIMES=on exposes due in HTTP ticket representations and enables overdue=true. The listing includes only open and in_progress tickets with due strictly earlier than the captured c
+  sol-high-due-p1: held-out 3 of 8
+      - `npm run backfill:due` operates on the existing DATA_FILE and reports the number of missing deadlines filled. `--restore-from FILE` recovers missing deadlines by matching ticket ID and creation time. See test/due-storage.test.js
+      - The operator prepares the data file with the service stopped. Every ticket without due gets its stored creation time plus its stored priority's schedule. Existing due, other ticket fields, sequences, audit and outbox are preserv
+  sol-high-due-p2: held-out 3 of 8
+      - On the stopped service's data file, `DATA_FILE=FILE npm run migrate:due` fills missing deadlines from each stored creation time and priority; existing deadlines, ticket records, counters, audit and outbox state survive, and a re
+      - Operators can set a non-negative integer number of hours per priority through `DUE_HOURS_URGENT`, `DUE_HOURS_HIGH`, `DUE_HOURS_NORMAL` and `DUE_HOURS_LOW`. Empty values take defaults. Invalid values fail startup or migration wit
+  sol-medium-due-p1: held-out 7 of 8
+      Basis: November 2026 rollout request and docs/operations.md. The candidate backfills missing due values from stored creation and priority before accepting requests. Verify the version 1 file on disk before activation, check that a
+      Basis: November 2026 rollback request. The unchanged 1.4.0 HTTP server must start on a version 1 candidate file and list all tickets, including those created after backfill. Verify against a local export of baseline commit 50dd172
+  sol-medium-due-p2: held-out 3 of 8
+      The offline backfill is available as `npm run backfill:due-times` and reports the number of tickets it updated. (W1/S1)
