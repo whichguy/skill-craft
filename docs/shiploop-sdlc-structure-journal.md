@@ -2656,6 +2656,42 @@ carries the fix, and the refresh of the hosts, are in the next section.
   that session what was published was held by it and not delivered, so this section and the merge of the remote
   `main` into the shared checkout are how it will learn of it.
 
+## Round 10 (2026-11-21): cheaper drivers: Sol back to medium, and Sonnet at medium against high
+
+### Owner decisions, 2026-11-21
+
+The owner asked what the study had improved and said: "One of the things I'd like to do is use a less expensive
+model. If I could go down to medium for Sonnet, that would be great, and obviously use Sol at medium as well, as long
+as the quality comes out the same." Offered the two steps, the owner answered: "Yes, switch Sol to medium and run the
+Sonnet pairs".
+
+- **Sol 6.2 runs at medium again** from this entry on, reversing the switch to high of 2026-11-20. The ground is the
+  paired redo of round 8: high took 38% and 66% more time than medium and its held-out results were no better; the
+  operator-step planning choice appeared at both efforts (3 of 6 at medium, 4 of 6 at high). The effort is passed on
+  the command line (`--effort medium`); `test/shiploop_e2e/hosts.py` is unchanged. Sol high and Sol medium results
+  stay separate cells.
+- **Sonnet 5.5 at medium has never been run in this study.** Every Sonnet run so far was at high, so nothing yet says
+  whether its quality holds.
+
+### Registered design: Sonnet medium against high, two pairs (written and committed before any counted run)
+
+- **Question.** Does a whole delivery on Sonnet 5.5 at medium pass the checks its partner at high passes, and what
+  does it take in time and dollars?
+- **Runs.** Four whole deliveries from a clean worktree of this commit (`run.py --source checkout`, the newest
+  ShipLoop on `main`), all started together: `ticket-due-times` and `shared-expenses`, each at `--effort medium` and at
+  `--effort high`, on `claude-sonnet-5-5`. No run option, no turn, time or resume cap; `--max-budget-usd 40` each. These
+  are the two cases of round 8's Sol pairs.
+- **Quality reading, fixed now.** For each pair: the harness's overall pass and the case checks passed (8 for
+  `ticket-due-times`, 6 for `shared-expenses`), as recorded; nothing is regraded. "No drop shown" needs each medium
+  run to pass every check its partner passes. A medium run that fails a check its partner passes is "a drop seen" and
+  is reported with what failed. A failure with a cause outside the run that the records show (a lost port, another
+  session's kill) makes that pair inconclusive; the first result is kept.
+- **Time and cost.** Minutes start to end and dollars for each run, and medium as a share of high within each pair.
+  Also read: planning reviews that changed something, refusals, and steps planned.
+- **What two pairs can show.** Only a large drop or a large saving. "No drop shown" here does not make medium the
+  default; it earns a larger round. The machine's load at the start is recorded, and other sessions share it.
+- **Spend.** Earlier Sonnet high deliveries of these cases cost $2 to $20 and took 45 to 110 minutes.
+
 ## Evidence (all rounds)
 
 | File | Holds |
