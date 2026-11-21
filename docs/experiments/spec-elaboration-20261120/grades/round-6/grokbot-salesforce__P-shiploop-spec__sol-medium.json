@@ -1,0 +1,184 @@
+{
+ "slot": "grokbot-salesforce__P-shiploop-spec__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.43251140000000005,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "AD-1; TC-9",
+   "quote": "Propose a Lightning web component exposed as a custom tab and available from App Launcher \u2192 All Items. ... The app does not attach Salesforce identity or record data"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2; TC-4",
+   "quote": "Preserve Salesforce business data and existing automation by making no business record reads or writes. ... An earlier prompt, reply or Salesforce record is never included."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2; TC-9",
+   "quote": "making no business record reads or writes ... The app does not attach Salesforce identity or record data"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "AD-1; R-1",
+   "quote": "Assign tab, runtime class and provider principal access only to designated users, with a specific runtime bot entitlement ... The Salesforce administrator controls grants and configuration."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "TC-9; R-2",
+   "quote": "The viewer sees only their own current prompt and reply. ... Another user or view has no access to that exchange through the app. ... There are no conversation records"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-2; Service boundaries",
+   "quote": "Propose one imperative, noncached call from the Lightning component to Apex, with a bounded Salesforce callout ... One bounded foreground request per admitted send.",
+   "missing": "The callout-after-DML and trigger restrictions are not stated, and the design is synchronous rather than asynchronous (Queueable/future/batch); a builder must decide how to respect those transaction rules."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AD-2; TC-10",
+   "quote": "Use the extensible Named Credential and Custom Authentication External Credential with a dedicated named principal. ... No credential material appears in app/UI payloads, logs or deployment files."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "AD-2 Conditional fit",
+   "quote": "Salesforce documents 120 seconds cumulative callout time per Apex transaction and 6 MB for synchronous callout request or response, also subject to heap.",
+   "missing": "Callouts-per-transaction count, a heap figure and the CPU time limit are not given with numbers."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "TC-6; TC-7",
+   "quote": "Hold a controlled provider response, attempt a second send ... Inject 401, 403, 404, 429, 503, transport timeout, incomplete, malformed ... outcomes independently.",
+   "missing": "It does not say Apex tests cannot make real callouts or require an HttpCalloutMock-style mock implementation."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "Use the extensible Named Credential ... The fixed provider base is `https://api.x.ai`; the operation is `POST /v1/responses` over HTTPS"
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "AD-2; Service boundaries",
+   "quote": "Propose one imperative, noncached call from the Lightning component to Apex ... No subscription or durable bot event stream is in scope.",
+   "missing": "The interface relies on the inline return of a synchronous call; no asynchronous arrival mechanism (platform event, polled status, LMS) is defined despite the acknowledged timeout conflict."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "TC-6; T-5; R-3",
+   "quote": "Repeated sends while pending cause no duplicate call from that view. ... Any later result for the failed attempt is ignored. ... there is no automatic retry or resumable job."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "AD-2 Conditional fit",
+   "quote": "Salesforce documents a 20 concurrent off-domain callout cap specifically for Developer Edition, which must first be established for the target.",
+   "missing": "What the user sees or what happens to a request rejected because the concurrency cap is reached."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "TC-7",
+   "quote": "Provider authorization/model setup failure points to the org administrator. Rate limiting points to trying again later. Timeout, network failure, provider error or unusable output allows another manual send."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "TC-7",
+   "quote": "Rate limiting points to trying again later. ... There is no automatic retry, fallback answer, or implication that upstream work was canceled."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "TC-6; TC-8",
+   "quote": "HTTP acknowledgment, a timer, incomplete output and blank, malformed or missing assistant text cannot create a success state. ... No background delivery or eventual reply is promised."
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-2 Affected state",
+   "quote": "Page state is volatile and scoped to that view and Salesforce session. ... There are no conversation records, provider history links, shared writes"
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "TC-9; R-4 Affected state",
+   "quote": "Reload, navigation away and session end discard the bot's local exchange. ... The provider publishes a default audit retention of 30 days ... The app has no transcript deletion route at xAI."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "TC-4; TC-9; R-4 Open gaps",
+   "quote": "Each new send transmits only its own prompt and fixed inference settings. ... instructs users to enter synthetic text only. ... no approval to process records, personal information or secrets"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "TC-4; Service boundaries",
+   "quote": "Each new send transmits only its own prompt ... An earlier prompt, reply or Salesforce record is never included. ... No remote conversation state is carried from one send to the next."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "TC-1; TC-5",
+   "quote": "sees the titled bot, its empty state ... Empty, whitespace-only and oversized input gets a visible reason ... The measurement unit and limit are open below.",
+   "missing": "The actual maximum prompt length and its unit, and the output cap / maximum answer length and its handling."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-4 Affected state; AD-2; NFR Security",
+   "quote": "At decommissioning revoke the upstream key and remove its bot-specific org credential and access assignments. ... with a configured `model` ... Diagnose by status category",
+   "missing": "An explicit admin off switch, how an admin changes the model, and where an admin sees failed requests (no app event store exists)."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "R-4 Affected state",
+   "quote": "The provider publishes a default audit retention of 30 days ... There is no new durable app event store. ... App status and redacted case evidence cover distinct bot outcomes without storing content",
+   "missing": "No audit record of which user asked what and what was answered is kept in Salesforce; only provider-side retention is referenced."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "Scope; TC-3; TC-10",
+   "quote": "production rollout ... outside the proposed scope ... The exact candidate reaches terminal deployment success ... a dedicated development provider credential",
+   "missing": "Per-environment config/credential differences, scratch org vs sandbox path, and the production code-coverage requirement are not stated."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "TC-6; NFR Runtime fit",
+   "quote": "A valid send presents **Waiting for Grok** while the answer is pending. ... Verify call count, measured latency, payload and heap under chosen bounds",
+   "missing": "No latency target or timeout value is set; it is left open."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "NFR Polished Lightning interface",
+   "quote": "Design empty, pending, rejected, error and completed states using the same system. Pending and failure are readable without relying on motion, color or a disappearing toast."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-1; R-2; TC-3",
+   "quote": "Preserve unrelated org metadata, access and records. ... making no business record reads or writes. ... existing app navigation, grants, and records are preserved."
+  }
+ ]
+}

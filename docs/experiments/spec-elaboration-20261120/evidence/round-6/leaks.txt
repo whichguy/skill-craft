@@ -1,0 +1,18 @@
+clean csv-user-import__P-shiploop-spec__sol-medium   (system paths: 0; named a folder outside its own: /Users/dadleet/e2e-runs/spec-elaboration-20261120/round-6)
+clean csv-user-import__P-shiploop-spec__sonnet-high   (system paths: 0)
+clean csv-user-import__Q-shiploop-spec-lenses__sol-medium   (system paths: 0; looked for and absent: 1)
+clean csv-user-import__Q-shiploop-spec-lenses__sonnet-high   (system paths: 6)
+clean grokbot-salesforce__P-shiploop-spec__sol-medium   (system paths: 0; looked for and absent: 2)
+clean grokbot-salesforce__P-shiploop-spec__sonnet-high   (system paths: 0; looked for and absent: 1)
+clean grokbot-salesforce__Q-shiploop-spec-lenses__sol-medium   (system paths: 0; looked for and absent: 1)
+clean grokbot-salesforce__Q-shiploop-spec-lenses__sonnet-high   (system paths: 0)
+clean gym-waitlist__P-shiploop-spec__sol-medium   (system paths: 0; looked for and absent: 1)
+clean gym-waitlist__P-shiploop-spec__sonnet-high   (system paths: 7; named a folder outside its own: /Users/dadleet/e2e-runs/spec-elaboration-20261120/round-6; looked for and absent: 1)
+clean gym-waitlist__Q-shiploop-spec-lenses__sol-medium   (system paths: 0; looked for and absent: 1)
+clean gym-waitlist__Q-shiploop-spec-lenses__sonnet-high   (system paths: 0)
+clean invoice-reminders__P-shiploop-spec__sol-medium   (system paths: 0; looked for and absent: 2)
+clean invoice-reminders__P-shiploop-spec__sonnet-high   (system paths: 5)
+clean invoice-reminders__Q-shiploop-spec-lenses__sol-medium   (system paths: 0; named a folder outside its own: /Users/dadleet/e2e-runs/spec-elaboration-20261120/round-6; looked for and absent: 1)
+clean invoice-reminders__Q-shiploop-spec-lenses__sonnet-high   (system paths: 0)
+
+0 of 16 sessions read a file under the real home outside their own working directory and throwaway profile, or named the held-out material

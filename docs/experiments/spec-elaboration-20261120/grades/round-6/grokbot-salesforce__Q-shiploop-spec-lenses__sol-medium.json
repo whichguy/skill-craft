@@ -1,0 +1,185 @@
+{
+ "slot": "grokbot-salesforce__Q-shiploop-spec-lenses__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.44496020000000003,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "AD-1",
+   "quote": "Use the existing Lightning Experience shell with a Lightning Web Component exposed through a Salesforce custom tab and an authorized app navigation item"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Existing Salesforce data, permissions and automation are preserved; the bot performs no business-record queries or mutations."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2.c",
+   "quote": "Boundary: exclude attachments, Salesforce records and org/user identifiers from inference input"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "Salesforce Setup owns enablement, active non-secret configuration revision and per-user permission assignments; only authorized operators may change them."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-3 / R-4.c",
+   "quote": "No other person's conversation is delivered to the client. ... Boundary: no prompts, answers, secrets, usernames, raw headers or provider bodies in bot diagnostics."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-1 / NFR Latency",
+   "quote": "Use imperative Apex for the protected, non-cacheable invocation. ... Synchronous Apex allows 6 MB for a callout request or response and 6 MB heap",
+   "missing": "The spec chooses a synchronous callout and never states the callout-after-DML or trigger restriction, or an asynchronous (Queueable/future) design."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "Use a Salesforce Named Credential backed by an External Credential ... Put the Bearer header at the credential boundary through custom authentication, without embedding values in metadata, application source or UI."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "NFR Latency, reliability and resource ceilings",
+   "quote": "Salesforce allows 100 callouts and 120 seconds cumulative callout timeout per transaction ... Synchronous Apex allows 6 MB for a callout request or response and 6 MB heap",
+   "missing": "CPU time limit is not named or numbered."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "Acceptance cases / C-03",
+   "quote": "These are acceptance oracles, with controlled fault injection ... A canned answer or mock gives no live proof.",
+   "missing": "No statement that Apex tests cannot make real callouts and must use a mock callout implementation (HttpCalloutMock)."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "Use a Salesforce Named Credential backed by an External Credential for outbound TLS ... Salesforce operator confirms principal/credential provisioning and callout access on the selected org."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "Service contracts Browser \u2194 Salesforce runtime",
+   "quote": "Each request belongs to one active view/attempt; correlate its one terminal result, enforce deadline and discard stale results.",
+   "missing": "The answer is delivered as the inline return of an imperative Apex call; no platform event, polled status or other async notification mechanism is specified."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-3.b",
+   "quote": "On matching success commit the prompt/answer pair once. Failure: repeated submit while pending causes no additional dispatch; unmatched or duplicated completion causes no mutation."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "NFR Latency, reliability and resource ceilings",
+   "quote": "Developer Edition allows 20 concurrent out-of-domain callouts across the org; confirm edition and handle saturation without queuing/replaying in the bot.",
+   "missing": "What the user sees when a request is refused due to saturation is not stated; expected concurrent load is unresolved."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-2.b",
+   "quote": "distinguish invalid input/context, unavailable access/configuration (including provider 401/403 ...), rate/quota ..., connectivity/timeout, provider outage, explicit refusal ... Render a safe message and appropriate next action for each group"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2.b / NFR Latency",
+   "quote": "rate/quota or exhausted provider credit ... Render a safe message and appropriate next action for each group ... Budget one callout per admitted send and zero automatic retries."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2.b / R-3.c",
+   "quote": "invalid output (unexpected status, malformed, empty or incomplete response) ... do not auto-replay or show partial output as success. ... disconnection during a send ends in an error at the applicable deadline"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-3 State and data",
+   "quote": "Its transient local state comprises draft, ordered completed pairs, pending attempt, error status and view theme. ... no Salesforce conversation records",
+   "missing": "No stored turn shape with status, timestamps, model identifier or token/usage counts; conversations are deliberately not persisted."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "NFR Data and operations / R-3",
+   "quote": "No org-side conversation retention, export, broker, backup or migration is needed for ephemeral chat. ... Reset and exit remove local references, not provider copies."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-2.c / R-2 State and data",
+   "quote": "exclude attachments, Salesforce records and org/user identifiers from inference input ... the composer tells users that text goes to xAI and to exclude personal, CRM and secret data."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-3.a",
+   "quote": "If total context exceeds the bound, explain the limit and let the user edit or start fresh; never silently drop older pairs.",
+   "missing": "The combined-context size bound is explicitly unresolved."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1.a / R-2.a",
+   "quote": "the first visit and a fresh visit both open an empty conversation ... whitespace-only input is rejected before dispatch ... accept input exactly at the effective UTF-8 byte limit",
+   "missing": "The numeric prompt maximum and output cap are unresolved; behaviour for an answer at maximum length is not stated."
+  },
+  {
+   "id": "N-22",
+   "state": "covered",
+   "where": "R-4.a / R-4.b / R-4.c",
+   "quote": "the org operator sets the permitted endpoint/model binding ... operator can stop the bot for all users ... an authorized operator can tie a failed or completed request to its safe outcome."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "R-4.c / NFR Data and operations",
+   "quote": "Record only opaque attempt reference, time, outcome category, status class ... no prompts, answers, secrets, usernames ... Provider documentation distinguishes ... audit retention, which is 30 days by default.",
+   "missing": "No audit of who asked what and what was answered; diagnostic retention is open."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "Scope interpretation / R-1.c",
+   "quote": "Production ... outside scope. ... the intended revision is present and the intended user can reach it in the identified development org.",
+   "missing": "Per-environment configuration/credential differences, scratch org vs sandbox choice, and the production code-coverage requirement are not stated."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "NFR Latency, reliability and resource ceilings",
+   "quote": "The page remains interactive and shows a pending state until a matching terminal response or a finite deadline. ... Exact user deadline, transport timeout ... are unresolved.",
+   "missing": "No latency target or numeric answer deadline."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "NFR UI usability and polish / R-2.b",
+   "quote": "Compose empty, pending, error and answered layouts deliberately. ... show a refusal as a refusal."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-1 / R-2",
+   "quote": "Preserve unrelated navigation, permissions, components and records. ... Existing Salesforce data, permissions and automation are preserved; the bot performs no business-record queries or mutations."
+  }
+ ]
+}

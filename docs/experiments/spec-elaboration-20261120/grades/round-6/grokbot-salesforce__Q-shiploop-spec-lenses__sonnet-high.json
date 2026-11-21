@@ -1,0 +1,182 @@
+{
+ "slot": "grokbot-salesforce__Q-shiploop-spec-lenses__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.424341,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "An authorised user finds a tab \"Grok Bot\" in Lightning Experience (App Launcher, and the direct path `/lightning/n/Grok_Bot`...) and sees the chat component."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-11",
+   "quote": "The controller reads and writes **no** Salesforce records, so sharing, object CRUD and FLS have no data to protect; ... **sharing**: class is `with sharing`"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-11",
+   "quote": "**object CRUD**: n/a (no object touched); **FLS**: n/a (no field touched)"
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "A-9",
+   "quote": "Users who may use the bot are whoever an admin assigns the permission set `Grok_Bot_User`. No other sharing model is added.",
+   "missing": "Who may administer the bot (edit Grok_Bot_Config, view logs) is just 'admins'. No permission set or other permission is named for administering it."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "State and data assessment; R-9",
+   "quote": "LWC component memory in the user's browser tab (R-3, R-5) | that user only ... Logged: only metadata per request ... never message text or the key."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "P-9; AD-1",
+   "quote": "No DML may precede a callout in the same transaction ... The controller performs no DML at all (R-9), so the rule cannot be hit.",
+   "missing": "The trigger-context restriction is never stated, and the spec picks a synchronous imperative callout, rejecting Queueable/async, so the asynchronous design the nuance requires is not adopted."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "The API key is held by the platform (External Credential; Named Credential `Grok_API`...). The key is never in source, custom metadata, custom settings, the browser, or logs"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "P-1; P-2; P-3",
+   "quote": "at most 100 callouts ... A single callout timeout is 1 ms to 120,000 ms ... Synchronous Apex heap is 6 MB (asynchronous 12 MB); sync CPU 10 s."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "P-4; NFR-8",
+   "quote": "Callouts ... are not made in Apex tests; tests must use `Test.setMock`."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "P-4",
+   "quote": "Callouts need an endpoint registered in the org (Named Credential or Remote Site)"
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "AD-1; Service boundary",
+   "quote": "The controller makes the one callout and returns a small result object ... Platform Events or Queueable (async adds no value without streaming, A-6).",
+   "missing": "The interface gets the answer only as the inline return of a synchronous Apex call. No platform event, polled status or message-service notification is designed."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-5; G-6",
+   "quote": "server-side the controller does not de-duplicate (a crafted double call makes two callouts; the only guard is the UI and the per-user permission set)",
+   "missing": "No idempotency key on the request or message. Duplicate replies are guarded only on the client side, and server-side de-duplication is deliberately left out."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "NFR-2; Service boundary",
+   "quote": "Concurrent users and request volume are not specified ... synchronous call; no job, queue or polling",
+   "missing": "No concurrent-request or queue-depth limit is named, and nothing says what happens to a request the platform cannot accept."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "`TIMEOUT` ... \"Grok took too long to answer. Try again.\" | `UPSTREAM` | xAI 5xx ... | `BLOCKED` | xAI 4xx other than 401/403/429 ... \"That request couldn't be processed.\""
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-6; A-5",
+   "quote": "`RATE_LIMIT` | xAI 429 | \"Grok is busy right now. Try again in a moment.\" ... No automatic retry of a failed Grok call ... The user retries by hand."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2 B1; R-6",
+   "quote": "Reply with `finish_reason` meaning length-truncated: the reply is shown and marked \"(reply was cut off)\"."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "A-3; R-9",
+   "quote": "Stored in the org: none (A-3): no transcript object, no DML (P-9). Logged: only metadata per request (timestamp, user Id, category, HTTP status, latency ms, request/response character counts, correlation ID)",
+   "missing": "Conversations and turns are not stored as records, and nothing records the model identifier or token/usage counts."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "A-3; State and data assessment",
+   "quote": "Conversation history lives only in the browser component (memory). Nothing is stored in the org. A page refresh or navigation away ends the conversation."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "Sent to xAI: system prompt, the user's typed messages, prior assistant replies (capped), and the configured model/limits; **nothing else** (no user name, email, org ID, or record data)."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3 B1",
+   "quote": "with `MaxHistoryMessages`=20 and a conversation of 25 completed messages plus the new one, the body contains the system prompt, the newest 20 history messages and the new message (22); the oldest 5 are dropped."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-4; NFR-11",
+   "quote": "Empty or whitespace-only input cannot be sent ... Exactly 4000 chars accepted; 4001 rejected ... Designed empty state (greeting plus 3 example prompts"
+  },
+  {
+   "id": "N-22",
+   "state": "covered",
+   "where": "R-8; R-12",
+   "quote": "`Enabled__c` (checkbox, default true), `Model__c` ... (c) Each failed request writes one log line (R-9 fields) retrievable in Setup debug logs"
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "R-9; R-12; G-6",
+   "quote": "Logged: only metadata per request (timestamp, user Id, ...), never message text ... durable audit is **not** provided",
+   "missing": "Who asked is logged, but what was asked and answered is not. There is no durable audit record, and retention is left to platform debug-log retention."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-13; P-8",
+   "quote": "The bot deploys only to the user-authorised development org alias ... Deploys to production-type orgs require Apex test coverage (75% org-wide, per-deploy rule)",
+   "missing": "How configuration and credential differ between environments (dev vs sandbox vs production), and whether the target is a scratch org or a sandbox."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "NFR-1; R-5",
+   "quote": "Hard bound: a reply wait never exceeds `TimeoutSeconds` (default 60 s, \u2264120 s, P-2). The UI shows the pending state **before** the network call returns"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "NFR-11",
+   "quote": "Designed empty state (greeting plus 3 example prompts ...), loading (\"Grok is thinking\" with an animated indicator), error (R-6 messages inline with retry) and disabled/not-configured states."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-12; A-9; State and data assessment",
+   "quote": "Deploy adds metadata only and changes no existing org component (R-13). ... org record data identical before and after any conversation"
+  }
+ ]
+}

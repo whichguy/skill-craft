@@ -1,0 +1,146 @@
+{
+ "slot": "csv-user-import__P-shiploop-spec__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.32835939999999997,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "All-or-nothing creation and conflict rejection are draft policies to avoid silent partial imports or changes to existing users."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "TC-4",
+   "quote": "Missing or invalid email, wrong field count or a duplicate candidate key rejects the whole batch. Report the applicable record numbers and reasons, including both occurrences of an in-file duplicate."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "TC-6",
+   "quote": "If any candidate already exists at the write boundary, reject the whole batch. Report the conflicting record for a conflict the admin may see... Preserve the existing account's attributes."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Uploaded fields cannot assign roles, credentials, account scope or privileges."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "TC-1",
+   "quote": "An admin with current creation authority for the active scope can reach **Import users**, select or replace one CSV, and explicitly submit it.",
+   "missing": "Whether bulk import needs its own grant distinct from single-user creation authority; the spec ties it to ordinary creation authority and adds no new permission."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "The header is the first CSV record and must contain exactly the single field `email` after decoding... Each data record has exactly one field."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Use UTF-8 with an optional initial byte order mark, comma separators, and LF or CRLF line endings... Quotes can enclose a field... A quoted line break belongs to its field."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "settle default role/status plus provisioning, invitation, or notification effects and their failure contract... If the normal lifecycle has effects that cannot honor the draft failure contract, settle that conflict before enabling writes.",
+   "missing": "What happens to invitations or other side effects already triggered when the batch later fails; left as an open gap."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "TC-3",
+   "quote": "a file over an enforced limit reject the batch before creation with an actionable file error... Numeric ceilings are open.",
+   "missing": "The actual byte and row ceilings."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "TC-3",
+   "quote": "Empty bytes, a header-only file... reject the batch before creation... Check a single quoted record with CRLF and BOM, with and without the final newline."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "TC-6",
+   "quote": "Repeating a previously committed file produces a conflict with zero additional creations."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "No automatic retry, cancellation action, saved import history, background-processing commitment, completion notification or downloadable report is required."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "No CSV-specific sign-in, password, invitation or notification policy is specified.",
+   "missing": "Whether invitation mail goes out for every created user at once and any pacing or throttling."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "TC-5",
+   "quote": "have the same default attributes as ordinary creations",
+   "missing": "Active vs pending status, password presence and how the new user first signs in; default role/status is left as an open gap."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "TC-8",
+   "quote": "Other actors cannot read the upload or its detailed result... On terminal processing discard the authority's input and validation intermediates."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "compare its ASCII letters case-insensitively using the full address... with no independent internationalized-address policy.",
+   "missing": "Any stated rule for date, number or locale handling; the email-only format only sidesteps it implicitly."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-4 (Import diagnostics)",
+   "quote": "Cover denied submissions, validation rejection, confirmed creation, write failure... using a safe operation correlation value, outcome and applicable counts.",
+   "missing": "That the record names the importing actor, the time and which users were created; email values are excluded from diagnostics."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "The admin may reselect and resubmit the same file as a fresh attempt... No automatic retry, cancellation action... is required."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements (Capacity and responsiveness)",
+   "quote": "the UI shows pending throughout an outstanding response... File bytes, row ceiling... response/deadline, resource and cost limits are unresolved.",
+   "missing": "A time bound for a max-size file and any progress indication beyond a single Importing state."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Preserve existing users, unrelated scopes, ordinary defaults and established account lifecycle rules."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

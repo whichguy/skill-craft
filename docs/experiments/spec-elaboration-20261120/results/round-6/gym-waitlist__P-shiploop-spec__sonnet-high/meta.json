@@ -1,0 +1,56 @@
+{
+ "round": "round-6",
+ "case": "gym-waitlist",
+ "arm": "P-shiploop-spec",
+ "arm_sha256_12": "3c76e967971f",
+ "driver": "sonnet-high",
+ "host": "claude",
+ "model": "claude-sonnet-5-5",
+ "effort": "high",
+ "rc": 0,
+ "seconds": 236.6,
+ "ok": true,
+ "wrote": [
+  "KNOWLEDGE/spec.md",
+  "KNOWLEDGE/architecture.md"
+ ],
+ "stray_files": [],
+ "workdir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/round-6/gym-waitlist__P-shiploop-spec__sonnet-high-56283f",
+ "user_skills_turned_off": null,
+ "cost_usd": 0.6994646,
+ "turns": 21,
+ "usage": {
+  "input_tokens": 34,
+  "cache_creation_input_tokens": 69463,
+  "cache_read_input_tokens": 1001946,
+  "output_tokens": 32135,
+  "output_tokens_details": {
+   "thinking_tokens": 8667
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 69463,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1124,
+    "cache_read_input_tokens": 76036,
+    "cache_creation_input_tokens": 19331,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 19331
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

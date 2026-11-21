@@ -1,0 +1,148 @@
+{
+ "slot": "gym-waitlist__P-shiploop-spec__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3474734,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "The proposed default is first-in, first-out automatic booking, with that consequence explained before Join."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1 / R-2.a",
+   "quote": "Afterward exactly one active entry exists with a stable order assigned on commit. ... allocate only up to available capacity, in committed join order.",
+   "missing": "Whether any membership tier or staff override can jump the queue, and explicit tie resolution for simultaneous joins."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-1.b",
+   "quote": "Joining one occurrence leaves another occurrence, even of the same class, independent.",
+   "missing": "What happens when a member waiting on two time-overlapping classes is promoted into one: whether the other entry is resolved, kept, or blocked."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-2.c",
+   "quote": "A committed opening that still needs allocation remains recoverable by the booking authority without a member screen open.",
+   "missing": "Timeliness of the background promotion; the NFR says bounds for allocation delay are unresolved."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-3.a / Non-functional requirements",
+   "quote": "Promotion that occurs with the app closed is visible on the next successful authorized read. ... External notification delivery and its reliability targets are inapplicable because status is read in the app."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2.a / R-2.c",
+   "quote": "For multiple openings, allocate only up to available capacity, in committed join order. ... Duplicate or stale work rechecks current state ... and cannot issue a second booking or exceed capacity."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-2 Domain rules",
+   "quote": "A direct booking request for a seat held for allocation receives updated availability and the applicable waitlist action.",
+   "missing": "The case where the waitlisted member themselves books directly while their own promotion is in progress, and how the entry and booking reconcile."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2 Open gaps",
+   "quote": "The product owner must confirm that joining can authorize automatic booking under existing payment, credit, consent, eligibility, and cancellation rules.",
+   "missing": "When payment is taken for a promoted booking and what happens if payment fails."
+  },
+  {
+   "id": "N-10",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-2.b",
+   "quote": "Recheck eligibility and the occurrence's booking window at allocation. ... If the occurrence closes or is cancelled before allocation, stop promotion and end its remaining active entries.",
+   "missing": "The actual cut-off value before class start; the closing rule is left for the booking owner to establish."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2.a / R-2 Domain rules",
+   "quote": "When a committed cancellation or other supported change creates bookable capacity, the earliest eligible waiting member gets a regular booking ... Subsequent capacity changes follow the existing booking policy, including its treatment of already-issued bookings."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-2.b / R-4.b",
+   "quote": "If the occurrence closes or is cancelled before allocation, stop promotion and end its remaining active entries. A later retry cannot revive them."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-4 State and information lifecycle",
+   "quote": "Waitlist relationship, scoped to member and occurrence ... Keep the minimum member/occurrence reference, ordering and state necessary.",
+   "missing": "Whether a join timestamp is stored and whether position is stored or derived from ordering."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-4 State and information lifecycle",
+   "quote": "When ended, remove from contention immediately. Retain only what is needed for reconciliation, closure display or existing audit rules, then purge it.",
+   "missing": "How long ended entries are kept after the class runs; no retention period is assumed."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "Submission summary / R-4 lifecycle",
+   "quote": "no visible position or external notification ... Other members' identities and entries stay off the client."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "Scope and evidence",
+   "quote": "Staff controls, external notifications, visible queue positions, a new identity flow, and a redesign are outside this increment.",
+   "missing": "Staff viewing the waitlist, manually promoting or removing someone, and seeing promotion history are excluded rather than specified."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Bounds for allocation delay, recovery effort, hot-occurrence concurrency and ordinary load are unresolved.",
+   "missing": "An actual bound on time from cancellation to promotion."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1 / R-4 lifecycle",
+   "quote": "Preserve ordinary booking wherever a seat is bookable and preserve existing eligibility. ... Existing bookings and unrelated occurrences are preserved."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

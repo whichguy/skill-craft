@@ -1,0 +1,142 @@
+{
+ "slot": "csv-user-import__Q-shiploop-spec-lenses__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.43460659999999995,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "A-4 / R-6",
+   "quote": "All-or-nothing. A file that has any problem creates no user at all, and every problem found is reported."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-7 / R-4",
+   "quote": "one entry per row error, ordered by row then column, **all** errors listed ... Each error carries: `row`, `column` ..., `code`, `message` in words an admin can act on"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "Within the file, case-insensitively after trimming: the first occurrence is valid; every later occurrence gets `ROW_EMAIL_DUPLICATE_IN_FILE` ... Against existing accounts, including deactivated ones ...: `ROW_EMAIL_EXISTS`. ... Existing accounts are never changed."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "A-7 / R-4",
+   "quote": "`admin` or any role the import may not grant gives `ROW_ROLE_NOT_ALLOWED` (A-7). ... there is no input in any column by which an import creates an admin"
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "The import page and the import endpoint are available to a signed-in user holding the admin role and to nobody else.",
+   "missing": "Whether the import permission is distinct from the single-user create permission (a non-admin who may create one user is not stated either way)."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Header row required. Recognized columns: `email` (required), `name` (required), `role` (optional). ... Unknown column ...: 422 `HEADER_UNKNOWN_COLUMN` ... Missing required column: 422 `HEADER_MISSING_COLUMN`."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-3 / R-2",
+   "quote": "fields may be double-quoted, a quoted field may hold commas, doubled quotes and line breaks; `\\n` and `\\r\\n` both end a record. ... BOM ignored."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "an import sends the same message to each created user, **after** the atomic commit of R-6 and never for a rejected or failed import."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2 / R-3",
+   "quote": "larger than 1,048,576 bytes: 413 `FILE_TOO_LARGE` ... More than 1,000 data records: 422 `TOO_MANY_ROWS` stating the limit and the count found; no row is validated."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2 / R-3 / AL-6.4",
+   "quote": "zero bytes: 422 `FILE_EMPTY`. ... Header only, or no non-empty record after it: 422 `NO_DATA_ROWS`. ... a single-row file creates one."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-11",
+   "quote": "The same file submitted twice (double click, retry after a timeout): the first creates; the second finds every email existing and is rejected with `ROW_EMAIL_EXISTS` for each row, creating nothing."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "A-9",
+   "quote": "The import is synchronous: one request carries the file and returns the final result. No background job."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-8",
+   "quote": "an import sends the same message to each created user, **after** the atomic commit ... At most one message per created user per import.",
+   "missing": "Whether up to 1,000 messages go out at once or are paced/throttled, and at what rate."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-6 / A-3",
+   "quote": "the same initial state, credential state and timestamps as a single-create user (A-3) ... How a created user first signs in is whatever single-create does (A-3).",
+   "missing": "The actual initial state (active or pending) and sign-in mechanism; deferred to unknown single-create behaviour (G-1)."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-10 / R-2",
+   "quote": "The file and the parsed rows exist only in the memory of the request. They are not written to disk, caches, error trackers, request logs or the audit record."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-18 / R-4",
+   "quote": "Semicolon-separated files (some locales) are not supported: they fail as `HEADER_MISSING_COLUMN` and the help text names the comma separator. ... Dimension \"fields a row holds\" lists `email`, `name`, `role`."
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "Every submission that passes R-1 writes one audit record: import id, acting admin id, UTC timestamp, outcome ..., data-row count when known, created count, error count per code."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-14 / A-4",
+   "quote": "Not cancellable in this version. ... Makes retry after correction safe and removes the half-imported state."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-16 / R-14",
+   "quote": "Numeric target for response time at 1,000 rows: **unresolved** ... a status \"Importing N bytes...\" appears without a made-up progress percentage",
+   "missing": "A numeric time bound for a maximum-size file."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-13",
+   "quote": "Existing users are never created twice, modified, deactivated or deleted by an import. The single-user create, sign-in, role management, user list and any export behave as before."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-15 / R-4",
+   "quote": "No CSV result export exists in this version, so formula-injection is `n/a`; if one is added, cells starting with `=`, `+`, `-` or `@` must be neutralized. ... name ... 1 to 100 characters"
+  }
+ ]
+}

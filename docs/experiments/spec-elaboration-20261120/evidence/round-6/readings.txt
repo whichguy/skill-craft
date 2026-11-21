@@ -1,0 +1,22 @@
+ROUND 6: the draft (Q = the released stage's text with the lens block in duty 2) against the released stage (P)
+covered of 89; per case csv, grokbot, gym, invoice; 0 of 16 sessions read outside or named the held-out material
+
+sonnet-high
+   P first draw (round 5)  58 [12, 19, 18, 9]   touched 87
+   P second draw (round 6) 60 [14, 19, 15, 12]   touched 87
+   Q (round 6)             68 [17, 19, 16, 16]   touched 89
+   R15: Q minus the mean of P's two draws = +9.0   INTERIM (8 to 11)      (same round: +8; cases where Q is above P in round 6: 3 of 4, below: 0)
+   cost a case, P then Q (round 6): minutes 6.6 -> 5.2; output tokens 52012 -> 39869; words judged 8482 -> 8279; R-n requirements 11.5 -> 16.5
+   by category, P -> Q (round 6): async 8->7, edge 11->10, interaction 8->9, nonfunctional 3->4, operator 3->6, permission 7->6, platform 3->4, preserve 3->5, unhappy 8->11
+
+sol-medium
+   P first draw (round 5)  43 [12, 17, 7, 7]   touched 87
+   P second draw (round 6) 43 [12, 17, 7, 7]   touched 83
+   Q (round 6)             48 [14, 16, 11, 7]   touched 87
+   R15: Q minus the mean of P's two draws = +5.0   nothing shown      (same round: +5; cases where Q is above P in round 6: 2 of 4, below: 1)
+   cost a case, P then Q (round 6): minutes 4.8 -> 4.8; output tokens 11905 -> 12337; words judged 5788 -> 6302; R-n requirements 4.0 -> 5.2
+   by category, P -> Q (round 6): data 5->4, interaction 7->8, operator 1->3, unhappy 7->10
+
+Q against L (round 5), does setting the lenses inside the stage text lose what L had alone:
+   sonnet-high  L 64   Q 68   Q - L = +4
+   sol-medium   L 62   Q 48   Q - L = -14

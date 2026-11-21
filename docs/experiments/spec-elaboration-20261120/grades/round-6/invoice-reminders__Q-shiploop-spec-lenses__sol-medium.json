@@ -1,0 +1,145 @@
+{
+ "slot": "invoice-reminders__Q-shiploop-spec-lenses__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.36374740000000005,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2.a",
+   "quote": "save enable or disable and a reminder delay in positive whole calendar days. The initial state is disabled and the proposed default delay is one calendar day."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1.b",
+   "quote": "Suppress drafts and unissued invoices, settled or zero/negative-balance invoices, voided, canceled or written-off invoices, disputed or otherwise held/noncollectible invoices, deleted invoices, and invoices whose status is unrecognized.",
+   "missing": "Whether an invoice on a payment plan stops the reminder; payment plans are not named and real state mapping is left open."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-4.a",
+   "quote": "The message identifies the biller and invoice reference, states the amount outstanding and currency and the due date"
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-4.a",
+   "quote": "A contact change or communication restriction effective before commitment governs the destination.",
+   "missing": "Which customer states (do-not-contact, paused, unsubscribed) block sending, and whether a billing notice is exempt from a marketing opt-out; contact restrictions are left as an open gap."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-3.a",
+   "quote": "Overlapping or repeated runs, and late, duplicate or reordered source signals, never earn an additional reminder."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1.b",
+   "quote": "use current authoritative facts at dispatch authorization... A newly posted payment, credit, cancellation, dispute or other disqualifying change before dispatch commitment takes precedence over older work."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-3.b",
+   "quote": "Retryable confirmed failures recheck all guards. Permanent failures and exhausted retries require correction or definitive reconciliation before any further attempt.",
+   "missing": "Retry count, backoff and deadline are left open, and there is no active escalation or notification to a person when sends keep failing."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Non-functional requirements (Capacity and dependency protection)",
+   "quote": "Runtime execution time, scheduling granularity, concurrency, request and send quotas, throughput, maximum supported workload and operating cost ceiling are unresolved.",
+   "missing": "The provider's rate limit value and how a large batch is paced within it."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-1.c",
+   "quote": "Include existing and newly issued invoices under the same rules once automation is enabled, including older overdue invoices with usable data.",
+   "missing": "Any throttling or staggering so the backlog does not all go out at once; age cutoff is left open."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1.a",
+   "quote": "eligible once its configured reminder date begins in the authoritative billing time zone",
+   "missing": "Customer local time, permitted sending hours, and weekend/holiday handling."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-4.a",
+   "quote": "states the amount outstanding and currency",
+   "missing": "How the amount and currency are formatted for the recipient's locale."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-4.a",
+   "quote": "Missing, invalid, ambiguous or disallowed destination... prevent dispatch and yield an operator reason. [R-4.b] A verified bounce attaches to the original accepted attempt and is visible to the operator without auto-resending."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-4 Open gaps",
+   "quote": "Billing and delivery owners must establish recipient precedence for multiple contacts",
+   "missing": "Which of several billing contacts receives the reminder (one, all, primary)."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-5.a",
+   "quote": "for a scoped invoice distinguish pending, suppressed with reason, retry waiting, acceptance unknown, accepted, stopped and delivery failure if known. Show relevant timestamps and safe reasons.",
+   "missing": "Whether the record is shown on the invoice itself and whether it records what content was sent."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-4.a",
+   "quote": "identifies the biller and invoice reference, states the amount outstanding and currency and the due date, and asks the recipient to review or pay through the existing billing route... Any invoice link uses existing access rules.",
+   "missing": "Whether the payment link expires."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2.a",
+   "quote": "An authorized billing operator can read the effective account setting and save enable or disable and a reminder delay... [R-2.b] The authorized operator can pause and resume reminders for one invoice."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-2.b",
+   "quote": "The authorized operator can pause and resume reminders for one invoice. Account disable suppresses reminders for every invoice in that account.",
+   "missing": "Per-customer off switch and any preview or dry-run; manual resends are declared out of scope."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-5.a",
+   "quote": "for a scoped invoice distinguish pending, suppressed with reason, retry waiting, acceptance unknown, accepted, stopped and delivery failure if known.",
+   "missing": "A view of upcoming reminders and when they will be sent; failures are visible but 'what sends next' is not stated."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-3 Open gaps",
+   "quote": "Runtime and delivery owners must establish... retry count, backoff, timeout, retry deadline, run cadence and maximum catch-up delay.",
+   "missing": "Actual bound values for sending volume and maximum lateness."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Preserve invoice issuance, amounts, status, due dates, payment posting and existing communication restrictions... The reminder feature does not mutate these facts."
+  }
+ ]
+}

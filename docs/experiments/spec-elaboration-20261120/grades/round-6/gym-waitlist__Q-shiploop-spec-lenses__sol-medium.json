@@ -1,0 +1,147 @@
+{
+ "slot": "gym-waitlist__Q-shiploop-spec-lenses__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3755332,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3.a",
+   "quote": "In committed join order, convert eligible entries to ordinary confirmed bookings and end their waiting entries until available capacity or the queue is exhausted."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1.b; R-3 State and data; R-6.c",
+   "quote": "It is appended in authoritative acceptance order. ... Waitlist-only holds with expiry, membership-based priority, reserved staff seats invented by this feature, and overbooking are out of scope. ... There is no staff queue editing, manual promotion"
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "Basis and scope; R-3 State and data",
+   "quote": "No changes to class discovery, guest or group booking, memberships, billing policy, or the existing cancellation policy are in scope. ... Existing billing/refund and cancellation terms take precedence.",
+   "missing": "Whether an automatic promotion that the member then late-cancels or no-shows counts against the existing no-show/late-cancellation policy is not stated."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-3.a; Non-functional performance",
+   "quote": "An effective booking cancellation or authorized capacity increase that frees capacity on an open, enabled occurrence triggers allocation, including with no member online.",
+   "missing": "The trigger is stated but timeliness is explicitly unresolved ('numeric latency, retry and recovery targets ... are unresolved')."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-4 Service contracts (n/a); R-2.a",
+   "quote": "A separate waitlist provider, push subscription, incremental remote sync cursor, or new outbound notification service has no required consumer outcome. Confirmation is in the app and ordinary booking effects are preserved."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-3.a; R-3.b; Non-functional booking integrity",
+   "quote": "Multiple freed seats use the same order. ... Duplicate or delayed change signals re-evaluate current authority and cannot recreate a booking ... one confirmed booking at most per booking identity and occurrence, with no new booking above capacity."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-3.b; Non-functional booking integrity; R-1 State and data",
+   "quote": "Competing mutations resolve at the booking authority ... preserve one active entry and one confirmed booking at most per booking identity and occurrence ... A booked member has no active entry for the same occurrence"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-3 State and data",
+   "quote": "Each ordinary booking effect that applies to a promoted booking must occur under its existing authority ... side effects such as credit, payment, or booking confirmation.",
+   "missing": "When payment is taken for a promoted booking and what happens if it fails are left as open gaps for the booking owner."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1 State and data",
+   "quote": "The largest supported queue, any admission cap and the runtime limits behind it are unresolved. If an evidenced cap applies, the next join is refused with a clear reason",
+   "missing": "Whether a cap exists and its value are undecided; the full-waitlist message is only 'a clear reason'."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-3.c",
+   "quote": "End active entries when the occurrence is cancelled, deleted, materially rescheduled ..., or first reaches its ordinary booking close or start, whichever comes first. Entries end without bookings"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-3.a; R-3.b",
+   "quote": "authorized capacity increase that frees capacity ... triggers allocation ... If a capacity reduction wins, it removes that availability for further allocations. ... the waitlist cannot create or worsen over-capacity."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-3.c",
+   "quote": "End active entries when the occurrence is cancelled ... Entries end without bookings and no longer carry priority. Explain closure on any still-accessible occurrence."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-1 State and data; R-5 State and data",
+   "quote": "logical entry data consists of occurrence ID, booking identity, a distinct entry identity, committed order, status, the recorded opt-in ... Order is immutable for an entry."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-5 State and data; R-5 Open gaps",
+   "quote": "Retain terminal information only for the applicable policy window and then remove it.",
+   "missing": "The retention window for ended entries after the class has run is left to privacy and platform owners."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-1 State and data; R-2.a",
+   "quote": "No member sees other entries or a queue roster. ... No policy tiers, waitlist position estimates, or extra identity fields are introduced.",
+   "missing": "Others' identities are hidden, but the spec shows only a 'Waitlisted' status and never says whether a member sees their own position."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-6.c; R-5 State and data; R-6.b",
+   "quote": "There is no staff queue editing, manual promotion, or bulk cancellation of entries by feature control. ... Only authorized personnel with a need to reconcile can inspect restricted record details.",
+   "missing": "Manual promotion/removal is ruled out, but there is no staff view of the waitlist and no record of who was promoted when beyond identity-free diagnostic events."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-6.a",
+   "quote": "Authorized operators can enable or pause waitlisting globally and pause or enable it for a single occurrence through an approved operations surface."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional performance and capacity",
+   "quote": "Measure join, own-status, and seat-release-to-booking times ... numeric latency, retry and recovery targets, and operating budgets are unresolved.",
+   "missing": "No numeric bound on cancellation-to-promotion time is set."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1 Basis and delta; R-1.a",
+   "quote": "Preserve existing occurrence visibility, ordinary booking for available seats, booking restrictions, and existing reservations. ... With an unallocated seat and no waiting priority, the surface offers ordinary booking."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-6.a; R-6 State and data",
+   "quote": "Rollout starts paused globally until authorized activation. ... Activation requires that existing bookings and writes are compatible and the waitlist is observable.",
+   "missing": "It is never stated whether classes already full at launch gain a waitlist on activation, or how."
+  }
+ ]
+}

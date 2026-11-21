@@ -1,0 +1,136 @@
+{
+ "slot": "invoice-reminders__Q-shiploop-spec-lenses__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.42385200000000006,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "A-2",
+   "quote": "Default schedule is four steps: 3 days before the due date, on the due date, 7 days after, 14 days after. Default send hour is 09:00 in the account timezone."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "fully paid; balance zero (including fully credited); void or cancelled; ... invoice paused; ... invoice disputed only if the product has such a status (G-3.1). Partially paid invoices stay eligible"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "partial payment of 400.00 leaves INV-1001 open with balance 800.00; the 2026-12-01 reminder states 800.00 (S-4)."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-14",
+   "quote": "an administrator can suppress reminders for one billing address ... G-14.1 ... invoice reminders may count as transactional but this was not determined.",
+   "missing": "Whether an existing customer-level do-not-contact/paused/unsubscribed state stops reminders, and whether reminders are exempt from a marketing opt-out (left undetermined in G-14.1)."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "for each Key at most one hand-off to the provider ever occurs, however many times the evaluation runs, however many workers run at once, and across restarts and redeploys."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "Immediately after claiming and again before each provider call, the invoice status, balance, due date, billing email, pause flag, suppression and account setting are re-read from their owners"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "retried up to 3 attempts in total, at least 15 minutes apart ... The operator sees failed, unknown and bounced rows in a \"needs attention\" list (R-10). No separate alert channel is added."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "Provider rate limiting or quota exhaustion counts as transient. Reminders are paced, never rejected as a batch; a large day ... is spread over the window, in due-date order oldest first"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "how many open invoices are already past one or more steps and will therefore not be reminded unless the operator ticks \"Also send one reminder now to invoices already past due\""
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "the instant is (due date + offset) at the send hour in the account timezone ... Reminders go out every calendar day including weekends and holidays; there is no business-day shift"
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-8",
+   "quote": "outstanding balance with currency ... body contains \"INV-1001\", \"1 Dec 2026\", \"1,200.00 USD\"",
+   "missing": "A formatting rule for amounts per currency or recipient locale (decimal places, separators, symbol placement) beyond the single USD example."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "A permanent rejection (invalid address) is `failed` at once with no retry, and suppresses that address ... A hard bounce or spam complaint ... adds the address to the account's suppression list"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "Basis and baseline",
+   "quote": "Out of scope ... several recipient addresses per invoice (A-1)"
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "every Key decision is written as a reminder row ... The invoice view has a Reminders panel showing the rows newest first"
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-8",
+   "quote": "invoice number, due date, ... outstanding balance with currency, and a way to view or pay it (G-8.2) ... the link is unguessable and scoped",
+   "missing": "Whether the payment link expires, and for how long."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "An administrator may add, remove and change the offset of steps, change the send hour, and reset to the default."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-11",
+   "quote": "An administrator can set the account `Off` at any time ... A deployment-level kill switch ... stops all sends for all accounts",
+   "missing": "No preview or dry-run of what would be sent (only sample dates and a next-send count); per-customer off is only per address or per invoice; manual resend is out of scope."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "the next scheduled instant or the live no-reminder reason ... The account has a \"needs attention\" list: `failed`, `unknown`, `sent, bounced` and `missed` rows"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "If the window ended with no row and the step was applicable, the next run writes a row `missed` and sends nothing late."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-13",
+   "quote": "Creating, editing, paying, voiding and deleting invoices, and every existing email the product sends, behave exactly as before"
+  }
+ ]
+}

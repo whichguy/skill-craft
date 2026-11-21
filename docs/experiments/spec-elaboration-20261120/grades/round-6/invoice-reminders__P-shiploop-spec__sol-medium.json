@@ -1,0 +1,144 @@
+{
+ "slot": "invoice-reminders__P-shiploop-spec__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.38128680000000004,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1 Domain rules; R-2.a",
+   "quote": "For an activated scope the default is one reminder per invoice after its due cutoff, at the first successful eligible evaluation ... A future cutoff is ineligible even if the invoice is otherwise collectible."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2.a; R-2 Domain rules",
+   "quote": "A confirmed paid, draft, void, deleted, held from collection or out-of-scope invoice yields zero handoffs. ... The product owner must settle the treatment of disputes, payment-in-flight, credits and any other exceptions",
+   "missing": "Whether disputed, credited or payment-plan invoices stop the sequence is left to the product owner; payment plans are not named at all."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2.a; R-3.a",
+   "quote": "Partial payment leaves it eligible if all conditions still hold. ... It contains no attachment, payment link, balance, account identifier, credentials or unrelated invoices."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-3 Domain rules",
+   "quote": "Email is the working channel default, subject to an approved sender, recipient mapping, preferences and required content. The product owner and channel owner must establish these and any consent, locale or communication restrictions",
+   "missing": "How a do-not-contact, paused or unsubscribed customer is treated, and whether billing reminders are exempt from marketing opt-outs."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4.a",
+   "quote": "Concurrent evaluations, duplicate triggers and restart converge on that identity. ... At most one accepted handoff for the logical reminder, including reactivation or later invoice edits."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2.b",
+   "quote": "Authorize each handoff using fresh effective policy, current service access, invoice eligibility, and the current billing destination. ... Payment in full ... effective before final authorization prevents sending"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-4.b; R-4 Domain rules",
+   "quote": "retry a transient failure under active policy with fresh authorization. ... Attempt exhaustion or a permanent rejection stays actionable in a held state. ... must settle retry deadline/backoff",
+   "missing": "Retry count, backoff and deadline, and any active escalation/notification to a person when sends keep failing or the provider is down."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Non-functional requirements: Timeliness and capacity",
+   "quote": "during source or channel throttling, active scopes recover still-eligible work. ... Workload, acceptable delay, retry limits, concurrency, quota headroom, cost and catch-up capacity are unresolved.",
+   "missing": "The provider's rate limit and how a large batch is paced within it."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-1 Domain rules; Non-functional requirements",
+   "quote": "including eligible invoices already overdue at activation after the operator confirms that cohort. ... catch-up capacity are unresolved.",
+   "missing": "Whether and how the backlog of already-overdue reminders is throttled or spread so it does not all go out at once."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1 Domain rules",
+   "quote": "Product owner must confirm production timing and timezone semantics, cohort and any additional cadence or quiet-hour rules before enabling the affected scope.",
+   "missing": "Which time zone governs, permitted sending hours, and weekend/holiday handling."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-3.a; R-3 Domain rules",
+   "quote": "It contains no attachment, payment link, balance ... The product owner and channel owner must establish these and any consent, locale or communication restrictions",
+   "missing": "Amount is excluded, but recipient locale/formatting rules are left open; no currency formatting stated."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2.a; R-3.a; R-3.b",
+   "quote": "A definitively missing approved billing destination suppresses sending until corrected. ... the destination is invalid ... expose a scoped failure and follow R-4. ... A bounce ... does not automatically create another accepted reminder."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-4 State, data and recovery; R-4.c",
+   "quote": "Store the minimum identifiers, decision/outcome, timestamps and safe correlation needed for restart, deduplication and investigation.",
+   "missing": "Whether this per-invoice record is visible on the invoice itself; it is only retrievable through an operator operational surface."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-3.a; Replay fixtures",
+   "quote": "The default notice is plain text with the invoice reference and a request to pay or to disregard if already paid. It contains no attachment, payment link, balance"
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-1.a; R-4 State, data and recovery; R-1 Domain rules",
+   "quote": "An authorized billing operator can establish an active reminder policy for a specific billing scope ... Billing integration owner must identify the configuration route, actor roles",
+   "missing": "Concrete roles, and who (if anyone) may send or stop an individual reminder by hand."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1.a; R-4.b",
+   "quote": "can disable it there. ... A remediated permanent failure is eligible for retry only after an authorized recovery action",
+   "missing": "Per-customer opt-out, preview/dry-run, and manual resend; only per-scope disable and recovery retry are stated."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-4.c",
+   "quote": "A scoped operator can retrieve send acceptance, suppression/defer reason, failed or exhausted attempts, unresolved handoffs, and reconciliation outcome",
+   "missing": "A view of what the system will send next (upcoming reminders)."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements: Timeliness and capacity",
+   "quote": "Workload, acceptable delay, retry limits, concurrency, quota headroom, cost and catch-up capacity are unresolved.",
+   "missing": "An actual cap on sending volume or a maximum lateness after which a reminder is not sent."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2 State, data and recovery; Invoice boundary contract",
+   "quote": "Before and after, invoice and contact records are changed only by existing billing operations. ... The reminder path reads invoice state and has no invoice write"
+  }
+ ]
+}

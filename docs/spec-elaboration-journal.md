@@ -918,3 +918,74 @@ came back and is left to finish: both of its arms share one layout and one polic
 exclusions bears on them alike, and it will say whether the block moves the stage at all. By the review's own
 terms a block rewritten to meet its findings would need its own paired check, so round 6 cannot rescue the draft;
 it can only say how much there was to rescue.
+
+## 15. Round 6: the draft inside the stage moves it a little, in two categories, and not enough (2026-11-21)
+
+16 sessions (the draft Q and a second draw of the released stage P, both drivers), all exit 0 after a passing
+pre-flight; the leak check found none that read outside or named the held-out material.
+`evidence/round-6/readings.txt`.
+
+| | Sonnet high | Sol medium |
+| --- | --- | --- |
+| P, first draw (round 5) | 58 | 43 |
+| P, second draw (round 6) | 60 | 43 |
+| **Q, the draft** | **68** | **48** |
+| Q minus the mean of P's two draws (R15) | **+9: interim** | **+5: nothing shown** |
+| Q minus P in the same round | +8 | +5 |
+| cases where Q is above P / below P | 3 / 0 | 2 / 1 |
+| minutes a case, P to Q | 6.6 to 5.2 | 4.8 to 4.8 |
+| R-n requirements a specification, P to Q | 11.5 to 16.5 | 4.0 to 5.2 |
+
+**R15: not shown on Sol, interim on Sonnet.** Neither driver reaches the threshold of 12 fixed before the round.
+By the stricter test the review proposed (both judges, 12 or more on a driver against both the mean and the same
+round, gains on several cases after scope and sources are checked) it is further off still.
+
+**What the block does do, consistently:** on both drivers its gains sit in the two things its first lens names
+that the released stage's duties do not: the people who run it (operator 3 to 6 on Sonnet, 1 to 3 on Sol) and the
+unhappy paths (8 to 11, 7 to 10). Everything else moves by one either way. That is a small, located effect and it
+is the one thing in this experiment that points at the released stage's text and not at the instrument.
+
+**What it costs:** not time or tokens (Sonnet's Q sessions were shorter than its P sessions; Sol's the same), but
+obligations: Sonnet's specifications go from 11.5 requirements to 16.5, and each is a check to plan and work to
+map in the stages after. Whether those five are wanted is exactly what the review said this experiment had not
+measured, and it still has not.
+
+**The lenses lose their standalone lead when set inside the stage.** On Sol, L alone scored 62; the same lenses
+inside the stage text score 48. The 14 between them is not lens content, since the content is the same: it is the
+stage's own duties telling the session to leave open and leave out what L, with no such duties, decided. That
+settles what R14 measured, in the review's favour: two documents with two policies, not a stage with and without
+an addition.
+
+**The released stage is steady.** Its two draws are 58 and 60 on Sonnet and 43 and 43 on Sol, the same four
+per-case numbers both times on Sol.
+
+### Conclusion
+
+Of the three outcomes registered in section 6, the first: **no fold-back into the released `spec` stage on this
+evidence.** The draft is not put to the owner: the independent review found its wording would turn aids to
+thinking into obligations, and its measured effect inside the stage is interim on one driver and not shown on the
+other. Nothing under `skills/` was changed at any point.
+
+What the experiment leaves, in order of how firmly it stands:
+1. **The released stage, run alone, already reaches nearly every nuance on the checklist** (87 of 89 on both
+   drivers, 83 to 87 across four draws), a checklist written by someone trying to find what it would miss.
+2. **Against the ratchet pilot's single-pass enrich text the lens arms cover far more**, on two drivers and, on
+   Sonnet, under two judges. That text is another session's.
+3. **A one-pass form costs about half an iterating one and shows no loss of coverage.**
+4. **The released stage is weakest on the operator's work and on unhappy paths, and a cue naming them moves both
+   a little on both drivers.** Interim. If the owner wants that pursued it is a two-sentence cue tied to the
+   affected outcome, as the review words it, with its own paired check and an E2E round, not this block.
+5. **The instrument**: four frozen requests, an 89-item checklist, a coverage judge calibrated on two layouts and
+   re-read by a second family, a clause audit, a pre-flight that proves what a Codex session is shown, and a leak
+   check. Its known faults are recorded where they were found: the judge scores a stated exclusion or an open
+   item unevenly, so `covered` rewards deciding; the checklist and the lenses share an author; a subject can
+   still reach a judge's folder.
+
+Open and the owner's:
+- Whether a specification should decide more of what it reaches. The request that started this asked for a
+  verbose, elaborated specification; the released stage's duties tell it to leave some things open and out. The
+  lens arms without those duties wrote what the request described. That is a choice about what the stage is for.
+- Whether finding 4 is worth a second, smaller attempt.
+- Whether finding 2 goes to the ratchet pilot's session.
+- The E2E harness's Codex sessions being shown the user's own skills (section 7), put up as its own task.
+- The stale sentence in `skills/shiploop/references/behavioral-requirements.md` (section 14).

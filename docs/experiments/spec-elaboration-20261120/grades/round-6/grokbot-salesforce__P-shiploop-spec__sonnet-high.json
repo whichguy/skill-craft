@@ -1,0 +1,182 @@
+{
+ "slot": "grokbot-salesforce__P-shiploop-spec__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.5435136,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "PD-12, R-2, AD-1",
+   "quote": "Lightning Experience in a desktop browser. Salesforce mobile app, Lightning Classic, Experience Cloud sites and Slack are out of scope. ... One Apex entry point (`@AuraEnabled`) receives `{message, priorExchanges[]}`"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-6, AD-8",
+   "quote": "Sharing: n/a: the bot reads no record (PD-4). ... Controller `with sharing`; ... Any future record access must use user-mode operations"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-6, PD-4",
+   "quote": "Field-level security: n/a: no field is read."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-6",
+   "quote": "access is granted by one named permission set covering the entry (R-2), the server operation and the use of the credential.",
+   "missing": "Administration (editing configuration, entering the key) is assigned to an 'Org admin' person, with no permission set or named permission defining who may administer."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4, R-11",
+   "quote": "readable only by the user in that page ... the conversation is shown only in the user's page; stored nowhere; logged never"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-3, R-11.1",
+   "quote": "Decision: one synchronous callout per turn with `setTimeout(configured ms)`; the LWC awaits the imperative Apex call ... A full successful turn and a failed turn each perform zero DML statements",
+   "missing": "The callout-after-DML and no-callout-from-trigger constraints are never stated; the design is synchronous rather than asynchronous, and the rule a builder must respect if DML is added is not given."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-5, AD-2",
+   "quote": "It is never in source, in deployed or retrieved metadata, in configuration records, in any browser payload, in any log or in any error text."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "AD-3, NFR-2",
+   "quote": "default callout timeout 10 s; configurable per request 1 ms to 120,000 ms; cumulative callout time per transaction capped at 120 s; 100 callouts per transaction.",
+   "missing": "Heap limit is mentioned without a number (GAP-7) and CPU time limit is not named at all."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "AD-3, AD-10",
+   "quote": "Apex tests cannot make callouts and use `HttpCalloutMock`"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "The Apex callout targets `callout:<NamedCredentialName>/...`. The base URL lives in the Named Credential."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "AD-3",
+   "quote": "one synchronous callout per turn with `setTimeout(configured ms)`; the LWC awaits the imperative Apex call and shows a pending state."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-8.2, PD-7, T-6",
+   "quote": "Pressing Enter twice quickly, or double-clicking the send control, on one message results in exactly one service call (mock call count 1) and one user message in the transcript."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "NFR-2",
+   "quote": "Concurrency: the platform's limits on concurrent long-running requests are documented to exclude callouts since Winter '20 (search summary); re-verify at plan.",
+   "missing": "No concurrency or capacity limit value is set, and the outcome for a request the platform refuses for concurrency is not stated."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "AUTH | HTTP 401 or 403 ... UNAVAILABLE | HTTP 500, 502, 503 ... TIMEOUT | `CalloutException` ... `Grok did not answer in time. It may still have processed your message. Retry?`"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-7, PD-7",
+   "quote": "RATE_LIMIT | HTTP 429 | `Grok is rate limited right now. Try again in a moment.` ... There is no automatic retry."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-7, R-8.4",
+   "quote": "INVALID_RESPONSE | HTTP 200 with `{\"choices\":[]}`, with an empty content string ... A pending state never persists past the service's return",
+   "missing": "A truncated reply (e.g. cut off by the output-token limit) is not addressed; only empty, unreadable and timed-out replies are."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "PD-3, R-11, Turn state ledger",
+   "quote": "Message states: sending, answered, failed. Owner: Bot page; transient. ... message text, replies and keys are not written to any record",
+   "missing": "Conversations are deliberately not stored as records; the model identifier and token/usage counts for a turn are recorded nowhere."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-11",
+   "quote": "kept until refresh, New chat, close or navigation; removed with it. No deletion path is needed because nothing is stored."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "PD-4, R-10",
+   "quote": "It contains no Salesforce username, email, user Id, org Id, record data or client metadata, and no identity field of the API."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-4, R-4.2",
+   "quote": "After 11 completed exchanges, the request for message `q12` contains exchanges 2 to 11 and `q12` ... exchange 1 is absent."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-3.3, R-3.4, R-4.3",
+   "quote": "Sending the empty string or `   ` (three spaces) shows the inline message `Enter a message to send.` ... A message of exactly 4,000 characters ... is sent; a message of 4,001 characters is rejected"
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-9, NFR-8",
+   "quote": "model ID, system prompt, maximum prompt characters, remembered exchanges, callout timeout and optional maximum output tokens are administrator-editable configuration",
+   "missing": "No off switch for the bot is specified, and admin visibility of failed requests is only via debug logs, not a stated admin view."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "NFR-8",
+   "quote": "Justified exclusion: no persistent audit of who asked what, because PD-3/R-11 forbid storing content ... reopen if the org requires audit (GAP-4).",
+   "missing": "No audit record of who asked what and what was answered exists, so there is no audit retention."
+  },
+  {
+   "id": "N-24",
+   "state": "covered",
+   "where": "PD-2, R-1.3, AD-2, AD-10",
+   "quote": "A production org identity makes the deploy step refuse. ... a production deploy would also need the Apex coverage gate, a development org deploy does not by itself"
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "NFR-1, R-8.1",
+   "quote": "Hard bounds: callout timeout between 1 ms and 120,000 ms; shipped default 60,000 ms ... the pending state (R-8.1) is shown before the service returns"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "NFR-6, NFR-6.3",
+   "quote": "The chat page is a designed interface, not scaffolding. ... Designed states: empty ..., loading (R-8.1 indicator), error (R-7 failed message with Retry ...), and answered, all distinct."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-1, R-1.4",
+   "quote": "Deployment is additive: it creates the bot's components and changes nothing unrelated."
+  }
+ ]
+}

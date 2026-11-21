@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__P-shiploop-spec__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.46520919999999993,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "D-3",
+   "quote": "All-or-nothing. One bad row rejects the whole file; nothing is created. Chosen because it makes retry and replay trivial to reason about."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "422 {\"status\":\"rejected\",\"total_rows\":N,\"created_count\":0,\"errors\":[{\"row\":R,\"field\":\"email|name|row\",\"code\":\"\u2026\",\"message\":\"\u2026\"},\u2026]}"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "D-4, R-3",
+   "quote": "A row whose email already belongs to a user is an error, not a skip or an update. / email already used earlier in this file (by normalized value) \u2192 EMAIL_DUPLICATE_IN_FILE, carrying first_row"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "D-2, R-4.3",
+   "quote": "No role, password, group or other column is importable. / A CSV can never make an admin. ... every user created by an import has role member"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The import page and the API are available only to a signed-in user whose current role is admin. The role is evaluated on every request"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "First line is a header; after trimming and ASCII case-folding it must be exactly email and name, each once, in either order. ... header not as above (missing, extra, duplicate or unknown column) \u2192 400 HEADER_INVALID"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2, R-3",
+   "quote": "comma-separated values with RFC 4180 quoting, LF or CRLF line ends, optional UTF-8 BOM (ignored) ... not valid UTF-8 \u2192 400 ENCODING_INVALID; name contains a control character ... embedded line break \u2192 NAME_INVALID"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-4, D-10",
+   "quote": "After any failure: U exactly, unchanged, including no partially created user and no orphan side records. / no credential, and no email is sent"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "size over max_bytes \u2192 413 FILE_TOO_LARGE ... more data rows than max_rows \u2192 413 ROW_LIMIT_EXCEEDED ... Open gap G-3 (user decision): the production values",
+   "missing": "The actual production values of the row and byte limits are left undecided."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2.2, R-4.1",
+   "quote": "FX-6 \u2192 400 FILE_EMPTY ... FX-5 \u2192 400 NO_ROWS ... a one-row file (FX-3) creates exactly one user"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "Re-uploading a file that already succeeded creates nothing and reports EMAIL_EXISTS for every row. Left out: import idempotency keys or \"skip existing\" retries (D-4)"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "D-6, AD-1",
+   "quote": "Outcome is known when the response arrives. No pending server-side state after the response. / No background job, queue or polling endpoint."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "D-10",
+   "quote": "Imported users get the product's default non-admin role, no credential, and no email is sent (G-2)."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "the default non-admin role, a store-assigned id, and no credential ... Open gap G-2 (user decision): how imported users obtain credentials",
+   "missing": "How imported users first sign in, and whether they are active or pending (status field left to G-1)."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "Upload bytes: request lifetime, readable by the handler only, removed on every exit (including temp storage)."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "D-2, R-2, R-3",
+   "quote": "Only email and name. ... Left out: other delimiters (semicolon, tab), other encodings ... IDN/punycode or Unicode normalization of emails (non-ASCII is kept as written)",
+   "missing": "No explicit statement on locale-dependent value formats; handled only implicitly by restricting columns to email and name."
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "writes exactly one audit event: actor id (absent if unauthenticated), UTC time, outcome ..., total_rows when parsed, created_count, file size in bytes"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-6.3, D-3",
+   "quote": "the client aborts the connection ... store read-back is S-0 or S-0 plus all three users, never one or two; if all three exist, a resubmit gives the R-6.2 result.",
+   "missing": "Whether the admin has any cancel control for a running import; retrying only failed rows is only implied by all-or-nothing re-send."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-10, R-7.3",
+   "quote": "The maximum rows and file size, and with them a latency target, are not given and are not invented here. / an indeterminate progress indicator appears (no percentage)",
+   "missing": "The time bound for a maximum-size file; progress is only an indeterminate indicator."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-4.1, R-4",
+   "quote": "S-0's three users unchanged. ... Left out: updating or deactivating existing users",
+   "missing": "Whether the existing single-user creation flow stays unchanged is never stated."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-9, R-3",
+   "quote": "A name starting with =, +, - or @ is stored verbatim; neutralizing it for spreadsheet export is excluded ... Open gap G-6 (prerequisite): a maximum name length (code would be NAME_TOO_LONG)",
+   "missing": "The maximum name length, and so how an over-long name field is handled."
+  }
+ ]
+}

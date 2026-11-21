@@ -1,0 +1,144 @@
+{
+ "slot": "csv-user-import__Q-shiploop-spec-lenses__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3781446,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3 A",
+   "quote": "If the authoritative create operation definitively fails for a row, report that row as failed and preserve already committed rows. One valid row can create one user. Mixed rows preserve valid independent work."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-4 A",
+   "quote": "Its authorized result shows confirmed created, skipped, failed and unprocessed totals and gives non-created records by logical record number and safe reason."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3 B",
+   "quote": "Existing identities and later valid in-file duplicates create nothing and never edit, reactivate, replace, or re-invite an existing account."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-3 Resources / R-2 Default format",
+   "quote": "Account edits, role assignment, password fields, forced invitations, credential import, and automatic rollback are outside the upload contract. ... No other headers are accepted under this default."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "Scope and source / R-5 Resources",
+   "quote": "\u201cAdmin\u201d means a signed-in person with current authority to create ordinary users in the selected administration scope. ... Individual cancellation, a special per-import grant and batch undo are outside scope.",
+   "missing": "The spec deliberately makes import ability follow from single-create authority; it never makes bulk import a separate permission that create-one-user authority does not imply."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2 B",
+   "quote": "Zero bytes, missing or invalid header, duplicate or unsupported headers, invalid UTF-8, malformed quoting, unsupported delimiter and non-CSV content that fails the format produce a file rejection and zero account writes."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2 Default format",
+   "quote": "One UTF-8 comma-delimited file per submission, with an optional leading UTF-8 BOM, LF or CRLF record breaks and an optional final record break. Double-quoted fields may contain commas, doubled quotes or line breaks."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-3 A / R-3 Resources",
+   "quote": "If the authoritative create operation definitively fails for a row, report that row as failed and preserve already committed rows. ... automatic rollback ... outside the upload contract."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2 C",
+   "quote": "A file above the byte, data-record or decoded field-size cap is rejected as a file with zero account writes.",
+   "missing": "The actual byte, row-count and field-size limit values; the spec leaves them unresolved for the runtime owner."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2 B / R-3 A",
+   "quote": "Zero bytes ... produce a file rejection ... Header only, or header followed only by physically empty records, yields \u201cNo data rows\u201d with zero account writes. ... One valid row can create one user."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-3 B / R-4 B",
+   "quote": "Repeat the same file as a new import. ... There is at most one committed creation ... Repeating the same intent and identical bytes under the same reference returns the same receipt"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-4 A",
+   "quote": "An acceptance acknowledgment identifies one durably admitted import. It progresses independently of the submitting view. ... close/reopen the view after admission"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3 A / R-3 Resources",
+   "quote": "Required account state and ordinary onboarding follow the single-create rules. ... Pending or failed onboarding follows ordinary creation policy, with no fabricated evidence of delivery.",
+   "missing": "Whether hundreds of invitation/welcome mails go out at once from one import and any pacing or throttling of them."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3 A / R-3 Resources",
+   "quote": "Required account state and ordinary onboarding follow the single-create rules. ... password fields ... are outside the upload contract.",
+   "missing": "The created user's actual initial state (active or pending), password status and first sign-in path; deferred to unobserved ordinary-create rules."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-6 State lifecycle (Input and in-flight row data)",
+   "quote": "Private product processing, scoped to the admitted import. ... No product download, staff browsing, sharing or general client cache. ... remove admitted input when it is no longer needed, at latest on terminal settlement."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-6 B",
+   "quote": "Operators can retrieve events by safe correlation reference, scope, timestamp, event/outcome code and aggregate counts where applicable ... Existing mandatory audit gates, if any, apply at their original boundary.",
+   "missing": "Events are diagnostic and do not state that the importing actor is recorded; no audit record of who imported what and when is defined, and import history is out of scope."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-5 B / R-5 Resources",
+   "quote": "After acceptance there is no uploader cancel or batch undo. ... Individual cancellation, a special per-import grant and batch undo are outside scope. The file may be corrected and resubmitted under R-2 and R-3."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements (Capacity and response)",
+   "quote": "progress communicates pending work. ... No latency, availability, cost or throughput target is stated by the request. The supported workload and acceptable wait time remain open.",
+   "missing": "A time bound for processing a maximum-size file."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3 Basis / R-3 B",
+   "quote": "Preserve all existing single-create rules, records and authorized writers. ... never edit, reactivate, replace, or re-invite an existing account."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-6 A / R-2 C",
+   "quote": "Raw CSV, raw field values ... are absent from receipt payloads and import logs. ... Text from the upload is never executed or rendered as active content. / A file above the ... decoded field-size cap is rejected"
+  }
+ ]
+}

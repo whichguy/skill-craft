@@ -1,0 +1,139 @@
+{
+ "slot": "invoice-reminders__P-shiploop-spec__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3769142,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "PD-4",
+   "quote": "The schedule is 1 to 5 integer day-offsets relative to the due date (negative before, 0 on, positive after), each in -30..+90, no duplicates. Default when first enabled: `[1, 7, 14]`."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "it is issued (not a draft), not void or cancelled, its outstanding balance is greater than zero ... Left out: disputed or in-collections statuses (their policy depends on G-1)",
+   "missing": "Whether a disputed invoice or one on a payment plan stops the sequence; paid, part-paid, void and credit balance are decided but disputed is deferred and payment plans are not mentioned."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "After a partial payment, reminders continue and state the outstanding balance at send time."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "G-5",
+   "quote": "Legal obligations on automated dunning email (opt-out wording, jurisdiction rules). ... Per-customer opt-out is left out.",
+   "missing": "Whether an existing do-not-contact, paused or unsubscribed state on the customer is honoured, and whether billing notices are exempt from a marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "Two runs for the same day that overlap (duplicate trigger, two instances) send each step at most once in total. A run that dies part-way is completed by the next trigger without repeating finished work"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "immediately before handing a reminder to the mail provider, the system re-reads the invoice and the account switch; if the invoice is no longer remindable (paid in full, voided, balance 0) ... nothing is sent"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "A transient provider failure keeps the step eligible and is retried at the next run, at most 3 attempts in total, then failed. ... outage of the whole provider yields failed or retried steps and a completed run",
+   "missing": "Escalation to a person when sends keep failing; NFR-4 leaves alerting unresolved and covers only a missed run."
+  },
+  {
+   "id": "N-8",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "PD-5",
+   "quote": "A reminder is never retroactive: an offset only produces reminders whose scheduled date is on or after the account-local date ... the switch was last turned on ... Avoids a surprise burst to customers"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "PD-3",
+   "quote": "One evaluation per calendar day when the account's local clock first reaches 09:00, every day including weekends."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "outstanding balance as `1,250.00 USD`"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "A blank or malformed recipient is skipped and the step is final. ... Left out: bounce, delivery or open tracking, so a later bounce is not visible"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "G-4",
+   "quote": "Whether a customer can have several billing emails. | Folded into G-1. | One recipient address per invoice.",
+   "missing": "Which contact is chosen when a customer has more than one billing contact, or whether all are written to."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "for each invoice, S-HIST lists its reminder records (offset, scheduled date, state, attempt count, time, recipient used), newest first"
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-6",
+   "quote": "Required body fields: customer name, invoice number, outstanding balance as `1,250.00 USD`, due date, timing line ... A payment link appears only if the host provides one (G-1).",
+   "missing": "Whether the payment link expires and what the reminder does if it has."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "A billing manager can turn it on or off. ... a user without billing permission, or an unauthenticated caller, is denied"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "each account has one reminders switch, default off. ... Left out: per-customer or per-invoice opt-out",
+   "missing": "Previewing or dry-running the reminders; per-customer off and manual resend are explicitly left out rather than specified."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "and the next reminder: the date of the next run expected to send, or the reason there is none"
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "NFR-1",
+   "quote": "Unresolved bound: invoice volume and the run's time budget (G-6).",
+   "missing": "A numeric cap on sending volume and a limit on how late a scheduled reminder may still go out after an outage."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "State and data assessment",
+   "quote": "Invoice data, customer contact | Host invoicing data (G-1); this feature only reads"
+  }
+ ]
+}
