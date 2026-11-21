@@ -2050,6 +2050,17 @@ user's skills, and locate one real difference between the two drivers in built p
   experiment's commits after it, interleaved with two of the SDLC session's that are not on origin either. A note
   to that session about the order was held and expired undelivered, because the two sessions run in different
   permission modes. The order is put to the owner.
+
+  > **Published 2026-11-21, 07:40** (written 07:42, after it was seen on the remote). The owner, asked whether to
+  > publish the shared main including the SDLC session's commits: "Publish now". One guarded push from a temporary
+  > worktree took `origin/main` from 79de0b67d1feec278a90e194ffb7aa628de6dd75 to
+  > f671146ad2ad7ce19458786131bc5a2276e4f098: fifteen commits in the order they were made, eleven of this
+  > experiment's and four of the SDLC session's, 556 files, all under `docs/`, every commit with its
+  > No-Change-Note. Before it: the quick tier on the changed paths (13 suites, passed) and the guard's three
+  > checks (marketplace payload, release boundary, test groups: passed). `git ls-remote` then showed the new tip.
+  > CI on that commit had started and not finished when this was written. A first attempt stopped itself before
+  > doing anything because its own file filter was wrong; nothing was pushed by it. This note and one later
+  > commit of the SDLC session's are local and go out with the next push of main.
 - No session, monitor or queue of this experiment is running. Raw session folders stay under
   `~/e2e-runs/spec-elaboration-20261120/`.
 
