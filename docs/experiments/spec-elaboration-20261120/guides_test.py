@@ -767,7 +767,9 @@ def model_outputs(out: Path) -> list[tuple[float, str]] | None:
             at = calendar.timegm(
                 tuple(int(value) for value in stamp.groups()[:6])
             ) + float(stamp.group(7) or 0)
-            shown.append((at, text))
+            # a script may print a command's output in its JSON form: read that form as plain text too
+            plain = text.replace("\\n", "\n").replace('\\"', '"').replace("\\\\", "\\")
+            shown.append((at, text if plain == text else text + "\n" + plain))
     return sorted(shown)
 
 

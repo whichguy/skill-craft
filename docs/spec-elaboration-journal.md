@@ -3255,6 +3255,23 @@ result template, and often not the duties between them.
 No packet reached the model by another way: in 74 runs with a session record, no message but the model's own holds
 a packet's first line.
 
+*Added 2026-11-21 13:50: do the runs that were given little of the spec stage's instructions write thinner
+specifications?* (`spec_by_reading.py`, `evidence/readings/spec-by-reading.txt`; no model called.) By words, yes, in
+each of the three groups of one case and one effort that hold both kinds of run. Shared expenses at medium: 306
+words in the middle (270 to 361; 3 runs) against 406 (390 and 422; 2 runs). Due times at high: 366 (326 to 379; 4
+runs) against 492 (362 to 674; 26 runs, 24 of them above 379). Due times at medium: 255 (one run) against 373 (358
+to 468; 5 runs). That is a quarter to a third shorter. The count of requirements does not differ (4 to 6 in both
+kinds), and the few whole deliveries show no difference in passing (expenses 3 of 3 against 2 of 2; due times at
+high 1 of 2 against 1 of 4, at medium 0 of 1 against 1 of 5). This is what runs happened to do and not a test: a
+session that skims may differ in other ways, words are not fullness, and no judge has read these specifications. It
+is the first sign in this journal that being given the stage's instructions goes with a longer specification, and it
+bears on the owner's aim, fuller specifications, more directly than the guide text does: the first thing to settle
+on Sol may be whether the model reads what the stage already tells it.
+
+*Checked 2026-11-21 13:52:* a script can print a command's output in its JSON form, where a line holding a quotation
+mark would not match. Reading that form as plain text too changes one figure above, every instruction line in 15
+runs and not 14, and no other; the driver and the two evidence files now read both forms.
+
 **What this means** (this session's reading).
 
 - For section 38. Real Sol builders did not open the spec guides, and in 41 of 50 runs the model was never given
