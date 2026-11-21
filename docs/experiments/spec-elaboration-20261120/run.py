@@ -14,6 +14,10 @@ started with its own customizations off:
                every one of their 16 Sol sessions read a user-level skill from the real HOME
                (~/.agents/skills, ~/.codex/skills); from round 4 on the HOME itself is a throwaway, kept outside
                the session's working directory. `grade.py leaks ROUND` checks every stream for it.
+               Round 4 showed that is still not enough: Codex lists the skills under the account's real home to
+               the model whatever HOME says. From round 4c on every user-level skill is turned off by a
+               `skills.config` override (codex_isolation.py), and a round refuses to start unless a no-model
+               render of the session's prompt input shows none of them.
 
 Both write under a workspace-write sandbox limited to that directory. Nothing in cases.json reaches a subject: the
 held-out nuance checklist is read only by grade.py.
@@ -40,6 +44,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[2] / "test" / "shiploop_e2e"))
+sys.path.insert(0, str(HERE))  # python3 -I leaves the script's own folder off the path
+import codex_isolation  # beside this file
 import hosts  # the E2E harness host interface: its Codex profile isolation is used as it stands
 
 CLAUDE = shutil.which("claude") or "/Users/dadleet/.local/bin/claude"
@@ -95,7 +101,7 @@ def call_codex(prompt, cwd, model, effort, timeout):
     stream = cwd / ".stream.jsonl"
     argv = ["codex", "exec", "--json", "--ephemeral", "--ignore-user-config", "--skip-git-repo-check",
             "-s", "workspace-write", "-c", 'approval_policy="never"', "-c", f"model_reasoning_effort={effort}",
-            "-m", model, "-C", str(cwd), "-o", str(cwd / ".last-message.txt"), prompt]
+            *codex_isolation.flags(), "-m", model, "-C", str(cwd), "-o", str(cwd / ".last-message.txt"), prompt]
     with open(stream, "w") as out, open(cwd / ".stderr.txt", "w") as err:
         try:
             rc = subprocess.run(argv, cwd=cwd, stdin=subprocess.DEVNULL, stdout=out, stderr=err, env=profile,
@@ -175,7 +181,9 @@ def run_one(round_name, case, arm, driver, timeout):
     (kept / "meta.json").write_text(json.dumps({
         "round": round_name, "case": case["id"], "arm": arm, "arm_sha256_12": sha(arm_text), "driver": driver,
         "host": spec["host"], "model": spec["model"], "effort": spec["effort"], "rc": rc, "seconds": seconds,
-        "ok": ok, "wrote": written, "stray_files": stray, "workdir": str(cwd), **usage}, indent=1) + "\n")
+        "ok": ok, "wrote": written, "stray_files": stray, "workdir": str(cwd),
+        "user_skills_turned_off": len(codex_isolation.user_skill_files()) if spec["host"] == "codex" else None,
+        **usage}, indent=1) + "\n")
     say("DONE" if ok else "FAIL", slot, f"{seconds}s", f"rc={rc}", f"files={written}")
 
 
@@ -199,6 +207,15 @@ def main():
         print(f"{len(jobs)} calls", "(pass a ROUND name to run)" if not args else "")
         return
     round_name = args[0]
+    if any(DRIVERS[d]["host"] == "codex" for d in drivers):
+        home = WORK / round_name / ".homes" / "preflight"
+        home.mkdir(parents=True, exist_ok=True)
+        shown = codex_isolation.preflight(hosts.CodexHost().env(home))
+        if shown:
+            raise SystemExit("refusing to start: a Codex session would still be shown, from the real home:\n  "
+                             + "\n  ".join(shown))
+        say(f"Codex pre-flight: no user-level skill or skill root is shown to a session "
+            f"({len(codex_isolation.user_skill_files())} turned off by override)")
     timeout = int(flags.get("timeout", 2700))
     width = int(flags.get("parallel", 4))
     say(f"round {round_name}: {len(jobs)} calls, {width} at a time, work under {WORK / round_name}")

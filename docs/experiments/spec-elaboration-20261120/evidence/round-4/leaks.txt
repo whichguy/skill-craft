@@ -1,0 +1,27 @@
+LEAK  csv-user-import__A-single__sol-medium
+        1x /Users/dadleet/.agents/skills/illustrated-authoring/SKILL.md
+clean csv-user-import__A-single__sonnet-high   (system paths referenced: 0)
+LEAK  csv-user-import__D-enumerated-only__sol-medium
+        1x /Users/dadleet/.agents/skills/illustrated-authoring/SKILL.md
+        1x /Users/dadleet/.codex/skills/agentic-execution/SKILL.md
+clean csv-user-import__D-enumerated-only__sonnet-high   (system paths referenced: 3)
+LEAK  grokbot-salesforce__A-single__sol-medium
+        1x /Users/dadleet/.agents/skills/illustrated-authoring/SKILL.md
+clean grokbot-salesforce__A-single__sonnet-high   (system paths referenced: 0)
+LEAK  grokbot-salesforce__D-enumerated-only__sol-medium
+        1x /Users/dadleet/.codex/skills/agentic-execution/SKILL.md
+clean grokbot-salesforce__D-enumerated-only__sonnet-high   (system paths referenced: 0)
+clean gym-waitlist__A-single__sol-medium   (system paths referenced: 0)
+clean gym-waitlist__A-single__sonnet-high   (system paths referenced: 0)
+LEAK  gym-waitlist__D-enumerated-only__sol-medium
+        1x /Users/dadleet/.agents/skills/illustrated-authoring/SKILL.md
+clean gym-waitlist__D-enumerated-only__sonnet-high   (system paths referenced: 0)
+LEAK  invoice-reminders__A-single__sol-medium
+        1x /Users/dadleet/.agents/skills/illustrated-authoring/SKILL.md
+clean invoice-reminders__A-single__sonnet-high   (system paths referenced: 0)
+LEAK  invoice-reminders__D-enumerated-only__sol-medium
+        1x /Users/dadleet/.agents/skills/illustrated-authoring/SKILL.md
+        1x /Users/dadleet/.codex/skills/agentic-execution/SKILL.md
+clean invoice-reminders__D-enumerated-only__sonnet-high   (system paths referenced: 0)
+
+7 of 16 sessions referenced a path under the real HOME outside their own working directory and throwaway profile

@@ -228,3 +228,35 @@ the arms that write C-n clauses (R10), and the two checks of the judge on round 
 ```sh
 sh queue-3.sh          # the revised queue, in order, resumable; stops at once if a session leaks
 ```
+
+## Round 4 as it turned out (2026-11-20)
+
+`queue-3.sh` stopped itself at round 4's leak check: 7 of the 8 Sol sessions had read a user-level skill, through
+the E2E harness's own throwaway profile. The stop is the check doing its job; what it found is wider than this
+experiment.
+
+**What is true of Codex 0.171.0 on this machine**, measured with `codex debug prompt-input`, which renders what a
+session's model is shown and makes no model call:
+- With `HOME` and `CODEX_HOME` both pointing at a throwaway profile, and even with nothing in the environment but
+  `HOME`, `CODEX_HOME` and `PATH`, the prompt input lists the skill roots `/Users/dadleet/.codex/skills` and
+  `/Users/dadleet/.agents/skills` and the ten skills in them. Codex takes the account's home from the system, not
+  from the environment. So `hosts.CodexHost.env` isolates config, plugins and state, and not skills.
+- No feature flag tried removes them: `skip_host_skill_discovery` on, `skill_search` off, `plugins` off.
+- Turning each skill off by its `SKILL.md` path does: `-c skills.config=[{path="...",enabled=false},...]` leaves no
+  path under the real home in the prompt input (2 roots and 10 skills before, none after; 83,349 characters to
+  77,049). `codex_isolation.py` builds that override and holds the check.
+
+**Superseded:** "A smoke call on the fixed runner read nothing outside." It was one session that happened not to
+open a skill it had been shown. From round 4c on a round refuses to start unless the no-model render shows a Codex
+session none of the user's skills, which is a proof where the smoke call was a sample; the scan of the streams
+afterwards stays.
+
+**What round 4 is now.** Its 8 Sonnet sessions are clean and give R6 as registered. Its 8 Sol sessions are a second
+draw of the same leaked condition as rounds 1 to 3, which is a measurement nobody planned and is worth having: how
+far Sol moves between two draws with the same skills shown. **Round 4c** runs A and D on Sol again with the skills
+turned off, and **R7** reads that clean draw against both leaked ones. Nothing else in the plan to conclude
+changes: round 5 is still F, L and P, and the audits read only clean specifications.
+
+```sh
+sh queue-4.sh          # round 4 judged as it ran, round 4c, round 5, the judge checks, the audits
+```

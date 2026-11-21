@@ -361,3 +361,59 @@ arm; an interim answer gets one more draw of the same arms.
 "Released spec stage."** The fold-back, if the four answers warrant one, is drafted against the released `spec`
 stage's duty text in `skills/shiploop/scripts/shiploop_prompts.py` and nowhere else. The ratchet pilot's enrich
 stage is not a target of this experiment; nothing is sent to that session unless the owner asks.
+
+## 7. Round 4's leak check stops the queue: Codex shows the user's skills to every session, whatever the profile (2026-11-20)
+
+**What happened.** `queue-3.sh` ran round 4's last subject calls, ran `grade.py leaks round-4`, and stopped: 7 of
+the 8 Sol sessions had read `~/.agents/skills/illustrated-authoring/SKILL.md` or
+`~/.codex/skills/agentic-execution/SKILL.md`, although every one of them ran in the E2E harness's own throwaway
+profile (`hosts.CodexHost.env`), which section 5 had called the fix. The check was written to stop the queue on
+exactly this, and it did, before any verdict or any round-5 call was spent on it.
+
+**Superseded, 2026-11-20:** section 5's "Fixed ... A smoke call on the fixed runner read nothing outside." The
+smoke call was one session, and one session in sixteen had not opened a skill under the old runner either. A clean
+sample of one was read as a proof. It was not one.
+
+**The mechanism, established without a model call.** `codex debug prompt-input` prints what a session's model is
+shown. Run under the harness profile it lists three skill roots: `r0 = /Users/dadleet/.codex/skills`,
+`r1 = <the throwaway CODEX_HOME>/skills/.system`, `r2 = /Users/dadleet/.agents/skills`, and the ten user-level
+skills under r0 and r2 (advisors, agentic-execution, ask, evidence-first-recommendations, illustrated-authoring,
+jevify, lennox-s40, smartthings-ops, test-runner, typesafe-ai).
+- The environment is not how it knows: with nothing set but `HOME`, `CODEX_HOME` and `PATH`, both pointing at the
+  throwaway, the two real-home roots are still listed. Codex 0.171.0 takes the account's home from the system.
+- No feature flag tried removes them: `--enable skip_host_skill_discovery`, `--disable skill_search`,
+  `--disable plugins`, `--enable omit_skill_descriptions`.
+- Turning the skills off one by one does: `-c skills.config=[{path="<SKILL.md>",enabled=false}, ...]` for the 11
+  `SKILL.md` files under the two roots (four of the skill folders are symlinks, which a plain recursive search
+  skips; the first version of the override missed them and the check caught it). With it the prompt input holds no
+  path under the real home at all: 2 roots and 10 skills before, none after, 83,349 characters to 77,049.
+
+**The fix here.** `codex_isolation.py` builds the override and holds `preflight`, which renders the prompt input
+for a session's environment and returns whatever it still shows from the real home. `run.py` passes the override on
+every Codex call and refuses to start a round unless `preflight` returns nothing; `grade.py` passes it to the Codex
+judge; `grade.py leaks` no longer counts a path that does not exist (a session that looks for an `AGENTS.md` above
+its directory and finds none read nothing). Firm for Codex 0.171.0; a new CLI version re-runs the check by
+construction, since every round starts with it.
+
+**This is wider than this experiment (read-only evidence; nothing of another session's was touched).** The E2E
+harness uses the same profile for every Codex session it starts. Its own archived runs show sessions reading the
+owner's skills from inside harness throwaway homes: on 2026-11-05 the `review-knowledge` sessions of the chess
+improvement runs ran `cat /Users/dadleet/.codex/skills/agentic-execution/SKILL.md` (their rollout logs under
+`<run>/review-knowledge-0N/home/.codex/sessions/`). Across four folders sampled (2026-11-02, 2026-11-05,
+2026-11-15, the 2026-11-18 closed-loop smoke) there are 159 mentions of `agentic-execution/SKILL.md` and 12 of
+`test-runner/SKILL.md`; by folder, files naming a user-level skill path number 119 under 2026-11-01, 76 under
+2026-10-31, 75 under 2026-10-30, 68 under 2026-11-02, and fewer back to 2026-10-05. The ratchet pilot's 23 run
+folders, searched whole, name none: its sessions were shown the skills and did not open them. So the exposure is
+every Codex session of the harness, and the measured effect depends on the task: a session asked to write a
+document opens `illustrated-authoring` (21 of the 24 Sol sessions here), one asked for thorough agentic work opens
+`agentic-execution` (7 of the 24, every one of them a recursive-form session).
+- Not done here: no change to `test/shiploop_e2e/hosts.py`. It is shared apparatus, other sessions run from it,
+  and turning the skills off changes what every later Codex E2E run is compared with. That is the owner's call
+  (AGENTS.md, Decisions: a default that breaks comparability). It is put to the owner as its own task, with the
+  override and the no-model check ready to carry over.
+
+**What round 4 is now.** Its 8 Sonnet sessions are clean: R6 as registered. Its 8 Sol sessions are a second draw of
+the leaked condition of rounds 1 to 3, which gives something nobody planned: how far Sol moves between two draws
+with the same skills shown. Round 4c runs A and D on Sol with the skills turned off, and R7 reads that clean draw
+against both leaked ones. Round 5 (F, L, P), the two checks of the judge and the audits of the clean
+specifications follow as registered; `queue-4.sh`.

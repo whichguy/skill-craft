@@ -43,6 +43,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[2] / "test" / "shiploop_e2e"))
+sys.path.insert(0, str(HERE))  # python3 -I leaves the script's own folder off the path
+import codex_isolation  # beside this file
 import hosts  # the E2E harness host interface: its Codex profile isolation is used as it stands
 
 CLAUDE = shutil.which("claude") or "/Users/dadleet/.local/bin/claude"
@@ -263,7 +265,7 @@ def cmd_leaks(round_name, _flags):
         meta = json.loads((slot / "meta.json").read_text()) if (slot / "meta.json").is_file() else {}
         workdir = meta.get("workdir") or ""
         own = [workdir, str(Path(workdir).parent / ".homes")] if workdir else []
-        outside, system = defaultdict(int), 0
+        outside, absent, system = defaultdict(int), defaultdict(int), 0
         for text in session_texts(slot / "stream.jsonl") if (slot / "stream.jsonl").is_file() else []:
             found = re.findall(r"(/(?:Users|home|private|tmp|etc|var|opt|usr|Library)/[^\s'\"\\);|&<>]*)", text)
             if meta.get("host") == "claude":
@@ -271,16 +273,20 @@ def cmd_leaks(round_name, _flags):
             for path in found:
                 if any(path.startswith(prefix) for prefix in own if prefix):
                     continue
-                if path.startswith(real_home):
-                    outside[path.rstrip(";,")] += 1
-                else:
+                path = path.rstrip(";,")
+                if not path.startswith(real_home):
                     system += 1
+                elif os.path.exists(path):
+                    outside[path] += 1
+                else:
+                    absent[path] += 1    # looked for and not there: nothing was read
         if outside:
             leaking += 1
             lines.append(f"LEAK  {slot.name}")
             lines.extend(f"        {count}x {path}" for path, count in sorted(outside.items()))
         else:
-            lines.append(f"clean {slot.name}   (system paths referenced: {system})")
+            lines.append(f"clean {slot.name}   (system paths referenced: {system}"
+                         + (f"; looked for and absent: {len(absent)}" if absent else "") + ")")
     lines.append("")
     lines.append(f"{leaking} of {len(slots(round_name))} sessions referenced a path under the real HOME outside their own "
                  f"working directory and throwaway profile")
@@ -307,7 +313,8 @@ def run_session(prompt, cwd, judge, timeout):
         env = hosts.CodexHost().env(home)
         argv = ["codex", "exec", "--json", "--ephemeral", "--ignore-user-config", "--skip-git-repo-check",
                 "-s", "workspace-write", "-c", 'approval_policy="never"',
-                "-c", f"model_reasoning_effort={judge['effort']}", "-m", judge["model"], "-C", str(cwd),
+                "-c", f"model_reasoning_effort={judge['effort']}", *codex_isolation.flags(),
+                "-m", judge["model"], "-C", str(cwd),
                 "-o", str(cwd / ".last-message.txt"), prompt]
     with open(cwd / ".stream.jsonl", "w") as stream, open(cwd / ".stderr.txt", "w") as err:
         try:
@@ -538,8 +545,9 @@ def audit_one(round_name, slot, case, timeout):
 def cmd_audit(round_name, flags):
     by_case = cases()
     arms = [a for a in flags.get("arms", "").split(",") if a]
+    drivers = [d for d in flags.get("drivers", "").split(",") if d]
     jobs = [(s, by_case[json.loads((s / "meta.json").read_text())["case"]]) for s in slots(round_name)
-            if not arms or s.name.split("__")[1] in arms]
+            if (not arms or s.name.split("__")[1] in arms) and (not drivers or s.name.split("__")[2] in drivers)]
     timeout, width = int(flags.get("timeout", 2400)), int(flags.get("parallel", 3))
     say(f"auditing {len(jobs)} specs clause by clause on {JUDGES['opus']['model']} ({JUDGES['opus']['effort']}), "
         f"{width} at a time")
