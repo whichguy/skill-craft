@@ -1,0 +1,179 @@
+#!/usr/bin/env python3
+"""Run one round of the spec-elaboration experiment: every case x arm x driver, resumably.
+
+A subject call is one headless session that reads nothing but its arm's prompt with the case's request
+substituted in, and writes `spec.md` (and `passes.md`, where its arm asks for one) into its own empty working
+directory. That directory sits outside every repository, so no repository instruction file loads, and each host is
+started with its own customizations off:
+
+  sonnet-high  claude -p --safe-mode (no CLAUDE.md, skills, plugins, hooks, MCP, commands or agents), the latest
+               Sonnet at effort high.
+  sol-medium   codex exec --ignore-user-config in a throwaway CODEX_HOME that links only auth.json, gpt-6.2-sol at
+               reasoning effort medium.
+
+Both write under a workspace-write sandbox limited to that directory. Nothing in cases.json reaches a subject: the
+held-out nuance checklist is read only by grade.py.
+
+Each finished call leaves results/<round>/<case>__<arm>__<driver>/ holding spec.md, passes.md where written,
+meta.json (rc, seconds, the arm file's sha256, usage where the host reports it) and the raw stream. A call whose
+spec.md is already there is skipped, so a rerun resumes and a new round re-runs everything.
+
+Usage: python3 -I run.py ROUND [--cases a,b] [--arms A-single,B-recursive] [--drivers sonnet-high,sol-medium]
+                               [--parallel 4] [--timeout 2700] [--list]
+Env: SPEC_ELAB_WORK  where the throwaway working directories go (default ~/e2e-runs/spec-elaboration-20261120)
+"""
+import concurrent.futures
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+import threading
+import time
+import uuid
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+CLAUDE = shutil.which("claude") or "/Users/dadleet/.local/bin/claude"
+WORK = Path(os.environ.get("SPEC_ELAB_WORK") or Path.home() / "e2e-runs" / "spec-elaboration-20261120")
+PRINT = threading.Lock()
+
+DRIVERS = {
+    "sonnet-high": {"host": "claude", "model": "claude-sonnet-5-5", "effort": "high"},
+    "sol-medium": {"host": "codex", "model": "gpt-6.2-sol", "effort": "medium"},
+}
+
+
+def say(*parts):
+    with PRINT:
+        print(*parts, flush=True)
+
+
+def sha(text):
+    return hashlib.sha256(text.encode()).hexdigest()[:12]
+
+
+def call_claude(prompt, cwd, model, effort, timeout):
+    """One headless Claude session with every customization off, writing in cwd."""
+    argv = [CLAUDE, "-p", prompt, "--safe-mode", "--strict-mcp-config", "--model", model, "--effort", effort,
+            "--permission-mode", "acceptEdits", "--output-format", "stream-json", "--verbose",
+            "--no-session-persistence", "--add-dir", str(cwd)]
+    stream = cwd / ".stream.jsonl"
+    env = {**os.environ, "NO_COLOR": "1", "GIT_TERMINAL_PROMPT": "0", "TMPDIR": str(cwd / ".tmp")}
+    (cwd / ".tmp").mkdir(exist_ok=True)
+    with open(stream, "w") as out, open(cwd / ".stderr.txt", "w") as err:
+        try:
+            rc = subprocess.run(argv, cwd=cwd, stdin=subprocess.DEVNULL, stdout=out, stderr=err, env=env,
+                                timeout=timeout, check=False).returncode
+        except subprocess.TimeoutExpired:
+            rc = 124
+    usage = {}
+    for line in stream.read_text(errors="replace").splitlines():
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        if event.get("type") == "result":
+            usage = {"cost_usd": event.get("total_cost_usd"), "turns": event.get("num_turns"),
+                     "usage": event.get("usage")}
+    return rc, usage
+
+
+def call_codex(prompt, cwd, model, effort, timeout):
+    """One codex exec in a throwaway CODEX_HOME that links only the user's auth.json."""
+    home = cwd / ".codex-home" / ".codex"
+    home.mkdir(parents=True, exist_ok=True)
+    link = home / "auth.json"
+    if not link.is_symlink():
+        link.symlink_to(Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex") / "auth.json")
+    stream = cwd / ".stream.jsonl"
+    argv = ["codex", "exec", "--json", "--ephemeral", "--ignore-user-config", "--skip-git-repo-check",
+            "-s", "workspace-write", "-c", 'approval_policy="never"', "-c", f"model_reasoning_effort={effort}",
+            "-m", model, "-C", str(cwd), "-o", str(cwd / ".last-message.txt"), prompt]
+    env = {**os.environ, "CODEX_HOME": str(home), "NO_COLOR": "1", "GIT_TERMINAL_PROMPT": "0"}
+    with open(stream, "w") as out, open(cwd / ".stderr.txt", "w") as err:
+        try:
+            rc = subprocess.run(argv, cwd=cwd, stdin=subprocess.DEVNULL, stdout=out, stderr=err, env=env,
+                                timeout=timeout, check=False).returncode
+        except subprocess.TimeoutExpired:
+            rc = 124
+    usage = {}
+    for line in stream.read_text(errors="replace").splitlines():
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        if event.get("type") == "turn.completed":
+            usage = {"usage": event.get("usage")}
+    return rc, usage
+
+
+def run_one(round_name, case, arm, driver, timeout):
+    slot = f"{case['id']}__{arm}__{driver}"
+    kept = HERE / "results" / round_name / slot
+    if (kept / "spec.md").is_file() and (kept / "spec.md").read_text().strip():
+        say("SKIP", slot)
+        return
+    arm_text = (HERE / "arms" / f"{arm}.md").read_text()
+    prompt = arm_text.replace("{request}", case["request"])
+    cwd = WORK / round_name / f"{slot}-{uuid.uuid4().hex[:6]}"
+    cwd.mkdir(parents=True)
+    spec = DRIVERS[driver]
+    start = time.time()
+    caller = call_claude if spec["host"] == "claude" else call_codex
+    rc, usage = caller(prompt, cwd, spec["model"], spec["effort"], timeout)
+    seconds = round(time.time() - start, 1)
+    kept.mkdir(parents=True, exist_ok=True)
+    written = []
+    for name in ("spec.md", "passes.md"):
+        found = next((p for p in sorted(cwd.rglob(name)) if ".codex-home" not in p.parts), None)
+        if found is not None:
+            shutil.copy2(found, kept / name)
+            written.append(str(found.relative_to(cwd)))
+    for name in (".stream.jsonl", ".stderr.txt"):
+        if (cwd / name).is_file():
+            shutil.copy2(cwd / name, kept / name.lstrip("."))
+    stray = sorted(str(p.relative_to(cwd)) for p in cwd.rglob("*")
+                   if p.is_file() and not p.name.startswith(".") and p.name not in ("spec.md", "passes.md")
+                   and ".codex-home" not in p.parts and ".tmp" not in p.parts)
+    ok = rc == 0 and (kept / "spec.md").is_file() and (kept / "spec.md").read_text().strip() != ""
+    (kept / "meta.json").write_text(json.dumps({
+        "round": round_name, "case": case["id"], "arm": arm, "arm_sha256_12": sha(arm_text), "driver": driver,
+        "host": spec["host"], "model": spec["model"], "effort": spec["effort"], "rc": rc, "seconds": seconds,
+        "ok": ok, "wrote": written, "stray_files": stray, "workdir": str(cwd), **usage}, indent=1) + "\n")
+    say("DONE" if ok else "FAIL", slot, f"{seconds}s", f"rc={rc}", f"files={written}")
+
+
+def main():
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    flags = {}
+    for flag in (a for a in sys.argv[1:] if a.startswith("--")):
+        key, _, value = flag[2:].partition("=")
+        flags[key] = value or "1"
+    data = json.loads((HERE / "cases.json").read_text())
+    cases = data["cases"]
+    if flags.get("cases"):
+        want = flags["cases"].split(",")
+        cases = [c for c in cases if c["id"] in want]
+    arms = flags.get("arms", "A-single,B-recursive").split(",")
+    drivers = flags.get("drivers", "sonnet-high,sol-medium").split(",")
+    jobs = [(c, a, d) for c in cases for a in arms for d in drivers]
+    if "list" in flags or not args:
+        for c, a, d in jobs:
+            print(f"{c['id']}__{a}__{d}")
+        print(f"{len(jobs)} calls", "(pass a ROUND name to run)" if not args else "")
+        return
+    round_name = args[0]
+    timeout = int(flags.get("timeout", 2700))
+    width = int(flags.get("parallel", 4))
+    say(f"round {round_name}: {len(jobs)} calls, {width} at a time, work under {WORK / round_name}")
+    with concurrent.futures.ThreadPoolExecutor(max_workers=width) as pool:
+        futures = [pool.submit(run_one, round_name, c, a, d, timeout) for c, a, d in jobs]
+        for future in concurrent.futures.as_completed(futures):
+            future.result()
+    say("round", round_name, "finished")
+
+
+if __name__ == "__main__":
+    main()
