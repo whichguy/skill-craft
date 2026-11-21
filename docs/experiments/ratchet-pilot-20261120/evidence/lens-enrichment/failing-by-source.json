@@ -1,0 +1,1297 @@
+{
+ "runs": {
+  "lens:orders": {
+   "case": "stand-in-rules",
+   "enrich": "lenses",
+   "counts": {
+    "written": {
+     "clauses": {
+      "implied": 24,
+      "request": 26,
+      "choice": 20,
+      "existing": 12
+     },
+     "use_cases": {
+      "request": 3,
+      "implied": 4,
+      "existing": 1
+     }
+    },
+    "failing": {
+     "clauses": {
+      "choice": 6,
+      "request": 3
+     },
+     "use_cases": {
+      "existing": 1
+     }
+    }
+   },
+   "request_clauses_failing": [
+    "C-78",
+    "C-79",
+    "C-80"
+   ],
+   "request_clauses_about_tests": [
+    "C-78",
+    "C-79",
+    "C-80"
+   ],
+   "plan_added": [],
+   "plan_added_failing": [],
+   "failing_not_in_spec": [],
+   "failing_items": [
+    {
+     "id": "U-8",
+     "kind": "existing",
+     "plan_added": false,
+     "statement": "A maintainer checks that existing meter consumers still work",
+     "source": "existing: README.md, src/meter.js, test/meter.test.js and package.json"
+    },
+    {
+     "id": "C-6",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "Physical line breaks also include CRLF, bare CR, U+2028, and U+2029",
+     "source": "choice: use the ECMAScript line-terminator set, with CRLF counted as one break, to accept text from different environments"
+    },
+    {
+     "id": "C-21",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "Omitting any expected key makes a record a syntax error",
+     "source": "choice: treat the listed keys as the record schema so absent fields and present empty values remain distinguishable"
+    },
+    {
+     "id": "C-22",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "A field outside the expected schema makes a record a syntax error",
+     "source": "choice: surface misspellings and unsupported data instead of silently dropping a submitted field"
+    },
+    {
+     "id": "C-23",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "Repeating any key within one record makes that record a syntax error",
+     "source": "choice: reject ambiguous record definitions without picking a field by position"
+    },
+    {
+     "id": "C-27",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "An ID without a finite numeric value throws SyntaxError",
+     "source": "choice: the request requires a numeric ID and assigns range errors specifically to quantity and price"
+    },
+    {
+     "id": "C-35",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "Empty text in a numeric quantity or price field is invalid",
+     "source": "choice: an empty value supplies no quantity or cents even though ECMAScript Number conversion of an empty string yields zero"
+    },
+    {
+     "id": "C-78",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "The node:test suite covers the order parser",
+     "source": "request"
+    },
+    {
+     "id": "C-79",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "The node:test suite covers the order total",
+     "source": "request"
+    },
+    {
+     "id": "C-80",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "The complete suite passes through npm test",
+     "source": "request"
+    }
+   ]
+  },
+  "lens:ticket-assignment": {
+   "case": "ticket-assignment",
+   "enrich": "lenses",
+   "counts": {
+    "written": {
+     "clauses": {
+      "request": 18,
+      "implied": 20,
+      "existing": 101,
+      "choice": 14
+     },
+     "use_cases": {
+      "request": 3,
+      "implied": 5,
+      "existing": 3
+     }
+    },
+    "failing": {
+     "clauses": {
+      "choice": 5,
+      "request": 2,
+      "existing": 3,
+      "implied": 3
+     },
+     "use_cases": {
+      "implied": 2,
+      "request": 1
+     }
+    }
+   },
+   "request_clauses_failing": [
+    "C-123",
+    "C-150"
+   ],
+   "request_clauses_about_tests": [
+    "C-150"
+   ],
+   "plan_added": [
+    "C-152",
+    "C-153"
+   ],
+   "plan_added_failing": [
+    "C-152",
+    "C-153"
+   ],
+   "failing_not_in_spec": [],
+   "failing_items": [
+    {
+     "id": "U-3",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "An API caller diagnoses a failed assignment to correct or retry it",
+     "source": "implied: the assignment route participates in the existing API error and persistence contracts"
+    },
+    {
+     "id": "U-5",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "An API caller lists tickets to find an agent's work or unassigned work",
+     "source": "request"
+    },
+    {
+     "id": "U-7",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "An operator reads assignments from the command line",
+     "source": "implied: the CLI listing must show assignment and the existing CLI reads the saved tickets"
+    },
+    {
+     "id": "C-42",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "A failed assignment save leaves the previously committed state visible",
+     "source": "choice: the documented single-change contract must hold for failed assignment saves as well as for successful ones"
+    },
+    {
+     "id": "C-51",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "Distinct assignment changes get distinct notification identities",
+     "source": "choice: pending-key deduplication must distinguish a real new assignment from repetition of the same change"
+    },
+    {
+     "id": "C-58",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "A nonempty assignee query value is interpreted using the name rules",
+     "source": "choice: the filter names the same agent as the PUT, while preserving the special meaning of an explicitly empty parameter"
+    },
+    {
+     "id": "C-61",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "Repeated assignee query parameters use their first value",
+     "source": "choice: use the established single-value query convention for the new filter dimension"
+    },
+    {
+     "id": "C-112",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "Present saved assignees must be valid stored values",
+     "source": "choice: keep saved tickets within the valid stored-name contract while treating only an absent field as the legacy default"
+    },
+    {
+     "id": "C-123",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "The CLI table shows each ticket's assignee",
+     "source": "request"
+    },
+    {
+     "id": "C-127",
+     "kind": "existing",
+     "plan_added": false,
+     "statement": "The CLI retains the existing listing filter flags",
+     "source": "existing: bin/tickets.js and src/tickets/query.js establish the CLI behavior, and the requested conjunction is for GET /tickets"
+    },
+    {
+     "id": "C-128",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "CLI show reports the ticket's current assignee",
+     "source": "implied: every ticket shows its assignee and the existing show command displays the ticket in full"
+    },
+    {
+     "id": "C-130",
+     "kind": "existing",
+     "plan_added": false,
+     "statement": "CLI failures retain the established exit codes",
+     "source": "existing: bin/tickets.js"
+    },
+    {
+     "id": "C-131",
+     "kind": "existing",
+     "plan_added": false,
+     "statement": "The weekly report keeps its existing counts",
+     "source": "existing: README.md and scripts/weekly-report.js"
+    },
+    {
+     "id": "C-150",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "New assignment tests run as part of the same test command",
+     "source": "request"
+    },
+    {
+     "id": "C-152",
+     "kind": "implied",
+     "plan_added": true,
+     "statement": "Agent names must be representable across HTTP and command-line text",
+     "source": "implied: U-5 and U-7 need the exact stored name to survive a URL query and UTF-8 CLI output, both of which replace unpaired surrogates"
+    },
+    {
+     "id": "C-153",
+     "kind": "implied",
+     "plan_added": true,
+     "statement": "Exhausted notification IDs cannot make an assignment snapshot unusable",
+     "source": "implied: U-3 and U-10 need a named assignment to leave restartable data when the saved next event ID reaches the largest safe integer allowed by C-120"
+    }
+   ]
+  },
+  "lens:ticket-due-times": {
+   "case": "ticket-due-times",
+   "enrich": "lenses",
+   "counts": {
+    "written": {
+     "clauses": {
+      "request": 28,
+      "choice": 19,
+      "implied": 34,
+      "existing": 110
+     },
+     "use_cases": {
+      "request": 5,
+      "implied": 6,
+      "existing": 1
+     }
+    },
+    "failing": {
+     "clauses": {
+      "request": 4,
+      "choice": 10,
+      "implied": 10,
+      "existing": 1
+     },
+     "use_cases": {
+      "request": 3,
+      "implied": 4
+     }
+    }
+   },
+   "request_clauses_failing": [
+    "C-5",
+    "C-15",
+    "C-49",
+    "C-190"
+   ],
+   "request_clauses_about_tests": [
+    "C-190"
+   ],
+   "plan_added": [
+    "C-191"
+   ],
+   "plan_added_failing": [
+    "C-191"
+   ],
+   "failing_not_in_spec": [],
+   "failing_items": [
+    {
+     "id": "U-5",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "A help-desk operator changes promised hours to apply a new policy to future assignments",
+     "source": "request"
+    },
+    {
+     "id": "U-6",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "A production operator prepares legacy data to switch due times on safely",
+     "source": "implied: production must hold due times before they are exposed"
+    },
+    {
+     "id": "U-7",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "A production operator retries interrupted preparation to reach a fully migrated file",
+     "source": "implied: tickets keep their deadline once assigned and existing production data must survive deployment"
+    },
+    {
+     "id": "U-8",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "An operator disables due-time responses to recover the old API while continuing to take tickets",
+     "source": "request"
+    },
+    {
+     "id": "U-9",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "A production operator rolls back to release 1.4.0 to keep the desk working",
+     "source": "implied: rollback must work with live data and assigned deadlines are permanent"
+    },
+    {
+     "id": "U-10",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "An operator reads the CLI to inspect deadlines without disrupting the weekly report",
+     "source": "implied: tickets show their due time and the existing CLI and report keep working"
+    },
+    {
+     "id": "U-12",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "A maintainer runs the suite to verify deadline behavior alongside 1.4.0 behavior",
+     "source": "request"
+    },
+    {
+     "id": "C-5",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "Operators can override the response interval independently for each of the four priorities",
+     "source": "request"
+    },
+    {
+     "id": "C-6",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "Response-hour overrides are launch settings named DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL and DUE_HOURS_LOW",
+     "source": "choice: startup environment settings fit the existing service and require no live configuration endpoint"
+    },
+    {
+     "id": "C-8",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "A supplied response-hour override accepts decimal whole hours from 1 through 4800000000 inclusive",
+     "source": "choice: follow the service's whole-number convention with the representable time span as the ceiling"
+    },
+    {
+     "id": "C-9",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "An invalid response-hour override prevents service startup",
+     "source": "choice: use the existing configuration-failure path because hidden assignments still use the policy"
+    },
+    {
+     "id": "C-12",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "A visible due time follows the API's existing UTC timestamp convention",
+     "source": "implied: docs/api.md defines the convention for API times"
+    },
+    {
+     "id": "C-15",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "A policy change leaves every assigned deadline fixed",
+     "source": "request"
+    },
+    {
+     "id": "C-34",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "An overdue result must also satisfy the selected status filter",
+     "source": "implied: U-3 and the status parameter's documented meaning in docs/api.md"
+    },
+    {
+     "id": "C-36",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "With overdue=true the three filters use intersection when all three are supplied",
+     "source": "choice: the documented intersection applies to new overdue queries while the shipped union remains for legacy queries"
+    },
+    {
+     "id": "C-47",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "A legacy ticket uses the priority stored when its first assignment is made",
+     "source": "implied: U-6 needs the current legacy record's priority and the policy in force for the backfill"
+    },
+    {
+     "id": "C-48",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "Startup prepares unassigned file-backed tickets before serving",
+     "source": "choice: startup preparation supports staged activation without a new command or a background dependency"
+    },
+    {
+     "id": "C-49",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "The production service exposes due-time responses only once its configured ticket file holds all existing deadlines",
+     "source": "request"
+    },
+    {
+     "id": "C-54",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "An unrepresentable legacy deadline prevents preparation",
+     "source": "choice: fail through the existing startup data-error path rather than skip a ticket or publish a fabricated deadline"
+    },
+    {
+     "id": "C-55",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "A failed required backfill save is a startup error",
+     "source": "choice: use the operation's existing data-error exit contract for preparation failures"
+    },
+    {
+     "id": "C-56",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "Backfill publishes the updated file as a whole state",
+     "source": "implied: existing whole-state persistence in docs/decisions/0008-json-data-file.md applies to U-7"
+    },
+    {
+     "id": "C-63",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "A refused create cannot leave a partially assigned ticket",
+     "source": "implied: deadline assignment must be part of the indivisible ticket creation promised by README.md and docs/decisions/0008-json-data-file.md"
+    },
+    {
+     "id": "C-64",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "A file-backed ticket change that fails before commit leaves the old state observable",
+     "source": "implied: the existing ticket-change contract is one complete state, including its deadline"
+    },
+    {
+     "id": "C-70",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "A return from writable rollback has a documented way to recover prior assignments",
+     "source": "choice: the 1.4.0 writer omits added fields, so retain the promises operationally using the existing copy-backup convention"
+    },
+    {
+     "id": "C-71",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "Returning from rollback uses the latest ticket state",
+     "source": "implied: U-9 must preserve work done during rollback as well as work before it"
+    },
+    {
+     "id": "C-73",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "Operators can find the rollout and rollback procedure in the operating documentation",
+     "source": "implied: the request gives the help desk responsibility for configuration, production activation and rollback"
+    },
+    {
+     "id": "C-112",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "A save cannot exhaust the allocation counters into an unreadable version 1 file",
+     "source": "implied: the ECMAScript safe-integer rule and the 1.4.0 loader's strict counter checks bind rollback-compatible saves"
+    },
+    {
+     "id": "C-140",
+     "kind": "existing",
+     "plan_added": false,
+     "statement": "Committed ticket history is append-only",
+     "source": "existing: docs/decisions/0007-append-only-audit-log.md"
+    },
+    {
+     "id": "C-181",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "Human CLI ticket views show assigned deadlines only with DUE_TIMES=on",
+     "source": "choice: cover the human ticket views using the shared visibility setting while preserving the raw reporting protocol"
+    },
+    {
+     "id": "C-182",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "An unprepared file read by the enabled CLI remains read-only",
+     "source": "choice: the CLI may run during preparation and cannot make authoritative assignments"
+    },
+    {
+     "id": "C-190",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "npm test discovers the new node:test coverage under test/",
+     "source": "request"
+    },
+    {
+     "id": "C-191",
+     "kind": "implied",
+     "plan_added": true,
+     "statement": "A notification remains retryable when its delivery result cannot be saved",
+     "source": "implied: U-11 needs retries to continue after a transient delivery-state save failure, while C-159 covers the separate case of a crash after sending"
+    }
+   ]
+  },
+  "pilot:orders": {
+   "case": "stand-in-rules",
+   "enrich": "single",
+   "counts": {
+    "written": {
+     "clauses": {
+      "request": 28,
+      "implied": 14,
+      "choice": 16,
+      "existing": 11
+     },
+     "use_cases": {
+      "request": 5,
+      "implied": 6,
+      "existing": 1
+     }
+    },
+    "failing": {
+     "clauses": {
+      "request": 4,
+      "choice": 5
+     },
+     "use_cases": {
+      "request": 1,
+      "implied": 2
+     }
+    }
+   },
+   "request_clauses_failing": [
+    "C-20",
+    "C-22",
+    "C-67",
+    "C-68"
+   ],
+   "request_clauses_about_tests": [
+    "C-67",
+    "C-68"
+   ],
+   "plan_added": [],
+   "plan_added_failing": [],
+   "failing_not_in_spec": [],
+   "failing_items": [
+    {
+     "id": "U-5",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "A caller submits quantities and prices near their lower bounds to distinguish valid orders from invalid ones",
+     "source": "request"
+    },
+    {
+     "id": "U-7",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "A caller submits an ambiguous field list to discover which input is accepted",
+     "source": "implied: the field grammar, numeric identifier, and shipped date rules need outcomes for these inputs"
+    },
+    {
+     "id": "U-12",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "A maintainer starts using the new helpers with the project's existing test command",
+     "source": "implied: the request adds a Node module and tests to the project described in README.md"
+    },
+    {
+     "id": "C-20",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "A quantity that is not a whole number raises `RangeError`",
+     "source": "request"
+    },
+    {
+     "id": "C-22",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "A price that is not a whole number raises `RangeError`",
+     "source": "request"
+    },
+    {
+     "id": "C-30",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "A field whose key differs from the named key spellings raises `SyntaxError`",
+     "source": "choice: use the five listed keys literally because the request specifies normalization only for values"
+    },
+    {
+     "id": "C-31",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "A line missing any named key raises `SyntaxError`",
+     "source": "choice: require explicit fields so an absent value and an intentionally empty shipped date remain distinguishable"
+    },
+    {
+     "id": "C-32",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "A repeated key within one order line raises `SyntaxError`",
+     "source": "choice: a line gives each order property one value and provides no priority between conflicting fields"
+    },
+    {
+     "id": "C-36",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "An identifier without a finite numeric value raises `SyntaxError`",
+     "source": "choice: treat unusable identifier text as a malformed field since the request provides no identifier error rule"
+    },
+    {
+     "id": "C-37",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "An empty price raises `RangeError`",
+     "source": "choice: an empty price supplies no cents value, even though JavaScript can coerce empty text to zero"
+    },
+    {
+     "id": "C-67",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "`node:test` coverage exercises the new order helpers",
+     "source": "request"
+    },
+    {
+     "id": "C-68",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "`npm test` succeeds with the orders coverage present",
+     "source": "request"
+    }
+   ]
+  },
+  "pilot:ticket-assignment": {
+   "case": "ticket-assignment",
+   "enrich": "single",
+   "counts": {
+    "written": {
+     "clauses": {
+      "request": 19,
+      "choice": 12,
+      "implied": 29,
+      "existing": 132
+     },
+     "use_cases": {
+      "implied": 12,
+      "request": 3,
+      "existing": 2
+     }
+    },
+    "failing": {
+     "clauses": {
+      "implied": 10,
+      "existing": 2,
+      "choice": 1,
+      "request": 2
+     },
+     "use_cases": {
+      "implied": 4,
+      "request": 1
+     }
+    }
+   },
+   "request_clauses_failing": [
+    "C-103",
+    "C-185"
+   ],
+   "request_clauses_about_tests": [
+    "C-185"
+   ],
+   "plan_added": [
+    "C-191",
+    "C-192"
+   ],
+   "plan_added_failing": [
+    "C-191",
+    "C-192"
+   ],
+   "failing_not_in_spec": [],
+   "failing_items": [
+    {
+     "id": "U-5",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "An API client uses the name boundaries so it can distinguish valid assignments from mistakes",
+     "source": "implied: by the non-empty name of at most 64 characters and the existing JSON body rules"
+    },
+    {
+     "id": "U-8",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "An agent filters the queue so they can find their own work or work nobody owns",
+     "source": "request"
+    },
+    {
+     "id": "U-10",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "An operator inspects notifications so every recipient gets the assignment made to them",
+     "source": "implied: by notifying the agent for each assignment through an outbox with pending-key deduplication"
+    },
+    {
+     "id": "U-12",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "An operator reads the data file from the command line so they can see who owns each ticket",
+     "source": "implied: by the command-line listing requirement, every ticket showing its assignee and README.md's raw-column contract"
+    },
+    {
+     "id": "U-17",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "A client retries a failed save so an assignment cannot be half recorded",
+     "source": "implied: by making the ticket, audit and outbox change in one step"
+    },
+    {
+     "id": "C-64",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "A later real assignment to a former assignee has its own notification",
+     "source": "implied: by the request's no-op applying only when the ticket already has that assignee"
+    },
+    {
+     "id": "C-74",
+     "kind": "existing",
+     "plan_added": false,
+     "statement": "A delivery failure is visible on the outbox event",
+     "source": "existing: src/outbox.js"
+    },
+    {
+     "id": "C-87",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "The assignee filter interprets non-empty values as assignment names",
+     "source": "choice: give callers one interpretation for names entered through assignment or search"
+    },
+    {
+     "id": "C-103",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "The operator's table listing shows each assignee",
+     "source": "request"
+    },
+    {
+     "id": "C-114",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "The existing single-ticket CLI display includes the assignee",
+     "source": "implied: by every ticket showing its assignee and the CLI's full-ticket display"
+    },
+    {
+     "id": "C-123",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "A failed assignment save leaves no partial live change",
+     "source": "implied: by applying the assignment and its effects together in U-17"
+    },
+    {
+     "id": "C-133",
+     "kind": "existing",
+     "plan_added": false,
+     "statement": "A present malformed assignee in a stored ticket is rejected",
+     "source": "existing: docs/decisions/0008-json-data-file.md"
+    },
+    {
+     "id": "C-136",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "Rollback instructions explain what an old data-file writer does to assignees",
+     "source": "implied: by the rollback in U-15 and the old loader and writer keeping only known ticket fields"
+    },
+    {
+     "id": "C-137",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "Rollback instructions explain pending assignment notices",
+     "source": "implied: by rolling back with a pending new notification kind and the old template behavior"
+    },
+    {
+     "id": "C-185",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "New behaviour has node:test coverage under test/",
+     "source": "request"
+    },
+    {
+     "id": "C-187",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "A retry after a failed save can perform the assignment",
+     "source": "implied: by failed changes being unapplied in U-17"
+    },
+    {
+     "id": "C-189",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "The API reference describes assignment",
+     "source": "implied: by extending the ticket API documented in docs/api.md"
+    },
+    {
+     "id": "C-190",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "The CLI reference describes the raw assignee field",
+     "source": "implied: by extending the documented raw columns consumed by operators and scripts"
+    },
+    {
+     "id": "C-191",
+     "kind": "implied",
+     "plan_added": true,
+     "statement": "A failed assignment save leaves the saved state and identifiers unchanged",
+     "source": "implied: by U-17 requiring the failed assignment to leave no partial record and the retry to record the change with its usual audit entry and notification"
+    },
+    {
+     "id": "C-192",
+     "kind": "implied",
+     "plan_added": true,
+     "statement": "An accepted assignee name can be represented in an encoded query and the raw listing",
+     "source": "implied: by U-8 and U-12 requiring the stored name to round-trip through the URL query and the UTF-8 raw listing, both of which replace an unpaired surrogate"
+    }
+   ]
+  },
+  "pilot:ticket-due-times": {
+   "case": "ticket-due-times",
+   "enrich": "single",
+   "counts": {
+    "written": {
+     "clauses": {
+      "request": 26,
+      "choice": 20,
+      "existing": 157,
+      "implied": 35
+     },
+     "use_cases": {
+      "request": 3,
+      "implied": 11,
+      "existing": 1
+     }
+    },
+    "failing": {
+     "clauses": {
+      "request": 7,
+      "choice": 11,
+      "existing": 5,
+      "implied": 12
+     },
+     "use_cases": {
+      "implied": 7,
+      "request": 1
+     }
+    }
+   },
+   "request_clauses_failing": [
+    "C-1",
+    "C-6",
+    "C-42",
+    "C-43",
+    "C-47",
+    "C-231",
+    "C-232"
+   ],
+   "request_clauses_about_tests": [
+    "C-231",
+    "C-232"
+   ],
+   "plan_added": [
+    "C-237",
+    "C-238"
+   ],
+   "plan_added_failing": [
+    "C-237",
+    "C-238"
+   ],
+   "failing_not_in_spec": [],
+   "failing_items": [
+    {
+     "id": "U-4",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "A dashboard client pages through overdue tickets to review all matching work",
+     "source": "implied: the overdue filter extends the existing ticket listing"
+    },
+    {
+     "id": "U-6",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "A help-desk operator adjusts response hours to change deadlines for future tickets",
+     "source": "implied: response hours are configurable, while assigned deadlines are fixed"
+    },
+    {
+     "id": "U-7",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "A production operator prepares the existing file to enable due times safely",
+     "source": "implied: production activation follows durable backfill"
+    },
+    {
+     "id": "U-8",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "A production operator retries a failed preparation to protect the current data",
+     "source": "implied: production activation requires a usable, completely prepared file"
+    },
+    {
+     "id": "U-9",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "An operator restarts or disables the feature to control exposure",
+     "source": "implied: the gate controls the API while persisted deadlines remain fixed"
+    },
+    {
+     "id": "U-11",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "An operator rolls back to 1.4.0 to keep the help desk running",
+     "source": "implied: an unmodified 1.4.0 must consume the new release's output and previously assigned deadlines must remain recoverable"
+    },
+    {
+     "id": "U-12",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "An operator reads tickets from disk to inspect due times without writing state",
+     "source": "implied: displaying due times reaches the existing human-facing ticket reader"
+    },
+    {
+     "id": "U-15",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "A maintainer runs the test suite to check the change and the existing service together",
+     "source": "request"
+    },
+    {
+     "id": "C-1",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "A new ticket's deadline is based on its creation time",
+     "source": "request"
+    },
+    {
+     "id": "C-6",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "Operators can configure the response hours without changing code",
+     "source": "request"
+    },
+    {
+     "id": "C-7",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "Each priority has its own environment variable for its response hours",
+     "source": "choice: per-priority overrides follow the service's environment configuration convention"
+    },
+    {
+     "id": "C-9",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "A response-hour override is a positive whole number",
+     "source": "choice: use the existing whole-number environment setting convention for a positive response window"
+    },
+    {
+     "id": "C-10",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "An override that overflows the supported timestamp range is unusable",
+     "source": "choice: the timestamp range supplies the upper boundary without a separate policy limit in hours"
+    },
+    {
+     "id": "C-11",
+     "kind": "existing",
+     "plan_added": false,
+     "statement": "An invalid response-hour setting fails startup",
+     "source": "existing: README.md and src/server.js"
+    },
+    {
+     "id": "C-34",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "An overdue list requires all supplied filters to match",
+     "source": "choice: use the conjunction documented in docs/api.md for overdue listings while preserving the current behavior of ordinary queries"
+    },
+    {
+     "id": "C-42",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "The release backfills deadlines for all production tickets that lack them",
+     "source": "request"
+    },
+    {
+     "id": "C-43",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "Backfill calculates each missing deadline from that ticket's saved creation time",
+     "source": "request"
+    },
+    {
+     "id": "C-44",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "Backfill selects response hours from the ticket's own stored priority",
+     "source": "implied: the request bases backfill on the existing tickets' own priority"
+    },
+    {
+     "id": "C-45",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "Backfill preserves deadlines already present in a partially prepared file",
+     "source": "implied: a persisted deadline is set once"
+    },
+    {
+     "id": "C-46",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "The new release can prepare an existing file with visibility disabled",
+     "source": "choice: startup preparation lets the operator finish storage rollout before enabling visibility without a new command"
+    },
+    {
+     "id": "C-47",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "An enabled persistent service accepts traffic only once its file holds the assigned deadlines",
+     "source": "request"
+    },
+    {
+     "id": "C-48",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "Enabled startup refuses a persistent file that still needs preparation",
+     "source": "choice: fail closed at cutover and point the operator back to the preparation step"
+    },
+    {
+     "id": "C-52",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "An enabled persistent create cannot expose a ticket whose initial save failed",
+     "source": "implied: a persistent ticket must have a saved deadline before the enabled service shows it"
+    },
+    {
+     "id": "C-60",
+     "kind": "existing",
+     "plan_added": false,
+     "statement": "Preparation publishes a complete saved state atomically",
+     "source": "existing: docs/decisions/0008-json-data-file.md"
+    },
+    {
+     "id": "C-61",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "A preparation that cannot persist its result does not start the service",
+     "source": "implied: production cannot enable due times until preparation is durable"
+    },
+    {
+     "id": "C-63",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "Any stored deadline must be valid when read",
+     "source": "choice: validate supplied deadline values like persisted timestamps instead of treating corruption as a missing deadline"
+    },
+    {
+     "id": "C-64",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "An assigned deadline must be later than the ticket's creation time",
+     "source": "choice: every supported response duration is positive"
+    },
+    {
+     "id": "C-65",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "Preparation rejects a ticket whose calculated deadline cannot be represented",
+     "source": "implied: preparation cannot commit a ticket for which it cannot supply a usable deadline"
+    },
+    {
+     "id": "C-71",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "The rollback runbook captures assigned deadlines before 1.4.0 owns the file",
+     "source": "choice: use the existing file-copy backup mechanism to retain deadlines that the old writer cannot preserve"
+    },
+    {
+     "id": "C-72",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "The rollout runbook explains how to recover assigned deadlines after a rollback save",
+     "source": "choice: support returning to the new release with fixed deadlines through the operator's existing backup and offline file-maintenance workflow"
+    },
+    {
+     "id": "C-73",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "The operational documentation describes how to prepare a production file before enabling visibility",
+     "source": "implied: operators need a way to satisfy the production cutover condition"
+    },
+    {
+     "id": "C-74",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "The API documentation describes the deadline field",
+     "source": "implied: clients need to discover the new ticket response field"
+    },
+    {
+     "id": "C-75",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "The API documentation describes overdue listing",
+     "source": "implied: clients need to discover how to request overdue tickets"
+    },
+    {
+     "id": "C-76",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "The configuration documentation describes how to change the response hours",
+     "source": "implied: operators must be able to configure the promised hours"
+    },
+    {
+     "id": "C-214",
+     "kind": "choice",
+     "plan_added": false,
+     "statement": "The human-readable CLI shows saved deadlines when enabled",
+     "source": "choice: apply the visibility gate to human-readable ticket output without adding another setting"
+    },
+    {
+     "id": "C-216",
+     "kind": "implied",
+     "plan_added": false,
+     "statement": "The CLI documentation describes deadline visibility",
+     "source": "implied: operators need to discover how to inspect deadlines from the command line"
+    },
+    {
+     "id": "C-231",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "New due-time tests use `node:test` under `test/`",
+     "source": "request"
+    },
+    {
+     "id": "C-232",
+     "kind": "request",
+     "plan_added": false,
+     "statement": "`npm test` discovers the entire test suite",
+     "source": "request"
+    },
+    {
+     "id": "C-234",
+     "kind": "existing",
+     "plan_added": false,
+     "statement": "The data-format decision is recorded using the repository convention",
+     "source": "existing: CONTRIBUTING.md and docs/decisions/README.md"
+    },
+    {
+     "id": "C-235",
+     "kind": "existing",
+     "plan_added": false,
+     "statement": "The release bumps the package version",
+     "source": "existing: CONTRIBUTING.md"
+    },
+    {
+     "id": "C-236",
+     "kind": "existing",
+     "plan_added": false,
+     "statement": "The release changelog records the due-time change",
+     "source": "existing: CONTRIBUTING.md"
+    },
+    {
+     "id": "C-237",
+     "kind": "implied",
+     "plan_added": true,
+     "statement": "A failed initial save leaves no creation effects in enabled mode",
+     "source": "implied: U-14 preserves the associated audit and notification effects, and C-52 requires the unsuccessfully saved ticket to remain absent"
+    },
+    {
+     "id": "C-238",
+     "kind": "implied",
+     "plan_added": true,
+     "statement": "Persistent writes preserve usable identifier sequences at their limits",
+     "source": "implied: U-11 and C-67 require rollback on the new release's saved file, while C-192 and C-206 require safe next identifiers even after a save"
+    }
+   ]
+  }
+ },
+ "pooled": {
+  "lens": {
+   "runs": [
+    "lens:orders",
+    "lens:ticket-assignment",
+    "lens:ticket-due-times"
+   ],
+   "plan_added": 3,
+   "plan_added_failing": 3,
+   "request_clauses_about_tests": 5,
+   "written": {
+    "clauses": {
+     "implied": 78,
+     "request": 72,
+     "choice": 53,
+     "existing": 223
+    },
+    "use_cases": {
+     "request": 11,
+     "implied": 15,
+     "existing": 5
+    }
+   },
+   "failing": {
+    "clauses": {
+     "choice": 21,
+     "request": 9,
+     "existing": 4,
+     "implied": 13
+    },
+    "use_cases": {
+     "existing": 1,
+     "implied": 6,
+     "request": 4
+    }
+   }
+  },
+  "pilot": {
+   "runs": [
+    "pilot:orders",
+    "pilot:ticket-assignment",
+    "pilot:ticket-due-times"
+   ],
+   "plan_added": 4,
+   "plan_added_failing": 4,
+   "request_clauses_about_tests": 5,
+   "written": {
+    "clauses": {
+     "request": 73,
+     "implied": 78,
+     "choice": 48,
+     "existing": 300
+    },
+    "use_cases": {
+     "request": 11,
+     "implied": 29,
+     "existing": 4
+    }
+   },
+   "failing": {
+    "clauses": {
+     "request": 13,
+     "choice": 17,
+     "implied": 22,
+     "existing": 7
+    },
+    "use_cases": {
+     "request": 3,
+     "implied": 13
+    }
+   }
+  }
+ }
+}

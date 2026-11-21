@@ -1266,6 +1266,8 @@ Status: firm for what was run (one run a cell; two for R8.1), read against bars 
   where the pilot's text took 6 to 14. Whole cells: 6% less time, 6% more output tokens. The size runs the other way
   from that experiment's own count (372 clauses against 225 on Sol), whose cases had no repository: on the two
   ticket cases 77 of the pilot text's 86 extra clauses were `existing` ones (134 and 158 against 104 and 111).
+  *Corrected 2026-11-21 05:00:* by clauses it is 78 of 86 (132 and 157 against 101 and 110); the figures first
+  written counted use cases too (the count by Source, below).
 
 **The due-times loop, twice, with the lens text (`p3L-ticket-due-times-a`, `-b`).**
 
@@ -1293,6 +1295,10 @@ not how sound it is. It is shorter on the cases with a repository, costs about t
 strength that these cases can show, and the same one clause in nine rejects a correct product. Its large gain on
 the other experiment's checklist does not appear as a gain in anything a built product shows here.
 
+> **Sharpened 2026-11-21 05:00** (the count by Source, below; F25): "one clause in nine" is a pooled figure that
+> clauses restating existing behaviour dilute. Of the clauses about the change it is one in five with the lens text
+> against one in four, lower in all three cases and still inside R8.2's bar, so "no difference shown" stands.
+
 **F24 (firm; five specifications of one request).** The due-times failure is not a gap in elaboration that a better
 elaboration closes. The specification sees the question, decides it, and labels the decision a choice; four times
 in five it decides against what the customer meant, and the tests then hold the product to it. A text that tells
@@ -1304,3 +1310,102 @@ decision.
 
 Evidence: `evidence/lens-enrichment/` (each run's record; the three graded suites; the two loops' held-out results;
 `summary.json`; `grading-log.txt`; the reading clauses; the port diff).
+
+### After the result: where the rejecting clauses come from, and a correction received (2026-11-21 05:00)
+
+Status: the counts are firm for these six runs and are a reading made after the result, not a registered one, so
+R8.1 to R8.4 stand as read above. The operator reading is exploratory: one reader, this session, not blind.
+
+**Received.** The session "Spec elaboration" recorded this section's result (its journal, section 21) and sent three
+facts at 04:50. (1) Its own journal had said the reworded text "still names the operator's work"; that was wrong and
+is marked superseded there. Checked here against `ratchet.py`: the lens text that ran carries the line without a
+condition ("the operator's work (start, stop, configure, observe, recover, carry on with data that already exists,
+go back to the version before)"); the reworded text carries "Where running it or recovering from it is part of what
+was asked, state how the person who runs it observes it, stops it or recovers it, using the controls that already
+exist"; and the pilot's own text carries it without a condition too ("What an operator does: start, restart,
+configure, carry on with the data that exists today, go back to the version before"). So every specification this
+pilot has measured was written under an unconditional operator line. Nothing in this journal had repeated the
+superseded sentence. (2) Read item by item, the lens arms' gain on that experiment's operator items was an
+operator-controls requirement added to specifications written without a repository, and two outside sorters labelled
+four of its 89 items, all of them operator controls, capability nobody asked for; here such requirements would be
+among the clauses that fail on a correct product. (3) Its rounds 7 and 8 test two short cues in ShipLoop's released spec stage, one that leaves a limit open
+and one that takes a default; it will send the result.
+
+**The count** (`by_source.py`, new: it reads each run's specification with the loop's own reader and the run's
+`strength.json`, and counts clauses by the first word of their Source line).
+
+| Source of the clause | Lens text: written | failing on the correct reference | Pilot's text: written | failing |
+|---|---|---|---|---|
+| `request` | 72 | 9 (12.5%) | 73 | 13 (17.8%) |
+| `implied` | 78 | 13 (16.7%) | 78 | 22 (28.2%) |
+| `choice` | 53 | 21 (39.6%) | 48 | 17 (35.4%) |
+| `existing` | 223 | 4 (1.8%) | 300 | 7 (2.3%) |
+| all | 426 | 47 (11.0%) | 499 | 59 (11.8%) |
+| all but `existing` | 203 | 43 (21.2%) | 199 | 52 (26.1%) |
+| added by the plan stage (all `implied`) | 3 | 3 | 4 | 4 |
+
+Per case, all but `existing`: orders 9 of 70 (12.9%) against 9 of 58 (15.5%); ticket assignment 10 of 52 (19.2%)
+against 13 of 60 (21.7%); due times 24 of 81 (29.6%) against 30 of 81 (37.0%).
+
+- **F25 (firm as a count).** The lens form is shorter only in how much existing behaviour it restates. It writes as
+  many clauses from the request (72 against 73) and implied by it (78 against 78), a few more choices (53 against
+  48), and 77 fewer `existing` ones. A clause that restates existing behaviour almost never rejects the reference
+  (2%), since the reference is built on the same repository. So R8.2's pooled share moves with how much a text
+  restates, and "one clause in nine" (F23) understates what a specification adds: of the clauses about the change,
+  one in five (lens) and one in four (the pilot's text) reject a correct product.
+- On that base the lens text is lower in all three cases, by a fifth pooled (21.2% against 26.1%). That is inside
+  the bar R8.2 registered (a third), with one run a cell and no measure of this pilot's run-to-run spread, so the
+  reading stays "no difference shown". It is the same direction three times, and a registration of any further text
+  should read this base beside the registered one.
+- **F26 (firm as a count).** The writer's own choices are where a correct product is rejected: two in five of them
+  (39.6% and 35.4%), against 16.7% and 28.2% of the implied clauses and 12.5% and 17.8% of the request's own.
+  Choices are an eighth of what the lens text writes and 21 of its 47 rejecting clauses. This is F24 with a number,
+  on three cases instead of one request. Of the request's own clauses that fail, five in each text are about the
+  tests the request asks for (`request-clauses-about-tests` in the log; on orders the reference ships no tests,
+  section 10; the ticket cases were not examined).
+- **F27 (interim: seven clauses, two cases).** Every clause the plan stage added fails on the correct reference: 3
+  of 3 with the lens text and 4 of 4 with the pilot's. They are edge conditions: identifiers at their limit, a name
+  with an unpaired surrogate, what a failed save leaves behind. Why each test fails on the reference was not
+  examined. Amendment 1 made the plan stage heavy and let it add a clause where the specification "lacks something
+  a use case needs"; in these cells what it added was stricter than a correct delivery. No whole loop is read this
+  way here, because a loop's builder builds to the clause.
+
+**Correction to the Result above.** "77 of the pilot text's 86 extra clauses were `existing` ones (134 and 158
+against 104 and 111)" counted use cases in the 77 and in the four figures. By clauses it is 78 of 86 (132 and 157
+against 101 and 110). Marked in place.
+
+**The operator's work among the failing items** (exploratory;
+`evidence/lens-enrichment/operator-items-read-by-hand.txt` holds the rule and every id). About half of the items
+that fail on a correct product are the operator's work: 27 of 58 with the lens text and 35 of 75 with the pilot's.
+None is on orders (a library); on ticket assignment it is the existing command-line tool; on due times it is 21 of
+32 and 27 of 43, and that request is itself about operating the product (change the hours, backfill, switch on, roll
+back). No failing item in either text requires a new control: where a setting or a switch appears the request names
+it, and the specifications say as much in their reasons ("require no live configuration endpoint", "without a new
+command"). What the specification adds on due times is the form: the name and range of a setting, refuse or prepare
+at start, which failure stops a start. What goes beyond the request is documents: 10 of the 11 such items (3 with
+the lens text, 8 with the pilot's) require a runbook, instructions or a reference page to say something, and a
+correct product without that page fails them. So the other session's guess holds here: with a repository the
+unconditional operator line did not produce controls nobody asked for. It produced decided forms of the work the
+request names, and required documents.
+
+**What this says about the reworded text, before any run of it.**
+
+- The most its `Open:` line can do on this count: choices are 21 of the lens text's 47 rejecting clauses, so if it
+  wrote none of them as requirements and nothing else moved, 26 of 373 clauses (7.0%) would reject a correct
+  product. The text keeps a clause above each `Open:` line, so how much of that it takes is what a run would show.
+- Its operator line is conditional ("where running it or recovering from it is part of what was asked"). On due
+  times the condition holds, so the line stays in force there; on ticket assignment and orders the lens text
+  already wrote nothing beyond the request. On these three cases the difference between the reworded and the lens
+  text should therefore come mostly from the `Open:` line. The words "using the controls that already exist" are
+  the part that could still act on due times, and a result there could not separate the two.
+- If the owner says to run it, its registration reads, beside the readings of this section: choice clauses written
+  and rejecting, the share rejecting among clauses not `existing`, and the plan stage's added clauses. Those
+  baselines are in this entry, before any run of it.
+
+**A provenance note on the gradings above.** Each `strength.json` says it was graded "with uncommitted changes to
+the pilot folder". That change is the reworded text's port in `ratchet.py`, written at 03:33:13. All five runs had
+started at 03:22:49 from commit 43d5486168448f221763d9413f7ea02878f6d237 (`run.json`: `started`, `local_head`), and
+`grade.py` does not load `ratchet.py`. No graded path was touched.
+
+Evidence: `by_source.py`; `evidence/lens-enrichment/failing-by-source.json` (every failing item with its Source
+line), `failing-by-source-log.txt` (the tables), `operator-items-read-by-hand.txt`.

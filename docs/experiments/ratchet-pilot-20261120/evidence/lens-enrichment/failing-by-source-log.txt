@@ -1,0 +1,76 @@
+== lens:orders (stand-in-rules; run.json says enrich=lenses): 8 use cases, 1 fail on the reference; clauses:
+   request      written   26   failing   3   (11.5% of its kind)
+   implied      written   24   failing   0   (0.0% of its kind)
+   existing     written   12   failing   0   (0.0% of its kind)
+   choice       written   20   failing   6   (30.0% of its kind)
+   all          written   82   failing   9   (11.0%)
+   not existing written   70   failing   9   (12.9%)
+   the plan stage added nothing; of those failing: none
+   request-clauses-about-tests: of the request clauses failing ['C-78', 'C-79', 'C-80'], about the tests the request asks for: ['C-78', 'C-79', 'C-80']
+== lens:ticket-assignment (ticket-assignment; run.json says enrich=lenses): 11 use cases, 3 fail on the reference; clauses:
+   request      written   18   failing   2   (11.1% of its kind)
+   implied      written   20   failing   3   (15.0% of its kind)
+   existing     written  101   failing   3   (3.0% of its kind)
+   choice       written   14   failing   5   (35.7% of its kind)
+   all          written  153   failing  13   (8.5%)
+   not existing written   52   failing  10   (19.2%)
+   the plan stage added ['C-152', 'C-153']; of those failing: ['C-152', 'C-153']
+   request-clauses-about-tests: of the request clauses failing ['C-123', 'C-150'], about the tests the request asks for: ['C-150']
+== lens:ticket-due-times (ticket-due-times; run.json says enrich=lenses): 12 use cases, 7 fail on the reference; clauses:
+   request      written   28   failing   4   (14.3% of its kind)
+   implied      written   34   failing  10   (29.4% of its kind)
+   existing     written  110   failing   1   (0.9% of its kind)
+   choice       written   19   failing  10   (52.6% of its kind)
+   all          written  191   failing  25   (13.1%)
+   not existing written   81   failing  24   (29.6%)
+   the plan stage added ['C-191']; of those failing: ['C-191']
+   request-clauses-about-tests: of the request clauses failing ['C-5', 'C-15', 'C-49', 'C-190'], about the tests the request asks for: ['C-190']
+== pilot:orders (stand-in-rules; run.json says enrich=single): 12 use cases, 3 fail on the reference; clauses:
+   request      written   28   failing   4   (14.3% of its kind)
+   implied      written   14   failing   0   (0.0% of its kind)
+   existing     written   11   failing   0   (0.0% of its kind)
+   choice       written   16   failing   5   (31.2% of its kind)
+   all          written   69   failing   9   (13.0%)
+   not existing written   58   failing   9   (15.5%)
+   the plan stage added nothing; of those failing: none
+   request-clauses-about-tests: of the request clauses failing ['C-20', 'C-22', 'C-67', 'C-68'], about the tests the request asks for: ['C-67', 'C-68']
+== pilot:ticket-assignment (ticket-assignment; run.json says enrich=single): 17 use cases, 5 fail on the reference; clauses:
+   request      written   19   failing   2   (10.5% of its kind)
+   implied      written   29   failing  10   (34.5% of its kind)
+   existing     written  132   failing   2   (1.5% of its kind)
+   choice       written   12   failing   1   (8.3% of its kind)
+   all          written  192   failing  15   (7.8%)
+   not existing written   60   failing  13   (21.7%)
+   the plan stage added ['C-191', 'C-192']; of those failing: ['C-191', 'C-192']
+   request-clauses-about-tests: of the request clauses failing ['C-103', 'C-185'], about the tests the request asks for: ['C-185']
+== pilot:ticket-due-times (ticket-due-times; run.json says enrich=single): 15 use cases, 8 fail on the reference; clauses:
+   request      written   26   failing   7   (26.9% of its kind)
+   implied      written   35   failing  12   (34.3% of its kind)
+   existing     written  157   failing   5   (3.2% of its kind)
+   choice       written   20   failing  11   (55.0% of its kind)
+   all          written  238   failing  35   (14.7%)
+   not existing written   81   failing  30   (37.0%)
+   the plan stage added ['C-237', 'C-238']; of those failing: ['C-237', 'C-238']
+   request-clauses-about-tests: of the request clauses failing ['C-1', 'C-6', 'C-42', 'C-43', 'C-47', 'C-231', 'C-232'], about the tests the request asks for: ['C-231', 'C-232']
+
+#### pooled, text lens (3 runs): use cases written 31, failing 11 {'existing': 1, 'implied': 6, 'request': 4}; clauses:
+   request      written   72   failing   9   (12.5% of its kind)
+   implied      written   78   failing  13   (16.7% of its kind)
+   existing     written  223   failing   4   (1.8% of its kind)
+   choice       written   53   failing  21   (39.6% of its kind)
+   all          written  426   failing  47   (11.0%)
+   not existing written  203   failing  43   (21.2%)
+   clauses the plan stage added: 3, failing on the reference: 3
+   request clauses failing that are about the tests the request asks for: 5
+
+#### pooled, text pilot (3 runs): use cases written 44, failing 16 {'request': 3, 'implied': 13}; clauses:
+   request      written   73   failing  13   (17.8% of its kind)
+   implied      written   78   failing  22   (28.2% of its kind)
+   existing     written  300   failing   7   (2.3% of its kind)
+   choice       written   48   failing  17   (35.4% of its kind)
+   all          written  499   failing  59   (11.8%)
+   not existing written  199   failing  52   (26.1%)
+   clauses the plan stage added: 4, failing on the reference: 4
+   request clauses failing that are about the tests the request asks for: 5
+
+wrote /Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-lens-08805f/docs/experiments/ratchet-pilot-20261120/evidence/lens-enrichment/failing-by-source.json
