@@ -1,0 +1,11 @@
+{
+ "about": "Round 7 arm L, lean (docs/shiploop-sdlc-structure-journal.md): with the run option `--planning-review none` (which the harness asks for), the review of `system-test-author` is removed as well, so no Improve stage follows spec, test-strategy, plan, step-plan or system-test-author. The step reviews, the last carry-forward's review and the release-plan review still run, and every gate is unchanged. Written against 4693c1a3.",
+ "edits": [
+  {
+   "module": "shiploop_stage_spec.py",
+   "function": "reviewed_stages",
+   "old": "    if mode == \"none\":\n        return reviewed - PLANNING_CHOICE_STAGES\n",
+   "new": "    if mode == \"none\":\n        return reviewed - PLANNING_CHOICE_STAGES - frozenset((\"system-test-author\",))  # round 7 arm L\n"
+  }
+ ]
+}

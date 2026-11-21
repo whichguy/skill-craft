@@ -1,0 +1,11 @@
+{
+ "about": "Round 7 arm S (docs/shiploop-sdlc-structure-journal.md): planning reviews on, pinned. A new run records the planning-review option `stage` whatever its start command asked for, because a driver may start with `--planning-review none` unasked (a Sol 6.2 medium whole delivery did on 2026-11-20). Nothing else changes. Written against 4693c1a3.",
+ "edits": [
+  {
+   "module": "shiploop_navigator.py",
+   "function": "new_state",
+   "old": "    _need(planning_review in PLANNING_REVIEW_MODES,\n          \"planning review must be one of \" + \", \".join(PLANNING_REVIEW_MODES))\n    _text(repo, \"repo\")\n",
+   "new": "    _need(planning_review in PLANNING_REVIEW_MODES,\n          \"planning review must be one of \" + \", \".join(PLANNING_REVIEW_MODES))\n    planning_review = \"stage\"  # round 7 arm S: planning reviews on, whatever the start command asked for\n    _text(repo, \"repo\")\n"
+  }
+ ]
+}

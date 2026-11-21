@@ -1612,6 +1612,137 @@ directly with earlier ones. The E-SIZE1 journal carries the matching entry
 `test/shiploop_e2e/LEARNINGS.md`. Still open from the guard round: a full Grok build of a large item under the
 new text (F41), and the owner's standing choice on the ticket fixture's lost verdicts (F40).
 
+## Round 7 (2026-11-20): which reviews earn their time on the owner's drivers?
+
+### Question
+
+Owner, 2026-11-20, asked "based on learnings, what next?" and then chose "Start review round". With steps now
+fewer, reviews are the largest block left: a third of a Sonnet delivery. Two decisions are open. Round 1's
+recommendation 4 (stop reviewing `plan` and `system-test-author`) was read on Codex terra only. And the
+planning-review default was kept at `stage` by the owner on 2026-11-04 on four cases, with "a larger same-case
+sample" named as what would reopen it (53d8d04f8dcf736a648dad1add62f3d6a1af715d).
+
+### What exists (read in `skills/shiploop/scripts/` and in the history)
+
+- **Eight review points.** An Improve review can follow `spec`, `test-strategy`, `plan`, `step-plan` (for the
+  first item, or one sent back), each step's `document`, the last `carry-forward`, `system-test-author` and
+  `release-plan` (`shiploop_stage_spec.reviewed_stages`, `shiploop_navigator._improve_checkpoint`).
+- **One option.** `--planning-review stage|none`, recorded at the run's start. `none` removes the first four
+  and needs the Improve card named at the start (`references/run-options.md`, which calls it the highest-risk
+  combination).
+- **The 2026-11-04 decision** (53d8d04f8dcf736a648dad1add62f3d6a1af715d). Same case and host, `stage` against
+  `none`: planning 5.3 to 3.2 minutes, Improve children 8 to 4. What planning reviews had caught by then: a spec
+  with no replayable move sequence and malformed API boundaries, a test strategy that assumed a browser
+  connector that did not exist, two docstring edits, and nothing on the smallest case. "The evidence supports
+  'review sometimes catches something real' and not how often."
+- **Never run.** The three-arm comparison of planning reviews that the owner approved on 2026-10-28
+  (`docs/shiploop-planning-speed-and-caps-plan-2026-10-28.md`, Q2). The 2026-11-13 lifecycle assessment defers
+  review-default changes "until a registered comparison shows a gain without a regression".
+
+### Results from the records (free, before the registration)
+
+**R56. Who runs without planning reviews** (`evidence/review-option-census.txt`; 1,251 run directories, 297
+finished whole deliveries). 294 recorded `stage`. Of the three that recorded `none`, the harness asked for one.
+The other two chose it themselves: a Codex terra xhigh run on 2026-11-01, and the Sol 6.2 medium delivery of
+the fewest-steps round, whose own start command carried `--planning-review none --improve-skill=<card>` with
+nothing in the harness's prompt asking for it. That delivery passed 18 of 18 held-out checks in 13 minutes, and
+it is the only Sol 6.2 medium whole delivery on record. So nothing on record prices the option on the owner's
+drivers, and a driver can turn planning reviews off unasked.
+
+**R57. What reviews cost, by driver** (the same file, whole deliveries with `stage`).
+
+| Driver | Runs | All reviews | spec | test-strategy | plan | step-plan | steps | carry-forward | system-test-author | release-plan |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Codex terra high | 150 | 34% | 4.2% | 3.4% | 3.1% | 6.2% | 6.6% | 3.9% | 3.0% | 3.6% |
+| Codex terra xhigh | 117 | 30% | 3.8% | 2.7% | 2.8% | 5.5% | 6.5% | 3.5% | 2.6% | 2.7% |
+| Claude Sonnet 5.5, October builds | 8 | 43% | 7.6% | 8.5% | 3.9% | 2.8% | 0.9% | 6.0% | 4.2% | 1.2% |
+| Codex Sol 6.1 medium | 4 | 27% | 3.3% | 2.2% | 2.6% | 5.5% | 7.3% | 2.4% | 2.1% | 2.0% |
+| Grok 4.6 xhigh | 3 | 35% | 3.4% | 3.5% | 3.9% | 5.0% | 12.6% | 2.1% | 1.6% | 2.8% |
+
+The fewest-steps round's one Sonnet 5.5 high delivery spent 33% of its 48 minutes in reviews, 11% of it in three
+rounds of the `system-test-author` review and 11% in the four planning reviews. Its Sol 6.2 medium delivery,
+with planning reviews off, spent 17%.
+
+**R58. What reviews changed, by driver** (`evidence/review-yield-drivers.txt`: 255 reviews in this study's 54
+slices and 2 whole deliveries, from each review's own pass log).
+
+| Driver | Reviewed stage | Reviews | Edited anything | Lines in an edit (median) | Seconds (median) |
+|---|---|---|---|---|---|
+| Sonnet 5.5 high | step-plan | 28 | 17 (61%) | 12 | 86 |
+| | a step | 47 | 24 (51%) | 22 | 40 |
+| | carry-forward | 20 | 18 (90%) | 19 | 65 |
+| Sol 6.2 medium | step-plan | 33 | 8 (24%), the result only | 4 | 34 |
+| | a step | 68 | 4 (6%) | 40 | 15 |
+| | carry-forward | 31 | 0 | | 14 |
+| Grok 4.6 xhigh | step-plan | 4 | 4 | 28 | 642 |
+| | a step | 4 | 1 | 10 | 283 |
+
+The same review is a different thing on the two drivers. On Sol 6.2 medium it is short and almost never changes
+anything; on Sonnet it edits half the time or more. Round 1's yield table, read on terra, transfers to neither.
+An edit is not a defect caught (F6), so what Sonnet's edits are is still to be judged.
+
+### Registered design (written and committed before any counted run)
+
+**Why.** R57 is accounting and round 4 showed accounting can mislead: the cost of a part is priced by an arm
+that removes it. R58 says the reviews edit, not whether the edits matter.
+
+**Arms**, whole deliveries from intake to handoff with `test/shiploop_e2e/run.py`, each from a plugin build of
+this checkout with one overlay applied to the copy (`build_arm.py`; the checkout is never changed).
+
+- **S, as shipped, pinned** (`overlays/r7-s-planning-reviews-pinned.json`): a new run records `stage` whatever
+  its start command asked for, because of R56. All eight review points run.
+- **L, lean** (`overlays/r7-l-lean-reviews.json`, with the harness's `--planning-review none`): no review
+  follows `spec`, `test-strategy`, `plan`, `step-plan` or `system-test-author`. The step reviews, the last
+  carry-forward's review and the `release-plan` review still run, and every gate is unchanged.
+
+Two arms, the widest contrast both open decisions allow, instead of three: L removes everything round 1's
+candidate and the `none` option would. If L loses something, which review mattered is the follow-up.
+
+**Rehearsal** (not counted; Sol 6.2 medium, the `hello` case). Both passed every verdict. S recorded `stage` and
+ran reviews of spec, test-strategy, plan, step-plan, the step, carry-forward, system-test-author and
+release-plan, in 6.5 minutes. L recorded `none` and ran reviews of the step, carry-forward and release-plan, in
+6.6 minutes.
+
+**Cases.** `ticket-due-times` on both drivers: the planning-heavy request of the guard round (a migration, a
+switch-on flag, a way back to 1.4.0), eight held-out checks with a known trap, no port lease. `shared-expenses`
+on Sol 6.2 medium as a second case (six checks).
+
+**Runs.** Sonnet 5.5 high: two S and two L of `ticket-due-times`, the four at once. Sol 6.2 medium: two S and two
+L of each case. A run whose recorded option is not its arm's is set aside and run once more.
+
+**Measures**, each per run: minutes from start to end; seconds by stage and by reviewed stage; the harness
+verdicts; held-out checks at the end (a base-test verdict lost to a timeout or a reset is run again and both
+results kept, R55); reviews run; refusals, send-backs and work items added.
+
+**What the removed reviews changed** (the second instrument). For every review of the five removed stages in
+the S runs of this round and in the fewest-steps round's two deliveries, the tree and the result before the
+review against after it, cut at 12,000 characters. Two Opus 5.5 judges, each blind to the other, label each:
+`substantive` (it changes what is built, a rule the product must meet, or what a test or check would catch),
+`wording` (documents, names, comments, restating, format), or `records` (ShipLoop's own bookkeeping).
+
+**Readings.** A cell is one driver and case; two runs an arm read only large effects.
+
+- *Time*: L saves time in a cell at 15% or more below S's mean minutes; within 15% no difference is readable.
+- *Quality*: no loss is seen in a cell if every L run passes every harness verdict and at least as many
+  held-out checks as the least of the cell's S runs.
+- *The removed reviews earn their place* on a driver if both judges call the edit substantive in at least 30%
+  of that driver's removed reviews; *they do not* if it is 10% or fewer; between, no reading. (Round 1 called
+  31% earning it and 2 to 4% not.)
+- *Lean pays* on a driver if L saves time in each of its cells, no cell shows a quality loss, and the removed
+  reviews do not earn their place there. *Lean does not pay* if a cell shows a quality loss or the removed
+  reviews earn their place. Anything else is reported with no overall reading.
+- Registered fallback: if a run's recorded option or reviews are not its arm's and the rerun's are not either,
+  the runs are read by the reviews they ran, labelled exploratory.
+
+**Limits known before the run.** Two runs a cell, one or two cases. Held-out checks have been at their ceiling
+in every round, so a quality loss is unlikely to show there; the judged edits are the instrument for what is
+lost, and an edit is not an escape. The judges are one model. Reviews run inline, in the builder's own
+conversation, so "a review" means a second look by the same model. Up to eight ticket-service runs at once can
+meet the port collision of R55.
+
+**Budget and failures.** At most $40 for a Claude run, about $100 for the four. A run that ends without every
+verdict is reported as it ended and run once more if time allows.
+
 ## Evidence (all rounds)
 
 | File | Holds |
@@ -1649,6 +1780,9 @@ new text (F41), and the owner's standing choice on the ticket fixture's lost ver
 | `evidence/step-size-census.txt`, `evidence/step-size-census-slices.txt` | round 6: step plans' shape, a step's seconds by its size, the same request in more or fewer steps, hidden checks by step count, over the recorded runs and over round 4's slices (R41 to R44) |
 | `overlays/f1-fewest-steps.json` | round 6: the one edit of arm F1, applied to a build copy only |
 | `evidence/slices-f1.txt`, `evidence/slices-f1-iteration.txt`, `evidence/slices-f1-snapshots.txt`, `evidence/step-size-census-slices-f1.txt`, `slices-f1/*.json` | round 6: arm F1 beside its baseline slices, per-step detail, hidden checks at each snapshot, the step plans' shape, and the three files they are computed from (R45 to R49) |
+| `evidence/review-option-census.txt`, `review_option_census.py` | round 7: the planning-review option every recorded run used and who asked for it, and review seconds by reviewed stage and driver (R56, R57) |
+| `evidence/review-yield-drivers.txt`, `review_yield_drivers.py` | round 7: what each review changed, by driver and reviewed stage, from the pass logs of this study's runs (R58) |
+| `overlays/r7-s-planning-reviews-pinned.json`, `overlays/r7-l-lean-reviews.json`, `build_arm.py` | round 7: the two arms' edits, applied to plugin build copies only, and the script that builds an arm's plugin for `run.py --plugin-dir` |
 | `guard-step-cases.json`, `guard_apply.py` | round 6 guard round: the step case `tickets-due-times`, and the script that merges it into a throwaway worktree's case list |
 | `evidence/slices-guard.txt`, `evidence/slices-guard-iteration.txt`, `slices-guard/*.json` | round 6 guard round: each plan with its steps and the files each built step changed, the slices' measures, the registered readings, and the files they are computed from (R51 to R54) |
 | `evidence/slices-guard-snapshots.txt`, `evidence/slices-guard-regrade.txt`, `evidence/base-suite-flake.txt` | round 6 guard round: hidden checks at each snapshot as first graded, the three checks run again after a harness timeout, and the repeat runs that showed the ticket fixture's test run sometimes does not end (R55) |
