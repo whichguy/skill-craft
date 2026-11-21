@@ -1,0 +1,311 @@
+{
+ "judge": "opus",
+ "meta": {
+  "model_used": "opus",
+  "served_model": "claude-opus-5-5",
+  "model_verification": "verified",
+  "fallback": false,
+  "effort": "xhigh",
+  "profile": "ask",
+  "exit": 0,
+  "asked": "start 22:32:29",
+  "ended": "exit=0 22:36:06"
+ },
+ "labels": [
+  {
+   "id": "D02",
+   "label": "C",
+   "why": "The FEN is invalid because a piece stands on the en-passant target; rejecting it or treating the move as an ordinary capture are both defensible."
+  },
+  {
+   "id": "D03",
+   "label": "C",
+   "why": "A castling flag with no home rook makes the input inconsistent; the engine could reject the FEN or quietly ignore the flag."
+  },
+  {
+   "id": "D04",
+   "label": "C",
+   "why": "A position where the side not to move is in check is illegal; analysing it or rejecting it are both valid choices."
+  },
+  {
+   "id": "D08",
+   "label": "R",
+   "why": "An en-passant capture that gives a discovered check follows directly from the en-passant and check rules the request requires."
+  },
+  {
+   "id": "D21",
+   "label": "C",
+   "why": "Stale castling or en-passant fields make the FEN inconsistent; accepting it while ignoring them, or rejecting it, are both correct."
+  },
+  {
+   "id": "D33",
+   "label": "C",
+   "why": "Clearing unsupported flags in the output is one way to handle bad input; keeping them or rejecting the FEN is also defensible."
+  },
+  {
+   "id": "D34",
+   "label": "R",
+   "why": "En-passant legality does not depend on the counters, and the request requires a pawn capture to reset the halfmove clock."
+  },
+  {
+   "id": "D36",
+   "label": "X",
+   "why": "Accepting tabs, leading zeros and reordered castling letters goes beyond the standard FEN the request names."
+  },
+  {
+   "id": "D49",
+   "label": "C",
+   "why": "Rejecting non-canonical digit runs such as '44' and accepting them are both reasonable parser behaviours."
+  },
+  {
+   "id": "D51",
+   "label": "X",
+   "why": "Checking whether the earlier double push was legal is retrograde analysis the request does not ask for."
+  },
+  {
+   "id": "D11",
+   "label": "E",
+   "why": "Committing a request whose body never fully arrived would record data the client did not send."
+  },
+  {
+   "id": "D12",
+   "label": "X",
+   "why": "Coordinating several server processes on one file goes beyond the single service's concurrency rule."
+  },
+  {
+   "id": "D13",
+   "label": "X",
+   "why": "It assumes future tightened limits and snapshot migration that the request never mentions."
+  },
+  {
+   "id": "D14",
+   "label": "E",
+   "why": "Accepting integers beyond exact representation would make balances wrong; rejecting them cleanly without using up a number is careful engineering."
+  },
+  {
+   "id": "D20",
+   "label": "X",
+   "why": "Handling a symlinked DATA_FILE is deployment hardening beyond the request."
+  },
+  {
+   "id": "D27",
+   "label": "X",
+   "why": "Documenting how to address the IDs '.' and '..' is extra documentation scope."
+  },
+  {
+   "id": "D28",
+   "label": "C",
+   "why": "The request is silent on query strings; ignoring them or rejecting the URL are both acceptable."
+  },
+  {
+   "id": "D29",
+   "label": "X",
+   "why": "Handing store ownership between processes goes well beyond the request."
+  },
+  {
+   "id": "D32",
+   "label": "X",
+   "why": "Documenting an HTTP size budget is not asked for."
+  },
+  {
+   "id": "D40",
+   "label": "X",
+   "why": "A documented 48 KiB limit on group IDs in percent-encoded bytes is invented scope."
+  },
+  {
+   "id": "D41",
+   "label": "X",
+   "why": "Documenting a fixed limit on expense length is not asked for."
+  },
+  {
+   "id": "D42",
+   "label": "X",
+   "why": "Handling a hard-linked data file is hardening beyond the request."
+  },
+  {
+   "id": "D45",
+   "label": "X",
+   "why": "Detecting an outside replacement of the data file while the service runs goes beyond the request."
+  },
+  {
+   "id": "D48",
+   "label": "E",
+   "why": "A crash during a save must not corrupt or lose the persisted data that the request says survives a restart."
+  },
+  {
+   "id": "D50",
+   "label": "X",
+   "why": "Documenting how clients size requests near the limit is not asked for."
+  },
+  {
+   "id": "D53",
+   "label": "X",
+   "why": "Strictly validating UTF-8 in bodies and in snapshots is hardening the request does not ask for."
+  },
+  {
+   "id": "D55",
+   "label": "R",
+   "why": "Committed expenses must persist, and every POST records a new expense with the next number."
+  },
+  {
+   "id": "D56",
+   "label": "E",
+   "why": "A JSON API without an application/json Content-Type can be misread by clients."
+  },
+  {
+   "id": "D59",
+   "label": "X",
+   "why": "It builds on stale-write detection, which is already excess."
+  },
+  {
+   "id": "D01",
+   "label": "R",
+   "why": "The assignee filter keeps that agent's tickets as they are now, consistent with the documented filters and the id-after cursor."
+  },
+  {
+   "id": "D05",
+   "label": "E",
+   "why": "If a failed save left the in-memory status changed, assignment would be refused on false grounds; keeping committed state is careful engineering."
+  },
+  {
+   "id": "D06",
+   "label": "X",
+   "why": "Detecting duplicate keys in a snapshot the service writes itself needs a custom parser nobody asked for."
+  },
+  {
+   "id": "D07",
+   "label": "X",
+   "why": "Changing how the service, CLI and weekly report treat malformed UTF-8 in titles is outside the assignment change."
+  },
+  {
+   "id": "D09",
+   "label": "X",
+   "why": "It depends on a hypothetical earlier release and an upgrade path that are not part of this request."
+  },
+  {
+   "id": "D10",
+   "label": "X",
+   "why": "Detecting a notification path that becomes a symlink to the state file during a run is beyond scope."
+  },
+  {
+   "id": "D15",
+   "label": "X",
+   "why": "Rejecting duplicate JSON keys needs a custom parser beyond the request; taking the last value is standard JSON.parse behaviour."
+  },
+  {
+   "id": "D16",
+   "label": "X",
+   "why": "Byte-level UTF-8 validation of an externally corrupted data file is hardening beyond the request."
+  },
+  {
+   "id": "D17",
+   "label": "X",
+   "why": "Escaping Unicode line separators for readers that treat them as line breaks goes beyond the LF-delimited raw format."
+  },
+  {
+   "id": "D18",
+   "label": "C",
+   "why": "Rejecting malformed UTF-8 or decoding it with replacement characters are both defensible when the request is silent."
+  },
+  {
+   "id": "D19",
+   "label": "X",
+   "why": "Tracing each notice to its exact audit entry through the notice key is added scope."
+  },
+  {
+   "id": "D22",
+   "label": "X",
+   "why": "Retargeting a state symlink while the service runs is hardening beyond the request."
+  },
+  {
+   "id": "D23",
+   "label": "X",
+   "why": "Rejecting these characters narrows the agent name the request defines: any non-empty name of at most 64 characters."
+  },
+  {
+   "id": "D24",
+   "label": "C",
+   "why": "How the CLI shows unassigned next to names like '\u2014' or 'null' is a display choice."
+  },
+  {
+   "id": "D25",
+   "label": "C",
+   "why": "Rejecting or replacing malformed UTF-8 in bodies and queries are both defensible when the request is silent."
+  },
+  {
+   "id": "D26",
+   "label": "X",
+   "why": "Supporting a symlinked DATA_FILE through the existing temp-file-and-rename save is outside the assignment change."
+  },
+  {
+   "id": "D30",
+   "label": "E",
+   "why": "A failed save must not leave an uncommitted title that a later assignment notice or save would use."
+  },
+  {
+   "id": "D31",
+   "label": "C",
+   "why": "Rejecting a bare '%' or decoding it leniently are both acceptable."
+  },
+  {
+   "id": "D35",
+   "label": "E",
+   "why": "Decoding each body chunk separately would corrupt a multibyte character in the name."
+  },
+  {
+   "id": "D37",
+   "label": "X",
+   "why": "Creating a new snapshot through a symlink to a missing file is beyond scope."
+  },
+  {
+   "id": "D38",
+   "label": "X",
+   "why": "Detecting that DATA_FILE and NOTIFY_FILE are the same path is configuration hardening the request does not ask for."
+  },
+  {
+   "id": "D39",
+   "label": "X",
+   "why": "Neutralising bidirectional-override characters in CLI output is beyond scope."
+  },
+  {
+   "id": "D43",
+   "label": "C",
+   "why": "A notice could use the title at assignment time or at delivery; both are defensible."
+  },
+  {
+   "id": "D44",
+   "label": "C",
+   "why": "Rewriting a legacy file on load or leaving it untouched until the first change are both acceptable."
+  },
+  {
+   "id": "D46",
+   "label": "X",
+   "why": "Byte-level UTF-8 checks on corrupted saved names are hardening beyond the request."
+  },
+  {
+   "id": "D47",
+   "label": "C",
+   "why": "How CLI history shows unassignment against a literal 'null' name is a display choice."
+  },
+  {
+   "id": "D52",
+   "label": "X",
+   "why": "It concerns existing titles and CLI documentation, not the assignment change."
+  },
+  {
+   "id": "D54",
+   "label": "X",
+   "why": "A documented escaping and decoding rule for the raw fifth field is added scope."
+  },
+  {
+   "id": "D57",
+   "label": "C",
+   "why": "Rejecting a malformed UTF-8 query value or decoding it leniently are both defensible."
+  },
+  {
+   "id": "D58",
+   "label": "X",
+   "why": "Requiring every reader to diagnose malformed UTF-8 anywhere in the file goes beyond the assignment change."
+  }
+ ]
+}

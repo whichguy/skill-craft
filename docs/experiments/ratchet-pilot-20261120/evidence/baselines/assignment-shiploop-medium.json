@@ -1,0 +1,210 @@
+{
+ "case": "ticket-assignment",
+ "label": "base + ShipLoop 2.4.0 delivered tests (Sol 6.2 medium)",
+ "tree": "/Users/dadleet/e2e-runs-sdlc8/20261120/ticket-assignment-sol-medium/work",
+ "test_files": [
+  "test/assignment-cli.test.js",
+  "test/assignment.test.js"
+ ],
+ "reference": {
+  "ended": true,
+  "failing": [
+   "TC-1 assignment validates input, respects lifecycle and audits only changes",
+   "TC-3 (a) a failed save leaves assignment, audit and outbox unchanged for retry",
+   "TC-3 assignment and distinct agent notifications survive restart",
+   "TC-4 CLI shows assigned and legacy tickets while preserving weekly report columns"
+  ],
+  "counts": {
+   "tests": 122,
+   "pass": 118,
+   "fail": 4
+  }
+ },
+ "controls": {
+  "alternative": {
+   "ended": true,
+   "failing": [
+    "TC-1 assignment validates input, respects lifecycle and audits only changes",
+    "TC-3 (a) a failed save leaves assignment, audit and outbox unchanged for retry",
+    "TC-3 assignment and distinct agent notifications survive restart",
+    "TC-4 CLI shows assigned and legacy tickets while preserving weekly report columns"
+   ],
+   "counts": {
+    "tests": 122,
+    "pass": 118,
+    "fail": 4
+   }
+  }
+ },
+ "defects": {
+  "filter-or": {
+   "caught": true,
+   "by": [
+    "TC-2 the assignee filter intersects with status and priority before pagination"
+   ]
+  },
+  "filter-after-page": {
+   "caught": true,
+   "by": [
+    "TC-2 the assignee filter intersects with status and priority before pagination"
+   ]
+  },
+  "no-envelope": {
+   "caught": false,
+   "by": []
+  },
+  "conflict-as-invalid": {
+   "caught": false,
+   "by": []
+  },
+  "closed-assignable": {
+   "caught": false,
+   "by": []
+  },
+  "notify-inline": {
+   "caught": false,
+   "by": []
+  },
+  "notify-no-template": {
+   "caught": false,
+   "by": []
+  },
+  "notify-key-per-ticket": {
+   "caught": false,
+   "by": []
+  },
+  "notify-requester": {
+   "caught": false,
+   "by": []
+  },
+  "audit-bypassed": {
+   "caught": false,
+   "by": []
+  },
+  "actor-ignored": {
+   "caught": false,
+   "by": []
+  },
+  "same-agent-not-noop": {
+   "caught": false,
+   "by": []
+  },
+  "memory-only-assignee": {
+   "caught": false,
+   "by": []
+  },
+  "old-data-refused": {
+   "caught": false,
+   "by": []
+  },
+  "old-assignee-undefined": {
+   "caught": false,
+   "by": []
+  },
+  "raw-column-inserted": {
+   "caught": false,
+   "by": []
+  },
+  "cli-no-assignee": {
+   "caught": false,
+   "by": []
+  },
+  "no-unassign": {
+   "caught": false,
+   "by": []
+  },
+  "empty-filter-ignored": {
+   "caught": true,
+   "by": [
+    "TC-2 the assignee filter intersects with status and priority before pagination"
+   ]
+  },
+  "name-limit-off-by-one": {
+   "caught": false,
+   "by": []
+  },
+  "listing-hides-assignee": {
+   "caught": true,
+   "by": [
+    "TC-2 the assignee filter intersects with status and priority before pagination"
+   ]
+  },
+  "update-rejects-resolved": {
+   "caught": false,
+   "by": []
+  },
+  "default-limit-changed": {
+   "caught": true,
+   "by": [
+    "GET /tickets",
+    "defaults to no filter, 20 a page, from the start",
+    "ignores parameters it does not know, offset included",
+    "lists every ticket in id order, 20 to a page",
+    "parseListQuery"
+   ]
+  },
+  "resolved-template-replaced": {
+   "caught": true,
+   "by": [
+    "a notification is worded by the template of its type",
+    "with a file, each delivery appends one JSON line"
+   ]
+  },
+  "audit-not-saved": {
+   "caught": true,
+   "by": [
+    "a file the service cannot use is refused",
+    "a restarted store keeps its tickets, history and outbox, and never reuses a number",
+    "an audit log with a gap",
+    "every change is saved, and loading gives the same state back",
+    "the data file",
+    "with a data file, a restarted service has the same tickets, history and outbox"
+   ]
+  },
+  "backoff-linear": {
+   "caught": false,
+   "by": []
+  },
+  "validate-renamed": {
+   "caught": false,
+   "by": []
+  }
+ },
+ "caught": 7,
+ "pool": 27,
+ "tests_on_reference": {
+  "tests": 122,
+  "pass": 118,
+  "fail": 4
+ },
+ "failing_on_reference": [
+  "TC-1 assignment validates input, respects lifecycle and audits only changes",
+  "TC-3 (a) a failed save leaves assignment, audit and outbox unchanged for retry",
+  "TC-3 assignment and distinct agent notifications survive restart",
+  "TC-4 CLI shows assigned and legacy tickets while preserving weekly report columns"
+ ],
+ "missed": [
+  "actor-ignored",
+  "audit-bypassed",
+  "backoff-linear",
+  "cli-no-assignee",
+  "closed-assignable",
+  "conflict-as-invalid",
+  "memory-only-assignee",
+  "name-limit-off-by-one",
+  "no-envelope",
+  "no-unassign",
+  "notify-inline",
+  "notify-key-per-ticket",
+  "notify-no-template",
+  "notify-requester",
+  "old-assignee-undefined",
+  "old-data-refused",
+  "raw-column-inserted",
+  "same-agent-not-noop",
+  "update-rejects-resolved",
+  "validate-renamed"
+ ],
+ "not_judged": [],
+ "control_alternative_fails_beyond_reference": []
+}

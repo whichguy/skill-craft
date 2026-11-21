@@ -414,6 +414,134 @@ Registered readings, on the enriched arm:
   plan loops completed at iteration 2 with a trivial streak of 1 and added clauses (2 on due times).
 - Evidence: `evidence/p1-enriched-ticket-assignment/`, `evidence/p1-enriched-ticket-due-times/`.
 
+### P2, repair starts on the two ticket cases (enriched frozen suites of `p1e2-ticket-*`; one run each; `--max-cycles 1`; 2026-11-20 21:00 to 22:00)
+
+| Case, planted defect | First gate | Last gate | Fix sessions / referee sessions / disputes | Held-out, start to end | Frozen tests | Stop | Minutes |
+|---|---|---|---|---|---|---|---|
+| assignment, `filter-or` | 180 of 209 | 207 of 209 | 3 / 2 / 8 | 17 to 18 of 18 | 3 files changed by rulings (+90 −60) | stuck | 37.7 |
+| assignment, `filter-after-page` | 185 of 209 | 209 of 209 | 1 / 1 / 1 | 17 to 18 of 18 | 1 file changed by a ruling (+11 −6) | cycle limit | 26.8 |
+| due times, `version-two` | 198 of 253 | 246 of 253 | 3 / 1 / 16 | 5 to 4 of 8 | 6 files changed by rulings (+159 −87) | stuck | 41.0 |
+| due times, `priority-moves-due` | 208 of 253 | 253 of 253 | 1 / 0 / 0 | 6 to 4 of 8 | unchanged | cycle limit | 16.9 |
+
+- **Apparatus fault, found in these runs and fixed between the second and the third.** The first two starts
+  (`filter-or`, `version-two`, both launched 20:59) ended "stuck" on tests that start the previous release from a Git
+  commit (`22f8405`). That commit existed only in the repository of the run the suite was frozen in; a repair start
+  had a new repository. Every item still failing at their last gates is one of these (C-135 and U-15; C-22, C-67,
+  C-68, C-70, C-124, C-233 and U-11, each a Git exit 128, "not a valid object name"). `setup()` now gives a repair
+  start the source run's objects (`.git/objects/info/alternates`), and the two later starts reached a full gate. The
+  two "stuck" stops are the apparatus's.
+- **R2.1, repair works: not met, 6 of 8 (75%; the bar was 80%).** The four orders starts and both assignment starts
+  end with the planted defect's held-out check passing and the product changed. Both due-times starts end with
+  fewer held-out checks passing than the defective start had.
+- **F12 (firm for this case; two runs).** A green gate is not a correct product. In `priority-moves-due` one fix
+  session brought the gate from 208 to 253 of 253, nothing was disputed, no frozen file changed, and the held-out
+  checks fell from 6 to 4 of 8 (`cli`, `migrate`, `restart` and `rollback` fail at the end). The planted defect was
+  repaired (its two items, C-13 and U-2, pass). The other 43 failing items are exactly the 43 the correct reference
+  also fails (section "P1, enriched form": 35 clauses and 8 use cases): the specification's own additions. Making
+  the product meet them broke behaviour the held-out checks require. `version-two` shows the same fall (5 to 4).
+- **F13 (interim).** The dispute route is used, and it is expensive. `filter-after-page`: one dispute (C-74, a
+  temporary path too long for the test's own fixture), one ruling, a corrected test, a full gate. `filter-or` and
+  `version-two`: 8 and 16 disputes, rulings that rewrote 3 and 6 frozen test files, and 37.7 and 41.0 minutes, most
+  of it spent on the tests my setup had made unpassable. No role owns a test's fixtures or environment: the builder
+  may not edit tests, the referee rules on a test against its clause, and neither could supply the previous release.
+- **R2.2, the closing look finds what the tests miss: cannot be read.** Every calibrated defect is caught by the
+  enriched suites (37 of 37), so there was no missed defect to plant.
+- Evidence: `evidence/p2-tickets/` (each start's run.json, hidden.json, gate records, fix, referee and delta notes).
+
+### P3, the whole loop from the request (amendments 1 to 3; one run each; three cycles at most)
+
+| Case, effort | Minutes (to first build) | Sessions | Output tokens | Gate at each cycle | Held-out at first build / at the end | Closing looks: added (product did not keep to it) | Later builds changed (product, its own tests, documents) |
+|---|---|---|---|---|---|---|---|
+| orders, high (smoke, first form, not counted) | 38.8 (7.4) | 10 | 84,885 | 68/68, 73/73, 76/76 | 2 of 2 / 2 of 2 | 5 (0), 3 (0), 1 (0) | +66 −10, +40 −6 |
+| chess, high | 85.1 (20.5) | 13 | 198,671 | 111/111, 118/118, 120/120 | 10 of 10 / 10 of 10 | 7 (1), 2 (1), 1 (0) | +145 −25, +92 −2 |
+| shared expenses, high | 118.3 (22.4) | 14 | 260,499 | 106/107 then 107/107 after one fix, 116/116, 124/124 | 6 of 6 / 6 of 6 (5 of 6 after build 2, 6 again after its tests) | 9 (3), 7 (1), 3 (1) | +731 −42, +343 −49 |
+| ticket assignment, high | 132.9 (23.4) | 13 | 308,043 | 225/225, 232/232, 238/238 | 18 of 18 / 18 of 18 | 7 (4), 5 (2), 6 (3) | +536 −24, +567 −38 |
+| ticket assignment, medium | 91.8 (17.2) | 13 | 177,302 | 181/181, 188/188, 191/191 | 18 of 18 / 18 of 18 | 6 (4), 3 (1), 3 (2) | +443 −20, +213 −5 |
+| ticket due times, high | in flight | | | | 3 of 8 at the first build | | |
+
+Minutes by stage (spec, plan, build, heavy tests, fix, closing looks, gates and script): chess 9.6, 14.9, 15.1, 29.8,
+0, 9.8, 5.9; shared expenses 7.1, 16.2, 26.9, 34.8, 3.0, 15.3, 15.1; ticket assignment high 9.6, 15.1, 26.9, 49.0, 0,
+19.6, 12.7; medium 6.0, 11.2, 17.8, 32.6, 0, 9.9, 14.2. The heavy test pass is the largest stage in every run.
+
+Registered readings:
+
+- **R3.1, no loss: met on the five finished runs** (every held-out check passes at the end); the due-times run is
+  read when it ends and starts from a first build that fails 5 of 8.
+- **R3.2, reported.** Every finished run's first build already passed every held-out check. The loop had nothing to
+  recover on any of them.
+- **R3.3, reported.** A failing acceptance test led to a product change in one run of five: shared expenses, cycle 1,
+  clause C-18 (a group id too long to address in a URL), repaired by one fix session of 3 minutes. Closing-look
+  clauses led to product changes in every run: each second and third build changed the product (the last column).
+- **R3.4, time: slower.** Ticket assignment on Sol 6.2 medium took 91.8 minutes and 177,302 output tokens; ShipLoop's
+  whole delivery of the same case on the same model and effort took 13.2 minutes and 29,066 (7.0 times the time, 6.1
+  times the output tokens), with the same 18 of 18 held-out checks. Ratchet's first build alone came at 17.2
+  minutes. ShipLoop's delivery also released and reviewed; Ratchet stops at a product.
+- **No run converged.** All five ended at the three-cycle limit with the last closing look still adding items (1, 1,
+  3, 6, 3). The limit is the apparatus's, so "does it end by itself" is not answered; nothing seen suggests it does.
+
+**F14 (firm on these cases).** With every first build already correct, all the work after the first gate came from
+the loop's own specification. The second and third builds added 237 to 1,103 lines a run (last column). On ticket
+assignment the product's source alone went from +85 −16 lines at the first build to +162 −24 at the end (medium) and
+from +96 −19 to +304 −38 (high); ShipLoop's delivery of the same request is +71 −17. What the added requirements are
+worth is section 13's question.
+
+**F15 (firm; one run with a reference). R2.3, false clauses: not met.** On the medium ticket-assignment run, 9 of the
+12 items its closing looks added got tests (the third look's three did not: the cycle limit), and 6 of those 9 (67%;
+the bar was 20%) fail on the harness's correct reference: C-164 to C-167, C-171 and C-172. Of everything that suite
+enforces (173 clauses, 18 use cases), 25 clauses (14%) and 9 use cases (50%) fail on the reference, and the second
+correct delivery fails 12 more items. By the source the specification gave them, the 34 failing items are 18
+implied, 6 discovery, 5 existing, 3 choice and 2 request.
+
+Evidence: `evidence/p3/` (each run's run.json, hidden.json and closing-look reports; `summary.json` for all runs;
+`strength-ticket-assignment-medium.json`, verdicts without command output). The plans stay in the runs folder.
+
+### What a delivery's own tests are worth: ticket assignment, ShipLoop's delivery against Ratchet's (no model call)
+
+Two measures, both run after the fact on finished deliveries (`baseline.py`, `mutate.py`).
+
+Calibrated defects (27), each suite laid over the harness's correct reference and every defect:
+
+| Suite | Tests | Failing on the correct reference | Defects caught |
+|---|---|---|---|
+| the starting project's own tests | 117 | 0 | 3 of 27 |
+| those and ShipLoop's delivered tests (2 files) | 122 | 4 of its 5 | 7 of 27 |
+| those and the Ratchet builder's own tests (5 files) | 138 | 15 of its 21 | 18 of 27 (1 not judged) |
+| Ratchet's frozen acceptance suite | 191 items | 34 (25 clauses, 9 use cases) | 26 of 27 |
+
+Seeded faults on the lines each delivery itself changed (the E2E harness's fault catalog):
+
+| Delivery | Product source lines changed | Fault sites | Its own tests | Ratchet's acceptance suite |
+|---|---|---|---|---|
+| ShipLoop, Sol 6.2 medium | +71 −17 | 7 | 7 of 7 caught | none exists |
+| Ratchet, Sol 6.2 medium, final product | +162 −24 (its first build: +85 −16) | 47 | 35 caught, 6 survived, 6 did not end | 41 caught, 6 survived |
+
+- **F16 (interim; one case, one delivery each).** A delivery's own tests are written to its own product: moved onto
+  another correct product, most of them fail (4 of 5, 15 of 21), so "catches N of 27" is a low reading for both and
+  is not a ranking. On its own product each suite is strong: ShipLoop's catches all 7 faults on the 7 sites its
+  small change has; Ratchet's builder tests catch 35 of the 41 that ended.
+- **The acceptance suite adds almost nothing over the builder's own tests on seeded faults.** The same six faults
+  survive both (five in `src/http.js`, one in `src/format.js`). What the separate test session adds on this measure
+  is the six faults on which the builder's suite did not end within 300 seconds.
+- **Apparatus correction, 22:30.** The first run of the second table printed "own 0 caught, 47 survived": `npm test`
+  had failed twice on the untouched copy (the machine's load average was above 40) and was left out, and the row
+  loop scored a left-out suite as "survived". `mutate.py` now says "not measured" and keeps the reason; the own-suite
+  column above is a second run at a load of 22.
+- Evidence: `evidence/baselines/`.
+
+### The audit of what sessions read (2026-11-20 21:20)
+
+The run record of `p1e2-ticket-assignment` carries one held-out mark, `skill-craft`, in its test session. I read the
+event: a `ps` listing whose output showed another session's ShipLoop runs by path. The session read no file of this
+repository and none of the held-out graders; no session in any run used `pkill` or `killall`. The cell stays
+counted. A clean scan remains "no named exposure seen", not proof (section 7).
+
+### Cells registered and not run
+
+The two Sonnet 5.5 whole-loop cells (ticket assignment, chess) and P4 (a wrong test, by hand) were not run. The
+owner asked for one runner ("you don't have to run both of them"), and the Sol cells already answer the readings a
+second runner would repeat. P4's question (does the builder dispute a wrong test, and does the referee correct it)
+was answered in passing by `filter-after-page` above, once.
+
 ## 11. Amendment 3, 2026-11-20 19:45: the apparatus hardened after a second outside review (before P2, P3 and the enriched ticket runs)
 
 Sol 6.1 at max effort, read-only, 21 minutes, reviewed the apparatus for ways a result could be wrong without the
@@ -554,6 +682,45 @@ Readings (exploratory; section 6 registered no bar for them):
 Limits: models as judges, one answer each; a judge sees documents and not code; the two ticket-assignment runs can
 add the same requirement twice, and it is then counted twice.
 
+### Result (2026-11-20 22:55; each judge answered once and labelled all 59 items)
+
+| Judge | Required | Expected | Choice | Excess or wrong | Belongs |
+|---|---|---|---|---|---|
+| Claude Opus 5.5, xhigh, no tools | 4 | 7 | 15 | 33 | 11 of 59 (19%) |
+| Grok 4.7, xhigh, no tools | 11 | 13 | 11 | 24 | 24 of 59 (41%) |
+| Sol 6.1, xhigh, read-only (the author's family; reported apart) | 6 | 26 | 25 | 2 | 32 of 59 (54%) |
+
+The two outside judges, Opus and Grok:
+
+- **J3, agreement.** The same side on 44 of 59 (75%), Cohen's kappa 0.42; the same label on 34. That is just above
+  the 0.4 line, so J1 and J2 are read, as moderate agreement between two model judges.
+- **J1, all 59.** Both say it belongs: 10 (17%). Both say it does not: 34 (58%). They split on 15 (25%).
+- **J2, the 23 the product did not keep to.** Both say it belongs, a real gap found: 2 (9%). Both say it does not,
+  work the loop made for itself: 16 (70%). They split on 5, all five about malformed UTF-8 in a name or a filter.
+- The 36 the product already kept to: 8 belong, 18 do not, 10 split. A test for one of these pins what the product
+  already did.
+- **J4, by cycle.** Both-belongs is 5 of 29 in the first looks, 1 of 17 in the second and 4 of 13 in the third: no
+  trend that counts this small can show. By case: chess 2 of 10, shared expenses 4 of 19, ticket assignment 4 of 30.
+
+The two gaps both judges accept come from the third look of the high ticket-assignment run: after a save that
+failed, assignment must go by the committed status (C-216) and the committed title (C-215). The sixteen both reject
+include a data file reached through a symbolic link (two items), Unicode line breaks and text-direction overrides in
+names and titles (four), two processes or a changed file under a running service (two), and what the documentation
+should say about ids and size limits (two).
+
+The author's family reads its own additions differently. Sol 6.1 says 32 of 59 belong and 2 are excess, where Opus
+says 33 are excess and Grok 24. Of the 34 items both outside judges reject, Sol accepts 15. Its agreement with either
+outside judge is kappa 0.2.
+
+**F17 (interim: two model judges, one answer each, kappa 0.42).** Most of what a closing look adds is not the
+request's. About one added requirement in six is accepted by both outside judges, and of the gaps the looks reported
+in their own products, 2 of 23. Read with F14 and F15: after a first build that was already correct, the second and
+third cycles of every run built and tested scope the loop had written for itself, and the one judge that finds that
+scope reasonable comes from the model family that wrote it.
+
+Evidence: `evidence/judge-closing-looks/` (the packet, the key, the three answers with each judge's served model, the
+score).
+
 ## 14. Grokbot-local: the yardstick calibrated on the bare build, and R5.1 (2026-11-20 22:39)
 
 Status: firm for what was measured (one build, one calibrated grading); the ShipLoop and Ratchet arms had no result
@@ -647,3 +814,31 @@ or the two README files, never to make a build pass; every correction is listed;
 Limits: written by me in one sitting, with one build in existence; several checks share a mode's state, so one
 failure can cause the next in the same group (each check's note says what it saw); 5 of the 28 are my reading and
 are kept out of the bar for that reason.
+
+## 16. Amendment 6, 2026-11-20 22:58: where does a bare first pass start to fall short? Two more bare arms (registered before either runs)
+
+Why. Section 14, and the second yardstick's first reading (28 of 28 as registered; its section follows once the
+yardstick itself has been shown able to fail), say one Sol 6.2 high session passes everything I can check. Comparing
+ways of working needs a first pass that falls short. The owner named two runners ("Sonnet High or Sol 6.2 on high").
+Before hours of ShipLoop and Ratchet go to another runner, one bare session on each of two settings says whether
+headroom exists there:
+
+- `g-bare-sonnet-high`: Claude `claude-sonnet-5-5` at high, the owner's other named runner.
+- `g-bare-sol-low`: Codex `gpt-6.2-sol` at low, the same model with less effort.
+
+Each is `ratchet.py run --case grokbot-local --bare`: the request and the rules of conduct, a new repository holding
+only the starting folder, one session, 90 minutes at most. Then both yardsticks as calibrated.
+
+Readings:
+
+- R7.1, for each arm: checks failed on the first yardstick (of 49) and stated checks failed on the second (of 23).
+  Headroom is the bars already registered: at least 5 on the first (R5.1) or at least 3 stated on the second (R6.1).
+- R7.2, reported: minutes and output tokens.
+
+What a result decides: if an arm shows headroom, ShipLoop and Ratchet on that runner are the comparison worth
+running; that is hours of runs and the owner's call, so it is not launched here. If neither shows headroom, the
+scenario as written is one-shot work for the current models and a harder scenario is a different product, not a
+harder yardstick.
+
+Limits: one session each; both yardsticks were calibrated on a Sol 6.2 high build, so a different design may meet
+an assumption no build has exposed yet. A failure is read by hand under section 12's rule before it is counted.

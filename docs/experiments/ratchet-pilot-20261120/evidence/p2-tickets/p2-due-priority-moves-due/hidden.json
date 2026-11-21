@@ -1,0 +1,75 @@
+{
+ "frozen suite of an earlier run": {
+  "observed": true,
+  "passed": [
+   "pristine",
+   "migrate",
+   "switch",
+   "rollback",
+   "off",
+   "cli"
+  ],
+  "failed": {
+   "suite": "FAIL: the delivery's own node --test passes 117 tests, no more than the base's 117: no test of the new behaviour was added",
+   "restart": "FAIL: restart: T-0003's priority change moved its due time from 2025-09-06T10:15:00.000Z to 2025-09-03T14:15:00.000Z"
+  },
+  "tree": "700b37c7d0e7d9494fcf37f984e0408e9d362785",
+  "label": "frozen suite of an earlier run",
+  "at": 0.3
+ },
+ "fix-1": {
+  "observed": true,
+  "passed": [
+   "suite",
+   "pristine",
+   "switch",
+   "off"
+  ],
+  "failed": {
+   "migrate": "FAIL: the candidate exited (rc 2) before it listened on PORT=57071: 2026-11-21T06:00:27.171Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-iz12b80p/tickets.json: deadline preparation is incomplete; sta",
+   "restart": "FAIL: the candidate exited (rc 2) before it listened on PORT=57097: 2026-11-21T06:00:27.492Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-3nm2xtq5/tickets.json: deadline preparation is incomplete; sta",
+   "rollback": "FAIL: the candidate exited (rc 2) before it listened on PORT=57303: 2026-11-21T06:00:29.327Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-mmogame7/on/tickets.json: deadline preparation is incomplete; ",
+   "cli": "FAIL: the candidate exited (rc 2) before it listened on PORT=57554: 2026-11-21T06:00:31.214Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-dqd50glu/tickets.json: deadline preparation is incomplete; sta"
+  },
+  "tree": "48879928be4be65ef102f3e4290965fead9ed5d7",
+  "label": "fix-1",
+  "at": 627.0
+ },
+ "green-1": {
+  "observed": true,
+  "passed": [
+   "suite",
+   "pristine",
+   "switch",
+   "off"
+  ],
+  "failed": {
+   "migrate": "FAIL: the candidate exited (rc 2) before it listened on PORT=57071: 2026-11-21T06:00:27.171Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-iz12b80p/tickets.json: deadline preparation is incomplete; sta",
+   "restart": "FAIL: the candidate exited (rc 2) before it listened on PORT=57097: 2026-11-21T06:00:27.492Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-3nm2xtq5/tickets.json: deadline preparation is incomplete; sta",
+   "rollback": "FAIL: the candidate exited (rc 2) before it listened on PORT=57303: 2026-11-21T06:00:29.327Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-mmogame7/on/tickets.json: deadline preparation is incomplete; ",
+   "cli": "FAIL: the candidate exited (rc 2) before it listened on PORT=57554: 2026-11-21T06:00:31.214Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-dqd50glu/tickets.json: deadline preparation is incomplete; sta"
+  },
+  "tree": "48879928be4be65ef102f3e4290965fead9ed5d7",
+  "label": "green-1",
+  "at": 627.0,
+  "same_tree_as": "fix-1"
+ },
+ "final": {
+  "observed": true,
+  "passed": [
+   "suite",
+   "pristine",
+   "switch",
+   "off"
+  ],
+  "failed": {
+   "migrate": "FAIL: the candidate exited (rc 2) before it listened on PORT=57967: 2026-11-21T06:00:34.270Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-mcbb2vvd/tickets.json: deadline preparation is incomplete; sta",
+   "restart": "FAIL: the candidate exited (rc 2) before it listened on PORT=57986: 2026-11-21T06:00:34.707Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-3q7ndes6/tickets.json: deadline preparation is incomplete; sta",
+   "rollback": "FAIL: the candidate exited (rc 2) before it listened on PORT=58244: 2026-11-21T06:00:36.755Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-i63xe5bv/on/tickets.json: deadline preparation is incomplete; ",
+   "cli": "FAIL: the candidate exited (rc 2) before it listened on PORT=58531: 2026-11-21T06:00:38.702Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-4vfr1hwd/tickets.json: deadline preparation is incomplete; sta"
+  },
+  "tree": "d2c87fd08b267d15dcfd208a423e1936ff94b66d",
+  "label": "final",
+  "at": 1016.2
+ }
+}

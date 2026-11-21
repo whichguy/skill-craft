@@ -1,0 +1,135 @@
+{
+ "build-1": {
+  "observed": true,
+  "passed": [
+   "count-start-3",
+   "count-kiwipete-3",
+   "count-position3-4",
+   "count-position4-3",
+   "count-position5-3",
+   "count-position6-3",
+   "game-fens",
+   "status-positions",
+   "illegal-moves-throw",
+   "moves-sorted"
+  ],
+  "failed": {},
+  "tree": "c93736bd9da5d4218b6bcc40cac9f51605a0c5a5",
+  "label": "build-1",
+  "at": 1232.0
+ },
+ "green-1": {
+  "observed": true,
+  "passed": [
+   "count-start-3",
+   "count-kiwipete-3",
+   "count-position3-4",
+   "count-position4-3",
+   "count-position5-3",
+   "count-position6-3",
+   "game-fens",
+   "status-positions",
+   "illegal-moves-throw",
+   "moves-sorted"
+  ],
+  "failed": {},
+  "tree": "c0a9bdf1ea588946cb5671b7f82e068b89b97c71",
+  "label": "green-1",
+  "at": 2321.1
+ },
+ "build-2": {
+  "observed": true,
+  "passed": [
+   "count-start-3",
+   "count-kiwipete-3",
+   "count-position3-4",
+   "count-position4-3",
+   "count-position5-3",
+   "count-position6-3",
+   "game-fens",
+   "status-positions",
+   "illegal-moves-throw",
+   "moves-sorted"
+  ],
+  "failed": {},
+  "tree": "fe9c6e4797a5501ed2c4c8ab1bafa35fa17ec2fc",
+  "label": "build-2",
+  "at": 3144.0
+ },
+ "green-2": {
+  "observed": true,
+  "passed": [
+   "count-start-3",
+   "count-kiwipete-3",
+   "count-position3-4",
+   "count-position4-3",
+   "count-position5-3",
+   "count-position6-3",
+   "game-fens",
+   "status-positions",
+   "illegal-moves-throw",
+   "moves-sorted"
+  ],
+  "failed": {},
+  "tree": "dd30db9d4459c3bb8dd9f82fc6945934e2d94f71",
+  "label": "green-2",
+  "at": 3587.5
+ },
+ "build-3": {
+  "observed": true,
+  "passed": [
+   "count-start-3",
+   "count-kiwipete-3",
+   "count-position3-4",
+   "count-position4-3",
+   "count-position5-3",
+   "count-position6-3",
+   "game-fens",
+   "status-positions",
+   "illegal-moves-throw",
+   "moves-sorted"
+  ],
+  "failed": {},
+  "tree": "3b8c2e2480930e93edcde5b61d8bc5fb6000ebfc",
+  "label": "build-3",
+  "at": 4453.3
+ },
+ "green-3": {
+  "observed": true,
+  "passed": [
+   "count-start-3",
+   "count-kiwipete-3",
+   "count-position3-4",
+   "count-position4-3",
+   "count-position5-3",
+   "count-position6-3",
+   "game-fens",
+   "status-positions",
+   "illegal-moves-throw",
+   "moves-sorted"
+  ],
+  "failed": {},
+  "tree": "6bd23a408a751a4e98663b1e84c367f093446878",
+  "label": "green-3",
+  "at": 4878.1
+ },
+ "final": {
+  "observed": true,
+  "passed": [
+   "count-start-3",
+   "count-kiwipete-3",
+   "count-position3-4",
+   "count-position4-3",
+   "count-position5-3",
+   "count-position6-3",
+   "game-fens",
+   "status-positions",
+   "illegal-moves-throw",
+   "moves-sorted"
+  ],
+  "failed": {},
+  "tree": "a7662aef22447caa9bbe61ac9d4d9f807450eca9",
+  "label": "final",
+  "at": 5103.7
+ }
+}

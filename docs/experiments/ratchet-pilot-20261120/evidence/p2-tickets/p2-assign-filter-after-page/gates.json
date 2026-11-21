@@ -1,0 +1,57 @@
+[
+ {
+  "gate": "01-cycle-1-first.json",
+  "pass": false,
+  "failing": [
+   "C-64",
+   "C-74",
+   "C-87",
+   "C-97",
+   "C-99",
+   "C-101",
+   "C-103",
+   "C-114",
+   "C-123",
+   "C-133",
+   "C-136",
+   "C-137",
+   "C-185",
+   "C-187",
+   "C-189",
+   "C-190",
+   "C-191",
+   "C-192",
+   "U-5",
+   "U-8",
+   "U-9",
+   "U-10",
+   "U-12",
+   "U-17"
+  ],
+  "restored": [],
+  "restored_during": []
+ },
+ {
+  "gate": "02-after-fix-1.json",
+  "pass": false,
+  "failing": [
+   "C-74"
+  ],
+  "restored": [],
+  "restored_during": []
+ },
+ {
+  "gate": "03-after-referee-1.json",
+  "pass": true,
+  "failing": [],
+  "restored": [],
+  "restored_during": []
+ },
+ {
+  "gate": "04-final.json",
+  "pass": true,
+  "failing": [],
+  "restored": [],
+  "restored_during": []
+ }
+]
