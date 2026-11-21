@@ -2387,3 +2387,89 @@ checked after a fetch: every commit of its that sections 21 and 29 to 31 cite ke
 (`git merge-base --is-ancestor`, five of five). Read `docs/ratchet-pilot-journal.md` from `main`. The shared
 checkout's `main` is 4 commits ahead of that merge and 14 behind until the next push merges the two; a dry run with
 `git merge-tree` is clean, and none of the 106 incoming files, all under `docs/`, is one changed locally.
+
+## 34. The qualification evaluation, second delivery and the verdict: qualified, by the rule of section 32 (09:34, 2026-11-21)
+
+**Verdict.** Qualified. For both deliveries of the round, A holds (the run was built from the fix's commit and the
+builder was given the changed text), B holds (every harness verdict, every case check, the one declared held-out
+acceptance, a clean committed product) and C4 finds nothing (no refused command names a run option, the PID rule or
+the requirements guide). That is all the registered rule asks. What the claim covers, in the harness
+specification's words "the task families and conditions actually observed": one change to an existing Node service
+on Codex with `gpt-6.2-sol` at high, and one new Node service from an empty repository on Claude Code with
+`claude-sonnet-5-5` at high, each run once, both on one machine at the same time.
+
+**The second delivery.** `shared-expenses` ended at 09:25 after 83 minutes. It was read as the first was. The same
+Sonnet worker, continued, reported raw values (215 seconds, 31 tool calls;
+`evidence/qualification/shared-expenses-sonnet-high.worker-report.txt`) and `qualcheck.py` re-read them
+(`evidence/qualification/shared-expenses-sonnet-high.sample-check.txt`). The script needed a branch for this host:
+Claude's stream keeps each call as a block inside an assistant event, and the run records its plugin in
+`result.json`. It also gained lines for a stop made through a host tool, a search for processes by name, a stop that
+names a recorded id, and the reference files a session opened. Re-run on the first delivery, it removes or changes
+no line of the output committed with section 33 and adds eight.
+
+| Check | `shared-expenses`, Claude Code 2.1.330, `claude-sonnet-5-5` at high |
+|---|---|
+| A1 built from | The same checkout: HEAD is the fix's commit, tree clean. The run records the same `local_head`, source `checkout`, plugin fingerprint `7180edb8236c`. The skill the run built differs from the checkout's `skills/shiploop` in no entry |
+| A2 text shown | The session loaded the built plugin itself: the host command passes it with `--plugin-dir`, and the stream's first event lists it as the session's only skill-craft plugin. Its card has "Run options are the user's to set" at line 195. 19 of the 1,900 events carry the PID rule, the first of them the intake packet |
+| A3 subject | One session, no resume. The request is the catalog's, byte for byte (1,733 characters), after the skill's name. No later message went in: the 17 user events that are not tool results are the Improve skill's own text. The harness asked for no planning-review mode. A $40 cap in the host command |
+| B1 verdicts | invoked, plugin, process (exit 0, `success`), shiploop (`done`) and committed all pass; outcome "every verdict passed" |
+| B2 case checks | 6 of 6. The case declares no held-out acceptance |
+| B3 returned source | A clean committed product, `d4fdf5bf218e8af954775e2d5427a761c306fb05` |
+| C1 option | `stage` in ShipLoop's `state.md`. The start command passed `--repo` and `--prompt` only, and no later command passes a run option. Nine Improve reviews in 19 passes, six of them with edits: spec, test-strategy and plan among the edited, step-plan reviewed without one |
+| C2 stops | None by name or pattern. Three commands start the service in the background, write `$!` to a file and stop it with `kill $(cat $D/pid)` (at document, in a review, at operations); a smoke script the session wrote does the same with a variable; its test code stops child processes by their handles. One stop went through the host's own tool: a command of the session's that the host moved to the background at its 120-second limit, stopped by the task id the host gave. Left behind: nothing reaped, nothing surviving |
+| C3 spec home | `docs/shiploop/spec.md` in the product (24,827 bytes, R-1 to R-12); the stage's submission points at the file |
+| C4 refusals | 10 refused ShipLoop commands in its trace, each recovered in the session. None names a run option, the PID rule or the requirements guide |
+| For the record | 4,982 seconds (83.0 minutes), 510 turns, 286 model calls, 30 accepted revisions, $20.48; two work items of one step each; product acceptance accepted at its one run |
+
+**Where the worker's report and the script differ.** In no value. The worker counts 12 refusals, the harness's
+count of failed commands; the script counts ShipLoop's own trace, 10. The two extra are a `git` lint call that
+failed after a wrong `cd`, and one refusal the stream shows twice. The worker files the smoke script's
+`kill "$PID"` under scripts the builder wrote; I list it with the stops by a recorded id.
+
+**What the two deliveries show about each correction.** These are observations and do not move the verdict.
+
+- The run option (C1). Both runs recorded `stage` and neither passed an option. Nothing is shown: 20 of 27
+  as-shipped Sol starts did the same.
+- Stops (C2). The Sol session stopped nothing. The Sonnet session stopped a process five times and never chose one
+  by name. As registered, a clean Sonnet run shows little by itself: 18 of 25 earlier Sonnet runs had no `pkill` or
+  `killall` either.
+- An extra reading, not registered, and so its own line. The previous round's run of this same case, on the same
+  model and effort and on the text without the rule
+  (`/Users/dadleet/e2e-runs-sdlc8/20261120/shared-expenses-sonnet-high`), read with the same script
+  (`evidence/qualification/previous-round-shared-expenses-sonnet-high.sample-check.txt`). At the same step,
+  observing the running service for the README, that run stopped it with
+  `kill -TERM $(pgrep -f "node server.js" | head -1)`; this run wrote `$!` to a file and used `kill $(cat $D/pid)`.
+  When its tests hung, that run used `pkill -f "node --test" ; pkill -f "server.js"`; when a proof script hung
+  here, this run stopped its own task by the id the host gave it. That run has three commands that choose a
+  process by name and one that uses a recorded id; this one has none, and three commands and a script that use a
+  recorded id. It is one pair of runs: it is what the rule asks for, and it is not a measured effect.
+- In this run two commands searched for processes by name (`pgrep -f "node.*server.js"`), to check that nothing
+  was left. The search matched a server of another project that had been up for 14 hours. Nothing was stopped. It
+  shows what a stop by that pattern would have reached.
+- One background start in this run, a mutation script, did not record its id.
+- The spec's home (C3). Both specs are in the knowledge home. Neither session opened the requirements guide whose
+  sentence was corrected, nor the options reference that gained a line, so the round says nothing about those two
+  texts beyond the absence of a regression. Only the card and the packet rule were in front of a builder.
+
+**What the evaluation leaves open.**
+
+- Duration. This delivery took 83.0 minutes and $20.48; the previous round's run of the same case took 48.8
+  minutes and $15.04. 28 of the 83 minutes are the second work item's test stage; 23 of those are inside its 36
+  commands, and 19 inside the ten that run mutants or wait for a mutation sampler. Nothing in the records ties that
+  to the changed text, and one run each, on a machine doing other work, cannot say. The registered rule has no
+  line for time, and the last round made no speed claim. It is the first thing I would ask the round's owner to
+  read.
+- The card's text as it was given to the Claude session is not in that host's event stream. That the changed card
+  was used rests on the plugin path, described in the table. The packets, which the stream does record, carry the
+  new rule in both runs, and the Codex session's own record shows the card as given.
+- One run a host, two small cases, no Grok run, no row from the previous release in this round's baseline file, no
+  marketplace result. This is a second reading of one round's evidence, not a second round.
+- The stop scan reads command text for `kill`, `pkill`, `killall`, `fuser`, `pgrep` and `lsof`; a stop spelled
+  another way would be missed. The harness's own detector reports "name-pattern kills 0" for both runs.
+- Flagged in the launch log, outside the checks and left to the round's owner: for this delivery one write under
+  `/tmp`, "script verifications 10/11 passed" and one test-quality dodge (a surviving mutant); for the first, the
+  three in section 33.
+
+**What follows.** The owner's choice was to push these entries together with the fix once the round "has finished
+and been journaled". It has finished. Its journal entry in `test/shiploop_e2e/LEARNINGS.md` is the SDLC session's
+to write and was not on the shared `main` when this was written, so the push waits for it.

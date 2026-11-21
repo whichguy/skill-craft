@@ -30,6 +30,16 @@ CHANGED_TEXT = re.compile(
     r"|Requirements definition",
     re.IGNORECASE,
 )
+# A host tool that ends a background shell or task, as opposed to a shell command that does.
+HOST_STOP = re.compile(r"(?<![A-Za-z])kill|stop", re.IGNORECASE)
+# Looking for processes by name or by port, which is not a stop unless its result is fed to one.
+LOOK_WORD = re.compile(r"(?<![A-Za-z_])(pgrep|lsof)(?![A-Za-z_])")
+# A shell `kill` whose target is a number, a variable or a command substitution (the text is JSON, so a quote is escaped).
+SHELL_STOP_BY_ID = re.compile(
+    r"(?<![A-Za-z_.])kill\s+(?:-\w+\s+)?(?:\\?\"?\$[({A-Za-z_][^;|&]{0,40}|[0-9]+)"
+)
+REFERENCE = re.compile(r"skills/shiploop/references/([A-Za-z0-9_.-]+\.md)")
+GUIDE_SENTENCE = "Store the proposed product behavior in"
 START = re.compile(r"workspace start|shiploop['\"]? init\b")
 
 
@@ -42,6 +52,31 @@ def git(repo: Path, *args: str) -> str:
 
 def rows(path: Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+
+
+def builder_calls(events: list[dict]) -> list[tuple[int, str, str]]:
+    """Each command, edit or other tool call the builder made: event index, tool name, the call as text.
+
+    Codex events arrive normalised by the harness as `tool_call` rows; Claude's stream keeps each call as a
+    `tool_use` block inside an `assistant` event, a subagent's calls included.
+    """
+    calls = []
+    for n, event in enumerate(events):
+        if event.get("type") == "tool_call":
+            calls.append(
+                (n, str(event.get("toolName")), json.dumps(event, ensure_ascii=False))
+            )
+        elif event.get("type") == "assistant":
+            for block in (event.get("message") or {}).get("content") or []:
+                if isinstance(block, dict) and block.get("type") == "tool_use":
+                    calls.append(
+                        (
+                            n,
+                            str(block.get("name")),
+                            json.dumps(block, ensure_ascii=False),
+                        )
+                    )
+    return calls
 
 
 def tree_differences(left: Path, right: Path) -> int:
@@ -72,13 +107,21 @@ def main() -> int:
     print(
         "A1 recorded versions", json.dumps(invocation.get("versions"), sort_keys=True)
     )
-    built = Path(invocation["plugin"]["wanted"]) / "skills" / "shiploop"
+    plugin = invocation.get("plugin") or result.get("plugin") or {}
+    built = (
+        Path(plugin.get("wanted") or invocation["plugin_dir"]) / "skills" / "shiploop"
+    )
     print(
         "A1 built skill against the checkout's: differing entries",
         tree_differences(built, checkout / "skills/shiploop"),
     )
-    installed = Path(invocation["plugin"]["path"]) / "skills" / "shiploop"
-    if installed.is_dir():
+    if not plugin.get("path"):
+        print(
+            "A2 the session loaded the built plugin itself; no installed copy:",
+            plugin.get("loaded"),
+        )
+        card = built / "SKILL.md"
+    elif (installed := Path(plugin["path"]) / "skills" / "shiploop").is_dir():
         print(
             "A2 installed skill against the built one: differing entries",
             tree_differences(installed, built),
@@ -87,7 +130,7 @@ def main() -> int:
     else:
         print(
             "A2 no installed copy at the recorded path; the built one is read:",
-            invocation["plugin"]["path"],
+            plugin["path"],
         )
         card = built / "SKILL.md"
     lines = [
@@ -212,12 +255,25 @@ def main() -> int:
         "|",
         stages,
     )
-    calls = [
-        (n, json.dumps(event, ensure_ascii=False))
-        for n, event in enumerate(events)
-        if event.get("type") == "tool_call"
-    ]
+    named = builder_calls(events)
+    calls = [(n, text) for n, _, text in named]
     print("C2 commands and edits the builder made", len(calls))
+    tools = sorted({name for _, name, _ in named})
+    print(
+        "C2 tools called",
+        {tool: sum(1 for _, name, _ in named if name == tool) for tool in tools},
+    )
+    inside = sum(
+        1
+        for event in events
+        if event.get("type") == "assistant" and event.get("parent_tool_use_id")
+    )
+    print("C2 events from inside a subagent, included in the scan", inside)
+    host_stops = [(n, name, text) for n, name, text in named if HOST_STOP.search(name)]
+    print(
+        "C2 stops through a host tool",
+        [(n, name, text[:160]) for n, name, text in host_stops],
+    )
     starts = [(n, text) for n, text in calls if START.search(text)]
     if starts:
         n, text = starts[0]
@@ -243,7 +299,33 @@ def main() -> int:
         "C2 calls that look like a background start",
         [n for n, text in calls if BACKGROUND.search(text)],
     )
+    looks = [(n, text) for n, text in calls if LOOK_WORD.search(text)]
+    print(
+        "C2 calls that search processes by name or port (pgrep, lsof)",
+        [n for n, _ in looks],
+    )
+    for n, text in looks:
+        for match in LOOK_WORD.finditer(text):
+            around = text[max(0, match.start() - 90) : match.end() + 90].replace(
+                "\\n", " "
+            )
+            print(f"C2   event {n}: …{around}…")
+    by_id = [
+        (n, match.group(0))
+        for n, text in calls
+        for match in SHELL_STOP_BY_ID.finditer(text)
+    ]
+    print("C2 shell stops that name a number, a variable or a file", by_id)
+    print("C2 calls that record $!", [n for n, text in calls if "$!" in text])
     print("C2 left behind", json.dumps(result.get("left_behind"), sort_keys=True))
+    references = sorted({name for _, text in calls for name in REFERENCE.findall(text)})
+    print("C3 reference files named in the builder's calls", references)
+    with_sentence = sum(
+        1 for event in events if GUIDE_SENTENCE in json.dumps(event, ensure_ascii=False)
+    )
+    print(
+        "C3 events carrying the requirements guide's corrected sentence", with_sentence
+    )
     spec = product / "docs/shiploop/spec.md"
     if spec.is_file():
         ids = sorted(

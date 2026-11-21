@@ -24,12 +24,20 @@ C1 option recorded by the harness at launch (invocation.planning_review) None
 C1 state.md ['"planning_review": "stage",']
 C1 Improve reviews 9 | edited 0 | ['carry-forward', 'document', 'document', 'plan', 'release-plan', 'spec', 'step-plan', 'system-test-author', 'test-strategy']
 C2 commands and edits the builder made 279
+C2 tools called {'run_terminal_command': 272, 'search_replace': 7}
+C2 events from inside a subagent, included in the scan 0
+C2 stops through a host tool []
 C1 first start call: event 9 | run option flags in it []
 C1 calls passing a run option flag []
 C2 calls with kill, pkill, killall or fuser as a word 1
 C2   event 420: …rvice.pid && service.exitCode === null && service.signalCode === null) {         process.kill(-service.pid, 'SIGTERM');       }       await closed;     } finally {       fs.rmSync…
 C2 calls that look like a background start []
+C2 calls that search processes by name or port (pgrep, lsof) []
+C2 shell stops that name a number, a variable or a file []
+C2 calls that record $! []
 C2 left behind {"observed": true, "reaped": [], "survived": []}
+C3 reference files named in the builder's calls ['carry-forward.md', 'execution-planning.md', 'guide-map.md', 'improve-child.md', 'improve-context.md', 'improve-stages.md', 'inner-loop.md', 'run-start.md', 'test-loop.md', 'testing-and-documentation.md', 'workspace-lifecycle.md']
+C3 events carrying the requirements guide's corrected sentence 0
 C3 spec docs/shiploop/spec.md 3582 bytes | requirement ids 4 ['R-1', 'R-2', 'R-3'] …
 C3 added by 68ab996 2026-11-21 08:05:22 -0800 docs(shiploop): record skill-craft-shiploop-this-directory-is-d031e0 knowledge after spec
 C4 refused ShipLoop commands 5 | naming the changed text 0
