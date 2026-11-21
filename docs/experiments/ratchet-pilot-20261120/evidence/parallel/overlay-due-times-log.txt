@@ -1,0 +1,10 @@
+overlay.py, ticket due times, run 2026-11-21 08:05 to 08:11 (load average 6 to 7); one line per suite and product
+Sa-on-A: suite p3R-ticket-due-times-a on p3R-ticket-due-times-a at build-1 (3f1e98405b15): 39 of 42 pass; failing C-31, C-33, U-8; did not end none; 46.9 s
+Sb-on-B: suite p3R-ticket-due-times-b on p3R-ticket-due-times-b at build-1 (fde553154dd7): 41 of 41 pass; failing none; did not end none; 26.7 s
+S1-on-reference: suite p1R-ticket-due-times on the case's reference: 35 of 39 pass; failing C-19, C-29, C-3, U-8; did not end none; 42.0 s
+Sa-on-B: suite p3R-ticket-due-times-a on p3R-ticket-due-times-b at build-1 (fde553154dd7): 38 of 42 pass; failing C-31, C-33, C-34, U-8; did not end none; 48.8 s
+Sb-on-A: suite p3R-ticket-due-times-b on p3R-ticket-due-times-a at build-1 (3f1e98405b15): 41 of 41 pass; failing none; did not end none; 27.3 s
+S1-on-A: suite p1R-ticket-due-times on p3R-ticket-due-times-a at build-1 (3f1e98405b15): 31 of 39 pass; failing C-17, C-18, C-20, C-5, C-6, U-3, U-4, U-8; did not end none; 30.7 s
+S1-on-B: suite p1R-ticket-due-times on p3R-ticket-due-times-b at build-1 (fde553154dd7): 31 of 39 pass; failing C-17, C-18, C-20, C-5, C-6, U-3, U-4, U-8; did not end none; 29.9 s
+Sa-on-reference: suite p3R-ticket-due-times-a on the case's reference: 29 of 42 pass; failing C-10, C-17, C-18, C-21, C-22, C-31, C-33, C-34, C-6, C-7, U-2, U-4, U-8; did not end none; 79.9 s
+Sb-on-reference: suite p3R-ticket-due-times-b on the case's reference: 31 of 41 pass; failing C-10, C-19, C-20, C-21, C-26, C-34, C-4, C-5, U-2, U-7; did not end none; 37.7 s
