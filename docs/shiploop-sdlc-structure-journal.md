@@ -2072,6 +2072,16 @@ about six hours, so no Grok run starts without the owner's word. If it is given:
   its place at 30% or more substantive by both judges and does not at 10% or fewer.
 - R65's minutes are not a baseline for it: the version differs, so a difference is described and not read.
 
+**Amended before the Grok run, 2026-11-21.** The owner said "Run one". The Grok command-line tool (1.0.92) now
+lists `grok-4.7` as its newest and default model; the harness default is still `grok-4.6` at extra-high, an owner
+setting of 2026-11-10 (db47982bcd9faf553041c26958abecd402002963). Asked which to use, the owner declined the question, so the
+standing rule decides: the run uses the newest model in the host's own catalog, `grok-4.7`, at `xhigh`, passed on
+the command line. Both models accept `xhigh` (a one-word prompt each). The harness default is not changed here:
+that is the owner's decision. What it changes: R65 and R66 are `grok-4.6` on an older ShipLoop, so they are
+context twice over, and the estimate of four hours and $60 to $90 comes from them and may not hold. One
+delivery of `ticket-due-times`; no time or spend limit is set, as the harness's default is none (owner,
+2026-10-24). The measures, the judges and the readings above stand, with one run a group.
+
 **Limits known before the run.** Two to four runs a cell. The medium runs ran hours earlier and with the pin.
 Sol 6.2 high has no earlier whole delivery, so nothing checks this baseline against another day. One model as
 both judges.
