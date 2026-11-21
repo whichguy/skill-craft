@@ -1,0 +1,80 @@
+{
+ "build-1": {
+  "observed": true,
+  "reason": null,
+  "passed": [
+   "the-stand-in-is-delivered-as-it-was",
+   "no-npm-dependencies",
+   "opening-an-earlier-conversation-returns-to-it",
+   "the-open-conversation-is-the-one-marked-current",
+   "each-bot-returns-to-its-own-discussion",
+   "a-reload-during-a-slow-reply-loses-nothing",
+   "a-failed-reply-can-still-be-retried-after-a-reload",
+   "at-320-the-newest-reply-and-the-message-box-are-in-view",
+   "a-long-unbroken-message-does-not-widen-the-page-at-320",
+   "everything-kept-lives-under-the-data-folder"
+  ],
+  "failed": {
+   "editing-puts-an-instruction-back-into-its-two-textboxes": "locator.fill: Timeout 8000ms exceeded.",
+   "instructions-belong-to-the-bot-that-uses-them": "locator.click: Timeout 8000ms exceeded.",
+   "a-saved-instruction-can-be-deleted": "locator.fill: Timeout 8000ms exceeded.",
+   "a-saved-task-can-be-changed-under-the-same-name": "locator.fill: Timeout 8000ms exceeded.",
+   "a-saved-task-can-be-deleted": "locator.waitFor: Timeout 8000ms exceeded.",
+   "after-enter-the-next-message-can-be-typed-at-once": "locator.click: Timeout 8000ms exceeded.",
+   "what-i-saved-and-what-my-bot-remembers-is-not-shown-to-another-person": "locator.fill: Timeout 8000ms exceeded.",
+   "a-third-person-is-answered-only-from-their-own-records": "locator.click: Timeout 8000ms exceeded.",
+   "coming-back-as-myself-i-find-my-things": "locator.click: Timeout 8000ms exceeded.",
+   "a-change-can-be-confirmed-from-the-keyboard": "locator.fill: Timeout 8000ms exceeded.",
+   "confirming-in-two-windows-applies-it-once": "locator.fill: Timeout 8000ms exceeded.",
+   "a-proposal-whose-record-has-changed-is-not-applied-blindly": "locator.fill: Timeout 8000ms exceeded.",
+   "a-finished-task-no-longer-offers-cancel": "locator.fill: Timeout 8000ms exceeded.",
+   "a-steered-task-does-all-its-steps-and-the-added-one": "locator.fill: Timeout 8000ms exceeded.",
+   "cancelling-one-task-leaves-another-running": "locator.fill: Timeout 8000ms exceeded.",
+   "a-cancelled-task-stays-cancelled-after-a-restart": "locator.innerText: Timeout 8000ms exceeded.",
+   "coming-back-names-what-finished-what-runs-and-what-failed": "locator.fill: Timeout 8000ms exceeded.",
+   "at-1440-everything-named-is-on-the-main-screen": "locator.fill: Timeout 8000ms exceeded."
+  },
+  "notes": [],
+  "tiers": {
+   "the-stand-in-is-delivered-as-it-was": "stated",
+   "no-npm-dependencies": "stated",
+   "opening-an-earlier-conversation-returns-to-it": "stated",
+   "the-open-conversation-is-the-one-marked-current": "stated",
+   "each-bot-returns-to-its-own-discussion": "stated",
+   "a-reload-during-a-slow-reply-loses-nothing": "stated",
+   "a-failed-reply-can-still-be-retried-after-a-reload": "stated",
+   "editing-puts-an-instruction-back-into-its-two-textboxes": "stated",
+   "instructions-belong-to-the-bot-that-uses-them": "stated",
+   "a-saved-instruction-can-be-deleted": "stated",
+   "a-saved-task-can-be-changed-under-the-same-name": "stated",
+   "a-saved-task-can-be-deleted": "stated",
+   "after-enter-the-next-message-can-be-typed-at-once": "implied",
+   "what-i-saved-and-what-my-bot-remembers-is-not-shown-to-another-person": "stated",
+   "a-third-person-is-answered-only-from-their-own-records": "stated",
+   "coming-back-as-myself-i-find-my-things": "stated",
+   "a-change-can-be-confirmed-from-the-keyboard": "stated",
+   "confirming-in-two-windows-applies-it-once": "stated",
+   "a-proposal-whose-record-has-changed-is-not-applied-blindly": "implied",
+   "a-finished-task-no-longer-offers-cancel": "stated",
+   "a-steered-task-does-all-its-steps-and-the-added-one": "stated",
+   "cancelling-one-task-leaves-another-running": "implied",
+   "a-cancelled-task-stays-cancelled-after-a-restart": "implied",
+   "coming-back-names-what-finished-what-runs-and-what-failed": "stated",
+   "at-1440-everything-named-is-on-the-main-screen": "stated",
+   "at-320-the-newest-reply-and-the-message-box-are-in-view": "stated",
+   "a-long-unbroken-message-does-not-widen-the-page-at-320": "implied",
+   "everything-kept-lives-under-the-data-folder": "stated"
+  },
+  "stated": {
+   "passed": 9,
+   "of": 23
+  },
+  "implied": {
+   "passed": 1,
+   "of": 5
+  },
+  "tree": "d3d36c3c0876ccf10ef3c9e2eab18516c5552b68",
+  "label": "build-1",
+  "at": 2250.0
+ }
+}

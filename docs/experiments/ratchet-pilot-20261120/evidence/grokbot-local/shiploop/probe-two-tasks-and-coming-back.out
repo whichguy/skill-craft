@@ -1,0 +1,28 @@
+after first ask [
+  `Message from Assistant: ◇ Assistant I'll work on "first job" in the background and tell you when it is done.`,
+  'Task: first job: first job Running 1 of 8 steps finished. The server is running this task. Done: Collect what is known about first job Cancel task'
+]
+after second ask [
+  `Message from Assistant: ◇ Assistant I'll work on "second job" in the background and tell you when it is done. A task is already running in this conversation. Add a step to it or start a new conv`,
+  'Task: first job: first job Running 2 of 8 steps finished. The server is running this task. Done: Collect what is known about first job Done: Compare the options for first job Cancel task'
+]
+tasks t+0 [
+  'Task: first job => first job Running 2 of 8 steps finished. The server is running this task. Done: Collect what is known about first job Done: Compar'
+]
+cancel buttons for first job 1
+tasks after cancel +1.5s [
+  'Task: first job => first job Cancelled 2 of 8 steps finished. Cancelled. Finished steps are kept. Any step in progress was discarded. Done: Collect w'
+]
+tasks after cancel +8.5s [
+  'Task: first job => first job Cancelled 2 of 8 steps finished. Cancelled. Finished steps are kept. Any step in progress was discarded. Done: Collect w'
+]
+alerts []
+before closing [
+  'Task: big survey => big survey Running 4 of 8 steps finished. The server is running this task. Done: Collect what is known about big survey Done: Comp',
+  'Task: first job => first job Cancelled 2 of 8 steps finished. Cancelled. Finished steps are kept. Any step in progress was discarded. Done: Collect w'
+]
+away region count 1 | text: Since you were away Finished · first job (cancelled), big survey Running · None Needs attention · None
+tasks on return [
+  'Task: big survey => big survey Completed 8 of 8 steps finished. All steps finished. Done: Collect what is known about big survey Done: Compare the opt',
+  'Task: first job => first job Cancelled 2 of 8 steps finished. Cancelled. Finished steps are kept. Any step in progress was discarded. Done: Collect w'
+]

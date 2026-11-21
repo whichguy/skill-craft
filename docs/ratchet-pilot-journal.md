@@ -872,3 +872,88 @@ harder yardstick.
 
 Limits: one session each; both yardsticks were calibrated on a Sol 6.2 high build, so a different design may meet
 an assumption no build has exposed yet. A failure is read by hand under section 12's rule before it is counted.
+
+## 17. Grokbot-local: the second yardstick proven and calibrated, and the arms compared (2026-11-21 00:10)
+
+Status: firm for what was measured (one run an arm; every arm graded from scratch on one committed version of both
+yardsticks, d8a7f1e6e12c70e4a7b2230ae483b4c46b24d975). The Ratchet arm was still running; its row is its first build and its first green gate.
+
+### The second yardstick can fail
+
+As registered it passed the bare build 28 of 28 on its first run (22:51), which showed nothing. A helper session
+then planted 28 single defects, one aimed at each check, into copies of the bare build and ran the yardstick on every
+copy (`evidence/grokbot-local/teeth/`: the summary, the 29 diffs). The untouched copy passed 28 of 28. 26 defects
+failed the check they were aimed at. Two did not, and each showed a blind spot of its check:
+
+- an instruction spread to every existing bot went unseen, because the check made its second bot after using the
+  instruction;
+- a 240-letter word overflowed inside the conversation pane (3,905 pixels in a 320-pixel pane) while the page stayed
+  320 wide, which is all the check measured.
+
+Both checks were made stricter (correction D). On the final version the seven planted copies whose checks had
+changed are each caught and the untouched copy passes 28 of 28; with the 21 unchanged checks of the first run, every
+check has a planted defect that fails it.
+
+### Six rounds of calibration, and what each build exposed
+
+| Corrections | Exposed by | What the driver had assumed | What the request says |
+|---|---|---|---|
+| 1 to 3 | bare, Sol high | Setup is shown before a person is chosen | the first screen offers the people; Setup is shown while no token is saved |
+| 4, 5 | bare, Sol high | a message can be written within milliseconds of a click | nothing about speed |
+| 6, 7, A | Ratchet, first build | the people are on the page at the instant it has loaded | nothing about when they are drawn |
+| 8, C | Ratchet, first build | the account of what happened can be read seconds after coming back | "When I come back" |
+| B | ShipLoop | several tasks run in one conversation | nothing; the stand-in's README says "their running task in this conversation" |
+| 9 | bare, Sonnet high | no step finishes after a cancel | "what can still be stopped and what has already happened" |
+| 10, E | ShipLoop | every article in the conversation is a message | messages are articles named "Message from"; Tasks is a region, placed anywhere |
+| 11, F | Ratchet, first build | coming back means a new browser | "When I come back" |
+| D | planted defects | (two checks too weak, above) | |
+
+First gradings before each correction, for the record: bare 43 of 49; Ratchet first build 6 of 49, then 48; ShipLoop
+26 of 28, then 25; Sonnet 47 of 49. Of all the failing checks I chased across five builds, one was the build's.
+
+**F18 (firm).** A held-out browser yardstick written without a build to run it on is not yet an instrument. It
+took five builds of four different designs to remove what the driver assumed, and no correction touched a sentence
+of the request. The uncalibrated numbers would have ranked the arms wrongly in both directions.
+
+### The arms on the final yardsticks
+
+| Arm (one run each) | Minutes | Output tokens | Lines of its own | First yardstick (49) | Second: stated (23) | Second: implied (5) |
+|---|---|---|---|---|---|---|
+| bare, Sol 6.2 low | 6.8 | 19,149 | 1,485 | 49 | 23 | 5 |
+| bare, Sol 6.2 high | 16.9 | 47,308 | 2,471 | 49 | 23 | 5 |
+| bare, Sonnet 5.5 high | 24.1 | 179,893 | 5,126 | 48 | 23 | 4 |
+| ShipLoop, Sol 6.2 high | 39.5 | 85,154 | 2,415 | 49 | 23 | 5 |
+| Ratchet, Sol 6.2 high: first build, 37.5 minutes in | | | 2,960 | 49 | 23 | 5 |
+| Ratchet: first full gate (291 of 291 of its own items), 71.5 minutes in | | | | 49 | 23 | 5 |
+
+The only checks that fail on the final version are the Sonnet build's. At 320 pixels its page is 332 pixels wide: the top bar,
+the layout and the conversation all measure 332. The first yardstick counts that; the second yardstick's long-word
+check (implied tier) fails on the same width.
+
+Registered readings:
+
+- **R5.1, the scenario is hard enough: not met** (section 14 stands on the final version: the bare build fails none).
+- **R6.1, headroom on the harder yardstick: not met.** The bare build fails none of the 23 stated checks; the bar was 3.
+- **R7.1, headroom on another runner: none.** Sol 6.2 low fails no check on either; Sonnet 5.5 high fails 1 of 49 and none of the 23 stated (1 of the 5 implied). The
+  bars were 5 on the first yardstick or 3 stated on the second.
+- **R5.2 and R6.2, quality at the end: no difference shown** between the bare arm and the ShipLoop arm on the same
+  model and effort (49 and 23 each). The Ratchet arm's end is not in yet.
+- **R5.3 and R6.3:** the Ratchet arm's first build already passes 49 of 49 and 23 of 23, so its cycles have nothing on these
+  yardsticks to recover.
+- **R5.4, cost:** on the same model and effort, the bare session took 16.9 minutes, ShipLoop 39.5 (2.3 times; it also
+  released and reviewed) and Ratchet 37.5 to its first build and 71.5 to its first full gate, with two cycles to go.
+- **R5.5** (a check passing at Ratchet's first build and failing later) is read when that arm ends.
+
+**F19 (firm for these models and this request).** Grokbot-local is one-session work. A single Sol 6.2 session at low
+effort delivers it in 6.8 minutes and passes everything both yardsticks check. Neither a plan with steps nor a loop
+of tests and closing looks changed what the yardsticks see; they changed the time. A scenario that separates ways
+of working is a different kind of product, not a stricter yardstick for this one.
+
+Seen and not scored: the bare Sol high build drops a message written while New conversation is on its way; the
+ShipLoop build answers a second task request in one conversation with the stand-in's "I'll work on it" followed by
+its own "A task is already running in this conversation"; the Sonnet build is twice the size of the others and
+includes browser scripts it wrote to check itself.
+
+Evidence: `evidence/grokbot-local/` (`final-grading.json` holds every arm's result on the final version with each
+failing check's note; `bare/`, `bare-low/`, `bare-sonnet/`, `shiploop/`, `ratchet/` hold the runs' records, the
+earlier gradings and the probes; `teeth/` the planted defects).
