@@ -1999,6 +1999,13 @@ whether the specification states the limit, a test holds it, the final report sh
 move. It needs the owner's word, a candidate plugin build and the E2E harness; none of that is started. On Sonnet
 the released stage already does this unprompted.
 
+> **Qualified 2026-11-21, 07:26** (section 29, received after this was written): the only built-product evidence
+> on the question now favours the opposite design. In the pilot's session a text that leaves such points open, with
+> one sentence telling later stages to take a reasonable answer, report it and pin it in no test, passed 8 of 8
+> held-out checks twice where every text that decided had passed 2 or 3. H decides in the specification and its
+> tests would hold a product to the number. If anything here is taken further it should be read against that
+> first.
+
 Also the owner's, unchanged: the E2E harness's Codex sessions being shown the user's own skills (section 7; a
 task card was put up for it); the stale sentence in `skills/shiploop/references/behavioral-requirements.md`
 (sections 14 and 24: both reviews found it); and the order in which this experiment's commits and another
@@ -2031,6 +2038,10 @@ user's skills, and locate one real difference between the two drivers in built p
 7. **An open route in the wording is the whole wording.** "Or record it as unresolved", "as an open gap", "if the
    basis is missing, keep the bound open": three texts, three nulls.
 
+   > **Qualified 2026-11-21, 07:26** (section 29): that is true of a count over a specification, which is all this
+   > bench reads. It is not a verdict on leaving points open. Where the stages after the specification are told
+   > what to do with an open point, the pilot's builds did better with it open than decided.
+
 ### Closing actions (07:18)
 
 - A note with this conclusion and section 26's two findings was put in the Ratchet session's inbox; whether it
@@ -2041,3 +2052,61 @@ user's skills, and locate one real difference between the two drivers in built p
   permission modes. The order is put to the owner.
 - No session, monitor or queue of this experiment is running. Raw session folders stay under
   `~/e2e-runs/spec-elaboration-20261120/`.
+
+## 29. Received after the conclusion: the reworded text, through built products, does what its predictions said on the first case and avoids the due-times misreading twice (07:26, 2026-11-21)
+
+Recorded as received. The runs, instruments and findings are the Ratchet session's, made at the owner's word in
+that session; its record is section 21 of `docs/ratchet-pilot-journal.md` (amendment 8, rung 1 and rung 2, and
+amendment 9) at commit 17ba721c2a043e5884fe30d58dda5334331e374f on its branch `ratchet-lens-08805f`, not on main.
+I read both result sections there and the figures below match them; nothing was re-run here.
+
+What ran: `arms/R-lenses-reworded.md` of this experiment (drafted in section 18 from the first review's findings,
+never run here), set into that pilot's enrich stage, Codex gpt-6.2-sol at high. Every later stage's frame gained
+one paragraph: an open point is not a requirement, the build takes a reasonable answer and reports it, and no test
+pins it.
+
+| its reading | reworded text (R) | lens text (L) | the pilot's own text |
+| --- | --- | --- | --- |
+| clauses the writer marked as its own choice, five specifications | 0, 0, 0, 0, 0 | 14 to 25 | never fewer than 12 |
+| refusals the writer added | 0, 1, 0, 0, 0 | 3 to 18 | |
+| `Open:` lines | 8, 7, 10, 8, 9 | 0 | 0 |
+| clauses written (orders; ticket assignment; due times) | 26; 43; 30 to 34 | 82; 151; 170 to 197 | 69; 192; 238 |
+| orders: clauses whose test fails on a correct product | 2 of 27 (7.4%) | 9 of 82 (11.0%) | 9 of 69 (13.0%) |
+| orders: planted defects caught | 4 of 4 | 4 of 4 | 4 of 4 |
+| due times: held-out checks passed by the first build | 8 of 8 and 8 of 8 | 3 of 8 and 2 of 8 | 3 of 8 |
+| minutes from the request to that build | 20.5 and 18.1 | 28.1 and 31.9 | 32.3 |
+
+In its words, on how the due-times builds passed: "Each specification had left the start open and named both
+answers ... Each plan then took the same one as its default for the build and said it was a default ... Each build
+report lists the answer it took at every open point ... So the same model family that decided for the refusal four
+times in five when it wrote a specification chose the other answer two times in two when the point reached it
+open, at planning, with both answers in front of it." And the two failing clauses on orders are the request's own
+"has tests" clauses, which that case's reference cannot meet.
+
+Its limits, as it states them: two builds, one model family, and "a text whose author knew this case". That author
+is this session: section 18 recorded before any run that R is not blind to the due-times reading. The cells where
+a short specification is most at risk (the two ticket cases, 27 and 6 planted defects) were still running.
+
+### The three predictions of section 18, held against it
+
+1. R writes fewer clauses than L on the same case: **held**, on all five specifications.
+2. A lower share of R's clauses fail on a correct product: **held on the one case graded** (7.4% against 11.0%).
+3. No calibrated defect is lost: **held on orders** (4 of 4); not yet measured on the ticket cases, where that
+   session expects the risk to be.
+
+### What it changes here
+
+- **The last lesson of section 28 and its shelf candidate are qualified in place.** On this bench every wording
+  that let the writer leave a point open scored as a null, and the one that made it decide scored as a gain. On
+  built products it is the other way round: the text that decides nothing passed where every text that decided
+  failed. Both can be true, because this bench counts what a specification settles and that instrument checks what
+  a product does. It is the plainest evidence yet that the count was measuring the wrong thing.
+- **The two sessions' findings now meet at one place, and it is not the spec stage.** Section 26 found that in real
+  ShipLoop deliveries on Sol the builder chooses limits and nobody records them. That session reports that in its
+  runs "the builder still chooses them ... but the build report lists each one under its discoveries because the
+  frame tells it to. So what your census found unrecorded is recorded here, by one sentence in the frame, and is
+  not pinned by a test." If ShipLoop is to change on this, the evidence points at what the stages after the
+  specification do with a point left open (take a reasonable answer, report it, pin it in no test), not at making
+  the specification decide. That is a ShipLoop product question and the owner's; the evidence for it is in the
+  other session's record, on its instrument and not on ShipLoop.
+- Nothing in sections 26 and 27 changes: they are counts of what was run.
