@@ -3854,7 +3854,10 @@ section 49, S covers none under both judges. 26 held. 27 held (S's specification
 - On the ticket service the six items of section 49 stay as they were: the per-row result, what the file may set,
   the notifications, the audit and hostile content at partly, dates and numbers absent.
 
-**The three experiments together** (56 specifications from two vague sentences, all on Sol at medium).
+**The three experiments together** (44 specifications from two vague sentences, all on Sol at medium).
+
+*Corrected 2026-11-21 15:58: 44 specifications (20, 12 and 12 real runs), not the 56 first written here and in the
+message of the commit that added this section. No other figure depends on it.*
 
 | What was added to the released spec stage | User service: item readings covered | Ticket service | By the rule |
 |---|---|---|---|
