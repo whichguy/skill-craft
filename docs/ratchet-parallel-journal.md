@@ -348,3 +348,54 @@ other answers than these plans.
 Evidence: `evidence/parallel/` (`overlay-rung1.json` and `-log.txt`; `overlay-due-times-v2.json` and `-log.txt`;
 `b1-due-times-a/` and `-b/` with each run's record, prompt, report, manifest, adapter and its gate on the starting
 project; `blind-session-activity.md`).
+
+## 7. Judged on time alone (2026-11-21 10:47; a reading from records, no model ran)
+
+Status: exploratory: arithmetic on stage lengths already on file, and my recommendation. The owner's decision is
+pending.
+
+The owner asked, after section 6: "Given these results, considering that the only value is time efficiency, help me
+decide". My reading: working in parallel buys waiting time and nothing else (section 3 already says tokens do not
+fall), so the question is whether the minutes are worth going on for.
+
+**The saving has a ceiling: the build's length.** The test pass is the longer of the two stages put side by side,
+so the first pass can shorten by the build's 9.0 and 8.7 minutes and by no more.
+
+| Ticket due times, minutes to the first gate | Loop a | Loop b |
+|---|---|---|
+| as run, one stage after another (section 2) | 38.9 | 32.8 |
+| tests beside the build, the test pass as long as it was beside the build: the ceiling | 29.9 | 24.1 |
+| the same, with the lengths the two build-less sessions of rung 1 took (15.9, 19.7) | 29.1 | 30.3 |
+| to the first build with no test pass (enrich, plan, build; pilot journal, section 21) | 20.5 | 18.1 |
+| projected: tests beside the build, split among three writers, after a 2.5-minute decide step | 17.8 | 16.8 |
+
+- With the measured lengths the saving is 9.8 minutes in one loop and 2.5 in the other, a quarter and a twelfth.
+  Section 6's "about 24 and 30" used the lengths of the sessions written beside the build; the third row is the one
+  to quote.
+- Four test sessions for this request took 13.4, 15.9, 16.7 and 19.7 minutes. That spread, 6.3 minutes, is two
+  thirds of the ceiling, so a measured gain would need several runs a side, and no further run can raise the
+  ceiling. The machine's load was 6 to 11 during rung 1.
+- The last row rests on two assumptions, neither measured: that a decide step takes 2.5 minutes and answers as well
+  as the whole plan, and that a test pass split in three ends before the build does. Tokens rise with it.
+- Output tokens do not fall: 1% and 46% more in the build-less sessions (section 6).
+
+**What the stage being hidden changed in these two loops: nothing in the product.** Both first builds passed 8 of 8
+held-out checks before any test of the loop ran (`p3R-ticket-due-times-a.build-1.hidden.json` and `-b`, in the
+parent session's runs). The first gates failed one item in loop a, C-31, a test stricter than the shipped product,
+and none in loop b (`first_gate_failing` in each `run.json`). The pilot's section 0 has the same over five whole
+loops: one acceptance clause failed naturally. So on time alone, leaving the test pass out saves 13.4 to 16.7
+minutes, where putting it beside the build saves 9 at most.
+
+**For scale.** ShipLoop's whole deliveries of the same request on the same model and effort took 19.7, 20.0 and
+25.3 minutes (`docs/shiploop-sdlc-structure-journal.md`, R68; held-out results on high there: 8, 8, 3 and 3 of 8,
+where the two first builds from the reworded text passed 8 of 8). The pilot's one matched whole loop, ticket
+assignment on Sol 6.2 medium, took 91.8 minutes against ShipLoop's 13.2 (pilot journal, R3.4), its first build
+alone coming at 17.2: the time went after the first build, in the test pass and the cycles, and this design
+touches only the first pass.
+
+**Recommendation put to the owner.** Stop the parallel line here and do not run rung 2. The strength check answers
+whether the tests stay strong, not how much time is saved; it is worth its 30 minutes only if a loop with its own
+test pass is going to be built. If one is, writing the tests in parallel is how to have that pass without waiting
+longer for it (the last row against the fourth), and the next rung is then the split test pass, the larger lever,
+with one strength check at the end on the suite the whole design produces. Worth keeping either way: the test
+writer's run on the starting product (section 6, P1.2), which needs no parallel machinery.
