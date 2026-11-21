@@ -906,3 +906,119 @@ execution cause is left or after 40 minutes. I read its changes and make the fin
 This is a model catching a suite up, on Sonnet and outside the loop's packets, so it sizes the work and is not a
 measured Ratchet stage. Prediction: it reaches 100 or more of 115 with five or fewer further corrections, and a
 handful of items remain that need an assertion changed.
+
+## 16. Grokbot-local, result (2026-11-21 13:51; test sessions 12:18 to 12:41, first meeting to 13:12, catch-up to 13:50)
+
+Status: firm for what was run: one cell a side, one request, Sol 6.2 at high for the two test sessions. The
+catch-up is by my hand and a Sonnet subagent's, outside the loop: it sizes the work and is not a measured stage.
+
+**G1, first meeting: 4 of 115, from one cause; and what it took to catch up.**
+
+| State of the build-less suite | Items passing on the build, of 115 |
+|---|---|
+| as written, first run on the build | 4 |
+| with correction 1: an element's name leaves out `aria-hidden` descendants | 87 |
+| with correction 2: an action waits until the page has answered it | 111 |
+| with correction 3: the driver's window counts as focused | 112 |
+| the suite written beside the build, at its first gate | 115 |
+
+- The 87 is 73 in my pass run three at a time on a busy machine plus 14 that the subagent found pass when run
+  alone, before it changed anything. The 112 is my own count from a full pass run one at a time (13:43 to 13:50),
+  and it agrees with the subagent's.
+- All three corrections are in the two execution files (`adapter.cjs`, `webkit.swift`): 23, 97 and 37 lines of
+  diff. `suite.cjs`, which holds what the tests expect, and the product are unchanged; I read each change and none
+  makes a test pass without observing the product.
+- **Correction 1** (mine; about 8 minutes from the failing output, with one probe). Section 15.
+- **Correction 2** (the subagent's, about 9 minutes). The page's `command()` returns at once while it is busy and
+  its `render()` resets the message box when the open chat changes, so a test that typed straight after a click
+  lost its first message. The adapter now counts the page's own requests in flight and waits, after a click or a
+  key, until they are answered and the document is still. It unlocked 24 items, the whole "no new assistant reply"
+  family and the task and find families behind it.
+- **Correction 3** (the subagent's, about 8 minutes with two dead ends). The driver is a background application and
+  its window was never the focused one, so visible keyboard focus could not be observed. The window now reports
+  itself focused. It unlocked C-99.
+
+**The three that remain are the tests' own expectations** (the subagent's reading; I checked each against the suite
+and the specification and agree). No fault in the build was found, and it passes both held-out yardsticks.
+
+| Item | What the test expects | Why that is the test's mistake |
+|---|---|---|
+| U-4 | a reply named `Message from Assistant` after opening a bot called Planning | the specification names a reply `Message from <bot name>` |
+| C-77 | the applied one of two conversations that hold the same text, by opening the first that matches | the specification gives no order for the list; the build lists oldest first |
+| C-75 | two windows of one person each confirm an order at once and both succeed | the specification only says successful overlapping creations never share an ID; the build keeps one open conversation a person and refuses the other window |
+
+**So, of 111 items failing at first meeting: 108 were execution, 3 were assertion, none was the product.**
+
+**G5, the sessions** (a Sonnet subagent's count from the records, `grokbot/gb-session-activity.md`; six of its
+claims checked against the files).
+
+| Test session | Minutes | Output tokens | Shell commands | Runs of its own suite | Product files read | Lines written |
+|---|---|---|---|---|---|---|
+| with no build | 21.8 | 60,959 | 35 | 4, none reaching an app | 0 | 2,725 |
+| beside the build | 21.6 | 59,531 | 37 | 12, of which 6 showed a failure it then cleared | 5 | 2,887 |
+
+- The session beside the build met its own execution faults while it wrote, six runs' worth, and cleared them
+  inside its 21.6 minutes. The build-less session could not meet any: each of its items has one path for the empty
+  folder and one for a delivered app, and only the first had ever run.
+- One pass of the uncorrected suite on the build took 30.4 minutes, because every failing item waits out its
+  time limits. A pass of the corrected suite takes 7.
+
+**G2, the execution side.** 820 of the build-less suite's 2,725 lines (30%), with nothing outside the adapter
+starting or configuring the product. The suite written beside the build has 555 of 2,887 (19%) and finds every
+element through the browser's own accessibility tree, by role and name.
+
+**G3, assumptions.** Six lines. Two are design gaps: two numbers the specification does not give (540 pixels for
+a narrow window, 10 for tiny text; the plan says to avoid a breakpoint) and the page's requests going through
+`fetch`. Neither failed an item on this build. Four are execution. The three faults that did fail items are in none
+of the six: the writer did not know it was assuming them.
+
+**Names.** Both suites use the same 46 labels and all 46 are in the specification. The suite written beside the
+build takes at most 2 weak names from the build. So the design did fix the names a test touches; what was missing
+was not a name.
+
+**G6, strength: not taken**, for the reason given in section 15.
+
+**Tolerance** (the subagent's reading). The two suites differ in 28 places: equal in 5, the build-less one looser
+in 7 (mostly a check left out), stricter in 6, mixed in 10.
+
+**The held-out mark.** The session beside the build has `skill-craft` once in its record: the name of the run's
+own temporary folder, `.skill-craft-e2e`, in a directory listing. Nothing of the repository was read.
+
+**Predictions against results.** Failing items at first meeting: predicted 0 to 5, found 111. After one
+correction: predicted most passing with 5 to 20 left; 28 were left. The catch-up: predicted 100 or more of 115
+with five or fewer further corrections and a handful needing an assertion changed; found 112 with two, and three.
+
+**What it says.**
+
+1. Size is where it breaks, and it is the page that does it. Three small cells needed no catch-up (sections 6 and
+   13). On a rich page 111 of 115 items needed one.
+2. The owner's line (section 8) is confirmed and sharpened. What the tests assert held: 112 of 115 expectations
+   were right as written before any code, and the 3 that were not are slips of the kind ShipLoop's own deliveries
+   record (section 11). How the tests execute did not hold: 108 items fell to three faults in the page-driving
+   code.
+3. The design was not what was missing. The specification gave every label, and the writer's own list of
+   assumptions names none of the three faults. What was missing was a page to try the driving code on: how names
+   are read, how actions are paced to the page's answers, whether the window has focus. A design can fix what a
+   test asserts and the names it uses; it cannot stand in for running the code that drives a page.
+4. Keeping execution in one place is what made the catch-up small to write: three diffs in two files brought back
+   108 items, and nothing a test expects had to be touched for them.
+5. For the schedule of section 3, which stays stopped: on this case the build takes 15.0 minutes, the most that
+   writing tests beside it could save. The catch-up took about half an hour of work (8 minutes of mine, 23 of the
+   subagent's) after a 30-minute failing pass. Where the build is long enough to be worth overlapping, the
+   catch-up costs more than the overlap saves.
+
+**Limits.** One cell a side, one model family for the test sessions. The catch-up was done by me and by a Sonnet
+subagent under an adapter-only rule, not by a session of the loop, so its minutes are a size and not a rate. The
+subagent's three assertion readings were checked by me by reading, and its one throwaway change to each test was
+not rerun by me. Strength was not measured here. Every cell so far built a product that was right the first time.
+
+**Is there enough to conclude?** Yes, on the question as the owner put it. Tests can be specified before the code
+and what they assert survives it, small or large. The code that executes them can be written before the code for a
+small app or a change to one, with nothing to update; for an app with a rich page it has to be finished, or at
+least tried, against a real page. That is the order ShipLoop already keeps (section 8). Not settled, and offered,
+not run: whether an existing page is enough for the writer to try its driving code on, which a change to an
+existing app with a page would show (the harness has `battleship-scoring`, which follows `battleship`).
+
+Evidence: `evidence/parallel/grokbot/` (each run's record, report and manifest; the build-less adapter, driver and
+packet; `overlay-gb-blind.json`; `gb-session-activity.md`; and under `catch-up/` the three corrections as diffs,
+the subagent's report, and the pass counts).

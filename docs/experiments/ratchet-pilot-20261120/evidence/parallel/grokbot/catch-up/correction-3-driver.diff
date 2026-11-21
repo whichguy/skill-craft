@@ -1,0 +1,37 @@
+--- gb-blind-fixed/acceptance/webkit.swift	2026-11-21 13:14:54
++++ gb-blind-catchup/acceptance/webkit.swift	2026-11-21 13:33:17
+@@ -1,6 +1,16 @@
+ import AppKit
+ import WebKit
+ 
++// The driver must observe focus the way a person at the keyboard does, but this process is an accessory
++// application that the operating system will not activate while another application is in front.
++// The window therefore reports itself as the key window, so the page is focused and :focus-visible applies.
++final class ActiveWindow: NSWindow {
++    override var isKeyWindow: Bool { true }
++    override var isMainWindow: Bool { true }
++    override var canBecomeKey: Bool { true }
++    override var canBecomeMain: Bool { true }
++}
++
+ // A line-oriented driver for a real WebKit view. The protocol carries no app routes or selectors.
+ final class Browser: NSObject, WKNavigationDelegate {
+     let view: WKWebView
+@@ -14,7 +24,7 @@
+             WKUserScript(source: script, injectionTime: .atDocumentStart, forMainFrameOnly: true)
+         )
+         view = WKWebView(frame: NSRect(x: 0, y: 0, width: 1440, height: 900), configuration: configuration)
+-        window = NSWindow(contentRect: view.frame, styleMask: [.titled, .resizable], backing: .buffered, defer: false)
++        window = ActiveWindow(contentRect: view.frame, styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+         super.init()
+         view.navigationDelegate = self
+         window.isReleasedWhenClosed = false
+@@ -22,6 +32,8 @@
+         window.orderFrontRegardless()
+         window.makeKey()
+         window.makeFirstResponder(view)
++        NotificationCenter.default.post(name: NSWindow.didBecomeKeyNotification, object: window)
++        NotificationCenter.default.post(name: NSWindow.didBecomeMainNotification, object: window)
+     }
+ 
+     func webView(_ view: WKWebView, didFinish navigation: WKNavigation!) {

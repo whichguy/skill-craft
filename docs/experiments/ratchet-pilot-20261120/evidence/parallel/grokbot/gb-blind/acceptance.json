@@ -1,0 +1,347 @@
+{
+  "U-1": {
+    "command": "node acceptance/suite.cjs U-1"
+  },
+  "U-2": {
+    "command": "node acceptance/suite.cjs U-2"
+  },
+  "U-3": {
+    "command": "node acceptance/suite.cjs U-3"
+  },
+  "U-4": {
+    "command": "node acceptance/suite.cjs U-4"
+  },
+  "U-5": {
+    "command": "node acceptance/suite.cjs U-5"
+  },
+  "U-6": {
+    "command": "node acceptance/suite.cjs U-6"
+  },
+  "U-7": {
+    "command": "node acceptance/suite.cjs U-7"
+  },
+  "U-8": {
+    "command": "node acceptance/suite.cjs U-8"
+  },
+  "U-9": {
+    "command": "node acceptance/suite.cjs U-9"
+  },
+  "U-10": {
+    "command": "node acceptance/suite.cjs U-10"
+  },
+  "U-11": {
+    "command": "node acceptance/suite.cjs U-11"
+  },
+  "U-12": {
+    "command": "node acceptance/suite.cjs U-12"
+  },
+  "U-13": {
+    "command": "node acceptance/suite.cjs U-13"
+  },
+  "U-14": {
+    "command": "node acceptance/suite.cjs U-14"
+  },
+  "U-15": {
+    "command": "node acceptance/suite.cjs U-15"
+  },
+  "C-1": {
+    "command": "node acceptance/suite.cjs C-1"
+  },
+  "C-2": {
+    "command": "node acceptance/suite.cjs C-2"
+  },
+  "C-3": {
+    "command": "node acceptance/suite.cjs C-3"
+  },
+  "C-4": {
+    "command": "node acceptance/suite.cjs C-4"
+  },
+  "C-5": {
+    "command": "node acceptance/suite.cjs C-5"
+  },
+  "C-6": {
+    "command": "node acceptance/suite.cjs C-6"
+  },
+  "C-7": {
+    "command": "node acceptance/suite.cjs C-7"
+  },
+  "C-8": {
+    "command": "node acceptance/suite.cjs C-8"
+  },
+  "C-9": {
+    "command": "node acceptance/suite.cjs C-9"
+  },
+  "C-10": {
+    "command": "node acceptance/suite.cjs C-10"
+  },
+  "C-11": {
+    "command": "node acceptance/suite.cjs C-11"
+  },
+  "C-12": {
+    "command": "node acceptance/suite.cjs C-12"
+  },
+  "C-13": {
+    "command": "node acceptance/suite.cjs C-13"
+  },
+  "C-14": {
+    "command": "node acceptance/suite.cjs C-14"
+  },
+  "C-15": {
+    "command": "node acceptance/suite.cjs C-15"
+  },
+  "C-16": {
+    "command": "node acceptance/suite.cjs C-16"
+  },
+  "C-17": {
+    "command": "node acceptance/suite.cjs C-17"
+  },
+  "C-18": {
+    "command": "node acceptance/suite.cjs C-18"
+  },
+  "C-19": {
+    "command": "node acceptance/suite.cjs C-19"
+  },
+  "C-20": {
+    "command": "node acceptance/suite.cjs C-20"
+  },
+  "C-21": {
+    "command": "node acceptance/suite.cjs C-21"
+  },
+  "C-22": {
+    "command": "node acceptance/suite.cjs C-22"
+  },
+  "C-23": {
+    "command": "node acceptance/suite.cjs C-23"
+  },
+  "C-24": {
+    "command": "node acceptance/suite.cjs C-24"
+  },
+  "C-25": {
+    "command": "node acceptance/suite.cjs C-25"
+  },
+  "C-26": {
+    "command": "node acceptance/suite.cjs C-26"
+  },
+  "C-27": {
+    "command": "node acceptance/suite.cjs C-27"
+  },
+  "C-28": {
+    "command": "node acceptance/suite.cjs C-28"
+  },
+  "C-29": {
+    "command": "node acceptance/suite.cjs C-29"
+  },
+  "C-30": {
+    "command": "node acceptance/suite.cjs C-30"
+  },
+  "C-31": {
+    "command": "node acceptance/suite.cjs C-31"
+  },
+  "C-32": {
+    "command": "node acceptance/suite.cjs C-32"
+  },
+  "C-33": {
+    "command": "node acceptance/suite.cjs C-33"
+  },
+  "C-34": {
+    "command": "node acceptance/suite.cjs C-34"
+  },
+  "C-35": {
+    "command": "node acceptance/suite.cjs C-35"
+  },
+  "C-36": {
+    "command": "node acceptance/suite.cjs C-36"
+  },
+  "C-37": {
+    "command": "node acceptance/suite.cjs C-37"
+  },
+  "C-38": {
+    "command": "node acceptance/suite.cjs C-38"
+  },
+  "C-39": {
+    "command": "node acceptance/suite.cjs C-39"
+  },
+  "C-40": {
+    "command": "node acceptance/suite.cjs C-40"
+  },
+  "C-41": {
+    "command": "node acceptance/suite.cjs C-41"
+  },
+  "C-42": {
+    "command": "node acceptance/suite.cjs C-42"
+  },
+  "C-43": {
+    "command": "node acceptance/suite.cjs C-43"
+  },
+  "C-44": {
+    "command": "node acceptance/suite.cjs C-44"
+  },
+  "C-45": {
+    "command": "node acceptance/suite.cjs C-45"
+  },
+  "C-46": {
+    "command": "node acceptance/suite.cjs C-46"
+  },
+  "C-47": {
+    "command": "node acceptance/suite.cjs C-47"
+  },
+  "C-48": {
+    "command": "node acceptance/suite.cjs C-48"
+  },
+  "C-49": {
+    "command": "node acceptance/suite.cjs C-49"
+  },
+  "C-50": {
+    "command": "node acceptance/suite.cjs C-50"
+  },
+  "C-51": {
+    "command": "node acceptance/suite.cjs C-51"
+  },
+  "C-52": {
+    "command": "node acceptance/suite.cjs C-52"
+  },
+  "C-53": {
+    "command": "node acceptance/suite.cjs C-53"
+  },
+  "C-54": {
+    "command": "node acceptance/suite.cjs C-54"
+  },
+  "C-55": {
+    "command": "node acceptance/suite.cjs C-55"
+  },
+  "C-56": {
+    "command": "node acceptance/suite.cjs C-56"
+  },
+  "C-57": {
+    "command": "node acceptance/suite.cjs C-57"
+  },
+  "C-58": {
+    "command": "node acceptance/suite.cjs C-58"
+  },
+  "C-59": {
+    "command": "node acceptance/suite.cjs C-59"
+  },
+  "C-60": {
+    "command": "node acceptance/suite.cjs C-60"
+  },
+  "C-61": {
+    "command": "node acceptance/suite.cjs C-61"
+  },
+  "C-62": {
+    "command": "node acceptance/suite.cjs C-62"
+  },
+  "C-63": {
+    "command": "node acceptance/suite.cjs C-63"
+  },
+  "C-64": {
+    "command": "node acceptance/suite.cjs C-64"
+  },
+  "C-65": {
+    "command": "node acceptance/suite.cjs C-65"
+  },
+  "C-66": {
+    "command": "node acceptance/suite.cjs C-66"
+  },
+  "C-67": {
+    "command": "node acceptance/suite.cjs C-67"
+  },
+  "C-68": {
+    "command": "node acceptance/suite.cjs C-68"
+  },
+  "C-69": {
+    "command": "node acceptance/suite.cjs C-69"
+  },
+  "C-70": {
+    "command": "node acceptance/suite.cjs C-70"
+  },
+  "C-71": {
+    "command": "node acceptance/suite.cjs C-71"
+  },
+  "C-72": {
+    "command": "node acceptance/suite.cjs C-72"
+  },
+  "C-73": {
+    "command": "node acceptance/suite.cjs C-73"
+  },
+  "C-74": {
+    "command": "node acceptance/suite.cjs C-74"
+  },
+  "C-75": {
+    "command": "node acceptance/suite.cjs C-75"
+  },
+  "C-76": {
+    "command": "node acceptance/suite.cjs C-76"
+  },
+  "C-77": {
+    "command": "node acceptance/suite.cjs C-77"
+  },
+  "C-78": {
+    "command": "node acceptance/suite.cjs C-78"
+  },
+  "C-79": {
+    "command": "node acceptance/suite.cjs C-79"
+  },
+  "C-80": {
+    "command": "node acceptance/suite.cjs C-80"
+  },
+  "C-81": {
+    "command": "node acceptance/suite.cjs C-81"
+  },
+  "C-82": {
+    "command": "node acceptance/suite.cjs C-82"
+  },
+  "C-83": {
+    "command": "node acceptance/suite.cjs C-83"
+  },
+  "C-84": {
+    "command": "node acceptance/suite.cjs C-84"
+  },
+  "C-85": {
+    "command": "node acceptance/suite.cjs C-85"
+  },
+  "C-86": {
+    "command": "node acceptance/suite.cjs C-86"
+  },
+  "C-87": {
+    "command": "node acceptance/suite.cjs C-87"
+  },
+  "C-88": {
+    "command": "node acceptance/suite.cjs C-88"
+  },
+  "C-89": {
+    "command": "node acceptance/suite.cjs C-89"
+  },
+  "C-90": {
+    "command": "node acceptance/suite.cjs C-90"
+  },
+  "C-91": {
+    "command": "node acceptance/suite.cjs C-91"
+  },
+  "C-92": {
+    "command": "node acceptance/suite.cjs C-92"
+  },
+  "C-93": {
+    "command": "node acceptance/suite.cjs C-93"
+  },
+  "C-94": {
+    "command": "node acceptance/suite.cjs C-94"
+  },
+  "C-95": {
+    "command": "node acceptance/suite.cjs C-95"
+  },
+  "C-96": {
+    "command": "node acceptance/suite.cjs C-96"
+  },
+  "C-97": {
+    "command": "node acceptance/suite.cjs C-97"
+  },
+  "C-98": {
+    "command": "node acceptance/suite.cjs C-98"
+  },
+  "C-99": {
+    "command": "node acceptance/suite.cjs C-99"
+  },
+  "C-100": {
+    "command": "node acceptance/suite.cjs C-100"
+  }
+}
