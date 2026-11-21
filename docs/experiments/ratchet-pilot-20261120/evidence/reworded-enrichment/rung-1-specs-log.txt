@@ -1,0 +1,102 @@
+run                                clauses use c. request implied existing choice added refusals Open: lines minutes
+reworded:r1-orders                      26      5      24       1        1      0              0           8     2.6
+reworded:r1-ticket-assignment           43      9      12       7       24      0              1           7     3.8
+reworded:r1-due-times-1                 30      8      12       5       13      0              0          10     4.9
+reworded:r1-due-times-2                 34      8      13       6       15      0              0           8     4.6
+reworded:r1-due-times-3                 34      7      12       5       17      0              0           9     4.3
+
+== reworded:r1-orders: Open: lines
+   C-3 [request] parseOrders accepts an order line of semicolon-separated key=value fields for id, qty, price, status, and shipped_at
+        Open: The requester decides which field permutations are accepted, whether whitespace around keys is accepted, how additional equals signs are interpreted, and how missing, repeated, or unknown keys and empty segments from extra semicolons are handled.
+   C-4 [request] parseOrders returns one order per non-blank input line
+        Open: The requester decides which additional line separators are supported beyond the LF breaks in U-1.
+   C-8 [request] A parsed id is a number
+        Open: The requester decides admissible id values, accepted numeric spellings beyond the examples, and the handling of an empty or nonnumeric id or an id that cannot be represented exactly.
+   C-9 [request] A parsed qty is a number
+        Open: The requester decides whether forms such as signed, exponent, or nondecimal notation are accepted and how quantity text beyond JavaScript's largest safe integer, 9,007,199,254,740,991, is handled. Above that bound distinct whole quantities can convert to the same number.
+   C-10 [request] A parsed price is a number in cents
+        Open: The requester decides whether forms such as signed, exponent, or nondecimal notation are accepted, whether an empty price can stand for zero, and how price text beyond JavaScript's largest safe integer, 9,007,199,254,740,991, is handled. Above that bound distinct whole prices can convert to the same number.
+   C-17 [request] parseOrders throws SyntaxError for nonempty shipped_at text outside the YYYY-MM-DD format
+        Open: The requester decides whether values in this format must also represent real calendar dates, such as whether `2026-02-30` is rejected.
+   C-20 [request] Each required order-line validation error identifies the original 1-based input line in its message
+        Open: The requester decides which failure takes precedence when multiple fields or lines are invalid.
+   C-22 [request] total returns the sum in cents of qty multiplied by price for each order
+        Open: The requester decides any input contract beyond arrays of valid orders and any precision or overflow policy for products or sums beyond JavaScript's largest safe integer, 9,007,199,254,740,991, where distinct whole-cent totals can have the same numeric representation.
+
+== reworded:r1-ticket-assignment: Open: lines
+   C-1 [request] A valid agent name sent to PUT /tickets/:id/assignee becomes the assignee of an open or in-progress ticket
+        Open: The requester would settle the exact success status or whether the PUT must return the ticket representation. The existing ticket mutation endpoints return a ticket with 200.
+   C-5 [existing] Any attempt to change the assignee of a resolved or closed ticket is a conflict
+        Open: The requester would settle whether a valid PUT for a resolved or closed ticket that already holds the requested value returns conflict or succeeds with no effect.
+   C-7 [implied] The assignment endpoint rejects invalid JSON bodies or assignee values
+        Open: The requester would settle whether to trim or reject whitespace-only names, whether names can contain control characters or line breaks, and how to count characters in non-ASCII names. The existing title and requester fields are trimmed single-line text and use JavaScript string length.
+   C-19 [request] A new assignment produces a notice for the agent who received it
+        Open: The requester or the operator of the existing mail relay would settle how a supplied agent name identifies its delivery recipient if the relay needs an address different from the name. The request accepts ordinary names as assignees.
+   C-21 [existing] A newly assigned ticket has an outbox entry for the assignment when the change succeeds
+        Open: The requester would settle whether two distinct assignments of the same ticket to the same agent may share one pending notice if an unassignment or a different assignee came between them. This is separate from a repeat PUT that made no change.
+   C-29 [request] The named assignee filter returns tickets assigned to the requested agent
+        Open: The requester would settle whether case, whitespace or Unicode variants identify the same agent for filtering or repeat assignment. The requester would also settle the query behavior for out-of-range names or repeated assignee keys.
+   C-36 [request] The command-line table shows each listed ticket's assignee
+        Open: The requester would settle whether the machine-readable list --raw also needs to expose assignee. The existing raw fields retain their positions either way.
+
+== reworded:r1-due-times-1: Open: lines
+   C-5 [request] The help desk can configure the response hours for each priority without editing code
+        Open: The help-desk owner decides the supported duration range and precision, including whether zero or fractional hours are accepted, subject to the timestamp limits.
+   C-7 [existing] An assigned `due` uses the API's UTC timestamp convention
+        Open: The help-desk owner decides how an operator should handle an otherwise valid legacy ticket whose calculated deadline falls outside the representable range.
+   C-13 [existing] Omitting `overdue` keeps ordinary ticket listing selection
+        Open: The API owner decides which enabled-mode `overdue` values other than the single `true` request are accepted, including `false`, empty values, case variants and repeated parameters, and how accepted values affect selection.
+   C-14 [implied] The overdue condition remains mandatory when other ticket filters are supplied
+        Open: The API owner decides whether an overdue ticket must match either or both of `status` and `priority` when both are supplied with `overdue=true`. Release 1.4.0 implements either in src/tickets/query.js, while docs/api.md specifies both.
+   C-17 [request] Every previously saved ticket without a deadline gets one based on its own creation time and priority
+        Open: For an older ticket whose priority changed before its first deadline is assigned, the help-desk owner decides whether to use the priority saved on the ticket at assignment or its original priority from history.
+   C-18 [implied] Operators can complete deadline preparation before turning on the feature
+        Open: The operator and help-desk owner decide when tickets created while the feature is disabled receive their first deadline. The supported rollout procedure must account for them before exposing due times.
+   C-19 [request] Production exposes due times only after its data file contains the assigned deadlines
+        Open: The operator decides how an attempted enabled start with an incomplete file is handled, for example by requiring preparation first or completing preparation before serving enabled requests.
+   C-23 [existing] Existing ticket history stays intact when due times are assigned
+        Open: The help desk's audit owner decides whether deadline assignment at creation or during preparation is itself shown in the enabled audit view. Any new audit detail must preserve existing entries and the disabled API responses.
+   C-25 [request] Release 1.4.0 can start on the production data file written by the new release
+        Open: The operator and help-desk owner decide whether a later re-upgrade must recover the original deadlines after 1.4.0 itself rewrites the file. Its writer retains only the fields it knows, including on a normal shutdown.
+   C-26 [existing] The human-readable CLI still reads the production data file without changing it
+        Open: The help-desk owner decides whether `due` also appears in the human-readable `show` or `list` output and, if so, when the CLI displays it.
+
+== reworded:r1-due-times-2: Open: lines
+   C-6 [request] Operators can configure the response hours for each priority without editing code.
+        Open: The requester decides the accepted range and precision for hours, including zero and fractional values. The configuration needs to support changing the stated defaults to usable response durations.
+   C-13 [implied] An ordinary ticket listing leaves eligibility independent of due time.
+        Open: The requester decides the enabled behavior for `overdue=false`, empty values, other values and repeated `overdue` parameters. If a value is rejected as invalid, the existing query error is HTTP 400 with `error.code` `invalid`.
+   C-14 [implied] Overdue eligibility is required in addition to existing listing filters.
+        Open: The requester decides how to combine `status` and `priority` when both accompany `overdue=true`. `docs/api.md` describes an intersection while 1.4.0 in `src/tickets/query.js` matches either filter when both are supplied. Overdue eligibility applies under either interpretation.
+   C-18 [request] Enabled production responses start only after the configured data file holds all required deadlines.
+        Open: The requester decides the operator workflow for preparation and early activation, such as a preparation step before starting the enabled server or startup preparation that finishes before any enabled response. The handling and operator diagnosis when a legacy creation instant plus the configured hours lies outside the time range used for due timestamps is also undecided. Node's built-in `Date` represents instants from `-8640000000000000` to `8640000000000000` milliseconds from the Unix epoch, inclusive.
+   C-21 [implied] Once saved by the new release, an assigned deadline survives subsequent processing of that file by the new release.
+        Open: The requester decides what a subsequent upgrade must do after 1.4.0 has rewritten the file. Its writer retains only fields it knows, so a legacy save can discard data that a startup and read in 1.4.0 could tolerate.
+   C-23 [implied] Preparing deadlines preserves the existing ticket records' business data.
+        Open: The requester decides whether deadline preparation counts as a change to `updated` in the enabled API. During the disabled rollout, the HTTP response remains governed by C-3.
+   C-25 [existing] Deadline assignment preserves existing audit history.
+        Open: The requester decides whether the initial deadline is included in the enabled creation audit entry or recorded as an operational audit change for backfilled tickets. The preexisting entries are append-only and the disabled HTTP behavior remains governed by C-3.
+   C-30 [existing] The operator's existing commands can read the ticket file through rollout.
+        Open: The requester decides whether the human-readable table or `show` should also display `due` during the enabled rollout. The API exposure is specified in C-8.
+
+== reworded:r1-due-times-3: Open: lines
+   C-4 [implied] The help desk can change the response hours for any supported priority without a code change
+        Open: The requester decides which durations must be supported beyond positive whole hours, including zero and fractions, and any help-desk minimum or maximum.
+   C-6 [request] A new ticket's deadline is its creation instant plus the effective response duration for its priority at creation
+        Open: The requester decides how to handle an otherwise usable schedule and creation instant whose sum is outside Node.js's timestamp range. This can also arise during preparation of an existing file.
+   C-14 [implied] The overdue filter narrows each existing ticket filter
+        Open: The requester decides how `status` and `priority` combine with each other when both accompany `overdue=true`. The API docs promise intersection for the existing filters, while 1.4.0 actually returns their union.
+   C-15 [existing] Omitting `overdue` leaves the ordinary listing's filter behavior intact
+        Open: The requester decides which supplied `overdue` forms besides a single `true` should be accepted, ignored, or rejected when the feature is on, including `false`, empty or malformed values, and repeated parameters. Any form rejected as invalid uses the existing HTTP 400 `invalid` envelope.
+   C-20 [request] Production exposes due times only after the data file holds the required deadlines
+        Open: The requester decides how operators initiate preparation and confirm readiness, including whether setting `DUE_TIMES=on` on an unprepared file waits for preparation or requires a prior operation. The requester also decides whether feature-on operation without a configured `DATA_FILE` is supported outside production.
+   C-23 [existing] Preparing deadlines preserves the existing append-only ticket history
+        Open: The requester decides whether first assignment of `due` should appear in enabled audit output, including in the creation entry or as a new entry for a backfilled ticket.
+   C-27 [existing] The existing invalid-data-file startup behavior still applies
+        Open: The requester decides how operators should recover if an already stored deadline is corrupt, as distinct from a legacy ticket whose deadline is absent.
+   C-28 [request] Release 1.4.0 can serve every ticket from the production file written by the new release
+        Open: The requester decides whether re-upgrading after 1.4.0 has itself rewritten the file must recover the original deadlines. The 1.4.0 writer keeps only the fields it knows.
+   C-29 [existing] The operator CLI can read tickets from files with saved deadlines
+        Open: The requester decides whether the human-readable `list` table or `show` must display the deadline, and whether the production visibility flag should govern any such display.
+
+wrote /Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-lens-08805f/docs/experiments/ratchet-pilot-20261120/evidence/reworded-enrichment/rung-1-specs.json

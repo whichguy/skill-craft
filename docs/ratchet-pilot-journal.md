@@ -1577,3 +1577,49 @@ its minutes are the two added. Rung 2's held-out gradings run while the two loop
 build's held-out checks take seconds); amendment 7 graded only after every run had ended. If the wording is changed
 at rung 1, what runs is no longer the other session's arm as drafted and is named for what it is. Codex still shows
 the account's skills to every session (section 19), the same on every side.
+
+### Rung 1, result (2026-11-21 07:03; five spec-only runs, 06:55:21 to 07:00:13)
+
+Status: firm for what was run (one specification each of orders and ticket assignment, three of due times). Every
+specification was accepted by the script on its first try; no session's record holds a held-out mark.
+
+| Specification, reworded text | Clauses | Use cases | request | implied | existing | choice | Added refusals | `Open:` lines | Minutes |
+|---|---|---|---|---|---|---|---|---|---|
+| orders | 26 | 5 | 24 | 1 | 1 | 0 | 0 | 8 | 2.6 |
+| ticket assignment | 43 | 9 | 12 | 7 | 24 | 0 | 1 | 7 | 3.8 |
+| due times 1 | 30 | 8 | 12 | 5 | 13 | 0 | 0 | 10 | 4.9 |
+| due times 2 | 34 | 8 | 13 | 6 | 15 | 0 | 0 | 8 | 4.6 |
+| due times 3 | 34 | 7 | 12 | 5 | 17 | 0 | 0 | 9 | 4.3 |
+| *lens text, same cases (base table above)* | *82; 151; 170 to 197* | *8; 11; 11 to 16* | | | *12; 101; 95 to 110* | *20; 14; 19 to 25* | *8; 3; 7 to 18* | *0* | *5.0; 7.0; 7.6 to 13.3* |
+
+- **Rule (a) holds.** On due times the three write 0, 0 and 0 choice clauses (the lens text's fewest: 19) and 0, 0
+  and 0 added refusals (its fewest: 7). No specification of any case writes a single choice; nine earlier
+  specifications never wrote fewer than 12.
+- **Rule (b) holds: none of the three requires the refusal to start.** Each writes the request's sentence as a
+  clause and puts the decision in its `Open:` line, naming both answers: "The operator decides how an attempted
+  enabled start with an incomplete file is handled, for example by requiring preparation first or completing
+  preparation before serving enabled requests" (1, C-19); "The requester decides the operator workflow for
+  preparation and early activation, such as a preparation step before starting the enabled server or startup
+  preparation that finishes before any enabled response" (2, C-18); "The requester decides how operators initiate
+  preparation and confirm readiness, including whether setting `DUE_TIMES=on` on an unprepared file waits for
+  preparation or requires a prior operation" (3, C-20). Four of the five earlier specifications decided it, for the
+  refusal (`evidence/reworded-enrichment/rung-1-due-times-reading.txt`).
+- **What the open points are.** On orders, the eight are the things the other two texts decided and a correct
+  product then failed: missing, repeated and unknown keys, further line separators, which ids and number spellings
+  are admissible, an empty price, a date that is no calendar date, which error comes first, sums past the largest
+  safe integer. On due times they include how two filters combine with `overdue=true` (the documents and the
+  shipped code disagree), whether the command-line tool shows the due time, and what a return from a rollback must
+  recover: each a clause that failed on the correct reference with the lens text (C-36, C-181, C-70 there).
+- **The size.** A sixth of the lens text's on due times (30 to 34 clauses against 170 to 197), a third on orders,
+  written in under five minutes. It restates far less existing behaviour (13 to 17 `existing` clauses against 95
+  to 110) and writes fewer implied clauses (5 or 6 against 31 to 53). That is the thing to watch at the next rungs:
+  the calibrated defects of the ticket cases sit partly in behaviour these specifications no longer pin.
+- **Is there enough to conclude early?** Enough to say the text changes what a specification decides, and not by
+  chance of the draw: five of five without a choice. Not enough to say anything about a built product, or about
+  how many planted defects tests written from so short a specification catch. Rung 2 is the cheapest run that can
+  say either, so the ladder goes on.
+
+By the registered rule: go on to rung 2, with these specifications and this wording unchanged.
+
+Evidence: `evidence/reworded-enrichment/` (`rung-1-specs.json`, `rung-1-specs-log.txt`,
+`rung-1-due-times-reading.txt`, and each run's `run.json` and `spec.md` under `r1-*/`).

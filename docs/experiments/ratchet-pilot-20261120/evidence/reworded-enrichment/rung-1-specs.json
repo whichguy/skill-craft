@@ -1,0 +1,335 @@
+{
+ "reworded:r1-orders": {
+  "case": "stand-in-rules",
+  "enrich": "reworded",
+  "clauses": 26,
+  "use_cases": 5,
+  "by_source": {
+   "request": 24,
+   "implied": 1,
+   "existing": 1
+  },
+  "added_refusals": [],
+  "open_lines": [
+   {
+    "id": "C-3",
+    "kind": "request",
+    "statement": "parseOrders accepts an order line of semicolon-separated key=value fields for id, qty, price, status, and shipped_at",
+    "open": "The requester decides which field permutations are accepted, whether whitespace around keys is accepted, how additional equals signs are interpreted, and how missing, repeated, or unknown keys and empty segments from extra semicolons are handled."
+   },
+   {
+    "id": "C-4",
+    "kind": "request",
+    "statement": "parseOrders returns one order per non-blank input line",
+    "open": "The requester decides which additional line separators are supported beyond the LF breaks in U-1."
+   },
+   {
+    "id": "C-8",
+    "kind": "request",
+    "statement": "A parsed id is a number",
+    "open": "The requester decides admissible id values, accepted numeric spellings beyond the examples, and the handling of an empty or nonnumeric id or an id that cannot be represented exactly."
+   },
+   {
+    "id": "C-9",
+    "kind": "request",
+    "statement": "A parsed qty is a number",
+    "open": "The requester decides whether forms such as signed, exponent, or nondecimal notation are accepted and how quantity text beyond JavaScript's largest safe integer, 9,007,199,254,740,991, is handled. Above that bound distinct whole quantities can convert to the same number."
+   },
+   {
+    "id": "C-10",
+    "kind": "request",
+    "statement": "A parsed price is a number in cents",
+    "open": "The requester decides whether forms such as signed, exponent, or nondecimal notation are accepted, whether an empty price can stand for zero, and how price text beyond JavaScript's largest safe integer, 9,007,199,254,740,991, is handled. Above that bound distinct whole prices can convert to the same number."
+   },
+   {
+    "id": "C-17",
+    "kind": "request",
+    "statement": "parseOrders throws SyntaxError for nonempty shipped_at text outside the YYYY-MM-DD format",
+    "open": "The requester decides whether values in this format must also represent real calendar dates, such as whether `2026-02-30` is rejected."
+   },
+   {
+    "id": "C-20",
+    "kind": "request",
+    "statement": "Each required order-line validation error identifies the original 1-based input line in its message",
+    "open": "The requester decides which failure takes precedence when multiple fields or lines are invalid."
+   },
+   {
+    "id": "C-22",
+    "kind": "request",
+    "statement": "total returns the sum in cents of qty multiplied by price for each order",
+    "open": "The requester decides any input contract beyond arrays of valid orders and any precision or overflow policy for products or sums beyond JavaScript's largest safe integer, 9,007,199,254,740,991, where distinct whole-cent totals can have the same numeric representation."
+   }
+  ],
+  "spec_minutes": 2.6
+ },
+ "reworded:r1-ticket-assignment": {
+  "case": "ticket-assignment",
+  "enrich": "reworded",
+  "clauses": 43,
+  "use_cases": 9,
+  "by_source": {
+   "request": 12,
+   "implied": 7,
+   "existing": 24
+  },
+  "added_refusals": [
+   {
+    "id": "C-7",
+    "kind": "implied",
+    "statement": "The assignment endpoint rejects invalid JSON bodies or assignee values"
+   }
+  ],
+  "open_lines": [
+   {
+    "id": "C-1",
+    "kind": "request",
+    "statement": "A valid agent name sent to PUT /tickets/:id/assignee becomes the assignee of an open or in-progress ticket",
+    "open": "The requester would settle the exact success status or whether the PUT must return the ticket representation. The existing ticket mutation endpoints return a ticket with 200."
+   },
+   {
+    "id": "C-5",
+    "kind": "existing",
+    "statement": "Any attempt to change the assignee of a resolved or closed ticket is a conflict",
+    "open": "The requester would settle whether a valid PUT for a resolved or closed ticket that already holds the requested value returns conflict or succeeds with no effect."
+   },
+   {
+    "id": "C-7",
+    "kind": "implied",
+    "statement": "The assignment endpoint rejects invalid JSON bodies or assignee values",
+    "open": "The requester would settle whether to trim or reject whitespace-only names, whether names can contain control characters or line breaks, and how to count characters in non-ASCII names. The existing title and requester fields are trimmed single-line text and use JavaScript string length."
+   },
+   {
+    "id": "C-19",
+    "kind": "request",
+    "statement": "A new assignment produces a notice for the agent who received it",
+    "open": "The requester or the operator of the existing mail relay would settle how a supplied agent name identifies its delivery recipient if the relay needs an address different from the name. The request accepts ordinary names as assignees."
+   },
+   {
+    "id": "C-21",
+    "kind": "existing",
+    "statement": "A newly assigned ticket has an outbox entry for the assignment when the change succeeds",
+    "open": "The requester would settle whether two distinct assignments of the same ticket to the same agent may share one pending notice if an unassignment or a different assignee came between them. This is separate from a repeat PUT that made no change."
+   },
+   {
+    "id": "C-29",
+    "kind": "request",
+    "statement": "The named assignee filter returns tickets assigned to the requested agent",
+    "open": "The requester would settle whether case, whitespace or Unicode variants identify the same agent for filtering or repeat assignment. The requester would also settle the query behavior for out-of-range names or repeated assignee keys."
+   },
+   {
+    "id": "C-36",
+    "kind": "request",
+    "statement": "The command-line table shows each listed ticket's assignee",
+    "open": "The requester would settle whether the machine-readable list --raw also needs to expose assignee. The existing raw fields retain their positions either way."
+   }
+  ],
+  "spec_minutes": 3.8
+ },
+ "reworded:r1-due-times-1": {
+  "case": "ticket-due-times",
+  "enrich": "reworded",
+  "clauses": 30,
+  "use_cases": 8,
+  "by_source": {
+   "existing": 13,
+   "request": 12,
+   "implied": 5
+  },
+  "added_refusals": [],
+  "open_lines": [
+   {
+    "id": "C-5",
+    "kind": "request",
+    "statement": "The help desk can configure the response hours for each priority without editing code",
+    "open": "The help-desk owner decides the supported duration range and precision, including whether zero or fractional hours are accepted, subject to the timestamp limits."
+   },
+   {
+    "id": "C-7",
+    "kind": "existing",
+    "statement": "An assigned `due` uses the API's UTC timestamp convention",
+    "open": "The help-desk owner decides how an operator should handle an otherwise valid legacy ticket whose calculated deadline falls outside the representable range."
+   },
+   {
+    "id": "C-13",
+    "kind": "existing",
+    "statement": "Omitting `overdue` keeps ordinary ticket listing selection",
+    "open": "The API owner decides which enabled-mode `overdue` values other than the single `true` request are accepted, including `false`, empty values, case variants and repeated parameters, and how accepted values affect selection."
+   },
+   {
+    "id": "C-14",
+    "kind": "implied",
+    "statement": "The overdue condition remains mandatory when other ticket filters are supplied",
+    "open": "The API owner decides whether an overdue ticket must match either or both of `status` and `priority` when both are supplied with `overdue=true`. Release 1.4.0 implements either in src/tickets/query.js, while docs/api.md specifies both."
+   },
+   {
+    "id": "C-17",
+    "kind": "request",
+    "statement": "Every previously saved ticket without a deadline gets one based on its own creation time and priority",
+    "open": "For an older ticket whose priority changed before its first deadline is assigned, the help-desk owner decides whether to use the priority saved on the ticket at assignment or its original priority from history."
+   },
+   {
+    "id": "C-18",
+    "kind": "implied",
+    "statement": "Operators can complete deadline preparation before turning on the feature",
+    "open": "The operator and help-desk owner decide when tickets created while the feature is disabled receive their first deadline. The supported rollout procedure must account for them before exposing due times."
+   },
+   {
+    "id": "C-19",
+    "kind": "request",
+    "statement": "Production exposes due times only after its data file contains the assigned deadlines",
+    "open": "The operator decides how an attempted enabled start with an incomplete file is handled, for example by requiring preparation first or completing preparation before serving enabled requests."
+   },
+   {
+    "id": "C-23",
+    "kind": "existing",
+    "statement": "Existing ticket history stays intact when due times are assigned",
+    "open": "The help desk's audit owner decides whether deadline assignment at creation or during preparation is itself shown in the enabled audit view. Any new audit detail must preserve existing entries and the disabled API responses."
+   },
+   {
+    "id": "C-25",
+    "kind": "request",
+    "statement": "Release 1.4.0 can start on the production data file written by the new release",
+    "open": "The operator and help-desk owner decide whether a later re-upgrade must recover the original deadlines after 1.4.0 itself rewrites the file. Its writer retains only the fields it knows, including on a normal shutdown."
+   },
+   {
+    "id": "C-26",
+    "kind": "existing",
+    "statement": "The human-readable CLI still reads the production data file without changing it",
+    "open": "The help-desk owner decides whether `due` also appears in the human-readable `show` or `list` output and, if so, when the CLI displays it."
+   }
+  ],
+  "spec_minutes": 4.9
+ },
+ "reworded:r1-due-times-2": {
+  "case": "ticket-due-times",
+  "enrich": "reworded",
+  "clauses": 34,
+  "use_cases": 8,
+  "by_source": {
+   "existing": 15,
+   "request": 13,
+   "implied": 6
+  },
+  "added_refusals": [],
+  "open_lines": [
+   {
+    "id": "C-6",
+    "kind": "request",
+    "statement": "Operators can configure the response hours for each priority without editing code.",
+    "open": "The requester decides the accepted range and precision for hours, including zero and fractional values. The configuration needs to support changing the stated defaults to usable response durations."
+   },
+   {
+    "id": "C-13",
+    "kind": "implied",
+    "statement": "An ordinary ticket listing leaves eligibility independent of due time.",
+    "open": "The requester decides the enabled behavior for `overdue=false`, empty values, other values and repeated `overdue` parameters. If a value is rejected as invalid, the existing query error is HTTP 400 with `error.code` `invalid`."
+   },
+   {
+    "id": "C-14",
+    "kind": "implied",
+    "statement": "Overdue eligibility is required in addition to existing listing filters.",
+    "open": "The requester decides how to combine `status` and `priority` when both accompany `overdue=true`. `docs/api.md` describes an intersection while 1.4.0 in `src/tickets/query.js` matches either filter when both are supplied. Overdue eligibility applies under either interpretation."
+   },
+   {
+    "id": "C-18",
+    "kind": "request",
+    "statement": "Enabled production responses start only after the configured data file holds all required deadlines.",
+    "open": "The requester decides the operator workflow for preparation and early activation, such as a preparation step before starting the enabled server or startup preparation that finishes before any enabled response. The handling and operator diagnosis when a legacy creation instant plus the configured hours lies outside the time range used for due timestamps is also undecided. Node's built-in `Date` represents instants from `-8640000000000000` to `8640000000000000` milliseconds from the Unix epoch, inclusive."
+   },
+   {
+    "id": "C-21",
+    "kind": "implied",
+    "statement": "Once saved by the new release, an assigned deadline survives subsequent processing of that file by the new release.",
+    "open": "The requester decides what a subsequent upgrade must do after 1.4.0 has rewritten the file. Its writer retains only fields it knows, so a legacy save can discard data that a startup and read in 1.4.0 could tolerate."
+   },
+   {
+    "id": "C-23",
+    "kind": "implied",
+    "statement": "Preparing deadlines preserves the existing ticket records' business data.",
+    "open": "The requester decides whether deadline preparation counts as a change to `updated` in the enabled API. During the disabled rollout, the HTTP response remains governed by C-3."
+   },
+   {
+    "id": "C-25",
+    "kind": "existing",
+    "statement": "Deadline assignment preserves existing audit history.",
+    "open": "The requester decides whether the initial deadline is included in the enabled creation audit entry or recorded as an operational audit change for backfilled tickets. The preexisting entries are append-only and the disabled HTTP behavior remains governed by C-3."
+   },
+   {
+    "id": "C-30",
+    "kind": "existing",
+    "statement": "The operator's existing commands can read the ticket file through rollout.",
+    "open": "The requester decides whether the human-readable table or `show` should also display `due` during the enabled rollout. The API exposure is specified in C-8."
+   }
+  ],
+  "spec_minutes": 4.6
+ },
+ "reworded:r1-due-times-3": {
+  "case": "ticket-due-times",
+  "enrich": "reworded",
+  "clauses": 34,
+  "use_cases": 7,
+  "by_source": {
+   "existing": 17,
+   "request": 12,
+   "implied": 5
+  },
+  "added_refusals": [],
+  "open_lines": [
+   {
+    "id": "C-4",
+    "kind": "implied",
+    "statement": "The help desk can change the response hours for any supported priority without a code change",
+    "open": "The requester decides which durations must be supported beyond positive whole hours, including zero and fractions, and any help-desk minimum or maximum."
+   },
+   {
+    "id": "C-6",
+    "kind": "request",
+    "statement": "A new ticket's deadline is its creation instant plus the effective response duration for its priority at creation",
+    "open": "The requester decides how to handle an otherwise usable schedule and creation instant whose sum is outside Node.js's timestamp range. This can also arise during preparation of an existing file."
+   },
+   {
+    "id": "C-14",
+    "kind": "implied",
+    "statement": "The overdue filter narrows each existing ticket filter",
+    "open": "The requester decides how `status` and `priority` combine with each other when both accompany `overdue=true`. The API docs promise intersection for the existing filters, while 1.4.0 actually returns their union."
+   },
+   {
+    "id": "C-15",
+    "kind": "existing",
+    "statement": "Omitting `overdue` leaves the ordinary listing's filter behavior intact",
+    "open": "The requester decides which supplied `overdue` forms besides a single `true` should be accepted, ignored, or rejected when the feature is on, including `false`, empty or malformed values, and repeated parameters. Any form rejected as invalid uses the existing HTTP 400 `invalid` envelope."
+   },
+   {
+    "id": "C-20",
+    "kind": "request",
+    "statement": "Production exposes due times only after the data file holds the required deadlines",
+    "open": "The requester decides how operators initiate preparation and confirm readiness, including whether setting `DUE_TIMES=on` on an unprepared file waits for preparation or requires a prior operation. The requester also decides whether feature-on operation without a configured `DATA_FILE` is supported outside production."
+   },
+   {
+    "id": "C-23",
+    "kind": "existing",
+    "statement": "Preparing deadlines preserves the existing append-only ticket history",
+    "open": "The requester decides whether first assignment of `due` should appear in enabled audit output, including in the creation entry or as a new entry for a backfilled ticket."
+   },
+   {
+    "id": "C-27",
+    "kind": "existing",
+    "statement": "The existing invalid-data-file startup behavior still applies",
+    "open": "The requester decides how operators should recover if an already stored deadline is corrupt, as distinct from a legacy ticket whose deadline is absent."
+   },
+   {
+    "id": "C-28",
+    "kind": "request",
+    "statement": "Release 1.4.0 can serve every ticket from the production file written by the new release",
+    "open": "The requester decides whether re-upgrading after 1.4.0 has itself rewritten the file must recover the original deadlines. The 1.4.0 writer keeps only the fields it knows."
+   },
+   {
+    "id": "C-29",
+    "kind": "existing",
+    "statement": "The operator CLI can read tickets from files with saved deadlines",
+    "open": "The requester decides whether the human-readable `list` table or `show` must display the deadline, and whether the production visibility flag should govern any such display."
+   }
+  ],
+  "spec_minutes": 4.3
+ }
+}
