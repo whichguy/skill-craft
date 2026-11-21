@@ -436,6 +436,11 @@ and by up to 5 on a single case. The registered rule applies: the band of 4 was 
 between two single draws smaller than 12 is not shown**. Firm as a floor (two arms, one replicate each, so the true
 spread may be larger, not smaller).
 
+> **Superseded 2026-11-21** (the Sol review, checked; section 14): 12 is the registered decision threshold and nothing more. It is the largest move seen in two
+> replicate pairs on Sonnet; it does not estimate the spread of clean Sol (never replicated), of a mean against a
+> single draw, or the shares of subject and judge, which are reported separately (the same judge re-reading fixed
+> specifications moved a pooled cell by up to 5). The 89 verdicts are clustered in four requests.
+
 **R1 again: the main effect holds, comfortably.** Within round 4 alone, D minus A is **+31 on Sonnet and +18 on
 Sol**. On the means of two draws it is +29 and +21. The recursive form over the single pass is the one result of
 this experiment that is established: about 2.5 times the band on Sonnet, 1.75 times on Sol. Status: firm for
@@ -487,6 +492,12 @@ specification in one pass, it appears to have worked as a second set of instruct
 ten nuances. The recursive arm, whose own instructions already ask for all of that, gained nothing measurable from
 it. So the leak made the control look better than it is on Sol and **understated** the effect under test there.
 
+> **Superseded 2026-11-21** (the Sol review, checked; section 14): the clean draw justifies replacing the earlier baseline; it does not identify a cause.
+> What is measured: clean Sol scored 29 on A and 64 on D, the A score ten below the mean of two draws with the
+> skills shown. Half of A's fall is one case (Grokbot, 13 to 8). The runner's context and the draw both changed,
+> different skills were opened by different arms (`agentic-execution` in three of round 4's D sessions), and
+> sessions searched the web on their own. `illustrated-authoring` is one possible contributor.
+
 **R1 on clean Sol: +35** (D 64 against A 29), where the draws with the skills shown gave +24, +18 and +21 on means.
 The recursive form's lead over the single pass is now established on both drivers on clean isolation: about +29 on
 Sonnet (means of two draws), +35 on Sol (one draw each). Firm.
@@ -527,6 +538,12 @@ working directory and for any that names the checklist, a verdict, the cases fil
 - So the statement in section 1, that no subject can read the held-out checklist, was true of what happened in
   all 80 sessions and was never enforced by anything. It is now checked.
 
+> **Superseded 2026-11-21** (the Sol review, checked; section 14): read as "no explicit reference to the held-out material was detected in the 80 archived
+> streams under this scan". The scan reads the command and path fields of tool calls; it would not see a read made
+> through a glob or a variable that never names the file, it ignores paths outside the home, it exempts the whole
+> of a round's `.homes` folder, and it does not check which calls succeeded. Nothing makes the held-out files
+> unreachable to a subject. `run.py` also skips a kept specification without checking where it came from.
+
 **The check, restated and made stricter where it matters.** A leak is a file that exists under the real home
 outside the session's own folder and profile, named absolutely, with `~`, or by climbing with `../` (resolved
 against the working directory); or any tool call naming the held-out material. A folder named outside and a path
@@ -558,6 +575,11 @@ round 5, 0 of 24**; and no session in any round named the held-out material.
   case on Sonnet. It opened 4 to 12 of the skill's guides a session, wrote an `architecture.md` beside the
   specification in 5 of 8 sessions, and both Grokbot sessions opened the skill's Salesforce card, which is
   recorded so that their platform score can be read as partly the card's.
+
+> **Superseded 2026-11-21** (the Sol review, checked; section 14): 6 of 8 sessions wrote an `architecture.md` (four Sonnet, two Sol), not 5. "Opened" is
+> "named in a tool call": the count is of guide paths mentioned, not of reads known to have succeeded. And
+> Sonnet's one-pass sessions averaged 2.0 writes or edits (the Grokbot one: one write and three edits), so "they
+> did write once" should read "they wrote once and touched it up".
 
 ## 11. Round 5: the lenses in one pass do the work, iterating adds nothing shown, and the released stage is only beaten clearly on Sol (2026-11-20)
 
@@ -597,11 +619,34 @@ the clause audit's question (R10), still running.
 - P is the stage without the stages that feed it and with every guide to hand; both Grokbot P sessions opened the
   skill's Salesforce card. It is a stand-in for the real stage, not the real stage.
 
+> **Superseded 2026-11-21** (the Sol review, checked; section 14): **R14's "+19 on Sol: shown" does not show that the lenses add to the released stage, and
+> the sentences above that say where they "beat" it are withdrawn.**
+> - Counting a nuance as *touched* when it is covered or partial: P 87 and 87; L 86 and 89; F 89 and 87; D 89 and
+>   86; A 78 and 71. **The released stage already reaches 87 of the 89 nuances on both drivers.** Of the 20 nuances
+>   L covers on Sol that P does not, 19 are `partial` under P and 1 is `absent`; on Sonnet all 12 are `partial`
+>   under P, and 6 that P covers L does not. The whole difference is in how far a nuance both specifications reach
+>   is decided, not in whether it is found.
+> - Where P is `partial` it has often decided, by its own duties, to leave the thing out or open: "the spec
+>   decides not to persist conversations", "no audit store is added", "production is declared out of scope",
+>   "the timeout remains open". Duty 6 says to invent no bound and duty 9 to add no persistence the request does
+>   not need.
+> - **The judge scored such decisions unevenly.** Sonnet's P, deciding not to persist conversations: `partial` on
+>   the stored-shape nuance. Sol's L, "The bot has no bot-managed conversation or result history": `covered` on the
+>   same nuance. Sol's L is also `covered` on "cancelling an import that is running" by a clause that declines to
+>   add cancellation. The judge prompt never said how to score a stated exclusion or an open item, so a
+>   specification that decides more scores higher whether or not deciding was right.
+> - The operator's work is the released stage's lowest category on Sonnet (2 of 9); on Sol its lowest share is
+>   non-functional (1 of 5), not the operator's work (3 of 9).
+> - P is not a guaranteed lower bound on the stage in a real run; it lacks the stages that feed it and has every
+>   guide to hand, and which way that nets is unknown.
+
 **What the four answers say** (the third is still running):
 1. Real beyond noise: yes for the lens content (+21, +33 in one pass).
 2. Which form: one pass.
 3. Does it overbuild: pending the clause audit.
 4. Does it add to the released stage: yes on Sol at medium (+19); not shown on Sonnet at high (+6).
+
+> **Superseded 2026-11-21** (the Sol review, checked; section 14): 4 is not answered by this instrument. See the note above: both reach the same nuances.
 
 So the outcome the plan to conclude called "fold in the lenses as one pass" is the one the evidence supports, with
 its size stated honestly: a large gain for a weaker driver, a small or no gain for a stronger one, at no cost in
@@ -632,6 +677,10 @@ neither. It is P with the lenses added, a text no round has run.
 - Status: the main effect and the ordering of the drivers do not depend on which family judges. The deciding
   round, round 5, has been read by one judge only; that is queued below.
 
+> **Superseded 2026-11-21** (the Sol review, checked; section 14): too strong. Astra read round 4 only: arms A and D. It keeps the large D over A difference on
+> Sonnet (+26) and its sign on Sol (+10, which is under the threshold of 12, on the sessions with the skills
+> shown). It has read nothing of L, P, Q or clean Sol.
+
 ### The clause audit (R10): the fourth answer
 
 One Opus session a specification put every clause in one class. Clean specifications only (round 4 Sonnet,
@@ -650,9 +699,24 @@ round 4c Sol, round 5 F and L); no clause left unclassed in any of the 32. `evid
 - **The guard helps on Sol and is not shown to on Sonnet.** F against D: -7 points on Sol, -3 on Sonnet.
 - **The one-pass form does not add scope at all.** L is at 13% on both drivers, below the single pass. Whatever
   makes a specification grow things nobody asked for, it is going round again, not the lenses.
+
+> **Superseded 2026-11-21** (the Sol review, checked; section 14): three things here do not stand as written.
+> - **"Does not add scope at all" is wrong in count.** L's *share* of clauses labelled extra fell from 17% to 13%
+>   on both drivers. In count it went from 30 to 29 on Sonnet and **from 38 to 48 on Sol** (the CSV case 5 to 13).
+>   And the scope of the released stage was never audited, so nothing here compares L, or the draft, with it.
+> - **The guard is not shown to help.** By case, D to F, the count labelled extra goes 28 to 41 and 22 to 43 on
+>   Grokbot, 23 to 4 and 19 to 14 on the waitlist, 29 to 18 and 37 to 38 on invoices, 14 to 7 and 49 to 11 on CSV
+>   (Sonnet then Sol). The pooled shares are sums of opposite moves by single draws.
+> - **"It is going round again" is not isolated.** F and L differ as packages: the stop rule, the intermediate
+>   writes, the pass log and the builder's read all change together, and L keeps the "each requirement you have
+>   written" recursion in its wording. What is measured is that the iterating packages carried more clauses
+>   labelled extra, in share and in count, and no more coverage.
 - `empty` is 0 to 1% on Sonnet and 3 to 5% on Sol; `wrong` is 1% or less everywhere. Section 3's "Sol adds clauses
   that carry no decision" was a reading of a handful of clauses under an arm that has not been audited; under the
   arms that have, the share is small. That sentence is not supported at the size it was stated.
+
+> **Superseded 2026-11-21** (the Sol review, checked; section 14): the figures by count: `empty` is 1 clause in each Sonnet arm; on Sol 1 of 225 for the single
+> pass and 18 of 372 for L (4.8%). `wrong` is at most 3 of 220 (Sonnet's L, 1.4%), not "1% or less everywhere".
 
 ### The two instruments pull against each other in one place, and it is the owner's place
 
@@ -672,6 +736,11 @@ extra.
 - **Counting only coverage a strict reader would also accept, the one-pass form is ahead of the iterating one**:
   L 59 and 58, F 54 and 54, D 60 and 54. F minus L goes from +4 and -2 to -5 and -4. Iterating buys nothing a
   strict reader accepts; what it buys is the scope.
+
+> **Superseded 2026-11-21** (the Sol review, checked; section 14): this is "coverage after dropping a verdict whose *first* cited clause was labelled extra",
+> and no more than that: it does not show that a kept verdict is sound or that a dropped one depends on extra
+> work, and some verdicts cite only a use case. Dropping a verdict when *any* cited clause is extra gives L 58 and
+> 56, F 53 and 54, D 53 and 52.
 - The one-pass form's lead over the single pass is untouched by the strict reading: +21 and +31 (against round
   4's draw of A on Sonnet, 40; the +21 of section 11 was against the mean of its two draws, 43).
 - **Seventy percent of the operator nuances the lens arms cover rest on clauses the audit calls extra** (19 of
@@ -680,10 +749,17 @@ extra.
   reading ShipLoop wants there is a product judgement, the owner's own rule being that rigour is standard and only
   unrequested scope is overbuilding.
 
+> **Superseded 2026-11-21** (the Sol review, checked; section 14): the 19 of 27 pools L, F and D and is carried by the iterating arms. For L against P on
+> Sonnet the claim is false: its three operator gains are all on Grokbot and cite a use case, a clause the audit
+> classed `decision` and one it classed `needed`. None rests on a clause labelled extra.
+
 ### The four answers
 
 1. **Real beyond noise?** Yes, for the lens content: +21 on Sonnet and +33 on Sol in one pass, holding under a
    strict reading and, on Sonnet, under a judge of another family.
+
+> **Superseded 2026-11-21** (the Sol review, checked; section 14): the second judge read D against A, not L. And "real" here means against the ratchet
+> pilot's single pass, which is not what ShipLoop ships.
 2. **Which form?** One pass. Iterating shows no coverage gain, loses on strictly accepted coverage, takes twice
    the time and is where the unrequested scope comes from.
 3. **Does it overbuild?** The one-pass form does not (13% of clauses beyond the request, under the single pass's
@@ -691,11 +767,19 @@ extra.
 4. **Does it add to the stage ShipLoop ships?** On Sol at medium, clearly (+19). On Sonnet at high, not shown
    (+6), and what it adds there is mostly the operator's work, which a strict reader calls scope.
 
+> **Superseded 2026-11-21** (the Sol review, checked; section 14): not answered. Both reach the same 87 or so nuances; the difference is in how many are
+> decided, on a judge that scores stated exclusions unevenly (section 11's note).
+
 ## 13. The draft, registered before it runs (2026-11-20)
 
 **The outcome the four answers give** is the second of the plan's three: fold in the lenses as one pass. Its size,
 stated as measured: a large gain for Sol at medium (+19 over the released stage), not shown for Sonnet at high
 (+6), no added scope, about a minute more than the single pass.
+
+> **Superseded 2026-11-21** (the Sol review, checked; section 14): round 5 made the insertion worth testing, and no more. Whether it should be proposed
+> depends on whether it adds grounded, in-scope coverage to the released stage, what accepted behaviour it loses,
+> and what work it adds downstream, none of which rounds 1 to 5 measure. The review's verdict on the draft as
+> written is "do not put it".
 
 **Why one more arm, against section 6's stop rule.** The rule said no further arm, and the reason for it was to
 stop the experiment growing sideways. But no round has run the thing that would be proposed. L is the lenses with
@@ -731,3 +815,106 @@ released stage, after its first paragraph. Choices made in writing it, each for 
 of P on both drivers; R15 reads Q against the mean of P's two draws at the band of 12, with Q's cost against P's
 and Q against L beside it; and the second judge reads rounds 4c, 5 and 6, so that the deciding comparisons have
 two families' verdicts. `queue-5.sh`.
+
+## 14. The independent review says "do not put it", and checking it shows it is right (2026-11-21)
+
+**The review.** Before the draft was called ready it went to the latest Sol at maximum effort, as the owner's
+standing rule asks: one read-only session over the repository, in the harness profile with the user's skills
+turned off (pre-flight passed), 14.5 minutes. It was asked to attack the block as text that will sit in the stage,
+to read sections 8 to 13 of this journal against the files they cite, and to say whether it would put the change
+to the owner. Prompt and report: `docs/experiments/spec-elaboration-20261120/review/sol-max-prompt.md` and
+`sol-max-review.md`; runner `review/run_review.py`.
+
+**Its verdict: do not put it.** 21 findings, seven of them P1.
+
+**Checked before being relayed.** Every claim of fact this session tested against the files held, including
+numbers the reviewer had recomputed for itself:
+- the audit's counts (finding 5): 30 of 181 to 29 of 220 on Sonnet, 38 of 225 to 48 of 372 on Sol, CSV 5 to 13;
+- the make-up of L's lead over P (finding 6): 19 of 20 newly covered nuances on Sol were `partial` under P, all 12
+  on Sonnet; and the two verdicts it names, read in the grade files, do credit a clause that declines the thing;
+- the operator credits (finding 12): Sonnet L's three over P cite U-8, C-45 (`decision`) and C-7 (`needed`); the
+  any-cited-clause variant of the strict filter gives L 58 and 56, F 53 and 54, D 53 and 52, as it says;
+- the Grokbot counts labelled extra, D to F (finding 16): 28 to 41 and 22 to 43;
+- the details of finding 20: 6 of 8 P sessions wrote an architecture document; Sol P's lowest share is
+  non-functional; the `empty` and `wrong` counts;
+- the duty and guide text it quotes (findings 2, 3, 9, 10, 11, 21): `plan` maps "every acceptance line to its
+  work item", `test-strategy` limits preservation to "each existing behaviour the scoped requirements touch",
+  `research` says reaching the ceiling "stops exploration, not the run", the behaviour guide says "avoid an
+  unnecessary Cartesian product of all possible system states", and plan duty 7 owns stored-data structure.
+Fourteen places in sections 8 to 13 are corrected in place and marked superseded with their reason.
+
+### What the review found in the evidence
+
+1. **The comparison that mattered most did not measure what it was read as measuring.** R14 read "L is +19 over
+   the released stage on Sol" as the lenses adding to ShipLoop. Counting a nuance as touched when it is covered or
+   partial, the released stage reaches **87 of 89 on both drivers**; the lens arms reach 86 to 89. The lead is
+   entirely `partial` turning to `covered`: the lens arm decides more of what both specifications reach.
+2. **Deciding more is not the same as specifying better, and the judge could not tell them apart.** Where the
+   released stage is `partial` it has often made a decision its own duties ask for: leave a bound unresolved
+   (duty 6: invent no bound), add no persistence the request does not need (duty 9), declare production out of
+   scope for a development org. The judge prompt said nothing about a stated exclusion or an open item, and scored
+   them unevenly: "the spec decides not to persist conversations" is `partial` for one arm, "the bot has no
+   bot-managed conversation or result history" is `covered` for another, on the same nuance. A specification that
+   decides more scores higher whether or not deciding was right.
+3. **The checklist leans the same way as the lenses.** Both were written by this session. Freezing the checklist
+   stopped it being edited after the fact; it did not stop it rewarding the edges, operator controls and
+   production conditions that its author then wrote into the lenses. Grokbot's N-24 asks for production
+   deployment conditions of a request that says development org.
+4. **"No added scope" was wrong in count** on Sol, and unmeasured against the released stage (section 12's note).
+5. **Several causes were asserted that the data cannot isolate**: iteration as the source of scope, the leaked
+   skill as the cause of the single pass's fall on Sol, the guard as helping on Sol.
+6. **The isolation claims were stronger than the scan** (section 10's note), and the decision threshold of 12 was
+   described as a noise floor (section 8's note).
+
+### What it found in the draft
+
+The block's faults are of one kind: it turns aids to thinking into things to write.
+- "What a line turns up **becomes** a requirement, or an acceptance line" is an output mandate, and "add no
+  feature" still lets a session add restrictions, controls and test obligations. Every acceptance line is work
+  downstream: `test-strategy` plans a check for it and `plan` maps it to a work item.
+- "In one pass", "before you write them" and "each requirement you have written" contradict one another, and
+  "follow each answer down until it is a fact about the world" has no stop. A session can read it as a
+  preparation step or as an inquiry that delays the stage; "one pass" can also be read as waiving duty 10's
+  checks.
+- The runtime lens asks for what the thing "requires before it ... ships beyond a development environment", which
+  can draw a production contract out of a development request, and "with its number" can draw a guessed number
+  with a citation added after.
+- "Each use, piece of state, outside system and existing feature against the others" invites the cross-product
+  the stage's own guide warns against.
+- "The fields a record holds" and "lists its members" invite a schema inventory, which duty 3 and plan duty 7
+  put in the architecture record.
+- "Records it as unresolved (item 6)" sends a behaviour's open bound to the non-functional section; duty 4 owns
+  open items under their requirement.
+It gives a replacement for each, all of which do the same thing: tie the question to the affected outcome, and
+record under duty 4 instead of adding. It agrees that duty 2 is the place for a compact cue.
+
+Two faults it found that are not this experiment's and are worth the owner's knowing:
+- `skills/shiploop/references/behavioral-requirements.md` still tells the spec stage to "store the proposed
+  product behavior in the result `body`", while the stage's duties write it to `KNOWLEDGE/spec.md`.
+- `run.py` here skips a kept specification without checking its provenance, and `grade.py` can publish an
+  incomplete verdict set (the saved rounds were complete).
+
+### Where that leaves the experiment's conclusions
+
+| claim | status after the review |
+| --- | --- |
+| Against the ratchet pilot's single pass, the lens arms cover far more (D over A: +29 Sonnet, +35 clean Sol) | established on these four cases; on Sonnet under two judges |
+| The one-pass package costs about half the iterating one, which shows no coverage advantage | established as a comparison of two packages |
+| The released stage, run alone, reaches as many of these nuances as any lens arm (87 of 89) | established, and the most useful thing this experiment found about ShipLoop |
+| The lenses add to the released stage | **not shown**; the +19 on Sol is decidedness on a judge that scores exclusions unevenly |
+| The one-pass form adds no scope | **withdrawn**; lower share, higher count on Sol, and nothing against the released stage |
+| Iterating is what adds scope; the leak lifted the single pass; the guard helps on Sol | **not isolated** |
+| The draft block should be put to the owner | **no**, not as written |
+
+So of the plan's three outcomes it is the first that the evidence supports: **no fold-back into the released
+stage on this evidence.** That is not the same as "the lenses are worthless". Against the text the ratchet pilot
+uses they move a great deal, and the owner decided in section 6 that this experiment's target is the released
+stage and not that one. And it is not "the released stage is as elaborate as the owner wants": it reaches the
+nuances and, by its own rules, leaves many of them open or out; whether a specification should decide more of
+what it reaches is a question about what ShipLoop is for, which no checklist of this session's settles.
+
+Round 6 (the block as drafted, inside the stage text, against the stage text) was already running when the review
+came back and is left to finish: both of its arms share one layout and one policy, so the uneven scoring of
+exclusions bears on them alike, and it will say whether the block moves the stage at all. By the review's own
+terms a block rewritten to meet its findings would need its own paired check, so round 6 cannot rescue the draft;
+it can only say how much there was to rescue.

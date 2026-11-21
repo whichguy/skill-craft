@@ -301,3 +301,29 @@ having run it, when the instrument to run it exists, would be asking for a decis
 ```sh
 sh queue-5.sh          # round 6, then the second judge on rounds 4c, 5 and 6
 ```
+
+## After the independent review (2026-11-21)
+
+The draft and sections 8 to 13 of the journal went to the latest Sol at maximum effort before anything was put to
+the owner (`review/`). **Its verdict was "do not put it"**, and every claim of fact of its that was checked against
+the files held. What a reader of this README has to know (journal section 14 has the rest):
+
+- **R14 did not measure what it was read as measuring.** Counting a nuance as touched when it is covered or
+  partial, the released stage reaches 87 of 89 on both drivers and the lens arms 86 to 89. L's "+19 on Sol" is
+  `partial` turning to `covered`: more decided, not more found. The judge prompt says nothing about a stated
+  exclusion or an open item and scored them unevenly, and the released stage's duties tell it to leave some things
+  open or out. "It adds to the stage ShipLoop ships" is **not shown**.
+- **"The one-pass form adds no scope" is withdrawn.** Its share of clauses labelled extra is lower than the single
+  pass's; its count is higher on Sol (48 against 38); and the released stage's scope was never audited.
+- **Not isolated:** iteration as the source of scope, the leaked skill as the cause of the single pass's fall on
+  Sol, the guard as helping on Sol. 12 is a decision threshold, not an estimate of noise.
+- **The checklist and the lenses share an author** and lean the same way. Freezing the checklist stopped
+  hindsight edits, not that.
+- **The draft block is not to be proposed as written.** Its faults are of one kind: it turns aids to thinking
+  into things to write ("what a line turns up becomes a requirement"), and every acceptance line is work for the
+  stages after `spec`.
+
+What stands: against the ratchet pilot's single pass the lens arms cover far more; the one-pass package costs
+about half the iterating one and loses nothing shown; and the released stage, run alone, already reaches nearly
+every nuance on this checklist. The outcome of the plan to conclude is its first: **no fold-back into the released
+stage on this evidence.**
