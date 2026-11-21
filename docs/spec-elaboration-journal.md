@@ -2446,7 +2446,8 @@ failed after a wrong `cd`, and one refusal the stream shows twice. The worker fi
 - In this run two commands searched for processes by name (`pgrep -f "node.*server.js"`), to check that nothing
   was left. The search matched a server of another project that had been up for 14 hours. Nothing was stopped. It
   shows what a stop by that pattern would have reached.
-- One background start in this run, a mutation script, did not record its id.
+- One background start in this run, a mutation script, did not record its id. (Corrected 2026-11-21, 10:02: two,
+  at events 1435 and 1604; section 35.)
 - The spec's home (C3). Both specs are in the knowledge home. Neither session opened the requirements guide whose
   sentence was corrected, nor the options reference that gained a line, so the round says nothing about those two
   texts beyond the absence of a regression. Only the card and the packet rule were in front of a builder.
@@ -2472,4 +2473,48 @@ failed after a wrong `cd`, and one refusal the stream shows twice. The worker fi
 
 **What follows.** The owner's choice was to push these entries together with the fix once the round "has finished
 and been journaled". It has finished. Its journal entry in `test/shiploop_e2e/LEARNINGS.md` is the SDLC session's
-to write and was not on the shared `main` when this was written, so the push waits for it.
+to write and was not on the shared `main` when this was written, so the push waits for it. (Published 2026-11-21, 09:59:
+section 35.)
+
+## 35. Published: sections 30 to 34 are on the remote main; and one count in section 34 corrected (10:02, 2026-11-21)
+
+**The fix went out first, from its own session.** While section 34 was being written the SDLC session published its
+fix itself, from a checkout cut from the remote `main`: the merge `dc9922c4e9f2db0fa213408536e9909082710cca` (09:36), the
+round's journal entry `eb6dbc033cdc446fd5f565ed39f4906c79e719a4` (09:41), the release
+`62af08c43b0240f5c1ab20b4835634617951c03d` (skill-craft 4.2.1, ShipLoop 2.4.1; 09:46) and a record of that release,
+`c52a307714458771f8346b368a710e463433ae40` (09:52). So what this session pushed is its own five commits, after the fix
+and not together with it. The owner's condition was that the round "has finished and been journaled"; both held
+before anything of this session's went out.
+
+**The two readings agree.** That session's journal entry reads the same things from the two runs as section 34
+does: `stage` in both with no option passed; no stop by name; the Sonnet session's stops by an id it recorded; the
+two name searches that only looked; the previous round's run as the contrast; neither session opening the two
+corrected reference files. It says it parsed the events separately, and it names this session for the pair of runs
+and for the Sol session's unopened references. The values of section 34 were sent to it at 09:35 and reached it.
+Its own message about the publication did not reach this session, as its journal says; I learned of it from the
+repository.
+
+**One count corrected.** Section 34 said one background start in the Sonnet run recorded no id. There are two, at
+events 1435 and 1604, each a mutation script started in a subshell. The script's pattern for a background start did
+not match `&)`. With a stricter pattern that leaves heredoc bodies out, that run has five shell background starts,
+three recording an id and two not; with the smoke script, six and four. The previous round's run has six, one of
+them recording an id. The SDLC session's separate parse gave the same counts. The line is added to `qualcheck.py`.
+The round's own checkout had been removed by then, so the three committed outputs could not be regenerated, and
+the new line's output is in `evidence/qualification/background-starts.txt`. The verdict does not rest on it.
+
+**How the push went.**
+
+- 09:52 to 09:55, refused. A merge of this session's tip into the remote `main`, made in a temporary checkout cut
+  from the remote and never published, passed the quick tier (13 suites, 162.6 seconds). `scripts/release-push.py`
+  then refused it, "remote branch moved or differs from --expected-base": the SDLC session's record of its release
+  had landed at 09:52. Nothing was pushed.
+- 09:54. The SDLC session merged the remote `main` into the shared checkout's `main`
+  (`f736cd6e6c378424a5af77dc28a44d5b9f787840`; parents: this session's tip, then the remote tip). It published
+  nothing and left the five commits to this session.
+- 09:56 to 09:59, pushed. I checked that the tree of that merge equals a fresh merge of its two sides, and that it
+  differs from the remote tip in this experiment's eight files only, all under `docs/`. The quick tier passed on it
+  (13 suites, 160.0 seconds), then `release-push.py` with the marketplace, boundary and test-groups checks, 3 of 3.
+  The remote `main` was that commit afterwards and the shared checkout level with it, clean.
+- The merge on the remote is therefore the SDLC session's, with this session's line as its first parent. A merge
+  made from the remote side would have kept the remote's own line first; no content differs.
+- CI on the pushed commit was running when this was written.

@@ -40,6 +40,10 @@ SHELL_STOP_BY_ID = re.compile(
 )
 REFERENCE = re.compile(r"skills/shiploop/references/([A-Za-z0-9_.-]+\.md)")
 GUIDE_SENTENCE = "Store the proposed product behavior in"
+# A shell job sent to the background: an `&` that is not `&&`, a redirection or part of `2>&1`. The call's text is
+# JSON, so a newline is the two characters backslash and n; a heredoc's body is text written to a file, not a start.
+HEREDOC = re.compile(r"<<-?\s*(?:\\?[\"'])?(\w+)(?:\\?[\"'])?.*?\\n\1\b", re.DOTALL)
+SHELL_JOB = re.compile(r"(?<![&>|<\d\\])&(?![&>\d])")
 START = re.compile(r"workspace start|shiploop['\"]? init\b")
 
 
@@ -317,6 +321,15 @@ def main() -> int:
     ]
     print("C2 shell stops that name a number, a variable or a file", by_id)
     print("C2 calls that record $!", [n for n, text in calls if "$!" in text])
+    jobs = [
+        (n, "$!" in HEREDOC.sub(" ", text))
+        for n, text in calls
+        if SHELL_JOB.search(HEREDOC.sub(" ", text))
+    ]
+    print(
+        "C2 calls that start a shell job in the background, heredoc bodies left out (event, records $!)",
+        jobs,
+    )
     print("C2 left behind", json.dumps(result.get("left_behind"), sort_keys=True))
     references = sorted({name for _, text in calls for name in REFERENCE.findall(text)})
     print("C3 reference files named in the builder's calls", references)
