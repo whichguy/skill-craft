@@ -1,0 +1,231 @@
+{
+ "case": "ticket-assignment",
+ "host": "claude",
+ "model": "claude-sonnet-5-5",
+ "effort": "medium",
+ "started": "2026-11-21T12:02:41-0800",
+ "start_tree": null,
+ "frozen_from": null,
+ "build_from": "/Users/dadleet/e2e-runs/ratchet-pilot-20261120-b6eab2/refs/ticket-assignment/reference",
+ "bare": false,
+ "sessions": [
+  {
+   "number": 1,
+   "role": "spec",
+   "label": "spec-1",
+   "seconds": 63.2,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 63.2,
+   "held_out_marks": [],
+   "cost_usd": 0.298914
+  },
+  {
+   "number": 2,
+   "role": "plan",
+   "label": "plan-1",
+   "seconds": 125.5,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 125.5,
+   "held_out_marks": [],
+   "cost_usd": 0.5167964
+  },
+  {
+   "number": 3,
+   "role": "tests",
+   "label": "tests-1-1",
+   "seconds": 176.3,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 176.3,
+   "held_out_marks": [],
+   "cost_usd": 0.5470444
+  }
+ ],
+ "gates": [
+  {
+   "number": 1,
+   "label": "after-given-build",
+   "pass": true,
+   "failing": [],
+   "passing": [],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [],
+   "clauses": 0,
+   "at": 190.7
+  },
+  {
+   "number": 2,
+   "label": "cycle-1-first",
+   "pass": false,
+   "failing": [
+    "C-20"
+   ],
+   "passing": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [],
+   "clauses": 31,
+   "at": 388.6
+  },
+  {
+   "number": 3,
+   "label": "final",
+   "pass": false,
+   "failing": [
+    "C-20"
+   ],
+   "passing": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [],
+   "clauses": 31,
+   "at": 426.3
+  }
+ ],
+ "snapshots": [
+  {
+   "label": "base",
+   "commit": "78ae658306fb323cce3177b75aa9c0196558935b",
+   "tree": "99d92357c06060cc6c277e7115a92b32c1852140",
+   "at": 0.2
+  },
+  {
+   "label": "spec",
+   "commit": "abc963298f472025d47e400e803475e78a76a7b6",
+   "tree": "f25091612052ebb8c717c47b4d7c0c8821394fab",
+   "at": 63.5
+  },
+  {
+   "label": "plan-1",
+   "commit": "b02addf3aa85551ac9123f80826edf7a004918e5",
+   "tree": "bbc2c82a4c50aadecc0e03a4973ff5aed9ddb7ac",
+   "at": 189.1
+  },
+  {
+   "label": "build-1",
+   "commit": "1f577065529f18b53239c11d550d0ae28b8fd830",
+   "tree": "add2055bcec3d95d90574284f51437c925bcbced",
+   "at": 190.8
+  },
+  {
+   "label": "tests-1",
+   "commit": "a10300c3e62d799fafb8d358e25ff5cd1a5ecf59",
+   "tree": "3996cd6368bc100a1d70ae5674a439296f03886b",
+   "at": 367.2
+  },
+  {
+   "label": "final",
+   "commit": "0371e3ee61144c41cc549acebd10aefd9f3fb2e7",
+   "tree": "3996cd6368bc100a1d70ae5674a439296f03886b",
+   "at": 426.4
+  }
+ ],
+ "cycles": [
+  {
+   "cycle": 1,
+   "clauses_at_start": 26,
+   "new_clauses": [],
+   "plan_loops": [
+    {
+     "name": "plan-1",
+     "session": "exited",
+     "loop": "complete",
+     "iterations": 2,
+     "trivial_streak": 1
+    }
+   ],
+   "plan_added": [
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25"
+   ],
+   "first_gate_failing": [
+    "C-20"
+   ]
+  }
+ ],
+ "reverted": [],
+ "spec_violations": [],
+ "local_head": "5e4fe0fb919d374b22d338a8849a2a7d1943a8d2",
+ "named_checks": true,
+ "enrich": "reworded",
+ "spec_from": null,
+ "preserve": "plan",
+ "stop": "stop-after-tests",
+ "final_pass": false,
+ "seconds": 426.4,
+ "clauses": 25,
+ "use_cases": 6,
+ "tamper": [],
+ "finished": "2026-11-21T12:09:47-0800"
+}

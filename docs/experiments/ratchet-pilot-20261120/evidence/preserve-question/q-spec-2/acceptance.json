@@ -1,0 +1,86 @@
+{
+  "C-1": {
+    "command": "node --test --test-reporter=spec --test-name-pattern='^C-1 ' acceptance/assign.acc.js"
+  },
+  "C-2": {
+    "command": "node --test --test-reporter=spec --test-name-pattern='^C-2 ' acceptance/assign.acc.js"
+  },
+  "C-3": {
+    "command": "node --test --test-reporter=spec --test-name-pattern='^C-3 ' acceptance/assign.acc.js"
+  },
+  "C-4": {
+    "command": "node --test --test-reporter=spec --test-name-pattern='^C-4 ' acceptance/assign.acc.js"
+  },
+  "C-5": {
+    "command": "node --test --test-reporter=spec --test-name-pattern='^C-5 ' acceptance/assign.acc.js"
+  },
+  "C-6": {
+    "command": "node --test --test-reporter=spec --test-name-pattern='^C-6 ' acceptance/assign.acc.js"
+  },
+  "C-7": {
+    "command": "node --test --test-reporter=spec --test-name-pattern='^C-7 ' acceptance/assign.acc.js"
+  },
+  "C-8": {
+    "command": "node --test --test-reporter=spec --test-name-pattern='^C-8 ' acceptance/assign.acc.js"
+  },
+  "C-9": {
+    "command": "node --test --test-reporter=spec --test-name-pattern='^C-9 ' acceptance/assign.acc.js"
+  },
+  "C-10": {
+    "command": "node --test --test-reporter=spec --test-name-pattern='^C-10 ' acceptance/assign.acc.js"
+  },
+  "C-13": {
+    "command": "node --test --test-reporter=spec --test-name-pattern='^C-13 ' acceptance/assign.acc.js"
+  },
+  "C-11": {
+    "command": "node --test --test-reporter=spec --test-name-pattern='^C-11 ' acceptance/notify.acc.js"
+  },
+  "C-12": {
+    "command": "node --test --test-reporter=spec --test-name-pattern='^C-12 ' acceptance/notify.acc.js"
+  },
+  "C-14": {
+    "command": "node --test --test-reporter=spec --test-name-pattern='^C-14 ' acceptance/data.acc.js"
+  },
+  "C-15": {
+    "command": "node --test --test-reporter=spec --test-name-pattern='^C-15 ' acceptance/filter.acc.js"
+  },
+  "C-16": {
+    "command": "node --test --test-reporter=spec --test-name-pattern='^C-16 ' acceptance/filter.acc.js"
+  },
+  "C-17": {
+    "command": "node --test --test-reporter=spec --test-name-pattern='^C-17 ' acceptance/filter.acc.js"
+  },
+  "C-18": {
+    "command": "node --test --test-reporter=spec --test-name-pattern='^C-18 ' acceptance/filter.acc.js"
+  },
+  "C-19": {
+    "command": "node --test --test-reporter=spec --test-name-pattern='^C-19 ' acceptance/data.acc.js"
+  },
+  "C-20": {
+    "command": "node --test --test-reporter=spec --test-name-pattern='^C-20 ' acceptance/data.acc.js"
+  },
+  "C-21": {
+    "command": "node --test --test-reporter=spec --test-name-pattern=\"^C-21 \" acceptance/data.acc.js acceptance/notify.acc.js acceptance/npmtest.acc.js"
+  },
+  "C-22": {
+    "command": "node --test --test-reporter=spec --test-name-pattern='^C-22 ' acceptance/npmtest.acc.js"
+  },
+  "U-1": {
+    "command": "node --test --test-reporter=spec --test-name-pattern='^U-1 ' acceptance/usecases.acc.js"
+  },
+  "U-2": {
+    "command": "node --test --test-reporter=spec --test-name-pattern='^U-2 ' acceptance/usecases.acc.js"
+  },
+  "U-3": {
+    "command": "node --test --test-reporter=spec --test-name-pattern='^U-3 ' acceptance/usecases.acc.js"
+  },
+  "U-4": {
+    "command": "node --test --test-reporter=spec --test-name-pattern='^U-4 ' acceptance/usecases.acc.js"
+  },
+  "U-5": {
+    "command": "node --test --test-reporter=spec --test-name-pattern='^U-5 ' acceptance/usecases.acc.js"
+  },
+  "U-6": {
+    "command": "node --test --test-reporter=spec --test-name-pattern='^U-6 ' acceptance/usecases.acc.js"
+  }
+}

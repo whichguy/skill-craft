@@ -1,0 +1,40 @@
+A test run started from inside a test run: what it does (2026-11-21, about 13:05, Node v26.12.1)
+
+Why this was checked. In cell q-plan-1 the two checks that run the product's own tests (C-19 "the existing test
+suite passes", C-20 "... and npm test passes") are started from inside the acceptance run, and C-19 passes on four
+defect trees on which other cells' runs of the same tests fail.
+
+What was done. One defect of the ticket-assignment case was written into a scratch folder with
+    python3 grade.py variant ticket-assignment default-limit-changed <scratch>/defect
+and the product's own tests were run in it four ways. The defect changes the default page size, which the product's
+own tests check.
+
+    1. node --test test/                               exit 1   13016 bytes   tests 121, pass 118, fail 3
+    2. NODE_TEST_CONTEXT=child-v8 node --test test/    exit 0     182 bytes   no test run
+    3. npm test --silent                               exit 1   13051 bytes   tests 122, pass 119, fail 3
+    4. NODE_TEST_CONTEXT=child-v8 npm test --silent    exit 0     182 bytes   no test run
+
+The 182 bytes of runs 2 and 4, whole:
+
+    (node:<pid>) Warning: node:test run() is being called recursively within a test file. skipping running files.
+    (Use `node --trace-warnings ...` to show where the warning was created)
+
+Reading. Node's test runner starts each test file as a child with NODE_TEST_CONTEXT set. A test in that file that
+starts `node --test` or `npm test` passes the variable on unless it removes it, and the nested runner then skips
+every file and exits 0. A check written as "start the product's tests and require exit 0" therefore passes whatever
+the product does. On a correct build nothing shows the difference: 121 passing tests and no test both exit 0.
+
+How the seven suites of this round start the product's tests (read from their acceptance files):
+
+    earlier (p1S-ticket-assignment-medium)  C-21: variable kept (runs nothing; the same test compares test/ with
+                                            the base commit). C-22: variable removed.
+    q-base-1                                C-21: variable removed; requires a count of tests above 0.
+    q-base-2                                C-23, C-24: variable removed; C-23 requires "pass 1xx" in the output.
+    q-spec-1                                C-20: variable kept (runs nothing; compares test/ with the base commit).
+                                            C-21: variable removed.
+    q-spec-2                                C-22: variable removed.
+    q-plan-1                                C-19, C-20: variable kept in both. Nothing compares test/ with the base.
+    q-plan-2                                C-21, C-22: every NODE_TEST* variable removed; requires "fail 0" and
+                                            compares the counts of tests.
+
+Limit. One defect tree, one Node version. The scratch copy and the four outputs were not kept in the repository.

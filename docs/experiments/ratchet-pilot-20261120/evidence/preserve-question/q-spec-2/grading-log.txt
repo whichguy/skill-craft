@@ -1,0 +1,33 @@
+== strength grading q-spec-2 12:31:33
+q-spec-2: 22 clauses and 6 use cases tested; on the correct reference 0 clauses and 0 use cases fail: none
+  control alternative: fails C-1, C-14, C-3, C-7, C-8
+  filter-or                   caught     C-17, C-22, U-4
+  filter-after-page           MISSED     
+  no-envelope                 caught     C-22, C-3, C-4, C-5, C-6
+  conflict-as-invalid         caught     C-22, C-5, C-9
+  closed-assignable           caught     C-12, C-22, C-5, C-9
+  notify-inline               caught     C-11, C-22, U-3
+  notify-no-template          caught     C-11, C-12, U-3
+  notify-key-per-ticket       caught     C-11, C-22
+  notify-requester            caught     C-11, C-22, U-3
+  audit-bypassed              caught     C-13, C-14, C-22
+  actor-ignored               caught     C-13, C-22
+  same-agent-not-noop         caught     C-14, C-22, C-7, C-8
+  memory-only-assignee        caught     C-14, C-19, U-5
+  old-data-refused            caught     C-14, C-19, U-6
+  old-assignee-undefined      caught     C-14
+  raw-column-inserted         caught     C-20, U-6
+  cli-no-assignee             caught     C-19, U-5
+  no-unassign                 caught     C-13, C-14, C-15, C-2, C-22, C-5, C-6, C-8, C-9, U-2
+  empty-filter-ignored        caught     C-16, C-17, C-22, U-4
+  name-limit-off-by-one       caught     C-19, C-3, C-5
+  listing-hides-assignee      caught     C-14, C-16, C-18, C-19, C-9, U-5
+  update-rejects-resolved     MISSED     
+  default-limit-changed       caught     C-18, C-22
+  resolved-template-replaced  caught     C-22, U-6
+  audit-not-saved             caught     C-14, C-22
+  backoff-linear              caught     C-21
+  validate-renamed            caught     C-21
+  caught 25 of 27 calibrated defects
+strength exit: 0
+== done 12:53:24

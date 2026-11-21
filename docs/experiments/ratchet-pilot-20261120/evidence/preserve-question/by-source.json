@@ -1,0 +1,534 @@
+{
+ "runs": {
+  "base:earlier": {
+   "case": "ticket-assignment",
+   "enrich": "reworded",
+   "counts": {
+    "written": {
+     "clauses": {
+      "request": 13,
+      "implied": 6,
+      "existing": 2,
+      "choice": 1
+     },
+     "use_cases": {
+      "request": 5
+     }
+    },
+    "failing": {
+     "clauses": {},
+     "use_cases": {}
+    }
+   },
+   "request_clauses_failing": [],
+   "request_clauses_about_tests": [],
+   "suite_clauses": [
+    "C-21",
+    "C-22"
+   ],
+   "caught_only_through_suite": [
+    "audit-not-saved",
+    "backoff-linear",
+    "default-limit-changed",
+    "resolved-template-replaced",
+    "validate-renamed"
+   ],
+   "caught": 26,
+   "defects": 27,
+   "missed": [
+    "update-rejects-resolved"
+   ],
+   "refusing": {
+    "written": {
+     "implied": 1,
+     "request": 1
+    },
+    "failing": {
+     "implied": 0,
+     "request": 0
+    }
+   },
+   "choice_clauses": [
+    {
+     "id": "C-13",
+     "failing": false,
+     "refuses": false,
+     "statement": "Unassigning notifies nobody",
+     "source": "choice: the request notifies only \"the agent a ticket is assigned to ... that it was assigned to them\", and an unassignment assigns it to nobody"
+    }
+   ],
+   "plan_added": [],
+   "plan_added_failing": [],
+   "failing_not_in_spec": [],
+   "failing_items": []
+  },
+  "base:q-base-1": {
+   "case": "ticket-assignment",
+   "enrich": "reworded",
+   "counts": {
+    "written": {
+     "clauses": {
+      "request": 13,
+      "implied": 7,
+      "existing": 1
+     },
+     "use_cases": {
+      "request": 5
+     }
+    },
+    "failing": {
+     "clauses": {},
+     "use_cases": {}
+    }
+   },
+   "request_clauses_failing": [],
+   "request_clauses_about_tests": [],
+   "suite_clauses": [
+    "C-20",
+    "C-21"
+   ],
+   "caught_only_through_suite": [
+    "audit-not-saved",
+    "default-limit-changed",
+    "resolved-template-replaced"
+   ],
+   "caught": 24,
+   "defects": 27,
+   "missed": [
+    "backoff-linear",
+    "update-rejects-resolved",
+    "validate-renamed"
+   ],
+   "refusing": {
+    "written": {
+     "request": 1,
+     "implied": 3
+    },
+    "failing": {
+     "request": 0,
+     "implied": 0
+    }
+   },
+   "choice_clauses": [],
+   "plan_added": [],
+   "plan_added_failing": [],
+   "failing_not_in_spec": [],
+   "failing_items": []
+  },
+  "base:q-base-2": {
+   "case": "ticket-assignment",
+   "enrich": "reworded",
+   "counts": {
+    "written": {
+     "clauses": {
+      "request": 13,
+      "existing": 5,
+      "implied": 5,
+      "choice": 1
+     },
+     "use_cases": {
+      "request": 5
+     }
+    },
+    "failing": {
+     "clauses": {},
+     "use_cases": {}
+    }
+   },
+   "request_clauses_failing": [],
+   "request_clauses_about_tests": [],
+   "suite_clauses": [
+    "C-24"
+   ],
+   "caught_only_through_suite": [],
+   "caught": 26,
+   "defects": 27,
+   "missed": [
+    "update-rejects-resolved"
+   ],
+   "refusing": {
+    "written": {
+     "existing": 1,
+     "implied": 1,
+     "request": 1
+    },
+    "failing": {
+     "existing": 0,
+     "implied": 0,
+     "request": 0
+    }
+   },
+   "choice_clauses": [
+    {
+     "id": "C-18",
+     "failing": false,
+     "refuses": false,
+     "statement": "An `assignee` filter value is not validated against a name rule",
+     "source": "choice: a filter on a name that has no tickets is an empty result, the loosest behaviour; the request lists no error for it"
+    }
+   ],
+   "plan_added": [],
+   "plan_added_failing": [],
+   "failing_not_in_spec": [],
+   "failing_items": []
+  },
+  "spec:q-spec-1": {
+   "case": "ticket-assignment",
+   "enrich": "reworded",
+   "counts": {
+    "written": {
+     "clauses": {
+      "request": 12,
+      "existing": 4,
+      "implied": 5
+     },
+     "use_cases": {
+      "request": 6
+     }
+    },
+    "failing": {
+     "clauses": {},
+     "use_cases": {}
+    }
+   },
+   "request_clauses_failing": [],
+   "request_clauses_about_tests": [],
+   "suite_clauses": [
+    "C-20",
+    "C-21"
+   ],
+   "caught_only_through_suite": [
+    "audit-not-saved",
+    "backoff-linear",
+    "default-limit-changed",
+    "validate-renamed"
+   ],
+   "caught": 25,
+   "defects": 27,
+   "missed": [
+    "filter-after-page",
+    "update-rejects-resolved"
+   ],
+   "refusing": {
+    "written": {
+     "existing": 1,
+     "request": 1
+    },
+    "failing": {
+     "existing": 0,
+     "request": 0
+    }
+   },
+   "choice_clauses": [],
+   "plan_added": [],
+   "plan_added_failing": [],
+   "failing_not_in_spec": [],
+   "failing_items": []
+  },
+  "spec:q-spec-2": {
+   "case": "ticket-assignment",
+   "enrich": "reworded",
+   "counts": {
+    "written": {
+     "clauses": {
+      "request": 14,
+      "existing": 5,
+      "implied": 3
+     },
+     "use_cases": {
+      "request": 6
+     }
+    },
+    "failing": {
+     "clauses": {},
+     "use_cases": {}
+    }
+   },
+   "request_clauses_failing": [],
+   "request_clauses_about_tests": [],
+   "suite_clauses": [
+    "C-21",
+    "C-22"
+   ],
+   "caught_only_through_suite": [
+    "backoff-linear",
+    "validate-renamed"
+   ],
+   "caught": 25,
+   "defects": 27,
+   "missed": [
+    "filter-after-page",
+    "update-rejects-resolved"
+   ],
+   "refusing": {
+    "written": {
+     "existing": 1,
+     "request": 1
+    },
+    "failing": {
+     "existing": 0,
+     "request": 0
+    }
+   },
+   "choice_clauses": [],
+   "plan_added": [],
+   "plan_added_failing": [],
+   "failing_not_in_spec": [],
+   "failing_items": []
+  },
+  "plan:q-plan-1": {
+   "case": "ticket-assignment",
+   "enrich": "reworded",
+   "counts": {
+    "written": {
+     "clauses": {
+      "request": 14,
+      "implied": 4,
+      "existing": 7
+     },
+     "use_cases": {
+      "request": 6
+     }
+    },
+    "failing": {
+     "clauses": {
+      "request": 1
+     },
+     "use_cases": {}
+    }
+   },
+   "request_clauses_failing": [
+    "C-20"
+   ],
+   "request_clauses_about_tests": [
+    "C-20"
+   ],
+   "suite_clauses": [
+    "C-19",
+    "C-20"
+   ],
+   "caught_only_through_suite": [],
+   "caught": 23,
+   "defects": 27,
+   "missed": [
+    "backoff-linear",
+    "default-limit-changed",
+    "resolved-template-replaced",
+    "validate-renamed"
+   ],
+   "refusing": {
+    "written": {
+     "implied": 1,
+     "request": 1,
+     "existing": 3
+    },
+    "failing": {
+     "implied": 0,
+     "request": 0,
+     "existing": 0
+    }
+   },
+   "choice_clauses": [],
+   "plan_added": [
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25"
+   ],
+   "plan_added_failing": [],
+   "failing_not_in_spec": [],
+   "failing_items": [
+    {
+     "id": "C-20",
+     "kind": "request",
+     "plan_added": false,
+     "refuses": false,
+     "statement": "New behaviour has node:test tests under `test/`",
+     "source": "request"
+    }
+   ]
+  },
+  "plan:q-plan-2": {
+   "case": "ticket-assignment",
+   "enrich": "reworded",
+   "counts": {
+    "written": {
+     "clauses": {
+      "request": 13,
+      "existing": 8,
+      "implied": 3,
+      "choice": 2
+     },
+     "use_cases": {
+      "request": 6
+     }
+    },
+    "failing": {
+     "clauses": {},
+     "use_cases": {}
+    }
+   },
+   "request_clauses_failing": [],
+   "request_clauses_about_tests": [],
+   "suite_clauses": [
+    "C-22"
+   ],
+   "caught_only_through_suite": [],
+   "caught": 26,
+   "defects": 27,
+   "missed": [
+    "update-rejects-resolved"
+   ],
+   "refusing": {
+    "written": {
+     "existing": 1,
+     "request": 1,
+     "choice": 1
+    },
+    "failing": {
+     "existing": 0,
+     "request": 0,
+     "choice": 0
+    }
+   },
+   "choice_clauses": [
+    {
+     "id": "C-12",
+     "failing": false,
+     "refuses": false,
+     "statement": "Unassigning notifies nobody",
+     "source": "choice: the request says only that the agent assigned to is notified of assignment; a notification on unassignment is not asked for."
+    },
+    {
+     "id": "C-18",
+     "failing": false,
+     "refuses": true,
+     "statement": "The assignee filter accepts any text and does not by itself make the request invalid",
+     "source": "choice: unlike status and priority there is no fixed set to check against, and the request gives no error case."
+    }
+   ],
+   "plan_added": [
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26"
+   ],
+   "plan_added_failing": [],
+   "failing_not_in_spec": [],
+   "failing_items": []
+  }
+ },
+ "pooled": {
+  "base": {
+   "runs": [
+    "base:earlier",
+    "base:q-base-1",
+    "base:q-base-2"
+   ],
+   "plan_added": 0,
+   "plan_added_failing": 0,
+   "request_clauses_about_tests": 0,
+   "refusing": {
+    "written": {
+     "implied": 5,
+     "request": 3,
+     "existing": 1
+    },
+    "failing": {
+     "implied": 0,
+     "request": 0,
+     "existing": 0
+    }
+   },
+   "written": {
+    "clauses": {
+     "request": 39,
+     "implied": 18,
+     "existing": 8,
+     "choice": 2
+    },
+    "use_cases": {
+     "request": 15
+    }
+   },
+   "failing": {
+    "clauses": {},
+    "use_cases": {}
+   }
+  },
+  "spec": {
+   "runs": [
+    "spec:q-spec-1",
+    "spec:q-spec-2"
+   ],
+   "plan_added": 0,
+   "plan_added_failing": 0,
+   "request_clauses_about_tests": 0,
+   "refusing": {
+    "written": {
+     "existing": 2,
+     "request": 2
+    },
+    "failing": {
+     "existing": 0,
+     "request": 0
+    }
+   },
+   "written": {
+    "clauses": {
+     "request": 26,
+     "existing": 9,
+     "implied": 8
+    },
+    "use_cases": {
+     "request": 12
+    }
+   },
+   "failing": {
+    "clauses": {},
+    "use_cases": {}
+   }
+  },
+  "plan": {
+   "runs": [
+    "plan:q-plan-1",
+    "plan:q-plan-2"
+   ],
+   "plan_added": 9,
+   "plan_added_failing": 0,
+   "request_clauses_about_tests": 1,
+   "refusing": {
+    "written": {
+     "implied": 1,
+     "request": 2,
+     "existing": 4,
+     "choice": 1
+    },
+    "failing": {
+     "implied": 0,
+     "request": 0,
+     "existing": 0,
+     "choice": 0
+    }
+   },
+   "written": {
+    "clauses": {
+     "request": 27,
+     "implied": 7,
+     "existing": 15,
+     "choice": 2
+    },
+    "use_cases": {
+     "request": 12
+    }
+   },
+   "failing": {
+    "clauses": {
+     "request": 1
+    },
+    "use_cases": {}
+   }
+  }
+ }
+}

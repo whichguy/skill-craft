@@ -1,0 +1,111 @@
+== base:earlier (ticket-assignment; run.json says enrich=reworded): 5 use cases, 0 fail on the reference; clauses:
+   request      written   13   failing   0   (0.0% of its kind)
+   implied      written    6   failing   0   (0.0% of its kind)
+   existing     written    2   failing   0   (0.0% of its kind)
+   choice       written    1   failing   0   (0.0% of its kind)
+   all          written   22   failing   0   (0.0%)
+   not existing written   20   failing   0   (0.0%)
+   the plan stage added nothing; of those failing: none
+   request-clauses-about-tests: of the request clauses failing [], about the tests the request asks for: none
+   defects caught 26 of 27; missed ['update-rejects-resolved']; clauses that run the product's own tests ['C-21', 'C-22']; caught only through them: 5 ['audit-not-saved', 'backoff-linear', 'default-limit-changed', 'resolved-template-replaced', 'validate-renamed']
+== base:q-base-1 (ticket-assignment; run.json says enrich=reworded): 5 use cases, 0 fail on the reference; clauses:
+   request      written   13   failing   0   (0.0% of its kind)
+   implied      written    7   failing   0   (0.0% of its kind)
+   existing     written    1   failing   0   (0.0% of its kind)
+   all          written   21   failing   0   (0.0%)
+   not existing written   20   failing   0   (0.0%)
+   the plan stage added nothing; of those failing: none
+   request-clauses-about-tests: of the request clauses failing [], about the tests the request asks for: none
+   defects caught 24 of 27; missed ['backoff-linear', 'update-rejects-resolved', 'validate-renamed']; clauses that run the product's own tests ['C-20', 'C-21']; caught only through them: 3 ['audit-not-saved', 'default-limit-changed', 'resolved-template-replaced']
+== base:q-base-2 (ticket-assignment; run.json says enrich=reworded): 5 use cases, 0 fail on the reference; clauses:
+   request      written   13   failing   0   (0.0% of its kind)
+   implied      written    5   failing   0   (0.0% of its kind)
+   existing     written    5   failing   0   (0.0% of its kind)
+   choice       written    1   failing   0   (0.0% of its kind)
+   all          written   24   failing   0   (0.0%)
+   not existing written   19   failing   0   (0.0%)
+   the plan stage added nothing; of those failing: none
+   request-clauses-about-tests: of the request clauses failing [], about the tests the request asks for: none
+   defects caught 26 of 27; missed ['update-rejects-resolved']; clauses that run the product's own tests ['C-24']; caught only through them: 0 []
+== spec:q-spec-1 (ticket-assignment; run.json says enrich=reworded): 6 use cases, 0 fail on the reference; clauses:
+   request      written   12   failing   0   (0.0% of its kind)
+   implied      written    5   failing   0   (0.0% of its kind)
+   existing     written    4   failing   0   (0.0% of its kind)
+   all          written   21   failing   0   (0.0%)
+   not existing written   17   failing   0   (0.0%)
+   the plan stage added nothing; of those failing: none
+   request-clauses-about-tests: of the request clauses failing [], about the tests the request asks for: none
+   defects caught 25 of 27; missed ['filter-after-page', 'update-rejects-resolved']; clauses that run the product's own tests ['C-20', 'C-21']; caught only through them: 4 ['audit-not-saved', 'backoff-linear', 'default-limit-changed', 'validate-renamed']
+== spec:q-spec-2 (ticket-assignment; run.json says enrich=reworded): 6 use cases, 0 fail on the reference; clauses:
+   request      written   14   failing   0   (0.0% of its kind)
+   implied      written    3   failing   0   (0.0% of its kind)
+   existing     written    5   failing   0   (0.0% of its kind)
+   all          written   22   failing   0   (0.0%)
+   not existing written   17   failing   0   (0.0%)
+   the plan stage added nothing; of those failing: none
+   request-clauses-about-tests: of the request clauses failing [], about the tests the request asks for: none
+   defects caught 25 of 27; missed ['filter-after-page', 'update-rejects-resolved']; clauses that run the product's own tests ['C-21', 'C-22']; caught only through them: 2 ['backoff-linear', 'validate-renamed']
+== plan:q-plan-1 (ticket-assignment; run.json says enrich=reworded): 6 use cases, 0 fail on the reference; clauses:
+   request      written   14   failing   1   (7.1% of its kind)
+   implied      written    4   failing   0   (0.0% of its kind)
+   existing     written    7   failing   0   (0.0% of its kind)
+   all          written   25   failing   1   (4.0%)
+   not existing written   18   failing   1   (5.6%)
+   the plan stage added ['C-21', 'C-22', 'C-23', 'C-24', 'C-25']; of those failing: none
+   request-clauses-about-tests: of the request clauses failing ['C-20'], about the tests the request asks for: ['C-20']
+   defects caught 23 of 27; missed ['backoff-linear', 'default-limit-changed', 'resolved-template-replaced', 'validate-renamed']; clauses that run the product's own tests ['C-19', 'C-20']; caught only through them: 0 []
+== plan:q-plan-2 (ticket-assignment; run.json says enrich=reworded): 6 use cases, 0 fail on the reference; clauses:
+   request      written   13   failing   0   (0.0% of its kind)
+   implied      written    3   failing   0   (0.0% of its kind)
+   existing     written    8   failing   0   (0.0% of its kind)
+   choice       written    2   failing   0   (0.0% of its kind)
+   all          written   26   failing   0   (0.0%)
+   not existing written   18   failing   0   (0.0%)
+   the plan stage added ['C-23', 'C-24', 'C-25', 'C-26']; of those failing: none
+   request-clauses-about-tests: of the request clauses failing [], about the tests the request asks for: none
+   defects caught 26 of 27; missed ['update-rejects-resolved']; clauses that run the product's own tests ['C-22']; caught only through them: 0 []
+
+#### pooled, text base (3 runs): use cases written 15, failing 0 {}; clauses:
+   request      written   39   failing   0   (0.0% of its kind)
+   implied      written   18   failing   0   (0.0% of its kind)
+   existing     written    8   failing   0   (0.0% of its kind)
+   choice       written    2   failing   0   (0.0% of its kind)
+   all          written   67   failing   0   (0.0%)
+   not existing written   59   failing   0   (0.0%)
+   clauses the plan stage added: 0, failing on the reference: 0
+   request clauses failing that are about the tests the request asks for: 0
+   clauses whose statement makes the product refuse or require something, against the rest of their kind:
+      request    refuses: written   3, failing   0 (0.0%);   rest: written  36, failing   0 (0.0%)
+      implied    refuses: written   5, failing   0 (0.0%);   rest: written  13, failing   0 (0.0%)
+      existing   refuses: written   1, failing   0 (0.0%);   rest: written   7, failing   0 (0.0%)
+      choice     refuses: written   0, failing   0 (-);   rest: written   2, failing   0 (0.0%)
+
+#### pooled, text spec (2 runs): use cases written 12, failing 0 {}; clauses:
+   request      written   26   failing   0   (0.0% of its kind)
+   implied      written    8   failing   0   (0.0% of its kind)
+   existing     written    9   failing   0   (0.0% of its kind)
+   all          written   43   failing   0   (0.0%)
+   not existing written   34   failing   0   (0.0%)
+   clauses the plan stage added: 0, failing on the reference: 0
+   request clauses failing that are about the tests the request asks for: 0
+   clauses whose statement makes the product refuse or require something, against the rest of their kind:
+      request    refuses: written   2, failing   0 (0.0%);   rest: written  24, failing   0 (0.0%)
+      implied    refuses: written   0, failing   0 (-);   rest: written   8, failing   0 (0.0%)
+      existing   refuses: written   2, failing   0 (0.0%);   rest: written   7, failing   0 (0.0%)
+
+#### pooled, text plan (2 runs): use cases written 12, failing 0 {}; clauses:
+   request      written   27   failing   1   (3.7% of its kind)
+   implied      written    7   failing   0   (0.0% of its kind)
+   existing     written   15   failing   0   (0.0% of its kind)
+   choice       written    2   failing   0   (0.0% of its kind)
+   all          written   51   failing   1   (2.0%)
+   not existing written   36   failing   1   (2.8%)
+   clauses the plan stage added: 9, failing on the reference: 0
+   request clauses failing that are about the tests the request asks for: 1
+   clauses whose statement makes the product refuse or require something, against the rest of their kind:
+      request    refuses: written   2, failing   0 (0.0%);   rest: written  25, failing   1 (4.0%)
+      implied    refuses: written   1, failing   0 (0.0%);   rest: written   6, failing   0 (0.0%)
+      existing   refuses: written   4, failing   0 (0.0%);   rest: written  11, failing   0 (0.0%)
+      choice     refuses: written   1, failing   0 (0.0%);   rest: written   1, failing   0 (0.0%)
+
+wrote /Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-preserve-1cbbeb/docs/experiments/ratchet-pilot-20261120/evidence/preserve-question/by-source.json
