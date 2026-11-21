@@ -1,6 +1,7 @@
 """Where the items that fail on a correct reference come from, by the Source line their own specification gave them.
 
 usage: by_source.py OUT_JSON TEXT:NAME=RUN_DIR...
+       by_source.py specs OUT_JSON TEXT:NAME=RUN_DIR...
 
 A run here is a test-strength cell that `grade.py strength` has graded: RUN_DIR holds work/ratchet/spec.md, run.json
 and strength.json. TEXT names the enrichment text the run used, so runs of one text are pooled. For every run and
@@ -8,10 +9,16 @@ every text it counts, over the clauses written and over the clauses that fail on
 kind of Source (request, implied, existing, choice, discovery), how many the plan stage added, and how many of each
 kind make the product refuse or require something (a word match on the statement); it lists each failing item and
 each choice clause so they can be read. It reads and never writes inside a run folder. Standard library only.
+
+`specs` needs no grading: it reads each run's specification as its spec stage left it (the run's `spec` commit, so
+clauses a later stage added are not counted) and counts what was written: clauses by Source, the refusals the
+writer added on its own (choice or implied clauses the word match marks), and `Open:` lines.
 """
 import json
 import re
+import subprocess
 import sys
+import tempfile
 from collections import Counter
 from pathlib import Path
 
@@ -87,9 +94,66 @@ def read_run(folder):
             "failing_not_in_spec": [ident for ident in failing if ident not in items], "failing_items": listing}
 
 
+def spec_as_written(folder):
+    """The specification's items at the run's `spec` commit: what the spec stage wrote, before any other stage."""
+    folder = Path(folder)
+    run = json.loads((folder / "run.json").read_text())
+    commits = [snap["commit"] for snap in run.get("snapshots", []) if snap["label"] == "spec"]
+    if not commits:
+        raise SystemExit(f"{folder}: run.json records no `spec` commit")
+    text = subprocess.run(["git", "-C", str(folder / "work"), "show", f"{commits[0]}:ratchet/spec.md"],
+                          check=True, capture_output=True, text=True).stdout
+    with tempfile.TemporaryDirectory() as scratch:
+        (Path(scratch) / "ratchet").mkdir()
+        (Path(scratch) / "ratchet" / "spec.md").write_text(text)
+        return run, ratchet.read_spec(scratch)
+
+
+def specs(out_path, entries):
+    """Count what each specification wrote, with no grading."""
+    result, rows = {}, []
+    for entry in entries:
+        label, _, folder = entry.partition("=")
+        run, items = spec_as_written(folder)
+        kinds, added_refusals, opens = Counter(), [], []
+        use_cases = sum(1 for ident in items if ident.startswith("U-"))
+        for ident, item in items.items():
+            if not ident.startswith("C-"):
+                continue
+            kind = kind_of(item["source"])
+            kinds[kind] += 1
+            if kind in ("choice", "implied") and REFUSES.search(item["statement"]):
+                added_refusals.append({"id": ident, "kind": kind, "statement": item["statement"]})
+            found = re.search(r"^Open: *(.+)$", item["block"], re.MULTILINE)
+            if found:
+                opens.append({"id": ident, "kind": kind, "statement": item["statement"], "open": found.group(1).strip()})
+        seconds = sum(row["seconds"] for row in run.get("sessions", []) if row.get("role") == "spec")
+        total = sum(kinds.values())
+        result[label] = {"case": run.get("case"), "enrich": run.get("enrich", "single"), "clauses": total,
+                         "use_cases": use_cases, "by_source": dict(kinds), "added_refusals": added_refusals,
+                         "open_lines": opens, "spec_minutes": round(seconds / 60, 1)}
+        rows.append((label, run.get("case"), total, use_cases, kinds, len(added_refusals), len(opens), seconds / 60))
+    print(f"{'run':34s} {'clauses':>7s} {'use c.':>6s} {'request':>7s} {'implied':>7s} {'existing':>8s} {'choice':>6s} "
+          f"{'added refusals':>14s} {'Open: lines':>11s} {'minutes':>7s}")
+    for label, _case, total, use_cases, kinds, refusals, opens, minutes in rows:
+        other = sum(count for kind, count in kinds.items() if kind not in KINDS)
+        print(f"{label:34s} {total:7d} {use_cases:6d} {kinds.get('request', 0):7d} {kinds.get('implied', 0):7d} "
+              f"{kinds.get('existing', 0):8d} {kinds.get('choice', 0):6d} {refusals:14d} {opens:11d} {minutes:7.1f}"
+              + (f"   ({other} with an unexpected Source)" if other else ""))
+    for label, row in result.items():
+        if row["open_lines"]:
+            print(f"\n== {label}: Open: lines")
+            for entry in row["open_lines"]:
+                print(f"   {entry['id']} [{entry['kind']}] {entry['statement']}\n        Open: {entry['open']}")
+    Path(out_path).write_text(json.dumps(result, indent=1) + "\n")
+    print(f"\nwrote {out_path}")
+
+
 def main():
     if len(sys.argv) < 3:
         raise SystemExit(__doc__)
+    if sys.argv[1] == "specs":
+        return specs(sys.argv[2], sys.argv[3:])
     out_path, entries = sys.argv[1], sys.argv[2:]
     result = {"runs": {}, "pooled": {}}
     pools = {}

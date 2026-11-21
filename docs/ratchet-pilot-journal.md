@@ -1475,3 +1475,105 @@ not a limit that need not exist". It added that this pilot's instrument could te
 
 Evidence: `by_source.py` (the `REFUSES` word list); `evidence/lens-enrichment/failing-by-source.json`
 (`choice_clauses`, `refusing`), `failing-by-source-log.txt`, `choices-read-by-hand.txt`.
+
+## 21. Amendment 8, 2026-11-21 06:55: the reworded lens text, in three rungs, the small one first (registered before any run of it)
+
+Owner, 2026-11-21 06:46, answering "Should I run the reworded text as a third arm (the same five runs, about an
+hour)?": "Yes, plan small experiments before doing larger ones to see if you can get fast iteration". My reading: run
+it, as a ladder. A cheap run comes first, whose result can change the wording within minutes; then one whole cell;
+then the rest. A rung is climbed only by a rule written here before it runs.
+
+**What runs.** `--enrich reworded`: the other session's `docs/experiments/spec-elaboration-20261120/arms/
+R-lenses-reworded.md` (its commit f2ffbfdf7a4f38e1daf6505daf51d1cd5353dce5, unchanged since), set into this stage
+the way the lens text was: this stage's frame and file path, the repository-reading step first, the `existing` source
+kind kept, and nothing else (`evidence/reworded-enrichment/port-against-R-lenses-reworded.diff`). It differs from
+the lens text in what section 20 found to matter: a clause is earned only by a sentence of the request, by what the
+outcome needs, or by what must be preserved; "add no capability, duty or restriction that the request's purpose does
+not call for"; a point the request leaves unsettled is the loosest choice when any answer serves the requester
+equally, and otherwise a clause "at the loosest reading that is certainly wanted" with an `Open:` line; "invent no
+bound"; and the operator line is conditional. In such a run every later stage's frame gains one paragraph
+(`OPEN_NOTE`): an open point is not a requirement, a plan says how each is handled, a build takes a reasonable
+answer and says which in its report, a test checks only what its clause states, and no stage adds a clause that
+settles one. Runner as in every compared cell: Codex `gpt-6.2-sol` at high, one new Git repository a run, outside
+the checkout.
+
+**Apparatus added for the ladder** (self-tested with the scripted stand-in before this commit: the standing check
+passes for all three texts; a spec-only run records `stop-after-spec`, one session, no gate; a run started from it
+commits a byte-identical specification, runs no spec session and ends converged; a start from another text's
+specification is refused).
+
+- `ratchet.py run --stop-after spec`: the spec stage alone.
+- `ratchet.py run --spec-from RUN`: a run that starts from the specification RUN wrote, as written, with no spec
+  session; `run.json` records `spec_from` and the seconds of RUN's spec sessions. So a specification read at the
+  first rung is the one built and tested on at the later rungs, and no session is paid for twice.
+- `by_source.py specs`: counts what a specification wrote at its `spec` commit, with no grading: clauses by Source,
+  the refusals the writer added on its own (choice or implied clauses that F28's word list marks), `Open:` lines.
+
+**The specifications already on file, counted the same way** (the base for the first rung):
+
+| Specification | Clauses | Use cases | request | implied | existing | choice | Added refusals | `Open:` lines | Minutes |
+|---|---|---|---|---|---|---|---|---|---|
+| lens, orders | 82 | 8 | 26 | 24 | 12 | 20 | 8 | 0 | 5.0 |
+| lens, ticket assignment | 151 | 11 | 18 | 18 | 101 | 14 | 3 | 0 | 7.0 |
+| lens, due times (test-strength cell) | 190 | 12 | 28 | 33 | 110 | 19 | 14 | 0 | 8.0 |
+| lens, due times (loop a) | 170 | 11 | 19 | 31 | 95 | 25 | 7 | 0 | 7.6 |
+| lens, due times (loop b) | 197 | 16 | 16 | 53 | 104 | 24 | 18 | 0 | 13.3 |
+| pilot's, orders | 69 | 12 | 28 | 14 | 11 | 16 | 7 | 0 | 6.1 |
+| pilot's, ticket assignment | 190 | 17 | 19 | 27 | 132 | 12 | 1 | 0 | 13.5 |
+| pilot's, due times (test-strength cell) | 236 | 15 | 26 | 33 | 157 | 20 | 10 | 0 | 10.1 |
+| pilot's, due times (loop) | 278 | 21 | 24 | 44 | 184 | 26 | 14 | 0 | 10.8 |
+
+Three specifications of one request with one text spread from 7 to 18 added refusals and from 19 to 25 choices, so
+a difference is read only where the new text's three fall outside that range.
+
+**The rungs.**
+
+| Rung | What runs | About | What it can show |
+|---|---|---|---|
+| 1, small | five spec-only runs: `r1-orders`, `r1-ticket-assignment`, `r1-due-times-1`, `-2`, `-3` | 5 to 13 minutes | whether the text writes what it is meant to (open lines, fewer choices, fewer added refusals) and how it treats the due-times start |
+| 2, medium | from rung 1's specifications: the orders test-strength cell `p1R-stand-in-rules`; the two due-times loops `p3R-ticket-due-times-a` and `-b` (specifications 2 and 3), whose first builds are graded on the held-out checks as soon as they are committed, while the loops go on to their test pass | 20 minutes | whether later stages cope with an open line; rejecting clauses and caught defects on one case; two first builds against the held-out checks |
+| 3, large | from rung 1's specifications: `p1R-ticket-assignment` and `p1R-ticket-due-times` (specification 1); the two loops end their test pass | 35 minutes | the pooled readings |
+
+**Rules for climbing.**
+
+- After rung 1, go on if every specification is accepted by the script and at least one of these holds. (a) On due
+  times all three specifications write fewer choice clauses than the lens text's fewest (19) and fewer added
+  refusals than its fewest (7). (b) At most one of the three writes, as a requirement and not under an `Open:`
+  line, that an enabled start refuses a data file without due times (read by hand; four of the five on file do).
+  If neither holds, the wording is changed: one change, stated with its reason in this journal before its run, and
+  rung 1 runs again on due times. At most three wordings in all; then stop and report what was seen.
+- After rung 2, go on unless the apparatus failed, or the orders tests pin an answer to an open point (read in the
+  tests). Either is fixed and the orders cell run once more before rung 3.
+- Rung 3 has no rule: it completes the cells.
+
+**Readings.**
+
+- **R9.1, due times.** As R8.1, on the two loops' first builds: *avoided* if both pass the five held-out checks
+  that failed before (`cli`, `migrate`, `restart`, `rollback`, `switch`), *not avoided* if both fail them, otherwise
+  not settled. Read beside it, in each specification, plan and build report: whether the start on a file without
+  due times was a requirement, an open point or unsaid, and which answer the build took. The text's author knew
+  this case when writing it, so a pass is not a blind result.
+- **R9.2, clauses that reject a correct product.** Pooled over the three `p1R` cells, among clauses not `existing`
+  (the base F25 argued for): the lens text's is 43 of 203 (21.2%). *Better* at or under 14.1% (a third lower),
+  *worse* at or over 28.2%, otherwise no difference shown. Reported beside it: the share over all clauses (lens
+  11.0%), use cases failing (11 of 31), and the second correct ticket-assignment delivery (15 more).
+- **R9.3, strength.** Calibrated defects caught of 37: *kept* at 35 or more (lens 36).
+- **R9.4, what was written and what it cost.** Clauses by Source, added refusals written and rejecting (lens: 28
+  written, 16 rejecting), `Open:` lines, minutes and output tokens.
+- **R9.5, open lines after the spec stage.** Of the clauses that carry an `Open:` line, how many fail on the
+  correct reference; whether any clause a later stage added settles an open point; what each build did at each.
+
+**Predictions, mine, before any run.** Fewer clauses than the lens text on every case. Fewer choices and fewer
+added refusals, outside the lens range on due times. R9.2 lower but not by a third (between 14% and 19%). R9.3
+kept. R9.1 most likely not settled, one build of each kind: a builder told to take a reasonable answer may take the
+refusal as the specification writers did; avoided in both about one time in three. The author's three, registered
+in its commit 917eee6047304c0c880faf87456b20b5d356c5de: fewer clauses than the lens form, a lower share of clauses
+failing on a correct product, no loss of defects caught.
+
+**Limits known before the runs.** One run a cell and three specifications of due times; no measure of this pilot's
+run-to-run spread beyond the table above. The lens cells ran three and a half hours earlier on the same machine.
+A cell here is a specification written in one run and continued in another, where the lens cells did both in one;
+its minutes are the two added. Rung 2's held-out gradings run while the two loops are still in their test pass (one
+build's held-out checks take seconds); amendment 7 graded only after every run had ended. If the wording is changed
+at rung 1, what runs is no longer the other session's arm as drafted and is named for what it is. Codex still shows
+the account's skills to every session (section 19), the same on every side.

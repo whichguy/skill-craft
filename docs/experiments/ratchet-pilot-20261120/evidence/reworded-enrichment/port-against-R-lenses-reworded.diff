@@ -1,0 +1,45 @@
+--- arms/R-lenses-reworded.md (f2ffbfdf7a4f38e1daf6505daf51d1cd5353dce5)
++++ ratchet.py SPEC_PACKET_REWORDED
+@@ -1,5 +1,5 @@
+-# Specify: what the request needs and does not say
++# Ratchet stage: enrich (what the request needs and does not say)
+ 
+-This stage turns the incoming request into the specification that everything after it is planned, built and tested
+-from. Write no product code and no tests.
++{frame} This stage turns the incoming request into the enriched specification that everything after it is planned,
++built and tested from. Write no product code and no tests.
+ 
+@@ -15,3 +15,3 @@
+ 
+-`spec.md`, in exactly this form, use cases first:
++`ratchet/spec.md`, in exactly this form, use cases first:
+ 
+@@ -21,3 +21,3 @@
+ Flow: <the steps they take and what they see, with the exact values where the request gives them>
+-Source: <request | implied: <by which sentence or situation>>
++Source: <request | implied: <by which sentence or situation> | existing: <the file that describes it>>
+ 
+@@ -27,3 +27,3 @@
+ Observable: <what someone outside the code does and sees when it holds, with the exact values>
+-Source: <request | implied: <by which use case or sentence> | choice: <why, where the request is silent>>
++Source: <request | implied: <by which use case or sentence> | existing: <the file that states the rule> | choice: <why, where the request is silent>>
+ Open: <only where there is one: what this clause depends on that is not decided, and who or what would settle it>
+@@ -55,5 +55,9 @@
+ 
+-Write `spec.md` once. The questions below are aids to thinking, to be used once while you draft; they are not a list
+-of things to write, and most of what they turn up will confirm a clause you already have or show that nothing is
+-needed. After drafting, check the draft once against the list at the end, and stop.
++First read what is here: the README, the documents, the code and its tests, as far as the request touches them. In an
++existing product the rules it already follows (how it answers errors, how it stores data, what its documents
++promise) bind the change too.
++
++Then write `ratchet/spec.md` once. The questions below are aids to thinking, to be used once while you draft; they are
++not a list of things to write, and most of what they turn up will confirm a clause you already have or show that
++nothing is needed. After drafting, check the draft once against the list at the end, and stop.
+ 
+@@ -84,2 +88,4 @@
+ ## Done when
+-- `spec.md` exists in that form in your working directory, written once, and is the only file you wrote.
++- `ratchet/spec.md` exists in that form, written once, and is the only file you changed.
++{problems}
++{conduct}
