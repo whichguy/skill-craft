@@ -1,0 +1,119 @@
+{
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "cost_usd": 0.5598808,
+ "prompt_sha256": "12ee5b002276f777f99ac3c3252d76208a6dd6663d503add70e659e3438f096b",
+ "request": "Let agents upload a CSV to bulk-create tickets.",
+ "fixture_digest": "5652a97375d0",
+ "labels": [
+  {
+   "id": "N-1",
+   "here": "applies",
+   "why": "Whether a bad row stops the whole import is the requested behaviour's own conduct, and the store's one-change-one-save design makes either choice possible."
+  },
+  {
+   "id": "N-2",
+   "here": "applies",
+   "why": "The response to the upload, including per-row errors in the error envelope, is part of the requested endpoint."
+  },
+  {
+   "id": "N-3",
+   "here": "applies",
+   "why": "Tickets have no external key, so the spec has to say whether an existing ticket or a repeated row is detected at all, and what happens if one is."
+  },
+  {
+   "id": "N-4",
+   "here": "applies",
+   "why": "POST /tickets accepts only title, requester and priority, and new tickets always start open, so the import must be held to the same fields."
+  },
+  {
+   "id": "N-5",
+   "here": "mixed",
+   "applies_part": "The spec must say who can reach the import: on this service that is every caller of the internal API, with the actor taken from X-Actor, the same as creating one ticket.",
+   "why": "The program has no sign-in or roles, so a separate import permission would need an access-control capability it lacks."
+  },
+  {
+   "id": "N-6",
+   "here": "applies",
+   "why": "Checking the header row and the columns is the requested behaviour's own input validation, done in the style of the existing unknown-field refusals."
+  },
+  {
+   "id": "N-7",
+   "here": "applies",
+   "why": "Parsing CSV correctly (BOM, CRLF, quoted commas and newlines) is the requested behaviour's own conduct, and the code may use no dependencies."
+  },
+  {
+   "id": "N-8",
+   "here": "applies",
+   "why": "Every create enqueues an outbox notification, so the spec has to say how earlier rows' enqueued notifications relate to a row that fails later."
+  },
+  {
+   "id": "N-9",
+   "here": "applies",
+   "why": "MAX_BODY_BYTES (64 KB) already caps request bodies, so the import's size and row limits and its answer to a file over them are boundaries the spec must settle."
+  },
+  {
+   "id": "N-10",
+   "here": "applies",
+   "why": "An empty file, a header-only file and a single-row file are boundary cases of the requested behaviour."
+  },
+  {
+   "id": "N-11",
+   "here": "applies",
+   "why": "A re-upload creates new tickets with fresh, never-reused ids, so the spec has to say whether that is intended, as part of the behaviour's rigour."
+  },
+  {
+   "id": "N-12",
+   "here": "capability",
+   "why": "Background import jobs and a way to report that one finished are capabilities the request does not ask for; the spec can keep imports synchronous within the size limit."
+  },
+  {
+   "id": "N-13",
+   "here": "applies",
+   "why": "Each created ticket enqueues a ticket.created notification and the worker delivers every due one, so whether import notifies and how fast is the behaviour's own conduct."
+  },
+  {
+   "id": "N-14",
+   "here": "mixed",
+   "applies_part": "The spec must state each imported ticket's status (open), its default priority (normal) and its created and updated times.",
+   "why": "Tickets have no assignee field, so defaulting an assignee would add a capability the program lacks."
+  },
+  {
+   "id": "N-15",
+   "here": "mixed",
+   "applies_part": "The spec must say that the uploaded file is not kept beyond the request (or exactly where and for how long it is kept) and that its personal data ends up only in tickets and the audit log.",
+   "why": "The program keeps no uploads, so downloading a file again would need a file store and a download capability."
+  },
+  {
+   "id": "N-16",
+   "here": "applies",
+   "why": "The spec must settle that the columns are text and the exact priority values, with no dates or numbers taken from the file (times come from the server clock)."
+  },
+  {
+   "id": "N-17",
+   "here": "applies",
+   "why": "The append-only audit log must keep recording each created ticket with its actor and time; recording the import with its actor is existing-program rigour."
+  },
+  {
+   "id": "N-18",
+   "here": "capability",
+   "why": "Cancelling a running import and a retry-only-failed-rows feature both assume background import jobs, which the program does not have and the sentence does not ask for."
+  },
+  {
+   "id": "N-19",
+   "here": "mixed",
+   "applies_part": "The spec must bound how long a synchronous import of the maximum-size file takes, given that the data file is rewritten on every save.",
+   "why": "Visible progress while an import runs would need a background job and a status capability."
+  },
+  {
+   "id": "N-20",
+   "here": "applies",
+   "why": "POST /tickets, existing tickets, ids, the audit log and the CLI's raw columns must all be preserved."
+  },
+  {
+   "id": "N-21",
+   "here": "applies",
+   "why": "Rows must meet the existing length and control-character limits, and the spec must say how values that look like spreadsheet formulas are treated, as part of the import's own security."
+  }
+ ]
+}

@@ -3649,3 +3649,10 @@ dollars for the registered judge's twelve; three readers. About forty minutes.
 folder afterwards (`use`, `checklist`). A dry `prepare` on this base built the four arms with no problem (the base
 is 60 files; the rendered spec stage is the same 8,786, 8,786, 8,954 and 15,630 characters). The rehearsal on the
 first case still holds at 87 checks, none failed.
+
+*Step 0 of this case, done at 15:07* (two sorter sessions; Opus 56 cents, Astra on subscription). Fifteen items apply
+for both sorters: N-1, N-2, N-3, N-4, N-6, N-7, N-8, N-9, N-10, N-11, N-13, N-16, N-17, N-20 and N-21. Both call two
+capability (N-12 background processing, N-18 cancel and retry) and four mixed (N-5, N-14, N-15, N-19). The sorters
+agree on all 21. Prediction 16 holds. The six beyond the first case's nine are N-4 (fields the importer may set),
+N-8 (a row failing after notifications went out), N-13 (the requesters' notifications), N-16 (dates and numbers),
+N-17 (an audit of the import), N-20 and N-21: this base has the notifications and the audit log they are about.

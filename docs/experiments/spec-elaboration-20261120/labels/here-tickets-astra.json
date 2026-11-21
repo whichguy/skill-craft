@@ -1,0 +1,119 @@
+{
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "cost_usd": null,
+ "prompt_sha256": "12ee5b002276f777f99ac3c3252d76208a6dd6663d503add70e659e3438f096b",
+ "request": "Let agents upload a CSV to bulk-create tickets.",
+ "fixture_digest": "5652a97375d0",
+ "labels": [
+  {
+   "id": "N-1",
+   "here": "applies",
+   "why": "A CSV contains several creates, so a bad row needs a defined effect on the other rows."
+  },
+  {
+   "id": "N-2",
+   "here": "applies",
+   "why": "The agent needs a response that identifies a failed CSV record and its validation error so the record can be corrected."
+  },
+  {
+   "id": "N-3",
+   "here": "applies",
+   "why": "Single creates allocate fresh IDs even for identical inputs, so the import must define what repeated values do both within the file and against existing tickets."
+  },
+  {
+   "id": "N-4",
+   "here": "applies",
+   "why": "Every caller of single create can supply only title, requester and an allowed priority, so applying those same checks to each row preserves the caller's authority."
+  },
+  {
+   "id": "N-5",
+   "here": "mixed",
+   "applies_part": "Define which callers may upload and the trusted access boundary on which that decision relies.",
+   "why": "The request names agents, but enforcing an independent import privilege would add a distinction the service lacks, since X-Actor only attributes changes."
+  },
+  {
+   "id": "N-6",
+   "here": "applies",
+   "why": "The header maps cells to the required title and requester and optional priority, so missing or unexpected columns need defined errors."
+  },
+  {
+   "id": "N-7",
+   "here": "applies",
+   "why": "Encoding, record separators and quoting determine which values reach the single-ticket validator and which record an error identifies."
+  },
+  {
+   "id": "N-8",
+   "here": "applies",
+   "why": "Each create appends an audit entry and queues a real requester notification, so the failure policy must account for earlier effects, including irreversible deliveries."
+  },
+  {
+   "id": "N-9",
+   "here": "applies",
+   "why": "The service already enforces MAX_BODY_BYTES, and the upload must bound the work it accepts and specify the response when that bound is exceeded."
+  },
+  {
+   "id": "N-10",
+   "here": "applies",
+   "why": "Zero bytes, a valid header with no records and a single record are distinct inputs with observable ticket counts and responses."
+  },
+  {
+   "id": "N-11",
+   "here": "applies",
+   "why": "Replaying rows through ordinary create allocates new IDs and queues fresh notifications, so agents need to know the consequence of resubmission."
+  },
+  {
+   "id": "N-12",
+   "here": "capability",
+   "why": "The worker delivers outbox events, while background CSV execution and a later completion signal would add an import job workflow beyond a bounded upload."
+  },
+  {
+   "id": "N-13",
+   "here": "applies",
+   "why": "Each created ticket queues a requester notification and the worker attempts every due event per tick, so the import must account for the resulting delivery burst."
+  },
+  {
+   "id": "N-14",
+   "here": "mixed",
+   "applies_part": "Specify that imported tickets start open, default to normal priority and receive server-generated creation and update timestamps as in single create.",
+   "why": "Status, priority and timestamps already exist, while defaulting an assignee would introduce ticket assignment."
+  },
+  {
+   "id": "N-15",
+   "here": "mixed",
+   "applies_part": "Define where the raw CSV and any temporary copies reside during processing and when they are discarded, including on failure.",
+   "why": "Requester data enters through the upload, while downloading the original later would require retaining and serving a new artifact."
+  },
+  {
+   "id": "N-16",
+   "here": "applies",
+   "why": "Title and requester are text and priority uses fixed literals, so date-like or numeric-looking cells need a literal interpretation independent of locale."
+  },
+  {
+   "id": "N-17",
+   "here": "applies",
+   "why": "Every accepted creation belongs in the existing per-ticket history with its request actor, field values and creation time."
+  },
+  {
+   "id": "N-18",
+   "here": "capability",
+   "why": "Cancelling active imports and selectively replaying failures are additional controls that a bounded upload with row-level results can omit."
+  },
+  {
+   "id": "N-19",
+   "here": "mixed",
+   "applies_part": "Set and verify a processing-time bound for a maximum-size accepted CSV under stated runtime and data-file conditions.",
+   "why": "Saving the whole store on each create affects request duration, while live progress would require an additional way to observe an import in flight."
+  },
+  {
+   "id": "N-20",
+   "here": "applies",
+   "why": "Bulk creation extends the single-create API contract and must preserve that path and the contents of all pre-existing tickets."
+  },
+  {
+   "id": "N-21",
+   "here": "applies",
+   "why": "Imported text must respect existing field limits, and formula-like titles can already reach spreadsheet-readable output through the tab-separated operator listing."
+  }
+ ]
+}
