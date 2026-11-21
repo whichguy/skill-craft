@@ -630,3 +630,47 @@ passes after the change (`selftest ok: 10 sessions, 6 gates, 14 snapshots`), and
 checks on two archived ShipLoop work folders whose `main` is an empty baseline, as it should. A product that passes
 it has not been shown yet: the run's build will be the first, and a build that fails is looked at by hand before it
 is called wrong.
+
+## 11. From records: how often ShipLoop changes a test after it is written, and why (2026-11-21 11:42; no delivery ran)
+
+Status: interim. The counts are of what each run wrote in its own notes, read and labelled by a Sonnet subagent (at
+the owner's standing word to use one where possible). I looked up nine of the quoted reasons and found each in the
+note file it cites, and read three in context; I did not check the label of every row, and a run may have left a
+change out of its notes.
+
+The question, from sections 7 and 8: once tests are specified before the code, what still changes after it?
+
+**What could be read.** ShipLoop commits a whole step at once, so Git cannot show a test edited inside the `test`
+stage. The stage's own notes can: `<delivery>/.shiploop-runs/*/run/notes/<action>.md`, where the run writes each
+test change's reason. Only deliveries from 2026-10-26 on have them. The 22 Battleship and Checkers deliveries of
+early October first commit a test in the same commit as its code and keep no stage notes, so they say nothing
+here. No earlier count exists in the SDLC journal, the spec-elaboration journal or `LEARNINGS.md` (searched first).
+
+| Kind of case | Deliveries with readable notes | Recorded changes | Tests or assertions added | Execution | What a test asserts | Deliveries with an assertion change |
+|---|---|---|---|---|---|---|
+| new app with a page (Battleship, Checkers) | 6 of 8 | 21 | 7 | 6 | 8 | 3 of 8 |
+| small change to an existing service (ticket cases) | 9 of 11 | 23 | 15 | 3 | 5 | 3 of 11 |
+
+- **Most of what moves is strengthening or execution:** 31 of the 44 recorded changes. The additions follow a
+  planted fault that survived or a new test that did not fail on the base.
+- **An assertion does change after the code:** 13 times, in 6 of the 15 deliveries with notes. In the rows I read
+  it was never because the product forced it; the value written before the code was wrong. "the test-spec text '17
+  times' was a counting slip" (18 shots, after one miss, sink the fleet). "Asserting 83 would assert the walk's
+  stop position instead of the rule." "I counted 16 calls in the sequence; the sequence has 15 ... my arithmetic
+  error, not a product defect."
+- **By model, as far as this sample can say, not by size.** All 13 are Sonnet 5.5 (7) or DeepSeek flash (6); none
+  is in a delivery by Sol (5 with notes), Grok 4.6 (1) or Terra (2). The new apps show the higher share (8 of 21
+  against 5 of 23), but the two groups were run by different models and on different ShipLoop versions, so size
+  and model cannot be told apart here.
+- **Git, the other instrument, shows almost nothing after a test file's first commit:** 4 later modifications in
+  the 8 newer new-app deliveries (3 additions, 1 execution) and 16 in the 11 ticket deliveries (15 additions, 1
+  execution). No base test file was modified in any ticket delivery.
+
+**What it says about section 8's line.** It holds in ShipLoop's own deliveries, with one amendment. Execution does
+move after the code (9 recorded changes). What a test asserts mostly does not, but it is not final either: a
+concrete expected value written before any product exists is sometimes wrong by a slip of counting or arithmetic,
+and the first run against the product is where that shows. ShipLoop's rule that such a change needs a recorded
+reason is what made it countable.
+
+Evidence: `evidence/parallel/shiploop-test-changes.md` (every row, with its note file and the run's reason) and,
+in `evidence/parallel/shiploop-count/`, the deliveries taken and the rows as data.
