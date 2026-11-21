@@ -1,0 +1,115 @@
+run                                clauses use c. request implied existing choice added refusals Open: lines minutes
+base:b-base-1                           22      5      14       4        4      0              1           5     0.8
+base:b-base-2                           21      6      12       3        4      2              0          10     0.9
+base:b-base-3                           18      6      13       3        2      0              0           5     0.9
+rules:b-rules-1                         23      5      13       7        1      2              0           8     1.1
+rules:b-rules-2                         20      5      12       3        3      2              0           8     1.1
+rules:b-rules-3                         23      7      15       3        5      0              0           8     1.0
+
+== rules:b-rules-1: a section 'Rules and edge cases' of 13 entries, 13 naming a clause
+
+== rules:b-rules-2: a section 'Rules and edge cases' of 10 entries, 9 naming a clause
+
+== rules:b-rules-3: a section 'Rules and edge cases' of 13 entries, 12 naming a clause
+
+== base:b-base-1: Open: lines
+   C-1 [request] `PUT /tickets/:id/assignee` with `{"assignee": "<agent>"}` assigns an open or in-progress ticket to that agent
+        Open: whether surrounding whitespace in the name is trimmed (the existing text fields trim) and the longest accepted name (existing text fields have limits: requester 64, title 200); the requester of the service decides. A test checks only ordinary short names without surrounding whitespace.
+   C-8 [request] Assigning a ticket to the agent it already has changes nothing
+        Open: for an assigned ticket that is `resolved` or `closed`, whether repeating its current assignee answers 409 (as C-5 says, taken here) or 200; a test does not check that case. Likewise unassigning an already-unassigned open ticket is taken as a change-nothing 200, and the requester of the service decides if it should be an error.
+   C-10 [request] The agent a ticket is assigned to is notified of it
+        Open: the wording of the subject and body, decided by the help desk; tests check only recipient, ticket and that it names the assignment, not the words.
+   C-13 [implied] Assignment changes are written to the audit log
+        Open: the action name of the entry (for example `ticket.assigned`); tests do not check it.
+   C-18 [request] The command-line listing shows each ticket's assignee
+        Open: the placeholder for an unassigned ticket in the table and in `--raw`; tests check only that an assigned ticket's line contains the name.
+
+== base:b-base-2: Open: lines
+   C-1 [request] `PUT /tickets/:id/assignee` with `{"assignee": "<agent>"}` assigns an open or in-progress ticket to that agent
+        Open: whether the name is stored exactly as sent or trimmed of surrounding whitespace, as the existing text fields (title, requester) are. Settled by the requester. Tests use names without surrounding whitespace.
+   C-3 [request] An agent is a non-empty name; any other `assignee` value is refused
+        Open: whether a whitespace-only name, a name with control characters (tab, line break), or a name longer than some maximum is refused. The existing text fields refuse whitespace-only, control characters and over-length (requester: 64). The requester decides which apply to an agent name and what the maximum is. A test checks only `""`, non-string values and a missing field.
+   C-4 [request] Only open and in-progress tickets can be assigned or unassigned
+        Open: where the status check falls against body validation when both fail (a closed ticket with an invalid body: 400 or 409). Settled by the requester. Tests do not combine them.
+   C-9 [implied] An assignment or unassignment that changes the assignee is audited
+        Open: the `action` name of the entry (for example `ticket.assigned`). Free for the builder; tests do not check it.
+   C-10 [request] The agent a ticket is assigned to is notified that it was assigned to them
+        Open: whether an agent name that is not an email address can be delivered by the mail relay; `to` is the name as given. Settled by the requester or the relay's owner.
+   C-12 [choice] Unassigning notifies no one
+        Open: whether the previous agent, or the requester, should hear of an unassignment or reassignment. Settled by the requester. Adding such a notification would not break C-12's absence only if the requester decides it.
+   C-13 [request] `GET /tickets?assignee=<agent>` lists only that agent's tickets
+        Open: whether the match ignores letter case. Tests use one case.
+   C-17 [request] The command-line `list` shows each ticket's assignee
+        Open: the column's title, position and the placeholder text. Tests look for the agent's name on the ticket's row, and that an unassigned row does not contain `null`.
+   C-18 [choice] The command-line `list` accepts an `assignee` filter
+        Open: whether the command line gets this filter at all. Settled by the requester; the clause may be dropped.
+   C-19 [existing] `list --raw` keeps the positions of its existing columns
+        Open: whether `--raw` also carries the assignee, and if so it must be placed after the title (column 5) so that positions 1 to 4 stay. Tests only check columns 1 to 4.
+
+== base:b-base-3: Open: lines
+   C-3 [request] An agent is a non-empty name; anything else is refused as invalid
+        Open: whether there is an upper length for a name, and whether control characters in it are refused. The service's other text fields are single-line and at most 64 characters (requester); the requester of the service would settle whether agents follow the same rule. A test must not rely on any length bound.
+   C-8 [request] The agent a ticket is assigned to is notified that it was assigned to them
+        Open: the wording of the subject and body, and the `type` string, are not decided; checks may rely only on the recipient, the ticket id and that it is about an assignment.
+   C-10 [implied] An assignment change is recorded in the audit log
+        Open: the entry's `action` string is not decided; checks may not depend on it.
+   C-15 [request] The command-line `list` table shows each ticket's assignee
+        Open: the column's position and header text, and what an unassigned ticket's cell shows (empty, `-`, `unassigned`); checks may rely only on the assigned name appearing in that ticket's row and no agent name appearing in an unassigned ticket's row.
+   C-16 [existing] `list --raw` keeps its first four columns and may add the assignee after them
+        Open: whether the raw listing carries the assignee at all, and what an unassigned ticket shows there; the raw output must not break the report in either case.
+
+== rules:b-rules-1: Open: lines
+   C-3 [request] An agent is a non-empty name; any other `assignee` value is refused as `invalid`
+        Open: whether surrounding whitespace is trimmed and whether names have a maximum length or forbidden characters is not stated. A name of 1 to 64 printable characters without surrounding whitespace must be accepted and stored as given; behaviour beyond that is the requester's to settle.
+   C-4 [request] Only open and in-progress tickets can be assigned or unassigned
+        Open: whether a no-op request on a resolved or closed ticket is 409 or 200 is not stated; the request's sentence is read as refusing every assign or unassign there.
+   C-5 [implied] A request for a ticket that does not exist is 404 `not_found`
+        Open: which error wins when a request is both malformed and for an unknown or closed ticket is not stated; no check relies on it.
+   C-9 [implied] An assignee survives a restart of a service that has a data file; a data file written before this change still loads
+        Open: whether the data file `version` number changes is an internal matter; a file written by the previous version of the service must still load.
+   C-10 [request] The agent a ticket is assigned to is notified that it was assigned to them
+        Open: the subject and wording of the message are not stated; the requester has not said whether a name that is not an email address can be delivered by the relay.
+   C-14 [implied] A change of assignee is recorded in the ticket's audit log
+        Open: the entry's `action` name is not stated (`ticket.assigned` is a reasonable choice); checks must not depend on it.
+   C-17 [request] A ticket is listed only when it matches every filter given
+        Open: none for the rule; note for planning: the current `matchesFilters` in src/tickets/query.js keeps a ticket that matches any one filter, which contradicts the documented rule and must be corrected.
+   C-19 [request] The command-line listing shows each ticket's assignee
+        Open: the column's header, position and the placeholder for unassigned are not stated; checks look for the agent's name on the ticket's row and must not depend on the rest.
+
+== rules:b-rules-2: Open: lines
+   C-2 [request] `PUT /tickets/:id/assignee` with `{"assignee": "<agent>"}` assigns an open or in-progress ticket to that agent
+        Open: whether reassignment is wanted at all is not stated; the request says only that a ticket "is assigned to that agent". Loosest reading taken: an assigned ticket may be assigned to another agent. The requester would settle it.
+   C-4 [request] An agent is a non-empty name; any other `assignee` value is refused as invalid
+        Open: whether surrounding whitespace is trimmed (the existing text fields trim) or kept as given, and whether there is a maximum length (requester is limited to 64, title to 200), are not stated; the requester would settle both. A test must use only plain names without surrounding whitespace and well under 64 characters.
+   C-9 [implied] An assignment or unassignment that changes the ticket is recorded in the audit log
+        Open: the entry's `action` name is not stated (`ticket.assigned` would fit the existing naming); tests must not check it.
+   C-10 [request] The agent a ticket is assigned to is notified that it was assigned to them
+        Open: the wording of the message and the outbox `type` name are not stated; tests must not check them. Whether the agent's name is usable as a delivery address by the mail relay is not stated.
+   C-12 [choice] Unassigning notifies no one
+        Open: whether the previous assignee should be told they were unassigned or replaced is not stated; the requester would settle it. The loosest reading, none, is taken, and a test must not require either.
+   C-14 [request] `GET /tickets?assignee=<agent>` keeps only that agent's tickets
+        Open: whether the match ignores letter case is not stated; the requester would settle it. A test must use names that differ in more than case.
+   C-17 [request] The command-line `list` table shows each ticket's assignee
+        Open: the placeholder for unassigned and the column's position are not stated; tests must find the agent's name on the ticket's row and must not require a specific placeholder.
+   C-18 [existing] `list --raw` keeps the positions of its existing columns
+        Open: whether the raw listing shows the assignee at all is not stated ("the command-line listing" most plainly means the table); the requester would settle it.
+
+== rules:b-rules-3: Open: lines
+   C-3 [request] An agent is a non-empty name; anything else is invalid
+        Open: whether a name is trimmed, and its maximum length or forbidden characters. The request gives only "non-empty". The existing text fields trim, cap at 64 or 200 characters and refuse control characters; the requester decides if the same applies. Tests should use ordinary short names such as `dana`.
+   C-5 [request] Only open and in-progress tickets can be assigned or unassigned
+        Open: whether repeating the assignee a resolved or closed ticket already has answers 409 or 200 unchanged. The request says only open and in-progress tickets can be assigned. Tests should not check this case.
+   C-8 [implied] A change of assignee updates the ticket and is audited
+        Open: the entry's `action` value is not decided; tests should check `changes` and the actor, not the action name.
+   C-12 [request] The agent is notified when a ticket is assigned to them
+        Open: the notification's `type` and its exact wording are not decided; tests should check `to`, `ticket`, that it is delivered (not dead) and that the text contains the ticket id. How an agent name maps to a delivery address is not decided; the name is used as the address.
+   C-13 [request] Reassigning notifies only the new agent; unassigning notifies no one
+        Open: whether the previous agent or the requester should be told of a reassignment or unassignment; the requester decides. A build may add such notices only if no test of C-12 or C-13 is broken by them.
+   C-16 [request] `GET /tickets?assignee=<agent>` keeps that agent's tickets
+        Open: whether the match ignores case or surrounding spaces is not decided; tests use the same spelling the ticket was assigned with.
+   C-20 [request] The command-line table shows each ticket's assignee
+        Open: the column's position and the text for unassigned (blank or a dash) are not decided; tests find the name on its ticket's row and the title `ASSIGNEE`.
+   C-21 [existing] `list --raw` keeps its first four columns
+        Open: whether `--raw` also shows the assignee, as a fifth column after the title, is not decided; the request says "the command-line listing", which may or may not include `--raw`. A build may append it only after the title.
+
+wrote /Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-notes-6e8ff5/docs/experiments/ratchet-pilot-20261120/evidence/unsaid-detail/specs.json

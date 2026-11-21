@@ -1,0 +1,5 @@
+[14:42:08] session 1: spec-1
+[14:42:59]   ended exited after 50.4 s
+[14:42:59] session 2: plan-1
+[14:44:38]   ended exited after 99.4 s
+[14:44:38] run ended: stop-after-plan; final gate none run; 22 clauses, 5 use cases; 2 sessions; 150.2 s

@@ -2852,3 +2852,93 @@ entries, most naming a clause, and at least two of the three keep both test clau
 that make the gap easier to see than most. One question, the matching one. One model at one effort, three runs an
 arm: only a stark difference can show. The specification and the plan only: "passed over" means neither says it,
 and what a build would then do is not seen. The paragraph's sentences around the question are mine.
+
+### Amendment 14, result (2026-11-21 14:50; six runs, 14:42 to 14:45)
+
+Status: firm for what was run: six runs, the spec stage and then the plan stage, on the request with the name's
+limit left out; three with the reworded text as it is and three with the rules question as a section; Claude
+host, `claude-sonnet-5-5` at medium; each specification accepted on its first try; no plan added a clause; no
+held-out mark; nothing put back by the script; 4.14 dollars.
+
+**Table. What each pair of documents does about the longest name an agent may have.**
+
+| Run | The question | Class | Marked open in | The plan takes | Clauses | `Open:` | Section | Test clauses | Seconds |
+|---|---|---|---|---|---|---|---|---|---|
+| `b-base-1` | none | O+ | C-1 `Open:` | 64 | 22 | 5 | none | 2 | 50 + 99 |
+| `b-base-2` | none | O+ | C-3 `Open:` | 64 | 21 | 10 | none | 1 | 55 + 87 |
+| `b-base-3` | none | O+ | C-3 `Open:` | 64 | 18 | 5 | none | 2 | 53 + 89 |
+| `b-rules-1` | a section | O+ | C-3 `Open:`, two entries | 64 | 23 | 8 | 13 (13) | 2 | 65 + 81 |
+| `b-rules-2` | a section | O+ | C-4 `Open:`, two entries | 64 | 20 | 8 | 10 (9) | 1 | 64 + 111 |
+| `b-rules-3` | a section | O+ | C-3 `Open:`, one entry | 64 | 23 | 8 | 13 (12) | 2 | 58 + 95 |
+
+"Section" is the number of entries of `## Rules and edge cases` and, in brackets, how many name a clause. "Seconds"
+is the spec session and the plan session.
+
+**The readings of amendment 14.**
+
+- **R15.1, the first reading: the baseline already notices.** All three baseline runs mark the limit as open in the
+  specification, and so do the three with the question: noticed in six of six, passed over in none. By the
+  registered rule this detail leaves no room, and the instrument needs another.
+- **R15.2, open or decided: open in six of six, decided in none.** Each specification gives the point an `Open:`
+  line and says the requester decides ("the longest accepted name (existing text fields have limits: requester 64,
+  title 200); the requester of the service decides", `b-base-1`). Each plan then names the answer it takes, 64,
+  "same as requester". Five of the six plans tell the tests not to rely on a length, and at least three say the
+  build reports the choice. So the class is O+ six times. The answer the plans take is the one the original
+  request stated.
+- **R15.3, the question arm did what was asked.** The section is there in all three, with 13, 10 and 13 entries of
+  which 13, 9 and 12 name a clause. The request's two sentences about tests are 2, 1 and 2 clauses with the
+  question and 2, 1 and 2 without it, and nothing about tests sits in a section: the section took no clause away.
+  One run of each arm has no clause for the sentence on new tests under `npm test`.
+- **R15.4, harm, my reading.** Each arm writes a few clauses the request does not ask for, of the same kinds (what
+  unassigning or reassigning does to notifications, a refusal of control characters in a name), and the clearest
+  capability nobody asked for is in a baseline run (`b-base-2` C-18, an `assignee` filter on the command line). No
+  difference between the arms shows. Clauses: 23, 20 and 23 against 22, 21 and 18. Choice clauses: 2, 2 and 0
+  against 0, 2 and 0. `Open:` lines: 8, 8 and 8 against 5, 10 and 5.
+- **Two readers.** My reading and the Sonnet reader's, made from the six pairs under shuffled names, agree on six
+  of six.
+
+**Predictions scored.** Baseline, "one of three notices": wrong, all three did. With the question, "three of three
+notice, two open and one decided": three noticed and all three left it open. "8 to 15 entries, most naming a
+clause": held. "At least two of the three keep both test clauses": held, two.
+
+**Why the baseline had no trouble (my reading).** The reworded text has a rule for exactly this: "Where a clause
+depends on a bound, state the bound and what happens at it ... Invent no bound: one that none of those supplies is
+an `Open:` line", and the product limits every other name it takes, so the gap is in plain sight. I took a detail
+the text was written for. Its sentence on sets ("the states that stop something") covers states the same way. A
+detail that tests a question has to be one no rule of the text names.
+
+**Findings.**
+
+- **F46 (firm for what was run: six of six, two readers agreeing).** With a stated limit left out of the request,
+  the reworded text by itself marks the missing limit as an open point, and the plan takes the product's own
+  precedent and says so. No question was needed for it, and the answer taken is the one the requester had. This
+  is the text doing for an unsaid bound what F29 to F33 showed it doing for the points a request leaves open.
+- **F47 (three runs).** The remedy for F45 held. A section whose entries must name the clause that states each
+  left the clauses where they were (2, 1 and 2 test clauses with it and without), and 34 of its 36 entries name a
+  clause. F45's own baseline is corrected by this round: a specification without any section also wrote one test
+  clause for two sentences, once in three, so "none of seven" is now one of ten.
+- **F43, extended.** A catalog question asked as a section was answered in three more runs: eight of eight with a
+  section (two plans, three specifications for K2, three for K4), none of two without.
+
+**Is there enough to conclude?** For this detail, yes: the text already does it, and a question adds nothing that
+shows. For the instrument: it reads cleanly (four classes, two readers agreeing, about 70 cents and two and a half
+minutes a run), and its first detail had no room. For the owner's question, whether key questions add breadth on
+a request that does not say everything: not answered yet. What would answer it is a detail that no rule of the
+text names and that the product settles otherwise than the requester wants. Proposed, not registered: leave out
+"Only open and in-progress tickets can be assigned or unassigned". The product says a closed ticket can no longer
+change and lets a resolved one change, so a specification written from the product alone would let a resolved
+ticket be assigned, which this requester did not want.
+
+**Checked twice, and who decided what.** The classes, the readings and the findings are the main session's. One
+Sonnet subagent read the six pairs under shuffled names from the registered definitions and gave the same six
+classes, quoting every sentence it relied on. Another copied the evidence, ran the registered script and recounted
+every figure with a script of its own: no disagreement with the script.
+
+**Limits.** One detail, chosen by me, in a product that holds like limits; one question, the matching one; one
+model at one effort; three runs an arm. The specification and the plan only: no build ran, so that a build would
+take 64 and report it is what the plans say, not something seen. The second reader could see which pairs had a
+section.
+
+Evidence: `evidence/unsaid-detail/` (a folder for each of the six runs with its record, its specification as the
+spec stage left it and as it ended, its plan and its log; `specs-log.txt` and `.json`; `recount.txt`;
+`second-reading.md`, the second reader's quotes and classes with the key to the shuffled names).

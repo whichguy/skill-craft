@@ -1,0 +1,90 @@
+{
+ "case": "ticket-assignment-name-limit-unsaid",
+ "host": "claude",
+ "model": "claude-sonnet-5-5",
+ "effort": "medium",
+ "started": "2026-11-21T14:42:08-0800",
+ "start_tree": null,
+ "frozen_from": null,
+ "build_from": null,
+ "bare": false,
+ "sessions": [
+  {
+   "number": 1,
+   "role": "spec",
+   "label": "spec-1",
+   "seconds": 50.4,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 50.4,
+   "held_out_marks": [],
+   "cost_usd": 0.24223579999999997
+  },
+  {
+   "number": 2,
+   "role": "plan",
+   "label": "plan-1",
+   "seconds": 99.4,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 99.4,
+   "held_out_marks": [],
+   "cost_usd": 0.4428597000000001
+  }
+ ],
+ "gates": [],
+ "snapshots": [
+  {
+   "label": "base",
+   "commit": "0072cd898bc251b8ed277263bcfada7425f18587",
+   "tree": "99d92357c06060cc6c277e7115a92b32c1852140",
+   "at": 0.2
+  },
+  {
+   "label": "spec",
+   "commit": "242ce0b404396b6599d9c5c2e3c3284dd70d1b9c",
+   "tree": "f35dc8655e7229873150895304e88ca2e3122684",
+   "at": 50.7
+  },
+  {
+   "label": "plan-1",
+   "commit": "3dcf61f5556d8e9c766437db9e893577d341be97",
+   "tree": "ab9224cfc57283d5d8b45844dc06be58c75e502c",
+   "at": 150.2
+  }
+ ],
+ "cycles": [
+  {
+   "cycle": 1,
+   "clauses_at_start": 27,
+   "new_clauses": [],
+   "plan_loops": [
+    {
+     "name": "plan-1",
+     "session": "exited",
+     "loop": "complete",
+     "iterations": 2,
+     "trivial_streak": 1
+    }
+   ],
+   "plan_added": []
+  }
+ ],
+ "reverted": [],
+ "spec_violations": [],
+ "local_head": "797dce6d60d5903489e135239bb6b36a1e2a5706",
+ "named_checks": true,
+ "enrich": "reworded",
+ "spec_from": null,
+ "preserve": "none",
+ "tests_blind_from": null,
+ "plan_from": null,
+ "rules": "none",
+ "stop": "stop-after-plan",
+ "final_pass": null,
+ "seconds": 150.2,
+ "clauses": 22,
+ "use_cases": 5,
+ "tamper": [],
+ "finished": "2026-11-21T14:44:38-0800"
+}
