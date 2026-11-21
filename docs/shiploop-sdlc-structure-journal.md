@@ -2082,6 +2082,12 @@ context twice over, and the estimate of four hours and $60 to $90 comes from the
 delivery of `ticket-due-times`; no time or spend limit is set, as the harness's default is none (owner,
 2026-10-24). The measures, the judges and the readings above stand, with one run a group.
 
+**Superseded minutes later by the owner, 2026-11-21: "Use 4.6 extra high".** The `grok-4.7` run was stopped 1.5
+minutes after its start, at `intake`; its folder is kept and not counted. The delivery runs on `grok-4.6` at
+`xhigh`, as first registered and as the harness defaults. So the owner's named model stands over the catalog's
+newest, and R65 and R66 are the same model on an older ShipLoop: still context, because the ShipLoop version
+differs. Everything else in the amendment above stands: one delivery, no time or spend limit, one run a group.
+
 **Limits known before the run.** Two to four runs a cell. The medium runs ran hours earlier and with the pin.
 Sol 6.2 high has no earlier whole delivery, so nothing checks this baseline against another day. One model as
 both judges.
