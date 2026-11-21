@@ -1,0 +1,139 @@
+{
+ "slot": "csv-user-import__C-enumerated__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-39",
+   "quote": "A rejected batch creates zero accounts. An otherwise valid new identity beside a rejected row is absent from the directory after that attempt"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-42",
+   "quote": "the result reports each width, required-value, email, duplicate, or existing-identity problem found during validation, including multiple applicable reasons for the same row"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-38, C-37",
+   "quote": "A row whose identity ordinary creation would reject as already taken reports an existing-identity conflict. / the result identifies every occurrence as a duplicate within the file."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-44",
+   "quote": "A newly imported user can exercise only the permissions ordinarily granted to a new standard user. A CSV with permission-related headers is refused under the header rule."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-23",
+   "quote": "The entry point is offered to signed-in admins who can ordinarily create users in that directory when import is enabled.",
+   "missing": "The spec ties import to ordinary single-user creation authority; it does not make bulk import a separate permission not implied by being able to create one user."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-29",
+   "quote": "The first nonblank record must contain a single parsed field equal to `email` ... Missing, repeated, and unknown header fields are rejected as a header error."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-26, C-27",
+   "quote": "with or without one leading UTF-8 byte-order mark ... commas or line breaks in a quoted field belong to that field ... a line feed or carriage return followed by line feed terminates a record."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-109",
+   "quote": "During validation and after a nonsuccess result, candidate records from that attempt are absent from ordinary management and cannot sign in or trigger invitations, group membership, or role grants."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-54, C-55, C-7, C-8",
+   "quote": "defaults to 5,242,880 bytes ... defaults to 1,000 records ... A file above the effective byte limit produces a byte-limit result with zero user creations."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "C-5, C-35, C-57",
+   "quote": "A zero-byte, blank-only, or header-only upload leaves the directory unchanged. ... The data-record setting accepts integer values from 1 through 1,000 records.",
+   "missing": "Empty and header-only files are specified, but no clause explicitly states that a single-data-row file is accepted and creates its one user."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-4, C-38",
+   "quote": "submitting them again under a new reference leaves one account per original identity. / A row whose identity ordinary creation would reject as already taken reports an existing-identity conflict."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-75, C-48",
+   "quote": "Closing the submitting view or losing the connection after admission leaves the attempt eligible to finish. The admin can check the same reference when connected again."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-47",
+   "quote": "A directory configured to send an invitation for ordinary creation uses its ordinary invitation policy for each committed imported user.",
+   "missing": "Whether up to 1,000 invitations go out at once and any pacing or throttling of that bulk send."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-45",
+   "quote": "an activation state awaiting proof of email, no preassigned password ... It can establish access through the directory's normal proof-of-email onboarding."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-106, C-107",
+   "quote": "Once an attempt becomes terminal, neither its admin result nor operator controls offer the CSV or its filename. / removes working copies of submitted CSV data within 24 hours of terminal outcome."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-29",
+   "quote": "The CSV header declares exactly one field, email. ... Name, role, status, password, and all other fields are excluded from the CSV surface."
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "C-62",
+   "quote": "the operator sees the attempt reference, target directory, initiating account reference, start time, current state, terminal time ... It includes created account references on success."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-16, C-39",
+   "quote": "If the attempt-specific stop takes effect before commit, its result is canceled. / an all-or-nothing result lets U-5 correct the file and submit it again intact."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-74, C-134",
+   "quote": "A pending attempt may commit only before 15 elapsed minutes. / the initiating admin can tell whether it is awaiting an admitted file or processing an admitted file.",
+   "missing": "An expected processing duration for a maximum-size file and any progress indication finer than awaiting-file vs processing."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-98, C-18",
+   "quote": "An authorized admin can still create an eligible user through ordinary user management when import is disabled ... leaves that user's identity, account data, permissions, and access state unchanged"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-108, C-34",
+   "quote": "a cell containing formula, markup, or script text cannot execute ... No diagnostics download containing submitted cells is offered. / The full trimmed value has at most 254 characters."
+  }
+ ]
+}

@@ -1,0 +1,143 @@
+{
+ "slot": "gym-waitlist__C-enumerated__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-24",
+   "quote": "One eligible waiter in an open session gets a confirmed booking when a seat can be assigned through the waitlist without taking another action."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-22",
+   "quote": "For equally eligible members, the next place offered from the waitlist goes to the member whose active join was accepted first. Overlapping joins with no prior acceptance can be accepted in either order, with a single resulting order",
+   "missing": "Whether any membership tier jumps the queue is not stated; staff override is only indirectly bounded (C-131: existing operator-only exception 'does not gain a new waitlist bypass')."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "C-119",
+   "quote": "Existing restrictions on which bookings the member can hold still apply at promotion, including when multiple sessions offer seats concurrently.",
+   "missing": "What happens to the member's waitlist place in an overlapping class once one promotion confirms (ended, kept, skipped) is not decided."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-90",
+   "quote": "Members can use the existing cancellation path for direct or promoted bookings under the existing cutoff, fee or refund, and seat release rules where applicable.",
+   "missing": "Whether a no-show or late cancellation of an automatically promoted booking (e.g. promoted close to class start) counts against the existing no-show policy is not stated."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-61",
+   "quote": "The active queue is considered when a cancellation releases a seat or, if the app supports them, a capacity increase, a released reservation or hold, a correction, or another ordinary availability change makes a place bookable."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-123",
+   "quote": "it uses the same applicable channel and settings for a promoted booking."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-66",
+   "quote": "When a session has one remaining bookable seat, competing direct booking or promotion attempts can result in at most one new booking against that seat."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-82",
+   "quote": "If an existing privileged booking path can legitimately confirm a seat for a member with an active place, their attempt ends as already booked and they lose queue priority.",
+   "missing": "The race where the waiting member's own direct booking coincides with their promotion, and that it yields only one booking for that member, is not stated."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-96",
+   "quote": "An active waiter has no booking charge or redeemed class credit from the join itself. Ordinary applicable booking charges or credits can arise when a promotion confirms a booking under the authorized terms."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-32",
+   "quote": "A member who otherwise qualifies can join a full session regardless of how many members already wait. Any hard ceiling imposed by the deployed service is unconfirmed."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-78",
+   "quote": "With a cutoff or scheduled start at 18:00 in the session's usual time context, a join or promotion taking effect at 18:00 or later is refused even if the request began before 18:00."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-115",
+   "quote": "If a capacity change puts existing occupancy at or beyond the new limit, the waitlist confirms zero additional bookings until existing booking rules report an open seat."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-9",
+   "quote": "A place still waiting when the session is cancelled, removed from the schedule ... shows the applicable terminal outcome."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-46",
+   "quote": "For each active place in the session view, an authorized operator can identify the member using the app's existing member references and see the join time.",
+   "missing": "Whether queue position is stored or derived from acceptance order is not stated."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-58",
+   "quote": "Member and operator waitlist history remains available under the app's applicable access and retention rules. The duration and any record-specific exceptions are unconfirmed",
+   "missing": "How long entries are kept after the class has run is left undecided."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-93",
+   "quote": "In the member waitlist view and member-facing responses, the caller sees no other waiter's identity, contact details, status, or identifiable booking details.",
+   "missing": "Whether the member sees their own numeric queue position is not decided (U-1 only says they 'see whether they have a place in the queue')."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-45",
+   "quote": "view its active queue in service order",
+   "missing": "Staff can view (C-45), remove (C-50) and see history (C-48), but promoting someone by hand from the waitlist is not stated."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-38",
+   "quote": "For a session in their scope, an operator can set its control to follow the app-wide setting or to remain disabled. The control affects only the selected occurrence."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-77",
+   "quote": "the operator sees a new attempt result within 60 seconds of those conditions first holding or the previous attempt resolving."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-30",
+   "quote": "With no active waiters, an open seat can be booked directly without a waitlist action."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-40",
+   "quote": "A session without an explicit opt-out shows the follow setting whether it existed before rollout or was added later."
+  }
+ ]
+}

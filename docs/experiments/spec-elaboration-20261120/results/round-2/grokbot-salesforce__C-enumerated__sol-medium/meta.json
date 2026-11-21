@@ -1,0 +1,26 @@
+{
+ "round": "round-2",
+ "case": "grokbot-salesforce",
+ "arm": "C-enumerated",
+ "arm_sha256_12": "deaae8662cad",
+ "driver": "sol-medium",
+ "host": "codex",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "rc": 0,
+ "seconds": 424.8,
+ "ok": true,
+ "wrote": [
+  "spec.md",
+  "passes.md"
+ ],
+ "stray_files": [],
+ "workdir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/round-2/grokbot-salesforce__C-enumerated__sol-medium-a4dff8",
+ "usage": {
+  "input_tokens": 1292579,
+  "cached_input_tokens": 1220096,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 17030,
+  "reasoning_output_tokens": 3014
+ }
+}

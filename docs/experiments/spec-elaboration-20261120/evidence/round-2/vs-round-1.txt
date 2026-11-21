@@ -1,0 +1,32 @@
+ARM C AGAINST ARM B, same cases, same drivers, same frozen checklist
+
+sonnet-high:  B 72/89 -> C 74/89   gain +2   no difference shown
+    partial 16 -> 15   clauses 412 -> 535   minutes a case 8.0 -> 10.4
+sol-medium:  B 50/89 -> C 60/89   gain +10   DIFFERENCE SHOWN
+    partial 33 -> 28   clauses 609 -> 488   minutes a case 8.4 -> 7.6
+
+BY CATEGORY, B -> C (the two deltas targeted operator, data and the value-free bounds)
+
+  sonnet-high
+    async          9/11 -> 11/11   +2
+    data           6/10 -> 8/10   +2  <-- targeted
+    edge           10/12 -> 10/12   +0
+    interaction    9/12 -> 9/12   +0
+    nonfunctional  5/5 -> 5/5   +0
+    operator       5/9 -> 6/9   +1  <-- targeted
+    permission     8/8 -> 7/8   -1  <-- REGRESSED
+    platform       3/5 -> 2/5   -1  <-- REGRESSED
+    preserve       5/5 -> 5/5   +0
+    unhappy        12/12 -> 11/12   -1  <-- REGRESSED
+
+  sol-medium
+    async          5/11 -> 6/11   +1
+    data           4/10 -> 7/10   +3  <-- targeted
+    edge           9/12 -> 9/12   +0
+    interaction    6/12 -> 7/12   +1
+    nonfunctional  1/5 -> 3/5   +2
+    operator       4/9 -> 6/9   +2  <-- targeted
+    permission     5/8 -> 5/8   +0
+    platform       1/5 -> 1/5   +0
+    preserve       5/5 -> 5/5   +0
+    unhappy        10/12 -> 11/12   +1

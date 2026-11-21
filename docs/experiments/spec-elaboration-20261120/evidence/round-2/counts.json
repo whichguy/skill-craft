@@ -1,0 +1,251 @@
+{
+ "csv-user-import__C-enumerated__sol-medium": {
+  "use_cases": 16,
+  "clauses": 136,
+  "source_mix": {
+   "choice": 119,
+   "implied": 30,
+   "request": 3
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 9026,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "seconds": 503.1,
+  "rc": 0,
+  "arm": "C-enumerated",
+  "driver": "sol-medium",
+  "case": "csv-user-import",
+  "cost_usd": null,
+  "turns": null,
+  "tools": {
+   "agent_message": 5,
+   "command_execution": 17,
+   "web_search": 1
+  },
+  "passes_recorded": 11,
+  "passes_words": 738
+ },
+ "csv-user-import__C-enumerated__sonnet-high": {
+  "use_cases": 16,
+  "clauses": 143,
+  "source_mix": {
+   "choice": 44,
+   "implied": 112,
+   "request": 3
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 10997,
+  "bundled_and": 44,
+  "bundled_examples": [
+   "The Import users page offers one file field and one submit control",
+   "The recognised columns are `email`, `name` and `role`",
+   "`email` and `name` are required columns, `role` is optional"
+  ],
+  "seconds": 662.9,
+  "rc": 0,
+  "arm": "C-enumerated",
+  "driver": "sonnet-high",
+  "case": "csv-user-import",
+  "cost_usd": 1.4910919,
+  "turns": 53,
+  "tools": {
+   "Bash": 9,
+   "Edit": 40,
+   "Read": 1,
+   "Write": 2
+  },
+  "passes_recorded": 10,
+  "passes_words": 927
+ },
+ "grokbot-salesforce__C-enumerated__sol-medium": {
+  "use_cases": 12,
+  "clauses": 112,
+  "source_mix": {
+   "choice": 82,
+   "implied": 39,
+   "request": 3
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 6730,
+  "bundled_and": 1,
+  "bundled_examples": [
+   "The selected model must be an xAI Grok model that supports text turns "
+  ],
+  "seconds": 424.8,
+  "rc": 0,
+  "arm": "C-enumerated",
+  "driver": "sol-medium",
+  "case": "grokbot-salesforce",
+  "cost_usd": null,
+  "turns": null,
+  "tools": {
+   "agent_message": 5,
+   "command_execution": 27,
+   "web_search": 4
+  },
+  "passes_recorded": 12,
+  "passes_words": 545
+ },
+ "grokbot-salesforce__C-enumerated__sonnet-high": {
+  "use_cases": 14,
+  "clauses": 155,
+  "source_mix": {
+   "choice": 46,
+   "implied": 117,
+   "request": 6
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 11386,
+  "bundled_and": 24,
+  "bundled_examples": [
+   "Message text is displayed as plain text and never interpreted as marku",
+   "\"New chat\" starts an empty panel and removes nothing",
+   "A failure message shows no secret and no raw provider text"
+  ],
+  "seconds": 738.6,
+  "rc": 0,
+  "arm": "C-enumerated",
+  "driver": "sonnet-high",
+  "case": "grokbot-salesforce",
+  "cost_usd": 1.7362104999999997,
+  "turns": 58,
+  "tools": {
+   "Bash": 10,
+   "Edit": 40,
+   "Read": 5,
+   "Write": 2
+  },
+  "passes_recorded": 9,
+  "passes_words": 1169
+ },
+ "gym-waitlist__C-enumerated__sol-medium": {
+  "use_cases": 15,
+  "clauses": 138,
+  "source_mix": {
+   "choice": 115,
+   "implied": 36,
+   "request": 2
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 8846,
+  "bundled_and": 1,
+  "bundled_examples": [
+   "Operators can find waitlist outcomes by occurrence and affected member"
+  ],
+  "seconds": 450.9,
+  "rc": 0,
+  "arm": "C-enumerated",
+  "driver": "sol-medium",
+  "case": "gym-waitlist",
+  "cost_usd": null,
+  "turns": null,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 18
+  },
+  "passes_recorded": 11,
+  "passes_words": 644
+ },
+ "gym-waitlist__C-enumerated__sonnet-high": {
+  "use_cases": 15,
+  "clauses": 120,
+  "source_mix": {
+   "choice": 27,
+   "implied": 103,
+   "request": 5
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 8505,
+  "bundled_and": 71,
+  "bundled_examples": [
+   "A waitlist belongs to one class occurrence (one class at one date and ",
+   "A full class that has an open waitlist shows a join-waitlist control i",
+   "Before the join is created the member is shown the terms of joining, a"
+  ],
+  "seconds": 532.3,
+  "rc": 0,
+  "arm": "C-enumerated",
+  "driver": "sonnet-high",
+  "case": "gym-waitlist",
+  "cost_usd": 1.2873697999999998,
+  "turns": 57,
+  "tools": {
+   "Bash": 10,
+   "Edit": 40,
+   "Read": 4,
+   "Write": 2
+  },
+  "passes_recorded": 9,
+  "passes_words": 1228
+ },
+ "invoice-reminders__C-enumerated__sol-medium": {
+  "use_cases": 15,
+  "clauses": 102,
+  "source_mix": {
+   "choice": 48,
+   "implied": 67,
+   "request": 2
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 7437,
+  "bundled_and": 4,
+  "bundled_examples": [
+   "The default policy schedules reminders 1, 7 and 14 calendar days after",
+   "Development and test environments restrict delivery to designated test",
+   "Reminder processing leaves money movement and balance calculation unde"
+  ],
+  "seconds": 450.1,
+  "rc": 0,
+  "arm": "C-enumerated",
+  "driver": "sol-medium",
+  "case": "invoice-reminders",
+  "cost_usd": null,
+  "turns": null,
+  "tools": {
+   "agent_message": 5,
+   "command_execution": 21
+  },
+  "passes_recorded": 12,
+  "passes_words": 712
+ },
+ "invoice-reminders__C-enumerated__sonnet-high": {
+  "use_cases": 17,
+  "clauses": 117,
+  "source_mix": {
+   "choice": 30,
+   "implied": 101,
+   "request": 3
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 9802,
+  "bundled_and": 71,
+  "bundled_examples": [
+   "A schedule holds 1 to 10 steps, each between -30 and +180 inclusive, w",
+   "The custom note is optional plain text of at most 500 characters, and ",
+   "Invoices in Draft, Paid, Void or Written off, and invoices in any stat"
+  ],
+  "seconds": 562.0,
+  "rc": 0,
+  "arm": "C-enumerated",
+  "driver": "sonnet-high",
+  "case": "invoice-reminders",
+  "cost_usd": 1.2758413000000002,
+  "turns": 56,
+  "tools": {
+   "Bash": 15,
+   "Edit": 39,
+   "Write": 1
+  },
+  "passes_recorded": 8,
+  "passes_words": 836
+ }
+}

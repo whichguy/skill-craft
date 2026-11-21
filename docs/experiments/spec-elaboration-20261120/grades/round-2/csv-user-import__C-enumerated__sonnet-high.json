@@ -1,0 +1,138 @@
+{
+ "slot": "csv-user-import__C-enumerated__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-25",
+   "quote": "If any problem is found, no user is created ... A file of 50 records with a single invalid email ... leaves the user list exactly as it was and shows the import as rejected."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-29",
+   "quote": "Each row error shows a record number, the column name (`email`, `name`, `role`) or, for a wrong field count, no column, and a reason."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-24, C-23",
+   "quote": "If a user with `ann@example.com` already exists ... gives an email-in-use row error. / record 5 gets a duplicate-in-file row error naming record 2"
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-20, C-70",
+   "quote": "if the product defines further user roles, each of those is also allowed ... where the one-user form's rule for email, name or role is stricter than C-16 to C-20, the stricter rule applies to imports.",
+   "missing": "No explicit rule that a role in the file may not exceed the importing admin's own authority; any further product role is allowed without checking it against the importer."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-32, C-124",
+   "quote": "Only an active user with the role `admin` may import ... the one new permission set (importing, undoing, resending, ...) is held by active admins only"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-7, C-5, C-126",
+   "quote": "A file with header `email,role` is refused, the refusal names the missing column `name` ... A file with header `email,name,password` is refused ... refused with the missing-header reason"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-8, C-9",
+   "quote": "`cy@example.com,\"Lee, Cy\",member` yields the name `Lee, Cy`. A quoted field may contain a line break ... Records end at LF or CRLF. / UTF-8 text is accepted, with or without a leading byte-order mark"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-57, C-58",
+   "quote": "An invitation email is sent to each created user after the import succeeds ... After a rejected import (U-3) or one that fails with an internal error (C-84), no email goes to any address in the file."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-50, C-51",
+   "quote": "a file of exactly 5,242,880 bytes passes the size check and one of 5,242,881 bytes is refused ... one with 1,001 is refused with a too-many-rows reason that states the limit and the count found"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-125, C-14, U-10",
+   "quote": "Submitting a file of 0 bytes shows the empty-file refusal ... The template file unchanged (header only) ... refused ... uploads a file of one row for a test address, sees the result and the invitation arrive"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-97",
+   "quote": "the second import is rejected with an email-in-use row error on every record, and the user list holds exactly one user per address."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-86, C-109",
+   "quote": "an admin submitting a file at the limit is shown its result ... within 30 seconds ... If the admin closes the page or loses connection ... appears in Import history with that outcome within 60 seconds"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-115",
+   "quote": "all 1,000 invitations show sent within 60 minutes of the import's finish time ... Sends are paced to stay inside the mail system's own sending rate"
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-38, C-39, C-65",
+   "quote": "the status pending invitation ... A newly created user cannot sign in, and has no password ... follows a valid invitation link and sets a password becomes an active user"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-85",
+   "quote": "Once the response has been sent, the file's contents (emails, names) exist nowhere in the product except as the users created from them: not in the import record, not in logs, not in temporary storage"
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-2, C-142",
+   "quote": "these three are the only recognised column names ... A record with the name `Zo\u00eb \u674e` is created with the name `Zo\u00eb \u674e`",
+   "missing": "Locale handling is not addressed, e.g. what happens to semicolon-delimited exports from locales that use a comma as the decimal separator; with no date or number columns the rest is moot but not stated."
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "C-83",
+   "quote": "The record holds: the reference; the admin; the organisation; the finish time; the file name as sent ... the outcome ... the identity of the users it created"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-25, U-3",
+   "quote": "If any problem is found, no user is created ... They correct the file and upload it again; this time it succeeds.",
+   "missing": "Whether an import already running can be cancelled is never stated; retrying only the failed rows is ruled out only implicitly by the all-or-nothing rule."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-86",
+   "quote": "is shown its result (success or rejection) within 30 seconds of the upload finishing, and the page shows the import is in progress meanwhile."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-92, C-122",
+   "quote": "The existing one-user form accepts and refuses the same inputs with the same messages as before ... the existing user's name, role, status, password and sessions are the same afterwards"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-137, C-18",
+   "quote": "a cell that starts with `=`, `+`, `-` or `@` or a tab or carriage return character is written with a single quote `'` before it ... one of 101 characters gives a too-long row error"
+  }
+ ]
+}

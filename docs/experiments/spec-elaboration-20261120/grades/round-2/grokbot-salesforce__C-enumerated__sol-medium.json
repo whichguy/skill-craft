@@ -1,0 +1,178 @@
+{
+ "slot": "grokbot-salesforce__C-enumerated__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-10",
+   "quote": "An authorized user can find an entry identifiable as Grok using Salesforce navigation without an externally supplied URL. (C-22: The bot supplies no Salesforce records, record context ... as separate inputs.)"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-22",
+   "quote": "The bot supplies no Salesforce records, record context, Salesforce user ID, org ID, cookies, or diagnostics as separate inputs."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-22",
+   "quote": "The bot supplies no Salesforce records, record context, Salesforce user ID, org ID, cookies, or diagnostics as separate inputs."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-27",
+   "quote": "After granting the entitlement, the administrator can see the user as assigned. (C-35: A user with only chat entitlement cannot grant or revoke entitlement, enable or disable chat...)"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-79",
+   "quote": "An ordinary user who supplies another attempt's reference or varies it cannot see that user's prompt, reply, or diagnostic details. (C-78: the user or an operator cannot recover prompts...)"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-66",
+   "quote": "If Apex performs the callout, successfully registering an otherwise valid attempt does not cause a subsequent uncommitted-work error that prevents its inference.",
+   "missing": "Whether the callout runs asynchronously and by which mechanism (Queueable, future, continuation, etc.); whether Apex is used at all is left open."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-77",
+   "quote": "Inspection of the chat UI, its network requests and responses to Salesforce, application-visible diagnostics, and exported deployment materials reveals no xAI credential value.",
+   "missing": "Where the credential is stored (Named/External Credential vs protected setting); C-60 only says 'If the integration uses a Salesforce external credential'."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-94",
+   "quote": "a send cannot wait beyond Salesforce's 120-second cumulative callout timeout per transaction. (C-65: ceiling of 100 callouts per transaction; C-95: 6 MB ... 12 MB heap)",
+   "missing": "CPU time limit is not named or quantified."
+  },
+  {
+   "id": "N-9",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-58",
+   "quote": "If Salesforce outbound authorization for the integration is missing or blocked, the live check reports a configuration failure without obtaining a reply."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-43",
+   "quote": "After submission, the user can see which prompt is awaiting a reply. The pending indication ends on a displayed reply, a displayed error, or the end of the conversation view.",
+   "missing": "The mechanism by which the UI learns the reply arrived (platform event, polling, inline return, etc.)."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-45",
+   "quote": "A double-click or repeated delivery of the same logical submission, including after terminal completion, produces at most one outbound inference and one diagnostic entry."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-91",
+   "quote": "unavailable (org or platform cannot complete the operation)",
+   "missing": "Any queue depth or concurrent async-job limit and the specific behaviour when a request cannot be enqueued."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-91",
+   "quote": "configuration (missing or rejected credential, ...), rate limit (HTTP 429), context limit ..., timeout (deadline), connection failure ..., other provider error (all remaining provider error responses)."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-62",
+   "quote": "When xAI rejects a send with HTTP 429 the user sees a rate-limit indication. (C-46: After a timeout, lost connection, provider refusal, or service error, the operator observes no second outbound call)"
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-93",
+   "quote": "If xAI explicitly reports the output limit and returns nonblank assistant text, the chat shows that text with an incompleteness indication. (C-68: no terminal answer by 60 seconds shows a timeout)"
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "C-78",
+   "quote": "After a chat ends, the user or an operator cannot recover prompts, drafts, replies, or error text through bot history, Salesforce records, application logs, or browser storage written by the bot."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-19",
+   "quote": "Reloading, closing the view, navigating away from the chat, or signing out ends that local conversation. Returning starts empty."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-22",
+   "quote": "the ordered user and assistant text ... The bot supplies no Salesforce records, record context, Salesforce user ID, org ID, cookies, or diagnostics as separate inputs."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-16",
+   "quote": "The next send is refused with the 10-pair limit and a way to start a fresh chat. (C-63: the user sees a context-limit failure with a way to shorten the prompt or start a fresh chat)"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-13",
+   "quote": "4,000 code points pass length validation and 4,001 are refused with the limit shown. (C-5: the user sees no prior messages; C-6: Submitting zero characters produces an input-required indication)"
+  },
+  {
+   "id": "N-22",
+   "state": "covered",
+   "where": "C-26",
+   "quote": "The org-wide enable control shows exactly two effective states, enabled or disabled (C-29: save one active Grok model; C-84: browse all admitted attempts ... all four outcomes)"
+  },
+  {
+   "id": "N-23",
+   "state": "covered",
+   "where": "C-37",
+   "quote": "An operator sees the request reference, request type ..., outcome, and reason ... Prompt and reply text, Salesforce user identity ... are excluded. (C-39: 7 days following admission)"
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "C-71",
+   "quote": "An administrator deploying later to a separate org must verify that org's credential, allowed destination, model entitlement, and user access in that target before enabling chat there.",
+   "missing": "Which development org type (scratch vs sandbox) and the deployment mechanism; C-69/C-70 are conditional ('If the authorized target is a scratch org', 'If promoted later with Apex')."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "C-68",
+   "quote": "a send with no terminal answer by 60 seconds shows a timeout or connection error. (C-43: the user can see which prompt is awaiting a reply)"
+  },
+  {
+   "id": "N-26",
+   "state": "partial",
+   "where": "C-43",
+   "quote": "After submission, the user can see which prompt is awaiting a reply. (C-5 empty; C-7 failure not shown as reply; C-110 shown that it is unavailable)",
+   "missing": "Any statement about deliberate visual design or styling of the interface beyond the existence of these states."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-73",
+   "quote": "Existing triggers, flows, validation rules, and scheduled business automation keep their prior behavior ... (C-72: no bot-created, edited, or deleted business records; C-74: same access to existing records)"
+  }
+ ]
+}

@@ -1,0 +1,139 @@
+{
+ "slot": "gym-waitlist__C-enumerated__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-8",
+   "quote": "When a seat in a class becomes free and that class's waitlist has entries, the first entry whose member can book the class is booked into the seat"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-6",
+   "quote": "Waitlist order is the order in which joins were confirmed, earliest first, and no two entries share a position ... two joins that arrive at the same instant still get two different positions.",
+   "missing": "How a same-instant tie is broken (which joiner gets the earlier position), and whether any membership tier jumps the queue; only staff placement (C-48) is addressed."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-78",
+   "quote": "A joins waitlists for two overlapping classes, is promoted into the first; at their turn for the second, if the app forbids overlapping bookings, they are passed over under C-13 with the overlap reason."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-10",
+   "quote": "subject to the same cancellation rules (including any late-cancellation rule) as a direct booking. The app does not add exemptions or penalties because it came from the waitlist."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-37",
+   "quote": "The events that free a seat, and so start a promotion under C-8, are exactly these five ... the first member able to book holds the seat (within the time in C-39)."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-32",
+   "quote": "Messages about the waitlist are delivered by the same channel (or channels) the app uses today for booking confirmations, and are also visible inside the app"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-73",
+   "quote": "When two or more seats become free at the same time, each goes to a different waitlisted member in waitlist order, and no waitlisted member is booked twice"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-108",
+   "quote": "A member is never both booked in a class and on that class's waitlist",
+   "missing": "What the waitlisted member themselves sees and which request wins when they attempt a direct booking at the moment they are promoted; C-9 covers only a different member, C-116 only a leave."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-94",
+   "quote": "If the charge fails, there is no booking, the member is passed over under C-13 with the reason that payment could not be taken, and no credit has been taken"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-22",
+   "quote": "Joining is refused if the waitlist already holds the maximum number of entries ... The member is told the waitlist for the class is full; no entry is created"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-25",
+   "quote": "Booking close for the waitlist is the same moment after which the app today refuses direct bookings of that class; where the app has no such moment, it is the class's start time"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-38",
+   "quote": "When staff raise capacity by n seats, up to n waitlisted members are booked, in waitlist order"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-30",
+   "quote": "When a class is cancelled, its whole waitlist is removed ... Within 5 minutes (C-92) no waitlist entries remain for the cancelled class"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-46",
+   "quote": "each with position, member name, the date and time the join was confirmed, and either \"can book\" or the reason from C-12",
+   "missing": "The entry's stored state values, and whether position is stored or derived from join order."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-29",
+   "quote": "When booking closes with entries still on the waitlist, every remaining entry is removed"
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-17",
+   "quote": "A member sees only their own position and entries, never who else is on a waitlist and never the length of the waitlist beyond being told whether it is full"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-46",
+   "quote": "The staff view of a class's waitlist lists every entry in position order",
+   "missing": "Whether staff can promote a waitlisted member into a seat by hand; only add, remove and viewing the log are stated."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-57",
+   "quote": "The operator can switch the waitlist Off for one class occurrence, and On again"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-39",
+   "quote": "A promotion is complete, meaning the booking exists and is visible in the member's bookings, within 60 seconds of the seat becoming free"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-103",
+   "quote": "Direct booking of a class that is not full behaves exactly as before, with the waitlist On or Off: same rules, same price, same confirmation"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-68",
+   "quote": "Classes that are already full when the feature is released or turned on start with an empty waitlist; nobody is added automatically, and no existing booking changes"
+  }
+ ]
+}

@@ -131,3 +131,45 @@ its members, and a clause about a bound states the bound's value or marks the fi
 partials and at Sol's value-free boundaries; (2) the operator gets a pass of its own, promoted out of the
 five-item sentence it shared in pass 1 — aimed at the weakest category in every cell; (3) the later passes
 renumber accordingly. Arms A and B are not re-run: their verdicts stand as registered.
+
+## 4. Round 2: the enumeration rule lifts the weaker driver by 10 and the stronger one not at all (2026-11-20)
+
+8 calls of `C-enumerated`, all exit 0, all writing both files. Arms A and B were not re-run; their round-1
+verdicts stand. Scoreboard `evidence/round-2/scoreboard.txt`, the B-to-C comparison `evidence/round-2/vs-round-1.txt`.
+
+| arm | driver | covered of 89 | partial | clauses | minutes a case |
+| --- | --- | --- | --- | --- | --- |
+| B-recursive | sonnet-high | 72 (81%) | 16 | 412 | 8.0 |
+| C-enumerated | sonnet-high | 74 (83%) | 15 | 535 | 10.4 |
+| B-recursive | sol-medium | 50 (56%) | 33 | 609 | 8.4 |
+| C-enumerated | sol-medium | **60 (67%)** | 28 | **488** | **7.6** |
+
+**Sol medium: +10, difference shown — and it got cheaper at the same time.** Clauses fell from 609 to 488 and
+minutes a case from 8.4 to 7.6 while coverage rose 10 points. This is the padding finding from round 1 closing:
+Sol had been spending clauses on value-free boundaries, and a rule that a bound states its value turned that
+spending into decisions. Its targeted categories moved most (data 4/10 to 7/10, operator 4/9 to 6/9,
+non-functional 1/5 to 3/5).
+
+**Sonnet high: +2, no difference shown, at 30% more minutes and 30% more clauses.** Its targeted categories did
+move (data 6/10 to 8/10, async 9/11 to 11/11, operator 5/9 to 6/9) but three others each lost a point
+(permission 8/8 to 7/8, platform 3/5 to 2/5, unhappy 12/12 to 11/12). Sonnet was already committing to figures
+under arm B, so delta 1 had nothing to fix for it; what the extra instruction bought was length, and something was
+displaced. Each regression is one nuance on one call and none is established on its own, but all three pointing the
+same way is why this is recorded rather than smoothed over.
+
+**Reading.** The enumeration rule earns a place for a driver that under-commits and is a wash for one that does
+not. Since ShipLoop runs on hosts of both kinds, a rule that lifts the weaker by 10 points while costing the
+stronger nothing measurable is worth having — but the two deltas are confounded in this round, so neither can be
+credited on its own yet.
+
+**Decision taken here (routine).** Round 3 runs `D-enumerated-only`: arm C with the operator pass removed and
+B's pass numbering restored, so D differs from B in exactly one region (a diff confirms a single changed block).
+D minus B isolates the enumeration rule; C minus D isolates the operator pass. Until that lands, delta 2 is not
+folded anywhere.
+
+**Platform is the standing weakness in every arm and every driver** (best 3/5, and arm C made it worse on Sonnet).
+No arm in this experiment asks for a *source* for a platform claim — they only allow "unconfirmed" on a figure.
+ShipLoop's own spec stage already carries the stricter rule, in the duty-10 review focus conditions: "a claim about
+what the runtime, platform or a library can do that a decision depends on, with no primary-documentation source or
+probe result: check it". So the platform gap measured here is a gap in these arms, not in ShipLoop, and the
+fold-back must keep ShipLoop's existing condition rather than replace it with the weaker wording.

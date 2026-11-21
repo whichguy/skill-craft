@@ -1,0 +1,138 @@
+{
+ "slot": "invoice-reminders__C-enumerated__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-19",
+   "quote": "The default policy schedules reminders 1, 7 and 14 calendar days after the due date ... There is no reminder on or before June 1."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-14",
+   "quote": "Draft or otherwise unissued, paid, voided or cancelled, written-off or otherwise uncollectible, disputed or on collection hold, and missing or unmapped collection states are excluded.",
+   "missing": "Whether an invoice on a payment plan stops the sequence is not stated; part-paid and credited invoices are stated to continue while balance is positive (C-15)."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-7",
+   "quote": "On a partially paid invoice the email gives the remaining amount in the invoice currency."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-31",
+   "quote": "Suppress one invoice and see its suppression state and effective time. No new reminder leaves for that invoice while suppressed.",
+   "missing": "Whether an existing customer-level do-not-contact, paused or unsubscribed state is honoured, and whether billing reminders are exempt from a marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-50",
+   "quote": "Process the same invoice position concurrently or replay a completed run. One release is in progress at a time for that position. Another release is permitted only after affirmative evidence that all previous releases ... were never accepted."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-49",
+   "quote": "Each release reflects the authoritative billing facts at the point it leaves product control ... Any applicable dispatch gate that fails before release blocks it, including one changed after the work was scheduled."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-51",
+   "quote": "the retry proceeds on the first available evaluation at or after 15 minutes ... At most 3 total releases are permitted per position ... the disposition becomes failed with confirmed nonacceptance.",
+   "missing": "Any escalation or notification to a person when sends keep failing; failures are only visible on inspection."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-61",
+   "quote": "When the outbound email service explicitly confirms that a message was rejected due to a rate or sending-volume quota, its slot is eligible for the temporary-failure policy.",
+   "missing": "How a large batch is paced to stay within the provider's rate limit rather than only reacting to quota refusals."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-44",
+   "quote": "Activation or resumption admits only opportunities scheduled strictly after the effective activation or resumption time ... enabling a control should govern future follow-up without producing a backlog"
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "C-20",
+   "quote": "Each opportunity becomes due at 09:00 UTC on its scheduled calendar date ... regardless of the operator's, customer's or host's time zone.",
+   "missing": "Treatment of weekends, holidays and business hours (whether a reminder falling on them is sent or shifted) is not stated."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-79",
+   "quote": "A supported currency uses the billing system's amount and precision as of dispatch, without substitutions or conversion.",
+   "missing": "How the amount and currency are formatted for the recipient (symbol, locale); C-23 leaves localization open."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-16",
+   "quote": "An invoice with no usable designation or multiple unresolved designations sends to nobody."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-16",
+   "quote": "An invoice with one usable designated address sends only to that address ... multiple unresolved designations sends to nobody. The system does not substitute a general customer contact, copy another recipient"
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-37",
+   "quote": "The operator sees the invoice reference, opportunity position, nominal time, last state-change time, disposition, applicable reason, count of releases ... and the destination used for each released attempt"
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-23",
+   "quote": "The recipient has the invoice reference plus a route to use it ... A payment link, attachment, exact subject, text template, branding and localization are left open",
+   "missing": "Whether a way to pay (payment link) is included and whether such a link expires; reference, balance and due date are covered by C-6, C-7, C-8."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-70",
+   "quote": "A caller with the account's billing-management permission can enable, disable and change offsets. An invoice recipient, unrelated user or invoice reader without that permission is refused",
+   "missing": "Who may send a reminder by hand; the spec defines no manual send. Stopping is covered by C-71 and C-74."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-40",
+   "quote": "Apply the service-wide stop and see its effective time. No new reminder is released across any account while the stop is in effect.",
+   "missing": "Per-customer off switch (only per account C-30 and per invoice C-31), a preview or dry-run mode, and manual resend are not specified."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-35",
+   "quote": "The operator sees the next nominal time currently available ... If none is available, the operator can determine whether a dispatch gate in C-80 is unmet"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-48",
+   "quote": "Each nominal opportunity expires 24 hours after its scheduled time ... An admitted slot that is still pending at its deadline is shown as expired without release."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-68",
+   "quote": "An ordinary payment, partial payment, credit, refund, reversal or write-off, where supported, is recorded and applied as before. A reminder success, refusal or timeout has no effect on the invoice balance or currency."
+  }
+ ]
+}
