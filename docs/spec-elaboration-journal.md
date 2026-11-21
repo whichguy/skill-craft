@@ -356,3 +356,8 @@ arm; an interim answer gets one more draw of the same arms.
   whether Sol at high is worth a cell.
 - Another session's: the ratchet pilot, which measures the same idea through the built product. If the owner wants
   this text or this instrument there, that session takes it; its branch and runs were not touched.
+
+**Owner's decision, 2026-11-20 (answer to "where should the winning text land once the numbers are in?"):
+"Released spec stage."** The fold-back, if the four answers warrant one, is drafted against the released `spec`
+stage's duty text in `skills/shiploop/scripts/shiploop_prompts.py` and nowhere else. The ratchet pilot's enrich
+stage is not a target of this experiment; nothing is sent to that session unless the owner asks.
