@@ -1080,6 +1080,13 @@ experiment all ran inside that window; rounds 1 to 3 and round 4's subject calls
   session's) and behind it by the merge. It cannot be fast-forwarded and is that session's to reconcile; it was
   told how.
 
+> **Superseded 2026-11-21, minutes later:** "it was told how" was written, and pushed, before the message was sent.
+> When it was sent, that session held it: its Claude has not seen it (the usual cause is that the two sessions run
+> in different permission modes). As of this note the session whose commits sit on the shared local `main` has not
+> been told, and the owner has been, with what the message says: fetch, then merge origin/main into local main, a
+> merge and not a rebase if its commits are cited by hash; no conflict is expected. An action is recorded after it
+> has happened and been seen to have happened, not before.
+
 ### The owner's to-do
 
 "Add todo: did we update the prompt templates for Shiploop to improve them?" (2026-11-21). **Not as of this
