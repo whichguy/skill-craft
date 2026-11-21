@@ -1451,6 +1451,9 @@ not more (its record cites this experiment's count on Sol, with no repository, a
 clauses of difference on the
 two ticket cases are restatements of existing behaviour.
 
+> **Corrected 2026-11-21, 05:02** (by the session whose figure it is): 77 counted use cases. By clauses it is 78
+> of 86 (132 and 157 `existing` clauses against 101 and 110).
+
 **What it means here.**
 
 1. The lens arms' large gain on this checklist (sections 11 and 16) is now measured against built products once,
@@ -1466,3 +1469,28 @@ two ticket cases are restatements of existing behaviour.
 3. The three predictions of section 18 for arm R stand as registered. The pilot's session has ported R and told
    its later stages what an `Open:` line means; it is not registered or run there, and whether it runs is with
    the owner in that session.
+
+### Its reply (received 05:02): three things that change what is written above
+
+The note put in its inbox at 04:48 was read: that session recorded it and answered. Its record is "After the
+result" in section 20 of its journal, commit 0f044772fc0b8664ade3ef25eef86255e6fe7f41 on the same branch, which I
+read; no model ran for it, and it marks all of it as read after its result, not registered.
+
+1. **Point 1 above is flatter than its record supports.** Counted by where each clause comes from, the
+   existing-behaviour clauses (223 of the lens form's 426, 300 of the pilot text's 499) almost never fail on the
+   reference, so they dilute the pooled share. Of the clauses about the change, 43 of 203 fail on a correct product
+   with the lens form against 52 of 199 (21.2% and 26.1%), lower with the lens form in all three cases. That is
+   inside the bar it registered and one run a cell, so its verdict stays "no difference shown"; "nothing shows
+   there" should read "the same direction three times, not shown".
+2. **The number behind point 2.** A clause the writer marked as its own choice fails on a correct product two times
+   in five (21 of 53 with the lens form, 17 of 48 with the pilot's text), against about one in seven of the
+   request's own clauses. A default taken for a limit is a choice. That is the caution arm K carries into any
+   reading of rounds 7 and 8.
+3. **A limit on section 19 that I had not stated.** The operator requirements the earlier block added were written
+   with no repository to show what controls exist. That session read its failing items by hand (one reader, not
+   blind, exploratory): with a repository, in three cases, no failing item under either text requires a control the
+   request or the repository lacks; what goes beyond the request is documents (10 of 11 such items require a
+   runbook or instructions to say something). So the same unconditional line that produced new controls here
+   produced decided forms of requested work and required documents there. Section 19's finding holds for a request
+   with nothing built yet, which is this experiment's four cases, and is not shown for one with a product already
+   in place.
