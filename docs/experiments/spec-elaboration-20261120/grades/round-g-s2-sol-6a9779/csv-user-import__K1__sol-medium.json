@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__K1__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.1960836,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "On any rejection, preserve the existing list and next ID. Stage rows before a synchronous append to the shared process-local store."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Data errors identify the 1-based starting line when known.",
+   "missing": "Whether every failing row is reported or only the first, and what reason/message accompanies each failing line in the response body."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Duplicate emails, including case variants, within the file or current store return 409."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "The header contains exactly name and email in either order.",
+   "missing": "No statement about roles or access levels of created users relative to the importer; only implied by the fixed two-column header."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The chosen admin identity is possession of the server's ADMIN_TOKEN bearer credential. Without configuration, all imports are denied."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1, R-2",
+   "quote": "The header contains exactly name and email in either order. ... Empty/header-only, malformed CSV or UTF-8, bad headers and invalid rows return 400."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "A UTF-8 BOM, LF/CRLF, quoted commas and line breaks, and doubled quotes are supported."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "On any rejection, preserve the existing list and next ID. Stage rows before a synchronous append",
+   "missing": "Store side effects are atomic, but whether any invitation/notification side effects exist or how they interact with a failing row is not stated."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Reject a body above 256 KiB or above 1,000 data records with 413. Exactly the stated limits are permitted."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2, R-1",
+   "quote": "Empty/header-only, malformed CSV or UTF-8, bad headers and invalid rows return 400. ... A nonempty batch with valid rows gets 201"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "An unchanged retry after success is a conflict."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "A nonempty batch with valid rows gets 201 and a JSON object containing created users in CSV order.",
+   "missing": "Does not explicitly decide background vs in-request processing for large files; synchronous handling is only implied."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-2, Non-functional requirements",
+   "quote": "upload data and credentials are absent from application logs. ... There is no service latency SLA or external storage requirement for the local process.",
+   "missing": "Whether the uploaded file itself is retained, for how long, and who may download it again."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Correct rejected files and resubmit.",
+   "missing": "Cancelling a running import is not addressed; retrying only failed rows is not stated (whole-file resubmission implied)."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "There is no service latency SLA or external storage requirement for the local process.",
+   "missing": "No time bound for a maximum-size file and nothing about visible progress."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Preserve the baseline src/server.js and src/users.js contracts at 3558d4c. ... On a fresh process the seed users are unchanged."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

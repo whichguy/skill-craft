@@ -1,0 +1,144 @@
+{
+ "slot": "csv-user-import__K2__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2 A2",
+   "quote": "A rejected batch changes no users and consumes no IDs."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Fail closed and emit error reasons and row numbers without CSV values or credentials."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2 A2",
+   "quote": "Reject invalid records with 400 and an email conflict with 409. Compare emails case-insensitively against the stored users and earlier rows in the upload."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1 A1",
+   "quote": "A configured administrator can POST a file body to /users/import as text/csv with a Bearer token. Without matching credentials return 401 with a Bearer challenge.",
+   "missing": "Whether granting permission to create a single user also grants import authority."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1 A2",
+   "quote": "exactly the name and email header in either order, and at least one data record."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1 A2",
+   "quote": "Accept UTF-8 with an optional BOM, exactly the name and email header in either order, and at least one data record. Support LF and CRLF, quoted commas, quoted newlines, doubled quotes and optional final newline."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "Behavior model, F-1 and final paragraph",
+   "quote": "then validates against the current store and synchronously appends all records. \u2026 Account sign-in, invitations and new data persistence are outside the upload's scope."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1 A3",
+   "quote": "Accept at most 1 MiB on the wire and 1,000 user records per upload. Return 413 when either limit is exceeded, including a streamed body."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1 A2",
+   "quote": "Accept UTF-8 with an optional BOM, exactly the name and email header in either order, and at least one data record."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2 A2",
+   "quote": "Retrying a successful upload returns a conflict and creates nothing else."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "Behavior model, F-1",
+   "quote": "then validates against the current store and synchronously appends all records. The caller receives 201 after the write.",
+   "missing": "The 201 tells the caller when synchronous processing finishes. The specification gives no background processing or completion signal for a large import after the request ends."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "Behavior model",
+   "quote": "Account sign-in, invitations and new data persistence are outside the upload's scope."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "Behavior model",
+   "quote": "Account sign-in, invitations and new data persistence are outside the upload's scope.",
+   "missing": "The initial account status and whether imported users have a password are unspecified. First sign-in is outside scope."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "Behavior model and R-2 A3",
+   "quote": "The HTTP request owns ephemeral CSV bytes. \u2026 there is no user database or upload file."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "Behavior model, T-2 and T-4",
+   "quote": "correct configuration, credentials or input and retry. \u2026 Incomplete body never commits. A disconnect after commit may hide the response; a replay conflicts.",
+   "missing": "Whether the admin can cancel after the server receives the full body, and how the admin can select only failed rows for retry."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "This is a resource budget, not a latency SLA.",
+   "missing": "The specification sets no completion-time bound for the maximum upload and gives no way to see progress while it runs."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-2 A2",
+   "quote": "Compare emails case-insensitively against the stored users and earlier rows in the upload. A rejected batch changes no users and consumes no IDs.",
+   "missing": "Whether manual single-user creation retains its existing behavior."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

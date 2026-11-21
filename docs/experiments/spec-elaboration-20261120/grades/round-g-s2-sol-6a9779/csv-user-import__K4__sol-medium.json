@@ -1,0 +1,143 @@
+{
+ "slot": "csv-user-import__K4__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.18330999999999997,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "No row is created on any failure."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Where a record can be identified, return its 1-based logical record number including the header. Duplicate emails ... return 409 with the conflicting record number.",
+   "missing": "Whether all failing rows are listed or only the first, and whether the response states the reason for each failure."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Duplicate emails, case-insensitive within an upload or against existing users, return 409 with the conflicting record number."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "The header contains exactly name and email in either order.",
+   "missing": "No statement about created users' access relative to the importer's authority; roles are only excluded implicitly by the fixed header."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The import endpoint requires the configured bearer token. With no valid token or no configuration, return 401 and keep the store unchanged."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The header contains exactly name and email in either order. Require at least one data record ... Invalid encoding, CSV syntax, header, row width, name or email results in 400."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "accepts a raw UTF-8 text/csv upload, with optional UTF-8 BOM, LF or CRLF, quoted fields, doubled quotes and quoted line breaks."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "No row is created on any failure.",
+   "missing": "Whether any side effects (e.g. invitations or notifications) occur at all, and whether they are deferred until the whole batch succeeds."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Allow up to 1 MiB and 1,000 data records. Exceeding either bound returns 413 without a write (T7)."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Require at least one data record ... Invalid encoding, CSV syntax, header, row width, name or email results in 400."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "A repeated successful batch consequently receives 409."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-1 / Non-functional requirements",
+   "quote": "returns 201 with `{\"created\":2}` ... The target has no visual UI, queue, remote store or stated throughput SLA."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Keep the CSV transient and the same public name, email and ID projection for stored users."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "No row is created on any failure.",
+   "missing": "Cancelling a running import is not addressed; retrying only failed rows is moot only by implication of all-or-nothing."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "The target has no visual UI, queue, remote store or stated throughput SLA.",
+   "missing": "No time bound for a maximum-size file and no progress visibility."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "GET /users and GET /users/:id retain their JSON shape, seeded data and public access."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

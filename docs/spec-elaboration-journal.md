@@ -3492,6 +3492,18 @@ for the registered judge's twelve; three Sonnet readers. About half an hour.
 
 **Where it stops.** After s5 the result is reported as it is. No further set without a new entry here.
 
+*Added 2026-11-21 14:46, after s2's judged readings were opened and before any judged reading of s3 to s5 exists (their
+runs were under way):* s2 as judged does not repeat s1. Covered, Opus and Astra: A 8 and 7, R 8 and 8, C 8 and 8, X 8
+and 8; X over A is higher on one item (N-2) with none lower, X over C on one (N-2) with one lower (N-5), and C over A
+and R over A on none. Across the two sets one item separates the arms every time: N-2, what the admin gets back
+naming the rows that failed and why, is covered by both of X's specifications and only partly by all six others. The
+rest of the nine is at or near its ceiling for every arm, so the released stage's own run-to-run difference (A
+covered 6 and 5 in s1, 8 and 7 in s2) is as large as anything between arms. Of the items kept out of the rule, four
+are called mixed by both sorters, each with a part that applies here (N-8, N-14, N-15, N-19), and X is ahead of A on
+N-8 and N-14 in both sets. So one more reading is added for s3 to s5, descriptive and with no rule: the same nets on
+thirteen items, the nine and those four. A judge grades a mixed item whole, so "covered" there can ask for more than
+this program needs.
+
 **Checked, no model called.** The rehearsal with the amended checks and the new reading: 86 checks held and none
 failed (`evidence/guides-test/rehearsal.txt` is that run's transcript).
 

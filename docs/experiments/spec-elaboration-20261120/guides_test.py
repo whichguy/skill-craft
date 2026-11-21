@@ -1638,6 +1638,15 @@ def several(nets: dict[str, list[int]]) -> dict[str, str]:
     return said
 
 
+def both_mixed() -> list[str]:
+    """The items both sorters labelled mixed: part of each applies to this program."""
+    rows = [
+        {row["id"]: row["here"] for row in json.loads(path.read_text())["labels"]}
+        for path in label_files().values()
+    ]
+    return [item for item in rows[0] if all(row[item] == "mixed" for row in rows)]
+
+
 def cmd_sets(rule: list[str], pairs: list[str]) -> int:
     """Sets side by side, each given as ROOT SETID: words, items covered, the nets of the four pairs, and what each author read."""
     nets = {pair: [] for pair in SEVERAL}
@@ -1680,6 +1689,19 @@ def cmd_sets(rule: list[str], pairs: list[str]) -> int:
                 )
                 if set_id in rule:
                     nets[pair].append(found["net"])
+        if score:  # a wider, descriptive reading: the nine and the items both sorters call mixed, each with a part that applies
+            wider = score["items"]["applies"] + both_mixed()
+            lists = {
+                arm: [score["states"][arm][name] for name, _ in JUDGE_TAGS]
+                for arm in ARMS
+            }
+            print(
+                f"  on {len(wider)} items (the {len(score['items']['applies'])} and {both_mixed()}): "
+                + "; ".join(
+                    f"{pair} net {compare(lists, wider, *pair.split(' over '))['net']}"
+                    for pair in SEVERAL
+                )
+            )
         alone = {
             arm: names
             for arm, names in (score.get("capability_in_one_arm_alone") or {}).items()

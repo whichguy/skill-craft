@@ -1,0 +1,141 @@
+{
+ "slot": "csv-user-import__K3__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Reject the whole batch on failure, preserving existing records."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Validation errors tied to a data record identify its logical CSV row (header is row 1).",
+   "missing": "Whether the response lists every failed row and gives the specific reason each row failed."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Case-insensitive email collisions within the upload or with stored users return 409."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "An administrator sends POST /users/import with `Authorization: Bearer <token>` and a UTF-8 `text/csv` body. The operator configures `ADMIN_IMPORT_TOKEN`. A missing or incorrect credential returns 401"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A valid upload has a header with exactly `name` and `email` in either order"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Accept LF and CRLF, optional initial BOM, quoted fields, escaped quotes and quoted line breaks."
+  },
+  {
+   "id": "N-8",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Reject more than 1 MiB of body data or more than 1,000 user records with 413."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A valid upload has a header with exactly `name` and `email` in either order, then 1 to 1,000 records."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Case-insensitive email collisions within the upload or with stored users return 409. Reject the whole batch on failure, preserving existing records."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Return 201 with `{\"created\":2}` for two rows",
+   "missing": "The upload response reports completion. There is no requirement to run a large import in the background or to deliver its result after the upload request ends."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "CSV and token are not logged or kept as separate records. Stored user names and emails use the same visibility as existing records."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Case-insensitive email collisions within the upload or with stored users return 409. Reject the whole batch on failure, preserving existing records.",
+   "missing": "Whether the existing manual single-user creation flow must keep its current behavior."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

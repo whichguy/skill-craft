@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__K1__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "On any rejection, preserve the existing list and next ID. Stage rows before a synchronous append to the shared process-local store."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Data errors identify the 1-based starting line when known.",
+   "missing": "Whether the response lists every failing row and gives a specific reason for each."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Duplicate emails, including case variants, within the file or current store return 409."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The chosen admin identity is possession of the server's ADMIN_TOKEN bearer credential. Without configuration, all imports are denied. \u2026 Missing or incorrect authorization returns 401 before CSV processing."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1 and R-2",
+   "quote": "The header contains exactly name and email in either order. \u2026 Empty/header-only, malformed CSV or UTF-8, bad headers and invalid rows return 400."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "A UTF-8 BOM, LF/CRLF, quoted commas and line breaks, and doubled quotes are supported."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "On any rejection, preserve the existing list and next ID. Stage rows before a synchronous append to the shared process-local store.",
+   "missing": "Whether external effects such as invitations must wait until the batch succeeds, or how to handle ones already sent when a later row fails."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Reject a body above 256 KiB or above 1,000 data records with 413. Exactly the stated limits are permitted."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1 and R-2",
+   "quote": "A nonempty batch with valid rows gets 201 and a JSON object containing created users in CSV order. \u2026 Empty/header-only, malformed CSV or UTF-8, bad headers and invalid rows return 400."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Duplicate emails, including case variants, within the file or current store return 409. \u2026 An unchanged retry after success is a conflict."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "A nonempty batch with valid rows gets 201 and a JSON object containing created users in CSV order.",
+   "missing": "The HTTP response communicates completion. The specification gives no background processing or later completion notification for large files."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "upload data and credentials are absent from application logs.",
+   "missing": "Whether the original CSV is stored, where and for how long it is retained, and who can retrieve it."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "On any rejection, preserve the existing list and next ID. \u2026 Correct rejected files and resubmit.",
+   "missing": "Whether an administrator can cancel a running import or select just the failing rows for retry."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "There is no service latency SLA or external storage requirement for the local process.",
+   "missing": "No completion-time bound is given for a maximum-size file, and the specification leaves progress reporting unspecified."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Duplicate emails, including case variants, within the file or current store return 409. \u2026 Stage rows before a synchronous append to the shared process-local store.",
+   "missing": "The import appends records and rejects existing email matches. The specification gives no compatibility requirement for creating one user by hand."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}
