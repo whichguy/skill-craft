@@ -3120,6 +3120,12 @@ its own stub, which shows it can fail. `replay` with the final reader
 commit; the finished Claude delivery is not pinned without a witness, is pinned with a copy equal to its commit's
 text and is not with one that differs. Nothing was written into either folder.
 
+*Added 2026-11-21 13:32:* the rehearsal now also runs `sort` and `judge`, with functions that write made-up answers in
+place of their sessions: a mixed label with no part named and a sort that leaves an item out are refused, a second
+sort by the same sorter is refused, the sorter is given the registered text with the sentence, the base and the
+items, and every judge is given the changed judge's text. 70 checks held and none failed; the transcript file is of
+this later run.
+
 **What the rehearsal does not show.** A real host or a real stop (another session's sample shows the harness's
 stop file works); real sorters, judges or a real reader; that 8 items will apply; anything on the Claude host.
 

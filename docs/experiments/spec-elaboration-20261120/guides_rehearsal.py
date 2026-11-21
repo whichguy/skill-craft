@@ -7,8 +7,8 @@ TEMPLATE_RUN is the output folder of any real run that was stopped when its spec
 SCRATCH_ROOT must not exist and must be outside the checkout. The harness is replaced by a stub (this file, started with
 GUIDES_STUB set) that lays the template's records down as a run would write them: first without the acceptance, then with
 it, and then waits for the stop file. Everything guides_test.py would write into the checkout (labels, blind copies,
-grades) is pointed at SCRATCH_ROOT. Judge readings, labels and the reader's file are made up here: what is rehearsed is the
-handling, not any judgement.
+grades, session folders) is pointed at SCRATCH_ROOT. The sorter's and the judges' sessions are replaced by functions that
+write made-up answers, and the reader's file is made up: what is rehearsed is the handling, not any judgement.
 """
 
 from __future__ import annotations
@@ -193,6 +193,49 @@ def main() -> int:
     )
     (root / "prepare.json").write_text(json.dumps(ready))
 
+    print(
+        "== sort: the command's handling, with a made-up sorter in place of the session"
+    )
+    g.grade.WORK, said = scratch / "sessions", {}
+
+    def fake_sorter(prompt, cwd, judge, timeout):
+        said["prompt"], said["files"] = (
+            prompt,
+            sorted(path.name for path in cwd.iterdir()),
+        )
+        (cwd / "verdict.json").write_text(json.dumps({"labels": said["labels"]}))
+        return 0, None
+
+    g.grade.run_session, g.LABELS = fake_sorter, scratch / "sort-labels"
+    g.LABELS.mkdir(parents=True)
+    rows = [
+        {"id": i, "here": "mixed" if n == 3 else "applies", "why": "made up"}
+        for n, i in enumerate(wanted)
+    ]
+    said["labels"] = rows
+    refuses(
+        "a mixed label that does not say which part applies", g.cmd_sort, "opus", 60
+    )
+    rows[3]["applies_part"] = "made up"
+    said["labels"] = rows[:-1]
+    refuses("a sort that leaves an item out", g.cmd_sort, "opus", 60)
+    said["labels"] = rows
+    expect("a complete sort is kept", g.cmd_sort("opus", 60) == 0)
+    kept = json.loads((g.LABELS / "here-opus.json").read_text())
+    expect(
+        "the label file carries the sentence, the base's digest and 21 labels",
+        (kept["request"], kept["fixture_digest"], len(kept["labels"]))
+        == (g.REQUEST, g.brownfield.digest(g.FIXTURE), 21),
+    )
+    expect(
+        "the sorter was given the registered text, the sentence, the base and the items",
+        said["prompt"] == g.SORT_PROMPT
+        and said["files"] == ["base", "items.json", "request.txt"],
+        said["files"],
+    )
+    refuses("a second sort by the same sorter", g.cmd_sort, "opus", 60)
+    g.LABELS = scratch / "labels"
+
     print("== the launch gate")
     refuses("a launch with no label files", g.cmd_run, root, "r1", "sol", 1.0)
     g.LABELS.mkdir(parents=True)
@@ -304,7 +347,9 @@ def main() -> int:
         names,
     )
 
-    print("== readings: made-up verdicts, sealed, then compared")
+    print(
+        "== readings: made-up verdicts through the judging command, sealed, then compared"
+    )
     refuses("a score before any reading", g.cmd_score, root, "r1-sol")
     state = {arm: {i: [0, 0] for i in wanted} for arm in g.ARMS}
     for arm in g.ARMS:
@@ -323,21 +368,24 @@ def main() -> int:
             wanted[19]: [1, 2],
         }
     )
-    word = {value: key for key, value in g.RANK.items()}
-    for arm, code in arm_code.items():
-        for which, (_, tag) in enumerate(g.JUDGE_TAGS):
-            kept = g.grades_file(manifest, tag, code)
-            kept.parent.mkdir(parents=True, exist_ok=True)
-            kept.write_text(
-                json.dumps(
-                    {
-                        "verdicts": [
-                            {"id": i, "state": word[state[arm][i][which]]}
-                            for i in wanted
-                        ]
-                    }
-                )
+    word, prompts = {value: key for key, value in g.RANK.items()}, []
+
+    def fake_judge(prompt, cwd, judge, timeout):
+        prompts.append(prompt)
+        arm = next(arm for arm, code in arm_code.items() if f"__{code}__" in cwd.name)
+        which = 0 if judge["host"] == "claude" else 1
+        (cwd / "verdict.json").write_text(
+            json.dumps(
+                {
+                    "verdicts": [
+                        {"id": i, "state": word[state[arm][i][which]]} for i in wanted
+                    ]
+                }
             )
+        )
+        return 0, None
+
+    g.grade.run_session = fake_judge
     rubric = g.live_rubric()
     expect(
         "the live rubric is the bench judge's text with four phrases changed",
@@ -346,8 +394,17 @@ def main() -> int:
         and "C-n" not in rubric
         and "U-n" not in rubric,
     )
+    expect(
+        "judge takes six readings and seals them",
+        g.cmd_judge(root, "r1-sol", 60) == 0 and len(prompts) == 6,
+        len(prompts),
+    )
+    expect("every judge was given the live rubric", set(prompts) == {rubric})
+    sealed = root / "judged-r1-sol.json"
+    held = sealed.read_text()
+    sealed.unlink()
     refuses("a score before the readings are sealed", g.cmd_score, root, "r1-sol")
-    expect("all six readings sealed", g.seal(root, manifest, rubric) == [])
+    sealed.write_text(held)
     refuses("a score before the reader's audit", g.cmd_score, root, "r1-sol")
     expect(
         "the reader's folder is made",
