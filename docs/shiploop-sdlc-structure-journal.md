@@ -2743,6 +2743,30 @@ pass in both runs, and both specs fill the data file at start, the reading the o
 - Case checks are the yardstick. Nothing here reads code quality, and `shared-expenses` has no held-out set.
 - Reviews changed more at medium on one case (7 of 8) and less on the other (2 of 9); not judged for substance.
 
+### Owner decision, 2026-11-21: "Run larger round"
+
+Offered a larger round or an immediate switch of Sonnet to medium, the owner chose the larger round.
+
+### Registered design: Sonnet medium against high, six more pairs (written and committed before any counted run)
+
+- **Runs.** Twelve whole deliveries on `claude-sonnet-5-5` from a clean worktree of this commit (`--source checkout`),
+  no run option, no turn, time or resume cap, `--max-budget-usd 40` each: two more pairs each of `ticket-due-times`,
+  `shared-expenses` and `ticket-assignment` (3 case checks and 18 held-out checks).
+- **Starts.** `ticket-due-times` and `shared-expenses` run as two waves of four, each pair started together, the
+  second wave when the first has ended. `ticket-assignment` leases a fixed port for its whole run, so two of its runs
+  cannot overlap: its four runs go one after another, in the order medium, high, high, medium, beside the waves. Its
+  pairs are therefore pairs for quality and cost only; their minutes are reported and not read as a ratio.
+- **Quality reading, fixed now, over all eight pairs (these six and R91's two).** As recorded by the harness: overall
+  pass, case checks and held-out checks; nothing regraded. A failed check is rerun on the saved work before it is
+  counted, and a failure with an outside cause the records show makes that pair inconclusive (first result kept).
+  - *Holds*: no medium run fails a check its partner passes.
+  - *One such failure*: reported with its cause; the reading is "not settled".
+  - *Two or more*: "a drop seen"; Sonnet stays at high.
+- **Cost and time.** Dollars and turns for every pair; minutes as a ratio only for the pairs started together.
+- **What it can carry.** Eight pairs on three small cases read a drop that happens in roughly a quarter of runs or
+  more. If the reading is "holds", the recommendation to the owner will be to make medium the Sonnet profile and
+  keep watching the checks on real runs; the default itself is the owner's.
+
 ## Evidence (all rounds)
 
 | File | Holds |
