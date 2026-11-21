@@ -25,6 +25,7 @@ strength   builds the case's reference delivery and each named variant in a fres
 import concurrent.futures
 import importlib.util
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -40,6 +41,8 @@ import gate as gate_module
 
 GRADED = ("build-", "fix-", "green-", "final", "frozen suite")  # "frozen suite ...": a repair start's defective product
 DID_NOT_END = ("timed out", "did not end", "(rc None)")
+PLAYWRIGHT = "/Users/dadleet/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright"
+BROWSER = "/Users/dadleet/Library/Caches/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-mac-arm64/chrome-headless-shell"
 APPARATUS = ("acceptance", "ratchet")  # Ratchet's own files in a work tree: never part of the delivery that is graded
 
 
@@ -76,6 +79,22 @@ def hidden(kind, copy, folder):
         return {"observed": bool(result.get("observed")), "reason": result.get("reason"),
                 "passed": [row["id"] for row in rows if row.get("pass")],
                 "failed": {row["id"]: row.get("note") for row in rows if not row.get("pass")}}
+    if kind == "grokbot":  # the browser yardstick beside the scenario; it starts and stops the product itself
+        driver = HERE / "scenarios" / "grokbot-local" / "grokbot_accept.cjs"
+        out = Path(folder) / "grokbot-observation"
+        env = dict(os.environ, PLAYWRIGHT_NODE_PATH=os.environ.get("PLAYWRIGHT_NODE_PATH", PLAYWRIGHT),
+                   BROWSER_EXECUTABLE_PATH=os.environ.get("BROWSER_EXECUTABLE_PATH", BROWSER))
+        env.pop("PROVIDER_TOKEN", None)
+        try:
+            subprocess.run(["node", str(driver), str(copy), str(out)], env=env, capture_output=True, text=True, timeout=1800, check=False)
+            seen = json.loads((out / "observation.json").read_text())
+        except (OSError, ValueError, subprocess.SubprocessError) as error:
+            return {"observed": False, "reason": f"{type(error).__name__}: {error}"[:300]}
+        keep = Path(folder).parent / f"grokbot-observation-{Path(folder).name}.json"
+        keep.write_text(json.dumps(seen, indent=1) + "\n")
+        return {"observed": bool(seen.get("observed") and seen.get("complete")), "reason": seen.get("error"),
+                "passed": [row["id"] for row in seen["checks"] if row["pass"]],
+                "failed": {row["id"]: row.get("note") for row in seen["checks"] if not row["pass"]}, "notes": seen.get("notes")}
     if kind == "stand-in":  # the harness's own strong and boundary tests for the orders module, never shown to a session
         root = E2E / "fixtures" / "stand-ins" / "stand-in-rules"
         passed, failed = [], {}

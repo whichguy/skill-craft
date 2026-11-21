@@ -452,3 +452,62 @@ Registration changes: P2 selects defects only among those `grade.py visible` sho
 a start counts as repaired only if a held-out check that failed at the start passes at the end. The enriched ticket
 runs (`p1e2-ticket-*`) run amendments 1 to 3; the enriched orders run (`p1e2-stand-in-rules`) ran amendments 1 and 2,
 before the naming rule, which does not touch the spec stage.
+
+## 12. Amendment 4, 2026-11-20 22:15: a harder scenario, Grokbot-local (registered before any of its runs has a result)
+
+Owner, 2026-11-20, sixth and seventh messages: "do we have a sufficiently complex enough scenario for this to be
+addressing the test case? should we have a 'create a node based grokbot clone running on localhost' as a scenario to
+help drive better comparisons?", "each of the tests should run in an isolated, clean git repo folder", and then "go
+ahead and build the grokbot-local scenario".
+
+Why: every case run so far is at its ceiling (all four whole-loop first builds passed every held-out check; one
+acceptance clause failed naturally in four runs), so the pilot could price the loop and could not show whether
+iterating on failed tests beats planning when a first pass falls short.
+
+What it is (`docs/experiments/ratchet-pilot-20261120/scenarios/grokbot-local/`):
+
+- `REQUEST.md`, the literal request. Its customer paragraphs are the owner's Grok chat brief (commit
+  71fa298e44db73f6afa46217377ba0ea850de916, `test/shiploop_e2e/scenarios/grok-chat-outcome/BUILDER_PROMPT.md`, retired
+  with the Salesforce cases in 2cd119d12) with Salesforce and xAI replaced by a Node.js app on localhost. A closing
+  section names what a check can find: how a person continues as someone, and the accessible names of the main
+  regions and controls, as the Roundtable case's requests do. 1,150 words, about ten feature areas.
+- `fixture/`, the starting folder of every run: `provider/standin.js` (a deterministic, offline stand-in for the
+  model, 15 rules, documented in `provider/README.md`; its replies reflect the bot's instructions, the memory, the
+  conversation and the records it was handed, so a check can tell what the app assembled) and `records/` (seven
+  synthetic records, three people, who may read which). Nothing else.
+- `grokbot_accept.cjs`, the held-out yardstick: Playwright, finding everything by role and accessible name; it
+  starts and stops `node server.js` itself, each mode on a free port with an empty data folder. 48 checks: setup and
+  the secret (5), conversation, bots, memory, records and changes (27, with a restart), long tasks (8, with the page
+  closed and with a restart), everyday use at 320, 390 and 1440 pixels and from the keyboard (6), and the delivery's
+  own `npm test` (1). Every check is tried and recorded; one failing does not stop the others.
+- `BRIEF.md`, the proposal the owner said go to.
+
+Arms, one run each on Codex `gpt-6.2-sol` at high, each in its own new Git repository in its own folder outside this
+checkout:
+
+| Arm | What runs |
+|---|---|
+| bare | one session given the request and the rules of conduct, nothing else (`ratchet.py run --bare`) |
+| ShipLoop | this checkout's ShipLoop source (the fewest-steps rule of 67ac34ae2b996205ba6018ebbd7f78bee9d338dd; released as 2.4.0), through `test/shiploop_e2e/run.py --source checkout` with the harness's defaults, from a throwaway checkout that alone carries the case and its fixture |
+| Ratchet | amendments 1 to 3, three cycles at most (`ratchet.py run`) |
+
+Readings:
+
+- R5.1 **the scenario is hard enough** if the bare arm fails at least 5 of the 48 checks. Fewer reads as another
+  ceiling case.
+- R5.2 **quality at the end**: checks passed by each arm's final product. An arm is ahead of another by 5 checks or
+  more; within 4 reads as no difference shown.
+- R5.3 **what Ratchet's cycles recover**: its checks passed at the first build and at the end of each cycle.
+- R5.4 reported: whole-path minutes and output tokens of each arm.
+- R5.5 reported: checks that pass at Ratchet's first build and fail at its end (the spec turning a working product
+  into a failing one, section 10's due-times finding).
+
+Calibration rule, fixed before any result: there is no hand-written reference, and the yardstick was written before
+any build existed. It is first run on the bare arm's product. A check is corrected only where it contradicts the
+request or the stand-in's documented behaviour, never to make a build pass; every correction is listed with its
+reason; after calibration one version of the yardstick grades every arm, and an arm graded earlier is graded again.
+
+Limits known before the runs: one run an arm; a yardstick calibrated on the arms it measures, which is weaker than
+the ticket cases' calibration and is said with every result; no arm is given a browser, each may use what it finds on
+the machine; the ShipLoop arm releases and reviews as ShipLoop does, the other two stop at a product; a long run is
+started detached and a ShipLoop run that stops is resumed with the harness's own resume.

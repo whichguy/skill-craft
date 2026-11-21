@@ -338,6 +338,10 @@ Change neither the product nor any test.
 
 {conduct}"""
 
+BARE_PACKET = """{request}
+
+{conduct}"""
+
 LOOP_BLOCK = """## The loop
 This stage runs inside an Until Loop: a small script that restates the work and decides when you are done by running
 the exit check itself. RUN it now, once, before any work:
@@ -435,7 +439,7 @@ class Run:
         self.checks = list(case.get("checks") or [])
         self.record = {"case": args.case, "host": args.host, "model": args.model, "effort": args.effort,
                        "started": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "start_tree": args.start_tree,
-                       "frozen_from": args.frozen_from, "build_from": args.build_from, "sessions": [], "gates": [], "snapshots": [], "cycles": [],
+                       "frozen_from": args.frozen_from, "build_from": args.build_from, "bare": bool(args.bare), "sessions": [], "gates": [], "snapshots": [], "cycles": [],
                        "reverted": [], "spec_violations": [], "local_head": git(REPO, "rev-parse", "HEAD").strip(),
                        "named_checks": True}
         self.fake = load_fake(args.fake) if args.host == "fake" else None
@@ -485,7 +489,9 @@ class Run:
         if self.args.start_tree:
             shutil.copytree(self.args.start_tree, self.work, dirs_exist_ok=True)
         else:
-            if self.case.get("fixture"):
+            if self.case.get("fixture_path"):  # a starting folder kept beside this script
+                shutil.copytree(HERE / self.case["fixture_path"], self.work, dirs_exist_ok=True)
+            elif self.case.get("fixture"):
                 shutil.copytree(E2E / "fixtures" / self.case["fixture"], self.work, dirs_exist_ok=True)
             shutil.rmtree(self.work / "docs" / "shiploop", ignore_errors=True)  # the seeded knowledge home: Ratchet writes its own spec
         git(self.work, "init", "-q", "-b", "main")
@@ -501,6 +507,11 @@ class Run:
                                          check=False).returncode == 0]
             archive = subprocess.run(["git", "-C", str(source), "archive", "HEAD", "--", *present], capture_output=True, check=True).stdout
             subprocess.run(["tar", "-x", "-C", str(self.work)], input=archive, check=True)
+            # A frozen test may read the earlier run's history by commit (the base's own tests, the previous release):
+            # make that run's objects readable here, without making them part of this repository's history.
+            alternates = self.work / ".git" / "objects" / "info" / "alternates"
+            alternates.parent.mkdir(parents=True, exist_ok=True)
+            alternates.write_text(str(source / ".git" / "objects") + "\n")
             earlier = json.loads((source.parent / "run.json").read_text())
             self.record["frozen_suite"] = {"run": str(source.parent), "commit": git(source, "rev-parse", "HEAD").strip(),
                                            "named_checks": bool(earlier.get("named_checks"))}
@@ -864,8 +875,23 @@ class Run:
         self.say(f"  delta {cycle}: {len(new)} new item(s)" + (": " + ", ".join(new) if new else ""))
         return new
 
+    def run_bare(self):
+        """The comparison arm with no loop at all: one session, the request and the rules of conduct, nothing else."""
+        self.setup()
+        self.record["cycles"].append({"cycle": 1, "bare": True})
+        self.session("build", BARE_PACKET.format(request=self.request, conduct=self.conduct()), "bare-build")
+        self.commit("build-1")
+        self.commit("final")
+        self.record.update(stop="bare", final_pass=None, seconds=round(time.time() - self.began, 1), clauses=0, use_cases=0,
+                           tamper=[], finished=time.strftime("%Y-%m-%dT%H:%M:%S%z"))
+        self.save()
+        self.say(f"bare build ended after {self.record['seconds']} s")
+        return 0
+
     # -- the whole run
     def run(self):
+        if self.args.bare:
+            return self.run_bare()
         self.setup()
         if self.args.frozen_from:
             clauses = read_spec(self.work)
@@ -938,6 +964,7 @@ def main(argv=None):
     run.add_argument("--frozen-from", help="a finished run whose spec and acceptance tests this run starts with, frozen")
     run.add_argument("--build-from", help="cycle 1's build is this product tree, laid over the work folder by the script: no build session")
     run.add_argument("--stop-after", choices=("tests",), help="end the run once cycle 1's acceptance tests are frozen and gated")
+    run.add_argument("--bare", action="store_true", help="no loop: one session is given the request and builds; a comparison arm")
     run.add_argument("--max-cycles", type=int, default=3, help="apparatus limit: cycles before the run is stopped (reported)")
     run.add_argument("--max-fixes", type=int, default=4, help="apparatus limit: fix sessions per cycle (reported)")
     run.add_argument("--max-budget-usd", type=float, default=None, help="per session, on hosts that price a session")
