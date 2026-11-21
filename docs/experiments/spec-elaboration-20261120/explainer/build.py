@@ -949,7 +949,7 @@ def page():
 
 <section class="thread" aria-labelledby="t3">
   <div class="thread-head"><span class="num" aria-hidden="true">3</span><div>
-    <p class="eyebrow">Journal sections 29 to 31 · results received from the Ratchet session</p>
+    <p class="eyebrow">Journal sections 29 to 31 and 37 · results received from the Ratchet session</p>
     <h2 id="t3">A text that decides less did better on built products</h2></div></div>
   <p>The Ratchet session measures a specification through what gets built from it. A test suite is graded against a
   correct reference product, against 37 planted defects, and against held-out checks of the built product. Into its
@@ -980,6 +980,12 @@ def page():
   missed one defect in existing behaviour that its shorter specification no longer pinned. With Sonnet as the writer,
   R did the same: 3 choice clauses in five specifications against 51, and 42 <span class="open-tag">Open:</span> lines.
   Sonnet never made the due-times mistake that R repaired on Sol, so that repair is a Sol result.</p>
+  <p>At medium effort Sonnet wrote the same kind of specification with R (16 to 22 clauses against 21 to 32 at high),
+  and tests built from it caught the same 26 of 27 planted defects, in 5.8 minutes and $1.37 against 14.2 minutes and
+  $2.45. The price of a short specification showed here too. Five of those 26 catches came only from clauses that run
+  the product's own existing test suite, against none for the lens text's 153 clauses on Sol. A short specification
+  leans on the tests the product already has, so anything that adopts it has to say where existing behaviour is
+  pinned.</p>
 </section>
 
 <section class="thread" aria-labelledby="t4">
@@ -1075,8 +1081,6 @@ def page():
     <li><div><b>The 83-minute delivery.</b> The SDLC session has the figures to read.</div></li>
     <li><div><b>Your skills are visible to Codex sessions in the end-to-end harness.</b> The harness was left unchanged as
     your call, because fixing it breaks comparison with earlier Codex runs.</div></li>
-    <li><div><b>Running now in the Ratchet session:</b> Sonnet at medium effort against Sonnet at high. Its first step
-    says medium still meets the bar, with shorter specifications.</div></li>
   </ul>
 </section>
 
