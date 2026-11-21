@@ -2121,3 +2121,75 @@ a short specification is most at risk (the two ticket cases, 27 and 6 planted de
   the specification decide. That is a ShipLoop product question and the owner's; the evidence for it is in the
   other session's record, on its instrument and not on ShipLoop.
 - Nothing in sections 26 and 27 changes: they are counts of what was run.
+
+## 30. Received: the pooled result for the reworded text; its three predictions held on the count (08:04, 2026-11-21)
+
+Recorded as received. The runs, instruments and findings are the Ratchet session's. Its record is the subsection
+"Rung 3, result, and the readings of amendment 8" in section 21 of `docs/ratchet-pilot-journal.md` at commit
+b7c30191e368d337c46c3953c07611deef86ba15 on its branch `ratchet-lens-08805f`, not on main. A Sonnet worker of this
+session checked the figures below against that record one by one, and they match; I read its report and spot-checked
+ten of them in the source myself. Four of them sit outside that subsection, in its section 20 (the
+choice-clause counts of 53 and 48, the 52 of 199 for the pilot's own text, and the pilot's 17 on the second
+ticket-assignment delivery); the rest are in the subsection or in the "Rung 2" and "larger cases" subsections it
+points to. Nothing was re-run here.
+
+The three test-strength cells are orders, ticket assignment and ticket due times, one run each. The three texts are
+the reworded text (R, section 18's arm), the lens text (L) and the pilot's own text.
+
+| its reading | reworded text (R) | lens text (L) | the pilot's own text |
+| --- | --- | --- | --- |
+| clauses tested, three cells | 102 | 426 | 499 |
+| clauses the writer marked as its own choice | 0 | 53 | 48 |
+| clauses failing on the correct reference | 8 (7.8%) | 47 (11.0%) | 59 (11.8%) |
+| calibrated defects caught | 36 of 37 | 36 of 37 | 37 of 37 |
+| second correct ticket-assignment delivery: items failing beyond the reference | 3 | 15 | 17 |
+| minutes, three cells | 70.4 | 105.9 | 112.2 |
+| output tokens, three cells | 168,562 | 270,820 | 256,223 |
+| due times: held-out checks passed by the first build | 8 of 8 and 8 of 8 | 3 of 8 and 2 of 8 | 3 of 8 |
+| due times: the loop's own gate after its test pass | 41 of 42; 41 of 41 | | |
+| due times: minutes to that gate | 39 and 33 | 58 and 62 | |
+
+In that session's words, the eight clauses of R that fail on the correct reference are none of them an addition of
+the writer's, because R's writers wrote no choice clause. Four are the request's own clauses about the tests it asks
+for. One is the command-line table, which fails with every text. One was added by the plan stage. Two are sentences
+of the request tested at an edge where the reference does not do what the sentence says. On open lines: 25 clauses
+in the three cells carry one, and 2 of those fail on the reference; neither failure is about its open point. The
+plan stage added three clauses and none settles an open point. Seven of seven specifications written with R have no
+choice clause, with 5 to 18 open lines each. The larger cases lost nothing at their first build: chess 10 of 10,
+Grokbot-local 49 of 49 and 28 of 28 (23 stated, 5 implied). A Sonnet subagent of that session recounted every figure
+of its table from the raw files and all matched.
+
+Two things its record says that qualify the table: the minutes are loose, because its machine's load average was 7
+to 8 with five or six runs in flight and the comparison cells ran three to four hours earlier; and one held-out
+mark, in one loop's test session, was a process listing that showed another session's command line naming the
+installed skill, which it noted and counted.
+
+### The three predictions of section 18, pooled
+
+Section 29 held them against the first case only. On the three cells:
+
+1. R writes fewer clauses than L on the same case: **held.** 102 against 426 pooled, and fewer on each of the three
+   cells.
+2. A lower share of R's clauses fail on a correct product: **held.** 7.8% against 11.0% over all clauses. Among the
+   clauses not `existing`, 8 of 64 (12.5%) against L's 43 of 203 (21.2%) and the pilot's 52 of 199 (26.1%). That
+   session had registered 14.1% as the bar for "better" and R is under it.
+3. No calibrated defect is lost: **held on the count** (36 of 37 for R, the same as for L) and **not item for
+   item.** R misses `update-rejects-resolved` on ticket assignment, a defect in existing behaviour that its short
+   specification no longer pins. R catches `cli-no-assignee`, which L missed. Section 18 worded this prediction as
+   "loses none of the calibrated defects caught", and it was written about the count. The item-level trade is
+   recorded here so nobody reads the result as "nothing lost". The pilot's own text caught 37 of 37.
+
+### What it does and does not add here
+
+- Section 29's reading stands, and it now rests on three cells instead of one. Leaving a point open, with the later
+  stages told to take a reasonable answer, report it and pin it in no test, did better on built products than
+  deciding it in the specification.
+- Its limits, as that session states them: one model family (Codex gpt-6.2-sol at high), one run a cell; only one
+  case with a consequential thing left unsaid, and the text's author knew that case; whether the defaults the plan
+  takes and reports are what a customer wants is not shown; and nothing here is about ShipLoop's released stage.
+  The text's author is this session, which wrote it knowing the due-times reading (section 18).
+- This experiment's conclusion (section 28) is unchanged. No ShipLoop template was changed and none is proposed
+  here. Any change to ShipLoop on this belongs with that session's evidence and is the owner's to decide.
+- That session's message says it is now running a further step with Sonnet 5.5 at high as the writer (R first,
+  then L), registered as its amendment 10. That is later than the commit read here, which has no amendment 10, so
+  it is recorded as said and not as checked. The result will be recorded here as received when it arrives.
