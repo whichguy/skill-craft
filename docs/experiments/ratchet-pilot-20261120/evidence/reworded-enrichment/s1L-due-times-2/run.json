@@ -1,0 +1,53 @@
+{
+ "case": "ticket-due-times",
+ "host": "claude",
+ "model": "claude-sonnet-5-5",
+ "effort": "high",
+ "started": "2026-11-21T08:06:59-0800",
+ "start_tree": null,
+ "frozen_from": null,
+ "build_from": null,
+ "bare": false,
+ "sessions": [
+  {
+   "number": 1,
+   "role": "spec",
+   "label": "spec-1",
+   "seconds": 153.4,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 153.4,
+   "held_out_marks": [],
+   "cost_usd": 0.5177969
+  }
+ ],
+ "gates": [],
+ "snapshots": [
+  {
+   "label": "base",
+   "commit": "9d2fbec6787e30db55c7430a5bcf3ed78436f5b2",
+   "tree": "99d92357c06060cc6c277e7115a92b32c1852140",
+   "at": 0.1
+  },
+  {
+   "label": "spec",
+   "commit": "b571237bacf977596ae43ae7706db72e081f00ba",
+   "tree": "905231b9734f6a102277b6253981f172ef539a6c",
+   "at": 153.6
+  }
+ ],
+ "cycles": [],
+ "reverted": [],
+ "spec_violations": [],
+ "local_head": "e16be493890f666e4af886f21fd581fe8a6729d8",
+ "named_checks": true,
+ "enrich": "lenses",
+ "spec_from": null,
+ "stop": "stop-after-spec",
+ "final_pass": null,
+ "seconds": 153.6,
+ "clauses": 66,
+ "use_cases": 9,
+ "tamper": [],
+ "finished": "2026-11-21T08:09:33-0800"
+}

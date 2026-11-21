@@ -1,0 +1,515 @@
+{
+ "sonnet-reworded:s1-orders": {
+  "case": "stand-in-rules",
+  "enrich": "reworded",
+  "clauses": 21,
+  "use_cases": 4,
+  "by_source": {
+   "request": 18,
+   "implied": 2,
+   "existing": 1
+  },
+  "added_refusals": [],
+  "open_lines": [
+   {
+    "id": "C-2",
+    "kind": "request",
+    "statement": "`parseOrders` returns one order per non-blank line, in line order",
+    "open": "Whether a whitespace-only line counts as blank, and how `\\r\\n` line endings are treated, are not stated; the requester settles it. Only lines that are empty (zero characters) are certainly blank."
+   },
+   {
+    "id": "C-3",
+    "kind": "request",
+    "statement": "A line is a list of `key=value` fields joined by `;`, and values are trimmed",
+    "open": "Whether whitespace around a key (e.g. `id=1; qty=2`) is accepted, and what happens with a repeated key, an unknown key, or a missing key, are not stated; the requester settles it. A line holding each of the five keys once, with no whitespace around keys, is the only form the request defines."
+   },
+   {
+    "id": "C-4",
+    "kind": "request",
+    "statement": "Each parsed order has `id`, `qty` and `price` as numbers",
+    "open": "What happens for an `id` that is not a number (e.g. `id=abc`) is not stated (no error class is named for it); the requester settles it."
+   },
+   {
+    "id": "C-6",
+    "kind": "request",
+    "statement": "`shippedAt` is the shipped_at text, `''` when empty",
+    "open": "A line with no `shipped_at` field at all (as opposed to an empty one) is not stated; the requester settles whether it equals an empty value."
+   },
+   {
+    "id": "C-8",
+    "kind": "request",
+    "statement": "A qty that is not a whole number of at least 1 throws RangeError naming the line",
+    "open": "Whether other spellings of a whole number (`2.0`, `1e2`, `+3`, `0x10`) are accepted is not stated; the requester settles it. Plain digit strings and the values above are the certain cases."
+   },
+   {
+    "id": "C-9",
+    "kind": "request",
+    "statement": "A price that is not whole cents of at least 0 throws RangeError naming the line",
+    "open": "Same as C-8 for other spellings of a whole number (`150.0`, `1e2`); the requester settles it."
+   },
+   {
+    "id": "C-12",
+    "kind": "request",
+    "statement": "A shipped_at that is not `YYYY-MM-DD` throws SyntaxError naming the line",
+    "open": "Whether a well-formed but impossible date (`2026-02-30`, `2026-13-01`) is rejected is not stated; the requester settles it. The shape four digits, `-`, two digits, `-`, two digits is the certain rule."
+   },
+   {
+    "id": "C-15",
+    "kind": "request",
+    "statement": "The line number in an error message is 1-based",
+    "open": "With blank lines in the text, whether \"line\" counts physical lines (the faulty order in `ok\\n\\nbad` is line 3) or non-blank lines (line 2) is not stated; the requester settles it. Where no blank line precedes the faulty one the two readings agree. Likewise, which error is thrown when one line has several faults is not stated; only lines with a single fault are certain."
+   },
+   {
+    "id": "C-19",
+    "kind": "implied",
+    "statement": "`total` past the meter's limit lets the meter's LimitError through",
+    "open": "Whether `total` should avoid the error for lists over 10,000 orders is not stated and would conflict with one tick per order; the requester settles it. The meter's count is shared state: ticks from earlier calls in the same process also count toward the limit."
+   }
+  ],
+  "spec_minutes": 1.0
+ },
+ "sonnet-reworded:s1-ticket-assignment": {
+  "case": "ticket-assignment",
+  "enrich": "reworded",
+  "clauses": 32,
+  "use_cases": 6,
+  "by_source": {
+   "request": 16,
+   "implied": 10,
+   "existing": 6
+  },
+  "added_refusals": [
+   {
+    "id": "C-4",
+    "kind": "implied",
+    "statement": "The assignee must be a string or null"
+   },
+   {
+    "id": "C-5",
+    "kind": "implied",
+    "statement": "A name that is not a single line of text is refused"
+   }
+  ],
+  "open_lines": [
+   {
+    "id": "C-3",
+    "kind": "request",
+    "statement": "An agent is a non-empty name of at most 64 characters",
+    "open": "Whether a name made only of spaces counts as empty, and whether spaces around a name are trimmed before the length is counted or the name is stored (the existing requester and title fields are trimmed). The requester of the change decides; tests use names without surrounding spaces."
+   },
+   {
+    "id": "C-8",
+    "kind": "request",
+    "statement": "Resolved and closed tickets cannot be assigned or unassigned",
+    "open": "What a resolved or closed ticket answers when the request asks for the value it already has (the same agent, or `null` on an unassigned ticket): 409 or 200 with nothing changed. The requester decides; either way nothing changes, and tests check only the different-value case."
+   },
+   {
+    "id": "C-15",
+    "kind": "implied",
+    "statement": "Each assignment change is one audit entry",
+    "open": "The entry's `action` name (such as `ticket.assigned`) is not fixed by the request or the audit decision; tests do not check it."
+   },
+   {
+    "id": "C-17",
+    "kind": "request",
+    "statement": "Assigning a ticket queues a notification for the assigned agent",
+    "open": "Whether the agent's name is a deliverable address or the relay maps it to one. The help desk's operators decide; the event's `to` is the agent's name."
+   },
+   {
+    "id": "C-22",
+    "kind": "request",
+    "statement": "`GET /tickets?assignee=<agent>` keeps that agent's tickets",
+    "open": "What a filter value over 64 characters, or with surrounding spaces, does (matches nothing, or 400 `invalid`, or is trimmed). The requester decides; tests use ordinary names."
+   },
+   {
+    "id": "C-28",
+    "kind": "request",
+    "statement": "The command-line table shows each ticket's assignee",
+    "open": "How an unassigned ticket's cell reads (empty, `-`, `unassigned`); the requester decides. Tests check only that it names no agent."
+   },
+   {
+    "id": "C-29",
+    "kind": "existing",
+    "statement": "The first four columns of `list --raw` keep their positions",
+    "open": "Whether `list --raw` also shows the assignee, as a fifth tab-separated column after the title. The requester decides (\"the command-line listing\" may mean the table only); tests do not require a fifth column and do not forbid one."
+   }
+  ],
+  "spec_minutes": 2.0
+ },
+ "sonnet-reworded:s1-due-times-1": {
+  "case": "ticket-due-times",
+  "enrich": "reworded",
+  "clauses": 22,
+  "use_cases": 6,
+  "by_source": {
+   "request": 12,
+   "implied": 5,
+   "choice": 2,
+   "existing": 3
+  },
+  "added_refusals": [],
+  "open_lines": [
+   {
+    "id": "C-4",
+    "kind": "request",
+    "statement": "With due times on, `GET /tickets?overdue=true` lists only open and in-progress tickets whose due time has passed",
+    "open": "The instant at which a ticket is exactly due (`due` equal to the current time). The loosest reading is that it is not yet overdue; the requester decides if \"has passed\" includes the exact instant. A check can be made at least one millisecond either side of `due`."
+   },
+   {
+    "id": "C-5",
+    "kind": "implied",
+    "statement": "`overdue=true` combines with the other listing parameters",
+    "open": "The existing listing code combines `status` and `priority` with \"either matches\" rather than \"both match\", which is not what docs/api.md says. Whether to fix that is the requester's decision. This clause asks only that `overdue` is required in addition to whatever else is given, and that a ticket which is not overdue is never listed under `overdue=true`."
+   },
+   {
+    "id": "C-6",
+    "kind": "choice",
+    "statement": "`overdue` values other than `true`",
+    "open": "Whether other values are refused as `invalid` (400), as a bad `status` is, or ignored, and whether `overdue=false` lists the tickets that are not overdue. The requester decides. A test must not assert either way."
+   },
+   {
+    "id": "C-7",
+    "kind": "request",
+    "statement": "The hours for each priority are configuration, not code",
+    "open": "The names of the settings and whether a restart is the way a change takes effect. The loosest reading is one environment variable per priority, read at start. The requester decides the names; a check must find them in the README configuration table, not assume them."
+   },
+   {
+    "id": "C-8",
+    "kind": "existing",
+    "statement": "A value for the hours that the service cannot use stops it at start",
+    "open": "Whether zero, a fraction or a negative number is usable. Only a value that is not a number is required to be refused."
+   },
+   {
+    "id": "C-9",
+    "kind": "request",
+    "statement": "Existing tickets in the data file get due times from their own creation time and priority",
+    "open": "The hours used are those configured when the file is first started with the new release. Whether tickets that already had a due time and lost it (C-12) are given one by the same rule is the same question; this clause assumes yes."
+   },
+   {
+    "id": "C-11",
+    "kind": "request",
+    "statement": "The data file holds every ticket's due time before due times are switched on",
+    "open": "When the file is written. The loosest reading is that the file holds them after the service has started and stopped normally; a deploy that must be checked before switching on relies on this. The requester decides if an operator has to run a separate step instead."
+   },
+   {
+    "id": "C-12",
+    "kind": "implied",
+    "statement": "After a rollback and a new upgrade, tickets are not left without due times",
+    "open": "1.4.0 drops fields it does not know when it saves, so tickets that existed before the rollback may lose `due` in the file it writes. What to do with these is decided by the requester. The only requirement here is that no ticket is left without a due time and that a ticket whose `due` survived keeps it."
+   },
+   {
+    "id": "C-13",
+    "kind": "request",
+    "statement": "The data file stays one that 1.4.0 starts on and shows every ticket from",
+    "open": "What the key for the due time is called in the file. Any key that 1.4.0 loads without refusing is acceptable."
+   },
+   {
+    "id": "C-15",
+    "kind": "request",
+    "statement": "With `DUE_TIMES` not `on`, the API answers exactly as 1.4.0 does",
+    "open": "Whether `on` is case-sensitive (`ON`, `On`). The loosest reading is that exactly `on` switches due times on and the request's wording is `on`; the requester decides about other spellings. A check should use `on` and unset only."
+   },
+   {
+    "id": "C-19",
+    "kind": "choice",
+    "statement": "Creating a ticket does not change its audit entry or notification because of due times",
+    "open": "Whether `due` should be recorded in the audit log is for the requester to decide; it is not required."
+   },
+   {
+    "id": "C-21",
+    "kind": "existing",
+    "statement": "The command line and the weekly report keep working on a data file that holds due times",
+    "open": "Whether `show` or `list` should print the due time, and whether that depends on `DUE_TIMES`. The request does not ask for it, so it is not required; the requester decides."
+   }
+  ],
+  "spec_minutes": 1.4
+ },
+ "sonnet-reworded:s1-due-times-2": {
+  "case": "ticket-due-times",
+  "enrich": "reworded",
+  "clauses": 28,
+  "use_cases": 6,
+  "by_source": {
+   "request": 18,
+   "existing": 6,
+   "implied": 4
+  },
+  "added_refusals": [
+   {
+    "id": "C-14",
+    "kind": "implied",
+    "statement": "A due time cannot be set by a client"
+   }
+  ],
+  "open_lines": [
+   {
+    "id": "C-3",
+    "kind": "request",
+    "statement": "An operator can change the hours for each priority in the service's settings, without a code change; an unset or empty setting means the hours in C-1",
+    "open": "the names of the four variables, whether a change must take effect without a restart, and who may change them are not in the request; the requester decides. The names are documented (C-27)."
+   },
+   {
+    "id": "C-4",
+    "kind": "existing",
+    "statement": "A hours setting the service cannot use stops it at start with a message naming the variable",
+    "open": "whether `0` and fractional hours (`1.5`) are usable; whether the same refusal applies while `DUE_TIMES` is not `on` (the request says the service then answers \"exactly as it does today\", which started with any value). The requester decides."
+   },
+   {
+    "id": "C-5",
+    "kind": "implied",
+    "statement": "An hours setting too large for a due time to be represented stops the service at start, like C-4, instead of failing later",
+    "open": "the exact largest accepted value; the requester decides, any cap below the runtime limit is acceptable."
+   },
+   {
+    "id": "C-9",
+    "kind": "request",
+    "statement": "`GET /tickets?overdue=true` lists only tickets that are `open` or `in_progress` and whose due time has passed",
+    "open": "what `overdue` means with a value other than `true` (`false`, `1`, empty): ignored, or 400 `invalid` in the envelope, or the opposite listing. The request defines only `true`; the requester decides. No check relies on any other value."
+   },
+   {
+    "id": "C-13",
+    "kind": "existing",
+    "statement": "`status` and `priority` filtering without `overdue` behaves as it does today",
+    "open": "docs/api.md says combined filters must all match, but `matchesFilters` in src/tickets/query.js lists a ticket matching either. Whether to fix that is the requester's; nothing here depends on it."
+   },
+   {
+    "id": "C-15",
+    "kind": "request",
+    "statement": "Due times are switched on only by `DUE_TIMES=on`",
+    "open": "what other values do (`ON`, `1`, `true`, `off`): treated as not on, or refused at start. The requester decides."
+   },
+   {
+    "id": "C-21",
+    "kind": "request",
+    "statement": "The data file holds every ticket's due time once the new release has started on it, with `DUE_TIMES` not yet `on`",
+    "open": "whether operators prefer an explicit one-off migration instead of a write at start; the requester decides. Whatever is chosen, the observable result for an operator, using only the new release, is a file that holds every due time while `DUE_TIMES` is not `on`."
+   },
+   {
+    "id": "C-26",
+    "kind": "existing",
+    "statement": "The operator command line and the weekly report keep working on a file that holds due times",
+    "open": "whether `list` or `show` should also print the due time. Nothing is required by the request beyond the API; the requester decides."
+   }
+  ],
+  "spec_minutes": 2.6
+ },
+ "sonnet-reworded:s1-due-times-3": {
+  "case": "ticket-due-times",
+  "enrich": "reworded",
+  "clauses": 22,
+  "use_cases": 6,
+  "by_source": {
+   "request": 12,
+   "existing": 6,
+   "implied": 3,
+   "choice": 1
+  },
+  "added_refusals": [
+   {
+    "id": "C-19",
+    "kind": "implied",
+    "statement": "A due time never makes a request fail"
+   }
+  ],
+  "open_lines": [
+   {
+    "id": "C-4",
+    "kind": "request",
+    "statement": "The response hours are configurable, per priority, without a code change",
+    "open": "The names of the four settings are not given. The builder chooses them and documents them in the README table; a test must find them there, not assume them. What range of hours is accepted (zero, fractions, an upper limit) is the requester's to decide; a test uses whole numbers of hours from 1 to 1000 only."
+   },
+   {
+    "id": "C-7",
+    "kind": "implied",
+    "statement": "A ticket created while DUE_TIMES is off still gets its due time in the data file",
+    "open": "The field's name in the data file is not given; `due`, the same as the API, is the builder's choice and a test may check it only through the restart."
+   },
+   {
+    "id": "C-14",
+    "kind": "request",
+    "statement": "Until DUE_TIMES is `on`, the service answers exactly as 1.4.0 does",
+    "open": "What the service does with a DUE_TIMES value that is neither `on`, `off`, unset nor empty (for example `ON`, `yes`, `1`): treat as off, or refuse to start under the rule of C-6. The requester decides; a test uses only `on`, `off`, unset and empty."
+   },
+   {
+    "id": "C-16",
+    "kind": "request",
+    "statement": "`GET /tickets?overdue=true` lists only the open and in-progress tickets whose due time has passed",
+    "open": "Whether a ticket is overdue at exactly the instant of its `due` is not given (\"has passed\" suggests later than `due`); a test does not check that instant."
+   },
+   {
+    "id": "C-17",
+    "kind": "existing",
+    "statement": "The overdue listing is paged and combines with the other filters like any listing",
+    "open": "Today's code combines `status` and `priority` with \"or\", not \"and\" as docs/api.md says (`matchesFilters` in src/tickets/query.js). Whether to correct that is the requester's to decide; this clause is about `overdue` only, and a test of `overdue` combined with another filter uses a combination that gives the same answer under both readings, or the stated \"every\" rule."
+   },
+   {
+    "id": "C-18",
+    "kind": "choice",
+    "statement": "A value of `overdue` other than `true` is not specified",
+    "open": "Whether `overdue=false` lists the tickets not overdue, all tickets, or is `invalid` (400, as an unusable `status` is today) is the requester's to decide."
+   }
+  ],
+  "spec_minutes": 1.6
+ },
+ "sonnet-lens:s1L-orders": {
+  "case": "stand-in-rules",
+  "enrich": "lenses",
+  "clauses": 39,
+  "use_cases": 7,
+  "by_source": {
+   "request": 23,
+   "implied": 4,
+   "choice": 10,
+   "existing": 2
+  },
+  "added_refusals": [
+   {
+    "id": "C-8",
+    "kind": "choice",
+    "statement": "A field with a key that is not `id`, `qty`, `price`, `status` or `shipped_at` throws SyntaxError naming the line"
+   },
+   {
+    "id": "C-9",
+    "kind": "choice",
+    "statement": "A key that appears twice in one line throws SyntaxError naming the line"
+   },
+   {
+    "id": "C-11",
+    "kind": "choice",
+    "statement": "`id` must be a whole number of at least 0, else RangeError naming the line"
+   },
+   {
+    "id": "C-14",
+    "kind": "choice",
+    "statement": "`id`, `qty` and `price` must not exceed 9007199254740991 (`Number.MAX_SAFE_INTEGER`), else RangeError naming the line"
+   },
+   {
+    "id": "C-21",
+    "kind": "choice",
+    "statement": "A `shipped_at` in the right form must also be a real calendar date, else SyntaxError naming the line"
+   },
+   {
+    "id": "C-33",
+    "kind": "choice",
+    "statement": "A non-array argument to `total` throws TypeError and ticks the meter zero times"
+   }
+  ],
+  "open_lines": [],
+  "spec_minutes": 1.7
+ },
+ "sonnet-lens:s1L-ticket-assignment": {
+  "case": "ticket-assignment",
+  "enrich": "lenses",
+  "clauses": 79,
+  "use_cases": 13,
+  "by_source": {
+   "request": 24,
+   "implied": 19,
+   "choice": 12,
+   "existing": 24
+  },
+  "added_refusals": [
+   {
+    "id": "C-11",
+    "kind": "choice",
+    "statement": "A resolved or closed ticket refuses even an assignment that would change nothing"
+   },
+   {
+    "id": "C-13",
+    "kind": "implied",
+    "statement": "`assignee` must be present in the body"
+   },
+   {
+    "id": "C-14",
+    "kind": "implied",
+    "statement": "`assignee` must be a string or `null`"
+   },
+   {
+    "id": "C-27",
+    "kind": "implied",
+    "statement": "A refused request changes nothing and tells no one"
+   }
+  ],
+  "open_lines": [],
+  "spec_minutes": 3.2
+ },
+ "sonnet-lens:s1L-due-times-1": {
+  "case": "ticket-due-times",
+  "enrich": "lenses",
+  "clauses": 57,
+  "use_cases": 9,
+  "by_source": {
+   "request": 20,
+   "choice": 8,
+   "existing": 17,
+   "implied": 11,
+   "other:the": 1
+  },
+  "added_refusals": [
+   {
+    "id": "C-23",
+    "kind": "choice",
+    "statement": "The service answers an `overdue` value other than `true` with 400 `invalid` when due times are on"
+   },
+   {
+    "id": "C-36",
+    "kind": "choice",
+    "statement": "The service does not start when it cannot save the due times it has to add to the data file"
+   }
+  ],
+  "open_lines": [],
+  "spec_minutes": 3.1
+ },
+ "sonnet-lens:s1L-due-times-2": {
+  "case": "ticket-due-times",
+  "enrich": "lenses",
+  "clauses": 66,
+  "use_cases": 9,
+  "by_source": {
+   "request": 21,
+   "implied": 12,
+   "existing": 21,
+   "choice": 12
+  },
+  "added_refusals": [
+   {
+    "id": "C-37",
+    "kind": "implied",
+    "statement": "The new release does not write anything into the data file that 1.4.0 checks and refuses"
+   },
+   {
+    "id": "C-46",
+    "kind": "choice",
+    "statement": "With `DUE_TIMES=on`, `overdue` must be `true`"
+   },
+   {
+    "id": "C-57",
+    "kind": "choice",
+    "statement": "If the data file cannot be written at start, the service does not start"
+   }
+  ],
+  "open_lines": [],
+  "spec_minutes": 2.6
+ },
+ "sonnet-lens:s1L-due-times-3": {
+  "case": "ticket-due-times",
+  "enrich": "lenses",
+  "clauses": 80,
+  "use_cases": 13,
+  "by_source": {
+   "request": 28,
+   "choice": 9,
+   "implied": 16,
+   "existing": 27
+  },
+  "added_refusals": [
+   {
+    "id": "C-44",
+    "kind": "choice",
+    "statement": "A start that cannot save the stamped file does not serve"
+   }
+  ],
+  "open_lines": [],
+  "spec_minutes": 3.5
+ }
+}

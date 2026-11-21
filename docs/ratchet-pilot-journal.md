@@ -1926,3 +1926,82 @@ may be well under Sol's 14 to 25.
 **Limits known before the runs.** A Claude session started by the pilot runs in the real home, so it is shown the
 account's own instructions, as Codex is shown its skills (section 19); the same in both waves. Minutes are not
 compared with Sol's.
+
+### Amendment 10, result (2026-11-21 08:12; ten spec-only runs with Sonnet as the writer, 08:03 to 08:10)
+
+Status: firm for what was run: five specifications with each text, one of orders and of ticket assignment and three
+of due times; the Claude host with `claude-sonnet-5-5` at high; every specification accepted on its first try, no
+held-out mark, nothing put back by the script; 1.74 dollars for the reworded wave and 2.57 for the lens wave.
+
+| Specification, text | Clauses | Use cases | request | implied | existing | choice | `Open:` lines | Minutes |
+|---|---|---|---|---|---|---|---|---|
+| orders, reworded | 21 | 4 | 18 | 2 | 1 | 0 | 9 | 1.0 |
+| ticket assignment, reworded | 32 | 6 | 16 | 10 | 6 | 0 | 7 | 2.0 |
+| due times 1, reworded | 22 | 6 | 12 | 5 | 3 | 2 | 12 | 1.4 |
+| due times 2, reworded | 28 | 6 | 18 | 4 | 6 | 0 | 8 | 2.6 |
+| due times 3, reworded | 22 | 6 | 12 | 3 | 6 | 1 | 6 | 1.6 |
+| orders, lens | 39 | 7 | 23 | 4 | 2 | 10 | 0 | 1.7 |
+| ticket assignment, lens | 79 | 13 | 24 | 19 | 24 | 12 | 0 | 3.2 |
+| due times 1, lens | 57 | 9 | 20 | 11 | 17 | 8 | 0 | 3.1 |
+| due times 2, lens | 66 | 9 | 21 | 12 | 21 | 12 | 0 | 2.6 |
+| due times 3, lens | 80 | 13 | 28 | 16 | 27 | 9 | 0 | 3.5 |
+| *Sol, reworded (rung 1)* | *26; 43; 30, 34, 34* | | | | | *0 in all* | *8; 7; 10, 8, 9* | |
+| *Sol, lens (base table)* | *82; 151; 190, 170, 197* | | | | | *20; 14; 19, 25, 24* | *0* | |
+
+The Sonnet rows are counted by the first word of each clause's `Source:` line; one clause of the lens specification
+due times 1 has a `Source:` outside the four kinds (C-38, the runtime's own rule), so its row adds to 56 of 57. The Sol
+rows are as recorded under "Rung 1, result" and in the base table; their other columns are not repeated here.
+
+- **R11.1, the mechanism: holds.** The five reworded specifications write 0, 0, 2, 0 and 1 choice clauses and 9, 7,
+  12, 8 and 6 open lines. The bar was at most 2 choices and at least one open line in each.
+- **R11.2, the due-times start: none of the three requires the refusal.** One has a start with due times off, and
+  a stop, leave the file holding them, and marks as open whether an operator must run a separate step instead (due
+  times 1, C-11: "When the file is written. The loosest reading is that the file holds them after the service has
+  started and stopped normally ... The requester decides if an operator has to run a separate step instead"). One
+  states the request's sentence without a mechanism and adds that a start on a file release 1.4.0 has
+  since written gives the missing ones (due times 2, C-20 and C-24). One states giving due times at start as what the
+  request says (due times 3, C-8).
+- **R11.3, the base.** With the lens text Sonnet writes 10, 12, 8, 12 and 9 choice clauses and no open line, in
+  specifications of 39 to 80 clauses. None of its three due-times specifications requires the refusal either: all
+  three give the missing due times at start, as clauses sourced to the request (C-28; C-26 and C-29; C-37).
+
+**Predictions scored.** For the reworded text all held: 0 to 2 choices, several open lines, and at most one of three
+due-times specifications requiring the refusal (none did). For the base I had said I did not know and that it might
+be well under Sol's 14 to 25: it is 8 to 12.
+
+**Findings.**
+
+- **F34 (firm: ten specifications of a second model).** The reworded text takes the writer's own decisions out of the
+  specification on Sonnet as it did on Sol: 3 choice clauses in five specifications against 51 with the lens text, 42
+  open lines against none, 21 to 32 clauses against 39 to 80. Two of the three choices it did write, both on
+  `overdue` values other than `true`, say the value is left unspecified, one adding that a test must not assert
+  either way; the third keeps the existing audit and notification output and leaves recording `due` there open.
+- **F35 (firm: six Sonnet specifications against five of Sol's; it narrows F24 and F30).** The due-times
+  misreading is Sol's, not every model's. Sonnet reads "the tickets already in the production data file get due
+  times" as giving them at start with either text: none of six specifications requires the refusal, where Sol's
+  writers chose it four times in five with the two earlier texts. So what the reworded text repaired on due times is
+  a decision one model family gets wrong. On Sonnet there was nothing to repair, and that case cannot show the
+  text's worth there.
+
+**What to watch.** Sonnet's reworded specifications restate even less existing behaviour than Sol's (1, 6, 3, 6 and
+6 `existing` clauses; Sol's 1, 24, 13, 15 and 17), so the risk F31 named, a defect in existing behaviour that
+nothing pins, is larger on Sonnet and is not measured.
+
+**Is there enough to conclude?** For the question asked (does another model also stop deciding), yes. Not
+established: anything about a product built or tests written on Sonnet. The cheapest next step would be one
+test-strength cell, ticket assignment with its 27 planted defects, from the Sonnet reworded specification; its
+sessions are priced and it takes about twenty minutes, so it is put to the owner and not run.
+
+**Checked twice, and who decided what.** The readings above were made in the main session, at the owner's word
+("Use this context session for any judgment calls that are material"). A Sonnet subagent copied the evidence,
+recounted every cell of the table with a script of its own (all match) and searched the six due-times
+specifications for a clause that refuses a start on a file without due times: none in any of the six.
+
+**Limits.** One specification of two of the cases with each text. A Claude session started by the pilot runs in the
+real home and is shown the account's own instructions, the same in both waves. Sonnet sometimes writes a `Source:`
+line that names two kinds ("request; existing: ..."), which the count reads by its first word, and one clause of one
+lens specification has a `Source:` outside the four kinds. Added refusals were not read here because Sonnet adds few
+with either text (6, 4, 2, 3, 1 with the lens text; 0, 2, 0, 1, 1 with the reworded).
+
+Evidence: `evidence/reworded-enrichment/` (`s1-*/` and `s1L-*/` with each run's `run.json` and `spec.md`;
+`sonnet-specs-log.txt` and `.json`).
