@@ -2963,3 +2963,53 @@ section.
 Evidence: `evidence/unsaid-detail/` (a folder for each of the six runs with its record, its specification as the
 spec stage left it and as it ended, its plan and its log; `specs-log.txt` and `.json`; `recount.txt`;
 `second-reading.md`, the second reader's quotes and classes with the key to the shuffled names).
+
+### Received: the section form in ShipLoop's released spec stage, on Sol, from vague requests (2026-11-21 15:53)
+
+Status: received at 15:52 from the session "Spec elaboration" (its journal sections 50 and 51, its commit
+411646c297f603bba29835751a0c88b591252cd3); its work on its own instrument, not re-run here; I read its section 51
+at that commit before writing this. Shortly after 15:07 I had passed it the form of F43 and F47 as an idea for its
+bench; it registered the arm and ran it within the hour.
+
+**What it ran.** ShipLoop's released spec stage with one more duty: to end `spec.md` with a section "Key questions"
+holding one entry for each of the intake's twelve key questions, each with this change's answer in a line and the
+requirement or section that states it, and the sentence "The section adds no requirement and replaces none."
+Against the released stage as it is. Two one-sentence requests (a CSV import of users on a small program; a CSV
+import of tickets on the ticket service), three sets a case, GPT 6.2 Sol at medium, each run stopped when ShipLoop
+accepted the specification, and each specification judged blind by two models on the items its two sorters said
+apply.
+
+**What it found.**
+
+- *The form carries over.* All six specifications with the duty end with the section, twelve entries each, every
+  entry naming the requirement or section that states it, and ShipLoop accepted every one. One author gave itself
+  only the first four question lines and still wrote twelve entries, from the lines it had been given at intake.
+- *It does not make the specification fuller.* Item readings covered by both judges: 21 against 18 of 27 on the
+  small program and 21 against 20 of 45 on the ticket service; set by set the nets are 0, 0, minus 1 and 0, 3, 1,
+  where its rule needed 2 every time. Not shown. The section is an index: each entry restates in a line what a
+  requirement already says; without the section's words the specifications are no longer, and the requirement ids
+  are the same in number. So it took nothing out of the clauses either.
+- *One item moved every time:* who may use the change at all, covered in three of three with the section and in
+  none of three without. The entry for the question on what the request's words mean made the author say who an
+  admin is.
+- *Its reading.* The form gets a question answered, and a general question gets a general answer. What its two
+  cases leave thin is particular to the change (the result for each row, what a caller may set, what happens to
+  the product's own notifications and audit, hostile input, dates), and twelve general questions answered in a
+  line each do not reach it. With its two earlier levers (guide text in the packet, a sentence to read the whole
+  packet) that is three tried and none shown, over 56 specifications from two vague sentences.
+
+**What it does to the findings here.**
+
+- F43 holds on another model, another host and ShipLoop's own stage: with these six, a catalog question asked as a
+  section has been answered fourteen times of fourteen. F47 holds there too: nothing left the requirements.
+- It answers, on a vague request and with blind judges, what amendment 14 could not: asking ShipLoop's general key
+  questions in the form that gets them answered does not make the specification fuller in a way that shows.
+- Taken with this pilot's amendments 12 and 14, that is five small tests in one day of reusing ShipLoop's general
+  reference material at the specification or the plan, on two instruments, two models and two hosts. None shows a
+  fuller specification or a stronger suite. What they show is how to get a question answered (a section to fill
+  whose entries name what states them), and one case each where an answer mattered: here a clause from the plan's
+  question that caught the long-missed defect, there the entry that says who may use the change.
+
+**Not known, and the owner's to decide.** Whether questions particular to the kind of change would reach what
+general ones do not. The session "Spec elaboration" names that as the next lever and as a product decision. This
+pilot's removed-detail instrument could read such questions on one detail at a time; nothing is registered.
