@@ -1,0 +1,57 @@
+PACKET 5
+Reviewed stage: system-test-author
+
+== The request the delivery was built from ==
+Build a small shared-expenses service in Node.js (no npm dependencies). server.js listens on the port in the PORT environment variable and keeps its data in the JSON file named by the DATA_FILE environment variable, so groups and expenses survive a restart. POST /groups with {"id": "<group id>", "members": ["<name>", ...]} creates a group: 201, 409 if the id exists, and 400 unless members holds at least two distinct non-empty names. POST /groups/<id>/expenses records an expense paid by one member. {"payer": "<name>", "cents": <positive integer>, "split": "equal"} shares it equally among all members, with any cents left over after an even division going one each to the members listed first. {"payer": "<name>", "cents": <positive integer>, "split": "exact", "shares": {"<name>": <cents>, ...}} makes each member listed in shares owe that many whole cents (zero is allowed), and the shares must add up to cents. It answers 201 with {"expense": <n>}, where n is 1 for the group's first expense, then 2, and so on; 400 for an unknown payer or member, a non-positive or non-integer amount, an unknown split, or shares that do not add up. GET /groups/<id>/balances returns an object with each member's net cents, what they paid minus what they owe, so the balances add up to 0. GET /groups/<id>/settlements returns a JSON array of {"from", "to", "cents"} payments that bring every balance to 0: repeatedly the member who owes most pays the member who is owed most the smaller of the two amounts, and ties go to the member listed first. Every route under /groups/<id> answers 404 for an unknown group. Concurrent requests must never lose an expense. Cover the behaviour with node:test tests under test/ that run with `node --test`.
+
+== What the review changed in the files ==
+diff --git a/test/system.test.js b/test/system.test.js
+index 1894601..72b2cbf 100644
+--- a/test/system.test.js
++++ b/test/system.test.js
+@@ -7,4 +7,5 @@
+ const test = require('node:test');
+ const assert = require('node:assert/strict');
++const { spawn } = require('node:child_process');
+ const fs = require('node:fs');
+ const path = require('node:path');
+@@ -136,13 +137,19 @@ test('R-2: ST-2 (a) a SIGKILL in the middle of a write burst leaves a loadable f
+ });
+ 
+-test('R-1: ST-3 the shipped files alone run from another directory and keep data in ./data.json by default', async (t) => {
++/**
++ * Copy only the shipped files (server.js, lib/, package.json) into a fresh directory and start that copy
++ * from `workdir` with PORT set and DATA_FILE unset, so the default ./data.json applies.
++ */
++async function startShipped(t, prepare) {
+   const shipped = tempDir(t);
+   fs.cpSync(path.join(ROOT, 'lib'), path.join(shipped, 'lib'), { recursive: true });
+   for (const file of ['server.js', 'package.json']) fs.copyFileSync(path.join(ROOT, file), path.join(shipped, file));
++  const workdir = path.join(shipped, 'run', 'here');
++  fs.mkdirSync(workdir, { recursive: true });
++  if (prepare) prepare(workdir);
+   const port = await freePort();
+-  const { spawn } = require('node:child_process');
+   const env = { ...process.env, PORT: String(port) };
+   delete env.DATA_FILE;
+-  const child = spawn(process.execPath, ['server.js'], { cwd: shipped, env, stdio: ['ignore', 'pipe', 'pipe'] });
++  const child = spawn(process.execPath, [path.join(shipped, 'server.js')], { cwd: workdir, env, stdio: ['ignore', 'pipe', 'pipe'] });
+   t.after(() => child.kill('SIGKILL'));
+   await new Promise((resolve, reject) => {
+@@ -150,34 +157,23 @@ test('R-1: ST-3 the shipped files alone run from another directory and keep data
+     child.stdout.on('data', (d) => { if (/listening on/.test(String(d))) resolve(); });
+   });
+-  const base = `http://127.0.0.1:${port}`;
+-  const post = (p, body) => fetch(base + p, { method: 'POST', body: JSON.stringify(body) });
+-  assert.equal((await post('/groups', { id: 'trip', members: ['ann', 'bob'] })).status, 201);
+-  assert.equal((await post('/groups/trip/expenses', { payer: 'ann', cents: 100, split: 'equal' })).status, 201);
+-  const stored = JSON.parse(fs.readFileSync(path.join(shipped, 'data.json'), 'utf8'));
++  return { workdir, base: `http://127.0.0.1:${port}` };
++}
++
++const postJson = (base, p, body) => fetch(base + p, { method: 'POST', body: JSON.stringify(b
+[... cut here: 2560 more characters ...]
+
+
+== What the review changed in the stage's recorded result ==
+(the result did not change)

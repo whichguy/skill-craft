@@ -1,0 +1,3 @@
+{
+ "sonnet-high-due-L-1": {"checks": [true, true, true, true, true, true, true, true], "note": "still running when the report was made: after the kill at 31.7 minutes it was resumed, its release check found its own test run flaky and opened a third work item. Its checks here are the eight hidden checks on its last commit before the kill (28.3 minutes, after its system tests were written), graded with slice_snapshots.due_times: runs-reviews/l1-at-kill.json"}
+}

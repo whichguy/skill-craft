@@ -1,0 +1,19 @@
+PACKET 9
+Reviewed stage: step-plan
+
+== The request the delivery was built from ==
+This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable, with a command-line tool in bin/. The help desk is starting to promise response times. Each ticket gets a due time: the time it was created plus the response time for its priority, which is 4 hours for urgent tickets, 24 for high, 72 for normal and 168 for low, and the help desk must be able to change those hours without a code change. A ticket's due time is set once: a later change of the hours or of the ticket's priority does not move it. Every ticket shows its due time as `due`, and `GET /tickets?overdue=true` lists only the open and in-progress tickets whose due time has passed. The tickets already in the production data file get due times too, from their own creation time and priority, and keep them from then on. Due times are switched on in production only once the data file holds them: until the DUE_TIMES environment variable is `on`, the service answers exactly as it does today. If the new release misbehaves, operators must be able to go back to the current release, 1.4.0, and it must still start on the data file the new release wrote and show every ticket. Everything the service already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones.
+
+== What the review changed in the files ==
+diff --git a/docs/shiploop/environment.md b/docs/shiploop/environment.md
+index dc7cdc9..5e322c9 100644
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -74,3 +74,3 @@ node -p "require('./package.json').version"
+ 
+ ## ID convention
+-Each test is titled with its acceptance ID from KNOWLEDGE/spec.md as a separate leading word: `A1.1 ...`, `A5.2 ...`, so the runner prints, for example, `✔ A5.2 overdue lists only open and in-progress tickets past due (12.1ms)`. An ID counts only as that whole word; a test covering several lines lists each as its own word. Pure unit cases of the due module that map to no single line use `U-1`, `U-2`, ... (hyphen is legal in node:test names).
++Each test is titled with its work item's criterion ID (`C1`, `C2`, ...) as the leading word, then the acceptance IDs from KNOWLEDGE/spec.md it covers as further words, for example `C1 A1.1 A1.2 urgent due is created plus 4 h`, so the runner prints `✔ C1 A1.1 A1.2 urgent due is created plus 4 h (3.2ms)`. An ID counts only as that whole word; a test that covers several lines lists each as its own word. Pure unit cases of the due module that map to no criterion use `U-1`, `U-2`, ... (a hyphen is legal in node:test names). (Refined at the W1 step plan: the focused commands list criterion IDs; the acceptance IDs stay in the titles for traceability.)
+
+== What the review changed in the stage's recorded result ==
+(the result did not change)

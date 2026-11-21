@@ -1,0 +1,39 @@
+PACKET 2
+Reviewed stage: test-strategy
+
+== The request the delivery was built from ==
+Build a small shared-expenses service in Node.js (no npm dependencies). server.js listens on the port in the PORT environment variable and keeps its data in the JSON file named by the DATA_FILE environment variable, so groups and expenses survive a restart. POST /groups with {"id": "<group id>", "members": ["<name>", ...]} creates a group: 201, 409 if the id exists, and 400 unless members holds at least two distinct non-empty names. POST /groups/<id>/expenses records an expense paid by one member. {"payer": "<name>", "cents": <positive integer>, "split": "equal"} shares it equally among all members, with any cents left over after an even division going one each to the members listed first. {"payer": "<name>", "cents": <positive integer>, "split": "exact", "shares": {"<name>": <cents>, ...}} makes each member listed in shares owe that many whole cents (zero is allowed), and the shares must add up to cents. It answers 201 with {"expense": <n>}, where n is 1 for the group's first expense, then 2, and so on; 400 for an unknown payer or member, a non-positive or non-integer amount, an unknown split, or shares that do not add up. GET /groups/<id>/balances returns an object with each member's net cents, what they paid minus what they owe, so the balances add up to 0. GET /groups/<id>/settlements returns a JSON array of {"from", "to", "cents"} payments that bring every balance to 0: repeatedly the member who owes most pays the member who is owed most the smaller of the two amounts, and ties go to the member listed first. Every route under /groups/<id> answers 404 for an unknown group. Concurrent requests must never lose an expense. Cover the behaviour with node:test tests under test/ that run with `node --test`.
+
+== What the review changed in the files ==
+diff --git a/docs/shiploop/architecture.md b/docs/shiploop/architecture.md
+index fc2f3cb..9544bee 100644
+--- a/docs/shiploop/architecture.md
++++ b/docs/shiploop/architecture.md
+@@ -42,5 +42,5 @@ All checks run locally (target: the spawned `node server.js` child process on lo
+ | E2E-6 worked sequences | R-3..R-9 | child process | the replayed examples of spec R-5, R-7, R-8 (including the mixed sequence: balances `{"ann":-4,"bob":37,"cy":-33}`, settlements cy to bob 33 then ann to bob 4) and the R-3 inherited-property case |
+ | E2E-7 failure safety | R-4, R-6 | child process | after each rejected expense (table in spec R-4 and R-6) POST a valid expense and expect the next n (no number consumed) |
+-| E2E-8 body limits | R-12 | child process | invalid JSON expect 400; body over 1 MiB expect 413; server still answers afterwards |
++| E2E-8 body limits | R-12 | child process | invalid JSON expect 400; send a body of 1 MiB + 1 bytes (`'x'.repeat(1048577)` inside a JSON string) in one request and expect status 413; then a normal `GET /groups/none/balances` on a new connection expects 404 (server still alive). Implementation note: the handler stops buffering at the cap, discards the remaining body and answers 413 with `Connection: close`, so the client reads the response instead of failing with a reset; the test treats a status 413 as the oracle and fails on a reset |
+ 
+ Oracles are concrete values taken from the spec's worked examples (independently replayed by `RUN/scratch/replay.js` at the spec stage), so a hardcoded or stubbed product cannot pass them across the whole table. A component-layer duplicate of each negative table runs in-process against `createApp` with an in-memory store. A local pass is the only pass claimed; no remote or deployed behaviour exists.
+diff --git a/docs/shiploop/environment.md b/docs/shiploop/environment.md
+index f786550..f8f27ca 100644
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -23,5 +23,5 @@ node --test --test-name-pattern='^R-8:'
+ ```
+ 
+-Smoke (bounded subset, never evidence for the full suite): pure-logic unit files only, no spawned server.
++Smoke (bounded subset, never evidence for the full suite): pure-logic unit files only, no spawned server. These file names are planned: the files do not exist until the test stage creates them, so a focused or smoke command is unvalidated until then (a missing file makes `node --test` fail, not pass).
+ 
+ ```sh
+@@ -47,5 +47,5 @@ Run the service: `PORT=<port> DATA_FILE=<path> node server.js`. No linter, forma
+ - Coverage tool: none selected; coverage is judged by the spec traceability (every R-1..R-10 title prefix present), not a percentage.
+ - Layers (status of every row is planned, not passed; due stage: the test and implement stages of work item 1):
+-  - unit (`test/config.test.js`, `test/splits.test.js`, `test/settle.test.js`, `test/store.test.js`): pure functions and the store with an injected writer; no network, no server; fixtures are literal inputs. R-1 config, R-2 write-failure rollback and atomic write, R-5 splits, R-7/R-8 settle and invariants (property loops), R-3/R-6 validators.
++  - unit (`test/config.test.js`, `test/splits.test.js`, `test/settle.test.js`, `test/store.test.js`): pure functions and the store with an injected writer; no network, no server; fixtures are literal inputs. R-1 config, R-2 write-failure rollback and atomic write, R-5 splits (including exact-share validation of R-6 at module level), R-7/R-8 balances, settle and invariants (property loops). Request-level validation (R-3, R-4, R-6 400 tables) lives in `lib/app.js` and is covered at the component and e2e layers.
+   - component (`test/app.test.js`): `createApp(store)` request handler exercised with in-process `http` against an in-memory store; covers R-3, R-4, R-6, R-7, R-8, R-9, R-12 negative tables without spawning.
+   - e2e (`test/e2e-*.test.js`): spawn real `node server.js` with a free `PORT` and a fresh temp DATA_FILE, speak HTTP: R-1 spawn, R-2 restart, R-3..R-9 smoke through the real boundary, R-10 concurrency (`Promise.all` of 50), R-12.
+
+== What the review changed in the stage's recorded result ==
+(the result did not change)

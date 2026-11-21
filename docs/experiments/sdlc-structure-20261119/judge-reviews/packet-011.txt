@@ -1,0 +1,41 @@
+PACKET 11
+Reviewed stage: spec
+
+== The request the delivery was built from ==
+This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable, with a command-line tool in bin/. The help desk is starting to promise response times. Each ticket gets a due time: the time it was created plus the response time for its priority, which is 4 hours for urgent tickets, 24 for high, 72 for normal and 168 for low, and the help desk must be able to change those hours without a code change. A ticket's due time is set once: a later change of the hours or of the ticket's priority does not move it. Every ticket shows its due time as `due`, and `GET /tickets?overdue=true` lists only the open and in-progress tickets whose due time has passed. The tickets already in the production data file get due times too, from their own creation time and priority, and keep them from then on. Due times are switched on in production only once the data file holds them: until the DUE_TIMES environment variable is `on`, the service answers exactly as it does today. If the new release misbehaves, operators must be able to go back to the current release, 1.4.0, and it must still start on the data file the new release wrote and show every ticket. Everything the service already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones.
+
+== What the review changed in the files ==
+diff --git a/docs/shiploop/spec.md b/docs/shiploop/spec.md
+index 29e4eb4..f032375 100644
+--- a/docs/shiploop/spec.md
++++ b/docs/shiploop/spec.md
+@@ -34,6 +34,7 @@ Basis: S3. Source: src/config.js (settings are environment variables, unset or e
+   stops at start with exit 2, as for `PORT=http`). Confirmed by config tests, e.g. `DUE_HOURS_HIGH=soon` and
+   `DUE_HOURS_LOW=0`.
+-- Positive, replayable: with `DUE_HOURS_URGENT=2` a service creating an urgent ticket at `2025-09-01T08:00:00.000Z`
+-  gives `2025-09-01T10:00:00.000Z`. Confirmed through `createService` with the setting.
++- Positive, replayable: with `loadConfig({ DUE_HOURS_URGENT: '2' })` handed to `createService` (manual clock at
++  `2025-09-01T08:00:00.000Z`), an urgent ticket created through `POST /tickets` has `due` (read back with
++  `DUE_TIMES=on`) `2025-09-01T10:00:00.000Z`. Confirmed by a service test.
+ - A settings object that does not have these keys (as test/helpers.js passes today) behaves as the defaults. Confirmed by
+   the unchanged existing suite.
+@@ -90,7 +91,9 @@ Basis: S6. Source: src/persistence.js (`ticketRecord`, `readTicket`), src/server
+ - A ticket that already has `due` keeps it: it is not recomputed, whatever its priority or the hours are now. Confirmed by
+   a test with a file whose `due` differs from created + hours.
+-- When the service starts on a file that needed backfilling it saves once, at start, whatever `DUE_TIMES` is, so the file
+-  holds every `due` before the switch is turned on; a start that backfilled nothing does not rewrite the file.
+-  Confirmed by reading the file after `createService` and by its unchanged content on a second start.
++- When the service is created (`createService`, which opens the store) on a file that needed backfilling it saves once,
++  whatever `DUE_TIMES` is, so the file holds every `due` before the switch is turned on; creating it on a file that
++  needs no backfill does not rewrite the file. Confirmed by reading the file after `createService`, and by the file's
++  bytes (its `savedAt` included) being identical after a second `createService` on it with `stop()` not called, since
++  `stop()` saves again by design.
+ - Failure: a `due` that is present but not a time refuses the file with the record named (`tickets[0].due is not a
+   time`), like every other record check; the service does not start. Confirmed by a persistence test.
+@@ -120,5 +123,9 @@ research.md experiment run/scratch/q3.json.
+ - A file the new release wrote, with `DUE_TIME
+[... cut here: 986 more characters ...]
+
+
+== What the review changed in the stage's recorded result ==
+(the result did not change)

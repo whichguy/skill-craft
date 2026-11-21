@@ -1,0 +1,32 @@
+You are judging what a second-look review changed during a software delivery. A delivery harness runs a model through
+stages (a specification, a test strategy, a plan, a step plan, system tests). After some stages a review looks at the
+stage's output and may edit it. Each packet in the folder you are given shows one review: the stage it looked at, the
+request the delivery was built from, and what the review changed, as a file diff and as a change to the stage's
+recorded result (JSON). Diffs longer than a limit are cut, and the cut is marked.
+
+Give each packet exactly one label.
+
+- substantive: the change alters what will be built, a rule the product must meet, or what a test or check would
+  catch. Examples: a requirement, acceptance criterion or step added, removed or changed in content; a test added or
+  made stricter; a command changed so that it checks something it did not check before.
+- wording: documents, names, comments, formatting, cross-references, or the same content restated or reordered.
+- records: the harness's own bookkeeping (lists of evidence, file locations, counts, status notes), with no change to
+  the product, its rules or its tests.
+
+Judge by the largest thing the review changed: a packet with one substantive change and many wording changes is
+substantive.
+
+For a packet you label substantive, also give its scope.
+
+- within: it corrects or completes something the request, or the text the review was looking at, already required.
+- beyond: it adds a rule, a test or hardening that the request did not ask for.
+- unclear: you cannot tell from the packet.
+
+For wording and records the scope is "n/a".
+
+Write one line of JSON per packet, in packet order, to the output file you are given, and nothing else in that file:
+
+{"packet": 1, "label": "substantive", "scope": "beyond", "reason": "one sentence saying what changed"}
+
+Read every packet in full before labelling it. Do not look at any file other than the packets and this brief. Report
+back only the count of each label.

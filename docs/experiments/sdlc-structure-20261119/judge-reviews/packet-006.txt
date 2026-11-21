@@ -1,0 +1,29 @@
+PACKET 6
+Reviewed stage: spec
+
+== The request the delivery was built from ==
+This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable, with a command-line tool in bin/. The help desk is starting to promise response times. Each ticket gets a due time: the time it was created plus the response time for its priority, which is 4 hours for urgent tickets, 24 for high, 72 for normal and 168 for low, and the help desk must be able to change those hours without a code change. A ticket's due time is set once: a later change of the hours or of the ticket's priority does not move it. Every ticket shows its due time as `due`, and `GET /tickets?overdue=true` lists only the open and in-progress tickets whose due time has passed. The tickets already in the production data file get due times too, from their own creation time and priority, and keep them from then on. Due times are switched on in production only once the data file holds them: until the DUE_TIMES environment variable is `on`, the service answers exactly as it does today. If the new release misbehaves, operators must be able to go back to the current release, 1.4.0, and it must still start on the data file the new release wrote and show every ticket. Everything the service already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones.
+
+== What the review changed in the files ==
+diff --git a/docs/shiploop/spec.md b/docs/shiploop/spec.md
+index 49f317b..c1d5cb1 100644
+--- a/docs/shiploop/spec.md
++++ b/docs/shiploop/spec.md
+@@ -15,7 +15,7 @@ Basis: "Each ticket gets a due time: the time it was created plus the response t
+ 
+ ### R-2 The response hours are configuration, not code
+-Basis: "the help desk must be able to change those hours without a code change". Interface: `DUE_HOURS_URGENT`, `DUE_HOURS_HIGH`, `DUE_HOURS_NORMAL`, `DUE_HOURS_LOW`: a whole number of hours from 1 to 8760 (365 days); unset or empty means the default 4, 24, 72, 168. `loadConfig` returns `dueHours: { urgent, high, normal, low }` and `dueTimes: boolean`.
++Basis: "the help desk must be able to change those hours without a code change". Interface: `DUE_HOURS_URGENT`, `DUE_HOURS_HIGH`, `DUE_HOURS_NORMAL`, `DUE_HOURS_LOW`: a whole number of hours from 1 to 8760 (365 days; the request gives no bound, this is the service's own sanity limit that rejects typos and keeps every due time inside the range of a JavaScript Date); unset or empty means the default 4, 24, 72, 168. `loadConfig` returns `dueHours: { urgent, high, normal, low }` and `dueTimes: boolean`.
+ - A2.1 positive: with `DUE_HOURS_URGENT=2` a new urgent ticket created at 08:00 gets due 10:00; the other priorities keep their defaults. Confirmed: config test (`loadConfig`) and HTTP test.
+-- A2.2 failure: `DUE_HOURS_HIGH=soon`, `0`, `-3`, `1.5` or `9000` makes `loadConfig` throw `ConfigError` naming the variable (message like the existing `PORT must be a whole number`), so the service stops at start with exit 2. Confirmed: config test.
++- A2.2 failure: `DUE_HOURS_HIGH=soon`, `0`, `-3`, `1.5` or `9000` makes `loadConfig` throw `ConfigError` naming the variable (message like the existing `PORT must be a whole number`), so the service stops at start with exit 2 (the existing `main` catches `ConfigError`). Confirmed: config test, and one process test that spawns `node src/server.js` with `DUE_HOURS_HIGH=soon` and checks exit code 2 and a standard-error line naming `DUE_HOURS_HIGH`.
+ - A2.3 boundary: an empty or unset variable takes the default; surrounding spaces are ignored (as `wholeNumber` does). Confirmed: config test.
+ - A2.4 the hours are read at process start; changing them needs a restart (as every other setting). Documented in README.
+@@ -23,5 +23,5 @@ Basis: "the help desk must be able to change those hours without a code change".
+ ### R-3 A due time is set once
+ Basis: "A ticket's due time is set once: a
+[... cut here: 11334 more characters ...]
+
+
+== What the review changed in the stage's recorded result ==
+(the result did not change)

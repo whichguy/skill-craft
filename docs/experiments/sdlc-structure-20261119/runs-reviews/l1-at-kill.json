@@ -1,0 +1,17 @@
+{
+ "run": "sonnet-high-due-L-1",
+ "commit": "343e15c531761604ad50be4997877210724a4b45",
+ "minutes": 28.3,
+ "subject": "docs(shiploop): record this-directory-is-an-existing-node-a9fa3d knowledge after system-test-author",
+ "passed": [
+  "suite",
+  "pristine",
+  "migrate",
+  "restart",
+  "switch",
+  "rollback",
+  "off",
+  "cli"
+ ],
+ "failed": {}
+}

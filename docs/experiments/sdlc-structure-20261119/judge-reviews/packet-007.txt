@@ -1,0 +1,38 @@
+PACKET 7
+Reviewed stage: test-strategy
+
+== The request the delivery was built from ==
+This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable, with a command-line tool in bin/. The help desk is starting to promise response times. Each ticket gets a due time: the time it was created plus the response time for its priority, which is 4 hours for urgent tickets, 24 for high, 72 for normal and 168 for low, and the help desk must be able to change those hours without a code change. A ticket's due time is set once: a later change of the hours or of the ticket's priority does not move it. Every ticket shows its due time as `due`, and `GET /tickets?overdue=true` lists only the open and in-progress tickets whose due time has passed. The tickets already in the production data file get due times too, from their own creation time and priority, and keep them from then on. Due times are switched on in production only once the data file holds them: until the DUE_TIMES environment variable is `on`, the service answers exactly as it does today. If the new release misbehaves, operators must be able to go back to the current release, 1.4.0, and it must still start on the data file the new release wrote and show every ticket. Everything the service already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones.
+
+== What the review changed in the files ==
+diff --git a/docs/shiploop/environment.md b/docs/shiploop/environment.md
+index 045e0b8..ba4d68b 100644
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -30,4 +30,12 @@ node --test test/due.test.js
+ ```sh
+ git diff --name-status bc3f133 -- test/
++```
++  Run once on the unchanged tree: exit 0, no output (nothing changed yet).
++
++- Docs and release guard (A10.2; planned, due at the document stage and release): lists the four files that must mention the switch, and prints the package version, which must be `1.5.0`. Before the docs exist `grep` lists nothing and exits 1 (observed); after them it must list all four files and exit 0.
++
++```sh
++grep -l DUE_TIMES README.md docs/api.md docs/operations.md CHANGELOG.md
++node -p "require('./package.json').version"
+ ```
+ - No linter/formatter/type checker configured in the repo (package.json has no lint script).
+diff --git a/docs/shiploop/architecture.md b/docs/shiploop/architecture.md
+index 9b0c003..cd4e44b 100644
+--- a/docs/shiploop/architecture.md
++++ b/docs/shiploop/architecture.md
+@@ -30,5 +30,5 @@ All checks run locally against the real boundaries a client of this service has
+ | R-8 | file test/due-file.test.js with test/fixtures/persistence-1.4.0.js; release probe | A8.1, A8.2 |
+ | R-9 | existing 117 tests; CLI test in test/due-file.test.js; git diff guard | A9.1-A9.3 |
+-| R-10 | `npm test`; file review of README, docs/api.md, docs/operations.md, CHANGELOG, package.json, ADR 0009 | A10.1, A10.2 |
++| R-10 | `npm test`; docs and release guard commands in environment.md (`grep -l DUE_TIMES` lists four files, version `1.5.0`) plus a read of ADR 0009 and the operations rollout/rollback text | A10.1, A10.2 |
+ 
+ Preservation set (existing behaviour the change touches, each with its current check): ticket creation, update, transition and audit (test/store.test.js, test/api.test.js); the listing filters and cursor pages (test/api.test.js, test/query.test.js, test/pagination.test.js); the data file format and restart (test/persistence.test.js); config defaults (test/config.test.js); CLI and report outputs (existing CLI/report behaviour has no test file; A9.2 adds one); notifications and outbox (test/outbox.test.js, test/worker.test.js, test/notifier.test.js). Baseline run is current: run/scratch/baseline-npm-test.txt, 2026-11-21, unchanged tree bc3f133.
+
+== What the review changed in the stage's recorded result ==
+(the result did not change)

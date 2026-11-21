@@ -1743,6 +1743,210 @@ meet the port collision of R55.
 **Budget and failures.** At most $40 for a Claude run, about $100 for the four. A run that ends without every
 verdict is reported as it ended and run once more if time allows.
 
+### Results (run 2026-11-20 after b1b90f373c19130f67bf28d2b7a6d90430552b15)
+
+**R59. The runs** (`evidence/review-arms.txt`). Twelve whole deliveries: Sol 6.2 medium, two S and two L of
+`shared-expenses` and of `ticket-due-times`; Sonnet 5.5 high, two S and two L of `ticket-due-times`. Every run
+recorded its arm's option, so none was set aside and the registered fallback was not needed. Every S run ran
+reviews of all eight points; every L run ran only the step, carry-forward and `release-plan` reviews. Eleven
+ended. One Sonnet L run was still working when this was written (R62).
+
+**R60. One run's process kill reached five others.** At 20:35:19, 31.7 minutes into the four Sonnet runs,
+`sonnet-high-due-S-2` stopped its own test server with `pkill -f "src/server.js" -P $(cat $S/pid)` and then
+`pkill -f "node src/server.js"`. macOS `pkill` reads everything after the first pattern as more patterns, and a
+host's command line holds the request, which names `src/server.js`. The other three Sonnet hosts ended with
+SIGTERM, at `system-test`, `release-plan` and `release-check`. Two Sol hosts received it too: one in the review
+of `release-plan`, which `run.py` resumed 0.1 seconds later, and one 12 seconds after its delivery was done,
+which lost only its process verdict (`runs-reviews/interrupted.json`). The three Sonnet runs were resumed by
+hand with `run.py --resume-run` 14.0 minutes later.
+
+What it does to the measures. Minutes from start to end, the registered measure, cannot be compared in the two
+`ticket-due-times` cells. Every run had by then finished planning, its build items and the writing of its system
+tests, so those parts are clean in all twelve, and the cells are also read at a milestone that was not
+registered: the first entry into `system-test`. The time no host was running is taken out of the seconds by
+part (`down` in `runs-reviews/census.json`).
+
+**R61. Time**, in minutes, the two runs of each arm.
+
+| Cell | Arm | Start to end | To the first step plan | Build | Writing the system tests | To `system-test` | In reviews |
+|---|---|---|---|---|---|---|---|
+| Sol 6.2 medium, shared-expenses | S | 10.9, 9.0 | 2.9, 2.5 | 5.1, 4.4 | 0.4, 0.3 | 8.4, 7.3 | 1.4, 1.2 |
+| | L | 14.2, 12.9 | 2.6, 2.6 | 7.2, 7.2 | 0.3, 0.3 | 10.2, 10.2 | 2.3, 1.3 |
+| Sol 6.2 medium, ticket-due-times | S | 20.8 (resumed), 16.5 | 4.6, 3.7 | 9.3, 7.5 | 1.2, 1.7 | 15.2, 13.0 | 4.4, 2.2 |
+| | L | 15.2, 16.8 | 2.2, 3.0 | 9.2, 9.2 | 0.7, 1.3 | 12.1, 13.5 | 1.5, 1.8 |
+| Sonnet 5.5 high, ticket-due-times | S | 53.1 (39.1 with a host running), 45.3 | 9.4, 10.3 | 20.3, 28.5 | 1.6, 1.7 | 31.3, 40.5 | 10.2, 8.4 |
+| | L | unfinished, 48.3 (34.2) | 5.3, 6.4 | 21.6, 20.2 | 1.2, 0.9 | 28.1, 27.4 | 5.4 so far, 3.3 |
+
+- **Sol 6.2 medium, shared-expenses.** L is 36% slower from start to end (mean 13.5 against 9.9). The five
+  removed reviews took 55 seconds of an S delivery, and planning took the same time in both arms. The
+  difference is in the build (7.2 against 4.8 minutes), in each part of it: implement 102 against 64 seconds,
+  test 129 against 109, the step review 64 against 9.
+- **A review's seconds on Sol 6.2 medium.** The first review a run meets takes 23 to 41 seconds; most later ones
+  take 6 to 22, and every one ends with nothing to change. With the planning reviews removed, the first review
+  is the step's, and it takes 35 to 92 seconds. So total review time did not fall on `shared-expenses` (1.8 minutes in
+  three reviews against 1.3 in eight) and fell by half on `ticket-due-times` (1.7 against 3.3).
+- **Sol 6.2 medium, ticket-due-times.** The removed reviews took 95 seconds. Planning is 1.6 minutes shorter in
+  L (2.6 against 4.2) and the build 0.8 longer. To `system-test`: 12.8 against 14.1, 9% less. Start to end: 16.0
+  against 18.6 with the resumed run (14% less), against 16.5 without it.
+- **Sonnet 5.5 high.** The removed reviews took 5.0 minutes of an S delivery (the four planning reviews 4.3,
+  the `system-test-author` review 0.7). Planning is 4.0 minutes shorter in L (5.8 against 9.9, 41% less). To
+  `system-test`: 27.8 against 35.9, 23% less; part of that is the plans' shape, not the reviews: the S runs
+  planned 2 and 3 work items, the L runs 2 and 1.
+- **Where an S delivery's time goes on Sonnet** (mean 41.8 minutes with a host running): the step plan and
+  test spec 17%, the planning stages 15%, test 14%, acceptance to handoff with the release plan's review 13%,
+  implement 12%, the four planning reviews 10%, the step reviews 5%, document 5%, carry-forward and its review
+  4%, the system tests 3%, their review 2%.
+- **Cost.** The one Sonnet run that was not interrupted cost $15.60. A killed session reports no cost, so the
+  other three have none to compare.
+
+**R62. Verdicts and held-out checks.**
+
+| Cell | S | L |
+|---|---|---|
+| Sol 6.2 medium, shared-expenses | 6 of 6, 6 of 6; every verdict | 6 of 6, 6 of 6; every verdict |
+| Sol 6.2 medium, ticket-due-times | 3 of 8, 8 of 8 | 3 of 8, 8 of 8 (this one's process verdict lost to the kill) |
+| Sonnet 5.5 high, ticket-due-times | 8 of 8, 8 of 8; every verdict | 8 of 8 at its last commit before the kill (unfinished); 8 of 8 after a rerun |
+
+- **The two 3 of 8, one in each arm, are one design choice.** The delivery adds a migration script, and its
+  server refuses to start with `DUE_TIMES=on` until an operator has run it ("tickets are missing due times; run
+  scripts/backfill-due-times.js first"). The five probes that start the new release switched on against the old
+  data file fail at that start; `suite`, `pristine` and `off` pass. The request says due times "are switched on
+  in production only once the data file holds them" and does not say what fills the file, so the words allow
+  this reading and the probes do not. The other two Sol deliveries and all four Sonnet ones fill the file when
+  the service starts. These are the first failed held-out checks of this study. The guard round's four Sol
+  slices of the same request passed 8 of 8; four against four, that difference can be chance.
+- **One lost verdict, run again** (R55's rule). `sonnet-high-due-L-2` was first graded 7 of 8: `pristine` failed
+  with a connection reset in the untouched base's own tests. Run again on the saved work it passed 5 of 5; both
+  are kept (`runs-reviews/reruns.json`).
+- **The unfinished run.** After its resume, `sonnet-high-due-L-1`'s release check ran the delivery's `npm test`
+  46 times, saw about 4 abnormal runs against 0 in 40 on the base, and opened a third work item so that the
+  service registers its signal handlers before it reports that it listens. Its later step plan records 0 red in
+  200 runs before the fix. At 84 minutes it was still building that item. Its product at its last commit before the
+  kill (28.3 minutes, system tests written) passes 8 of 8 (`runs-reviews/l1-at-kill.json`).
+
+**R63. Refusals and send-backs.** Refused commands are alike in both arms: Sonnet 9 and 8 against 8 and 8; Sol
+6.2 `ticket-due-times` 3 and 8 against 4 and 5; `shared-expenses` 6 and 7 against 7 and 5. No build stage sent
+an item back in any finished run, and no stage after the build opened new work in one.
+
+**R64. What the removed reviews changed** (`evidence/removed-review-judged.txt`; each packet is the review's own
+tree before and after, and its result as submitted and as accepted). 37 reviews of the five removed stages, in
+this round's six S runs and the fewest-steps round's two deliveries. 13 changed a file or a result, every one
+of them on Sonnet. The two judges gave the same label to 13 of 13 (kappa 1.00): 11 substantive, 2 wording.
+
+| Driver | Reviewed stage | Reviews | Changed anything | Substantive, both judges |
+|---|---|---|---|---|
+| Sonnet 5.5 high | spec | 3 | 3 | 3 |
+| | test-strategy | 3 | 3 | 3 |
+| | plan | 3 | 3 | 3 |
+| | step-plan | 3 | 1 | 0 |
+| | system-test-author | 4 | 3 | 2 |
+| | all five | 16 | 13 | 11 (69%) |
+| Sol 6.2 medium | all five | 21 | 0 | 0 |
+
+The substantive ones, in the judges' words: a process test that starts the server with an invalid setting and
+checks its exit code; rollback tests that "gain a replayable procedure and a guard assertion"; module contracts
+with signatures and error behaviour; a missing due time defined as "an absent key only"; a system test that
+kills the server in the middle of a burst of requests and checks that the data file still loads with every
+acknowledged expense. Ten of the
+eleven correct or complete something the request or the reviewed text already required; one adds requirements
+the request did not state.
+
+### Registered readings
+
+- **Time.** Sol 6.2 medium, `shared-expenses`: L is slower (36%). Sol 6.2 medium, `ticket-due-times`: not
+  readable as registered, because one S run was resumed; read any other way it shows no readable difference
+  (14% less with that run, 3% less without it, 9% less to `system-test`). Sonnet 5.5 high: not readable as
+  registered (three runs interrupted, one unfinished); at the milestone that was not registered L saves time
+  (23%).
+- **Quality.** `shared-expenses`: no loss seen. Sol 6.2 `ticket-due-times`: by the letter a loss, because one L
+  run lacks a harness verdict. That verdict was lost to the kill 12 seconds after the delivery was complete, so
+  the cell is read here as no loss seen, and this is a departure from the letter: held-out checks are 3 and 8
+  of 8 in both arms. Sonnet: no loss seen in the finished L run after its rerun (7 of 8 as first graded); the
+  other L run is unfinished, so the cell has no reading yet.
+- **The removed reviews earn their place on Sonnet 5.5 high** (69% substantive by both judges; the bar was
+  30%). **They do not on Sol 6.2 medium** (0%; the bar was 10%).
+- **Lean does not pay on Sonnet 5.5 high,** by the registered rule: the removed reviews earn their place.
+- **On Sol 6.2 medium there is no overall reading.** The removed reviews do not earn their place and no quality
+  loss is seen, but L did not save time in each cell: in one it was 36% slower.
+
+### Findings
+
+- **F42 (firm for these two requests; 21 reviews).** On Sol 6.2 medium the five removed reviews are a
+  formality, and removing them buys nothing. None changed a file or a result. They cost about a minute to a
+  minute and a half of a delivery (9%), and the run pays the first review's reading time whichever review comes
+  first (R61). The saving the option can reach is under the 15% this study can read, and in one cell L was
+  slower for reasons the removed reviews do not explain.
+- **F43 (firm for the three planning reviews on these requests; interim for the other two).** On Sonnet 5.5 high
+  the reviews of `spec`, `test-strategy` and `plan` are real editing: 9 of 9 changed content that both judges
+  call substantive, and nearly all of it completes what was already required. The `step-plan` review made one
+  wording edit in 3. The `system-test-author` review is 2 of 4. Round 1's recommendation 4 was read on terra,
+  where the `plan` review was 2 to 3% substantive and the `system-test-author` review edited anything in 4%
+  (R8); it does not transfer to Sonnet.
+- **F44 (interim; the registered measure was lost).** What lean would buy on Sonnet is 4 to 5 minutes of a
+  40-minute delivery, 10 to 12%: the planning window is 4.0 minutes shorter and the removed reviews' own
+  seconds are 5.0 minutes. The 23% at the milestone overstates it, because the S runs also planned more work
+  items.
+- **F45 (firm, and a limit of F43).** A substantive edit is not a defect caught (F6). All four Sonnet products
+  pass 8 of 8 with the reviews and without them, one of them graded before it finished. The reading that the
+  reviews earn their place rests on the judges alone; nothing here shows what the edits bought.
+- **F46 (new; interim, four runs).** On Sol 6.2 medium the held-out result of the planning-heavy request was
+  decided in planning, and no review touched it. Two of four whole deliveries chose an operator-run migration
+  and a service that will not start switched on before it, one in each arm; in the S run the reviews of the
+  spec, the test strategy and the plan each ended without a change. The request allows the choice and the
+  probes do not (R62), so this is also a question about the yardstick.
+- **F47 (apparatus and product; second time).** A builder stopped its test server by name pattern and ended
+  five other hosts (R60). Round 3 saw the same class in 7 of 108 reader sessions (R21). ShipLoop's text says
+  nothing about how a run stops a process it started, and the same command can reach processes that are not
+  ShipLoop's.
+- **F48 (apparatus; likely, not shown).** Eight runs of one fixture at once is too many. Besides the kill, one
+  run's own release check measured its tests as unstable while the others were running and found nothing to
+  reproduce later (R62), and one base-test verdict was lost to a reset (the exposure of R55). Fewer at once
+  lowers the exposure; it does not remove it.
+- **F49 (exploratory).** On Sonnet the step plan and test spec of a work item now take more time than
+  implementing it: 7.0 against 5.1 minutes of an S delivery, over two or three work items. With steps fewer
+  and reviews priced, that pair is the largest single part left (R61).
+
+### Recommendation (owner's decisions; nothing built)
+
+1. **Keep the planning-review default at `stage`; the 2026-11-04 decision stands.** This round is the larger
+   same-case sample that decision named, and it is still small. On Sonnet the planning reviews are where content changes, at a price
+   of about a tenth of a delivery. On Sol 6.2 medium they change nothing, cost a minute, and removing them
+   saved nothing readable. Neither driver gives a reason to change the default.
+2. **Withdraw round 1's recommendation 4 for these drivers.** Stopping the `plan` review is not supported on
+   Sonnet (3 of 3 substantive). The `step-plan` review is the one removed review with no substantive edit on
+   either driver, 0 of 7, but three judged Sonnet reviews are too few to drop it on, and R58 shows it editing
+   in 17 of 28 Sonnet slices.
+3. **Decide whether a run may switch planning reviews off by itself** (R56: two of 297 did, one of them on Sol
+   6.2 medium). Arm S's one-line pin is the candidate if the answer is no. On Sol 6.2 medium the choice costs
+   nothing measurable either way; on Sonnet it would drop the edits of F43 without anyone asking.
+4. **Tell builders how to stop what they start** (F47): by the process id they recorded, never by name or
+   pattern. One sentence in ShipLoop's text; not written here.
+5. **For Sol 6.2 medium, reviews are not the lever on a planning-heavy request** (F46). A second look by the
+   same model passed the choice that failed the probes. Two things could move it, neither tested here: the
+   spec stage saying outright how existing data gets its new field (the side experiment in
+   `docs/experiments/spec-elaboration-20261120/`, another session's, is aimed at gaps of this kind), or a
+   review by a different model.
+6. **Decide what the `ticket-due-times` yardstick should accept.** Either the request says the release fills
+   the file itself, or the probes follow the delivery's documented switch-on steps. Changing either breaks
+   comparison with this round and the guard round.
+7. **Run at most four deliveries of one fixture at once** (F48). A harness habit, adopted for this study from
+   here on.
+
+### Limits
+
+- Two runs a cell, one of them unfinished at this write-up. The registered time measure was lost in two of
+  three cells to the kill; the milestone and the time split that replace it were not registered.
+- The judges are one model, and 13 packets is a small base for a kappa. Packets are cut at 12,000 characters.
+- An edit is not an escape (F45). The held-out checks are at their ceiling on Sonnet and cannot show what the
+  judged edits bought.
+- The two failed Sol deliveries fail on one reading of the request (F46); the count of five failed probes is
+  that one choice five times.
+- Reviews are inline: "a review" here is a second look by the same model in the same conversation.
+- Only one Sonnet run reported its whole cost.
+- Whether an S run asked for `none` and was held to `stage` by the pin was not established.
+- R61's time split charges a review to the stage it reviews and leaves out the time no host ran; a resumed
+  session re-reads its run, and that reading is charged to the stage it resumed in.
+
 ## Evidence (all rounds)
 
 | File | Holds |
@@ -1783,6 +1987,11 @@ verdict is reported as it ended and run once more if time allows.
 | `evidence/review-option-census.txt`, `review_option_census.py` | round 7: the planning-review option every recorded run used and who asked for it, and review seconds by reviewed stage and driver (R56, R57) |
 | `evidence/review-yield-drivers.txt`, `review_yield_drivers.py` | round 7: what each review changed, by driver and reviewed stage, from the pass logs of this study's runs (R58) |
 | `overlays/r7-s-planning-reviews-pinned.json`, `overlays/r7-l-lean-reviews.json`, `build_arm.py` | round 7: the two arms' edits, applied to plugin build copies only, and the script that builds an arm's plugin for `run.py --plugin-dir` |
+| `evidence/review-arms.txt`, `review_arms_report.py`, `runs-reviews/census.json` | round 7: the twelve deliveries' rows, the registered readings by driver and case, the time split, and the file they are computed from (R59 to R63) |
+| `runs-reviews/interrupted.json`, `runs-reviews/reruns.json`, `runs-reviews/unfinished.json`, `runs-reviews/l1-at-kill.json` | round 7: which runs the kill reached and how each went on, the one check run again, and the unfinished run's grading at its last commit before the kill (R60, R62) |
+| `removed_review_diffs.py`, `judge-reviews/packet-*.txt`, `judge-reviews/key.json` | round 7: each review of a removed stage that changed anything, as the judges saw it, and which run and driver each is |
+| `judge-reviews/out-A.jsonl`, `judge-reviews/out-B.jsonl`, `evidence/removed-review-judge-brief.txt` | round 7: each judge's label, scope and reason per packet, and the brief |
+| `evidence/removed-review-judged.txt`, `removed_review_score.py` | round 7: the judges' agreement and the substantive share by driver and reviewed stage (R64) |
 | `guard-step-cases.json`, `guard_apply.py` | round 6 guard round: the step case `tickets-due-times`, and the script that merges it into a throwaway worktree's case list |
 | `evidence/slices-guard.txt`, `evidence/slices-guard-iteration.txt`, `slices-guard/*.json` | round 6 guard round: each plan with its steps and the files each built step changed, the slices' measures, the registered readings, and the files they are computed from (R51 to R54) |
 | `evidence/slices-guard-snapshots.txt`, `evidence/slices-guard-regrade.txt`, `evidence/base-suite-flake.txt` | round 6 guard round: hidden checks at each snapshot as first graded, the three checks run again after a harness timeout, and the repeat runs that showed the ticket fixture's test run sometimes does not end (R55) |
@@ -1826,6 +2035,16 @@ Round 6, guard round: `git worktree add --detach <path> HEAD`, `guard_apply.py <
 slices-guard/iteration.json slices-guard/snapshots.json`, `python3.13 regrade_timeouts.py slices-guard/iteration.json
 slices-guard/snapshots.json`, and `guard_report.py slices-guard`, which reproduces `evidence/slices-guard.txt` from
 the repository alone.
+
+Round 7: `python3 -I review_option_census.py <work>/census.json <run roots>` (R56, R57) and `review_yield_drivers.py
+<run roots>` (R58). The arms: `python3 build_arm.py <folder> overlays/r7-s-planning-reviews-pinned.json` (or the L
+overlay) prints a plugin folder; `test/shiploop_e2e/run.py --case <case> --host <host> --model <model> --effort
+<effort> --plugin-dir <that folder> --output <root>/<name>-S-1` runs a delivery (for arm L add `--planning-review
+none` and name the folder `-L-1`). Then `review_option_census.py runs-reviews/census.json <root>` and
+`review_arms_report.py runs-reviews/census.json`, which reads the run folders and reproduces
+`evidence/review-arms.txt`. The judges: `removed_review_diffs.py judge-reviews <run folders>` writes the packets, two
+judges label them with `evidence/removed-review-judge-brief.txt`, and `removed_review_score.py judge-reviews`
+rescores from the repository alone.
 
 Round 3: `python3 -I replay_score.py judge-replay` rescores from the repository alone. To run it again from the
 recorded runs: `replay_cases.py <work>` (needs `<work>/census.json` and `<work>/review_edits.json`),

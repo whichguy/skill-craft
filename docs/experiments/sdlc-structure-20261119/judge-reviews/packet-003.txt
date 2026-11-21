@@ -1,0 +1,39 @@
+PACKET 3
+Reviewed stage: plan
+
+== The request the delivery was built from ==
+Build a small shared-expenses service in Node.js (no npm dependencies). server.js listens on the port in the PORT environment variable and keeps its data in the JSON file named by the DATA_FILE environment variable, so groups and expenses survive a restart. POST /groups with {"id": "<group id>", "members": ["<name>", ...]} creates a group: 201, 409 if the id exists, and 400 unless members holds at least two distinct non-empty names. POST /groups/<id>/expenses records an expense paid by one member. {"payer": "<name>", "cents": <positive integer>, "split": "equal"} shares it equally among all members, with any cents left over after an even division going one each to the members listed first. {"payer": "<name>", "cents": <positive integer>, "split": "exact", "shares": {"<name>": <cents>, ...}} makes each member listed in shares owe that many whole cents (zero is allowed), and the shares must add up to cents. It answers 201 with {"expense": <n>}, where n is 1 for the group's first expense, then 2, and so on; 400 for an unknown payer or member, a non-positive or non-integer amount, an unknown split, or shares that do not add up. GET /groups/<id>/balances returns an object with each member's net cents, what they paid minus what they owe, so the balances add up to 0. GET /groups/<id>/settlements returns a JSON array of {"from", "to", "cents"} payments that bring every balance to 0: repeatedly the member who owes most pays the member who is owed most the smaller of the two amounts, and ties go to the member listed first. Every route under /groups/<id> answers 404 for an unknown group. Concurrent requests must never lose an expense. Cover the behaviour with node:test tests under test/ that run with `node --test`.
+
+== What the review changed in the files ==
+diff --git a/docs/shiploop/architecture.md b/docs/shiploop/architecture.md
+index 9544bee..05edad0 100644
+--- a/docs/shiploop/architecture.md
++++ b/docs/shiploop/architecture.md
+@@ -13,5 +13,17 @@
+ - `lib/store.js`: `createStore({dataFile, writeFile?})`: loads DATA_FILE, owns the groups, `createGroup`, `addExpense`, `getGroup`; persists with temp-file plus rename through an injectable writer; rolls back on writer failure.
+ - `lib/app.js`: `createApp(store)` returning the `(req, res)` handler: routing, body reading with the 1 MiB cap, JSON parsing, validation, status mapping.
+-- `support/harness.js`: test helpers (outside `test/`, see environment.md Test discovery).
++- `support/harness.js`: test helpers (outside `test/`, see environment.md Test discovery): `startServer({dataFile, port})` resolves `{port, request(method, path, body), stop()}` where `request` sends a string body raw or JSON-stringifies an object and resolves `{status, body}` (body parsed JSON, or the raw text if not JSON); `runServer({dataFile, env})` runs `node server.js` to exit and resolves `{code, stderr}` (for E2E-3 and E2E-4); `freePort()`, `tmpDataFile()`.
++
++### Module contracts (the seams tests import)
++
++All modules are CommonJS and export these named functions. Inputs to the pure modules are already validated by `lib/app.js` except where stated.
++
++- `readConfig(env)` returns `{port: number, dataFile: string}` (defaults 3000 and `./data.json`); throws `Error` naming `PORT` when PORT is set but not an integer 0..65535.
++- `equalShares(members, cents)` returns `Map` name to owed cents in member order, remainder to the first `cents % members.length` members.
++- `exactShares(members, shares, cents)` validates `shares` (a plain non-array object whose own keys are members, values non-negative safe integers, total equal to `cents`) and returns `{owed: Map}` with every member present (unlisted members 0) or `{error: "<message>"}`.
++- `balances(members, expenses)` where an expense is `{payer, cents, owed: Map}` returns `Map` name to net cents in member order.
++- `settle(members, balances)` returns the array of `{from, to, cents}` of spec R-8.
++- `createStore({dataFile, writeFile})` reads DATA_FILE synchronously (absent means empty; unparseable or wrong shape throws `Error`) and returns `{getGroup(id), createGroup(id, members), addExpense(id, expense)}`: `getGroup` returns `{id, members, expenses}` or `undefined`; `createGroup` returns `{created: true, group}` or `{created: false}` when the i
+[... cut here: 450 more characters ...]
+
+
+== What the review changed in the stage's recorded result ==
+--- result as submitted
++++ result as accepted
+@@ -153,3 +153,3 @@
+   {
+-   "context": "Ready: spec.md R-1..R-12 (accepted after 3 passes), environment.md (Commands, Harnesses and suites, ID convention, Test discovery) and architecture.md (Structure, Interfaces, Real-boundary checks E2E-1..8, AD-1..AD-5) are committed; empty repo at baseline 21e70ac, node v26.12.1, baseline node --test = 0 tests (missing coverage, no repair prerequisite). Scope (candidate): server.js, package.json (name, private, no dependencies), lib/config.js, lib/splits.js, lib/settle.js, lib/store.js, lib/app.js, support/harness.js, test/*.test.js (config, splits, settle, store, app, e2e-*, meta) and docs/shiploop knowledge updates only; nothing outside the worktree. Module format: CommonJS (require/module.exports), files .js, no type field needed. Loadable seams tests import before the code exists: require('../lib/config').readConfig(env); require('../lib/splits').equalShares(members,cents) and exactShares(members,shares,cents); require('../lib/settle').balances(members,expenses) and settle(members,balances); require('../lib/store').createStore({dataFile,writeFile}); require('../lib/app').createApp(store); require('../support/harness').startServer({dataFile,port}) spawning node server.js. Each seam is a named function so a test fails with module-not-found/RED before implementation. Test decisions: titles start 'R-<n>:'; helpers only in support/ (never .js under test/ except tests); each test uses its own temp dir and DATA_FILE, stops its server with SIGTERM and removes the dir; oracles are the concrete spec values replayed by RUN/scratch/replay.js (66/-33/-33; 34/34/33; ann -4, bob 37, cy -33 then cy>bob 33, ann>bob 4; creditor tie cy>ann 100, cy>bob 100; a-30,b-20,c+10,d+40 -> a>d 30,b>c 10,b>d 10; 50 concurrent -> ann -25, bob 25; __proto__ -40, toString 40). Order inside the item: test-spec writes support/harness.js first and validates it against a stand-in, then RED tests; implement builds lib modules, app, server; test stage runs the mutation checks listed in environment.md Harnesses and suites. Done: node --test exits 0 with titles covering R-1..R-12 (listing command in environment.md), every E2E-n procedure passes against the real spawned server, mutation checks each fail the suite, spec acceptance lines all mapped to passing tests, knowledge files updated. Surfaces: real HTTP on loopback, DATA_FILE on disk. Authority: edit/commit in the worktree only; no install, deploy, push or network. Correction route: a spec/architecture conflict found while building is fixed in the knowledge file in the same item (keep IDs) and recorded; open assumptions A2-A4 are settled here by the named tests. Revalidate when Node major or spec R-ids change.",
++   "context": "Ready: spec.md R-1..R-12 (accepted after 3 passes), environment.md (Commands, Harnesses and suites, ID convention, Test discovery) and architecture.md (Structure, Interfaces, Real-boundary checks E2E-1..8, AD-1..AD-5) ar
+[... cut here: 2970 more characters ...]
+

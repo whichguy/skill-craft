@@ -8,7 +8,10 @@ For every ShipLoop run directory under the given roots (``**/.shiploop-runs/*/ru
                   the run was in; an Improve review is charged to the stage it reviews (the `packet` row that issued
                   it names it);
   invocation.json / result.json of the E2E folder that holds the run: host, model, effort, case, whether the harness
-                  seeded the run (a slice), whether the harness itself asked for the option, and whether the run passed.
+                  seeded the run (a slice), whether the harness itself asked for the option, and whether the run passed;
+  sessions.jsonl  of the same folder: the spans when no host was running (from one session's end to the next one's
+                  start, as after a kill and a later resume). OUT.json gives them per stage under `down`, beside the
+                  unchanged `seconds`, so a reader can take them out; the tables below do not.
 
 It prints, for whole deliveries (not seeded) that finished:
   1. runs by host, model and effort with the option each recorded, and for `none` whether the harness asked for it;
@@ -46,6 +49,24 @@ def load(path):
         return {}
 
 
+def down_spans(folder):
+    """The spans when no host ran: each session's end to the next session's start, from the E2E folder's sessions.jsonl."""
+    try:
+        rows = [json.loads(line) for line in (folder / "sessions.jsonl").read_text(errors="replace").splitlines() if line.strip()]
+    except (OSError, ValueError, AttributeError, TypeError):
+        return []
+    spans, ended = [], None
+    for row in rows:
+        moment = row.get("t")
+        if row.get("row") == "end":
+            ended = moment
+        elif row.get("row") == "start" and isinstance(ended, (int, float)) and isinstance(moment, (int, float)):
+            if moment > ended:
+                spans.append((ended, moment))
+            ended = None
+    return spans
+
+
 def read_run(run):
     try:
         state = (run / "state.md").read_text(errors="replace")
@@ -59,19 +80,23 @@ def read_run(run):
     result = load(folder / "result.json") if folder else {}
     reviewed = {row.get("action"): row.get("reviewed") for row in rows if row.get("kind") == "packet" and row.get("stage") == "improve"}
     commands = [row for row in rows if row.get("kind") == "command" and isinstance(row.get("ts"), (int, float))]
-    seconds = collections.Counter()
+    seconds, down = collections.Counter(), collections.Counter()
+    stopped = down_spans(folder)
     for before, row in itertools.pairwise(commands):
         gap = row["ts"] - before["ts"]
         if gap < 0 or gap > IDLE:
             continue
+        idle = sum(max(0.0, min(end, row["ts"]) - max(begin, before["ts"])) for begin, end in stopped)
         stage = row.get("stage")
         stage = stage[0] if isinstance(stage, list) else stage
         if stage == "improve":
             cursor = row.get("cursor")
             action = cursor[0] if isinstance(cursor, list) else row.get("action")
-            seconds["review:" + str(reviewed.get(action) or "?")] += gap
-        elif stage:
+            stage = "review:" + str(reviewed.get(action) or "?")
+        if stage:
             seconds[str(stage)] += gap
+            if idle:
+                down[str(stage)] += idle
     prompt = ""
     for name in ("prompt.txt", "host-prompt.txt"):
         try:
@@ -87,7 +112,7 @@ def read_run(run):
             "asked": "--planning-review none" in prompt or "--planning-review=none" in prompt or invocation.get("planning_review") == "none",
             "passed": result.get("pass"), "checks": [bool(c.get("pass")) for c in result.get("checks") or ()],
             "hidden": [len(acceptance.get("passed") or ()), len(acceptance.get("ids") or ())] if acceptance.get("observed") else None,
-            "first": rows[0].get("at") if rows else None, "seconds": dict(seconds)}
+            "first": rows[0].get("at") if rows else None, "seconds": dict(seconds), "down": dict(down)}
 
 
 def driver(row):

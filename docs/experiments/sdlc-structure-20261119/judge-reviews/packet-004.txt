@@ -1,0 +1,52 @@
+PACKET 4
+Reviewed stage: system-test-author
+
+== The request the delivery was built from ==
+Build a small shared-expenses service in Node.js (no npm dependencies). server.js listens on the port in the PORT environment variable and keeps its data in the JSON file named by the DATA_FILE environment variable, so groups and expenses survive a restart. POST /groups with {"id": "<group id>", "members": ["<name>", ...]} creates a group: 201, 409 if the id exists, and 400 unless members holds at least two distinct non-empty names. POST /groups/<id>/expenses records an expense paid by one member. {"payer": "<name>", "cents": <positive integer>, "split": "equal"} shares it equally among all members, with any cents left over after an even division going one each to the members listed first. {"payer": "<name>", "cents": <positive integer>, "split": "exact", "shares": {"<name>": <cents>, ...}} makes each member listed in shares owe that many whole cents (zero is allowed), and the shares must add up to cents. It answers 201 with {"expense": <n>}, where n is 1 for the group's first expense, then 2, and so on; 400 for an unknown payer or member, a non-positive or non-integer amount, an unknown split, or shares that do not add up. GET /groups/<id>/balances returns an object with each member's net cents, what they paid minus what they owe, so the balances add up to 0. GET /groups/<id>/settlements returns a JSON array of {"from", "to", "cents"} payments that bring every balance to 0: repeatedly the member who owes most pays the member who is owed most the smaller of the two amounts, and ties go to the member listed first. Every route under /groups/<id> answers 404 for an unknown group. Concurrent requests must never lose an expense. Cover the behaviour with node:test tests under test/ that run with `node --test`.
+
+== What the review changed in the files ==
+diff --git a/test/system.test.js b/test/system.test.js
+index a8a2d05..c6aa877 100644
+--- a/test/system.test.js
++++ b/test/system.test.js
+@@ -114,4 +114,26 @@ test('R-10: ST-2 after parallel acknowledged writes a SIGKILL loses nothing and
+ });
+ 
++test('R-2: ST-2 (a) a SIGKILL in the middle of a write burst leaves a loadable file holding every acknowledged expense, contiguously numbered', async (t) => {
++  const dataFile = path.join(tempDir(t), 'data.json');
++  const first = await startServer(t, { dataFile });
++  await first.request('POST', '/groups', { id: 'burst', members: ['ann', 'bob'] });
++  let acknowledged = 0;
++  const sends = Array.from({ length: 300 }, () => first.request('POST', '/groups/burst/expenses', { payer: 'ann', cents: 10, split: 'equal' })
++    .then((res) => { if (res.status === 201) acknowledged++; })
++    .catch(() => {})); // requests cut off by the crash fail; only acknowledged ones count
++  while (acknowledged < 20) await new Promise((resolve) => setTimeout(resolve, 2));
++  await first.kill();
++  await Promise.all(sends);
++  assert.ok(acknowledged >= 20);
++
++  const second = await startServer(t, { dataFile }); // starting at all proves the file parses and is a valid store
++  // Every expense is ann paying 10 equal: ann +5, bob -5 each, so the balances reveal how many survived.
++  const next = (await second.request('POST', '/groups/burst/expenses', { payer: 'ann', cents: 10, split: 'equal' })).body.expense;
++  const survived = next - 1;
++  assert.ok(survived >= acknowledged, `acknowledged ${acknowledged} but only ${survived} survived the crash`);
++  assert.ok(survived <= 300);
++  assert.deepEqual((await second.request('GET', '/groups/burst/balances')).body, { ann: 5 * next, bob: -5 * next });
++});
++
+ test('R-1: ST-3 the shipped files alone run from another directory and keep data in ./data.json by default', async (t) => {
+   const shipped = tempDir(t);
+diff --git a/docs/shiploop/environment.md b/docs/shiploop/environment.md
+index f52ab59..4c424ff 100644
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -59,5 +59,5 @@ Run the service: `PORT=<port> DATA_FILE=<path> node server.js` (or `npm start`).
+   - meta (`test/meta.test.js`): R-11, reads `package.json` (no dependencies) and checks that no `.js` under `test/` is a helper.
+ - Facilities (all built and in use, owner: this repository's tests): `support/harness.js` (`freePort`, `tempDir(t)`, `client(base)`, `serve(t, handler)` for in-process component tests, `startServer(t, {dataFile, env})` spawning `node server.js` with PORT=0 and resolving `{port, base, request, stop}`, `runServer({dataFile, env})` for startup failures; `stop()` resolves the exit code), `support/tables.js` (the 400 request tables of spec R-3, R-4 and R-6) and `support/scenarios.js` (the HTTP scenarios shared by `test/app.test.js` and the `test/e2e-*.test.js` files). Ready: validated by the 118-test suite. Revalidate when `server.js` startup output (`listening on <port>`) or the response format changes.
+-- System tests (whole product, black box; `test/system.test.js`, part of `node --test`, about 2.5 s): ST-1 compares the running service with an independent reference model (written from spec R-5..R-8, sharing no code with `lib/`) over 30 seeded random groups; ST-2 SIGKILLs the server after 40 parallel acknowledged writes and checks that nothing is lost and numbering continues; ST-3 runs a copy of only `server.js`, `lib/` and `package.json` from another working directory with the default `./data.json`. Focused command: `node --test --test-reporter=spec test/system.test.js`; check command: `npm test --silent` (proves the manifest's test script). All run locally; there is no deployed target, so nothing waits for a release.
++- System tests (whole product, black box; `test/system.test.js`, part of `node --test`, about 3 s): ST-1 compares the running service with an independent reference model (written from spec R-5..R-8, sharing no code with `lib/`) over 30 seeded random groups; ST-2 SIGKILLs the server after 40 parallel acknowledged writes and checks that nothing is lost and numbering continues, and ST-2 (a) SIGKILLs it in the middle of a 300-request burst and checks that the file still loads and holds a contiguous prefix with every acknowledged expense (atomic write); ST-3 runs a copy of only `server.js`, `lib/` and `package.json` from another working directory with t
+[... cut here: 683 more characters ...]
+
+
+== What the review changed in the stage's recorded result ==
+(the result did not change)

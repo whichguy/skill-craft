@@ -1,0 +1,7 @@
+{
+ "sonnet-high-due-L-1": "host ended by SIGTERM at 31.7 minutes (engine at release-plan) when sonnet-high-due-S-2 ran pkill by pattern; resumed by hand with run.py --resume-run 14.0 minutes later",
+ "sonnet-high-due-L-2": "host ended by SIGTERM at 31.6 minutes (engine at release-check) when sonnet-high-due-S-2 ran pkill by pattern; resumed by hand with run.py --resume-run 14.0 minutes later",
+ "sonnet-high-due-S-1": "host ended by SIGTERM at 31.7 minutes (engine at system-test) when sonnet-high-due-S-2 ran pkill by pattern; resumed by hand with run.py --resume-run 14.0 minutes later",
+ "sol-medium-due-S-1": "Codex host killed at 16.9 minutes (engine in the review of release-plan) by the same pkill; run.py resumed the session by itself 0.1 seconds later, so its minutes hold a resume and no wait",
+ "sol-medium-due-L-2": "Codex host received SIGTERM from the same pkill about 12 seconds after the engine reached done; the delivery and its minutes are complete, the process verdict is not"
+}

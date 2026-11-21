@@ -1,0 +1,24 @@
+PACKET 13
+Reviewed stage: plan
+
+== The request the delivery was built from ==
+This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable, with a command-line tool in bin/. The help desk is starting to promise response times. Each ticket gets a due time: the time it was created plus the response time for its priority, which is 4 hours for urgent tickets, 24 for high, 72 for normal and 168 for low, and the help desk must be able to change those hours without a code change. A ticket's due time is set once: a later change of the hours or of the ticket's priority does not move it. Every ticket shows its due time as `due`, and `GET /tickets?overdue=true` lists only the open and in-progress tickets whose due time has passed. The tickets already in the production data file get due times too, from their own creation time and priority, and keep them from then on. Due times are switched on in production only once the data file holds them: until the DUE_TIMES environment variable is `on`, the service answers exactly as it does today. If the new release misbehaves, operators must be able to go back to the current release, 1.4.0, and it must still start on the data file the new release wrote and show every ticket. Everything the service already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones.
+
+== What the review changed in the files ==
+diff --git a/docs/shiploop/architecture.md b/docs/shiploop/architecture.md
+index c9c377e..fd9dd82 100644
+--- a/docs/shiploop/architecture.md
++++ b/docs/shiploop/architecture.md
+@@ -20,5 +20,8 @@ Existing modules (README.md "How it fits together") stay; the due-time work touc
+   separate AND predicate after `matchesFilters`. `update` and `apply` never write `due`. `due` is not in `CREATED_FIELDS`.
+ - `src/persistence.js`: `ticketRecord` names `due`; `readTicket` accepts a missing `due` (left for the store to fill) and
+-  checks a present one with `time`; `VERSION` stays 1.
++  checks a present one with `time`; `VERSION` stays 1. "Missing" means the key is absent from the record, which
++  `ticketRecord` turns into `due: undefined` (`JSON.stringify` then drops it on save); a present `due` of `null`, `''`,
++  a number or an unparsable string is not a time and refuses the file naming the record (R-6), it is never silently
++  backfilled. The store treats only `undefined` as missing.
+ - `src/tickets/query.js`: `parseListQuery(params, { dueTimes = false } = {})`. With `dueTimes` it reads `overdue` (only `true`
+   is valid, else `InvalidError('overdue must be true')`) and adds `overdue: true` to the result only when given, so the
+
+== What the review changed in the stage's recorded result ==
+(the result did not change)

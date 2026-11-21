@@ -1,0 +1,31 @@
+reviews of the removed stages: 37; with a change (a packet): 13; the judges give the same label to 13 of 13; kappa 1.00
+labels, judge A: {'substantive': 11, 'wording': 2}; judge B: {'substantive': 11, 'wording': 2}
+
+driver                    reviewed stage         reviews  changed  substantive, both  either  within, both  beyond, both
+claude-sonnet-5-5 high    spec                         3        3           3 (100%)       3             2             1
+claude-sonnet-5-5 high    test-strategy                3        3           3 (100%)       3             3             0
+claude-sonnet-5-5 high    plan                         3        3           3 (100%)       3             3             0
+claude-sonnet-5-5 high    step-plan                    3        1             0 (0%)       0             0             0
+claude-sonnet-5-5 high    system-test-author           4        3            2 (50%)       2             2             0
+claude-sonnet-5-5 high    all removed stages          16       13           11 (69%)      11            10             1
+gpt-6.2-sol medium        spec                         4        0             0 (0%)       0             0             0
+gpt-6.2-sol medium        test-strategy                4        0             0 (0%)       0             0             0
+gpt-6.2-sol medium        plan                         4        0             0 (0%)       0             0             0
+gpt-6.2-sol medium        step-plan                    4        0             0 (0%)       0             0             0
+gpt-6.2-sol medium        system-test-author           5        0             0 (0%)       0             0             0
+gpt-6.2-sol medium        all removed stages          21        0             0 (0%)       0             0             0
+
+per packet (judge A | judge B):
+    1 claude-sonnet-5-5 high  spec                shared-expenses-sonnet-high    substantive/beyond | substantive/beyond | The spec gains new requirements the request did not state: an invalid PORT makes the process exit non-zero, va
+    2 claude-sonnet-5-5 high  test-strategy       shared-expenses-sonnet-high    substantive/within | substantive/within | The body-limit check E2E-8 is made precise (a 1 MiB + 1 byte body must get 413, the server must answer on a ne
+    3 claude-sonnet-5-5 high  plan                shared-expenses-sonnet-high    substantive/within | substantive/within | The plan gains explicit module contracts (signatures, return shapes, error behaviour for readConfig, equalShar
+    4 claude-sonnet-5-5 high  system-test-author  shared-expenses-sonnet-high    substantive/within | substantive/within | A new system test SIGKILLs the server mid-way through a 300-request burst and checks that the data file still 
+    5 claude-sonnet-5-5 high  system-test-author  shared-expenses-sonnet-high    substantive/within | substantive/within | The ST-3 shipped-files test now starts server.js from a separate working directory rather than its own folder,
+    6 claude-sonnet-5-5 high  spec                sonnet-high-due-S-1            substantive/within | substantive/within | The spec adds a process test that spawns the server with an invalid DUE_HOURS_HIGH and checks exit code 2 and 
+    7 claude-sonnet-5-5 high  test-strategy       sonnet-high-due-S-1            substantive/within | substantive/within | A docs and release guard command is added that checks four documents mention DUE_TIMES and that the package ve
+    8 claude-sonnet-5-5 high  plan                sonnet-high-due-S-1            substantive/within | substantive/within | AD-4 now specifies that backfillDue returns the number of tickets changed and saves itself once when that is a
+    9 claude-sonnet-5-5 high  step-plan           sonnet-high-due-S-1            wording/n/a | wording/n/a | The test-title ID convention changes to lead with the work item's criterion ID followed by the acceptance IDs,
+   10 claude-sonnet-5-5 high  system-test-author  sonnet-high-due-S-1            wording/n/a | wording/n/a | The system-test start helper now takes t and kills the spawned server after each test, a cleanup fix that does
+   11 claude-sonnet-5-5 high  spec                sonnet-high-due-S-2            substantive/within | substantive/within | The spec's checks are made stricter and more concrete: the configured-hours case goes through POST /tickets wi
+   12 claude-sonnet-5-5 high  test-strategy       sonnet-high-due-S-2            substantive/within | substantive/within | The rollback tests DUE-28 and DUE-29 gain a replayable procedure and a guard assertion that the new release's 
+   13 claude-sonnet-5-5 high  plan                sonnet-high-due-S-2            substantive/within | substantive/within | The architecture now defines a missing due as an absent key only, so a present due of null, empty string, a nu
