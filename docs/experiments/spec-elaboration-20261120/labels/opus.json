@@ -1,0 +1,633 @@
+{
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "cost_usd": 0.6310928,
+ "prompt_sha256": "9f0dff37de374da04039479706c7545bfbc2a3cca36fd2f5818556f3c491f06d",
+ "missing": [],
+ "unknown_labels": [],
+ "labels": [
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-1",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Choosing the invoking surface and its context is how the bot meets the existing org."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-2",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "A sharing-context rule; it is a security boundary of the bot itself."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-3",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Honouring field-level security is a security rule the bot must follow."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-4",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "An access control via permission sets; security rigour for the bot."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-5",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "A privacy rule on conversations; security rigour."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-6",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "An async design decision forced by the real runtime's callout rules."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-7",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Where the credential is kept; security rigour."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-8",
+   "kind": "limit",
+   "scope": "needed",
+   "why": "Governor limits have to be stated with their numbers; these are platform quotas."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-9",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "The test approach against the real runtime's constraints."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-10",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "A deployment step without which the callout is refused."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-11",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "The flow by which the interface gets the async answer; part of the core behaviour."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-12",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "An idempotency rule for retried jobs; failure-handling rigour."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-13",
+   "kind": "limit",
+   "scope": "needed",
+   "why": "Queue and concurrency caps, plus what happens past them; quota rigour."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-14",
+   "kind": "set",
+   "scope": "needed",
+   "why": "Names the failure classes (4xx, 5xx, timeout) that each get their own outcome; this is error behaviour."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-15",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "A backoff and retry policy for provider quota; quota and failure rigour."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-16",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "What the user sees for partial or missing answers; the bot's own error behaviour."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-17",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "The record shape the async request and reply must live in; usage counts serve quota tracking."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-18",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Retention and deletion of stored conversations; data-retention rigour."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-19",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "A rule on what goes into the prompt; a security and personal-data boundary."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-20",
+   "kind": "limit",
+   "scope": "needed",
+   "why": "The context-window size at which history is trimmed; a boundary of the bot's behaviour."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-21",
+   "kind": "both",
+   "scope": "needed",
+   "why": "Edge cases treated apart (no history, empty question) plus a maximum length; the bot's boundaries."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-22",
+   "kind": "neither",
+   "scope": "mixed",
+   "why": "Seeing failed requests is failure routing (needed); the off switch and model switching are admin controls (beyond)."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-23",
+   "kind": "neither",
+   "scope": "beyond",
+   "why": "A separate audit store of questions and answers; the bot works without it."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-24",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Per-environment configuration and deployment steps; deployment rigour. The coverage figure is mentioned only in passing."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-25",
+   "kind": "limit",
+   "scope": "needed",
+   "why": "A latency bound plus truthful progress feedback while the async answer is pending."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-26",
+   "kind": "set",
+   "scope": "needed",
+   "why": "Names the interface states (empty, loading, error, refused) the bot's UI must handle."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-27",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Existing org behaviour must be preserved."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-1",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "The core promotion behaviour (automatic or offer); the window only matters if an offer is chosen."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-2",
+   "kind": "neither",
+   "scope": "mixed",
+   "why": "Join-time order and tie-breaking are needed; tier or staff priority that jumps the queue is a further feature (beyond)."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-3",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "A resolution rule for overlapping waitlists; promotion is wrong without it."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-4",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "How the waitlist meets the existing no-show policy."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-5",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "The background trigger for promotion; part of how the feature works."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-6",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "A promoted person has to be told, and send failures have to be handled; core behaviour plus failure handling."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-7",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "A concurrency rule that prevents double promotion and overbooking."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-8",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "A race between direct booking and promotion; correctness of the feature."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-9",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "How promotion meets existing payment, including its failure."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-10",
+   "kind": "limit",
+   "scope": "needed",
+   "why": "A waitlist cap and the behaviour at it; a boundary of the feature."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-11",
+   "kind": "limit",
+   "scope": "needed",
+   "why": "A time cut-off for promotion; a boundary of the feature."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-12",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "How existing capacity editing interacts with the waitlist."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-13",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "What happens to waiters when the class is cancelled; it meets existing behaviour."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-14",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "The waitlist entry record the feature depends on."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-15",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Retention of waitlist entries; data-retention rigour."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-16",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "A member seeing their own waitlist state while other people's identities stay private; core behaviour plus privacy."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-17",
+   "kind": "neither",
+   "scope": "beyond",
+   "why": "A staff view, manual promote and remove, and promotion history are further controls the waitlist works without."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-18",
+   "kind": "neither",
+   "scope": "beyond",
+   "why": "Feature toggles per class or class type are a further control."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-19",
+   "kind": "limit",
+   "scope": "needed",
+   "why": "A timeliness bound on promotion; a boundary of the core behaviour."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-20",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Existing booking behaviour must be preserved."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-21",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "A rollout decision for classes already full; how the feature meets existing data."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-1",
+   "kind": "limit",
+   "scope": "needed",
+   "why": "A reminder count and time offsets have to be stated; this is the core schedule."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-2",
+   "kind": "set",
+   "scope": "needed",
+   "why": "Names the invoice states that stop the sequence."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-3",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "A content rule for part-paid invoices; the reminder is wrong without it."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-4",
+   "kind": "set",
+   "scope": "needed",
+   "why": "Names the existing customer contact states that suppress reminders, and the exemption."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-5",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "An idempotency rule; failure and deployment rigour."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-6",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "A send-time check that prevents reminders on invoices already paid."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-7",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "A retry policy and escalation; failure routing and ownership."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-8",
+   "kind": "limit",
+   "scope": "needed",
+   "why": "The provider rate limit and pacing within it; quota rigour."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-9",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Rollout behaviour for the existing overdue backlog; the switch-on would be wrong without it."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-10",
+   "kind": "both",
+   "scope": "mixed",
+   "why": "Local time and sending hours are needed (a bound plus excluded days); a holiday calendar is a further store (beyond)."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-11",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Formatting of the amount in the reminder; correctness of its content."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-12",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Error behaviour for a bad recipient or no contact at all."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-13",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "A decision on which contact receives the reminder; core behaviour."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-14",
+   "kind": "neither",
+   "scope": "mixed",
+   "why": "A send record per step is needed for idempotency and tracing; showing it on the invoice is a further view (beyond)."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-15",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "What the reminder says; the requested outcome's own content."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-16",
+   "kind": "neither",
+   "scope": "mixed",
+   "why": "Authority over the schedule configuration is needed security; manual send and stop are further controls (beyond)."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-17",
+   "kind": "neither",
+   "scope": "beyond",
+   "why": "Off switches, preview or dry-run, and manual resend are further controls."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-18",
+   "kind": "neither",
+   "scope": "mixed",
+   "why": "Visibility of failed sends is failure routing (needed); a view of upcoming sends is a further view (beyond)."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-19",
+   "kind": "limit",
+   "scope": "needed",
+   "why": "A bound on volume or lateness; quota and timeliness rigour."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-20",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Existing invoice behaviour must be preserved."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-1",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "A partial-failure decision; core error behaviour."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-2",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "The import result naming failed rows; core error behaviour."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-3",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "A decision on existing and duplicate rows; the import is wrong without it."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-4",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "A privilege-escalation check; security rigour."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-5",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Access control on importing; security rigour."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-6",
+   "kind": "set",
+   "scope": "needed",
+   "why": "The required and accepted columns and the header cases have to be named; file validation."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-7",
+   "kind": "set",
+   "scope": "needed",
+   "why": "Names the encoding and shape variants the parser must accept."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-8",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Behaviour when a failure follows side effects; core error behaviour."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-9",
+   "kind": "limit",
+   "scope": "needed",
+   "why": "A size or row cap, and the behaviour above it."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-10",
+   "kind": "set",
+   "scope": "needed",
+   "why": "Edge-case files treated apart: empty, header-only, single row."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-11",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "An idempotency rule for re-uploads."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-12",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Background processing and the admin learning of completion; how the import works on the real runtime."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-13",
+   "kind": "limit",
+   "scope": "needed",
+   "why": "A pacing rate for invitation mail; quota rigour."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-14",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "The initial state of a created user; the requested outcome's own behaviour."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-15",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Storage, retention and access of the uploaded personal data; retention and security rigour."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-16",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Parsing rules for values; correctness of the import."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-17",
+   "kind": "neither",
+   "scope": "beyond",
+   "why": "A separate audit record the import works without."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-18",
+   "kind": "neither",
+   "scope": "beyond",
+   "why": "Cancel and retry-failed-rows are further controls."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-19",
+   "kind": "limit",
+   "scope": "needed",
+   "why": "A duration bound for a maximum-size file, with progress shown while it runs."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-20",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Existing user creation and existing users must be preserved."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-21",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Defence against formula injection and overlong fields; security rigour."
+  }
+ ]
+}

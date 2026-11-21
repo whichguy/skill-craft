@@ -1,0 +1,34 @@
+{
+ "pairs": [
+  [
+   "A-single",
+   "sonnet-high",
+   "round-1",
+   "round-4"
+  ],
+  [
+   "D-enumerated-only",
+   "sonnet-high",
+   "round-3",
+   "round-4"
+  ],
+  [
+   "P-shiploop-spec",
+   "sol-medium",
+   "round-5",
+   "round-6"
+  ],
+  [
+   "P-shiploop-spec",
+   "sonnet-high",
+   "round-5",
+   "round-6"
+  ]
+ ],
+ "bands": {
+  "X1": 2,
+  "X2": 7,
+  "X3": 2,
+  "all": 6
+ }
+}

@@ -1327,3 +1327,87 @@ noted here and not run.
 Still open and the owner's: the E2E harness's Codex sessions being shown the user's own skills (section 7); the
 stale sentence in `skills/shiploop/references/behavioral-requirements.md` (section 14); and, if rounds 7 and 8
 show the cue, whether it goes into duty 2.
+
+## 20. The items are sorted by two models that are not the author; a second wording is added before round 7 (2026-11-21)
+
+Two sessions (claude-opus-5-5 and gpt-6.2-astra, both high) each labelled all 89 items, shown the four requests
+and the items and nothing else: no specification, arm or verdict. 89 of 89 from each, none missing, none with an
+unknown label. `labels/opus.json`, `labels/astra.json`; prompt in `label.py`. These are the only model calls made
+for the check so far.
+
+### What the sorters say
+
+| | same label from both | |
+| --- | --- | --- |
+| `scope` | 82 of 89 | 74 needed by both, 4 beyond by both, 4 mixed by both |
+| `kind` | 74 of 89 | 22 a set or a limit by both (13 limits, 7 sets, 2 both); astra calls 37 one, opus 22 |
+
+**Only four of the 89 items are capability nobody asked for, by both sorters**, all four in the operator category:
+a staff view of the waitlist with manual promote and remove; a switch to turn the waitlist off or on per class;
+turning reminders off per customer with a preview and a manual resend; cancelling a running import and retrying
+failed rows. Of the other five operator items, two are mixed by both and the reasons given are the owner's rule
+applied without being asked to quote it ("Seeing failed requests is failure routing (needed); the off switch and
+model switching are admin controls (beyond)"), one is needed by both (how a development org differs from
+production and how the work is deployed), and they split on two (an audit record).
+
+That corrects section 19 in one direction and confirms it in another. The checklist as a whole is not a list of
+optional extras: 74 of its 89 items are needed by both sorters. And the items section 19 picked out by reading
+specifications as added controls are the ones two outside sorters picked out from the item text alone.
+
+### The sets and their bands
+
+X1, the target: 22 items both call a set or a limit and neither calls beyond. X2, 53 other items both call
+needed. X3, the 4 agreed beyond. Bands from the four clean repeat pairs (`labels/bands.txt`): X1 2 (the repeats
+moved it by 0, -1, +1, 0), X2 7 (-7, 0, 0, +1), X3 2 (+1, -2, 0, 0), all 89 items 6. X1's band is the floor of 2
+and not a measured maximum; with repeat moves that small, a mean of 2 over two rounds with both rounds above zero
+under both judges is a stricter test than the largest move seen.
+
+### Saved rounds read by the sets
+
+Descriptive: these rounds were run and read before the sets existed, so nothing here is a registered reading.
+`label.py split`. Covered, registered judge / second judge.
+
+| | X1 (22), Sonnet | X1, Sol | X3 (4), Sonnet | X3, Sol |
+| --- | --- | --- | --- | --- |
+| P, the released stage, rounds 5 and 6 | 14, 14 / 13, 14 | 6, 7 / 4, 6 | 0, 0 / 0, 0 | 1, 1 / 0, 0 |
+| Q, the earlier block inside the stage | 17 / 15 | 7 / 8 | 3 / 2 | 2 / 1 |
+| L, the lenses alone, one pass | 15 / 13 | 15 / 13 | 0 / 0 | 1 / 1 |
+| F, the lenses alone, iterating | 18 / 16 | 16 / 15 | 1 / 2 | 2 / 1 |
+
+Three things, each one draw a cell except P:
+
+1. **The earlier block's added capability is now counted by people who are not me.** On the four items two
+   sorters call beyond, the block took Sonnet from 0 to 3 (2 under the second judge) and Sol from 1 to 2 (0 to 1).
+   On Sonnet that is as large as its gain on the 22 target items (+3, and +1 or +2 under the second judge).
+2. **Sol inside the released stage leaves sets and limits unsettled, and that is the largest gap on this
+   checklist.** 6 or 7 of 22 inside the stage; 15 or 16 from the same model with the lenses alone. Sonnet shows no
+   such gap (14 against 15 to 18).
+3. **Putting the rule inside the stage did not close it.** Item by item, Sol inside the stage leaves 13 of X1's 15
+   limits uncovered in both draws, and 12 of those 13 with the earlier block as well. The block's last sentence
+   let a limit be "recorded as unresolved", and leaving a limit to someone else is the route Sol takes inside the
+   stage with the block or without it (its released-stage specification for the import: "Runtime owner sets and
+   verifies byte, record and field limits").
+
+### The amendment
+
+Arm M's second sentence, taken from the review, ends the same way: "record an unresolved behaviour bound as an open
+gap". Point 3 predicts it will not move Sol. The stage's own text pulls two ways on this. Duty 4 says to mark a
+user decision as an open gap; the RULES say "Unattended: take the best default and record it as an assumption; a
+person-only step is an open item", which is the owner's rule for unattended runs (2026-09-27), and duty 9 says the
+same for an open choice. Sonnet mostly follows the second and Sol the first.
+
+So a second cue arm is registered before anything runs: `K-shiploop-spec-default-bounds`, M with its second
+sentence changed in one thing. A limit the request leaves to choice is stated as the best default and recorded as
+an assumption; a platform limit is stated from its source; "a non-functional bound stays as item 6 has it". Rounds
+7 and 8 run M, K and P: 48 sessions. Each cue arm is read against the P of its round by the readings already
+registered. Added: for the four non-functional bounds in X1, any a cue arm covers and P does not is quoted and
+read, because the stage says "Invent no bound" and a bound with no basis is a defect; and if both arms are shown,
+the one with the larger X1 mean under the registered judge is the candidate, M on a tie. README, "Amended before
+round 7".
+
+Decision, routine (launching a verification run; choosing between two ways to word approved work): the second arm
+costs half as much again and answers the question a null from M alone would leave. What K cannot show is whether
+its defaults are good ones; this instrument reads a specification and builds nothing.
+
+Predictions, written before any subject call so they can be held against the result: M moves Sol's X1 by less than
+2 and Sonnet's by 1 to 3; K moves Sol's X1 by 4 or more; neither moves X3.

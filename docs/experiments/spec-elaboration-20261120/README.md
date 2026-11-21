@@ -422,3 +422,68 @@ tests, a change note and an E2E round after it.
 checklist and the earlier lenses share an author, and the reviewer whose wording the cue takes had read the
 checklist. Two rounds are two draws an arm. The standalone frame has no repository, research result or selected
 baseline, so the stage is read without what usually precedes it.
+
+### Amended before round 7: the sets as sorted, the bands, and a second wording (2026-11-21)
+
+Nothing had run for the check when this was added except the two sorting sessions, which see no specification.
+
+**The sets** (`labels/opus.json`, `labels/astra.json`, `labels/sets.txt`). The sorters give the same `scope` label
+to 82 of the 89 items and the same `kind` label to 74 (gpt-6.2-astra calls 37 items a set or a limit,
+claude-opus-5-5 22; only what both call one is used).
+
+| set | items | what they are |
+| --- | --- | --- |
+| X1, the target | 22 | 13 limits, 7 sets, 2 both; by category edge 7, nonfunctional 5, async 3, interaction 3, unhappy 3, platform 1 |
+| X2, the other needed items | 53 | |
+| X3, agreed beyond | 4 | a staff view of the waitlist with manual promote and remove; a switch to turn the waitlist off or on per class; turning reminders off per customer, previewing and resending by hand; cancelling a running import and retrying failed rows |
+
+Both sorters call 74 items needed. Of the nine operator items they call four beyond, two needed in part and beyond
+in part ("seeing failed requests is failure routing; the off switch and model switching are admin controls"), one
+needed, and split on two.
+
+**The bands** (`labels/bands.txt`): X1 2 (the four repeats moved it by 0, -1, +1 and 0), X2 7 (-7, 0, 0, +1), X3 2
+(+1, -2, 0, 0), the whole checklist 6. X1's and X3's are the floor of 2.
+
+**Saved rounds read by these sets** (`label.py split`; descriptive, since those rounds were run and read before
+the sets existed). Covered on X1, registered judge / second judge:
+
+| | Sonnet | Sol |
+| --- | --- | --- |
+| P, the released stage, rounds 5 and 6 | 14, 14 / 13, 14 | 6, 7 / 4, 6 |
+| Q, the earlier block inside the stage | 17 / 15 | 7 / 8 |
+| L, the lenses alone, one pass | 15 / 13 | 15 / 13 |
+| F, the lenses alone, iterating | 18 / 16 | 16 / 15 |
+
+On X3 the earlier block took the released stage from 0 of 4 to 3 on Sonnet (2 under the second judge) and from 1
+to 2 on Sol (0 to 1).
+
+Sol is where the room is: inside the stage it covers 6 or 7 of the 22, and with the lenses alone 15 or 16. Item by
+item, Sol inside the stage leaves 13 of the 15 limits uncovered in both draws, and 12 of those 13 with the
+earlier block, whose last sentence let a limit be "recorded as unresolved". Arm M's second sentence offers the
+same way out.
+
+**A second wording, arm `K-shiploop-spec-default-bounds`** (`arms/K-shiploop-spec-default-bounds.insert.txt`; 75
+words; M's first sentence unchanged, its second replaced):
+
+> Where one depends on a limit, state the bound and the behaviour at it: a platform limit from its source (item
+> 10), and a limit the request leaves to choice as the best default, recorded as an assumption (RULES); a
+> non-functional bound stays as item 6 has it.
+
+It differs from M in one thing: a limit left to choice gets a recorded default where M records an open gap. That
+is what the stage's own RULES say for an unattended run ("take the best default and record it as an assumption; a
+person-only step is an open item") and what the owner's rule for unattended runs says (2026-09-27). The stage also
+tells the session to mark a user decision as an open gap (duty 4); the two drivers resolve that differently, and
+the arms differ in which one the cue points at.
+
+**What changes in the check.** Rounds 7 and 8 run three arms (M, K and P) on both drivers: 24 sessions a round, 48
+in all. Each cue arm is read against the P of its own round by R16 to R19 as registered, unchanged. Two things are
+added:
+
+- Four of X1's items are non-functional bounds, and the stage says "Invent no bound". For every such item a cue
+  arm covers and P does not, what the specification says is quoted and read: a bound with no stated basis is a
+  defect, not a gain, and is reported as one.
+- Two cue arms are two chances to pass. If both are shown, the one with the larger mean on X1 under the registered
+  judge is the candidate, M on a tie. That either passed by chance is one reason a proposal still needs the review
+  and, after the owner's word, an E2E round.
+
+The decision rule, the one permitted extension and everything else stand as registered above.

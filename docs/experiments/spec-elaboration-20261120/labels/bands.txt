@@ -1,0 +1,5 @@
+repeat pairs (same arm, same driver, two rounds, clean sessions, registered judge): 4
+X1    22 items: a repeat moved by +0 (A sonnet 1>4), -1 (D sonnet 3>4), +1 (P sol 5>6), +0 (P sonnet 5>6)  -> band 2
+X2    53 items: a repeat moved by -7 (A sonnet 1>4), +0 (D sonnet 3>4), +0 (P sol 5>6), +1 (P sonnet 5>6)  -> band 7
+X3     4 items: a repeat moved by +1 (A sonnet 1>4), -2 (D sonnet 3>4), +0 (P sol 5>6), +0 (P sonnet 5>6)  -> band 2
+all   89 items: a repeat moved by -6 (A sonnet 1>4), -2 (D sonnet 3>4), +0 (P sol 5>6), +2 (P sonnet 5>6)  -> band 6
