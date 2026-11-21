@@ -451,6 +451,11 @@ are repair work in this stage: fix it, then rerun.
 Write temporary files (command output, a report you pipe into a tool) in the
 packet's Scratch directory, not /tmp: /tmp is shared with other runs and
 sessions, and a fixed /tmp name can read another run's file.
+Record the process id when you start a background process (a server, a
+watcher), and stop it with that recorded id after confirming it still belongs to
+this run. Never choose processes to stop by name or pattern (`pkill`, `killall`,
+or a name search piped to `kill`): unrelated work on this machine, other runs
+included, can match the same name.
 ShipLoop runs unattended: no one is watching and nothing arrives on standard
 input. When a decision is open, take the default that best fits the request and
 the recorded knowledge, record it as an assumption (the alternatives and why
@@ -504,6 +509,8 @@ RULES (each one fixes a failure live runs showed; the long form is reference#rul
   blocked only when nothing can proceed without a person.
 - Run ShipLoop commands in the foreground, unpiped, and never end the turn while one runs.
 - Temporary files go in RUN/scratch, never /tmp.
+- Record the PID of a background process you start and stop it by that PID, once you have confirmed it is still this
+  run's. Never choose processes to stop by name or pattern (`pkill`, `killall`, a name search piped to `kill`).
 - Never read, keep or report credential-store or session contents.
 """
 
