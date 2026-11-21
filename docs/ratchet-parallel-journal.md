@@ -5,9 +5,30 @@ is being written by another session on another branch. This session is a fork of
 owner at 08:00 on 2026-11-21 to think about one question. It writes only in its own worktree and reads the pilot's
 runs without changing them.
 
-## 0. Where it ended (2026-11-21 10:52; stopped at the owner's word)
+## 0. Where it ended (2026-11-21 10:52; stopped at the owner's word; updated 13:51)
 
-**Stopped, not built.** The owner, after the reading on time alone and the catch-up note in section 7: "Yes, stop
+**Update, 13:51: reopened the same day to test the owner's design-phase idea on harder apps (sections 9 to 16).
+The parallel schedule itself stays stopped.** Four cells in all, each a test pass written with no build present
+beside one written with the build, on Sol 6.2 at high.
+
+| Case | Build-less tests passing when they first meet the build | Catch-up |
+|---|---|---|
+| ticket due times, a change to an existing service (two cells) | 42 of 42 and 41 of 41 | none |
+| Battleship, a small new app with a page | 28 of 28; 32 of 51 seeded faults caught, against 31 for the other suite | none |
+| Grokbot-local, a large new app with a rich page | 4 of 115 | three corrections in the execution files bring 112; the other 3 are the tests' own mistakes; no fault in the build |
+
+- What a test asserts can be written before the code at any size: it held in every cell, bar 3 slips in 115 on
+  the largest.
+- The code that executes a test can be written before the product for a small app or a change to one. With a rich
+  page it needs a real page to be tried on, and the catch-up there cost more than the build's length. That is the
+  order ShipLoop already keeps: test specification before the code, test code after it (section 8).
+- From ShipLoop's own deliveries (section 11): of 44 recorded test changes after the code, 31 add tests or touch
+  execution, and an assertion changes in 6 of 15 deliveries, each time because a value written before the code was
+  a slip.
+- Not run: a change to an existing app with a page, which would show whether an existing page is enough to try the
+  driving code on; strength on the largest case; chess.
+
+**As it stood at 10:52. Stopped, not built.** The owner, after the reading on time alone and the catch-up note in section 7: "Yes, stop
 here". Nothing under `skills/` changed; the apparatus is in `docs/experiments/ratchet-pilot-20261120/`.
 
 - **What was measured (rung 1, section 6).** A test pass written without ever seeing the build needed no catch-up:
