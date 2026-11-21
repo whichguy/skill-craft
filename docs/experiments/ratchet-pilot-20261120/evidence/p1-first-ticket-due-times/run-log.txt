@@ -1,0 +1,19 @@
+[19:06:51] session 1: spec-1
+[19:18:54]   ended exited after 723.8 s
+[19:18:55] build 1 is the given tree /Users/dadleet/e2e-runs/ratchet-pilot-20261120-b6eab2/refs/ticket-due-times/reference
+[19:18:56] gate 1 (after-given-build): PASS; 0 of 0 clauses pass
+[19:18:56] session 2: tests-1-1
+[19:40:13]   ended exited after 1277.2 s
+[19:41:39] gate 2 (cycle-1-first): FAIL; 178 of 223 clauses pass; failing C-2, C-10, C-12, C-13, C-24, C-40, C-43, C-50
+[19:43:14] gate 3 (final): FAIL; 178 of 223 clauses pass; failing C-2, C-10, C-12, C-13, C-24, C-40, C-43, C-50
+[19:43:14] run ended: stop-after-tests; final gate FAIL; 223 clauses; 2 sessions; 2183.6 s
+run-exit=0
+p1-ticket-due-times: 223 clauses and 0 use cases tested; on the correct reference 52 clauses and 0 use cases fail: ['C-10', 'C-12', 'C-13', 'C-147', 'C-2', 'C-205', 'C-206', 'C-207', 'C-216', 'C-217', 'C-218', 'C-219', 'C-220', 'C-221', 'C-222', 'C-223', 'C-24', 'C-36', 'C-40', 'C-43', 'C-50', 'C-52', 'C-56', 'C-57', 'C-58', 'C-59', 'C-60', 'C-61', 'C-62', 'C-63', 'C-64', 'C-65', 'C-66', 'C-67', 'C-68', 'C-69', 'C-70', 'C-71', 'C-72', 'C-73', 'C-74', 'C-75', 'C-76', 'C-77', 'C-78', 'C-79', 'C-80', 'C-81', 'C-82', 'C-83', 'C-84', 'C-85']
+  version-two                 caught     C-181, C-182, C-186, C-49, C-86
+  priority-moves-due          caught     C-20, C-44, C-51
+  due-not-persisted           caught     C-162, C-18, C-19, C-32, C-41, C-42, C-45, C-49, C-51, C-54
+  no-backfill                 MISSED     
+  flag-ignored                caught     C-1, C-184
+  overdue-active              caught     C-32, C-33, C-35, C-41, C-42, C-44, C-45
+  caught 5 of 6 calibrated defects
+strength-exit=0

@@ -1,0 +1,629 @@
+{
+  "C-1": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-1 ' acceptance/assignment.cases.cjs"
+  },
+  "C-2": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-2 ' acceptance/assignment.cases.cjs"
+  },
+  "C-3": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-3 ' acceptance/assignment.cases.cjs"
+  },
+  "C-4": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-4 ' acceptance/assignment.cases.cjs"
+  },
+  "C-5": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-5 ' acceptance/assignment.cases.cjs"
+  },
+  "C-6": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-6 ' acceptance/assignment.cases.cjs"
+  },
+  "C-7": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-7 ' acceptance/assignment.cases.cjs"
+  },
+  "C-8": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-8 ' acceptance/assignment.cases.cjs"
+  },
+  "C-9": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-9 ' acceptance/assignment.cases.cjs"
+  },
+  "C-10": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-10 ' acceptance/assignment.cases.cjs"
+  },
+  "C-11": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-11 ' acceptance/assignment.cases.cjs"
+  },
+  "C-12": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-12 ' acceptance/assignment.cases.cjs"
+  },
+  "C-13": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-13 ' acceptance/assignment.cases.cjs"
+  },
+  "C-14": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-14 ' acceptance/assignment.cases.cjs"
+  },
+  "C-15": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-15 ' acceptance/assignment.cases.cjs"
+  },
+  "C-16": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-16 ' acceptance/assignment.cases.cjs"
+  },
+  "C-17": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-17 ' acceptance/assignment.cases.cjs"
+  },
+  "C-18": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-18 ' acceptance/assignment.cases.cjs"
+  },
+  "C-19": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-19 ' acceptance/assignment.cases.cjs"
+  },
+  "C-20": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-20 ' acceptance/assignment.cases.cjs"
+  },
+  "C-21": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-21 ' acceptance/assignment.cases.cjs"
+  },
+  "C-22": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-22 ' acceptance/assignment.cases.cjs"
+  },
+  "C-23": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-23 ' acceptance/assignment.cases.cjs"
+  },
+  "C-24": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-24 ' acceptance/assignment.cases.cjs"
+  },
+  "C-25": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-25 ' acceptance/assignment.cases.cjs"
+  },
+  "C-26": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-26 ' acceptance/assignment.cases.cjs"
+  },
+  "C-27": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-27 ' acceptance/assignment.cases.cjs"
+  },
+  "C-28": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-28 ' acceptance/assignment.cases.cjs"
+  },
+  "C-29": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-29 ' acceptance/assignment.cases.cjs"
+  },
+  "C-30": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-30 ' acceptance/assignment.cases.cjs"
+  },
+  "C-31": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-31 ' acceptance/assignment.cases.cjs"
+  },
+  "C-32": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-32 ' acceptance/assignment.cases.cjs"
+  },
+  "C-33": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-33 ' acceptance/assignment.cases.cjs"
+  },
+  "C-34": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-34 ' acceptance/assignment.cases.cjs"
+  },
+  "C-35": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-35 ' acceptance/assignment.cases.cjs"
+  },
+  "C-36": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-36 ' acceptance/assignment.cases.cjs"
+  },
+  "C-37": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-37 ' acceptance/assignment.cases.cjs"
+  },
+  "C-38": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-38 ' acceptance/assignment.cases.cjs"
+  },
+  "C-39": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-39 ' acceptance/assignment.cases.cjs"
+  },
+  "C-40": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-40 ' acceptance/assignment.cases.cjs"
+  },
+  "C-41": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-41 ' acceptance/assignment.cases.cjs"
+  },
+  "C-42": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-42 ' acceptance/assignment.cases.cjs"
+  },
+  "C-43": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-43 ' acceptance/assignment.cases.cjs"
+  },
+  "C-44": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-44 ' acceptance/assignment.cases.cjs"
+  },
+  "C-45": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-45 ' acceptance/assignment.cases.cjs"
+  },
+  "C-46": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-46 ' acceptance/assignment.cases.cjs"
+  },
+  "C-47": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-47 ' acceptance/assignment.cases.cjs"
+  },
+  "C-48": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-48 ' acceptance/assignment.cases.cjs"
+  },
+  "C-49": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-49 ' acceptance/assignment.cases.cjs"
+  },
+  "C-50": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-50 ' acceptance/assignment.cases.cjs"
+  },
+  "C-51": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-51 ' acceptance/assignment.cases.cjs"
+  },
+  "C-52": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-52 ' acceptance/assignment.cases.cjs"
+  },
+  "C-53": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-53 ' acceptance/assignment.cases.cjs"
+  },
+  "C-54": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-54 ' acceptance/assignment.cases.cjs"
+  },
+  "C-55": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-55 ' acceptance/assignment.cases.cjs"
+  },
+  "C-56": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-56 ' acceptance/assignment.cases.cjs"
+  },
+  "C-57": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-57 ' acceptance/delivery.cases.cjs"
+  },
+  "C-58": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-58 ' acceptance/delivery.cases.cjs"
+  },
+  "C-59": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-59 ' acceptance/delivery.cases.cjs"
+  },
+  "C-60": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-60 ' acceptance/delivery.cases.cjs"
+  },
+  "C-61": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-61 ' acceptance/delivery.cases.cjs"
+  },
+  "C-62": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-62 ' acceptance/delivery.cases.cjs"
+  },
+  "C-63": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-63 ' acceptance/delivery.cases.cjs"
+  },
+  "C-64": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-64 ' acceptance/delivery.cases.cjs"
+  },
+  "C-65": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-65 ' acceptance/delivery.cases.cjs"
+  },
+  "C-66": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-66 ' acceptance/delivery.cases.cjs"
+  },
+  "C-67": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-67 ' acceptance/delivery.cases.cjs"
+  },
+  "C-68": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-68 ' acceptance/delivery.cases.cjs"
+  },
+  "C-69": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-69 ' acceptance/delivery.cases.cjs"
+  },
+  "C-70": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-70 ' acceptance/delivery.cases.cjs"
+  },
+  "C-71": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-71 ' acceptance/delivery.cases.cjs"
+  },
+  "C-72": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-72 ' acceptance/delivery.cases.cjs"
+  },
+  "C-73": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-73 ' acceptance/delivery.cases.cjs"
+  },
+  "C-74": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-74 ' acceptance/delivery.cases.cjs"
+  },
+  "C-75": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-75 ' acceptance/delivery.cases.cjs"
+  },
+  "C-76": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-76 ' acceptance/delivery.cases.cjs"
+  },
+  "C-77": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-77 ' acceptance/delivery.cases.cjs"
+  },
+  "C-78": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-78 ' acceptance/delivery.cases.cjs"
+  },
+  "C-79": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-79 ' acceptance/delivery.cases.cjs"
+  },
+  "C-80": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-80 ' acceptance/delivery.cases.cjs"
+  },
+  "C-81": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-81 ' acceptance/delivery.cases.cjs"
+  },
+  "C-82": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-82 ' acceptance/delivery.cases.cjs"
+  },
+  "C-83": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-83 ' acceptance/listing.cases.cjs"
+  },
+  "C-84": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-84 ' acceptance/listing.cases.cjs"
+  },
+  "C-85": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-85 ' acceptance/listing.cases.cjs"
+  },
+  "C-86": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-86 ' acceptance/listing.cases.cjs"
+  },
+  "C-87": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-87 ' acceptance/listing.cases.cjs"
+  },
+  "C-88": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-88 ' acceptance/listing.cases.cjs"
+  },
+  "C-89": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-89 ' acceptance/listing.cases.cjs"
+  },
+  "C-90": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-90 ' acceptance/listing.cases.cjs"
+  },
+  "C-91": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-91 ' acceptance/listing.cases.cjs"
+  },
+  "C-92": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-92 ' acceptance/listing.cases.cjs"
+  },
+  "C-93": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-93 ' acceptance/listing.cases.cjs"
+  },
+  "C-94": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-94 ' acceptance/listing.cases.cjs"
+  },
+  "C-95": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-95 ' acceptance/listing.cases.cjs"
+  },
+  "C-96": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-96 ' acceptance/listing.cases.cjs"
+  },
+  "C-97": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-97 ' acceptance/listing.cases.cjs"
+  },
+  "C-98": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-98 ' acceptance/listing.cases.cjs"
+  },
+  "C-99": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-99 ' acceptance/listing.cases.cjs"
+  },
+  "C-100": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-100 ' acceptance/listing.cases.cjs"
+  },
+  "C-101": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-101 ' acceptance/listing.cases.cjs"
+  },
+  "C-102": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-102 ' acceptance/listing.cases.cjs"
+  },
+  "C-103": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-103 ' acceptance/listing.cases.cjs"
+  },
+  "C-104": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-104 ' acceptance/listing.cases.cjs"
+  },
+  "C-105": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-105 ' acceptance/listing.cases.cjs"
+  },
+  "C-106": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-106 ' acceptance/listing.cases.cjs"
+  },
+  "C-107": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-107 ' acceptance/listing.cases.cjs"
+  },
+  "C-108": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-108 ' acceptance/listing.cases.cjs"
+  },
+  "C-109": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-109 ' acceptance/listing.cases.cjs"
+  },
+  "C-110": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-110 ' acceptance/listing.cases.cjs"
+  },
+  "C-111": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-111 ' acceptance/listing.cases.cjs"
+  },
+  "C-112": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-112 ' acceptance/listing.cases.cjs"
+  },
+  "C-113": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-113 ' acceptance/listing.cases.cjs"
+  },
+  "C-114": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-114 ' acceptance/listing.cases.cjs"
+  },
+  "C-115": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-115 ' acceptance/listing.cases.cjs"
+  },
+  "C-116": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-116 ' acceptance/listing.cases.cjs"
+  },
+  "C-117": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-117 ' acceptance/listing.cases.cjs"
+  },
+  "C-118": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-118 ' acceptance/listing.cases.cjs"
+  },
+  "C-119": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-119 ' acceptance/listing.cases.cjs"
+  },
+  "C-120": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-120 ' acceptance/listing.cases.cjs"
+  },
+  "C-121": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-121 ' acceptance/listing.cases.cjs"
+  },
+  "C-122": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-122 ' acceptance/operations.cases.cjs"
+  },
+  "C-123": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-123 ' acceptance/operations.cases.cjs"
+  },
+  "C-124": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-124 ' acceptance/operations.cases.cjs"
+  },
+  "C-125": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-125 ' acceptance/operations.cases.cjs"
+  },
+  "C-126": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-126 ' acceptance/operations.cases.cjs"
+  },
+  "C-127": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-127 ' acceptance/operations.cases.cjs"
+  },
+  "C-128": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-128 ' acceptance/operations.cases.cjs"
+  },
+  "C-129": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-129 ' acceptance/operations.cases.cjs"
+  },
+  "C-130": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-130 ' acceptance/operations.cases.cjs"
+  },
+  "C-131": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-131 ' acceptance/operations.cases.cjs"
+  },
+  "C-132": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-132 ' acceptance/operations.cases.cjs"
+  },
+  "C-133": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-133 ' acceptance/operations.cases.cjs"
+  },
+  "C-134": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-134 ' acceptance/operations.cases.cjs"
+  },
+  "C-135": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-135 ' acceptance/operations.cases.cjs"
+  },
+  "C-136": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-136 ' acceptance/operations.cases.cjs"
+  },
+  "C-137": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-137 ' acceptance/operations.cases.cjs"
+  },
+  "C-138": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-138 ' acceptance/operations.cases.cjs"
+  },
+  "C-139": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-139 ' acceptance/operations.cases.cjs"
+  },
+  "C-140": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-140 ' acceptance/operations.cases.cjs"
+  },
+  "C-141": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-141 ' acceptance/operations.cases.cjs"
+  },
+  "C-142": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-142 ' acceptance/operations.cases.cjs"
+  },
+  "C-143": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-143 ' acceptance/operations.cases.cjs"
+  },
+  "C-144": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-144 ' acceptance/operations.cases.cjs"
+  },
+  "C-145": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-145 ' acceptance/operations.cases.cjs"
+  },
+  "C-146": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-146 ' acceptance/operations.cases.cjs"
+  },
+  "C-147": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-147 ' acceptance/operations.cases.cjs"
+  },
+  "C-148": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-148 ' acceptance/operations.cases.cjs"
+  },
+  "C-149": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-149 ' acceptance/operations.cases.cjs"
+  },
+  "C-150": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-150 ' acceptance/operations.cases.cjs"
+  },
+  "C-151": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-151 ' acceptance/operations.cases.cjs"
+  },
+  "C-152": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-152 ' acceptance/operations.cases.cjs"
+  },
+  "C-153": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-153 ' acceptance/operations.cases.cjs"
+  },
+  "C-154": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-154 ' acceptance/operations.cases.cjs"
+  },
+  "C-155": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-155 ' acceptance/operations.cases.cjs"
+  },
+  "C-156": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-156 ' acceptance/operations.cases.cjs"
+  },
+  "C-157": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-157 ' acceptance/operations.cases.cjs"
+  },
+  "C-158": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-158 ' acceptance/regression.cases.cjs"
+  },
+  "C-159": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-159 ' acceptance/regression.cases.cjs"
+  },
+  "C-160": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-160 ' acceptance/regression.cases.cjs"
+  },
+  "C-161": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-161 ' acceptance/regression.cases.cjs"
+  },
+  "C-162": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-162 ' acceptance/regression.cases.cjs"
+  },
+  "C-163": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-163 ' acceptance/regression.cases.cjs"
+  },
+  "C-164": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-164 ' acceptance/regression.cases.cjs"
+  },
+  "C-165": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-165 ' acceptance/regression.cases.cjs"
+  },
+  "C-166": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-166 ' acceptance/regression.cases.cjs"
+  },
+  "C-167": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-167 ' acceptance/regression.cases.cjs"
+  },
+  "C-168": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-168 ' acceptance/regression.cases.cjs"
+  },
+  "C-169": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-169 ' acceptance/regression.cases.cjs"
+  },
+  "C-170": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-170 ' acceptance/regression.cases.cjs"
+  },
+  "C-171": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-171 ' acceptance/regression.cases.cjs"
+  },
+  "C-172": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-172 ' acceptance/regression.cases.cjs"
+  },
+  "C-173": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-173 ' acceptance/regression.cases.cjs"
+  },
+  "C-174": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-174 ' acceptance/regression.cases.cjs"
+  },
+  "C-175": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-175 ' acceptance/regression.cases.cjs"
+  },
+  "C-176": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-176 ' acceptance/regression.cases.cjs"
+  },
+  "C-177": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-177 ' acceptance/regression.cases.cjs"
+  },
+  "C-178": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-178 ' acceptance/regression.cases.cjs"
+  },
+  "C-179": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-179 ' acceptance/regression.cases.cjs"
+  },
+  "C-180": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-180 ' acceptance/regression.cases.cjs"
+  },
+  "C-181": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-181 ' acceptance/regression.cases.cjs"
+  },
+  "C-182": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-182 ' acceptance/regression.cases.cjs"
+  },
+  "C-183": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-183 ' acceptance/regression.cases.cjs"
+  },
+  "C-184": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-184 ' acceptance/regression.cases.cjs"
+  },
+  "C-185": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-185 ' acceptance/regression.cases.cjs"
+  },
+  "C-186": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-186 ' acceptance/regression.cases.cjs"
+  },
+  "C-187": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-187 ' acceptance/regression.cases.cjs"
+  },
+  "C-188": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-188 ' acceptance/regression.cases.cjs"
+  },
+  "C-189": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-189 ' acceptance/regression.cases.cjs"
+  },
+  "C-190": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-190 ' acceptance/regression.cases.cjs"
+  },
+  "C-191": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-191 ' acceptance/regression.cases.cjs"
+  },
+  "C-192": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-192 ' acceptance/regression.cases.cjs"
+  },
+  "U-1": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^U-1 ' acceptance/scenarios.cases.cjs"
+  },
+  "U-2": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^U-2 ' acceptance/scenarios.cases.cjs"
+  },
+  "U-3": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^U-3 ' acceptance/scenarios.cases.cjs"
+  },
+  "U-4": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^U-4 ' acceptance/scenarios.cases.cjs"
+  },
+  "U-5": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^U-5 ' acceptance/scenarios.cases.cjs"
+  },
+  "U-6": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^U-6 ' acceptance/scenarios.cases.cjs"
+  },
+  "U-7": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^U-7 ' acceptance/scenarios.cases.cjs"
+  },
+  "U-8": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^U-8 ' acceptance/scenarios.cases.cjs"
+  },
+  "U-9": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^U-9 ' acceptance/scenarios.cases.cjs"
+  },
+  "U-10": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^U-10 ' acceptance/scenarios.cases.cjs"
+  },
+  "U-11": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^U-11 ' acceptance/scenarios.cases.cjs"
+  },
+  "U-12": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^U-12 ' acceptance/scenarios.cases.cjs"
+  },
+  "U-13": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^U-13 ' acceptance/scenarios.cases.cjs"
+  },
+  "U-14": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^U-14 ' acceptance/scenarios.cases.cjs"
+  },
+  "U-15": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^U-15 ' acceptance/scenarios.cases.cjs"
+  },
+  "U-16": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^U-16 ' acceptance/scenarios.cases.cjs"
+  },
+  "U-17": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^U-17 ' acceptance/scenarios.cases.cjs"
+  }
+}

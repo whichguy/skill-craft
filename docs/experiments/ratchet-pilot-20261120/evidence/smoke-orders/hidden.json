@@ -1,0 +1,79 @@
+{
+ "build-1": {
+  "observed": true,
+  "passed": [
+   "strong-tests",
+   "boundary-tests"
+  ],
+  "failed": {},
+  "tree": "0eaf784923cbcaff23b994832bc3d344510b7ee8",
+  "label": "build-1",
+  "at": 445.2
+ },
+ "green-1": {
+  "observed": true,
+  "passed": [
+   "strong-tests",
+   "boundary-tests"
+  ],
+  "failed": {},
+  "tree": "388c70c3d3fd87f23b77dd959fd64f964d25efd5",
+  "label": "green-1",
+  "at": 928.1
+ },
+ "build-2": {
+  "observed": true,
+  "passed": [
+   "strong-tests",
+   "boundary-tests"
+  ],
+  "failed": {},
+  "tree": "e4e8688ed8d86b1737aca12441b84539334905d1",
+  "label": "build-2",
+  "at": 1302.9
+ },
+ "green-2": {
+  "observed": true,
+  "passed": [
+   "strong-tests",
+   "boundary-tests"
+  ],
+  "failed": {},
+  "tree": "e9044905dabbf21564df4f8c7d96d7ef964a652a",
+  "label": "green-2",
+  "at": 1599.5
+ },
+ "build-3": {
+  "observed": true,
+  "passed": [
+   "strong-tests",
+   "boundary-tests"
+  ],
+  "failed": {},
+  "tree": "5e8a4a96a092ba897d730510b4edb92dbf62516e",
+  "label": "build-3",
+  "at": 1874.9
+ },
+ "green-3": {
+  "observed": true,
+  "passed": [
+   "strong-tests",
+   "boundary-tests"
+  ],
+  "failed": {},
+  "tree": "a642258051b12c5e8c5447850c3d57070a7f7576",
+  "label": "green-3",
+  "at": 2149.1
+ },
+ "final": {
+  "observed": true,
+  "passed": [
+   "strong-tests",
+   "boundary-tests"
+  ],
+  "failed": {},
+  "tree": "947a478686fd9f72899b84032c572f4adf582433",
+  "label": "final",
+  "at": 2325.2
+ }
+}

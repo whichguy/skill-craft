@@ -1,0 +1,12 @@
+diff -ru <runs>/teeth/mark-does-not-move/.untouched/product/public/app.js <runs>/teeth/mark-does-not-move/product/public/app.js
+--- <runs>/teeth/mark-does-not-move/.untouched/product/public/app.js	2026-11-20 22:30:53
++++ <runs>/teeth/mark-does-not-move/product/public/app.js	2026-11-20 22:57:08
+@@ -216,7 +216,7 @@
+     const marker = node('span', isBot ? 'nav-glyph' : 'chat-glyph', isBot ? initials(label) : '');
+     marker.setAttribute('aria-hidden', 'true');
+     item.append(marker, node('span', '', label));
+-    if (entry.id === currentId) item.setAttribute('aria-current', 'true');
++    if (entry.id === (isBot ? currentId : entries[0].id)) item.setAttribute('aria-current', 'true');
+     item.title = label;
+     return item;
+   });

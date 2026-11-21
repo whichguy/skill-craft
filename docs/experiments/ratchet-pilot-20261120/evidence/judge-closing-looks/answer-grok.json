@@ -1,0 +1,311 @@
+{
+ "judge": "grok",
+ "meta": {
+  "model_used": "grok-4.7",
+  "served_model": "grok-4.7-build",
+  "model_verification": "verified",
+  "fallback": false,
+  "effort": "xhigh",
+  "profile": "no-tools",
+  "exit": 0,
+  "asked": "start 22:32:29",
+  "ended": "exit=0 22:52:49"
+ },
+ "labels": [
+  {
+   "id": "D02",
+   "label": "R",
+   "why": "A pawn's ordinary diagonal capture is a required piece move, and an occupied landing square is a capture of that piece rather than en passant."
+  },
+  {
+   "id": "D03",
+   "label": "C",
+   "why": "The request does not decide whether a castling right whose rook starts off its home square becomes usable once that rook later reaches the corner."
+  },
+  {
+   "id": "D04",
+   "label": "R",
+   "why": "Status and legality are defined for the side to move, and White is not in check and has a normal rook move here."
+  },
+  {
+   "id": "D08",
+   "label": "R",
+   "why": "A double push may block check, and the opponent's en-passant capture is legal even when removing that blocker checks the mover."
+  },
+  {
+   "id": "D21",
+   "label": "R",
+   "why": "Castling still needs a rook on the home square and en passant still needs a capturable pawn, while ordinary king and pawn moves remain legal."
+  },
+  {
+   "id": "D33",
+   "label": "C",
+   "why": "On an inconsistent position, an unrelated pawn move may keep stale castling flags or clear flags whose king or rook is already off home."
+  },
+  {
+   "id": "D34",
+   "label": "R",
+   "why": "The request makes the en-passant square authoritative and the halfmove clock a separate field that a capture resets to zero."
+  },
+  {
+   "id": "D36",
+   "label": "C",
+   "why": "The request asks for FEN positions, not for tabs, extra spaces, reordered castling letters, or leading zeroes to be accepted."
+  },
+  {
+   "id": "D49",
+   "label": "C",
+   "why": "The request never says how syntactically invalid FEN is handled, so throwing on a rank written as 44 is optional."
+  },
+  {
+   "id": "D51",
+   "label": "X",
+   "why": "The request treats the FEN en-passant square as the eligibility signal and does not add a retrograde test that the implied double push was legal."
+  },
+  {
+   "id": "D11",
+   "label": "E",
+   "why": "Committing a group or expense from a body whose connection closed early would record a change the client never finished sending."
+  },
+  {
+   "id": "D12",
+   "label": "X",
+   "why": "The concurrency requirement is about overlapping requests in this service, not about two server processes sharing one data file."
+  },
+  {
+   "id": "D13",
+   "label": "X",
+   "why": "The request defines no group-id or amount limits and no later tighter version whose old snapshots must still load."
+  },
+  {
+   "id": "D14",
+   "label": "E",
+   "why": "Accepting a cent amount that cannot be represented exactly would corrupt balances, so it should be rejected without consuming an expense number."
+  },
+  {
+   "id": "D20",
+   "label": "X",
+   "why": "Keeping a symlink and its target as one store is filesystem-edge scope the requested JSON file does not mention."
+  },
+  {
+   "id": "D27",
+   "label": "X",
+   "why": "The request neither asks for API documentation nor requires . or .. to be accepted as group ids."
+  },
+  {
+   "id": "D28",
+   "label": "C",
+   "why": "The routes are specified without query strings, so ignoring a query and rejecting it are both compatible with the API."
+  },
+  {
+   "id": "D29",
+   "label": "X",
+   "why": "Starting before the data directory exists and later adopting another process's store is not part of the requested persistence."
+  },
+  {
+   "id": "D32",
+   "label": "X",
+   "why": "The request does not define an HTTP header or request-target budget, or require that budget to be documented."
+  },
+  {
+   "id": "D40",
+   "label": "X",
+   "why": "The request does not impose a group-id length limit or define it in percent-encoded bytes."
+  },
+  {
+   "id": "D41",
+   "label": "X",
+   "why": "The request does not impose a fixed decimal length for new amounts or require that limit to be documented."
+  },
+  {
+   "id": "D42",
+   "label": "X",
+   "why": "Preserving hard-link identity of the data file is outside the requested single-file store."
+  },
+  {
+   "id": "D45",
+   "label": "X",
+   "why": "The service owns in-memory state and rewrites its file; detecting an outside replacement, even one that forges file identity, is extra."
+  },
+  {
+   "id": "D48",
+   "label": "E",
+   "why": "A crash during a save must leave the last committed groups and the next expense number intact, or a restart loses data."
+  },
+  {
+   "id": "D50",
+   "label": "X",
+   "why": "The request does not ask for documentation of how clients should size requests against an HTTP byte limit."
+  },
+  {
+   "id": "D53",
+   "label": "E",
+   "why": "Malformed UTF-8 is not valid JSON and must not be allowed to change stored ids or be rewritten into the snapshot."
+  },
+  {
+   "id": "D55",
+   "label": "R",
+   "why": "A committed expense must survive restart, and another POST is a new expense because the request defines no idempotency key."
+  },
+  {
+   "id": "D56",
+   "label": "C",
+   "why": "The request specifies the status codes and JSON bodies, not a Content-Type header."
+  },
+  {
+   "id": "D59",
+   "label": "X",
+   "why": "Adopting an externally swapped snapshot after a stale-write refusal is an operator procedure the request never describes."
+  },
+  {
+   "id": "D01",
+   "label": "R",
+   "why": "The documented cursor is an after-id marker reapplied with the same filters, so the next page uses current assignees."
+  },
+  {
+   "id": "D05",
+   "label": "R",
+   "why": "The store commits the ticket, audit, notice, and file together, so a failed save leaves the ticket in progress and assignable."
+  },
+  {
+   "id": "D06",
+   "label": "X",
+   "why": "Rejecting duplicate JSON object keys, including escaped duplicates, goes beyond the documented record checks and the assignment request."
+  },
+  {
+   "id": "D07",
+   "label": "E",
+   "why": "Loading a title that contains an invalid UTF-8 byte would present a corrupted ticket, so readers should refuse the file and leave its bytes unchanged."
+  },
+  {
+   "id": "D09",
+   "label": "X",
+   "why": "The request adds assignment once; compatibility with an earlier release that stored a U+2028 assignee is not part of it."
+  },
+  {
+   "id": "D10",
+   "label": "X",
+   "why": "Replacing the notification path with a symlink to the state file after startup is not a requested failure mode."
+  },
+  {
+   "id": "D15",
+   "label": "C",
+   "why": "The API forbids unknown fields but is silent on duplicate keys, so last-key-wins and a 400 are both compatible."
+  },
+  {
+   "id": "D16",
+   "label": "E",
+   "why": "An assignee containing invalid UTF-8 would load as the wrong owner, so startup should refuse that file."
+  },
+  {
+   "id": "D17",
+   "label": "C",
+   "why": "The documented raw listing is LF-delimited, so also forcing Unicode line-break readers to see one record is an extra output encoding."
+  },
+  {
+   "id": "D18",
+   "label": "R",
+   "why": "A body that is not JSON is a documented 400 invalid, and a rejected request does not change the ticket, audit, or outbox."
+  },
+  {
+   "id": "D19",
+   "label": "C",
+   "why": "The agent must be notified, but the notice key is not required to join each delivery to a distinct audit actor."
+  },
+  {
+   "id": "D22",
+   "label": "X",
+   "why": "Retargeting the state symlink mid-request and keeping both snapshots byte-identical is not part of the documented save."
+  },
+  {
+   "id": "D23",
+   "label": "X",
+   "why": "The request allows any non-empty agent name of at most 64 characters, and these separators do not break the documented LF record format."
+  },
+  {
+   "id": "D24",
+   "label": "X",
+   "why": "The request asks the listing to show the assignee, not for show to render history that distinguishes an em dash, the name null, and a clear."
+  },
+  {
+   "id": "D25",
+   "label": "E",
+   "why": "A raw 0xFF is not an agent name or a valid filter, while a real U+FFFD character is a legal name and must still round-trip."
+  },
+  {
+   "id": "D26",
+   "label": "X",
+   "why": "The documented save is a temp file and rename; special symlink preservation or startup refusal is not part of adding assignment."
+  },
+  {
+   "id": "D30",
+   "label": "R",
+   "why": "A failed title save leaves the committed ticket, so a later assignment and its notice can only use that committed title."
+  },
+  {
+   "id": "D31",
+   "label": "E",
+   "why": "The assignee filter has to percent-decode Dana%25 to find Dana%, and a dangling % must not select that agent."
+  },
+  {
+   "id": "D35",
+   "label": "E",
+   "why": "The stored assignee is the JSON string, so splitting a UTF-8 character across body chunks must not change the name, filter, or recipient."
+  },
+  {
+   "id": "D37",
+   "label": "X",
+   "why": "Creating a missing snapshot through a dangling symlink and keeping that symlink is not the documented file behavior."
+  },
+  {
+   "id": "D38",
+   "label": "X",
+   "why": "Diagnosing DATA_FILE and NOTIFY_FILE when they are the same path is pre-existing configuration hardening, not part of assignment."
+  },
+  {
+   "id": "D39",
+   "label": "C",
+   "why": "The listing must show the assignee, but isolating bidirectional overrides so a name cannot visually reorder fields is a display choice."
+  },
+  {
+   "id": "D43",
+   "label": "E",
+   "why": "The outbox stores a notification's payload when it is queued, so a later rename must not change that assignment's title."
+  },
+  {
+   "id": "D44",
+   "label": "R",
+   "why": "The data file is loaded at start and rewritten only after a change, so reading a pre-assignment file must leave its bytes untouched."
+  },
+  {
+   "id": "D46",
+   "label": "E",
+   "why": "An invalid UTF-8 byte in a saved assignee or pending recipient would corrupt that name, while a real U+FFFD must still load."
+  },
+  {
+   "id": "D47",
+   "label": "X",
+   "why": "Distinguishing a clear from an agent whose name is null in show's history is not requested; the listing only has to show the assignee."
+  },
+  {
+   "id": "D52",
+   "label": "X",
+   "why": "Documenting LF versus Unicode line separators inside existing titles is outside the assignment request."
+  },
+  {
+   "id": "D54",
+   "label": "C",
+   "why": "The raw listing must show the assignee without moving the old columns, but a documented reversible escape encoding is only one way to do that."
+  },
+  {
+   "id": "D57",
+   "label": "E",
+   "why": "A filter must select the real U+FFFD name when it is percent-encoded, and %FF is malformed UTF-8 so it is a 400."
+  },
+  {
+   "id": "D58",
+   "label": "E",
+   "why": "Invalid UTF-8 anywhere in the snapshot would make every reader show bad data, so startup, the CLI, and the weekly report should refuse it and keep the bytes."
+  }
+ ]
+}

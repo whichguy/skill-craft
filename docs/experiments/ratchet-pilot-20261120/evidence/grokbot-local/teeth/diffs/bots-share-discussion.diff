@@ -1,0 +1,23 @@
+diff -ru <runs>/teeth/bots-share-discussion/.untouched/product/lib/workspace.js <runs>/teeth/bots-share-discussion/product/lib/workspace.js
+--- <runs>/teeth/bots-share-discussion/.untouched/product/lib/workspace.js	2026-11-20 22:30:53
++++ <runs>/teeth/bots-share-discussion/product/lib/workspace.js	2026-11-20 22:57:08
+@@ -284,9 +284,18 @@
+         case 'rename-bot':
+           bot.name = cleanText(input.name, 'Bot name', 80);
+           return;
+-        case 'select-bot':
++        case 'select-bot': {
++          const from = workspace.bots.find(({ id }) => id === workspace.activeBotId);
++          if (from && from !== bot) {
++            const shown = from.conversations.find(({ id }) => id === from.activeConversationId);
++            const copy = createConversation();
++            Object.assign(copy, { title: shown.title, messages: structuredClone(shown.messages) });
++            bot.conversations.unshift(copy);
++            bot.activeConversationId = copy.id;
++          }
+           workspace.activeBotId = bot.id;
+           return;
++        }
+         case 'new-conversation': {
+           const next = createConversation();
+           bot.conversations.unshift(next);

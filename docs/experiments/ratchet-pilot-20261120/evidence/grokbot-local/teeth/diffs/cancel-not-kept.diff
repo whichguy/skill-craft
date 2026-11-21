@@ -1,0 +1,21 @@
+diff -ru <runs>/teeth/cancel-not-kept/.untouched/product/lib/workspace.js <runs>/teeth/cancel-not-kept/product/lib/workspace.js
+--- <runs>/teeth/cancel-not-kept/.untouched/product/lib/workspace.js	2026-11-20 22:30:53
++++ <runs>/teeth/cancel-not-kept/product/lib/workspace.js	2026-11-20 22:57:06
+@@ -120,7 +120,7 @@
+     let interrupted = false;
+     eachConversation(store.read(), (conversation) => {
+       interrupted ||= conversation.messages.some((message) => message.reply?.status === 'pending') ||
+-        conversation.tasks.some((task) => task.status === 'Running');
++        conversation.tasks.some((task) => task.status === 'Running' || task.status === 'Cancelled');
+     });
+     if (!interrupted) return;
+ 
+@@ -132,7 +132,7 @@
+         }
+       }
+       for (const task of conversation.tasks) {
+-        if (task.status === 'Running') {
++        if (task.status === 'Running' || task.status === 'Cancelled') {
+           updateTask(state, task, 'Interrupted', 'The server stopped during this task. Retry to resume from the last saved step.');
+         }
+       }

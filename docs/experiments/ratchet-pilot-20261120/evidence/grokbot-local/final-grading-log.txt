@@ -1,0 +1,38 @@
+== FINAL-3 grading, yardsticks as committed d8a7f1e6e 23:50:18
+g-shiploop-sol-high               grokbot     passed 49  failed []
+grade-exit=0
+g-shiploop-sol-high               grokbot2    passed 28  failed []  stated 23 of 23, implied 5 of 5
+grade2-exit=0 23:53:42
+g-ratchet-sol-high                build-1     passed 49  failed []
+g-ratchet-sol-high                green-1     passed 49  failed []
+grade-exit=0
+g-ratchet-sol-high                build-1     passed 28  failed []  stated 23 of 23, implied 5 of 5
+g-ratchet-sol-high                green-1     passed 28  failed []  stated 23 of 23, implied 5 of 5
+grade2-exit=0 00:00:15
+g-bare-sonnet-high                build-1     passed 48  failed ['no-sideways-scrolling-at-320']
+g-bare-sonnet-high                final       passed 48  failed ['no-sideways-scrolling-at-320']
+grade-exit=0
+g-bare-sonnet-high                build-1     passed 27  failed ['a-long-unbroken-message-does-not-widen-the-page-at-320']  stated 23 of 23, implied 4 of 5
+g-bare-sonnet-high                final       passed 27  failed ['a-long-unbroken-message-does-not-widen-the-page-at-320']  stated 23 of 23, implied 4 of 5
+grade2-exit=0 00:03:00
+g-bare-sol-low                    build-1     passed 49  failed []
+g-bare-sol-low                    final       passed 49  failed []
+grade-exit=0
+g-bare-sol-low                    build-1     passed 28  failed []  stated 23 of 23, implied 5 of 5
+g-bare-sol-low                    final       passed 28  failed []  stated 23 of 23, implied 5 of 5
+grade2-exit=0 00:05:51
+g-bare-sol-high                   build-1     passed 49  failed []
+g-bare-sol-high                   final       passed 49  failed []
+grade-exit=0
+g-bare-sol-high                   build-1     passed 28  failed []  stated 23 of 23, implied 5 of 5
+g-bare-sol-high                   final       passed 28  failed []  stated 23 of 23, implied 5 of 5
+grade2-exit=0 00:08:21
+final-3-grading-done 00:08:21
+clean exit=0 00:09:30
+away-omits-failed exit=1 00:09:31
+instructions-global exit=1 00:10:49
+cancel-all exit=1 00:11:04
+instructions-global-b exit=1 00:12:07
+cancel-not-kept exit=1 00:12:11
+no-word-break exit=1 00:13:19
+recheck-done 00:13:19

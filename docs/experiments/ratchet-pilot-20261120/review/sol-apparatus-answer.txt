@@ -1,0 +1,339 @@
+The apparatus can record a passing gate or `stop: converged` without establishing the result the journal claims. The largest threats are silent changes to what executes as a test, erroneous strength scores when a control cannot be measured, and P2 starts that reveal—or already pass the held-out checks for—the planted defect.
+
+I read the journal first, both specified commits’ full messages, the apparatus, its graders, fixtures, host launchers and Until Loop runtime. I used read-only, in-memory probes for several control-flow cases. No files were edited, commits made or model sessions launched. During review, the checkout advanced to `5843de25c56556af79309c4c98f4d17028807758`; I read that commit too. Its prompt changes do not resolve the apparatus findings below.
+
+“Verified” below means traced in code, sometimes additionally reproduced with in-memory substitutes. It does not mean the scenario occurred in a counted run. I identify inferred effects separately.
+
+1. **The model can change the authority that defines what is frozen.**
+
+   **Verified.** `gate()` trusts `work/.git/ratchet-gate.json` for `frozen`, `base` and the project checks. `gate_config()` reads that same file and preserves fields it is not explicitly changing. Neither `restore()` nor `enforce()` protects Git metadata.
+
+   A fixer can set `frozen` to null, weaken an acceptance test, and remove `checks`. The parent’s next gate accepts that configuration. The weakened test can enter the fix commit; the subsequent delta stage can freeze it as the new accepted state. The record can say `restored: []`, have no tamper-log entries, and finish green. The configuration change itself is absent from Git snapshots because it lives under `.git`.
+
+   This differs from merely editing a frozen test: the apparatus ordinarily catches that direct edit.
+
+   **Smallest fix:** retain the authoritative frozen commit, base and check commands in parent-owned state; pass them explicitly to the parent’s gate. Do not recover authority from a model-writable configuration file. Validate the configuration used by model-invoked gates against that state.
+
+   Sources: [gate.py — gate: configuration is trusted](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/docs/experiments/ratchet-pilot-20261120/gate.py:113), [ratchet.py — gate_config: existing fields are preserved](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/docs/experiments/ratchet-pilot-20261120/ratchet.py:457).
+
+2. **A frozen file changed during a gate can survive the gate, its commit and the next freeze without being counted.**
+
+   **Verified; reproduced in memory.** `gate()` restores frozen paths once, before running any commands. It does not check them again afterward. `stage_fix()` then commits immediately after the gate.
+
+   Concrete sequence:
+
+   - Frozen files are initially correct, so `restore()` finds nothing.
+   - A product module or package test command changes an acceptance test when executed.
+   - The acceptance commands return success.
+   - The gate records `pass: true`, `restored: []`.
+   - The fix commit includes the changed test.
+   - Delta unfreezes and then freezes the current tree, legitimizing that change.
+
+   My probe produced exactly the gate-level combination `pass: true`, `restored: []`, with the test changed during command execution.
+
+   This does not require the model to edit the acceptance file directly through a tool. A product import or test runner can do it, so the session event stream need not contain an acceptance-file edit.
+
+   **Smallest fix:** compare the protected package against the authoritative frozen state after command execution and before committing. A change invalidates the verdict; restore it and rerun. Keep the before/after identities in the gate record.
+
+   Sources: [gate.py — gate: restoration precedes commands only](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/docs/experiments/ratchet-pilot-20261120/gate.py:113), [ratchet.py — stage_fix: gate then commit](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/docs/experiments/ratchet-pilot-20261120/ratchet.py:698).
+
+3. **`strength` can count defects as caught when the correct reference was never measured.**
+
+   **Verified; reproduced in memory.** `run_variant()` returns `{"error": ...}` for construction and execution exceptions. But `strength()` obtains reference failures with:
+
+   ```python
+   wrong = set(results["reference"].get("failing") or [])
+   ```
+
+   An errored reference therefore becomes an empty failure set. Every defect-side failing clause can then count as a catch, despite no demonstrated reference pass.
+
+   My probe supplied an errored reference and one failing defect. The output said:
+
+   ```text
+   fail on the correct reference: none
+   caught 1 of 1 calibrated defects
+   ```
+
+   The JSON retained the reference error, so a careful reader can discover the contradiction; the computed score is nevertheless wrong.
+
+   There are two related errors. An errored alternative prints `control alternative: passes`, also reproduced. Defect-side errors reduce `judged`, whereas R1.2 registers a fixed pool of 37 defects. Reporting a percentage over the smaller denominator could cross the registered threshold incorrectly.
+
+   **Smallest fix:** require a successfully observed reference before judging any defect. An errored alternative is unknown, never passing. Preserve the registered denominator and show missing measurements separately; do not issue the pooled reading while required measurements are missing.
+
+   Source: [grade.py — run_variant and strength: errors and scoring](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/docs/experiments/ratchet-pilot-20261120/grade.py:175).
+
+4. **All four orders repair starts reveal their planted defect in ordinary product comments.**
+
+   **Verified.** The stand-in product files contain explicit annotations:
+
+   | Variant | Comment given to the session |
+   |---|---|
+   | `one-rule-missing` | `stand-in: status is not lower-cased` |
+   | `tested-only` | `stand-in: rejects only the quantity the examples use` |
+   | `limit-never-trips` | `stand-in: an expensive path, fifty ticks per order` |
+   | `cross-field` | `stand-in: each field checked alone, never against each other` |
+
+   `build_variant()` copies these files into the variant, and repair setup copies the product into the session’s permitted workspace. Reading them obeys the packet’s conduct rules. None of these comments matches `HELD_OUT_MARKS`.
+
+   P2 can therefore report a clean audit while the fixer or closing-look session has been told where the defect is. This particularly threatens interpreting R2.2 as the closing look finding something the tests did not expose.
+
+   **Smallest fix:** remove these apparatus annotations from the session-facing input trees while preserving the defective executable code. Record the resulting input identities. Keep the annotated originals as calibration evidence.
+
+   Sources: [one-rule-missing — explicit defect annotation](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/test/shiploop_e2e/fixtures/stand-ins/stand-in-rules/one-rule-missing/src/orders.js:24), [tested-only — explicit defect annotation](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/test/shiploop_e2e/fixtures/stand-ins/stand-in-rules/tested-only/src/orders.js:20), [limit-never-trips — explicit defect annotation](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/test/shiploop_e2e/fixtures/stand-ins/stand-in-rules/limit-never-trips/src/orders.js:40), [cross-field — explicit defect annotation](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/test/shiploop_e2e/fixtures/stand-ins/stand-in-rules/cross-field/src/orders.js:28).
+
+5. **P2 has no held-out measurement of its defective starting state, allowing success that existed before the loop to earn apparent credit.**
+
+   **Verified omission; inferred effect for particular starts.** `GRADED` excludes `base` and the imported-frozen-suite snapshot. Repair cycle 1 also skips build. Thus `hidden.json` does not establish which clean-reference checks the defective start actually failed.
+
+   This matters concretely for the ticket fixtures. The selected 18-check assignment grader does not run the pristine base tests. `validate-renamed` changes an internal export, its caller and its own tests consistently; the HTTP checks can remain green. `backoff-linear` changes retry delays, while the notification checks shown here exercise successful delivery rather than a calibrated retry-failure sequence.
+
+   A missed defect can consequently begin with all selected held-out checks passing, receive no substantive repair, and end with those checks passing. That satisfies the literal end-state numerator of R2.2 without showing that the closing look found or repaired anything.
+
+   The report’s “first build” column is also misleading for repair runs: if they reach cycle 2, it selects `build-2`, rather than the defective initial product.
+
+   **Smallest fix:** grade the repair start immediately after importing its suite, and grade the clean reference with the same instrument. Preserve the check-by-check difference. Where the seed has no held-out distinction, label that repair outcome unmeasurable by this instrument.
+
+   Sources: [grade.py — GRADED and snapshots: initial repair trees are skipped](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/docs/experiments/ratchet-pilot-20261120/grade.py:40), [ticket_assignment_accept.py — the selected 18 checks](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/test/shiploop_e2e/checks/ticket_assignment_accept.py:744), [reference_ticket_assignment.py — defects that alter base tests](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/test/fixtures/quality/reference_ticket_assignment.py:314).
+
+6. **An unsuccessful delta can be interpreted as “no delta,” and `grown` does not preserve the complete meaning of existing clauses.**
+
+   **Verified; both principal paths reproduced in memory.**
+
+   `session()` records failure or timeout but callers generally continue. If a delta session times out before adding anything, `stage_delta()` returns an empty addition set. `Run.run()` then records `stop: converged`. My control-flow probe produced:
+
+   ```json
+   {
+     "exit": 0,
+     "stop": "converged",
+     "final_pass": true,
+     "sessions": [{"role": "delta", "status": "timeout"}]
+   }
+   ```
+
+   The timeout remains visible in the session row; the stop reason is still wrong.
+
+   `grown()` has two further problems:
+
+   - It compares only `statement` and the first parsed `Observable` or `Flow` line. Changes to `Source`, continuation text, other requirements in the block, or surrounding instructions can survive without a violation. My probe changed both the source and continuation text and obtained no violation.
+   - A malformed addition causes it to restore the old specification and return `{}`. For delta, that can turn a refused specification into convergence. Valid additions in the same submission are discarded too.
+
+   **Smallest fix:** return a distinct accepted/rejected stage result. Failure, timeout, malformed output and an accepted empty delta must remain different states. Compare complete existing item blocks, with only explicitly permitted formatting normalization.
+
+   Sources: [ratchet.py — session: status is recorded](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/docs/experiments/ratchet-pilot-20261120/ratchet.py:521), [ratchet.py — grown: partial comparison and empty return on rejection](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/docs/experiments/ratchet-pilot-20261120/ratchet.py:746), [ratchet.py — run: empty additions mean convergence](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/docs/experiments/ratchet-pilot-20261120/ratchet.py:806).
+
+7. **Snapshot grading can measure the apparatus’s acceptance tests as part of the delivered product.**
+
+   **Verified mechanism.** `grade_tree()` archives the entire work commit, including `acceptance/` and `ratchet/`. The expenses `unit` check runs unrestricted `node --test`. The due-times `suite` check does likewise and requires more passing tests than the base.
+
+   Two concrete verdict changes follow:
+
+   - A product with no newly delivered tests under `test/` can satisfy the held-out test-count requirement because apparatus acceptance tests are discovered.
+   - A product whose own delivered suite passes can fail the held-out suite check because an apparatus acceptance test rejects a specification choice or requires something unavailable in the grading copy.
+
+   This is especially consequential for the due-times “new tests beside the unchanged base tests” check. The extra tests being counted need not be tests the build delivered.
+
+   The ordinary `ratchet/*.md` reports do not themselves cause Node test discovery. The direct issue is executable acceptance tests. The chess grader and the assignment grader’s 18 interface checks do not use this test-count route.
+
+   **Smallest fix:** define the product files being graded and exclude the Ratchet apparatus from delivery checks. Grade acceptance-package behavior separately. Preserve the product’s actual `test/` additions.
+
+   Sources: [grade.py — grade_tree: whole-commit archive](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/docs/experiments/ratchet-pilot-20261120/grade.py:99), [expense_service.py — unit: unrestricted discovery](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/test/shiploop_e2e/checks/expense_service.py:141), [base_tests.py — suite: discovery and additional-test count](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/test/shiploop_e2e/checks/base_tests.py:108).
+
+8. **The snapshot retry rule misses a known timeout representation, and the report ignores successful reruns.**
+
+   **Verified; reproduced in memory.** The retry detector searches failed-check notes for only `"timed out"` or `"did not end"`.
+
+   `base_tests.py suite` can report its timeout as:
+
+   ```text
+   ... 0 pass, 0 fail (rc None); failing: no failing test named
+   ```
+
+   That contains neither marker, so it is not retried. Startup failures represented in `reason`, rather than `failed`, are not considered either.
+
+   When a marker is found, `snapshots()` reruns the entire grader, rather than only the unfinished check. It stores the second result under `rerun`, retaining the original top-level failure. Both immediate output and `grade.report()` count the original top-level `passed` list. My probe showed “passed 0, failed pristine” despite a stored successful rerun.
+
+   Retaining both results matches the stated evidence policy. Missing the known timeout form and providing no explicit effective verdict do not.
+
+   **Smallest fix:** retain structured completion status for each check instead of matching prose. Rerun the affected check, retain both attempts, and expose an explicitly named effective verdict under the registered rule.
+
+   Sources: [grade.py — snapshots: retry detection and stored result](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/docs/experiments/ratchet-pilot-20261120/grade.py:113), [base_tests.py — node_test and suite: timeout representation](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/test/shiploop_e2e/checks/base_tests.py:57), [grade.py — report: original counts only](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/docs/experiments/ratchet-pilot-20261120/grade.py:226).
+
+9. **Strength scoring cannot reliably distinguish a defect rejection from interference, shared state or an unfinished command.**
+
+   **Verified execution behavior; machine-level effects inferred, with prior repository evidence for the collision.**
+
+   Four variants run concurrently by default. They have separate product directories but inherit the same surrounding environment, HOME and temporary-directory settings. Each variant runs all clause commands sequentially in one mutable tree. Retries reuse that state.
+
+   Thus a command can create a data file or leave a server that changes the next clause’s result. A retry can pass because the first attempt prepared state. Different variants can contend for a fixed port or shared absolute temporary file.
+
+   The ticket fixture’s IPv6-wildcard/IPv4-client problem is already documented in the repository. `strength` does not use the hardened calibration execution path to distinguish that failure. `twice()` reduces some noise but does not establish its cause.
+
+   A command that times out twice is simply a failing clause and may count as a caught defect. `run_variant()` drops return codes and first-attempt details from its compact result, retaining only short failure tails and unstable IDs. Conversely, a defect-side retry that passes becomes a miss.
+
+   Successful commands are not followed by process-group cleanup. A test that backgrounds a server with redirected output can exit successfully and leave that server behind.
+
+   **Smallest fix:** retain both attempts’ return codes, completion status, timing and diagnostic output; use private per-variant temporary locations; clean up owned process groups on every outcome. Distinguish machine failures from clause assertions. A serial diagnostic run reduces interference but does not eliminate other projects’ listeners.
+
+   Sources: [grade.py — strength: concurrent variants](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/docs/experiments/ratchet-pilot-20261120/grade.py:190), [gate.py — run and twice: environment, retries and cleanup](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/docs/experiments/ratchet-pilot-20261120/gate.py:46), [structure journal — R55: previously measured lost verdicts and collision](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/docs/shiploop-sdlc-structure-journal.md:1511).
+
+10. **The manifest validator verifies names and command strings, not that each clause has an independently meaningful test.**
+
+   **Verified missing enforcement; consequences depend on the authored suite.**
+
+   `manifest_problems()` accepts every nonempty command string. A command can select no tests, run the entire acceptance folder, inspect product source, or simply return success. `gate()` checks only its exit status.
+
+   A misspelled test-name selector can therefore mark a clause passing with zero relevant tests executed. Running the whole folder for each clause has a different failure: one unrelated reference-invalid assertion can make every clause command fail. Subtraction then excludes every such clause from defect credit, even where the suite contains useful assertions.
+
+   The subtraction itself is correct for the registered definition:
+
+   ```text
+   catch = defect failures minus reference failures
+   ```
+
+   It requires the clause results to mean what their IDs claim. The apparatus does not check that premise.
+
+   Source inspection also needs a careful distinction. A test that recognizes reference implementation text can score catches without testing behavior. But checking that existing base tests remain unchanged is a legitimate preservation obligation here. The two ticket defects that rewrite base tests should be reported as preservation checks when caught that way, rather than presented as extra HTTP behavior coverage.
+
+   **Smallest fix:** validate and retain actual per-clause execution evidence, review command selection, and classify catches by what they demonstrate. Reject an empty selection. Audit source-pattern assertions and explicitly distinguish legitimate base-test preservation.
+
+   Sources: [ratchet.py — manifest_problems: structural checks only](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/docs/experiments/ratchet-pilot-20261120/ratchet.py:686), [gate.py — gate: exit-status-only clause verdicts](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/docs/experiments/ratchet-pilot-20261120/gate.py:120).
+
+11. **The plan loop can complete on its first callback, and planning proceeds even when its loop has not completed.**
+
+   **Verified; first-callback completion reproduced in memory.**
+
+   `required_trivial_reviews: 1` means one callback classified trivial. It does not mean “one additional review after a first trivial review.” A first trivial, satisfied report with a fresh successful `test -s ratchet/plan.md` verification completes at action 1. My probe returned `status: complete`, `action_number: 1`.
+
+   If the initial plan-writing iteration is classified non-trivial, a subsequent trivial review is required, giving two callbacks. The runtime does not independently enforce that classification.
+
+   More decisively, `stage_plan()` merely records `loop_status()`. Missing, active or stopped receipts do not prevent the build. It also does not independently require the five plan sections or even validate the existence of the plan after the session.
+
+   A headless session can operate this runtime: no interactive confirmation is inherently required. Completion nevertheless depends on the session following the callback protocol; the parent does not enforce it.
+
+   **Smallest fix:** validate the plan and terminal receipt before proceeding. If the registration requires at least two distinct callbacks, check the action count explicitly. If it requires two quiet reviews, use that count and account for the runtime’s unchanged-first-pass exception.
+
+   Sources: [ratchet.py — loop_block: plan contract](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/docs/experiments/ratchet-pilot-20261120/ratchet.py:550), [ratchet.py — stage_plan: receipt is observational](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/docs/experiments/ratchet-pilot-20261120/ratchet.py:764), [until_loop_ephemeral.py — transition: trivial-count completion](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py:1009).
+
+12. **The referee can accidentally remove coverage and obtain green; a reported dispute can also be dropped.**
+
+   **Verified.** After the referee session, the script enforces allowed paths, commits and freezes them, then gates. It never calls `manifest_problems()`.
+
+   If the referee deletes a disputed manifest entry, the gate stops running that clause. If it removes the manifest, the gate substitutes `{}`. Provided the remaining project checks pass, the route succeeds despite missing acceptance coverage.
+
+   Separately, `stage_fix()` returns immediately when its post-fix gate passes, before reading the report’s Disputed section. An explicit dispute can therefore disappear from the structured dispute record—for example when an unstable command passes on its second attempt.
+
+   If a referee repeatedly leaves the same disputed test standing, the code can send the same dispute again on the next fix. This is bounded by the registered stuck/max-fixes rules; it is not an unlimited outer loop.
+
+   There is also a prompt conflict: the fix packet allows “every remaining failure is disputed” as done, but the Until Loop’s executable exit check still demands a fully passing gate. The contract’s instruction to stop incomplete provides a viable route, but the required callback assessment is not made explicit.
+
+   **Smallest fix:** revalidate complete manifest coverage after every referee change. Record disputes before the early success return. Tell the fixer explicitly to return a blocked, unsatisfied loop result when all remaining failures require adjudication.
+
+   Source: [ratchet.py — stage_fix: early return, referee freeze and missing validation](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/docs/experiments/ratchet-pilot-20261120/ratchet.py:698).
+
+13. **The copied “frozen suite” is actually selected from HEAD, is incompletely packaged, and cannot establish R2.3 for every added clause.**
+
+   **Verified.** Both `lay_suite()` and repair setup copy `FROZEN_PATHS` from the source work repository’s current HEAD. They do not select a recorded accepted-suite identity.
+
+   For a normally finished P1 run whose suite remains unchanged, HEAD happens to contain the right package. The implementation does not establish that correspondence for an in-flight run, a subsequently changed source run, or historical suites.
+
+   It copies only `acceptance/`, the manifest and the spec. A test helper elsewhere in the original work tree disappears. Commands referencing product-owned test files instead run whichever files the variant supplies. Consequently, the strength experiment need not execute the same test implementation as the live gate.
+
+   Copying blobs with `write_bytes()` also loses executable modes and symlink semantics. A valid `./acceptance/check.sh` command can fail after copying because the executable bit was lost.
+
+   For R2.3, the final suite can omit a clause added by the last delta when max-cycles stops the run. Earlier delta tests can also have been changed later. Grading final HEAD does not grade every delta-added clause at the version that introduced its test.
+
+   **Smallest fix:** record each accepted suite’s commit and package identity; export that exact package preserving modes and links. Make test dependencies self-contained. Grade each delta clause’s first accepted test against the clean reference, with “not yet tested” retained as unknown.
+
+   Sources: [grade.py — lay_suite: HEAD and limited paths](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/docs/experiments/ratchet-pilot-20261120/grade.py:163), [ratchet.py — setup: repair-suite import](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/docs/experiments/ratchet-pilot-20261120/ratchet.py:473).
+
+14. **The enriched arm’s displayed clause denominator includes use cases.**
+
+   **Verified.** `run_variant()` sets `clauses` to the number of manifest entries, including `U-n`. `strength()` presents that as the clause count, and `fails_on_reference` includes both kinds of IDs.
+
+   R1.1 and R1.3 register proportions of **clauses**. Counting passing use cases in the denominator can dilute the false-clause proportion. Counting failing use cases in its numerator changes it differently. The first form has no use cases, so the error is asymmetric between arms.
+
+   `run.json` does separately count final clauses and use cases, allowing an analyst to correct the calculation. The strength report itself does not make that correction.
+
+   **Smallest fix:** emit separate clause and use-case totals and failure sets. Calculate the registered proportions with `C-` IDs only.
+
+   Source: [grade.py — run_variant and strength: manifest-entry count](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/docs/experiments/ratchet-pilot-20261120/grade.py:175).
+
+15. **The secrecy audit detects some visible strings, but cannot establish that held-out material stayed unseen—and does not enforce exclusion.**
+
+   **Verified audit behavior; particular undetected reads are inferred possibilities.**
+
+   The copied gate and runtime do not themselves contain the named held-out checks or calibrated variant definitions. The parent-written contracts contain the request, scope, authority and product paths. Those are good boundaries.
+
+   The environment and filesystem boundary is weaker:
+
+   - Codex receives full disk access. Its throwaway HOME isolates ordinary profile contents, not access to the rest of the filesystem.
+   - `hosts.py` broadly inherits environment variables. It does not explicitly hand sessions `E2E_CHECKS`, but inherited working-directory or other path variables can reveal the originating workspace.
+   - Native Claude uses the inherited HOME; it does not receive the Codex-style throwaway HOME.
+   - The Python pin introduces `.skill-craft-e2e` paths. Merely displaying a Python path can match the broad `"skill-craft"` marker without reading held-out material.
+
+   A literal named read through a shell command is generally visible on both hosts: Codex’s translator retains command text and output; Claude’s stream retains normal tool calls. An indirect read using an inherited path, with output restricted to selected assertions, need not contain any marker. A substring scan is not a record of which files were opened.
+
+   Finally, `session()` stores `held_out_marks`, but neither `Run.run()`, `strength()` nor `report()` turns a match into an exclusion. That remains a manual obligation.
+
+   **Smallest fix:** record explicit counting eligibility and enforce the registered exclusion in result aggregation. Preserve raw host evidence alongside translated events. Treat clean marker scans as “no named exposure observed,” not proof of secrecy. Remove the direct fixture annotations in finding 4.
+
+   Sources: [ratchet.py — session: marker scan and storage](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/docs/experiments/ratchet-pilot-20261120/ratchet.py:521), [hosts.py — isolated environment: broad inheritance](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/test/shiploop_e2e/hosts.py:320), [hosts.py — Claude and Codex environments](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/test/shiploop_e2e/hosts.py:485), [hosts.py — CodexTranslator: retained event fields](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/test/shiploop_e2e/hosts.py:642).
+
+16. **The records lack several identities and distinctions needed to interpret later readings without the live work repositories.**
+
+   **Verified.** Snapshot tree hashes include reports, specs and tests. A different tree therefore does not establish a product change. The JSON records do not list product paths changed by each stage or bind those changes to the failing gate and delta items that prompted them.
+
+   Grading also uses the current grader and fixture sources, without writing their identities into `strength.json` or `hidden.json`. `local_head` identifies the launch checkout’s HEAD, but not uncommitted apparatus changes or the later grader version.
+
+   `report()` includes unfinished runs and prints missing elapsed time as `0.0` minutes. It omits effort, despite effort being necessary for the registered time comparison. `twice()` retains only the second attempt’s `seconds`, so its compact command timing undercounts retries, although whole-run wall time includes them.
+
+   **Smallest fix:** retain per-stage product/test/report path changes, explicit cause references, suite and grader identities, and both command-attempt timings. Print unknown time as unknown and include host/effort. Preserve these facts before run folders are pruned.
+
+   Sources: [ratchet.py — commit: whole-tree snapshots](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/docs/experiments/ratchet-pilot-20261120/ratchet.py:464), [grade.py — report: unfinished runs, time and identity columns](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/docs/experiments/ratchet-pilot-20261120/grade.py:226), [gate.py — twice: timing retained from second attempt](/Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-pilot-b6eab2/docs/experiments/ratchet-pilot-20261120/gate.py:67).
+
+For question 1, the guard behavior is:
+
+| Scenario | Stopped? | What is recorded |
+|---|---|---|
+| Ordinary Git-visible edit to a frozen test, manifest or spec, present when the gate starts | Yes, assuming the configuration is intact | Restored path and tamper-log entry |
+| Newly added, unignored file under `acceptance/` | Ordinarily yes | Removed path and tamper-log entry |
+| Frozen manifest invokes a helper outside the frozen paths | No protection for that helper | Net change may appear in Git; no frozen-test violation |
+| Manifest invokes a product-owned command, such as a mutable package test script | Command implementation can change | Command string and result; no automatic recognition that test execution changed |
+| Acceptance test loads an external mutable helper | Helper can change the verdict | No frozen-test violation |
+| Edit and restoration entirely inside a session, between gates | No | Possibly visible in tool events; no automatic tamper count |
+| Ignored new helper under `acceptance/` | Not enumerated by the ordinary untracked-file checks | Can affect a verdict while absent from commits and guard records |
+| Changes while `frozen` is null | Net forbidden tracked/unignored changes are reverted by the role guard | `reverted`; temporary changes and ignored files escape that comparison |
+| Product detects the test runner and behaves specially | No | Product bytes may be committed; no special violation |
+| Product or command changes a frozen file after entry restoration | No post-command protection | Can say `pass: true`, `restored: []`—finding 2 |
+
+The null-frozen windows do not, by themselves, let an ordinary forbidden net edit survive: tests/referee cannot retain a normal product or spec edit; plan/delta cannot retain a normal acceptance edit. `enforce()` catches those at session end. Its comparison is of Git-visible final state, rather than everything that happened during the session.
+
+For question 5, this is what the four JSON record families can support:
+
+| Reading | Can it be computed as written? |
+|---|---|
+| **R1.1 — valid** | **Conditionally.** Filter `C-` failures, use the clause-only denominator, require an observed reference and alternative. Direct use of `strength["clauses"]` is wrong for the enriched arm. |
+| **R1.2 — strong** | **Conditionally.** The stable, observed failure-set subtraction implements the registered definition. Use the fixed pool of 37; at least 30 catches meets 80%. Current error and interference handling can corrupt the result. |
+| **R1.3 — enrichment helps** | **Conditionally.** Pair the arms explicitly, compare catches, and correct the clause proportions. No paired-reading calculation is implemented. The later amendment correctly identifies this as a bundle comparison. |
+| **Request sentences versus base-document rules** | **Not from those JSON files alone.** The clause `Source` values live in the spec, and defect provenance lives in fixture definitions/comments. |
+| **R2.1 — repair works** | **Incomplete.** End-state marks are available, but the clean-reference mask and proof of a product change are not supplied. Different whole-tree hashes do not prove product change. |
+| **R2.2 — closing look finds it** | **A literal end-state share can be calculated, but does not establish the claimed contribution.** The defective start is ungraded; some seeds may already pass the selected checks. |
+| **R2.3 — false delta clauses** | **Not reliably.** Added IDs are recorded, but not every added clause has a test in the final suite, and historical test versions are not graded. |
+| **R3.1 — no loss** | **Conditionally.** Require a complete observed final check set, apply the declared retry rule, exclude ineligible runs, and remove apparatus effects on delivery checks. |
+| **R3.2 — first-build behavior** | **Conditionally.** The snapshot exists. Exclude test-availability checks such as expenses `unit` and due-times `suite` when reporting behavior. `report()` counts all passing checks together. |
+| **R3.3 — acceptance-driven versus delta-driven product changes** | **Not from the JSON files alone.** Stage labels establish sequence, not product changes or their attribution. Retained Git diffs and stage reports allow additional investigation. |
+| **R3.4 — whole-path time** | **Mostly.** Finished-run wall time includes sessions, gates and retries from setup onward. Match host/model/effort and eligibility explicitly. Initial host/environment preparation precedes the timer, and the report omits effort. |
+
+The journal places “the product, not the tests, changed” in R2.1. The same missing distinction matters when interpreting R2.2 and R3.3.
+
+On the remaining prompt and control-flow questions:
+
+- **Leaving failing acceptance tests in place is consistent with the scheduler.** The tests session ends, the suite freezes, the parent gates, and failures go to fix. It does not need its own all-green Until Loop.
+- **The dispute route is workable if treated as an incomplete inner loop.** It should explicitly say to write the dispute report, return blocked/unsatisfied through the callback, and let the parent invoke the referee. Claiming a satisfied inner-loop exit while its gate fails causes another iteration.
+- **The conduct rule conflicts with the supplied runtime instructions.** “Nothing outside this folder is yours to read … or change” conflicts with reading sibling tools/contracts and invoking a runtime that writes sibling receipts. The specific commands imply exceptions, but a careful model has to infer them. Name those permitted paths explicitly.
+- **Using the product during delta is compatible with prohibiting product edits.** Temporary probes and data should go under the permitted temporary directory. Ordinary persistent changes outside the two allowed files are reverted. Ignored runtime data can survive, and legitimate product use that writes tracked data may be reported as a role violation.
+- **The ordinary frozen-pointer sequence is coherent.** Plan freezes the updated spec, tests freeze their suite, referee freezes a correction, and delta freezes the enlarged spec. The dangerous cases are accepting altered protected files into a new freeze, failed-stage acceptance, and importing a source run’s HEAD without a pinned suite identity.
+- **The registered apparatus stops are present.** Stuck, max-fixes and max-cycles are explicit. However, a later failed final gate does not replace `stop: converged`, and `Run.run()` returns zero for all normal terminal stops; consumers must inspect the record.
+- **Input copying is a merge, not exact replacement.** Stale destination files can survive `copytree(..., dirs_exist_ok=True)`. Inputs containing `.git` or Ratchet-owned paths are not rejected. Also, `--frozen-from` with `--build-from` is accepted, but repair-start control flow skips the given build entirely. Reject incompatible flags and reserved input paths.
+
+The selftest’s successful guard cases remain useful evidence for ordinary final-state edits. They do not exercise these control-file changes, command-time mutations, failed-stage completion paths, grading interference or historical-reading gaps.

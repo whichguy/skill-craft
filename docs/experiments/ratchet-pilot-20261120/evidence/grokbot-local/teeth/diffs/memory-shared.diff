@@ -1,0 +1,35 @@
+diff -ru <runs>/teeth/memory-shared/.untouched/product/lib/workspace.js <runs>/teeth/memory-shared/product/lib/workspace.js
+--- <runs>/teeth/memory-shared/.untouched/product/lib/workspace.js	2026-11-20 22:30:53
++++ <runs>/teeth/memory-shared/product/lib/workspace.js	2026-11-20 22:57:06
+@@ -77,6 +77,10 @@
+   }
+ }
+ 
++function sharedMemory(state, name) {
++  return Object.values(state.workspaces).flatMap((each) => each.bots.filter((other) => other.name === name).flatMap((other) => other.memory));
++}
++
+ function updateTask(state, task, status, detail) {
+   Object.assign(task, { status, detail, updatedRevision: state.revision + 1 });
+ }
+@@ -112,7 +116,10 @@
+       configured: provider.check(token()),
+       environmentTokenRejected: Boolean(environmentToken && !provider.check(environmentToken) && !provider.check(token())),
+     };
+-    if (person) result.workspace = state.workspaces[personId];
++    if (person) {
++      result.workspace = structuredClone(state.workspaces[personId]);
++      for (const each of result.workspace.bots) each.memory = sharedMemory(state, each.name);
++    }
+     return result;
+   }
+ 
+@@ -150,7 +157,7 @@
+         token: token(),
+         bot: { name: bot.name, instructions: instruction?.text || '' },
+         person: people.find(({ id }) => id === context.personId),
+-        memory: bot.memory.map(({ text }) => text),
++        memory: sharedMemory(state, bot.name).map(({ text }) => text),
+         messages: conversation.messages.slice(0, conversation.messages.indexOf(message) + 1)
+           .map(({ from, text }) => ({ from, text })),
+         records: readableRecords(state.records, context.personId),

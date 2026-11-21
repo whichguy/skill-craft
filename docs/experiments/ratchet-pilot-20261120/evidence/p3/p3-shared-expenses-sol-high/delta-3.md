@@ -1,0 +1,11 @@
+# Closing look
+
+Reviewed the original request, current specification, plan, previous deltas, build and test reports, `fix-1.md`, README, and the service and test sources. The workspace contained no referee report. All 30 tests passed with `node --test`.
+
+Started `server.js` on OS-assigned ports with temporary data files. Replayed the README example and checked duplicate creation, unknown groups, invalid amounts and shares, unusual literal names and IDs, malformed UTF-8, a byte-order mark, duplicate JSON keys, and a zero share written with an exponent. Probed the encoded ID and expense limits at and one unit above their stated boundaries, checked exact balances and settlements beyond the expense limit, and verified 20 overlapping expenses and their state after restart. Used raw HTTP to probe the shared target and header budget. Tried a formatting-only edit on an owned snapshot, restored its original bytes with a different modification time, then installed a distinct valid snapshot and verified recovery after another refusal. Forced a process stop with a synced candidate still pending and restarted with the orphan present.
+
+## Additions
+
+- **C-104 — Usable HTTP size boundary**. product keeps to it: no. The README gives a 65,536-byte combined budget and counts query bytes. It leaves equality and header sizing unspecified. Raw HTTP/1.0 GETs without headers returned 200 at a 65,535-byte target and 431 at 65,536. With `X-Test: abc`, the respective target sizes were 65,526 and 65,527 bytes.
+- **U-22 — Restart after an interrupted snapshot save**. product keeps to it: yes. Killed the server after it synced a candidate containing expense 2 but before the candidate replaced `DATA_FILE`. The client lost its connection. Restart with the orphan present recovered only expense 1, with 2 cents credited to Ava and owed by Ben. The next valid request returned `{"expense":2}`.
+- **U-23 — Adopt a replacement snapshot after a stale-write refusal**. product keeps to it: yes. The running server refused a valid expense with 500, left the installed replacement bytes intact, and still reported Ava's prior 3-cent balance from two expenses. After stopping and restarting, balances and settlements reflected the replacement's 6 cents from three expenses. The next expense returned `{"expense":4}`.

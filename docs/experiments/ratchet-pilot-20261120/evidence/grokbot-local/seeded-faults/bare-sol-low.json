@@ -1,0 +1,505 @@
+{
+ "label": "bare, Sol 6.2 low",
+ "tree": "<runs>/g-bare-sol-low/work",
+ "sites_on_changed_lines": 114,
+ "files": {
+  "lib/records.js": 18,
+  "lib/store.js": 1,
+  "lib/work.js": 7,
+  "public/app.js": 3,
+  "server.js": 85
+ },
+ "sampled": 60,
+ "invalid": 0,
+ "commands_failing_on_the_untouched_copy": [],
+ "untouched_failures": {},
+ "faults": [
+  {
+   "file": "lib/records.js",
+   "line": 10,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": false
+  },
+  {
+   "file": "lib/store.js",
+   "line": 7,
+   "op": "bool-flip",
+   "old": "true",
+   "new": "false",
+   "own": true
+  },
+  {
+   "file": "lib/work.js",
+   "line": 7,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "public/app.js",
+   "line": 4,
+   "op": "rel-bound",
+   "old": "<",
+   "new": "<=",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 14,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": true
+  },
+  {
+   "file": "lib/records.js",
+   "line": 15,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "lib/work.js",
+   "line": 12,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "public/app.js",
+   "line": 186,
+   "op": "bool-flip",
+   "old": "true",
+   "new": "false",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 29,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "lib/records.js",
+   "line": 15,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": false
+  },
+  {
+   "file": "lib/work.js",
+   "line": 23,
+   "op": "bool-flip",
+   "old": "false",
+   "new": "true",
+   "own": true
+  },
+  {
+   "file": "public/app.js",
+   "line": 188,
+   "op": "bool-flip",
+   "old": "true",
+   "new": "false",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 29,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "own": false
+  },
+  {
+   "file": "lib/records.js",
+   "line": 15,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "lib/work.js",
+   "line": 26,
+   "op": "bool-flip",
+   "old": "true",
+   "new": "false",
+   "own": true
+  },
+  {
+   "file": "server.js",
+   "line": 29,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "own": false
+  },
+  {
+   "file": "lib/records.js",
+   "line": 15,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": false
+  },
+  {
+   "file": "lib/work.js",
+   "line": 30,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "server.js",
+   "line": 29,
+   "op": "rel-bound",
+   "old": "<=",
+   "new": "<",
+   "own": false
+  },
+  {
+   "file": "lib/records.js",
+   "line": 15,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "lib/work.js",
+   "line": 30,
+   "op": "bool-flip",
+   "old": "false",
+   "new": "true",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 29,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": false
+  },
+  {
+   "file": "lib/records.js",
+   "line": 15,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": false
+  },
+  {
+   "file": "lib/work.js",
+   "line": 33,
+   "op": "bool-flip",
+   "old": "true",
+   "new": "false",
+   "own": true
+  },
+  {
+   "file": "server.js",
+   "line": 29,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": false
+  },
+  {
+   "file": "lib/records.js",
+   "line": 15,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 29,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": false
+  },
+  {
+   "file": "lib/records.js",
+   "line": 15,
+   "op": "rel-bound",
+   "old": "<",
+   "new": "<=",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 29,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": false
+  },
+  {
+   "file": "lib/records.js",
+   "line": 15,
+   "op": "bound-literal",
+   "old": "0",
+   "new": "1",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 54,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "lib/records.js",
+   "line": 20,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "server.js",
+   "line": 54,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": true
+  },
+  {
+   "file": "lib/records.js",
+   "line": 38,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": true
+  },
+  {
+   "file": "server.js",
+   "line": 56,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "lib/records.js",
+   "line": 40,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": true
+  },
+  {
+   "file": "server.js",
+   "line": 56,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": true
+  },
+  {
+   "file": "lib/records.js",
+   "line": 44,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 62,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "lib/records.js",
+   "line": 50,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "server.js",
+   "line": 62,
+   "op": "bool-flip",
+   "old": "false",
+   "new": "true",
+   "own": true
+  },
+  {
+   "file": "lib/records.js",
+   "line": 59,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 63,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "lib/records.js",
+   "line": 59,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 70,
+   "op": "bool-flip",
+   "old": "true",
+   "new": "false",
+   "own": true
+  },
+  {
+   "file": "lib/records.js",
+   "line": 62,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 86,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "server.js",
+   "line": 86,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 86,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "server.js",
+   "line": 96,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "server.js",
+   "line": 96,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 96,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "server.js",
+   "line": 100,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": true
+  },
+  {
+   "file": "server.js",
+   "line": 101,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 103,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": true
+  },
+  {
+   "file": "server.js",
+   "line": 104,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 112,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 117,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "server.js",
+   "line": 120,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 120,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": false
+  }
+ ],
+ "own": {
+  "caught": 31,
+  "survived": 29,
+  "did_not_end": 0,
+  "not_measured": 0,
+  "share": 0.517
+ }
+}

@@ -1,0 +1,23 @@
+== Ratchet arm ended; grading every snapshot on both yardsticks 01:45:47
+[01:45:39] run ended: max-cycles; final gate PASS; 280 clauses, 29 use cases; 14 sessions; 12461.1 s
+g-ratchet-sol-high                build-2     passed 49  failed []
+g-ratchet-sol-high                fix-1       passed 49  failed []
+g-ratchet-sol-high                green-2     passed 49  failed []
+g-ratchet-sol-high                build-3     passed 49  failed []
+g-ratchet-sol-high                green-3     passed 49  failed []
+g-ratchet-sol-high                final       passed 49  failed []
+grade-exit=0
+g-ratchet-sol-high                build-2     passed 28  failed []  stated 23 of 23, implied 5 of 5
+g-ratchet-sol-high                fix-1       passed 28  failed []  stated 23 of 23, implied 5 of 5
+g-ratchet-sol-high                green-2     passed 28  failed []  stated 23 of 23, implied 5 of 5
+g-ratchet-sol-high                build-3     passed 28  failed []  stated 23 of 23, implied 5 of 5
+g-ratchet-sol-high                green-3     passed 28  failed []  stated 23 of 23, implied 5 of 5
+g-ratchet-sol-high                final       passed 28  failed []  stated 23 of 23, implied 5 of 5
+grade2-exit=0 01:59:51
+WHOLE LOOPS
+- g-ratchet-sol-high (gpt-6.2-sol high): finished, stop max-cycles, 207.7 min, 14 sessions, first build at 37.5 min; held-out first build 49, final 49; tokens out 392,253, in 47,089,909 (45,244,416 cached)
+    minutes by stage: {'spec': 10.1, 'plan': 20.7, 'build': 50.5, 'tests': 60.1, 'delta': 16.7, 'fix': 7.4, 'gates and script': 42.2}
+    cycle 1: gate 291 of 291, failing [], fix sessions 0, plan added 2, closing look added 6 (product keeps: no 3, yes 3)
+    cycle 2: gate 297 of 298, failing ['C-265'], fix sessions 1, plan added 1, closing look added 5 (product keeps: no 5, yes 0), build changed +597 -68 in 11 files
+    cycle 3: gate 304 of 304, failing [], fix sessions 0, plan added 1, closing look added 5 (product keeps: no 5, yes 0), build changed +611 -128 in 8 files
+ratchet-arm-graded 01:59:51

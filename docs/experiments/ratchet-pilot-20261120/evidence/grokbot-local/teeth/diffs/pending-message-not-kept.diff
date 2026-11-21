@@ -1,0 +1,33 @@
+diff -ru <runs>/teeth/pending-message-not-kept/.untouched/product/lib/workspace.js <runs>/teeth/pending-message-not-kept/product/lib/workspace.js
+--- <runs>/teeth/pending-message-not-kept/.untouched/product/lib/workspace.js	2026-11-20 22:30:53
++++ <runs>/teeth/pending-message-not-kept/product/lib/workspace.js	2026-11-20 22:57:08
+@@ -349,6 +349,11 @@
+           });
+           return () => generateReply(selected, id, 1);
+         }
++        case 'drop-message': {
++          const at = conversation.messages.findIndex((message) => message.id === input.id && message.reply?.status === 'pending');
++          if (at >= 0) conversation.messages.splice(at, 1);
++          return;
++        }
+         case 'retry-reply': {
+           const message = conversation.messages.at(-1);
+           if (message?.id !== input.id || message.reply?.status !== 'failed') return;
+diff -ru <runs>/teeth/pending-message-not-kept/.untouched/product/server.js <runs>/teeth/pending-message-not-kept/product/server.js
+--- <runs>/teeth/pending-message-not-kept/.untouched/product/server.js	2026-11-20 22:30:53
++++ <runs>/teeth/pending-message-not-kept/product/server.js	2026-11-20 22:57:08
+@@ -92,6 +92,14 @@
+         const input = await readInput(request);
+         if (input.personId !== personId) throw new RequestError(409, 'The active person changed. Reload to continue.');
+         workspace.action(personId, input);
++        if (input.action === 'send') {
++          let dropped = false;
++          response.on('close', () => { if (!response.writableFinished) dropped = true; });
++          const waiting = () => workspace.snapshot(personId).workspace.bots.some((bot) => bot.conversations.some((chat) =>
++            chat.messages.some((message) => message.id === input.requestId && message.reply?.status === 'pending')));
++          while (waiting() && !dropped) await new Promise((resolve) => setTimeout(resolve, 25));
++          if (dropped) { workspace.action(personId, { ...input, action: 'drop-message', id: input.requestId }); return; }
++        }
+         return json(response, 200, workspace.snapshot(personId));
+       }
+ 

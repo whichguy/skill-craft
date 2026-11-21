@@ -1,0 +1,13 @@
+ README.md              |  37 ++-
+ lib/records.js         | 111 +++++++
+ lib/service.js         | 322 ++++++++++++++++++++
+ lib/store.js           | 246 +++++++++++++++
+ lib/tasks.js           | 115 +++++++
+ lib/workspace.js       | 165 ++++++++++
+ public/app.js          | 807 +++++++++++++++++++++++++++++++++++++++++++++++++
+ public/index.html      | 161 ++++++++++
+ public/style.css       | 198 ++++++++++++
+ server.js              | 146 +++++++++
+ test/records.test.js   |  75 +++++
+ test/workspace.test.js | 565 ++++++++++++++++++++++++++++++++++
+ 12 files changed, 2944 insertions(+), 4 deletions(-)

@@ -1,0 +1,280 @@
+{
+ "case": "ticket-assignment",
+ "label": "base + Ratchet builder's own tests (Sol 6.2 medium)",
+ "tree": "/Users/dadleet/e2e-runs/ratchet-pilot-20261120-b6eab2/p3-ticket-assignment-sol-medium/work",
+ "test_files": [
+  "test/assignment-api.test.js",
+  "test/assignment-compatibility.test.js",
+  "test/assignment-input.test.js",
+  "test/assignment-persistence.test.js",
+  "test/assignment-upgrade.test.js"
+ ],
+ "reference": {
+  "ended": true,
+  "failing": [
+   "CLI ownership display spans pages and preserves raw columns and weekly report counts",
+   "CLI ownership history distinguishes null and quoted names",
+   "HTTP listing decodes only the first selected assignee value strictly",
+   "Unicode line breaks are rejected in assignee names after trimming",
+   "a failed save restores assignment state and concurrent retries use consecutive ids and audit deltas",
+   "an upgrade delivers a pending historical recipient after ownership was cleared",
+   "assignee selectors combine with status and priority before paging",
+   "assignment accepts literal replacement characters and complete UTF-8 across chunks, and rejects malformed bytes",
+   "assignment changes ownership, records its actor and audit delta, and notifies each selected agent",
+   "assignment rejects invalid bodies and actors before looking up the ticket",
+   "invalid explicit saved assignees identify the file and indexed field",
+   "old Unicode line breaks stay on one CLI history line and remain distinct from literal escapes",
+   "repeated ownership instructions are refused before lookup and leave persisted assignment state intact",
+   "saved data rejects corrupt owner or recipient bytes before startup and preserves valid U+FFFD",
+   "the first assignee filter requires valid escapes even for a percent-bearing owner"
+  ],
+  "counts": {
+   "tests": 138,
+   "pass": 123,
+   "fail": 15
+  }
+ },
+ "controls": {
+  "alternative": {
+   "ended": true,
+   "failing": [
+    "CLI ownership display spans pages and preserves raw columns and weekly report counts",
+    "CLI ownership history distinguishes null and quoted names",
+    "HTTP listing decodes only the first selected assignee value strictly",
+    "Unicode line breaks are rejected in assignee names after trimming",
+    "a failed save restores assignment state and concurrent retries use consecutive ids and audit deltas",
+    "an upgrade delivers a pending historical recipient after ownership was cleared",
+    "assignee selectors combine with status and priority before paging",
+    "assignment accepts literal replacement characters and complete UTF-8 across chunks, and rejects malformed bytes",
+    "assignment changes ownership, records its actor and audit delta, and notifies each selected agent",
+    "assignment eligibility precedes no-op detection and reopening restores eligibility",
+    "assignment no-ops leave the ticket, audit, outbox and saved bytes unchanged",
+    "assignment rejects invalid bodies and actors before looking up the ticket",
+    "invalid explicit saved assignees identify the file and indexed field",
+    "legacy tickets load as null and assignment state, history and events survive restart",
+    "old Unicode line breaks stay on one CLI history line and remain distinct from literal escapes",
+    "repeated ownership instructions are refused before lookup and leave persisted assignment state intact",
+    "saved data rejects corrupt owner or recipient bytes before startup and preserves valid U+FFFD",
+    "service reads leave a legacy file byte-identical before the first save",
+    "the first assignee filter requires valid escapes even for a percent-bearing owner",
+    "the worker retries an assignment with backoff, then logs and leaves it dead"
+   ],
+   "counts": {
+    "tests": 138,
+    "pass": 118,
+    "fail": 20
+   }
+  }
+ },
+ "defects": {
+  "filter-or": {
+   "caught": true,
+   "by": [
+    "assignee cursor continuation sees gains and losses beyond its original numeric boundary"
+   ]
+  },
+  "filter-after-page": {
+   "caught": true,
+   "by": [
+    "assignee cursor continuation sees gains and losses beyond its original numeric boundary"
+   ]
+  },
+  "no-envelope": {
+   "caught": true,
+   "by": [
+    "assignment eligibility precedes no-op detection and reopening restores eligibility"
+   ]
+  },
+  "conflict-as-invalid": {
+   "caught": true,
+   "by": [
+    "assignment eligibility precedes no-op detection and reopening restores eligibility"
+   ]
+  },
+  "closed-assignable": {
+   "caught": true,
+   "by": [
+    "assignment eligibility precedes no-op detection and reopening restores eligibility"
+   ]
+  },
+  "notify-inline": {
+   "caught": true,
+   "by": [
+    "legacy tickets load as null and assignment state, history and events survive restart",
+    "service reads leave a legacy file byte-identical before the first save",
+    "the worker retries an assignment with backoff, then logs and leaves it dead"
+   ]
+  },
+  "notify-no-template": {
+   "caught": true,
+   "by": [
+    "legacy tickets load as null and assignment state, history and events survive restart",
+    "service reads leave a legacy file byte-identical before the first save"
+   ]
+  },
+  "notify-key-per-ticket": {
+   "caught": false,
+   "by": []
+  },
+  "notify-requester": {
+   "caught": true,
+   "by": [
+    "legacy tickets load as null and assignment state, history and events survive restart",
+    "service reads leave a legacy file byte-identical before the first save",
+    "the worker retries an assignment with backoff, then logs and leaves it dead"
+   ]
+  },
+  "audit-bypassed": {
+   "caught": true,
+   "by": [
+    "service reads leave a legacy file byte-identical before the first save"
+   ]
+  },
+  "actor-ignored": {
+   "caught": false,
+   "by": []
+  },
+  "same-agent-not-noop": {
+   "caught": true,
+   "by": [
+    "assignment no-ops leave the ticket, audit, outbox and saved bytes unchanged",
+    "service reads leave a legacy file byte-identical before the first save"
+   ]
+  },
+  "memory-only-assignee": {
+   "caught": null,
+   "by": []
+  },
+  "old-data-refused": {
+   "caught": true,
+   "by": [
+    "legacy tickets load as null and assignment state, history and events survive restart",
+    "service reads leave a legacy file byte-identical before the first save"
+   ]
+  },
+  "old-assignee-undefined": {
+   "caught": true,
+   "by": [
+    "legacy tickets load as null and assignment state, history and events survive restart",
+    "service reads leave a legacy file byte-identical before the first save"
+   ]
+  },
+  "raw-column-inserted": {
+   "caught": false,
+   "by": []
+  },
+  "cli-no-assignee": {
+   "caught": false,
+   "by": []
+  },
+  "no-unassign": {
+   "caught": true,
+   "by": [
+    "assignment eligibility precedes no-op detection and reopening restores eligibility",
+    "assignment no-ops leave the ticket, audit, outbox and saved bytes unchanged",
+    "legacy tickets load as null and assignment state, history and events survive restart",
+    "service reads leave a legacy file byte-identical before the first save"
+   ]
+  },
+  "empty-filter-ignored": {
+   "caught": false,
+   "by": []
+  },
+  "name-limit-off-by-one": {
+   "caught": false,
+   "by": []
+  },
+  "listing-hides-assignee": {
+   "caught": true,
+   "by": [
+    "service reads leave a legacy file byte-identical before the first save"
+   ]
+  },
+  "update-rejects-resolved": {
+   "caught": false,
+   "by": []
+  },
+  "default-limit-changed": {
+   "caught": true,
+   "by": [
+    "GET /tickets",
+    "defaults to no filter, 20 a page, from the start",
+    "ignores parameters it does not know, offset included",
+    "lists every ticket in id order, 20 to a page",
+    "parseListQuery"
+   ]
+  },
+  "resolved-template-replaced": {
+   "caught": true,
+   "by": [
+    "a notification is worded by the template of its type",
+    "with a file, each delivery appends one JSON line"
+   ]
+  },
+  "audit-not-saved": {
+   "caught": true,
+   "by": [
+    "a file the service cannot use is refused",
+    "a restarted store keeps its tickets, history and outbox, and never reuses a number",
+    "an audit log with a gap",
+    "every change is saved, and loading gives the same state back",
+    "legacy tickets load as null and assignment state, history and events survive restart",
+    "service reads leave a legacy file byte-identical before the first save"
+   ]
+  },
+  "backoff-linear": {
+   "caught": true,
+   "by": [
+    "the worker retries an assignment with backoff, then logs and leaves it dead"
+   ]
+  },
+  "validate-renamed": {
+   "caught": false,
+   "by": []
+  }
+ },
+ "caught": 18,
+ "pool": 27,
+ "tests_on_reference": {
+  "tests": 138,
+  "pass": 123,
+  "fail": 15
+ },
+ "failing_on_reference": [
+  "CLI ownership display spans pages and preserves raw columns and weekly report counts",
+  "CLI ownership history distinguishes null and quoted names",
+  "HTTP listing decodes only the first selected assignee value strictly",
+  "Unicode line breaks are rejected in assignee names after trimming",
+  "a failed save restores assignment state and concurrent retries use consecutive ids and audit deltas",
+  "an upgrade delivers a pending historical recipient after ownership was cleared",
+  "assignee selectors combine with status and priority before paging",
+  "assignment accepts literal replacement characters and complete UTF-8 across chunks, and rejects malformed bytes",
+  "assignment changes ownership, records its actor and audit delta, and notifies each selected agent",
+  "assignment rejects invalid bodies and actors before looking up the ticket",
+  "invalid explicit saved assignees identify the file and indexed field",
+  "old Unicode line breaks stay on one CLI history line and remain distinct from literal escapes",
+  "repeated ownership instructions are refused before lookup and leave persisted assignment state intact",
+  "saved data rejects corrupt owner or recipient bytes before startup and preserves valid U+FFFD",
+  "the first assignee filter requires valid escapes even for a percent-bearing owner"
+ ],
+ "missed": [
+  "actor-ignored",
+  "cli-no-assignee",
+  "empty-filter-ignored",
+  "name-limit-off-by-one",
+  "notify-key-per-ticket",
+  "raw-column-inserted",
+  "update-rejects-resolved",
+  "validate-renamed"
+ ],
+ "not_judged": [
+  "memory-only-assignee"
+ ],
+ "control_alternative_fails_beyond_reference": [
+  "assignment eligibility precedes no-op detection and reopening restores eligibility",
+  "assignment no-ops leave the ticket, audit, outbox and saved bytes unchanged",
+  "legacy tickets load as null and assignment state, history and events survive restart",
+  "service reads leave a legacy file byte-identical before the first save",
+  "the worker retries an assignment with backoff, then logs and leaves it dead"
+ ]
+}

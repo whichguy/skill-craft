@@ -1,0 +1,32 @@
+[19:00:29] session 1: spec-1
+[19:05:24]   ended exited after 295.9 s
+[19:05:25] session 2: build-1
+[19:07:53]   ended exited after 148.5 s
+[19:07:54] gate 1 (after-build-1): PASS; 0 of 0 clauses pass
+[19:07:54] session 3: tests-1-1
+[19:15:24]   ended exited after 450.4 s
+[19:15:57] gate 2 (cycle-1-first): PASS; 68 of 68 clauses pass
+[19:15:57] session 4: delta-1
+[19:18:53]   ended exited after 176.5 s
+[19:18:53]   delta 1: 5 new clause(s): C-69, C-70, C-71, C-72, C-73
+[19:18:53] session 5: build-2
+[19:21:42]   ended exited after 168.6 s
+[19:22:11] gate 3 (after-build-2): PASS; 68 of 68 clauses pass
+[19:22:11] session 6: tests-2-1
+[19:26:38]   ended exited after 266.7 s
+[19:27:08] gate 4 (cycle-2-first): PASS; 73 of 73 clauses pass
+[19:27:08] session 7: delta-2
+[19:29:15]   ended exited after 127.5 s
+[19:29:16]   delta 2: 3 new clause(s): C-74, C-75, C-76
+[19:29:16] session 8: build-3
+[19:31:12]   ended exited after 116.7 s
+[19:31:43] gate 5 (after-build-3): PASS; 73 of 73 clauses pass
+[19:31:43] session 9: tests-3-1
+[19:35:43]   ended exited after 239.1 s
+[19:36:18] gate 6 (cycle-3-first): PASS; 76 of 76 clauses pass
+[19:36:18] session 10: delta-3
+[19:38:39]   ended exited after 141.9 s
+[19:38:40]   delta 3: 1 new clause(s): C-77
+[19:39:14] gate 7 (final): PASS; 76 of 76 clauses pass
+[19:39:14] run ended: max-cycles; final gate PASS; 77 clauses; 10 sessions; 2325.2 s
+exit=0

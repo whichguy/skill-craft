@@ -1,0 +1,13 @@
+3e931c7 docs(shiploop): record skill-craft-shiploop-build-and-deliver-3f64f0 knowledge after operations
+85c6d85 docs(shiploop): record skill-craft-shiploop-build-and-deliver-3f64f0 knowledge at release-verify
+000b7a7 docs(shiploop): record skill-craft-shiploop-build-and-deliver-3f64f0 knowledge at release-plan
+6faca87 docs(shiploop): record skill-craft-shiploop-build-and-deliver-3f64f0 knowledge after system-test-author
+7abeaf7 docs(shiploop): record skill-craft-shiploop-build-and-deliver-3f64f0 knowledge after carry-forward
+ac02eb7 feat(W1/S2): Stillroom’s conversation interface works on desktop and narrow screens
+51513e4 feat(W1/S1): The server now persists private workspaces, consent and background work
+518f017 docs(shiploop): record skill-craft-shiploop-build-and-deliver-3f64f0 knowledge at prepare
+0a73b9c docs(shiploop): record skill-craft-shiploop-build-and-deliver-3f64f0 knowledge after plan
+853c72f docs(shiploop): record skill-craft-shiploop-build-and-deliver-3f64f0 knowledge after test-strategy
+eb67a48 docs(shiploop): record skill-craft-shiploop-build-and-deliver-3f64f0 knowledge after spec
+b853467 docs(shiploop): record skill-craft-shiploop-build-and-deliver-3f64f0 knowledge after discovery
+25fdda3 base: grokbot-local

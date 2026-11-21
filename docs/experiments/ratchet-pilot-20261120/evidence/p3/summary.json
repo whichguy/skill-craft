@@ -1,0 +1,2724 @@
+[
+ {
+  "run": "smoke-standin-sol-high",
+  "case": "stand-in-rules",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "max-cycles",
+  "final_pass": true,
+  "minutes": 38.8,
+  "sessions": 10,
+  "clauses": 77,
+  "use_cases": null,
+  "kind": "whole loop",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "spec": 4.9,
+   "build": 7.2,
+   "tests": 15.9,
+   "delta": 7.4,
+   "gates and script": 3.2
+  },
+  "tokens": {
+   "input": 4993600,
+   "cached": 4598784,
+   "output": 84885,
+   "reasoning": 29176
+  },
+  "minutes_to_first_build": 7.4,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [],
+    "first_gate": "68 of 68",
+    "first_gate_failing": [],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-69",
+     "C-70",
+     "C-71",
+     "C-72",
+     "C-73"
+    ],
+    "delta_keeps_no": 0,
+    "delta_keeps_yes": 5
+   },
+   {
+    "cycle": 2,
+    "plan_added": [],
+    "first_gate": "73 of 73",
+    "first_gate_failing": [],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-74",
+     "C-75",
+     "C-76"
+    ],
+    "delta_keeps_no": 0,
+    "delta_keeps_yes": 3,
+    "build_changed": {
+     "files": 2,
+     "added": 66,
+     "removed": 10
+    }
+   },
+   {
+    "cycle": 3,
+    "plan_added": [],
+    "first_gate": "76 of 76",
+    "first_gate_failing": [],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-77"
+    ],
+    "delta_keeps_no": 0,
+    "delta_keeps_yes": 1,
+    "build_changed": {
+     "files": 2,
+     "added": 40,
+     "removed": 6
+    }
+   }
+  ],
+  "hidden": {
+   "build-1": {
+    "passed": 2,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "green-1": {
+    "passed": 2,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "build-2": {
+    "passed": 2,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "green-2": {
+    "passed": 2,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "build-3": {
+    "passed": 2,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "green-3": {
+    "passed": 2,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "final": {
+    "passed": 2,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   }
+  },
+  "hidden_first_build": {
+   "passed": 2,
+   "failed": [],
+   "observed": true,
+   "rerun": false
+  },
+  "hidden_start": null,
+  "hidden_final": {
+   "passed": 2,
+   "failed": [],
+   "observed": true,
+   "rerun": false
+  },
+  "strength": {
+   "clauses": 76,
+   "use_cases": 0,
+   "caught": 4,
+   "pool": 4,
+   "not_judged": [],
+   "graded_with": "5843de25c56556af79309c4c98f4d17028807758 (with uncommitted changes to the pilot folder)",
+   "clauses_failing_on_reference": 13,
+   "use_cases_failing_on_reference": 0,
+   "missed": []
+  }
+ },
+ {
+  "run": "p1-stand-in-rules",
+  "case": "stand-in-rules",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "stop-after-tests",
+  "final_pass": false,
+  "minutes": 12.9,
+  "sessions": 2,
+  "clauses": 63,
+  "use_cases": null,
+  "kind": "test strength",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "spec": 4.6,
+   "tests": 7.7,
+   "gates and script": 0.6
+  },
+  "tokens": {
+   "input": 930069,
+   "cached": 858496,
+   "output": 33479,
+   "reasoning": 11599
+  },
+  "minutes_to_first_build": 4.6,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [],
+    "first_gate": "41 of 63",
+    "first_gate_failing": [
+     "C-13",
+     "C-14",
+     "C-15",
+     "C-16",
+     "C-17",
+     "C-18",
+     "C-19",
+     "C-22",
+     "C-24",
+     "C-25",
+     "C-27",
+     "C-28",
+     "C-29",
+     "C-32",
+     "C-35",
+     "C-37",
+     "C-38",
+     "C-39",
+     "C-40",
+     "C-41",
+     "C-42",
+     "C-63",
+     "check: npm test"
+    ],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": null
+   }
+  ],
+  "strength": {
+   "clauses": 63,
+   "use_cases": 0,
+   "caught": 2,
+   "pool": 4,
+   "not_judged": [],
+   "graded_with": "5843de25c56556af79309c4c98f4d17028807758 (with uncommitted changes to the pilot folder)",
+   "clauses_failing_on_reference": 22,
+   "use_cases_failing_on_reference": 0,
+   "missed": [
+    "cross-field",
+    "tested-only"
+   ]
+  }
+ },
+ {
+  "run": "p1-ticket-assignment",
+  "case": "ticket-assignment",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "stop-after-tests",
+  "final_pass": false,
+  "minutes": 28.4,
+  "sessions": 2,
+  "clauses": 190,
+  "use_cases": null,
+  "kind": "test strength",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "spec": 7.7,
+   "tests": 18.6,
+   "gates and script": 2.2
+  },
+  "tokens": {
+   "input": 4086542,
+   "cached": 3902848,
+   "output": 69812,
+   "reasoning": 14922
+  },
+  "minutes_to_first_build": 7.8,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [],
+    "first_gate": "177 of 190",
+    "first_gate_failing": [
+     "C-9",
+     "C-12",
+     "C-13",
+     "C-44",
+     "C-48",
+     "C-51",
+     "C-57",
+     "C-63",
+     "C-64",
+     "C-68",
+     "C-71",
+     "C-73",
+     "C-186"
+    ],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": null
+   }
+  ],
+  "strength": {
+   "clauses": 190,
+   "use_cases": 0,
+   "caught": 27,
+   "pool": 27,
+   "not_judged": [],
+   "graded_with": "d136112d338dc129facf9f596e7d0a7a783d676d",
+   "clauses_failing_on_reference": 13,
+   "use_cases_failing_on_reference": 0,
+   "control_alternative_fails_beyond_reference": 24,
+   "missed": []
+  }
+ },
+ {
+  "run": "p1-ticket-due-times",
+  "case": "ticket-due-times",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "stop-after-tests",
+  "final_pass": false,
+  "minutes": 36.4,
+  "sessions": 2,
+  "clauses": 223,
+  "use_cases": null,
+  "kind": "test strength",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "spec": 12.1,
+   "tests": 21.3,
+   "gates and script": 3.0
+  },
+  "tokens": {
+   "input": 4134943,
+   "cached": 3927168,
+   "output": 92234,
+   "reasoning": 20404
+  },
+  "minutes_to_first_build": 12.1,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [],
+    "first_gate": "178 of 223",
+    "first_gate_failing": [
+     "C-2",
+     "C-10",
+     "C-12",
+     "C-13",
+     "C-24",
+     "C-40",
+     "C-43",
+     "C-50",
+     "C-52",
+     "C-56",
+     "C-57",
+     "C-58",
+     "C-59",
+     "C-60",
+     "C-61",
+     "C-62",
+     "C-63",
+     "C-64",
+     "C-65",
+     "C-66",
+     "C-67",
+     "C-68",
+     "C-69",
+     "C-70",
+     "C-71",
+     "C-72",
+     "C-73",
+     "C-74",
+     "C-75",
+     "C-76",
+     "C-77",
+     "C-78",
+     "C-79",
+     "C-80",
+     "C-84",
+     "C-85",
+     "C-147",
+     "C-206",
+     "C-207",
+     "C-217",
+     "C-218",
+     "C-220",
+     "C-221",
+     "C-222",
+     "C-223"
+    ],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": null
+   }
+  ],
+  "strength": {
+   "clauses": 223,
+   "use_cases": 0,
+   "caught": 5,
+   "pool": 6,
+   "not_judged": [],
+   "graded_with": "d136112d338dc129facf9f596e7d0a7a783d676d",
+   "clauses_failing_on_reference": 45,
+   "use_cases_failing_on_reference": 0,
+   "missed": [
+    "no-backfill"
+   ]
+  }
+ },
+ {
+  "run": "p1e-stand-in-rules",
+  "case": "stand-in-rules",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "stop-after-tests",
+  "final_pass": false,
+  "minutes": 19.1,
+  "sessions": 3,
+  "clauses": 63,
+  "use_cases": 8,
+  "kind": "test strength",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "spec": 5.3,
+   "plan": 3.3,
+   "tests": 9.8,
+   "gates and script": 0.7
+  },
+  "tokens": {
+   "input": 1878243,
+   "cached": 1701248,
+   "output": 49731,
+   "reasoning": 18020
+  },
+  "minutes_to_first_build": 8.6,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [],
+    "first_gate": "58 of 71",
+    "first_gate_failing": [
+     "C-12",
+     "C-13",
+     "C-14",
+     "C-18",
+     "C-20",
+     "C-26",
+     "C-36",
+     "C-38",
+     "C-61",
+     "C-62",
+     "C-63",
+     "U-4",
+     "U-8"
+    ],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": null
+   }
+  ],
+  "strength": {
+   "clauses": 63,
+   "use_cases": 8,
+   "caught": 4,
+   "pool": 4,
+   "not_judged": [],
+   "graded_with": "5843de25c56556af79309c4c98f4d17028807758 (with uncommitted changes to the pilot folder)",
+   "clauses_failing_on_reference": 11,
+   "use_cases_failing_on_reference": 2,
+   "missed": []
+  }
+ },
+ {
+  "run": "p1e2-stand-in-rules",
+  "case": "stand-in-rules",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "stop-after-tests",
+  "final_pass": false,
+  "minutes": 18.8,
+  "sessions": 3,
+  "clauses": 69,
+  "use_cases": 12,
+  "kind": "test strength",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "spec": 6.1,
+   "plan": 2.3,
+   "tests": 9.6,
+   "gates and script": 0.8
+  },
+  "tokens": {
+   "input": 1874425,
+   "cached": 1748480,
+   "output": 49042,
+   "reasoning": 19416
+  },
+  "minutes_to_first_build": 8.4,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [],
+    "first_gate": "69 of 81",
+    "first_gate_failing": [
+     "C-20",
+     "C-22",
+     "C-30",
+     "C-31",
+     "C-32",
+     "C-36",
+     "C-37",
+     "C-67",
+     "C-68",
+     "U-5",
+     "U-7",
+     "U-12"
+    ],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": null
+   }
+  ],
+  "strength": {
+   "clauses": 69,
+   "use_cases": 12,
+   "caught": 4,
+   "pool": 4,
+   "not_judged": [],
+   "graded_with": "5843de25c56556af79309c4c98f4d17028807758 (with uncommitted changes to the pilot folder)",
+   "clauses_failing_on_reference": 9,
+   "use_cases_failing_on_reference": 3,
+   "missed": []
+  }
+ },
+ {
+  "run": "p1e2-ticket-assignment",
+  "case": "ticket-assignment",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "stop-after-tests",
+  "final_pass": false,
+  "minutes": 46.7,
+  "sessions": 3,
+  "clauses": 192,
+  "use_cases": 17,
+  "kind": "test strength",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [
+   "skill-craft"
+  ],
+  "minutes_by_stage": {
+   "spec": 13.5,
+   "plan": 6.0,
+   "tests": 21.8,
+   "gates and script": 5.4
+  },
+  "tokens": {
+   "input": 5656325,
+   "cached": 5364736,
+   "output": 94976,
+   "reasoning": 19804
+  },
+  "minutes_to_first_build": 19.6,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [
+     "C-191",
+     "C-192"
+    ],
+    "first_gate": "190 of 209",
+    "first_gate_failing": [
+     "C-64",
+     "C-87",
+     "C-103",
+     "C-114",
+     "C-123",
+     "C-133",
+     "C-136",
+     "C-137",
+     "C-185",
+     "C-187",
+     "C-189",
+     "C-190",
+     "C-191",
+     "C-192",
+     "U-5",
+     "U-8",
+     "U-10",
+     "U-12",
+     "U-17"
+    ],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": null
+   }
+  ],
+  "strength": {
+   "clauses": 192,
+   "use_cases": 17,
+   "caught": 27,
+   "pool": 27,
+   "not_judged": [],
+   "graded_with": "75cf93a00a79fa175ac8731fe5c7feac2fa287e9",
+   "clauses_failing_on_reference": 15,
+   "use_cases_failing_on_reference": 5,
+   "control_alternative_fails_beyond_reference": 17,
+   "missed": []
+  }
+ },
+ {
+  "run": "p1e2-ticket-due-times",
+  "case": "ticket-due-times",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "stop-after-tests",
+  "final_pass": false,
+  "minutes": 46.7,
+  "sessions": 3,
+  "clauses": 238,
+  "use_cases": 15,
+  "kind": "test strength",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "spec": 10.1,
+   "plan": 5.5,
+   "tests": 27.2,
+   "gates and script": 3.9
+  },
+  "tokens": {
+   "input": 6324177,
+   "cached": 5766528,
+   "output": 112205,
+   "reasoning": 24623
+  },
+  "minutes_to_first_build": 15.6,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [
+     "C-237",
+     "C-238"
+    ],
+    "first_gate": "210 of 253",
+    "first_gate_failing": [
+     "C-1",
+     "C-6",
+     "C-7",
+     "C-9",
+     "C-10",
+     "C-11",
+     "C-34",
+     "C-42",
+     "C-43",
+     "C-44",
+     "C-45",
+     "C-46",
+     "C-47",
+     "C-48",
+     "C-52",
+     "C-60",
+     "C-61",
+     "C-63",
+     "C-64",
+     "C-65",
+     "C-71",
+     "C-72",
+     "C-73",
+     "C-74",
+     "C-75",
+     "C-76",
+     "C-214",
+     "C-216",
+     "C-231",
+     "C-232",
+     "C-234",
+     "C-235",
+     "C-236",
+     "C-237",
+     "C-238",
+     "U-4",
+     "U-6",
+     "U-7",
+     "U-8",
+     "U-9",
+     "U-11",
+     "U-12",
+     "U-15"
+    ],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": null
+   }
+  ],
+  "strength": {
+   "clauses": 238,
+   "use_cases": 15,
+   "caught": 6,
+   "pool": 6,
+   "not_judged": [],
+   "graded_with": "75cf93a00a79fa175ac8731fe5c7feac2fa287e9",
+   "clauses_failing_on_reference": 35,
+   "use_cases_failing_on_reference": 8,
+   "missed": []
+  }
+ },
+ {
+  "run": "p2-assign-filter-after-page",
+  "case": "ticket-assignment",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "max-cycles",
+  "final_pass": true,
+  "minutes": 26.8,
+  "sessions": 3,
+  "clauses": 194,
+  "use_cases": 17,
+  "kind": "repair start",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "fix": 11.3,
+   "referee": 0.7,
+   "delta": 3.9,
+   "gates and script": 10.9
+  },
+  "tokens": {
+   "input": 7649679,
+   "cached": 7434368,
+   "output": 34287,
+   "reasoning": 14940
+  },
+  "minutes_to_first_build": null,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [],
+    "first_gate": "185 of 209",
+    "first_gate_failing": [
+     "C-64",
+     "C-74",
+     "C-87",
+     "C-97",
+     "C-99",
+     "C-101",
+     "C-103",
+     "C-114",
+     "C-123",
+     "C-133",
+     "C-136",
+     "C-137",
+     "C-185",
+     "C-187",
+     "C-189",
+     "C-190",
+     "C-191",
+     "C-192",
+     "U-5",
+     "U-8",
+     "U-9",
+     "U-10",
+     "U-12",
+     "U-17"
+    ],
+    "fix_sessions": 1,
+    "disputes": 1,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-193",
+     "C-194"
+    ],
+    "delta_keeps_no": 2,
+    "delta_keeps_yes": 0
+   }
+  ],
+  "product_changed": {
+   "files": 9,
+   "added": 192,
+   "removed": 36
+  },
+  "frozen_tests_changed": "1 file changed, 11 insertions(+), 6 deletions(-)",
+  "referee_sessions": 1,
+  "fix_sessions": 1,
+  "gate_start": "185 of 209",
+  "gate_end": "209 of 209",
+  "gate_end_failing": [],
+  "hidden": {
+   "frozen suite of an earlier run": {
+    "passed": 17,
+    "failed": [
+     "assignee-filter-pages"
+    ],
+    "observed": true,
+    "rerun": false
+   },
+   "fix-1": {
+    "passed": 18,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "green-1": {
+    "passed": 18,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "final": {
+    "passed": 18,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   }
+  },
+  "hidden_first_build": null,
+  "hidden_start": {
+   "passed": 17,
+   "failed": [
+    "assignee-filter-pages"
+   ],
+   "observed": true,
+   "rerun": false
+  },
+  "hidden_final": {
+   "passed": 18,
+   "failed": [],
+   "observed": true,
+   "rerun": false
+  }
+ },
+ {
+  "run": "p2-assign-filter-or",
+  "case": "ticket-assignment",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "stuck",
+  "final_pass": false,
+  "minutes": 37.7,
+  "sessions": 5,
+  "clauses": 192,
+  "use_cases": 17,
+  "kind": "repair start",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "fix": 13.7,
+   "referee": 5.0,
+   "gates and script": 19.0
+  },
+  "tokens": {
+   "input": 5628001,
+   "cached": 5311616,
+   "output": 32811,
+   "reasoning": 10203
+  },
+  "minutes_to_first_build": null,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [],
+    "first_gate": "180 of 209",
+    "first_gate_failing": [
+     "C-64",
+     "C-87",
+     "C-91",
+     "C-99",
+     "C-101",
+     "C-103",
+     "C-113",
+     "C-114",
+     "C-123",
+     "C-133",
+     "C-135",
+     "C-136",
+     "C-137",
+     "C-184",
+     "C-185",
+     "C-186",
+     "C-187",
+     "C-189",
+     "C-190",
+     "C-191",
+     "C-192",
+     "U-5",
+     "U-8",
+     "U-9",
+     "U-10",
+     "U-12",
+     "U-15",
+     "U-16",
+     "U-17",
+     "check: npm test"
+    ],
+    "fix_sessions": 3,
+    "disputes": 8,
+    "referee_refused": 0,
+    "delta_added": null
+   }
+  ],
+  "product_changed": {
+   "files": 9,
+   "added": 222,
+   "removed": 39
+  },
+  "frozen_tests_changed": "3 files changed, 90 insertions(+), 60 deletions(-)",
+  "referee_sessions": 2,
+  "fix_sessions": 3,
+  "gate_start": "180 of 209",
+  "gate_end": "207 of 209",
+  "gate_end_failing": [
+   "C-135",
+   "U-15"
+  ],
+  "hidden": {
+   "frozen suite of an earlier run": {
+    "passed": 17,
+    "failed": [
+     "filters-combine"
+    ],
+    "observed": true,
+    "rerun": false
+   },
+   "fix-1": {
+    "passed": 18,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "fix-2": {
+    "passed": 18,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "fix-3": {
+    "passed": 18,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "final": {
+    "passed": 18,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   }
+  },
+  "hidden_first_build": null,
+  "hidden_start": {
+   "passed": 17,
+   "failed": [
+    "filters-combine"
+   ],
+   "observed": true,
+   "rerun": false
+  },
+  "hidden_final": {
+   "passed": 18,
+   "failed": [],
+   "observed": true,
+   "rerun": false
+  }
+ },
+ {
+  "run": "p2-due-priority-moves-due",
+  "case": "ticket-due-times",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "max-cycles",
+  "final_pass": true,
+  "minutes": 16.9,
+  "sessions": 2,
+  "clauses": 240,
+  "use_cases": 15,
+  "kind": "repair start",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "fix": 6.5,
+   "delta": 4.2,
+   "gates and script": 6.2
+  },
+  "tokens": {
+   "input": 3748342,
+   "cached": 3575552,
+   "output": 23983,
+   "reasoning": 6803
+  },
+  "minutes_to_first_build": null,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [],
+    "first_gate": "208 of 253",
+    "first_gate_failing": [
+     "C-1",
+     "C-6",
+     "C-7",
+     "C-9",
+     "C-10",
+     "C-11",
+     "C-13",
+     "C-34",
+     "C-42",
+     "C-43",
+     "C-44",
+     "C-45",
+     "C-46",
+     "C-47",
+     "C-48",
+     "C-52",
+     "C-60",
+     "C-61",
+     "C-63",
+     "C-64",
+     "C-65",
+     "C-71",
+     "C-72",
+     "C-73",
+     "C-74",
+     "C-75",
+     "C-76",
+     "C-214",
+     "C-216",
+     "C-231",
+     "C-232",
+     "C-234",
+     "C-235",
+     "C-236",
+     "C-237",
+     "C-238",
+     "U-2",
+     "U-4",
+     "U-6",
+     "U-7",
+     "U-8",
+     "U-9",
+     "U-11",
+     "U-12",
+     "U-15"
+    ],
+    "fix_sessions": 1,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-239",
+     "C-240"
+    ],
+    "delta_keeps_no": 1,
+    "delta_keeps_yes": 1
+   }
+  ],
+  "product_changed": {
+   "files": 17,
+   "added": 344,
+   "removed": 78
+  },
+  "frozen_tests_changed": "unchanged",
+  "referee_sessions": 0,
+  "fix_sessions": 1,
+  "gate_start": "208 of 253",
+  "gate_end": "253 of 253",
+  "gate_end_failing": [],
+  "hidden": {
+   "frozen suite of an earlier run": {
+    "passed": 6,
+    "failed": [
+     "restart",
+     "suite"
+    ],
+    "observed": true,
+    "rerun": false
+   },
+   "fix-1": {
+    "passed": 4,
+    "failed": [
+     "cli",
+     "migrate",
+     "restart",
+     "rollback"
+    ],
+    "observed": true,
+    "rerun": false
+   },
+   "green-1": {
+    "passed": 4,
+    "failed": [
+     "cli",
+     "migrate",
+     "restart",
+     "rollback"
+    ],
+    "observed": true,
+    "rerun": false
+   },
+   "final": {
+    "passed": 4,
+    "failed": [
+     "cli",
+     "migrate",
+     "restart",
+     "rollback"
+    ],
+    "observed": true,
+    "rerun": false
+   }
+  },
+  "hidden_first_build": null,
+  "hidden_start": {
+   "passed": 6,
+   "failed": [
+    "restart",
+    "suite"
+   ],
+   "observed": true,
+   "rerun": false
+  },
+  "hidden_final": {
+   "passed": 4,
+   "failed": [
+    "cli",
+    "migrate",
+    "restart",
+    "rollback"
+   ],
+   "observed": true,
+   "rerun": false
+  }
+ },
+ {
+  "run": "p2-due-version-two",
+  "case": "ticket-due-times",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "stuck",
+  "final_pass": false,
+  "minutes": 41.0,
+  "sessions": 4,
+  "clauses": 238,
+  "use_cases": 15,
+  "kind": "repair start",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "fix": 24.9,
+   "referee": 4.3,
+   "gates and script": 11.8
+  },
+  "tokens": {
+   "input": 6934223,
+   "cached": 6582016,
+   "output": 43653,
+   "reasoning": 12277
+  },
+  "minutes_to_first_build": null,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [],
+    "first_gate": "198 of 253",
+    "first_gate_failing": [
+     "C-1",
+     "C-6",
+     "C-7",
+     "C-9",
+     "C-10",
+     "C-11",
+     "C-22",
+     "C-34",
+     "C-42",
+     "C-43",
+     "C-44",
+     "C-45",
+     "C-46",
+     "C-47",
+     "C-48",
+     "C-52",
+     "C-60",
+     "C-61",
+     "C-63",
+     "C-64",
+     "C-65",
+     "C-67",
+     "C-68",
+     "C-69",
+     "C-70",
+     "C-71",
+     "C-72",
+     "C-73",
+     "C-74",
+     "C-75",
+     "C-76",
+     "C-124",
+     "C-138",
+     "C-190",
+     "C-214",
+     "C-216",
+     "C-217",
+     "C-229",
+     "C-231",
+     "C-232",
+     "C-233",
+     "C-234",
+     "C-235",
+     "C-236",
+     "C-237",
+     "C-238",
+     "U-4",
+     "U-6",
+     "U-7",
+     "U-8",
+     "U-9",
+     "U-11",
+     "U-12",
+     "U-14",
+     "U-15",
+     "check: npm test"
+    ],
+    "fix_sessions": 3,
+    "disputes": 16,
+    "referee_refused": 0,
+    "delta_added": null
+   }
+  ],
+  "product_changed": {
+   "files": 17,
+   "added": 361,
+   "removed": 89
+  },
+  "frozen_tests_changed": "6 files changed, 159 insertions(+), 87 deletions(-)",
+  "referee_sessions": 1,
+  "fix_sessions": 3,
+  "gate_start": "198 of 253",
+  "gate_end": "246 of 253",
+  "gate_end_failing": [
+   "C-22",
+   "C-67",
+   "C-68",
+   "C-70",
+   "C-124",
+   "C-233",
+   "U-11"
+  ],
+  "hidden": {
+   "frozen suite of an earlier run": {
+    "passed": 5,
+    "failed": [
+     "pristine",
+     "rollback",
+     "suite"
+    ],
+    "observed": true,
+    "rerun": false
+   },
+   "fix-1": {
+    "passed": 4,
+    "failed": [
+     "cli",
+     "migrate",
+     "restart",
+     "rollback"
+    ],
+    "observed": true,
+    "rerun": false
+   },
+   "fix-2": {
+    "passed": 4,
+    "failed": [
+     "cli",
+     "migrate",
+     "restart",
+     "rollback"
+    ],
+    "observed": true,
+    "rerun": false
+   },
+   "fix-3": {
+    "passed": 4,
+    "failed": [
+     "cli",
+     "migrate",
+     "pristine",
+     "restart",
+     "rollback"
+    ],
+    "observed": true,
+    "rerun": true
+   },
+   "final": {
+    "passed": 4,
+    "failed": [
+     "cli",
+     "migrate",
+     "pristine",
+     "restart",
+     "rollback"
+    ],
+    "observed": true,
+    "rerun": true
+   }
+  },
+  "hidden_first_build": null,
+  "hidden_start": {
+   "passed": 5,
+   "failed": [
+    "pristine",
+    "rollback",
+    "suite"
+   ],
+   "observed": true,
+   "rerun": false
+  },
+  "hidden_final": {
+   "passed": 4,
+   "failed": [
+    "cli",
+    "migrate",
+    "pristine",
+    "restart",
+    "rollback"
+   ],
+   "observed": true,
+   "rerun": true
+  }
+ },
+ {
+  "run": "p2-orders-cross-field",
+  "case": "stand-in-rules",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "max-cycles",
+  "final_pass": true,
+  "minutes": 5.5,
+  "sessions": 2,
+  "clauses": 71,
+  "use_cases": 12,
+  "kind": "repair start",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "fix": 2.6,
+   "delta": 1.8,
+   "gates and script": 1.1
+  },
+  "tokens": {
+   "input": 784431,
+   "cached": 672384,
+   "output": 10662,
+   "reasoning": 2788
+  },
+  "minutes_to_first_build": null,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [],
+    "first_gate": "66 of 81",
+    "first_gate_failing": [
+     "C-20",
+     "C-22",
+     "C-26",
+     "C-27",
+     "C-30",
+     "C-31",
+     "C-32",
+     "C-36",
+     "C-37",
+     "C-67",
+     "C-68",
+     "U-5",
+     "U-6",
+     "U-7",
+     "U-12"
+    ],
+    "fix_sessions": 1,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-70",
+     "C-71"
+    ],
+    "delta_keeps_no": 0,
+    "delta_keeps_yes": 2
+   }
+  ],
+  "product_changed": {
+   "files": 2,
+   "added": 121,
+   "removed": 8
+  },
+  "frozen_tests_changed": "unchanged",
+  "referee_sessions": 0,
+  "fix_sessions": 1,
+  "gate_start": "66 of 81",
+  "gate_end": "81 of 81",
+  "gate_end_failing": [],
+  "hidden": {
+   "frozen suite of an earlier run": {
+    "passed": 1,
+    "failed": [
+     "strong-tests"
+    ],
+    "observed": true,
+    "rerun": false
+   },
+   "fix-1": {
+    "passed": 2,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "green-1": {
+    "passed": 2,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "final": {
+    "passed": 2,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   }
+  },
+  "hidden_first_build": null,
+  "hidden_start": {
+   "passed": 1,
+   "failed": [
+    "strong-tests"
+   ],
+   "observed": true,
+   "rerun": false
+  },
+  "hidden_final": {
+   "passed": 2,
+   "failed": [],
+   "observed": true,
+   "rerun": false
+  }
+ },
+ {
+  "run": "p2-orders-limit-never-trips",
+  "case": "stand-in-rules",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "max-cycles",
+  "final_pass": true,
+  "minutes": 6.4,
+  "sessions": 2,
+  "clauses": 72,
+  "use_cases": 12,
+  "kind": "repair start",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "fix": 2.3,
+   "delta": 2.9,
+   "gates and script": 1.2
+  },
+  "tokens": {
+   "input": 953282,
+   "cached": 860288,
+   "output": 12721,
+   "reasoning": 4278
+  },
+  "minutes_to_first_build": null,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [],
+    "first_gate": "63 of 81",
+    "first_gate_failing": [
+     "C-20",
+     "C-22",
+     "C-30",
+     "C-31",
+     "C-32",
+     "C-36",
+     "C-37",
+     "C-45",
+     "C-47",
+     "C-48",
+     "C-67",
+     "C-68",
+     "U-1",
+     "U-5",
+     "U-7",
+     "U-8",
+     "U-9",
+     "U-12"
+    ],
+    "fix_sessions": 1,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-70",
+     "C-71",
+     "C-72"
+    ],
+    "delta_keeps_no": 1,
+    "delta_keeps_yes": 2
+   }
+  ],
+  "product_changed": {
+   "files": 2,
+   "added": 94,
+   "removed": 7
+  },
+  "frozen_tests_changed": "unchanged",
+  "referee_sessions": 0,
+  "fix_sessions": 1,
+  "gate_start": "63 of 81",
+  "gate_end": "81 of 81",
+  "gate_end_failing": [],
+  "hidden": {
+   "frozen suite of an earlier run": {
+    "passed": 1,
+    "failed": [
+     "strong-tests"
+    ],
+    "observed": true,
+    "rerun": false
+   },
+   "fix-1": {
+    "passed": 2,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "green-1": {
+    "passed": 2,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "final": {
+    "passed": 2,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   }
+  },
+  "hidden_first_build": null,
+  "hidden_start": {
+   "passed": 1,
+   "failed": [
+    "strong-tests"
+   ],
+   "observed": true,
+   "rerun": false
+  },
+  "hidden_final": {
+   "passed": 2,
+   "failed": [],
+   "observed": true,
+   "rerun": false
+  }
+ },
+ {
+  "run": "p2-orders-one-rule-missing",
+  "case": "stand-in-rules",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "max-cycles",
+  "final_pass": true,
+  "minutes": 5.6,
+  "sessions": 2,
+  "clauses": 70,
+  "use_cases": 12,
+  "kind": "repair start",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "fix": 2.3,
+   "delta": 1.8,
+   "gates and script": 1.4
+  },
+  "tokens": {
+   "input": 866890,
+   "cached": 791296,
+   "output": 9962,
+   "reasoning": 2507
+  },
+  "minutes_to_first_build": null,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [],
+    "first_gate": "62 of 81",
+    "first_gate_failing": [
+     "C-16",
+     "C-20",
+     "C-22",
+     "C-30",
+     "C-31",
+     "C-32",
+     "C-36",
+     "C-37",
+     "C-54",
+     "C-55",
+     "C-67",
+     "C-68",
+     "U-1",
+     "U-2",
+     "U-3",
+     "U-5",
+     "U-7",
+     "U-10",
+     "U-12"
+    ],
+    "fix_sessions": 1,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-70"
+    ],
+    "delta_keeps_no": 0,
+    "delta_keeps_yes": 1
+   }
+  ],
+  "product_changed": {
+   "files": 2,
+   "added": 100,
+   "removed": 7
+  },
+  "frozen_tests_changed": "unchanged",
+  "referee_sessions": 0,
+  "fix_sessions": 1,
+  "gate_start": "62 of 81",
+  "gate_end": "81 of 81",
+  "gate_end_failing": [],
+  "hidden": {
+   "frozen suite of an earlier run": {
+    "passed": 1,
+    "failed": [
+     "strong-tests"
+    ],
+    "observed": true,
+    "rerun": false
+   },
+   "fix-1": {
+    "passed": 2,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "green-1": {
+    "passed": 2,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "final": {
+    "passed": 2,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   }
+  },
+  "hidden_first_build": null,
+  "hidden_start": {
+   "passed": 1,
+   "failed": [
+    "strong-tests"
+   ],
+   "observed": true,
+   "rerun": false
+  },
+  "hidden_final": {
+   "passed": 2,
+   "failed": [],
+   "observed": true,
+   "rerun": false
+  }
+ },
+ {
+  "run": "p2-orders-tested-only",
+  "case": "stand-in-rules",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "max-cycles",
+  "final_pass": true,
+  "minutes": 5.4,
+  "sessions": 2,
+  "clauses": 70,
+  "use_cases": 12,
+  "kind": "repair start",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "fix": 2.5,
+   "delta": 1.8,
+   "gates and script": 1.1
+  },
+  "tokens": {
+   "input": 743009,
+   "cached": 669184,
+   "output": 10143,
+   "reasoning": 2358
+  },
+  "minutes_to_first_build": null,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [],
+    "first_gate": "67 of 81",
+    "first_gate_failing": [
+     "C-19",
+     "C-20",
+     "C-22",
+     "C-30",
+     "C-31",
+     "C-32",
+     "C-34",
+     "C-36",
+     "C-37",
+     "C-67",
+     "C-68",
+     "U-5",
+     "U-7",
+     "U-12"
+    ],
+    "fix_sessions": 1,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-70"
+    ],
+    "delta_keeps_no": 0,
+    "delta_keeps_yes": 1
+   }
+  ],
+  "product_changed": {
+   "files": 2,
+   "added": 105,
+   "removed": 8
+  },
+  "frozen_tests_changed": "unchanged",
+  "referee_sessions": 0,
+  "fix_sessions": 1,
+  "gate_start": "67 of 81",
+  "gate_end": "81 of 81",
+  "gate_end_failing": [],
+  "hidden": {
+   "frozen suite of an earlier run": {
+    "passed": 0,
+    "failed": [
+     "boundary-tests",
+     "strong-tests"
+    ],
+    "observed": true,
+    "rerun": false
+   },
+   "fix-1": {
+    "passed": 2,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "green-1": {
+    "passed": 2,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "final": {
+    "passed": 2,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   }
+  },
+  "hidden_first_build": null,
+  "hidden_start": {
+   "passed": 0,
+   "failed": [
+    "boundary-tests",
+    "strong-tests"
+   ],
+   "observed": true,
+   "rerun": false
+  },
+  "hidden_final": {
+   "passed": 2,
+   "failed": [],
+   "observed": true,
+   "rerun": false
+  }
+ },
+ {
+  "run": "p3-node-chess-engine-sol-high",
+  "case": "node-chess-engine",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "max-cycles",
+  "final_pass": true,
+  "minutes": 85.1,
+  "sessions": 13,
+  "clauses": 106,
+  "use_cases": 15,
+  "kind": "whole loop",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "spec": 9.6,
+   "plan": 14.9,
+   "build": 15.1,
+   "tests": 29.8,
+   "delta": 9.8,
+   "gates and script": 5.9
+  },
+  "tokens": {
+   "input": 16042517,
+   "cached": 15025920,
+   "output": 198671,
+   "reasoning": 59430
+  },
+  "minutes_to_first_build": 20.5,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [
+     "C-95",
+     "C-96"
+    ],
+    "first_gate": "111 of 111",
+    "first_gate_failing": [],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-97",
+     "C-98",
+     "C-99",
+     "C-100",
+     "C-101",
+     "C-102",
+     "C-103"
+    ],
+    "delta_keeps_no": 1,
+    "delta_keeps_yes": 6
+   },
+   {
+    "cycle": 2,
+    "plan_added": [],
+    "first_gate": "118 of 118",
+    "first_gate_failing": [],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-104",
+     "C-105"
+    ],
+    "delta_keeps_no": 1,
+    "delta_keeps_yes": 1,
+    "build_changed": {
+     "files": 3,
+     "added": 145,
+     "removed": 25
+    }
+   },
+   {
+    "cycle": 3,
+    "plan_added": [],
+    "first_gate": "120 of 120",
+    "first_gate_failing": [],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-106"
+    ],
+    "delta_keeps_no": 0,
+    "delta_keeps_yes": 1,
+    "build_changed": {
+     "files": 3,
+     "added": 92,
+     "removed": 2
+    }
+   }
+  ],
+  "hidden": {
+   "build-1": {
+    "passed": 10,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "green-1": {
+    "passed": 10,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "build-2": {
+    "passed": 10,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "green-2": {
+    "passed": 10,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "build-3": {
+    "passed": 10,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "green-3": {
+    "passed": 10,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "final": {
+    "passed": 10,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   }
+  },
+  "hidden_first_build": {
+   "passed": 10,
+   "failed": [],
+   "observed": true,
+   "rerun": false
+  },
+  "hidden_start": null,
+  "hidden_final": {
+   "passed": 10,
+   "failed": [],
+   "observed": true,
+   "rerun": false
+  }
+ },
+ {
+  "run": "p3-shared-expenses-sol-high",
+  "case": "shared-expenses",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "max-cycles",
+  "final_pass": true,
+  "minutes": 118.3,
+  "sessions": 14,
+  "clauses": 104,
+  "use_cases": 23,
+  "kind": "whole loop",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [],
+  "minutes_by_stage": {
+   "spec": 7.1,
+   "plan": 16.2,
+   "build": 26.9,
+   "tests": 34.8,
+   "fix": 3.0,
+   "delta": 15.3,
+   "gates and script": 15.1
+  },
+  "tokens": {
+   "input": 19497953,
+   "cached": 18394496,
+   "output": 260499,
+   "reasoning": 88330
+  },
+  "minutes_to_first_build": 22.4,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [
+     "C-87",
+     "C-88"
+    ],
+    "first_gate": "106 of 107",
+    "first_gate_failing": [
+     "C-18"
+    ],
+    "fix_sessions": 1,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-89",
+     "C-90",
+     "C-91",
+     "C-92",
+     "C-93",
+     "C-94",
+     "C-95",
+     "C-96",
+     "U-20"
+    ],
+    "delta_keeps_no": 3,
+    "delta_keeps_yes": 6
+   },
+   {
+    "cycle": 2,
+    "plan_added": [],
+    "first_gate": "116 of 116",
+    "first_gate_failing": [],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-97",
+     "C-98",
+     "C-99",
+     "C-100",
+     "C-101",
+     "C-102",
+     "U-21"
+    ],
+    "delta_keeps_no": 1,
+    "delta_keeps_yes": 6,
+    "build_changed": {
+     "files": 7,
+     "added": 731,
+     "removed": 42
+    }
+   },
+   {
+    "cycle": 3,
+    "plan_added": [
+     "C-103"
+    ],
+    "first_gate": "124 of 124",
+    "first_gate_failing": [],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-104",
+     "U-22",
+     "U-23"
+    ],
+    "delta_keeps_no": 1,
+    "delta_keeps_yes": 2,
+    "build_changed": {
+     "files": 4,
+     "added": 343,
+     "removed": 49
+    }
+   }
+  ],
+  "hidden": {
+   "build-1": {
+    "passed": 6,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "fix-1": {
+    "passed": 6,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "green-1": {
+    "passed": 6,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "build-2": {
+    "passed": 5,
+    "failed": [
+     "unit"
+    ],
+    "observed": true,
+    "rerun": false
+   },
+   "green-2": {
+    "passed": 6,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "build-3": {
+    "passed": 6,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "green-3": {
+    "passed": 6,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "final": {
+    "passed": 6,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   }
+  },
+  "hidden_first_build": {
+   "passed": 6,
+   "failed": [],
+   "observed": true,
+   "rerun": false
+  },
+  "hidden_start": null,
+  "hidden_final": {
+   "passed": 6,
+   "failed": [],
+   "observed": true,
+   "rerun": false
+  }
+ },
+ {
+  "run": "p3-ticket-assignment-sol-high",
+  "case": "ticket-assignment",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "max-cycles",
+  "final_pass": true,
+  "minutes": 132.9,
+  "sessions": 13,
+  "clauses": 219,
+  "use_cases": 25,
+  "kind": "whole loop",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [
+   "shiploop_e2e",
+   "skill-craft"
+  ],
+  "minutes_by_stage": {
+   "spec": 9.6,
+   "plan": 15.1,
+   "build": 26.9,
+   "tests": 49.0,
+   "delta": 19.6,
+   "gates and script": 12.7
+  },
+  "tokens": {
+   "input": 31919895,
+   "cached": 30469888,
+   "output": 308043,
+   "reasoning": 88521
+  },
+  "minutes_to_first_build": 23.4,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [
+     "C-200"
+    ],
+    "first_gate": "225 of 225",
+    "first_gate_failing": [],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-201",
+     "C-202",
+     "C-203",
+     "C-204",
+     "C-205",
+     "C-206",
+     "C-207"
+    ],
+    "delta_keeps_no": 4,
+    "delta_keeps_yes": 3
+   },
+   {
+    "cycle": 2,
+    "plan_added": [],
+    "first_gate": "232 of 232",
+    "first_gate_failing": [],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-208",
+     "C-209",
+     "C-210",
+     "C-211",
+     "C-212"
+    ],
+    "delta_keeps_no": 2,
+    "delta_keeps_yes": 3,
+    "build_changed": {
+     "files": 18,
+     "added": 536,
+     "removed": 24
+    }
+   },
+   {
+    "cycle": 3,
+    "plan_added": [
+     "C-213"
+    ],
+    "first_gate": "238 of 238",
+    "first_gate_failing": [],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-214",
+     "C-215",
+     "C-216",
+     "C-217",
+     "C-218",
+     "C-219"
+    ],
+    "delta_keeps_no": 3,
+    "delta_keeps_yes": 3,
+    "build_changed": {
+     "files": 14,
+     "added": 567,
+     "removed": 38
+    }
+   }
+  ],
+  "hidden": {
+   "build-1": {
+    "passed": 18,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "green-1": {
+    "passed": 18,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "build-2": {
+    "passed": 18,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "green-2": {
+    "passed": 18,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "build-3": {
+    "passed": 18,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "green-3": {
+    "passed": 18,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "final": {
+    "passed": 18,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   }
+  },
+  "hidden_first_build": {
+   "passed": 18,
+   "failed": [],
+   "observed": true,
+   "rerun": false
+  },
+  "hidden_start": null,
+  "hidden_final": {
+   "passed": 18,
+   "failed": [],
+   "observed": true,
+   "rerun": false
+  }
+ },
+ {
+  "run": "p3-ticket-assignment-sol-medium",
+  "case": "ticket-assignment",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "finished": true,
+  "stop": "max-cycles",
+  "final_pass": true,
+  "minutes": 91.8,
+  "sessions": 13,
+  "clauses": 176,
+  "use_cases": 18,
+  "kind": "whole loop",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [
+   "skill-craft"
+  ],
+  "minutes_by_stage": {
+   "spec": 6.0,
+   "plan": 11.2,
+   "build": 17.8,
+   "tests": 32.6,
+   "delta": 9.9,
+   "gates and script": 14.2
+  },
+  "tokens": {
+   "input": 19378590,
+   "cached": 18228992,
+   "output": 177302,
+   "reasoning": 29673
+  },
+  "minutes_to_first_build": 17.2,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [
+     "C-162",
+     "C-163"
+    ],
+    "first_gate": "181 of 181",
+    "first_gate_failing": [],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-164",
+     "C-165",
+     "C-166",
+     "C-167",
+     "C-168",
+     "C-169"
+    ],
+    "delta_keeps_no": 4,
+    "delta_keeps_yes": 2
+   },
+   {
+    "cycle": 2,
+    "plan_added": [
+     "C-170"
+    ],
+    "first_gate": "188 of 188",
+    "first_gate_failing": [],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-171",
+     "C-172",
+     "C-173"
+    ],
+    "delta_keeps_no": 1,
+    "delta_keeps_yes": 2,
+    "build_changed": {
+     "files": 12,
+     "added": 443,
+     "removed": 20
+    }
+   },
+   {
+    "cycle": 3,
+    "plan_added": [],
+    "first_gate": "191 of 191",
+    "first_gate_failing": [],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-174",
+     "C-175",
+     "C-176"
+    ],
+    "delta_keeps_no": 2,
+    "delta_keeps_yes": 1,
+    "build_changed": {
+     "files": 6,
+     "added": 213,
+     "removed": 5
+    }
+   }
+  ],
+  "hidden": {
+   "build-1": {
+    "passed": 18,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "green-1": {
+    "passed": 18,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "build-2": {
+    "passed": 18,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "green-2": {
+    "passed": 18,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "build-3": {
+    "passed": 18,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "green-3": {
+    "passed": 18,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   },
+   "final": {
+    "passed": 18,
+    "failed": [],
+    "observed": true,
+    "rerun": false
+   }
+  },
+  "hidden_first_build": {
+   "passed": 18,
+   "failed": [],
+   "observed": true,
+   "rerun": false
+  },
+  "hidden_start": null,
+  "hidden_final": {
+   "passed": 18,
+   "failed": [],
+   "observed": true,
+   "rerun": false
+  },
+  "strength": {
+   "clauses": 173,
+   "use_cases": 18,
+   "caught": 26,
+   "pool": 27,
+   "not_judged": [],
+   "graded_with": "e12100b9d615ea18a6c479f353238a4e7966b0b2 (with uncommitted changes to the pilot folder)",
+   "clauses_failing_on_reference": 25,
+   "use_cases_failing_on_reference": 9,
+   "control_alternative_fails_beyond_reference": 12,
+   "missed": [
+    "update-rejects-resolved"
+   ]
+  }
+ },
+ {
+  "run": "p3-ticket-due-times-sol-high",
+  "case": "ticket-due-times",
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "finished": true,
+  "stop": "max-cycles",
+  "final_pass": true,
+  "minutes": 149.7,
+  "sessions": 13,
+  "clauses": 299,
+  "use_cases": 21,
+  "kind": "whole loop",
+  "tamper": 0,
+  "reverted": [],
+  "spec_violations": [],
+  "held_out_marks": [
+   "skill-craft"
+  ],
+  "minutes_by_stage": {
+   "spec": 10.8,
+   "plan": 18.0,
+   "build": 37.9,
+   "tests": 48.0,
+   "delta": 16.9,
+   "gates and script": 18.1
+  },
+  "tokens": {
+   "input": 40135083,
+   "cached": 38621184,
+   "output": 320112,
+   "reasoning": 91912
+  },
+  "minutes_to_first_build": 32.3,
+  "cycles": [
+   {
+    "cycle": 1,
+    "plan_added": [
+     "C-279",
+     "C-280"
+    ],
+    "first_gate": "301 of 301",
+    "first_gate_failing": [],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-281",
+     "C-282",
+     "C-283",
+     "C-284",
+     "C-285",
+     "C-286",
+     "C-287"
+    ],
+    "delta_keeps_no": 4,
+    "delta_keeps_yes": 3
+   },
+   {
+    "cycle": 2,
+    "plan_added": [
+     "C-288",
+     "C-289",
+     "C-290"
+    ],
+    "first_gate": "311 of 311",
+    "first_gate_failing": [],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-291",
+     "C-292",
+     "C-293",
+     "C-294"
+    ],
+    "delta_keeps_no": 1,
+    "delta_keeps_yes": 3,
+    "build_changed": {
+     "files": 14,
+     "added": 570,
+     "removed": 48
+    }
+   },
+   {
+    "cycle": 3,
+    "plan_added": [
+     "C-295"
+    ],
+    "first_gate": "316 of 316",
+    "first_gate_failing": [],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-296",
+     "C-297",
+     "C-298",
+     "C-299"
+    ],
+    "delta_keeps_no": 3,
+    "delta_keeps_yes": 1,
+    "build_changed": {
+     "files": 12,
+     "added": 409,
+     "removed": 16
+    }
+   }
+  ],
+  "hidden": {
+   "build-1": {
+    "passed": 3,
+    "failed": [
+     "cli",
+     "migrate",
+     "restart",
+     "rollback",
+     "switch"
+    ],
+    "observed": true,
+    "rerun": false
+   },
+   "green-1": {
+    "passed": 3,
+    "failed": [
+     "cli",
+     "migrate",
+     "restart",
+     "rollback",
+     "switch"
+    ],
+    "observed": true,
+    "rerun": false
+   },
+   "build-2": {
+    "passed": 3,
+    "failed": [
+     "cli",
+     "migrate",
+     "restart",
+     "rollback",
+     "switch"
+    ],
+    "observed": true,
+    "rerun": false
+   },
+   "green-2": {
+    "passed": 3,
+    "failed": [
+     "cli",
+     "migrate",
+     "restart",
+     "rollback",
+     "switch"
+    ],
+    "observed": true,
+    "rerun": false
+   },
+   "build-3": {
+    "passed": 3,
+    "failed": [
+     "cli",
+     "migrate",
+     "restart",
+     "rollback",
+     "switch"
+    ],
+    "observed": true,
+    "rerun": false
+   },
+   "green-3": {
+    "passed": 3,
+    "failed": [
+     "cli",
+     "migrate",
+     "restart",
+     "rollback",
+     "switch"
+    ],
+    "observed": true,
+    "rerun": false
+   },
+   "final": {
+    "passed": 3,
+    "failed": [
+     "cli",
+     "migrate",
+     "restart",
+     "rollback",
+     "switch"
+    ],
+    "observed": true,
+    "rerun": false
+   }
+  },
+  "hidden_first_build": {
+   "passed": 3,
+   "failed": [
+    "cli",
+    "migrate",
+    "restart",
+    "rollback",
+    "switch"
+   ],
+   "observed": true,
+   "rerun": false
+  },
+  "hidden_start": null,
+  "hidden_final": {
+   "passed": 3,
+   "failed": [
+    "cli",
+    "migrate",
+    "restart",
+    "rollback",
+    "switch"
+   ],
+   "observed": true,
+   "rerun": false
+  }
+ }
+]

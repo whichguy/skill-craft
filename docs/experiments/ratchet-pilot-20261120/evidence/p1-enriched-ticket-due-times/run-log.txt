@@ -1,0 +1,21 @@
+[19:46:44] session 1: spec-1
+[19:56:48]   ended exited after 603.5 s
+[19:56:48] session 2: plan-1
+[20:02:20]   ended exited after 331.7 s
+[20:02:20]   plan 1: 2 item(s) added to the specification: C-237, C-238
+[20:02:20] build 1 is the given tree /Users/dadleet/e2e-runs/ratchet-pilot-20261120-b6eab2/refs/ticket-due-times/reference
+[20:02:21] gate 1 (after-given-build): PASS; 0 of 0 clauses pass
+[20:02:21] session 3: tests-1-1
+[20:29:31]   ended exited after 1630.3 s
+[20:31:25] gate 2 (cycle-1-first): FAIL; 210 of 253 clauses pass; failing C-1, C-6, C-7, C-9, C-10, C-11, C-34, C-42
+[20:33:25] gate 3 (final): FAIL; 210 of 253 clauses pass; failing C-1, C-6, C-7, C-9, C-10, C-11, C-34, C-42
+[20:33:25] run ended: stop-after-tests; final gate FAIL; 238 clauses, 15 use cases; 3 sessions; 2800.6 s
+run-exit=0
+p1e2-ticket-due-times: 238 clauses and 15 use cases tested; on the correct reference 35 clauses and 8 use cases fail: ['C-1', 'C-10', 'C-11', 'C-214', 'C-216', 'C-231', 'C-232', 'C-234', 'C-235', 'C-236', 'C-237', 'C-238', 'C-34', 'C-42', 'C-43', 'C-44', 'C-45', 'C-46', 'C-47', 'C-48', 'C-52', 'C-6', 'C-60', 'C-61', 'C-63', 'C-64', 'C-65', 'C-7', 'C-71', 'C-72', 'C-73', 'C-74', 'C-75', 'C-76', 'C-9', 'U-11', 'U-12', 'U-15', 'U-4', 'U-6', 'U-7', 'U-8', 'U-9']
+  version-two                 caught     C-190, C-233, C-67, C-68, C-69, C-70
+  priority-moves-due          caught     C-13, U-2
+  due-not-persisted           caught     C-16, C-187, C-24, C-25, C-26, C-33, C-37, C-38, C-50, C-53, C-54, C-55, U-10, U-3
+  no-backfill                 caught     C-187
+  flag-ignored                caught     C-19, C-20, U-14
+  overdue-active              caught     C-24, C-25, C-26, C-33, C-37, C-38, U-3
+  caught 6 of 6 calibrated defects
