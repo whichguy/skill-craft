@@ -1,0 +1,44 @@
+PACKET 3
+Reviewed stage: document
+
+== The request the delivery was built from ==
+This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable, with a command-line tool in bin/. The help desk is starting to promise response times. Each ticket gets a due time: the time it was created plus the response time for its priority, which is 4 hours for urgent tickets, 24 for high, 72 for normal and 168 for low, and the help desk must be able to change those hours without a code change. A ticket's due time is set once: a later change of the hours or of the ticket's priority does not move it. Every ticket shows its due time as `due`, and `GET /tickets?overdue=true` lists only the open and in-progress tickets whose due time has passed. The tickets already in the production data file get due times too, from their own creation time and priority, and keep them from then on. Due times are switched on in production only once the data file holds them: until the DUE_TIMES environment variable is `on`, the service answers exactly as it does today. If the new release misbehaves, operators must be able to go back to the current release, 1.4.0, and it must still start on the data file the new release wrote and show every ticket. Everything the service already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones.
+
+== What the review changed in the files ==
+diff --git a/docs/shiploop/architecture.md b/docs/shiploop/architecture.md
+index 094b8a7..3729c14 100644
+--- a/docs/shiploop/architecture.md
++++ b/docs/shiploop/architecture.md
+@@ -46,5 +46,5 @@ Name map (new names; each has one owner):
+ | ticket field `due` | `TicketStore` via `ticketRecord` / `readTicket` | ISO 8601 UTC string in memory and `DATA_FILE` |
+ | query `overdue` | `src/app.js` GET `/tickets` reads `url.searchParams` | not a `parseListQuery` known param (AD-4) |
+-| `dueFromCreated(created, hours)` | `src/store.js` (module-private or named export only if a unit test imports it) | not an HTTP field |
++| `dueFromCreated(created, hours)` | `src/store.js` (module-private; no unit test imports it) | not an HTTP field |
+ | `publicTicket(ticket, dueTimes)` | `src/app.js` | copies 1.4.0 fields; adds `due` only when `dueTimes` is true |
+ 
+diff --git a/src/store.js b/src/store.js
+index d019a72..4507104 100644
+--- a/src/store.js
++++ b/src/store.js
+@@ -61,5 +61,5 @@ class TicketStore {
+   }
+ 
+-  /** A store holding what `persistence` saved (nothing on a first start), saving back to it. */
++  /** A store holding what `persistence` saved (nothing on a first start), saving back to it. Tickets missing `due` are assigned from created and priority, then saved. */
+   static open({
+     clock,
+@@ -89,5 +89,5 @@ class TicketStore {
+   }
+ 
+-  /** One page of the tickets that pass `filters`, in id order: { items, next } (docs/api.md, "List tickets"). */
++  /** One page of the tickets that pass `filters`, and when `overdue` is true only those that are open or in_progress with `due` strictly before now, in id order: { items, next } (docs/api.md, "List tickets"). */
+   list({ filters = {}, limit = 20, after = null, overdue = false } = {}) {
+     if (after !== null && parseId(after) === null) throw new InvalidError('cursor is not one this service issued');
+@@ -240,3 +240,3 @@ class TicketStore {
+ }
+ 
+-module.exports = { CREATED_FIELDS, TicketStore, dueFromCreated };
++module.exports = { CREATED_FIELDS, TicketStore };
+
+== What the review changed in the stage's recorded result ==
+(the result did not change)

@@ -1,0 +1,18 @@
+packets: 13; the two judges give the same label to 12 of 13
+anchors, judge A: 6 of 6 labelled as both of round 7's judges labelled them
+anchors, judge B: 5 of 6 labelled as both of round 7's judges labelled them
+
+the Grok delivery's reviews (judge A | judge B):
+  spec                 substantive/unclear | substantive/within | A large spec rewrite (about 112 lines grows to 200) adds a request map and refines requirement clauses; most of the diff is cut, so the scope of the c
+  test-strategy        substantive/within | substantive/within | The architecture now keeps overdue out of parseListQuery so overdue=maybe is not rejected with 400 when the switch is off (preserving R-1), and the te
+  plan                 changed nothing (1 review)
+  step-plan            substantive/within | substantive/within | The step criteria are made stricter: the overdue filter must run before paging (new test TC-29) and the dueHoursLow setting must reach createService (
+  document             wording/n/a | wording/n/a | Doc comments and the architecture name map are reworded, and an unused export of dueFromCreated is dropped, with no change in behaviour or tests.
+  carry-forward        substantive/within | substantive/within | New tests cover per-priority backfill, the CLI omitting due and DUE_HOURS=0 being rejected, and store.list filters only when overdue === true, with a 
+  system-test-author   substantive/within | substantive/within | A new system test, SYS-5, checks that the process backfills missing due times from each ticket's priority, and the recorded focused and regression sui
+  release-plan         records/n/a | records/n/a | Standing environment facts about the source checkout, product commit and data-file behaviour on first start are updated, which is bookkeeping with no 
+
+by group, substantive by both judges:
+  the five reviews round 7 removed   4 of 5 (80%): earns its place
+  the step reviews                   0 of 1 (0%): does not
+  the two end reviews                1 of 2 (50%): earns its place

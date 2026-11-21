@@ -1,0 +1,21 @@
+PACKET 8
+Reviewed stage: plan
+
+== The request the delivery was built from ==
+This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable, with a command-line tool in bin/. The help desk is starting to promise response times. Each ticket gets a due time: the time it was created plus the response time for its priority, which is 4 hours for urgent tickets, 24 for high, 72 for normal and 168 for low, and the help desk must be able to change those hours without a code change. A ticket's due time is set once: a later change of the hours or of the ticket's priority does not move it. Every ticket shows its due time as `due`, and `GET /tickets?overdue=true` lists only the open and in-progress tickets whose due time has passed. The tickets already in the production data file get due times too, from their own creation time and priority, and keep them from then on. Due times are switched on in production only once the data file holds them: until the DUE_TIMES environment variable is `on`, the service answers exactly as it does today. If the new release misbehaves, operators must be able to go back to the current release, 1.4.0, and it must still start on the data file the new release wrote and show every ticket. Everything the service already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones.
+
+== What the review changed in the files ==
+diff --git a/docs/shiploop/architecture.md b/docs/shiploop/architecture.md
+index 2f7f1b4..007cd15 100644
+--- a/docs/shiploop/architecture.md
++++ b/docs/shiploop/architecture.md
+@@ -5,5 +5,5 @@
+ - AD-2 (R-1, R-2, R-5): a new module src/tickets/due.js holds the pure rules: `DEFAULT_DUE_HOURS`, `dueFor(created, priority, hours)` and `isOverdue(ticket, now)`. The hours come from `loadConfig` (`dueHours`, `dueTimes`) in src/config.js and are passed to the store; the store and `createService` fall back to the defaults and off when the options are absent (A9.3).
+ - AD-3 (R-1, R-3): `TicketStore.create` sets `due` once; `update`, `transition` and `apply` never write it; it is not in CREATED_FIELDS, so the audit log is unchanged.
+-- AD-4 (R-6): the backfill is `TicketStore.backfillDue()`, called by `createService` after the store opens and before listening, regardless of the switch; it saves only when it changed a ticket. It is not called in the store constructor or `open`, because `bin/tickets.js` builds its store through the constructor without persistence and must stay read-only.
++- AD-4 (R-6): the backfill is `TicketStore.backfillDue()`, called by `createService` after the store opens and before listening, regardless of the switch; it computes `due` for each ticket lacking one, returns the number of tickets it changed, and itself calls `this.save()` once when that number is above zero (a store without persistence, like the CLI's, changes memory only and saves nothing); so a test observes the saved file after `backfillDue()` on a persistence-backed store, and an unchanged file after a second call. It is not called in the store constructor or `open`, because `bin/tickets.js` builds its store through the constructor without persistence and must stay read-only.
+ - AD-5 (R-4, R-7): the switch is applied at the HTTP edge (src/app.js): with it off, ticket bodies are presented without `due` and `overdue` is not parsed. The store always keeps `due`. Alternatives rejected: not storing it while off (the file would lack due times at switch-on).
+ - AD-6 (R-5): the overdue restriction is an extra argument of `TicketStore.list` applied after `matchesFilters` and before paging; it is never added to the `filters` map because `matchesFilters` ORs (src/tickets/query.js). `parseListQuery` gains the optional `overdue` result only when asked to (a second argument), so the CLI's use and the off-switch path are unchanged.
+
+== What the review changed in the stage's recorded result ==
+(the result did not change)

@@ -2309,6 +2309,38 @@ test-strategy (71), step-plan (51), the step (8), carry-forward (108), system-te
 same model took 339 to 364 minutes and $89 to $96, in plans of 8 to 11 steps. This one took about a third less
 time and a quarter less money, in one step. One run, and the version is not the only thing that differs.
 
+**R83. What the changed reviews were, by two judges** (`evidence/grok-reviews-judged.txt`; `judge-grok/`). Seven
+packets from this run and six of round 7's as anchors, thirteen in a shuffled order. The judges gave the same
+label to 12 of 13. On the anchors judge A repeated round 7's label on 6 of 6 and judge B on 5 of 6, so the scale
+held and the reading below stands.
+
+| Review of | Both judges | What it changed, in a judge's words |
+|---|---|---|
+| spec | substantive | "A large spec rewrite ... adds a request map and refines requirement clauses" |
+| test-strategy | substantive | keeps `overdue=maybe` from being "rejected with 400 when the switch is off" |
+| plan | no change | |
+| step-plan | substantive | "the overdue filter must run before paging" and a setting "must reach createService" |
+| the step | wording | comments reworded, an unused export dropped |
+| carry-forward | substantive | "New tests cover per-priority backfill, the CLI omitting due and DUE_HOURS=0 being rejected" |
+| system-test-author | substantive | a new system test that "the process backfills missing due times" |
+| release-plan | records | standing facts about the checkout updated |
+
+### Registered reading: the Grok delivery's reviews
+
+- **The five reviews round 7 removed earn their place on Grok 4.6 xhigh**: 4 of 5 substantive by both judges
+  (80%; the bar was 30%). Sonnet was 69% and Sol 6.2 medium 0% (R64).
+- **The step reviews do not**: 0 of 1. **The two end reviews do**: 1 of 2, the end-of-item review.
+- One run a group. As in round 7 this is the edit-yield rule: it says the reviews made substantive edits, not
+  what a delivery would have lost without them (F45).
+
+- **F55 (interim; one run).** On today's ShipLoop Grok behaves like Sonnet and not like Sol: the reviews before
+  the build and of the system tests change what is built or checked, at 61 of the run's 240 minutes. With the
+  whole item in one step, the end-of-item review is where tests were added (108 lines), which on the older
+  version, with 8 to 11 steps, it never did (R66).
+- **F56 (interim; one run).** After the fewest-steps change, a Grok delivery spends an eighth of its time
+  building (30 minutes) and nearly half in reviews. Anything further on Grok's time is a question about reviews
+  or about the 55 minutes of planning and step planning, not about the build.
+
 ## Round 9 (2026-11-21): from findings to changes: what is settled, and small tests first
 
 ### Question
@@ -2503,6 +2535,7 @@ sessions are shown the owner's own skills (R72).
 | `review-r9/sol-max-brief.txt`, `review-r9/sol-max-review.md` | round 9: the brief sent for the max-effort review of the change plan, and the review word for word |
 | `overlays/r9-card-run-options.json`, `card_patch.py`, `overlays/r9-n-no-added-manual-step.json`, `overlays/r9-g-duty4-bounds.json`, `stage_stop_samples.py` | round 9: the three candidate wordings as patches to build copies, the applier for the card patch, and the driver that ends a real run once it is past the spec stage |
 | `runs-grok/census.json` | round 8: the Grok delivery's seconds by stage (R80 to R82) |
+| `judge-grok/packet-*.txt`, `judge-grok/key.json`, `judge-grok/out-A.jsonl`, `judge-grok/out-B.jsonl`, `judge-grok/source/`, `evidence/grok-review-judge-brief.txt`, `evidence/grok-reviews-judged.txt`, `grok_review_score.py` | round 8: the Grok delivery's seven changed reviews and six round-7 anchors as the judges saw them, which is which, each judge's labels, the brief, the score and the script that makes it (R83) |
 | `removed_review_diffs.py`, `judge-reviews/packet-*.txt`, `judge-reviews/key.json` | round 7: each review of a removed stage that changed anything, as the judges saw it, and which run and driver each is |
 | `judge-reviews/out-A.jsonl`, `judge-reviews/out-B.jsonl`, `evidence/removed-review-judge-brief.txt` | round 7: each judge's label, scope and reason per packet, and the brief |
 | `evidence/removed-review-judged.txt`, `removed_review_score.py` | round 7: the judges' agreement and the substantive share by driver and reviewed stage (R64) |

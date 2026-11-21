@@ -1,0 +1,28 @@
+PACKET 1
+Reviewed stage: spec
+
+== The request the delivery was built from ==
+Build a small shared-expenses service in Node.js (no npm dependencies). server.js listens on the port in the PORT environment variable and keeps its data in the JSON file named by the DATA_FILE environment variable, so groups and expenses survive a restart. POST /groups with {"id": "<group id>", "members": ["<name>", ...]} creates a group: 201, 409 if the id exists, and 400 unless members holds at least two distinct non-empty names. POST /groups/<id>/expenses records an expense paid by one member. {"payer": "<name>", "cents": <positive integer>, "split": "equal"} shares it equally among all members, with any cents left over after an even division going one each to the members listed first. {"payer": "<name>", "cents": <positive integer>, "split": "exact", "shares": {"<name>": <cents>, ...}} makes each member listed in shares owe that many whole cents (zero is allowed), and the shares must add up to cents. It answers 201 with {"expense": <n>}, where n is 1 for the group's first expense, then 2, and so on; 400 for an unknown payer or member, a non-positive or non-integer amount, an unknown split, or shares that do not add up. GET /groups/<id>/balances returns an object with each member's net cents, what they paid minus what they owe, so the balances add up to 0. GET /groups/<id>/settlements returns a JSON array of {"from", "to", "cents"} payments that bring every balance to 0: repeatedly the member who owes most pays the member who is owed most the smaller of the two amounts, and ties go to the member listed first. Every route under /groups/<id> answers 404 for an unknown group. Concurrent requests must never lose an expense. Cover the behaviour with node:test tests under test/ that run with `node --test`.
+
+== What the review changed in the files ==
+diff --git a/docs/shiploop/spec.md b/docs/shiploop/spec.md
+index 9321683..f0eb6e6 100644
+--- a/docs/shiploop/spec.md
++++ b/docs/shiploop/spec.md
+@@ -12,4 +12,5 @@ Conventions used by every requirement: all bodies are `application/json`; an err
+ - Default (assumption A3, research.md): PORT unset means 3000 and DATA_FILE unset means `./data.json`. Confirmed by a unit test of the config function (pure function of an env object).
+ - Failure: a DATA_FILE that exists but is not valid JSON of the expected shape makes the process print the reason to stderr and exit non-zero without overwriting the file. Confirmed by integration test (write `not json` to the file, spawn, expect exit code != 0 and file unchanged).
++- Failure: PORT set but not an integer in 0..65535 (for example `abc`, `-1`, `70000`) makes the process print the reason to stderr and exit non-zero (assumption A3b: the request names only valid ports). Confirmed by the same config unit test and one spawn test with `PORT=abc`.
+ - Boundary: `package.json`, if present, has no `dependencies`. Confirmed by a test reading it (or its absence).
+ - Pending: implementation and checks.
+@@ -27,5 +28,7 @@ Groups and expenses are kept in the JSON file named by DATA_FILE and a mutating
+ - Failure: the same id again answers 409 and leaves the first group unchanged (even with different members). Confirmed by HTTP test.
+ - Failure (400): `members` with fewer than two entries (`[]`, `["ann"]`); duplicate names (`["ann","ann"]`); an empty-string name (`["ann",""]`); a non-string name (`["ann",5]`); `members` not an array; `id` missing, empty or not a string; body not a JSON object. Each leaves no group created. Confirmed by HTTP table test, each followed by `GET /groups/<id>/balances` answering 404 where the id was valid.
++- Precedence: a body failing validation answers 400 even when the id already exists (400 is checked before 409); 409 applies only to an otherwise valid body. Confirmed by HTTP test: `{"id":"trip","members":["ann"]}` after `trip` exists answers 400.
+ - Boundary: exactly two members is accepted; a whitespace-only name such as `" "` is non-empty and is accepted (assumption: names are not trimmed). Confirmed by HTTP test.
++- Boundary (inherited-property names): group ids and member names are arbitrary strings; `__proto__`, `constructor` and `toString` are ordinary names. Group `{"id":"constructor","members":["__proto__","toString"]}` is created (201); before it exists `GET /groups/constructor/balances` and `G
+[... cut here: 6895 more characters ...]
+
+
+== What the review changed in the stage's recorded result ==
+(the result did not change)

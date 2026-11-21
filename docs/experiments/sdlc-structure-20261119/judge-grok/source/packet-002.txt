@@ -1,0 +1,56 @@
+PACKET 2
+Reviewed stage: test-strategy
+
+== The request the delivery was built from ==
+This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable, with a command-line tool in bin/. The help desk is starting to promise response times. Each ticket gets a due time: the time it was created plus the response time for its priority, which is 4 hours for urgent tickets, 24 for high, 72 for normal and 168 for low, and the help desk must be able to change those hours without a code change. A ticket's due time is set once: a later change of the hours or of the ticket's priority does not move it. Every ticket shows its due time as `due`, and `GET /tickets?overdue=true` lists only the open and in-progress tickets whose due time has passed. The tickets already in the production data file get due times too, from their own creation time and priority, and keep them from then on. Due times are switched on in production only once the data file holds them: until the DUE_TIMES environment variable is `on`, the service answers exactly as it does today. If the new release misbehaves, operators must be able to go back to the current release, 1.4.0, and it must still start on the data file the new release wrote and show every ticket. Everything the service already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones.
+
+== What the review changed in the files ==
+diff --git a/docs/shiploop/architecture.md b/docs/shiploop/architecture.md
+index 0bf396a..a902b4c 100644
+--- a/docs/shiploop/architecture.md
++++ b/docs/shiploop/architecture.md
+@@ -23,5 +23,5 @@ Due times add no package, no new process, and no new store. Hours and the HTTP f
+ | `src/persistence.js` | Data-file version 1. `ticketRecord` / `readTicket` name every stored field, including `due` once it is a stored field. |
+ | `src/config.js` | Settings from the environment. `dueTimes` (`DUE_TIMES === 'on'`), `dueHoursUrgent` / `dueHoursHigh` / `dueHoursNormal` / `dueHoursLow`. |
+-| `src/tickets/query.js` | `parseListQuery`, `matchesFilters` (OR of given fields). Overdue is not a field of `matchesFilters`. |
++| `src/tickets/query.js` | `parseListQuery`, `matchesFilters` (OR of given fields). Overdue is not a field of `matchesFilters` and not a known parameter of `parseListQuery` (unknown params stay ignored). |
+ | `src/tickets/states.js` | Lifecycle and `ACTIVE` (`open`, `in_progress`). Unchanged for due times. |
+ | `src/tickets/priorities.js` | `low`, `normal`, `high`, `urgent`. Unchanged. |
+@@ -96,9 +96,9 @@ Status: accepted.
+ ### AD-4 Overdue is an AND predicate beside `matchesFilters`
+ 
+-Choice: `GET /tickets?overdue=true` (flag on) keeps tickets whose status is in `ACTIVE` and whose `due` is strictly before `clock.now()`, then applies today's list filters. `matchesFilters` stays OR of the given fields. `overdue` is not a field of that function. Other `overdue` values are 400 `invalid`. Flag off: `overdue` is an unknown parameter and is ignored.
++Choice: `GET /tickets?overdue=true` (flag on) keeps tickets whose status is in `ACTIVE` and whose `due` is strictly before `clock.now()`, then applies today's list filters. `matchesFilters` stays OR of the given fields. `overdue` is not a field of that function. `parseListQuery` does not learn `overdue`: a known param there is validated even when the HTTP flag is off, which would 400 `overdue=maybe` and break R-1. The app (or store.list when `dueTimes` is true) reads the raw query. Other `overdue` values are 400 `invalid`. Flag off: `overdue` is an unknown parameter and is ignored.
+ 
+-Why: 1.4.0 `matchesFilters` is OR (`src/tickets/query.js`). Putting overdue inside it would make `overdue=true&priority=low` mean overdue OR low. Spec R-5 requires AND with today's filters. Equal `due` and now is not overdue.
++Why: 1.4.0 `matchesFilters` is OR (`src/tickets/query.js`). Putting overdue inside it would make `overdue=tru
+[... cut here: 803 more characters ...]
+
+diff --git a/docs/shiploop/environment.md b/docs/shiploop/environment.md
+index 79b0c69..a1c86af 100644
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -33,5 +33,5 @@ Suite commands below are run from the repository root on Node 22 or later. No ex
+ ### Focused (due-times cases)
+ 
+-Inclusion: `node:test` titles in which `TC-<n>` is its own word (`TC-1` … `TC-26`). New files `test/due.test.js`, `test/due-config.test.js`, `test/due-store.test.js`, `test/due-persistence.test.js`. Does not select the existing outbox/worker titles that contain the word `due`.
++Inclusion: `node:test` titles in which `TC-<n>` is its own word (`TC-1` … `TC-27`). New files `test/due.test.js`, `test/due-config.test.js`, `test/due-store.test.js`, `test/due-persistence.test.js`. Does not select the existing outbox/worker titles that contain the word `due`.
+ 
+ ```
+@@ -39,5 +39,5 @@ node --test --test-reporter spec --test-name-pattern='TC-[0-9]+'
+ ```
+ 
+-Expected cost: under 1 s once the cases exist. IDs it may print: `TC-1` through `TC-26` as in ## ID convention. Probe on 1.4.0 (no `TC-` titles yet): TAP `1..0` in each of 17 `*.test.js` files plus `test/helpers.js` (18 file-level oks, 0 matching cases), exit 0. After those tests are authored this command must print each `TC-<n>` title; until implement, they fail (expected-failure / RED). `--test-name-pattern` is a regular expression (`node --help`).
++Expected cost: under 1 s once the cases exist. IDs it may print: `TC-1` through `TC-27` as in ## ID convention. Probe on 1.4.0 (no `TC-` titles yet): TAP `1..0` in each of 17 `*.test.js` files plus `test/helpers.js` (18 file-level oks, 0 matching cases), exit 0. Spec reporter on the same command: `ℹ tests 18`, `ℹ pass 18`, those 18 are the files, 0 matching leaf titles, exit 0. After those tests are authored this command must print each `TC-<n>` title; until implement, they fail (expected-failure / RED). `--test-name-pattern` is a regular expression (`node --help`).
+ 
+ ### Smoke (bounded preservation)
+@@ -59,5 +59,5 @@ npm test
+ ```
+ 
+-Equivalent: `node --test`. Add `--test-reporter spec` when a pass must name titles. Expected cost: about 0.3–0.5 s. Probe at 1.4.0: 117 tests, 26 suites, 117 pass, 0 fail, exit 0, duration_ms 328. After due-times tests are added the count is 117 plus those new cases; do not freeze 117. A passing run prints every executed title, including `TC-1` … `TC-26` once they exist.
++Equivalent: `node --test`. Add `--test-reporter spec` when a pas
+[... cut here: 19613 more characters ...]
+
+
+== What the review changed in the stage's recorded result ==
+(the result did not change)

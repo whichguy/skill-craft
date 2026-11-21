@@ -1,0 +1,93 @@
+[
+ {
+  "packet": 1,
+  "origin": "round7-anchor",
+  "source_packet": 1,
+  "stage": "spec",
+  "folder": "shared-expenses-sonnet-high"
+ },
+ {
+  "packet": 2,
+  "origin": "round7-anchor",
+  "source_packet": 10,
+  "stage": "system-test-author",
+  "folder": "sonnet-high-due-S-1"
+ },
+ {
+  "packet": 3,
+  "origin": "grok",
+  "source_packet": 4,
+  "stage": "document",
+  "folder": "grok-46-xhigh-due-1"
+ },
+ {
+  "packet": 4,
+  "origin": "round7-anchor",
+  "source_packet": 9,
+  "stage": "step-plan",
+  "folder": "sonnet-high-due-S-1"
+ },
+ {
+  "packet": 5,
+  "origin": "round7-anchor",
+  "source_packet": 12,
+  "stage": "test-strategy",
+  "folder": "sonnet-high-due-S-2"
+ },
+ {
+  "packet": 6,
+  "origin": "grok",
+  "source_packet": 7,
+  "stage": "release-plan",
+  "folder": "grok-46-xhigh-due-1"
+ },
+ {
+  "packet": 7,
+  "origin": "grok",
+  "source_packet": 1,
+  "stage": "spec",
+  "folder": "grok-46-xhigh-due-1"
+ },
+ {
+  "packet": 8,
+  "origin": "round7-anchor",
+  "source_packet": 8,
+  "stage": "plan",
+  "folder": "sonnet-high-due-S-1"
+ },
+ {
+  "packet": 9,
+  "origin": "grok",
+  "source_packet": 2,
+  "stage": "test-strategy",
+  "folder": "grok-46-xhigh-due-1"
+ },
+ {
+  "packet": 10,
+  "origin": "grok",
+  "source_packet": 6,
+  "stage": "system-test-author",
+  "folder": "grok-46-xhigh-due-1"
+ },
+ {
+  "packet": 11,
+  "origin": "grok",
+  "source_packet": 5,
+  "stage": "carry-forward",
+  "folder": "grok-46-xhigh-due-1"
+ },
+ {
+  "packet": 12,
+  "origin": "grok",
+  "source_packet": 3,
+  "stage": "step-plan",
+  "folder": "grok-46-xhigh-due-1"
+ },
+ {
+  "packet": 13,
+  "origin": "round7-anchor",
+  "source_packet": 4,
+  "stage": "system-test-author",
+  "folder": "shared-expenses-sonnet-high"
+ }
+]
