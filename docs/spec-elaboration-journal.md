@@ -2906,6 +2906,8 @@ of the harness and the engine with a line for each claim, and on two run folders
   the two runs checked. The host limit I know of for shell output on Claude is 30,000 characters, and the harness
   does not change it, so there is room for about 6,800 characters of guide text and not for all four sections
   (about 20,000). Each sample is checked for a whole packet.
+  *Corrected 2026-11-21 13:46 (section 43): "reached both hosts whole" is true of what the command printed. On Codex
+  the model gave itself 12,661 of the 21,238 characters, and a check on the command's output cannot tell.*
 
 **One consequence for section 38.** Its count of guides opened used the heading match, which can only count too
 many. The finding that the requirements guide was opened in none of 35 Sol and Sonnet deliveries stands. The 3 and 1
@@ -3012,6 +3014,8 @@ reading of what the author was shown, and a rehearsal through the blind copies a
 - True: the line that ends a ShipLoop print also stands in the packet's opening recovery line (characters 623 and
   21,211 of a 21,238-character result), so "the result holds the end line" passed for a cut packet. The run keeps
   each packet as it printed it (`packets/sent/`), and a whole result contains that text.
+  *Corrected 2026-11-21 13:46 (section 43): the result meant here is the command's output in the harness's events,
+  which is not what a Codex model was given.*
 - True: the acceptance is the command row whose `accepted` list holds the spec stage as done; the list names the
   spec action. ShipLoop writes that row when the command ends (`record_command`).
 - True: the knowledge files are committed inside the accepting command, only when they changed, and a failed commit
@@ -3055,6 +3059,10 @@ reading of what the author was shown, and a rehearsal through the blind copies a
    it; the cue is in C's and X's packet and not in A's; X's packet holds the whole block, and A's and C's sessions
    were returned no passage of X's two sections before their acceptance, in any successful call, whatever the call
    was. Calls are placed by the session's own callbacks for the spec action and for its review.
+   *Replaced 2026-11-21 13:46 (section 43): these three checks read the wrong record for Codex. Delivery is now read
+   from what the model was given, and is: at least half of the stage's instruction lines given; the cue given in C
+   and X and not in A; in X every line of the block given, and in A and C no passage of its two sections given
+   before the acceptance.*
 5. *The watcher* decides once for each run and records why (it saw the acceptance, the run ended with none, or the
    time limit), the acceptance it saw, a copy of the working specification at that moment and each review bind
    when it first appears. It ends its own launch when no output folder appears inside the limit, and waits ten
@@ -3082,6 +3090,8 @@ reading of what the author was shown, and a rehearsal through the blind copies a
 
 1. All three samples are usable by the six checks.
 2. All three are delivered as their arms intend. Unknown when a session's events or kept packet are missing.
+   *Restated 2026-11-21 13:46 (section 43), before any run: by the new checks, and with a little better than an even
+   chance. Unknown when a sample has no session record or no kept packet.*
 3. Arm A's accepted specification is between 300 and 1,500 words. Unknown when A is not usable.
 4. C over A: fewer than 2 items higher and fewer than 2 lower under both judges. Unknown unless the set is
    complete and its readings are sealed; the same for 5.
@@ -3202,3 +3212,94 @@ it to the owner.
 **Not checked here.** The worker did not recheck the two earlier cells and Sol's in "missed by eight of nine", the
 reading of each suite's test code, or the dollars. The message's "this morning's medium cell" is "amendment 11's
 medium cell" in the commit. One run a cell.
+
+## 43. Found before the owner was asked: on Sol the model gives itself only part of a packet, so the delivery check read the wrong record; and the list that names the guides is seldom given (13:46, 2026-11-21)
+
+Nothing has been run with a model. This section corrects section 41's delivery checks and section 40's statement
+that the spec packet reached both hosts whole, and records a free reading of 50 runs that exist.
+
+**What was wrong.** Sections 40 and 41 read what a specification's author was shown from the harness's events
+(`events.jsonl`). For the Codex host those hold what each command printed, and that is not what the model saw. On
+this host GPT 6.2 Sol runs its commands from a script of its own, keeps a command's output in a variable, and prints
+to itself the part it asks for. What the model was given is in Codex's own session record (`rollout-*.jsonl` under
+the run's home folder). In the stopped sample of section 40 the command printed the whole spec packet, 21,238
+characters, and the model gave itself 12,661: everything before the line "Result template:", and then the first
+1,300 characters after it. It was given all 106 lines of the stage's instructions and 9 of the 56 lines after them,
+and the lines that say where the guides are were not among the nine. Section 41's check, "the result of the print
+holds the whole packet", would have passed for any run, and would have called arm X's block delivered whether or
+not the model ever printed it. I found this while waiting on a push, by comparing the two records for one run.
+
+**The reading** (`packet_shown.py`, `evidence/readings/packet-shown.txt`; no model called). Every Codex run under
+the SDLC session's run folders: 50 runs, all GPT 6.2 Sol (35 at high, 15 at medium), 26 of them whole deliveries.
+For each packet, the lines of 20 characters or more that stand in what the model was given between the packet's
+print and the stage's submission, by the times in ShipLoop's trace. A packet is the stage's instructions and then,
+after "Result template:", the template and the references: the list that names each guide and says where it is.
+
+The spec stage, 50 packets:
+
+- Instructions: four fifths of the lines or more in 41 runs, every line in 14, under a third in 8, one between.
+- References: the middle run was given 14% of the lines, and 39 of 50 a quarter or less. The line that says where
+  "Behavior-model guidance" is was given in 9 of 50, and in the same 9 the lines for "State and data assessment"
+  and "Requirements definition guide".
+- Two of the low runs read by hand: in one the model was given 2,738 characters of a 20,602-character spec packet
+  and submitted its specification 20 seconds after the print; in the other 3,705 characters, and 13 seconds.
+
+Later stages, counting only the instruction lines no earlier packet of the same run had printed (packets given
+four fifths or more of them, and packets given under a third): test-strategy 16 and 10 of 26; plan 17 and 4 of 26;
+test-spec 10 and 13 of 27; implement 11 and 21 of 36; test 7 and 20 of 35; document 8 and 19 of 35; system-test 8
+and 17 of 26; product-acceptance 11 and 15 of 26. One whole delivery read by hand (ticket assignment, Sol at high,
+the delivery section 33 found to pass): 3 of 62 instruction lines for system-test in a window of 10 seconds, 3 of
+60 for product-acceptance, 17 of 127 for implement. The model is given the packet's first line, its goal and its
+result template, and often not the duties between them.
+
+No packet reached the model by another way: in 74 runs with a session record, no message but the model's own holds
+a packet's first line.
+
+**What this means** (this session's reading).
+
+- For section 38. Real Sol builders did not open the spec guides, and in 41 of 50 runs the model was never given
+  the lines that say where they are. The references are the last part of a packet and the model stops before them.
+  That is the mechanism on this host. It is not shown for Claude, where a tool's result is what the model is given.
+- For the owner's question, whether the reference material is effective in the life cycle. On Sol, as packets are
+  delivered today, mostly it is not read, and in the later stages much of a stage's own instructions is not read
+  either. Whether that costs quality is not measured here: the same deliveries pass their checks, and a model may be
+  right to skip what an earlier packet already told it (the count of new lines allows for that, and is still low).
+  It is a fact about how packets are consumed, and it limits what any wording in a packet can do on this host.
+- For the guides test. Arm C's cue and arm X's block sit in the instructions, the part given at four fifths or more
+  in 41 of 50 runs, so it is still the right small test of whether the text helps where the model reads. Delivery
+  has to be read from the session record for each sample, and about one set in two will have all three arms
+  delivered (41 of 50, three times over).
+
+**What changed in the driver.**
+
+- `exposure` reads the host's session record (`model_outputs`) and places each output by its time against three
+  times in the trace: the packet's print, the author's submission and the acceptance. It reports the instruction and
+  reference lines given, whether the cue's and the block's lines were given, and any passage of the block's two
+  sections before the acceptance. The reading from the harness's events is removed. A run with no Codex session
+  record has no reading, which leaves its delivery unknown.
+- Delivered as the arm intends is now: at least half of the stage's instruction lines given to the model (the 50
+  runs fall into two groups, 79% or more and 28% or less, and half separates them); the cue given in C and X and
+  not in A; in X every line of the block given; in A and C no passage of the block's two sections given before the
+  acceptance.
+- A set whose delivery fails still says nothing about the guide text. It is counted as what it is, text put in a
+  packet and not read, and it may be replaced once by a second set run the same way.
+- The rehearsal's stub lays down a session record with the arm's packet text in it, and a third set has arm X's
+  author give itself only the head of its packet: that sample is usable and not delivered, and the set reads as
+  delivery failed. 75 checks held and none failed (`evidence/guides-test/rehearsal.txt` is this run's transcript;
+  `evidence/guides-test/replay-of-two-existing-runs-3.txt` is the corrected reader on the two existing runs).
+
+**Corrected in place.** Section 40's "reached both hosts whole", and in section 41 the first thing checked, the
+fourth change and prediction 2, each with a dated note.
+
+**Prediction 2, restated before any run.** All three samples are delivered as their arms intend, by the checks
+above. I give it a little better than an even chance.
+
+**What it costs**, restated: one set is about a quarter of an hour; with one replacement set, up to half an hour.
+
+**Not checked.** The Claude host. Whether reading part of a packet costs quality. The later stages' figures rest on
+matching lines, with one delivery read by hand; a line that holds a quotation mark can fail to match when the model
+prints a command's output in its JSON form, which can lower a share a little and cannot explain a share under a
+third.
+
+**Passed on**, as information: to the SDLC session, whose study is ShipLoop's structure on these hosts, and to the
+Ratchet session.

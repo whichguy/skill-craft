@@ -6,7 +6,8 @@
 TEMPLATE_RUN is the output folder of any real run that was stopped when its specification was accepted (it is only read).
 SCRATCH_ROOT must not exist and must be outside the checkout. The harness is replaced by a stub (this file, started with
 GUIDES_STUB set) that lays the template's records down as a run would write them: first without the acceptance, then with
-it, and then waits for the stop file. Everything guides_test.py would write into the checkout (labels, blind copies,
+it, and then waits for the stop file; it also lays down the host's own session record, which says what the model was
+given, with the arm's packet text in it. Everything guides_test.py would write into the checkout (labels, blind copies,
 grades, session folders) is pointed at SCRATCH_ROOT. The sorter's and the judges' sessions are replaced by functions that
 write made-up answers, and the reader's file is made up: what is rehearsed is the handling, not any judgement.
 """
@@ -79,41 +80,43 @@ def stub() -> int:
     )
     loaded.parent.mkdir(parents=True)
     shutil.copyfile(plugin / "skills/shiploop/scripts/shiploop_prompts.py", loaded)
-    if g.ARM_OVERLAY[
-        arm
-    ]:  # give the spec packet, as printed and as received, what this arm's overlay adds
-        edits = g.overlay_docs()[g.ARM_OVERLAY[arm]]["edits"]
-        printed = next(
-            run / row["file"]
-            for row in rows
-            if row.get("kind") == "packet" and row.get("stage") == "spec"
-        )
+    edits = g.overlay_docs()[g.ARM_OVERLAY[arm]]["edits"] if g.ARM_OVERLAY[arm] else []
+    printed = next(
+        run / row["file"]
+        for row in rows
+        if row.get("kind") == "packet" and row.get("stage") == "spec"
+    )
+    assert all(printed.read_text().count(edit["old"]) == 1 for edit in edits), (
+        "the template's spec packet is of another build"
+    )
 
-        def with_edits(text: str) -> str:
-            for edit in edits:
-                text = text.replace(edit["old"], edit["new"])
-            return text
+    def as_given(text: str) -> str:
+        """The arm's packet text in an output the model was given; in mode "skim" only the head of the spec packet."""
+        for edit in edits:
+            text = text.replace(edit["old"], edit["new"])
+        mark = text.find("ShipLoop navigator | spec | revision")
+        return text[: mark + 1500] if mode == "skim" and mark >= 0 else text
 
-        assert all(printed.read_text().count(edit["old"]) == 1 for edit in edits), (
-            "the template's spec packet is of another build"
-        )
-        printed.write_text(with_edits(printed.read_text()))
-        events = [
-            json.loads(line)
-            for line in (out / "events.jsonl").read_text().splitlines()
-            if line.strip()
+    kept = printed.read_text()
+    for edit in edits:
+        kept = kept.replace(edit["old"], edit["new"])
+    printed.write_text(kept)
+    shutil.copytree(
+        Path(plan["template"]) / "home/.codex/sessions", out / "home/.codex/sessions"
+    )
+    for record in (out / "home/.codex/sessions").rglob("rollout-*.jsonl"):
+        told = [
+            json.loads(line) for line in record.read_text().splitlines() if line.strip()
         ]
-        for event in events:
-            for part in (
-                event.get("content") or []
-                if event.get("type") == "tool_call_update"
-                else []
+        for row in told:
+            payload = row.get("payload") if isinstance(row.get("payload"), dict) else {}
+            if str(payload.get("type") or "").endswith("_output") and isinstance(
+                payload.get("output"), list
             ):
-                if isinstance(part.get("content"), dict) and "text" in part["content"]:
-                    part["content"]["text"] = with_edits(part["content"]["text"])
-        (out / "events.jsonl").write_text(
-            "".join(json.dumps(event) + "\n" for event in events)
-        )
+                for part in payload["output"]:
+                    if isinstance(part, dict) and isinstance(part.get("text"), str):
+                        part["text"] = as_given(part["text"])
+        record.write_text("".join(json.dumps(row) + "\n" for row in told))
     result = json.loads((out / "result.json").read_text())
     head = subprocess.run(
         ["git", "-C", str(prior / "work"), "rev-parse", "HEAD"],
@@ -133,7 +136,7 @@ def stub() -> int:
         ) = "exited", "the host ended its turn", "FAILED"
         (out / "result.json").write_text(json.dumps(result))
         return 0
-    if mode == "accept":
+    if mode in ("accept", "skim"):
         time.sleep(2)
         with (run / "trace.jsonl").open("a") as trace:
             trace.write("".join(lines[last - 1 : last + 1]))
@@ -329,12 +332,11 @@ def main() -> int:
         )
     expect(
         "the cue is in C's and X's packet and not in A's",
-        [collected[a]["exposure"]["spec_packet_has_cue"] for a in g.ARMS]
-        == [False, True, True],
+        [collected[a]["exposure"]["cue_shown"] for a in g.ARMS] == [False, True, True],
     )
     expect(
         "the guide text is in X's packet alone",
-        [collected[a]["exposure"]["spec_packet_has_all_guide_text"] for a in g.ARMS]
+        [collected[a]["exposure"]["guide_block_shown_whole"] for a in g.ARMS]
         == [False, False, True],
     )
     manifest = g.manifest_of(root, "r1-sol")
@@ -538,6 +540,37 @@ def main() -> int:
             fine, {"higher": ["a"], "newly_raised": [], "lower": ["b"], "net": 0}, []
         )
         == "no signal",
+    )
+
+    print("== set r3: X's author gives itself only the head of its packet")
+    os.environ["GUIDES_STUB"] = json.dumps(
+        {
+            "template": str(template),
+            "modes": {"A": "accept", "C": "accept", "X": "skim"},
+        }
+    )
+    expect("run returns cleanly", g.cmd_run(root, "r3", "sol", 1.0) == 0)
+    expect("collect finds the set complete", g.cmd_collect(root, "r3-sol") == 0)
+    skimmed = {
+        row["arm"]: row
+        for row in json.loads((root / "collect-r3-sol.json").read_text())
+    }
+    expect(
+        "X is usable and not delivered: little of the instructions, no cue, no block",
+        skimmed["X"]["usable"]
+        and skimmed["X"]["delivered"] is False
+        and not any(skimmed["X"]["delivery_checks"].values()),
+        skimmed["X"]["delivery_checks"],
+    )
+    expect(
+        "A and C are delivered",
+        skimmed["A"]["delivered"] is True and skimmed["C"]["delivered"] is True,
+    )
+    expect(
+        "the set reads as delivery failed",
+        g.outcome(
+            json.loads((root / "set-r3-sol.json").read_text())["delivered"], gain, []
+        ).startswith("delivery failed"),
     )
 
     print("== tampering is caught")

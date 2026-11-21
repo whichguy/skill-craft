@@ -1,0 +1,81 @@
+packet_shown.py, 2026-11-21 13:43 PST: every Codex run under /Users/dadleet/e2e-runs-sdlc8 to sdlc13 (other sessions' folders, read only); no model called.
+
+run | model, effort | spec stage: instruction lines given | reference lines given | guide lines of the list given
+20261120/sol-high-due-1 | gpt-6.2-sol high | 28 of 100 | 11 of 53 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261120/sol-high-due-2 | gpt-6.2-sol high | 89 of 100 | 8 of 56 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261120/sol-high-due-3 | gpt-6.2-sol high | 23 of 100 | 14 of 53 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261120/sol-high-due-4 | gpt-6.2-sol high | 97 of 100 | 8 of 56 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261120/sol-high-expenses-1 | gpt-6.2-sol high | 95 of 100 | 7 of 54 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261120/sol-high-expenses-2 | gpt-6.2-sol high | 84 of 100 | 7 of 53 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261121-e2/e2-g-1 | gpt-6.2-sol high | 106 of 106 | 9 of 56 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261121-e2/e2-g-2 | gpt-6.2-sol high | 95 of 106 | 8 of 55 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261121-e2/e2-g-3 | gpt-6.2-sol high | 85 of 106 | 8 of 56 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261121-e2/e2-g-4 | gpt-6.2-sol high | 103 of 106 | 7 of 56 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261121-e2/e2-g-5 | gpt-6.2-sol high | 105 of 106 | 7 of 57 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261121-e2/e2-g-6 | gpt-6.2-sol high | 106 of 106 | 34 of 55 | Behavior-model guidance yes, State and data assessment yes, Requirements definition guide yes
+20261121-e2/e2-g-7 | gpt-6.2-sol high | 90 of 106 | 54 of 54 | Behavior-model guidance yes, State and data assessment yes, Requirements definition guide yes
+20261121-e2/e2-g-8 | gpt-6.2-sol high | 106 of 106 | 55 of 55 | Behavior-model guidance yes, State and data assessment yes, Requirements definition guide yes
+20261121-e2/e2-n-1 | gpt-6.2-sol high | 27 of 103 | 11 of 56 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261121-e2/e2-n-2 | gpt-6.2-sol high | 103 of 103 | 8 of 57 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261121-e2/e2-n-3 | gpt-6.2-sol high | 100 of 103 | 0 of 55 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261121-e2/e2-n-4 | gpt-6.2-sol high | 94 of 103 | 8 of 56 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261121-e2/e2-n-5 | gpt-6.2-sol high | 99 of 103 | 7 of 56 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261121-e2/e2-n-6 | gpt-6.2-sol high | 91 of 103 | 13 of 58 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261121-e2/e2-n-7 | gpt-6.2-sol high | 103 of 103 | 8 of 54 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261121-e2/e2-n-8 | gpt-6.2-sol high | 92 of 103 | 10 of 55 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261121-e2/e2-plain-1 | gpt-6.2-sol high | 100 of 100 | 8 of 56 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261121-e2/e2-plain-2 | gpt-6.2-sol high | 100 of 100 | 8 of 56 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261121-e2/e2-plain-3 | gpt-6.2-sol high | 100 of 100 | 8 of 56 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261121-e2/e2-plain-4 | gpt-6.2-sol high | 12 of 100 | 14 of 54 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261121-e2/e2-plain-5 | gpt-6.2-sol high | 98 of 100 | 50 of 56 | Behavior-model guidance yes, State and data assessment yes, Requirements definition guide yes
+20261121-e2/e2-plain-6 | gpt-6.2-sol high | 100 of 100 | 54 of 54 | Behavior-model guidance yes, State and data assessment yes, Requirements definition guide yes
+20261121-e2/e2-plain-7 | gpt-6.2-sol high | 100 of 100 | 54 of 54 | Behavior-model guidance yes, State and data assessment yes, Requirements definition guide yes
+20261121-e2/e2-plain-8 | gpt-6.2-sol high | 97 of 100 | 7 of 53 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261121-paired/sol-high-due-p1 | gpt-6.2-sol high | 100 of 100 | 18 of 61 | Behavior-model guidance yes, State and data assessment yes, Requirements definition guide yes
+20261121-paired/sol-high-due-p2 | gpt-6.2-sol high | 100 of 100 | 8 of 56 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261121-paired/sol-high-expenses-p1 | gpt-6.2-sol high | 100 of 100 | 8 of 54 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261121-paired/sol-high-expenses-p2 | gpt-6.2-sol high | 96 of 100 | 39 of 54 | Behavior-model guidance yes, State and data assessment yes, Requirements definition guide yes
+20261121-paired/sol-medium-due-p1 | gpt-6.2-sol medium | 98 of 100 | 12 of 55 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261121-paired/sol-medium-due-p2 | gpt-6.2-sol medium | 6 of 100 | 5 of 52 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261121-paired/sol-medium-expenses-p1 | gpt-6.2-sol medium | 28 of 100 | 10 of 53 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261121-paired/sol-medium-expenses-p2 | gpt-6.2-sol medium | 90 of 100 | 7 of 54 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261121/ticket-assignment-sol-high | gpt-6.2-sol high | 90 of 102 | 8 of 58 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261120/ticket-assignment-sol-medium | gpt-6.2-sol medium | 99 of 100 | 7 of 56 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261120/rehearsal-L-sol-medium-hello | gpt-6.2-sol medium | 87 of 100 | 5 of 53 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261120/rehearsal-S-sol-medium-hello | gpt-6.2-sol medium | 94 of 100 | 7 of 54 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261120/sol-medium-due-L-1 | gpt-6.2-sol medium | 100 of 100 | 8 of 56 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261120/sol-medium-due-L-2 | gpt-6.2-sol medium | 97 of 100 | 8 of 56 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261120/sol-medium-due-S-1 | gpt-6.2-sol medium | 96 of 100 | 7 of 54 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261120/sol-medium-due-S-2 | gpt-6.2-sol medium | 95 of 100 | 19 of 56 | Behavior-model guidance yes, State and data assessment yes, Requirements definition guide yes
+20261120/sol-medium-expenses-L-1 | gpt-6.2-sol medium | 15 of 100 | 7 of 52 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261120/sol-medium-expenses-L-2 | gpt-6.2-sol medium | 27 of 100 | 11 of 53 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261120/sol-medium-expenses-S-1 | gpt-6.2-sol medium | 87 of 100 | 0 of 52 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261120/sol-medium-expenses-S-2 | gpt-6.2-sol medium | 79 of 100 | 7 of 53 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+
+Codex runs read: 50. By stage, over every packet whose stage was submitted:
+stage | packets | instruction lines given: every one | four fifths or more | under a third | of the lines no earlier packet of the run printed: four fifths or more | under a third | reference lines given: median share (lowest to highest) | a quarter or less
+intake | 50 | 41 | 50 | 0 | 50 of 50 | 0 of 50 | 100% (85% to 100%) | 0
+discovery | 50 | 28 | 46 | 4 | 46 of 50 | 4 of 50 | 20% (8% to 100%) | 26
+research | 50 | 23 | 41 | 2 | 43 of 50 | 2 of 50 | 14% (8% to 100%) | 33
+spec | 50 | 14 | 41 | 8 | 42 of 50 | 8 of 50 | 14% (0% to 100%) | 39
+test-strategy | 26 | 4 | 16 | 10 | 16 of 26 | 10 of 26 | 15% (11% to 82%) | 24
+plan | 26 | 4 | 17 | 4 | 17 of 26 | 4 of 26 | 17% (11% to 43%) | 24
+prepare | 26 | 4 | 10 | 9 | 12 of 26 | 9 of 26 | 17% (8% to 26%) | 23
+step-plan | 27 | 4 | 16 | 6 | 15 of 27 | 6 of 27 | 29% (21% to 46%) | 3
+test-spec | 27 | 3 | 7 | 12 | 10 of 27 | 13 of 27 | 18% (9% to 36%) | 22
+implement | 36 | 2 | 11 | 21 | 11 of 36 | 21 of 36 | 12% (5% to 30%) | 34
+test | 35 | 0 | 4 | 19 | 7 of 35 | 20 of 35 | 9% (0% to 77%) | 33
+document | 35 | 0 | 4 | 21 | 8 of 35 | 19 of 35 | 10% (0% to 92%) | 31
+carry-forward | 26 | 3 | 7 | 12 | 9 of 26 | 13 of 26 | 15% (6% to 40%) | 22
+system-test-author | 26 | 1 | 9 | 1 | 13 of 26 | 2 of 26 | 14% (9% to 33%) | 21
+system-test | 26 | 1 | 7 | 13 | 8 of 26 | 17 of 26 | 15% (5% to 30%) | 24
+product-acceptance | 26 | 1 | 5 | 13 | 11 of 26 | 15 of 26 | 13% (4% to 100%) | 23
+release-plan | 26 | 0 | 6 | 5 | 8 of 26 | 6 of 26 | 20% (12% to 36%) | 23
+release-check | 26 | 1 | 7 | 7 | 10 of 26 | 9 of 26 | 17% (6% to 43%) | 23
+release | 26 | 1 | 5 | 8 | 7 of 26 | 10 of 26 | 15% (6% to 39%) | 24
+release-verify | 26 | 1 | 6 | 9 | 7 of 26 | 9 of 26 | 14% (6% to 23%) | 26
+operations | 26 | 1 | 5 | 2 | 15 of 26 | 2 of 26 | 13% (5% to 42%) | 23
+handoff | 26 | 1 | 10 | 6 | 15 of 26 | 7 of 26 | 17% (8% to 43%) | 18
+validate-existing | 1 | 0 | 0 | 1 | 0 of 1 | 1 of 1 | 8% (8% to 8%) | 1
+
+{"spec packets where the list's line for a guide was given": {"Behavior-model guidance": [9, 50], "State and data assessment": [9, 50], "Requirements definition guide": [9, 50]}}
