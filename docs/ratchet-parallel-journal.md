@@ -5,6 +5,30 @@ is being written by another session on another branch. This session is a fork of
 owner at 08:00 on 2026-11-21 to think about one question. It writes only in its own worktree and reads the pilot's
 runs without changing them.
 
+## 0. Where it ended (2026-11-21 10:52; stopped at the owner's word)
+
+**Stopped, not built.** The owner, after the reading on time alone and the catch-up note in section 7: "Yes, stop
+here". Nothing under `skills/` changed; the apparatus is in `docs/experiments/ratchet-pilot-20261120/`.
+
+- **What was measured (rung 1, section 6).** A test pass written without ever seeing the build needed no catch-up:
+  42 of 42 and 41 of 41 items on the real builds and on each other's, 41 of those items having never passed
+  anywhere before. What the writer needs is the plan's answers at the open points and the names it fixes, not the
+  build. Two sessions, one request, one model family.
+- **Why it stops (section 7).** It buys waiting time only, and little. The test pass is the longer stage, so the
+  saving is the build's length at most: 9 of 33 to 39 minutes, and 9.8 and 2.5 minutes with the lengths the
+  build-less sessions took. Tokens do not fall. A catch-up after a build that takes another answer than the plan's
+  is unmeasured and can only shrink the saving. The stage being hidden changed nothing in these two products, and
+  the pilot's verdict was not to build the loop this would speed up.
+- **Worth keeping, with no parallel machinery.** A test writer runs its tests on the starting product first: a
+  test of existing behaviour must pass there and a test of new behaviour must fail (section 6, P1.2); and it keeps
+  everything that drives the product in one adapter file (section 6).
+- **Not run.** Rung 2 (how strong a build-less suite is on the planted defects; how long a catch-up takes when 10
+  to 12 items need the adapter changed), rung 3 (two sessions truly at once), the split test pass and the decide
+  step. Sections 3, 4 and 7 say what each would settle, for whoever takes this up again.
+- **Tools left.** `overlay.py` runs one run's frozen suite on another run's product (give it `--scratch` with a
+  plain folder and `--history product`; section 6 says why). `ratchet.py run --tests-blind-from RUN --stop-after
+  tests` runs the test pass with no build present.
+
 ## 1. The question (owner, 2026-11-21 08:00)
 
 "One of the things that I was trying to consider is whether we should, in Ratchet, do something where we try to
