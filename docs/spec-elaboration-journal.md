@@ -2592,6 +2592,17 @@ documents. Whether such a suite catches the planted defects is not measured.
   plan stage added three clauses and none settles an open point". The fork's reading is that in the two loop runs
   the plan fixes the answers. They are different runs, and a name or a setting in a plan's text is not a clause, so
   the two need not conflict; I have not read those plans and make no claim.
+  (Settled 2026-11-21, 10:57: both hold. The Ratchet session read the plans. In these runs the plan stage does two
+  things: it may append a clause to the specification where a use case needs one (three in its three test-strength
+  cells, by its reading, none an answer to an open point), and it writes `ratchet/plan.md`, which answers every
+  open point as a default for the build. I checked the plans' words on `main`: loop b's "These are implementation
+  choices for this build. The build report should record its actual answers to the open points. Acceptance of the
+  clauses applies to any reasonable answer to those points", with a row per `DUE_HOURS_*` setting; loop a's "The
+  choices for clauses marked `Open:` are build defaults for this pass"; the orders plan's "The defaults below let
+  the builder proceed on the specification's `Open:` points". The stage frame asks for this split (`OPEN_NOTE` in
+  that pilot's `ratchet.py`: "A plan says how each open point is handled ... No stage adds a clause that settles an
+  open point"). The same note says a test "must pass whichever reasonable answer a build took"; the fork's overlays
+  show the suites did not, through how they drive the product.)
 - For ShipLoop nothing is proposed, and this experiment's conclusion stands: no template was changed. If the owner
   ever takes up leaving a point open in the specification, this adds a condition to that design: the answer taken
   at an open point has to be written where the tests are written from, before the build. It is untested on
