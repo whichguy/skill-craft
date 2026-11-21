@@ -2692,6 +2692,57 @@ Sonnet pairs".
   default; it earns a larger round. The machine's load at the start is recorded, and other sessions share it.
 - **Spend.** Earlier Sonnet high deliveries of these cases cost $2 to $20 and took 45 to 110 minutes.
 
+### Results: Sonnet medium against high (run 2026-11-21 after 54e7476e128036efa1139a6bc6766f030f80d128)
+
+**R91. The four deliveries.** All four started together at 19:10Z from a clean worktree of the registration, one
+session each, no resume, planning-review option `stage` in all. Load was 25 on 18 processors at the start (another
+session's work) and 15 when the last run ended. Run folders: `/Users/dadleet/e2e-runs-sdlc12/20261121/`.
+
+| Case | Effort | Harness result | Case checks | Minutes | Cost | Turns | Plan | Reviews (changed) | Refusals |
+|---|---|---|---|---|---|---|---|---|---|
+| `shared-expenses` | medium | pass | 6 of 6 | 16.9 | $5.77 | 249 | 1 item, 11 criteria, 1 step | 8 (7) | 4 |
+| `shared-expenses` | high | pass | 6 of 6 | 32.0 | $10.79 | 341 | 1 item, 14 criteria, 2 steps | 9 (6) | 7 |
+| `ticket-due-times` | medium | pass | 8 of 8 | 23.9 | $6.24 | 242 | 1 item, 11 criteria, 1 step | 9 (2) | 3 |
+| `ticket-due-times` | high | fail | 7 of 8 | 49.4 | $18.14 | 498 | 2 items, 11 and 12 criteria, 1 step each | 9 (7) | 16 |
+
+Medium as a share of high: 53% of the time and 53% of the cost on `shared-expenses`; 48% of the time and 34% of the
+cost on `ticket-due-times`.
+
+**R92. The one failed check is the high run's, and it is the delivery's own fault.** The high `ticket-due-times`
+delivery failed `suite`: its own tests, run by the harness from a copy of the tree, 155 pass and 9 fail ("its command
+line runs from the extracted tree"). Run in place in the saved work folder the same tests pass 164 of 164; the
+harness check rerun on the saved work fails the same way three times of three. So it is not load or a lost port: nine
+of the tests that run added depend on the repository around them (they extract release 1.4.0 with git) and fail once
+the tree is copied elsewhere. All six probes of the feature itself (migrate, restart, switch, rollback, off, cli)
+pass in both runs, and both specs fill the data file at start, the reading the owner ruled right.
+
+### Registered reading: Sonnet medium against high
+
+- **No drop shown.** Each medium run passes every check its partner passes. The only failed check in the round is at
+  high.
+- **A large saving in both pairs**: about half the time, and a half to a third of the cost.
+- Where the high runs spent more: more planning (the high ticket run planned a second work item; the high expenses
+  run two steps), more refusals to work through (16 against 3; 7 against 4) and more review passes.
+
+### Findings
+
+- **F64 (interim, two pairs).** On these two cases Sonnet 5.5 at medium delivered the same passing checks as high in
+  about half the time for half the cost or less. The registration set the bar for what this can carry: it earns a
+  larger round and does not by itself make medium the default.
+- **F65 (observation, one run).** More effort produced more product, not a better one: the high ticket run's second
+  work item and its extra tests are where its one failure came from. This is the same direction as Sol in round 8,
+  where high was slower and passed no more.
+- **F66 (apparatus).** A delivery whose tests need the surrounding git repository passes in place and fails the
+  `suite` check, which copies the tree. That check is right to fail it; a reader of a failed `suite` should rerun it
+  on the saved work before blaming load.
+
+### Limits
+
+- Two pairs, one run a cell, two small cases, one day, a loaded machine. Sonnet's spread at high on these cases was
+  45 to 110 minutes in round 7, so the time ratios are weak; cost and turns point the same way.
+- Case checks are the yardstick. Nothing here reads code quality, and `shared-expenses` has no held-out set.
+- Reviews changed more at medium on one case (7 of 8) and less on the other (2 of 9); not judged for substance.
+
 ## Evidence (all rounds)
 
 | File | Holds |
