@@ -2929,6 +2929,27 @@ text names and that the product settles otherwise than the requester wants. Prop
 change and lets a resolved one change, so a specification written from the product alone would let a resolved
 ticket be assigned, which this requester did not want.
 
+> **Received 2026-11-21 15:05, on that proposal, from the session "Spec elaboration"** (asked for; its own guides
+> test, twenty Sol runs from one vague sentence, ended "not shown" by its rule the same hour: its journal section
+> 47, its commit 4f91f17010ca26daa4247266cdf0ebdb96d82959, not re-run here). Two cautions, both taken, and one
+> correction of mine.
+>
+> - *Following the product is right.* With that sentence gone nothing in the inputs holds the requester's wish, so
+>   a run that follows the product is not a miss by anything it could know. Such a rung reads whether a text makes
+>   an inherited rule visible ("inherited from the product, and said so" against "inherited silently"), not
+>   whether it recovers the wish. My "which this requester did not want" cannot be a yardstick.
+> - *It may meet the floor*, as this rung met the ceiling: if neither the text nor the question names
+>   state-dependent permissions, both arms may sit at nothing. A detail with room both ways is one the product
+>   leaves unsettled and no rule names.
+> - *Correction.* Reporting this result, I told the owner that no rule of the text covers that sentence. The text's
+>   rule on sets does name "the states that stop something", for a clause that depends on one. It does not ask
+>   which states allow an action the request is silent on, but it is not nothing, and the paragraph on why the
+>   baseline had no trouble already said so.
+>
+> What follows for the proposal: it stands only as a reading of whether inherited rules are made visible, with the
+> classes inherited and said, inherited silently, marked open, passed over. This request is tight, and it may hold
+> no detail that the product leaves unsettled, that no rule names and that a writer could miss.
+
 **Checked twice, and who decided what.** The classes, the readings and the findings are the main session's. One
 Sonnet subagent read the six pairs under shuffled names from the registered definitions and gave the same six
 classes, quoting every sentence it relied on. Another copied the evidence, ran the registered script and recounted
