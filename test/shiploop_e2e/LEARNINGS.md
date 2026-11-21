@@ -9194,3 +9194,56 @@ Evidence root: `/Users/dadleet/.codex/visualizations/2026/10/18/01a14c60-cd70-79
 `retirement-live-csv-report/handoff.json`, original result/metrics/native events and product bundle, complete source and
 installed-package inventories, cleanup records, `python315-merged-local-qualification/handoff.json`, and the copied
 `upstream-python-qualification/handoff.json`. Final publication/readback evidence will be recorded separately.
+
+## 2026-11-20 — Fewest-steps step plans: two whole deliveries on the changed text pass every verdict and every case check (Codex Sol 6.2 medium, Claude Sonnet 5.5 high)
+
+These are two full repository-harness rounds, one case each, not mocks and not a comparison. Both ran from
+`67ac34ae2b996205ba6018ebbd7f78bee9d338dd` (tree `ffe94b6895e199ae4407efdff33cfd201f1ea840`), the commit that changes
+the step-plan duty's sizing bullet to "Use the fewest steps the item allows; one step is the default", with at most 12
+criteria and 6 product files a step (it was 4 and 3). Command: `test/shiploop_e2e/run.py --case <case> --host <host>
+--model <model> --effort <effort> --source checkout`, a new external output folder and baseline file, and no turn,
+timeout or resume cap; the Claude run carried `--max-budget-usd 40`. The checkout build is labelled skill-craft 4.1.0 /
+ShipLoop 2.3.0 and holds this unpublished source (plugin fingerprint `e392ed7be4c8` in both runs), so neither is a
+marketplace or publication result. The builders received the catalog request with no coaching.
+
+| | `ticket-assignment` (brownfield) | `shared-expenses` (service from an empty repository) |
+|---|---|---|
+| Builder | Codex CLI 0.171.0, gpt-6.2-sol at medium; one session, no resume | Claude Code 2.1.329, claude-sonnet-5-5 at high; one session, no resume |
+| Harness verdicts | invoked, plugin, process, shiploop, committed: all pass; engine done with its report | all pass; engine done with its report |
+| Case checks | 3 of 3 | 6 of 6 |
+| Held-out acceptance | 18 of 18 | none declared for this case |
+| Step plan | one item, 5 criteria in 2 steps: the service change (4 criteria, 6 product files), then the command line's formatter | W1: 16 criteria in 2 steps; W2, a corrective item its product-acceptance stage added: 5 criteria in 1 step |
+| Start to end | 01:49:09Z to 02:02:23Z, 13.2 minutes | 01:49:12Z to 02:38:00Z, 48.8 minutes |
+| Accepted revisions | 30 | 46 |
+| Improve reviews | 5: two step reviews, carry-forward, system-test-author, release-plan. The run recorded the planning-review option `none`, so spec, test-strategy, plan and step-plan had no review | 13 review packets from 12 Improve children: spec, test-strategy, plan, step-plan, three step reviews, two of carry-forward, three of system-test-author, release-plan (option `stage`) |
+| Refusals, all recovered in the session | 2: one seeded fault of 8 survived at `test`; a system-test command's `ids` shape | 6: three at step-plan (criteria with no focused test ID, a Proof naming a test file not yet written, step paths with no expectation), seeded faults at `test` twice (2 of 8, 1 of 8), release-plan evidence naming files that do not exist |
+| Turns, model calls | 187, 61; no dollar figure (subscription) | 430, 233; $15.04 reported |
+| Returned source | clean committed product `2ccac6dc1cfaffa334e2f74349d5003a609da6aa` | clean committed product `1ec0e2b1a0b96f807b2eefdd14390f8da5f7f9b1` |
+| Left behind | none observed (listeners and processes) | not recorded: the case declares no quality measure; `lifecycle.py cleanup` afterwards found nothing to stop |
+
+What the rounds show about the change. A whole delivery works with fewer, larger steps on two hosts: both runs went
+from intake to handoff in one session, and the larger steps passed the stages after them (`test`, `document`, the step
+review, the system tests, release). The plans follow the new text: the ticket request, which 17 of 21 recorded Codex
+Terra runs cut into three or four steps under the old text, is two steps here, cut where the service ends and the
+command line begins; Sonnet's 16-criteria plan is past the number and is cut in two, as the guard round saw; the
+corrective item is one step. On the Sonnet run product acceptance found two start-up gaps beyond the request (an
+empty `DATA_FILE`, a missing data directory) and added that item itself; the six case checks passed after it.
+
+What they do not show. They are not a speed comparison: the baseline file has no earlier row for either case from
+this source and subject, so nothing here says how much faster a delivery is. The measured comparison is the 29
+inner-loop slices and the guard round in `docs/shiploop-sdlc-structure-journal.md` (round 6), where the same text ran
+as an overlay. One run a host, two small cases, no Grok run. The two runs chose different planning-review options, so
+their review counts are not comparable with each other.
+
+The harness, asked the standing three questions.
+
+1. Retain or keep state differently: the planning-review option a run chose is in ShipLoop's `state.md` and nowhere
+   in `result.json` or `invocation.json`; it changes how many reviews a run has, so it belongs in the result.
+2. More to learn on later passes: a like-for-like row. One run of each case on the previous release with the same
+   subject would let the baseline report price this change on whole deliveries; without it only the slices do.
+3. More evaluation criteria: steps planned per item and criteria per step are not in the metrics. This change moves
+   exactly those, and they had to be read from the step-plan results by hand.
+
+Limits: one run a host, two cases, two hosts, no promotion or efficiency claim, no marketplace result. Evidence root
+(outside the repository, may be pruned): `/Users/dadleet/e2e-runs-sdlc8/20261120/`, with each run's `result.json`,
+`metrics.json`, native events, delivery bundle and `review-export/run-review.html`.
