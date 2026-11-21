@@ -1,0 +1,142 @@
+{
+ "slot": "gym-waitlist__D-enumerated-only__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.35686219999999996,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-33",
+   "quote": "The offer deadline is 15 elapsed minutes after issuance or the occurrence's waitlist closing time, whichever comes first."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-29, C-30, C-107",
+   "quote": "Offers are ordered by when active entries successfully joined that occurrence. ... Simultaneous joins have a stable relative order. ... The release does not require manual offers, queue edits, per-class overrides"
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-24",
+   "quote": "Source: choice: these outcomes cover the specified lifecycle without adding a separate opt-out or no-show policy",
+   "missing": "Whether a declined or expired offer counts against the app's existing no-show or late-cancellation policy."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-110, C-75",
+   "quote": "An available seat with an eligible waiter is offered within 60 elapsed seconds of continuous healthy operation. ... Offer expiry does not require an open member session."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-108, C-35, C-36, C-109",
+   "quote": "The app puts a new offer where the recipient can find it through an in-app notice ... External email, SMS, and push delivery are outside this release ... recover from an interrupted notice publication. Find no duplicate notice"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-44, C-68, C-88",
+   "quote": "A duplicate availability update cannot create an extra offer for the same opening. ... No waitlist action causes the confirmed seat count for that occurrence to exceed its configured capacity."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-87",
+   "quote": "Start ordinary booking for an occurrence for which the same account holds a live offer. The app routes the member to the claim instead of giving them a second reservation path."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-92, C-93, C-50, C-94",
+   "quote": "Receiving an offer does not authorize a payment. ... A successful claim incurs the normal booking charge ... have payment authorization fail ... If the offer remains live and the member is still eligible, reopen it and attempt to claim again."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-27",
+   "quote": "Waitlist enrollment has no separate product queue-length limit. ... A join is not refused solely for reaching a waitlist-specific count."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-21, C-128",
+   "quote": "The waitlist closes at the earlier of the occurrence's existing booking cutoff and its scheduled start."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-43, C-65, C-66",
+   "quote": "Increase capacity by 1 on a full open occurrence with an eligible waiter. That member gets the new opening ... A permitted capacity reduction keeps only as many offers as fit after existing ordinary commitments."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-58",
+   "quote": "Cancel an occurrence with waiting members and offered members. All active entries end as occurrence closed."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-23, C-24, C-29",
+   "quote": "An active entry has exactly one status, waiting or offered. ... Offers are ordered by when active entries successfully joined that occurrence.",
+   "missing": "Whether a queue position is stored on the entry or derived from join time, and the entry record's fields as such."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-59, C-119",
+   "quote": "Reach the closing time with waiting members and outstanding offers. Active entries end as occurrence closed. ... A closed entry is subject to the existing app's retention and deletion rules for member booking activity."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-3, C-95",
+   "quote": "The app shows the member the current state of their own enrollment. ... No other entry's member identity, queue order, status, or deadline is disclosed.",
+   "missing": "Whether the member sees their own queue position, or only their status."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-104, C-107",
+   "quote": "Operator inspection shows each active entry's member identity, queue order, status, and claim deadline if offered. ... The release does not require manual offers, queue edits",
+   "missing": "Whether staff can see a history of who was promoted and when; manual promote/remove is only said to be not required."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-39, C-8",
+   "quote": "The app has one rollout setting affecting all occurrences in the same booking app. ... No per-class overrides are required."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-110",
+   "quote": "An offer is issued within 60 seconds after all those conditions first hold together."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-5, C-18, C-82",
+   "quote": "Open a class occurrence with capacity available to ordinary booking. The existing booking action can still confirm a seat ... Existing confirmed bookings remain confirmed when waitlists are enabled."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-99, C-7",
+   "quote": "Enable the feature for the first time with scheduled classes, confirmed reservations, and past booking refusals already present. Each class starts with an empty queue."
+  }
+ ]
+}

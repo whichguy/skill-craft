@@ -1,0 +1,145 @@
+{
+ "slot": "invoice-reminders__A-single__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.2371838,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "C-18",
+   "quote": "Each invoice can have at most one accepted automatic reminder delivery",
+   "missing": "C-8 says reminders begin only after the deadline, so none go out before it, and C-17 declines to set a cadence. A builder would still have to decide how long after the due date the single reminder is sent."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-4",
+   "quote": "An invoice with zero outstanding balance after a recorded settlement produces no automatic reminder.",
+   "missing": "Paid (C-4), part-paid (C-5) and voided (C-7) are decided. Disputed invoices, invoices on a payment plan, and whether a credit counts as settlement are not."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-18",
+   "quote": "Once a delivery service accepts an invoice's automatic reminder, later checks, overlapping checks, or replayed work do not cause another accepted automatic reminder for that invoice."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-15",
+   "quote": "When an eligibility-changing update takes effect before handoff, a pending reminder for the now-ineligible invoice is withheld."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-21",
+   "quote": "If the delivery service confirms a temporary rejection and the invoice remains eligible, the service makes a later delivery attempt without a manual send.",
+   "missing": "No retry count or delay is chosen. Nothing says a person is alerted when temporary failures keep happening."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-25",
+   "quote": "When more invoices qualify than a check can process, the remaining invoices are considered over subsequent checks",
+   "missing": "The provider's rate limit is not mentioned, and nothing says how sends are paced within a check to stay under it."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C-34",
+   "quote": "After activation, an invoice issued before the feature was installed can receive a reminder under the same conditions as a later invoice without being reissued.",
+   "missing": "Nothing says whether the existing overdue backlog is spread out or limited when the feature is switched on, rather than all going out at once."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "C-9",
+   "quote": "the invoice is not overdue at any time on that date in the billing time zone",
+   "missing": "Time zone is decided only for when the due date passes. Sending hours, the customer's local time, weekends and holidays are not addressed."
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-14",
+   "quote": "An invoice whose billing address is blank or malformed produces no automatic delivery attempt until it has a usable destination."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-13",
+   "quote": "A reminder is addressed to the current billing email applicable to the invoice",
+   "missing": "The clause assumes a single billing email. Nothing says which contact, or how many, receive the reminder when an invoice has several."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-43",
+   "quote": "The operator can look up whether a reminder was accepted for delivery, skipped, rejected, or has an uncertain result for a particular invoice that was processed.",
+   "missing": "The record of when a reminder was sent and what it contained is not specified, nor is whether it is shown on the invoice itself."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-2",
+   "quote": "The recipient can use the reminder to distinguish the invoiced obligation from their other invoices.",
+   "missing": "The amount, the due date, a way to pay, and whether a payment link expires are not specified."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-29",
+   "quote": "A caller without permission to manage reminders for the affected billing scope receives a refusal when they try to change its setting.",
+   "missing": "Only enabling and disabling are covered. Nothing says who may configure the timing, or who may send or stop an individual reminder by hand."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-27",
+   "quote": "An authorized operator disables reminders for the records they manage and can see that the setting is inactive.",
+   "missing": "The off switch is per billing scope only, with nothing global and nothing per customer. Preview or dry-run is absent. Manual resend is only implied by C-42's existing manual communications."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-44",
+   "quote": "For a skipped or rejected reminder, the operator can determine the cause known to the service",
+   "missing": "What failed is visible. Nothing lets an operator see which reminders are scheduled to go out next."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-25",
+   "quote": "When more invoices qualify than a check can process",
+   "missing": "A per-check capacity exists but has no value. Nothing limits how late a reminder may go out; C-33 lets missed work be sent after any delay."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-38",
+   "quote": "The same invoice creation inputs are accepted or refused under the same existing rules with reminders active or inactive."
+  }
+ ]
+}

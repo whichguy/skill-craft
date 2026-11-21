@@ -1,0 +1,14 @@
+ROUND 4c: Sol medium with the user-level skills turned off (0 of 8 sessions read anything outside; covered of 89)
+
+A-single           skills shown: 38 [9, 14, 8, 7] and 40 [11, 12, 10, 7] (mean 39)   skills off: 29 [8, 8, 9, 4]   move -10   R7: SUPERSEDES the draws with the skills shown
+                   partial with skills off: 42; clauses 225; minutes a case 2.9
+D-enumerated-only  skills shown: 62 [16, 19, 13, 14] and 58 [16, 18, 11, 13] (mean 60)   skills off: 64 [17, 17, 16, 14]   move +4   R7: inside 6: the earlier draws stand
+                   partial with skills off: 22; clauses 478; minutes a case 6.6
+
+R1 on clean Sol (D minus A, round 4c): +35   (with the skills shown it was +24, +18 and, on means, +21)
+
+THE TWO DRIVERS, CLEAN AGAINST CLEAN (Sonnet: mean of two draws; Sol: the one clean draw)
+  A-single           Sonnet 43   Sol 29   gap +14
+  D-enumerated-only  Sonnet 72   Sol 64   gap +8
+
+Sol sessions that searched the web in round 4c: 3 of 8

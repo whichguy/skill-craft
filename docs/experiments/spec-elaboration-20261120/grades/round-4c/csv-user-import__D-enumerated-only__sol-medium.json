@@ -1,0 +1,142 @@
+{
+ "slot": "csv-user-import__D-enumerated-only__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3404204,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-9",
+   "quote": "When one row in a file is invalid or a required write fails before successful completion, none of the users described by that attempt is created."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-76",
+   "quote": "A rejection identifies a reason from the applicable refusal conditions in this specification. If several conditions apply, reporting any one is sufficient. ... Row-specific failures identify the affected record under C-75."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-44, C-43",
+   "quote": "If an imported email would conflict with a retained identity ... the batch fails with an existing-account conflict. / Two rows whose emails identify the same account ... cause a duplicate-in-file failure."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-30",
+   "quote": "The created account receives the least-privileged role available for an ordinary newly provisioned user in that directory. A CSV cannot supply a role, password, name, status, identifier, or other account attribute."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-17, C-3",
+   "quote": "An admin of directory A with no admin authority for directory B is refused when attempting to submit to B. / A signed-out caller or a signed-in non-admin attempting submission is refused"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-26",
+   "quote": "The first nonblank record must contain exactly one field whose decoded value ... is `email` ... A missing, unknown, extra, or repeated column produces a header error."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-20, C-22, C-74",
+   "quote": "with or without one leading UTF-8 byte-order mark / can use LF, CRLF, or both between records / A quoted value containing a comma or line break is processed as one field in one record."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-66",
+   "quote": "If ordinary provisioning initiates email, an invitation, or account activation, the equivalent import can initiate it only after the corresponding account is committed."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-4, C-5",
+   "quote": "A file of 1,048,577 bytes is refused with the 1,048,576-byte limit. / A file with 1,001 user records is refused with the 1,000-record limit."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-86, C-7, C-23",
+   "quote": "Submitting a zero-byte file creates an admitted failure for missing header / a CSV containing only the supported header produces feedback that at least one user record is required / `\"ada@example.com\"` as its only data record is eligible"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "U-2, C-41, C-42",
+   "quote": "resubmits the previous file while its users still exist, the import reports a conflict and the directory gains no users. / A duplicate delivery ... resolves to the same accepted attempt"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-33, C-11",
+   "quote": "An accepted attempt is Pending while it has no final result, Succeeded when its users have been durably created, or Failed ... the submitting admin can reopen import activity and find that attempt's current status."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-66",
+   "quote": "Committed accounts receive the ordinary onboarding effects configured for equivalent accounts in that directory.",
+   "missing": "Whether up to 1,000 invitations are sent at once after commit and any pacing or throttling of that mail."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-31",
+   "quote": "an imported account receives the same generated identifier, default state, profile defaults, access scope, and credential or onboarding state as an ordinary account provisioned with email alone in that directory."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-70, C-69",
+   "quote": "finds no original upload or separate row-value copy retained for import processing, diagnostics, or activity. / do not display or offer downloads of uploaded bytes, source filenames, or email values from the file."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-26, C-30",
+   "quote": "The first nonblank record identifies the sole supported column ... `email` / A CSV cannot supply a role, password, name, status, identifier, or other account attribute."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-78, C-34",
+   "quote": "Each entry shows its attempt reference, admission time, and current state. / The submitting admin can view the attempt only while currently authorized",
+   "missing": "A durable audit record of who imported which users and when, visible to anyone other than the submitter and beyond the 168-hour result retention."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-52, C-9",
+   "quote": "An admin cannot cancel a Pending attempt from import activity or the submission view. / none of the users described by that attempt is created."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-48",
+   "quote": "At five minutes after admission a still-uncommitted attempt can no longer create users and has a Failed outcome with a timeout reason.",
+   "missing": "Any visible progress indicator while an import runs beyond the bare Pending state."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-61, C-2",
+   "quote": "an authorized caller can still use the ordinary single-user creation action subject to its existing availability and validation rules. / Submitting a CSV that describes an existing user leaves that account's fields unchanged."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "C-29, C-69",
+   "quote": "an email rejected by ordinary administrator account creation for address validity is also rejected by CSV import. The host's exact accepted address syntax and length limits are unconfirmed.",
+   "missing": "Explicit handling of spreadsheet-formula values and a stated maximum field length for overlong values."
+  }
+ ]
+}

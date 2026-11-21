@@ -1,0 +1,10 @@
+clean csv-user-import__A-single__sol-medium   (system paths referenced: 0)
+clean csv-user-import__D-enumerated-only__sol-medium   (system paths referenced: 0)
+clean grokbot-salesforce__A-single__sol-medium   (system paths referenced: 0)
+clean grokbot-salesforce__D-enumerated-only__sol-medium   (system paths referenced: 0)
+clean gym-waitlist__A-single__sol-medium   (system paths referenced: 0)
+clean gym-waitlist__D-enumerated-only__sol-medium   (system paths referenced: 0)
+clean invoice-reminders__A-single__sol-medium   (system paths referenced: 0)
+clean invoice-reminders__D-enumerated-only__sol-medium   (system paths referenced: 0)
+
+0 of 8 sessions referenced a path under the real HOME outside their own working directory and throwaway profile

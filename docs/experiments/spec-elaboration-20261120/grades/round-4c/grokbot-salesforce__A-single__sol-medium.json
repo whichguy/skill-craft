@@ -1,0 +1,187 @@
+{
+ "slot": "grokbot-salesforce__A-single__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.4271424,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "C-4",
+   "quote": "The user finds an entry point in the designated org that opens the bot.",
+   "missing": "Which Salesforce surface hosts the bot (record page, utility bar, Experience Cloud, Flow) and what context it receives."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-45",
+   "quote": "With an existing record open in Salesforce, submitting text that omits the record's data sends none of that record's fields or attachments to Grok."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-45",
+   "quote": "The bot does not automatically include Salesforce record data in Grok input."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-20",
+   "quote": "A signed-in user without bot authorization cannot invoke Grok through the bot, including through a directly opened bot entry point.",
+   "missing": "The concrete permission mechanism for use, and what authority is required to administer (C-35 says only 'applicable setup authority')."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-11, C-51",
+   "quote": "When two users submit concurrently, each sees only their own result, including if the results arrive in reverse order."
+  },
+  {
+   "id": "N-6",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-36",
+   "quote": "Inspecting the bot page, its browser requests, and its user-visible errors does not expose the configured credential.",
+   "missing": "Where the credential is stored (Named/External Credential or protected setting) and that it never appears in code, metadata or logs."
+  },
+  {
+   "id": "N-8",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-9",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-10",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-8",
+   "quote": "While an accepted submission is awaiting its result, the user can tell that processing is in progress.",
+   "missing": "The mechanism by which the interface learns the answer arrived (platform event, polling, LMS, etc.)."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-10",
+   "quote": "Activating submit twice for the same pending send produces one Grok submission for that send.",
+   "missing": "Idempotency for a retried or re-enqueued async job so the same reply is not posted twice."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-26, C-28, C-57, C-41",
+   "quote": "When xAI responds with a server error in the 500\u2013599 range, the user sees a service failure for the submission."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-22",
+   "quote": "An xAI rate-limit response with status 429 results in a user-visible rate-limit outcome.",
+   "missing": "Backoff and retry policy for rate limiting or quota exhaustion."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-30, C-28",
+   "quote": "If the bot displays text from an incomplete response, the user can tell the displayed reply is incomplete."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-51",
+   "quote": "After a user closes the bot and opens it again, the earlier interaction is not available as a saved transcript in Salesforce.",
+   "missing": "Any stored record shape (role, status, timestamps, model identifier, token/usage counts); spec chooses no persistence but states no record of requests or usage."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-51",
+   "quote": "The bot does not create saved Salesforce conversation history."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-45",
+   "quote": "submitting text that omits the record's data sends none of that record's fields or attachments to Grok.",
+   "missing": "How personal data that users type into prompts is handled."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "C-17",
+   "quote": "When Grok rejects the request for excessive input length, the user sees that the prompt needs to be shortened.",
+   "missing": "Whether prior turns are sent as context, and what is trimmed or summarised at what size."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-15, C-12, U-2",
+   "quote": "A valid prompt measured at the exact published maximum proceeds past the bot's length validation."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "C-37",
+   "quote": "The operator can determine the exact model identifier in use for the development org.",
+   "missing": "A switch to turn the bot off, a way to change the model, and a view of failed requests."
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "C-3",
+   "quote": "A deployment attempt aimed at a production business org makes no changes there.",
+   "missing": "Per-environment configuration and credential differences, deployment method, and code-coverage requirement."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "C-27",
+   "quote": "The deployed bot or its operating instructions give the exact positive deadline in seconds, measured from acceptance of the submission.",
+   "missing": "The actual latency target or deadline value."
+  },
+  {
+   "id": "N-26",
+   "state": "partial",
+   "where": "C-8",
+   "quote": "While an accepted submission is awaiting its result, the user can tell that processing is in progress.",
+   "missing": "An initial empty state and a deliberately designed interface for the loading, error and refused states."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-49, C-46, C-47, C-48",
+   "quote": "An existing workflow or automation outside the bot still produces its prior observable result for the same triggering inputs after the bot is installed or used."
+  }
+ ]
+}

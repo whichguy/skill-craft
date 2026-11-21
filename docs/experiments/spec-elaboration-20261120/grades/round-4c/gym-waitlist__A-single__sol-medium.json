@@ -1,0 +1,145 @@
+{
+ "slot": "gym-waitlist__A-single__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.23807960000000003,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-24",
+   "quote": "the selected member gets a confirmed booking without having to claim or accept the place"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-26",
+   "quote": "the member whose current entry was accepted first receives it",
+   "missing": "Tie-breaking is deliberately left unprescribed (C-27), and nothing says whether a membership tier or staff override can jump the queue."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-50",
+   "quote": "A member with a booking from the waitlist can cancel under the same conditions as a member with an otherwise equivalent ordinary booking.",
+   "missing": "Whether a no-show or late cancellation on an automatically created booking counts against the member under the existing no-show policy."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "U-6",
+   "quote": "If cancellation releases 1 place and a member is eligible on the waitlist, 1 waiting member gets a confirmed booking.",
+   "missing": "The trigger is stated, but not that promotion runs as background work or how promptly it must happen."
+  },
+  {
+   "id": "N-6",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-39",
+   "quote": "concurrent actions that could consume it produce at most 1 new confirmed booking for the place"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "U-8",
+   "quote": "Members try booking or joining at the same time, or a waiter leaves while a place opens. Each member sees the outcome of their action. A place is assigned at most once",
+   "missing": "Whether a member who books directly while their own entry is being promoted can end up with two bookings, and which action wins."
+  },
+  {
+   "id": "N-9",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-38",
+   "quote": "an eligible member's join cannot be refused solely because of the number of entries already on the waitlist"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-43",
+   "quote": "When the existing booking rules make it permanently too late to book an occurrence, members no longer see active entries for it."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "U-10",
+   "quote": "An increase that creates bookable places allows the waitlist to advance. A reduction does not cancel existing bookings through waitlist processing."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-42",
+   "quote": "A member checking an entry after the occurrence has been canceled or removed no longer sees the entry as active."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-8",
+   "quote": "the original entry continues to count from its original acceptance",
+   "missing": "Join time and active or ended states are implied, but the spec doesn't say whether queue position is stored or derived, or list the record's fields."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-43",
+   "quote": "When the existing booking rules make it permanently too late to book an occurrence, members no longer see active entries for it.",
+   "missing": "What happens to the ended entries after the class runs and how long they are kept."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-46",
+   "quote": "A regular member checking their own waitlist status is not shown the identities of other waiters.",
+   "missing": "Whether the member sees their own position in the queue; C-4 only says they can tell they are still waiting."
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-55",
+   "quote": "lets members join eligible full occurrences without an operator configuring the waitlist ... the requested behavior applies wherever existing class capacity makes an occurrence full"
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-47",
+   "quote": "A member can use the same booking actions as before for an occurrence with a place available to them through ordinary booking."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-58",
+   "quote": "An otherwise eligible member can join a still-full occurrence created before the update."
+  }
+ ]
+}

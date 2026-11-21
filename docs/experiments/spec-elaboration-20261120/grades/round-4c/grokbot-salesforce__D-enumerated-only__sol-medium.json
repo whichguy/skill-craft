@@ -1,0 +1,183 @@
+{
+ "slot": "grokbot-salesforce__D-enumerated-only__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.431296,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "C-20",
+   "quote": "An authorized user can find the Grok bot from the org's navigation without having to know a direct link. ... The navigation location and label are left open because the request supplies neither.",
+   "missing": "Which Salesforce surface hosts the bot (record page component, utility bar, app tab, Flow action, etc.) and what context, if any, that surface passes to it."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-36",
+   "quote": "The provider receives the user-entered question without extra text from account, contact, lead, opportunity, case, or other Salesforce records."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-36",
+   "quote": "The bot adds no Salesforce record contents to the request."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-25",
+   "quote": "With only the bot-use grant, a user cannot change enablement, model selection, credentials, or bot access grants.",
+   "missing": "What permission or grant constitutes operator/administrator authority over the bot; use is grant-based (C-12, C-23, C-28) but the admin role is never expressed as a permission set or equivalent."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-52",
+   "quote": "Each visible result belongs to its own question even when the results return in reverse order."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-76",
+   "quote": "If an Apex transaction already has uncommitted record changes, queued asynchronous work, scheduled work, or a pending email send, then the same transaction cannot send a live Grok request",
+   "missing": "Whether the callout runs synchronously or asynchronously (Queueable, future, Continuation) is never decided; the constraint is named but not the design."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-94",
+   "quote": "With tracing enabled, bot-generated logs and failure feedback omit the configured key, even when xAI rejects that key or echoes it in a raw error body.",
+   "missing": "Where the credential is stored (Named/External Credential or protected setting) and that it never appears in code or metadata; C-80 only mentions an external credential conditionally ('If the bot's external credential is moved')."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-70",
+   "quote": "Salesforce defaults to 10 seconds and permits 1 millisecond through 120,000 milliseconds for a single callout.",
+   "missing": "Heap and CPU time limits are not named; callout timeout (C-70), callouts per transaction (C-71) and payload size (C-75) are."
+  },
+  {
+   "id": "N-9",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-66",
+   "quote": "If the target org has no authorization for outbound access to xAI, a question fails with setup feedback and does not reach the provider."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-39",
+   "quote": "While the bot awaits the terminal result of a submission, the user sees an in-progress state.",
+   "missing": "The mechanism by which the view learns the answer has arrived (platform event, polling, LMS, or an inline return) is not stated."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-48",
+   "quote": "During a deliberately repeated click, repeated keyboard activation, or duplicate delivery of the original attempt while its 30-second window is valid, the provider sees at most one request for that attempt."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-73",
+   "quote": "If the target is Developer Edition and 20 callouts to endpoints outside the org's domain are already active, another such Apex callout cannot run concurrently. A refused submission yields feedback under C-40."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-40",
+   "quote": "Feedback distinguishes Salesforce access denied, bot disabled, input invalid, setup or provider authorization rejected, provider usage limited, timeout, service or connection failure, and unusable provider reply."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-69",
+   "quote": "Exceeding either the account and model's request-rate ceiling ... or its throughput ceiling ... produces HTTP 429 at the provider and a usage-limit outcome in the bot."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-41",
+   "quote": "a provider-reported failed or incomplete response ... yields feedback rather than an apparent successful blank or partial answer."
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "C-38",
+   "quote": "Closing, refreshing, or navigating away from the view leaves no answer retrievable through the bot on reopening. ... a persistent transcript is outside scope"
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-37",
+   "quote": "Closing, refreshing, or navigating away from the view leaves no draft or submitted question retrievable through the bot on reopening."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-103",
+   "quote": "Provider requests contain no automatically added Salesforce user ID, username, email, session credential, org ID, or record ID. Values typed into the prompt by the user are part of the question."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-32",
+   "quote": "At the provider boundary, the submitted text arrives intact ... Earlier questions and replies are absent."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "U-2",
+   "quote": "The user tries an empty prompt, a whitespace-only prompt, a prompt of exactly 4,000 Unicode code points, then a prompt of 4,001."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "C-31",
+   "quote": "the operator can see the Grok reply or the failure feedback for a valid sample prompt submitted through the ordinary bot entry point.",
+   "missing": "Disable (C-15) and model change (C-14) are covered, but no clause lets the operator see failed requests made by ordinary users, only their own verification attempt."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "C-95",
+   "quote": "Routine bot logs, audit entries it creates, and error diagnostics contain no question or answer body, including on a failed attempt.",
+   "missing": "Whether any audit record of who asked and when exists, what it contains, and how long it is retained."
+  },
+  {
+   "id": "N-24",
+   "state": "covered",
+   "where": "C-82",
+   "quote": "Salesforce refuses a production Apex deployment below the coverage gate. For all-org or local test levels the gate is at least 75% overall coverage with coverage of each trigger."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "C-42",
+   "quote": "If no answer or earlier terminal failure arrives before 30 seconds have elapsed, the visible terminal result is a timeout."
+  },
+  {
+   "id": "N-26",
+   "state": "partial",
+   "where": "C-34",
+   "quote": "text is sufficient for a reply. Formatting and styling are left open.",
+   "missing": "Empty (C-4), pending (C-39) and failure (C-40) states exist, but their visual design is explicitly left open, so a deliberately designed interface is not required."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-86",
+   "quote": "The bot creates no business records and changes or deletes none of the existing records."
+  }
+ ]
+}

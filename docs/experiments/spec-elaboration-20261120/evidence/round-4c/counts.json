@@ -1,0 +1,262 @@
+{
+ "csv-user-import__A-single__sol-medium": {
+  "use_cases": 14,
+  "clauses": 48,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 8,
+   "implied": 51,
+   "request": 3
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 3080,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 3080,
+  "seconds": 160.4,
+  "rc": 0,
+  "arm": "A-single",
+  "driver": "sol-medium",
+  "case": "csv-user-import",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 7499,
+  "tools": {
+   "agent_message": 3,
+   "command_execution": 7
+  },
+  "also": []
+ },
+ "csv-user-import__D-enumerated-only__sol-medium": {
+  "use_cases": 9,
+  "clauses": 101,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 89,
+   "implied": 19,
+   "request": 2
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 6143,
+  "bundled_and": 5,
+  "bundled_examples": [
+   "The email field is evaluated after trimming ASCII spaces and tabs at i",
+   "An import uses the account and directory rules in effect when its crea",
+   "Delimiters and line breaks inside quotes remain field content"
+  ],
+  "words_judged": 6143,
+  "seconds": 324.4,
+  "rc": 0,
+  "arm": "D-enumerated-only",
+  "driver": "sol-medium",
+  "case": "csv-user-import",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 14906,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 14
+  },
+  "also": [],
+  "passes_recorded": 10,
+  "passes_words": 614
+ },
+ "grokbot-salesforce__A-single__sol-medium": {
+  "use_cases": 13,
+  "clauses": 60,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 14,
+   "implied": 55,
+   "request": 4
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 3657,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 3657,
+  "seconds": 186.4,
+  "rc": 0,
+  "arm": "A-single",
+  "driver": "sol-medium",
+  "case": "grokbot-salesforce",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 8268,
+  "tools": {
+   "agent_message": 3,
+   "command_execution": 5,
+   "file_change": 2,
+   "web_search": 4
+  },
+  "also": []
+ },
+ "grokbot-salesforce__D-enumerated-only__sol-medium": {
+  "use_cases": 10,
+  "clauses": 114,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 74,
+   "implied": 47,
+   "request": 3
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 6873,
+  "bundled_and": 2,
+  "bundled_examples": [
+   "The effective xAI usage limits are those of the selected account and m",
+   "The bot applies the same admission rules to direct and in-view submiss"
+  ],
+  "words_judged": 6873,
+  "seconds": 381.2,
+  "rc": 0,
+  "arm": "D-enumerated-only",
+  "driver": "sol-medium",
+  "case": "grokbot-salesforce",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 16849,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 13,
+   "web_search": 6
+  },
+  "also": [],
+  "passes_recorded": 8,
+  "passes_words": 521
+ },
+ "gym-waitlist__A-single__sol-medium": {
+  "use_cases": 12,
+  "clauses": 66,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 18,
+   "implied": 58,
+   "request": 2
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 3993,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 3993,
+  "seconds": 187.5,
+  "rc": 0,
+  "arm": "A-single",
+  "driver": "sol-medium",
+  "case": "gym-waitlist",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 8393,
+  "tools": {
+   "agent_message": 3,
+   "command_execution": 5
+  },
+  "also": []
+ },
+ "gym-waitlist__D-enumerated-only__sol-medium": {
+  "use_cases": 8,
+  "clauses": 145,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 119,
+   "implied": 32,
+   "request": 2
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 8984,
+  "bundled_and": 9,
+  "bundled_examples": [
+   "Joining requires the same member and occurrence eligibility as ordinar",
+   "The waitlist closes at the earlier of the occurrence's existing bookin",
+   "Concurrent withdrawal and claim of one entry resolve to a single termi"
+  ],
+  "words_judged": 8984,
+  "seconds": 408.9,
+  "rc": 0,
+  "arm": "D-enumerated-only",
+  "driver": "sol-medium",
+  "case": "gym-waitlist",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 18154,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 29
+  },
+  "also": [],
+  "passes_recorded": 11,
+  "passes_words": 632
+ },
+ "invoice-reminders__A-single__sol-medium": {
+  "use_cases": 16,
+  "clauses": 51,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 12,
+   "implied": 51,
+   "request": 4
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 3418,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 3418,
+  "seconds": 165.7,
+  "rc": 0,
+  "arm": "A-single",
+  "driver": "sol-medium",
+  "case": "invoice-reminders",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 7644,
+  "tools": {
+   "agent_message": 3,
+   "command_execution": 7,
+   "file_change": 2
+  },
+  "also": []
+ },
+ "invoice-reminders__D-enumerated-only__sol-medium": {
+  "use_cases": 14,
+  "clauses": 118,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 92,
+   "implied": 38,
+   "request": 2
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 7243,
+  "bundled_and": 6,
+  "bundled_examples": [
+   "Each due date creates reminder milestones 1, 7, and 14 calendar days l",
+   "An invoice's reminder activity identifies the milestone and its schedu",
+   "A reminder preserves customer authorization for the invoice and paymen"
+  ],
+  "words_judged": 7243,
+  "seconds": 476.5,
+  "rc": 0,
+  "arm": "D-enumerated-only",
+  "driver": "sol-medium",
+  "case": "invoice-reminders",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 22247,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 19,
+   "web_search": 2
+  },
+  "also": [],
+  "passes_recorded": 11,
+  "passes_words": 639
+ }
+}

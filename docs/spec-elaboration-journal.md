@@ -464,3 +464,38 @@ which is the rule R6 and R14 already stated and which R8 and R9 are now held to 
 **A limit this makes plain.** A band of 12 in 89 means one draw an arm can only show large effects. That suits the
 decision at hand, which prefers the cheaper form unless the dearer one is clearly better; it would not suit tuning
 the wording of one arm, and section 5's "which pass earns its place" could not be answered at this size.
+
+## 9. Round 4c: Sol with the skills turned off; the leak had been lifting the single pass, not the recursive form (2026-11-20)
+
+8 calls, A-single and D-enumerated-only on Sol, started only after the pre-flight render showed a session none of
+the user's skills. **The scan of the streams afterwards: 0 of 8 sessions read anything outside their own directory
+and profile** (`evidence/round-4c/leaks.txt`). That is the first check of the override on sessions that ran, and it
+agrees with the render. Readings `evidence/round-4c/readings.txt`.
+
+| arm on Sol medium | skills shown, two draws | skills off | move |
+| --- | --- | --- | --- |
+| A-single | 38 and 40 (mean 39) | **29** | -10 |
+| D-enumerated-only | 62 and 58 (mean 60) | **64** | +4 |
+
+**R7.** The single pass moves by 10, more than the 6 registered, so **the A-single Sol numbers of rounds 1 and 4
+are superseded: on clean Sol the single pass covers 29 of 89, not 39.** The recursive arm moves by 4, inside 6, so
+its earlier draws stand. One clean draw each; the level of the clean single pass is 29 give or take the floor.
+
+**What the leak was doing.** `illustrated-authoring` is a guide to writing documents: check the draft against the
+source for prerequisites and failure boundaries, keep exact values and limits. Shown to a session writing a
+specification in one pass, it appears to have worked as a second set of instructions and lifted that arm by about
+ten nuances. The recursive arm, whose own instructions already ask for all of that, gained nothing measurable from
+it. So the leak made the control look better than it is on Sol and **understated** the effect under test there.
+
+**R1 on clean Sol: +35** (D 64 against A 29), where the draws with the skills shown gave +24, +18 and +21 on means.
+The recursive form's lead over the single pass is now established on both drivers on clean isolation: about +29 on
+Sonnet (means of two draws), +35 on Sol (one draw each). Firm.
+
+**The two drivers, clean against clean.** Single pass: Sonnet 43 (mean of two), Sol 29, a gap of 14, shown at the
+band of 12. Recursive: Sonnet 72 (mean of two), Sol 64, a gap of 8, not shown. Section 3's "Sonnet high beats Sol
+medium on both arms", superseded in section 5 as a comparison of a clean driver with a leaked one, can now be
+restated on clean numbers: **Sonnet leads on the single pass; on the recursive form the two are not told apart.**
+The recursive form more than doubles what Sol at medium covers (29 to 64) and brings it to within the band of
+Sonnet at high. For a harness that runs on both, that is the more useful half of the result.
+
+Three of the eight clean Sol sessions searched the web, as before.

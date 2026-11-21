@@ -1,0 +1,137 @@
+{
+ "slot": "invoice-reminders__D-enumerated-only__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.34266,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-29",
+   "quote": "Each due date creates reminder milestones 1, 7, and 14 calendar days later"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-21",
+   "quote": "A draft, voided or canceled invoice, fully paid or fully credited invoice, written-off invoice... or invoice on a collection hold cannot qualify... A disputed invoice is excluded while the dispute places it on a collection hold.",
+   "missing": "Whether an invoice on a payment plan stops or continues receiving reminders is never stated (part-paid continuing is settled by C-20)."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-26",
+   "quote": "For an invoice with 25.00 USD remaining on a 100.00 USD original total, the email identifies 25.00 USD as the amount currently due."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-48",
+   "quote": "The same account, invoice, and milestone ordinal produce no further submission after a restart, pause, re-enable, recipient edit, due-date edit, payment reversal, or re-deployment."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-39",
+   "quote": "commit a change before its email submission begins. The feature uses the current account activation, deployment stop, invoice disposition, collectible balance... If any required condition fails... submission does not start."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-43",
+   "quote": "the earliest a still-eligible retry can start is 1 hour after non-acceptance is established.",
+   "missing": "Retries (C-43, C-44) and outage recovery (C-16) are covered, but no person is notified or alerted when sends keep failing. Failures are only visible in activity (C-93) and health views (C-70)."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-65",
+   "quote": "If the live email service restricts throughput or concurrent submissions, work above its admitted capacity waits for later consideration."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-36",
+   "quote": "Only day seven is considered for submission at activation, and day fourteen becomes the candidate when it opens."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-30",
+   "quote": "A November 21 milestone cannot send before November 21 at 09:00 UTC and is due at that instant. Daylight saving changes and account locale do not shift that instant."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-26",
+   "quote": "The reminder email shows the outstanding amount in the invoice currency",
+   "missing": "How the amount and currency are formatted for the recipient (locale, symbol, decimal conventions)."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-24",
+   "quote": "An invoice-specific address that is present but invalid is held for correction. A missing or ambiguous customer fallback is held for correction."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-24",
+   "quote": "use the linked customer's current billing email for that account if there is exactly one designated address... A missing or ambiguous customer fallback is held for correction. No reminder is copied to other recipients."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-59",
+   "quote": "Each attempt exposes its start timestamp, destination, result, and result timestamp when known."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-28",
+   "quote": "If the original invoice has a customer-facing payment link or instructions, the reminder gives access to that same payment route.",
+   "missing": "Reference, amount and due date are covered (C-86, C-26, C-27), but the spec never says whether the payment link expires or what happens if it has."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-14",
+   "quote": "A user without billing settings authority cannot enable or disable reminders for that account."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-18",
+   "quote": "After the deployment-wide stop takes effect, new reminders cease across all accounts.",
+   "missing": "There is a global stop and a per-account switch, but no per-customer opt-out and no preview or dry-run of upcoming sends. Manual resends are left to existing rules (C-75)."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-57",
+   "quote": "The activity distinguishes upcoming, due, held for invoice data, ineligible for collection, skipped while a later milestone is open, submitting, retry scheduled, accepted, failed, uncertain, superseded"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-104",
+   "quote": "Delivery capacity may delay it. There is no fixed product dispatch deadline during saturation."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-74",
+   "quote": "creates no charge, payment, credit, write-off, or reversal. The amount, currency, balance, due date, and invoice lifecycle status remain as set by billing."
+  }
+ ]
+}
