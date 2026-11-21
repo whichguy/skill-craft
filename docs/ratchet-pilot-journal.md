@@ -2153,6 +2153,12 @@ specifications, 2.03 for the high cell's two sessions and 1.05 for the medium ce
 | Sol high, reworded | 44 / 9 | 3 | 3 | 26 | `update-rejects-resolved` | 1 | 26.9 (3.8 + 23.1) | not priced |
 | Sol high, lens | 153 / 11 | 13 | 15 | 26 | `cli-no-assignee` | 0 | 38.0 (7.0 + 31.0) | not priced |
 
+*Added 2026-11-21 11:31, after the session "Spec elaboration" found two figures here unexplained:* table 1
+counts each specification as its spec stage wrote it, and table 2 counts the clauses tested, after the plan stage.
+In the high cell the plan stage appended two clauses (C-33 and C-34, both passing on the reference), so its 32
+became 34. In the medium cell it appended none, so 22 stands in both tables. Sol's 44 is the 43 of rung 1's table
+and the one its plan appended (C-44).
+
 **The readings of amendment 11.**
 
 - **R12.1, what medium writes: the same on this reading.** Every medium specification writes one choice clause and 6
