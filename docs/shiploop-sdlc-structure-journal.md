@@ -1469,6 +1469,119 @@ rehearsal only Sonnet's was. Grok is read by its plan alone. A slice ends at `ca
 **Budget and failures.** At most $25 for a Claude slice; each Grok plan about $3. A slice that ends without its
 `carry-forward` accepted is reported as it ended and run once more if time allows.
 
+### Guard round: results (run 2026-11-20 after 6bd1a372109cba27525a12d63e9f2f97e6af69cd)
+
+**R51. The runs** (`evidence/slices-guard.txt`). Eight full slices (Sonnet 5.5 high and Sol 6.2 medium, two an
+arm) and two Grok 4.6 xhigh runs stopped after `step-plan`. Every full slice completed its inner loop and none
+was rerun. The two Grok plans cost $5.27 and $5.07 and took 31 and 41 minutes to an accepted plan.
+
+**R52. The plans.**
+
+| Driver | Shipped text | F1 |
+|---|---|---|
+| Sol 6.2 medium | 7 criteria in 4 steps; 6 in 3 | 7 criteria in 1 step; 5 in 1 |
+| Sonnet 5.5 high | 12 criteria in 5 steps; 13 in 4 | 12 in 2 (7, 5); 12 in 2 (9, 4) |
+| Grok 4.6 xhigh (plan only) | 10 in 3 (3, 3, 4) | 12 in 2 (5, 7) |
+
+- Sonnet's two F1 plans and Grok's declare 10, 11 and 8 product files, past F1's 6, and all three cut the item
+  in two at the same place: the due-time rule, the setting and the storage first, then the listing, the API,
+  the command line and the release files. Each of Sonnet's built steps changed 5 product files, one slice's
+  copy of release 1.4.0 kept as test data aside.
+- Sol 6.2's two F1 plans stay one step. They declare 6 and 5 source files and `package.json`; the one step
+  built changed 7 and 6 product files with `package.json` counted. The planner wrote 5 to 7 criteria and listed
+  as many files as the number allows.
+
+**R53. Time.**
+
+| Driver | Baseline minutes (steps) | F1 minutes (steps) | Change |
+|---|---|---|---|
+| Sol 6.2 medium | 11.3 (4), 12.1 (3) | 9.5 (1), 9.4 (1) | −19% |
+| Sonnet 5.5 high | 30.0 (5), 27.1 (4) | 25.6 (2), 25.7 (2) | −10% |
+
+One Sonnet F1 slice spent about six of its minutes on two send-backs, both for a command or record in the step
+plan that ShipLoop could not use (the accepted plan lacked the review's corrections; a recorded command that is
+not a test runner). Neither is a wrong product (F35).
+
+**R54. Hidden checks**, after the correction in R55. At the end of the slice: 8 of 8 in all eight slices,
+`rollback` included (release 1.4.0 starts on the file the new release wrote). At the last step's `implement`
+snapshot: 7 of 7 in all eight, both arms, so no later stage had anything to repair in the checks the model
+never saw. `test` refused, per slice: Sonnet baseline 4 and 6 against F1 1 and 1; Sol 6.2 baseline 3 and 2
+against F1 1 and 2.
+
+**R55. An apparatus fault, found and corrected: the ticket service's own test run sometimes does not end.**
+In the first grading three checks ended at `base_tests.py`'s 120-second ceiling with no test result: `pristine`
+at a Sol 6.2 baseline's last `implement` snapshot, `pristine` at a Sonnet baseline's step commit, and `suite`
+at the end of one Sonnet F1 slice, which made that slice read 7 of 8 at its end
+(`evidence/slices-guard-snapshots.txt`, kept as it fell). Repeating the `suite` check on that slice's final copy
+passed 5 of 5, 29 of 30 and 78 of 80 times, and one of the two failures kept is the untouched base's own tests
+not ending in the base; plain `node --test` there passed 60 of 60 (`evidence/base-suite-flake.txt`). So the hang
+is in the fixture's test run, about one run in forty on this machine, and says nothing about the tree graded.
+`regrade_timeouts.py` runs again any check whose note is that timeout, up to three times, and keeps the first
+note beside the rerun (`reran` in `slices-guard/snapshots.json`): all three pass at the first rerun
+(`evidence/slices-guard-regrade.txt`). Both arms were hit, two baseline marks and one F1 mark of 98 graded.
+
+### Guard round: registered readings
+
+- **F1 cuts where it should: on Sonnet and Grok yes, on Sol 6.2 medium no.** Sonnet's two F1 plans and Grok's
+  are past the numbers and are cut in two, with 5 product files a step. By the instrument's count one Sonnet
+  step is over the file number, because that slice kept a 25-file copy of release 1.4.0 as test data under
+  `testdata/`, which the path classifier counts as product files. One of Sol 6.2's two F1 plans is past the
+  number by the same count (6 source files and `package.json`) and is not cut; the other is inside the numbers
+  and does not exercise the cut.
+- **Quality at the end:** no loss is seen in either cell, after R55's reruns. By the first grading alone one F1
+  slice read 7 of 8.
+- **The first implementation:** the named risk does not show in either cell.
+- **Time:** F1 saves time on Sol 6.2 medium (19%). On Sonnet no difference is readable (10%). F1 is slower
+  nowhere.
+- **The guard, by its letter, does not hold:** an F1 plan past the numbers stayed one step (Sol 6.2, one file
+  over, the file being `package.json`). On what the cut was there to protect it holds: nothing was lost at the
+  end or at the first implementation on any driver, and no cell is slower.
+
+### Guard round: findings
+
+- **F37 (firm for this item on Sonnet; plan only on Grok).** On the largest recorded item F1 still splits the
+  work where the planner's own count passes the numbers, into two steps at the boundary between storage and the
+  surfaces that show it, against four or five steps with the shipped text. Those larger steps passed every
+  hidden check at their first implementation and at the end.
+- **F38 (firm, and the reason the letter failed).** F1's numbers are a budget the planner fits, as the shipped
+  bound's are (F34): Sol 6.2 wrote 5 to 7 criteria, listed as many files as the number allows, and built the
+  whole item as one step. The numbers are not what kept the result right. The one-step version passed all seven
+  applicable checks at its first implementation and all eight at the end, the way back to 1.4.0 included, in
+  9.5 minutes against 11 to 12.
+- **F39 (interim, two slices a cell).** The saving shrinks as the item grows: 10% on Sonnet here against 19 to
+  44% on the small items, because two steps of five files are each larger than the five steps they replace.
+  `test` refusals still fall, from 4 and 6 to 1 and 1.
+- **F40 (apparatus, firm).** `checks/base_tests.py` reports a test run that did not end as a failed check, and
+  the node-tickets base's run does not end about one time in forty here. Any hidden check built on it (`suite`
+  and `pristine` of every ticket case) can read as a product failure for that reason alone. Rounds 4 to 6 used
+  the acceptance module for their ticket yardstick and saw no such failure.
+- **F41 (not measured).** A full Grok run of a large item under F1; an item of thousands of lines; long runs
+  and a cleared context; what a coarser step history costs later.
+
+### Guard round: recommendation (owner's decisions; nothing built)
+
+1. **The F1 wording stays the candidate, with one thing said plainly: its numbers do not guard anything.** The
+   guard found no quality lost on the largest recorded item on Sol 6.2 medium or Sonnet, fewer `test` refusals,
+   and equal or less time. But where a planner writes few criteria, F1 means one step for the whole item (F38).
+   If the owner adopts the wording, it is adopted as "one step unless the planner sees a layer boundary worth
+   cutting at", not as a size limit. A script-checked limit is not recommended: E-SIZE1's gate never fired in
+   40 samples, and nothing here shows the one-step versions doing worse.
+2. **Fix the harness fault before more ticket cases are graded (F40):** make `base_tests.py` tell "did not end"
+   from "failed" (run again, or report the check as not measured), and find the base test that hangs. It is an
+   E2E apparatus change, separate from this study.
+3. **Still unmeasured where it matters most for Grok:** a full Grok run of a large item under F1 (F41). The
+   plan alone says two steps against three; the slice-length limit here kept the build out of reach.
+
+### Guard round: limits
+
+- One item, two slices a cell; the Sonnet time difference is inside the registered noise band.
+- The guard's letter failed on a count of one file, and the count is the instrument's (declared paths by path
+  class), which counts `package.json` and a test-data folder as product files where the wording would not.
+- The yardstick had a known trap (the data file's version) and no slice fell into it in either arm, so it is at
+  its ceiling here too: the guard shows no loss, not a gain.
+- Three graded checks were run again after a harness timeout; the first grading is kept beside the reruns.
+- Grok is read by two plans, one an arm. A slice ends at `carry-forward`.
+
 ## Evidence (all rounds)
 
 | File | Holds |
@@ -1506,6 +1619,9 @@ rehearsal only Sonnet's was. Grok is read by its plan alone. A slice ends at `ca
 | `evidence/step-size-census.txt`, `evidence/step-size-census-slices.txt` | round 6: step plans' shape, a step's seconds by its size, the same request in more or fewer steps, hidden checks by step count, over the recorded runs and over round 4's slices (R41 to R44) |
 | `overlays/f1-fewest-steps.json` | round 6: the one edit of arm F1, applied to a build copy only |
 | `evidence/slices-f1.txt`, `evidence/slices-f1-iteration.txt`, `evidence/slices-f1-snapshots.txt`, `evidence/step-size-census-slices-f1.txt`, `slices-f1/*.json` | round 6: arm F1 beside its baseline slices, per-step detail, hidden checks at each snapshot, the step plans' shape, and the three files they are computed from (R45 to R49) |
+| `guard-step-cases.json`, `guard_apply.py` | round 6 guard round: the step case `tickets-due-times`, and the script that merges it into a throwaway worktree's case list |
+| `evidence/slices-guard.txt`, `evidence/slices-guard-iteration.txt`, `slices-guard/*.json` | round 6 guard round: each plan with its steps and the files each built step changed, the slices' measures, the registered readings, and the files they are computed from (R51 to R54) |
+| `evidence/slices-guard-snapshots.txt`, `evidence/slices-guard-regrade.txt`, `evidence/base-suite-flake.txt` | round 6 guard round: hidden checks at each snapshot as first graded, the three checks run again after a harness timeout, and the repeat runs that showed the ticket fixture's test run sometimes does not end (R55) |
 | `evidence/steps-pooled.txt`, `slice-plans.json` | round 6: slice minutes and seconds by part against the steps planned, baseline and F1 slices of rounds 4 to 6 pooled (R50, exploratory), and each slice's planned steps and criteria as read from its run folder |
 | `chess_hidden.js` | round 6: the ten hidden checks of the chess engine case |
 | `evidence/slices.txt`, `evidence/slices-iteration.txt`, `evidence/slices-turns.txt`, `evidence/slices-snapshots.txt`, `slices/*.json` | round 4: the live slices' registered measures, per-step detail, time by kind of command, hidden checks at each snapshot, and the three files they are computed from |
@@ -1538,6 +1654,14 @@ Round 6: `python3 -I step_size_census.py <work>/iteration.json <work>/census.jso
 round 4's slice scripts into `slices-f1/`; `slice_report.py slices-f1/census.json slices-f1/iteration.json
 slices-f1/snapshots.json` reproduces `evidence/slices-f1.txt`, and `steps_pooled.py slices slices-k0 slices-f1`
 reproduces `evidence/steps-pooled.txt`, both from the repository alone.
+
+Round 6, guard round: `git worktree add --detach <path> HEAD`, `guard_apply.py <path>`, then from that worktree
+`slice.py --case tickets-due-times ...` (with `--overlay <checkout>/.../overlays/f1-fewest-steps.json` for F1,
+`--stop-after step-plan` for a plan-only run); `stage_census.py slices-guard/census.json <root>`,
+`iteration_census.py slices-guard/census.json slices-guard/iteration.json --all`, `python3.13 slice_snapshots.py
+slices-guard/iteration.json slices-guard/snapshots.json`, `python3.13 regrade_timeouts.py slices-guard/iteration.json
+slices-guard/snapshots.json`, and `guard_report.py slices-guard`, which reproduces `evidence/slices-guard.txt` from
+the repository alone.
 
 Round 3: `python3 -I replay_score.py judge-replay` rescores from the repository alone. To run it again from the
 recorded runs: `replay_cases.py <work>` (needs `<work>/census.json` and `<work>/review_edits.json`),

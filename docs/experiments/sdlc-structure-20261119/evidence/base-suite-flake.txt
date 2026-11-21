@@ -1,0 +1,13 @@
+The hidden suite check, repeated on one finished delivery (sonnet-high-due-F1-2, its final working copy exported once).
+Command: python3.13 test/shiploop_e2e/checks/base_tests.py suite node-tickets   (from the exported copy, E2E_CHECKS set)
+
+first series: 5 runs, 5 pass
+second series: 30 runs, 29 pass, 1 fail (output not kept)
+third series: 80 runs, 78 pass, 2 fail:
+  run-49: FAIL: the delivery's own node --test: 0 pass, 0 fail (rc None); failing: no failing test named
+  run-78: FAIL: the base's own tests do not pass in the base (rc None, pass 0, fail 0): node --test did not end within 120 s
+
+plain `node --test` in the same copy: 60 runs, 60 pass (165 tests each)
+
+Reading: the check gives one node --test run 120 seconds (base_tests.py RUN_SECONDS) and reports rc None when it does not end.
+One of the two kept failures is the untouched base's own tests not ending in the base, so the hang is not in the delivered tests.

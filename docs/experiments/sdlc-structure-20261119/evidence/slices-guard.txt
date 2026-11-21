@@ -1,0 +1,89 @@
+== the plans ==
+sonnet-high-due-F1-1        claude-sonnet-5-5 high  F1   12 criteria, 2 steps (7, 5); product files 11 (per step -, -); past 12 criteria or 6 product files: yes; steps over a number: built step 1 (30 product files), built step 2 (30 product files)
+      S1: (no paths listed) | Core, no HTTP or command-line change (AD-1..AD-6). (1) New src/tickets/due.js: DEFAULT_DUE_HOURS {urgent:4,high:24,normal:72,low:168}, dueTime(created, priority
+      S2: (no paths listed) | Wiring (AD-3, AD-5). src/server.js: createService passes config.dueTimes and config.dueHours to TicketStore.open (both may be undefined, as in the existing test
+      built step 1: 30 product files: src/config.js, src/persistence.js, src/store.js, src/tickets/due.js, src/tickets/query.js, testdata/release-1.4.0/bin/tickets.js, testdata/release-1.4.0/package.json, testdata/release-1.4.0/src/app.js, testdata/release-1.4.0/src/audit.js, testdata/release-1.4.0/src/backoff.js, testdata/release-1.4.0/src/clock.js, testdata/release-1.4.0/src/config.js, testdata/release-1.4.0/src/errors.js, testdata/release-1.4.0/src/format.js, testdata/release-1.4.0/src/http.js, testdata/release-1.4.0/src/log.js, testdata/release-1.4.0/src/notifier.js, testdata/release-1.4.0/src/outbox.js, testdata/release-1.4.0/src/pagination.js, testdata/release-1.4.0/src/persistence.js, testdata/release-1.4.0/src/router.js, testdata/release-1.4.0/src/server.js, testdata/release-1.4.0/src/store.js, testdata/release-1.4.0/src/templates.js, testdata/release-1.4.0/src/tickets/ids.js, testdata/release-1.4.0/src/tickets/priorities.js, testdata/release-1.4.0/src/tickets/query.js, testdata/release-1.4.0/src/tickets/states.js, testdata/release-1.4.0/src/tickets/validate.js, testdata/release-1.4.0/src/worker.js
+      built step 2: 30 product files: src/config.js, src/persistence.js, src/store.js, src/tickets/due.js, src/tickets/query.js, testdata/release-1.4.0/bin/tickets.js, testdata/release-1.4.0/package.json, testdata/release-1.4.0/src/app.js, testdata/release-1.4.0/src/audit.js, testdata/release-1.4.0/src/backoff.js, testdata/release-1.4.0/src/clock.js, testdata/release-1.4.0/src/config.js, testdata/release-1.4.0/src/errors.js, testdata/release-1.4.0/src/format.js, testdata/release-1.4.0/src/http.js, testdata/release-1.4.0/src/log.js, testdata/release-1.4.0/src/notifier.js, testdata/release-1.4.0/src/outbox.js, testdata/release-1.4.0/src/pagination.js, testdata/release-1.4.0/src/persistence.js, testdata/release-1.4.0/src/router.js, testdata/release-1.4.0/src/server.js, testdata/release-1.4.0/src/store.js, testdata/release-1.4.0/src/templates.js, testdata/release-1.4.0/src/tickets/ids.js, testdata/release-1.4.0/src/tickets/priorities.js, testdata/release-1.4.0/src/tickets/query.js, testdata/release-1.4.0/src/tickets/states.js, testdata/release-1.4.0/src/tickets/validate.js, testdata/release-1.4.0/src/worker.js
+      built step 3: 5 product files: bin/tickets.js, package.json, src/app.js, src/format.js, src/server.js
+sonnet-high-due-F1-2        claude-sonnet-5-5 high  F1   12 criteria, 2 steps (9, 4); product files 10 (per step -, -); past 12 criteria or 6 product files: yes
+      S1: (no paths listed) | Implement the stored, set-once due time (AD-1, AD-2, AD-3, AD-4). (1) New src/tickets/due.js, CommonJS, named exports with contract docstrings: DEFAULT_DUE_HOUR
+      S2: (no paths listed) | Surface the due times and ship 1.5.0 (AD-3, AD-5). (1) src/tickets/query.js: parseListQuery(params, { dueTimes = false } = {}): only when dueTimes, an `overdue`
+      built step 1: 5 product files: src/config.js, src/persistence.js, src/server.js, src/store.js, src/tickets/due.js
+      built step 2: 5 product files: bin/tickets.js, package.json, src/app.js, src/format.js, src/tickets/query.js
+sonnet-high-due-1           claude-sonnet-5-5 high  base 12 criteria, 5 steps (4, 3, 2, 2, 1); product files 10 (per step 3, 2, 3, 2, 1); past 12 criteria or 6 product files: yes
+      S1: src/tickets/due.js, src/persistence.js, src/store.js | AD-1, AD-2. New src/tickets/due.js (DEFAULT_DUE_HOURS frozen {urgent:4,high:24,normal:72,low:168}; dueFor(created, priority, hours = DEFAULT_DUE_HOURS) returnin
+      S2: src/config.js, src/server.js | AD-3, AD-4. src/config.js: loadConfig adds dueTimes (true only when DUE_TIMES, trimmed, is exactly `on`) and dueHours (frozen {urgent,high,normal,low} from DUE_
+      S3: src/tickets/query.js, src/store.js, src/app.js | AD-3, AD-5. src/tickets/query.js: parseListQuery(params, { dueTimes = false } = {}) returns `overdue: true` as an extra key only when dueTimes is on and overdue
+      S4: src/format.js, bin/tickets.js | AD-2, AD-3. src/format.js: details(ticket, history, { due = false } = {}) adds a `due` line after `updated` (`-` for a ticket without one) and a tableColumns({ 
+      S5: package.json | R-1, AD-1..AD-5. package.json version 1.5.0 and a CHANGELOG.md 1.5.0 section (CONTRIBUTING's release rule). README.md: configuration rows for DUE_TIMES and DUE_
+      built step 1: 3 product files: src/persistence.js, src/store.js, src/tickets/due.js
+      built step 2: 3 product files: src/config.js, src/persistence.js, src/server.js
+      built step 3: 3 product files: src/app.js, src/store.js, src/tickets/query.js
+      built step 4: 2 product files: bin/tickets.js, src/format.js
+      built step 5: 1 product files: package.json
+sonnet-high-due-2           claude-sonnet-5-5 high  base 13 criteria, 4 steps (4, 4, 4, 1); product files 10 (per step 2, 3, 3, 2); past 12 criteria or 6 product files: yes
+      S1: src/tickets/due.js, src/config.js | Cites AD-1, AD-3, AD-4, AD-5. New src/tickets/due.js ('use strict', CommonJS, named exports, contract docstrings): DEFAULT_RESPONSE_HOURS = frozen {urgent 4, hi
+      S2: src/store.js, src/persistence.js, src/server.js | Cites AD-1, AD-2, AD-3, AD-4. src/persistence.js: ticketRecord adds `due: ticket.due`; readTicket checks due with the time() check only when it is present and n
+      S3: src/tickets/query.js, src/app.js, src/store.js | Cites AD-3, AD-5. src/tickets/query.js: parseListQuery(params, { dueTimes = false } = {}); only when dueTimes and the overdue parameter is present: 'true' adds 
+      S4: src/format.js, bin/tickets.js | Cites AD-3, AD-4. src/format.js: details(ticket, history, { dueTimes = false } = {}) prints a `due` field line after updated when dueTimes and the ticket has on
+      built step 1: 2 product files: src/config.js, src/tickets/due.js
+      built step 2: 3 product files: src/persistence.js, src/server.js, src/store.js
+      built step 3: 3 product files: src/app.js, src/store.js, src/tickets/query.js
+      built step 4: 3 product files: bin/tickets.js, package.json, src/format.js
+sol-medium-due-F1-1         gpt-6.2-sol medium      F1   7 criteria, 1 step (7); product files 7 (per step 6); past 12 criteria or 6 product files: yes; steps over a number: built step 1 (7 product files)
+      S1: src/config.js, src/server.js, src/app.js, src/store.js, src/tickets/query.js, src/persistence.js | Use AD-1 to implement C1–C7 through the existing service entry points and storage adapter.
+      built step 1: 7 product files: package.json, src/app.js, src/config.js, src/persistence.js, src/server.js, src/store.js, src/tickets/query.js
+sol-medium-due-F1-2         gpt-6.2-sol medium      F1   5 criteria, 1 step (5); product files 6 (per step 5); past 12 criteria or 6 product files: no
+      S1: src/config.js, src/server.js, src/store.js, src/persistence.js, src/app.js | Implement C1–C5 and AD-1 across the configured service, store, version-1 file records and HTTP boundary.
+      built step 1: 6 product files: package.json, src/app.js, src/config.js, src/persistence.js, src/server.js, src/store.js
+sol-medium-due-1            gpt-6.2-sol medium      base 7 criteria, 4 steps (2, 2, 2, 1); product files 7 (per step 3, 2, 2, 2); past 12 criteria or 6 product files: yes
+      S1: src/config.js, src/server.js, src/store.js | Wire configurable response hours and the exact on switch through service configuration to the store. Stamp at creation and expose through copies only when enabl
+      S2: src/persistence.js, src/store.js | Persist optional due in version 1 and fill missing values before listening. Reuse the store's snapshot save and preserve audit, outbox and numbering. (C3, C4; A
+      S3: src/app.js, src/store.js | Apply the overdue condition before pagination and combine it with the legacy filters without changing their existing OR semantics. (C5, C6; AD-1).
+      S4: bin/tickets.js, src/format.js | Gate due display in human list and show on DUE_TIMES=on and keep raw column positions and read-only behavior. (C7; AD-1).
+      built step 1: 3 product files: src/config.js, src/server.js, src/store.js
+      built step 2: 2 product files: src/persistence.js, src/store.js
+      built step 3: 2 product files: src/app.js, src/store.js
+      built step 4: 2 product files: bin/tickets.js, src/format.js
+sol-medium-due-2            gpt-6.2-sol medium      base 6 criteria, 3 steps (2, 2, 2); product files 6 (per step 2, 3, 3); past 12 criteria or 6 product files: no
+      S1: src/store.js, src/persistence.js | Implement due assignment and atomic, idempotent version 1 backfill for C1 and C2 under AD-1.
+      S2: src/config.js, src/server.js, src/store.js | Wire the response-hour settings and gated ticket response projection for C3 and C4 under AD-1.
+      S3: src/app.js, src/tickets/query.js, src/store.js | Add gated overdue filtering and request validation for C5 and C6 under AD-1.
+      built step 1: 2 product files: src/persistence.js, src/store.js
+      built step 2: 3 product files: src/config.js, src/server.js, src/store.js
+      built step 3: 3 product files: src/app.js, src/store.js, src/tickets/query.js
+grok-xhigh-due-plan-F1      grok-4.6 xhigh          F1   12 criteria, 2 steps (5, 7); product files 8 (per step 5, 5); past 12 criteria or 6 product files: yes
+      S1: src/config.js, src/tickets/due.js, src/store.js, src/persistence.js, src/server.js | Add dueHours and dueTimes to loadConfig (C1, reject DUE_HOURS_* below 1); add src/tickets/due.js; set due on create and never in apply (C2); pass hours from cre
+      S2: src/tickets/query.js, src/app.js, src/server.js, src/store.js, package.json | Parse overdue when dueTimes is on (C9, C10); ignore overdue when the flag is not on (C6); present due on every ticket JSON only when DUE_TIMES is the exact stri
+grok-xhigh-due-plan-base    grok-4.6 xhigh          base 10 criteria, 3 steps (3, 3, 4); product files 8 (per step 2, 3, 3); past 12 criteria or 6 product files: yes
+      S1: src/tickets/due.js, src/config.js | Add src/tickets/due.js and loadConfig DUE_HOURS_* plus DUE_TIMES for C1 C2 C3.
+      S2: src/persistence.js, src/store.js, src/server.js | Persist optional due on the version-1 ticket (ticketRecord/readTicket keep due only when present), default dueHours to DEFAULT_HOURS so existing TicketStore({cl
+      S3: src/app.js, src/tickets/query.js, src/store.js | Map every ticket HTTP body (create, get, list items, patch, transition) through publicTicket, parse overdue only when dueTimes is on (parseListQuery second argu
+
+== the slices ==
+slice                   driver                  arm   done    min steps   step-plan  its review   test-spec   implement        test    document step review   carry-fwd test refused send-backs product lines changed after first impl   end
+sonnet-high-due-F1-1    claude-sonnet-5-5 high  F1     yes   25.6     3         321         269         125         158         345         128         102          89            1          2          1977          1638        7/7   8/8
+sonnet-high-due-F1-2    claude-sonnet-5-5 high  F1     yes   25.7     2         326          91         120         242         379         151          85         147            1          0           226             2        7/7   8/8
+sonnet-high-due-1       claude-sonnet-5-5 high  base   yes   30.0     5         426          91          86         290         438         162         236          69            4          0           219            14        7/7   8/8
+sonnet-high-due-2       claude-sonnet-5-5 high  base   yes   27.1     4         369         114          84         142         365         163         129         261            6          0           230             2        7/7   8/8
+sol-medium-due-F1-1     gpt-6.2-sol medium      F1     yes    9.5     1         139          44          35          76         115          77          30          51            1          0            94            13        7/7   8/8
+sol-medium-due-F1-2     gpt-6.2-sol medium      F1     yes    9.4     1         151          29          22          66         161          83          22          29            2          0           101             4        7/7   8/8
+sol-medium-due-1        gpt-6.2-sol medium      base   yes   11.3     4         114          46          31          95         224          78          58          32            3          0           109             0        7/7   8/8
+sol-medium-due-2        gpt-6.2-sol medium      base   yes   12.1     3         121          38          21          95         241         101          74          35            2          0           104             0        7/7   8/8
+(seconds per part; steps: implement actions accepted; first impl: the last step's implement snapshot on the seven checks other than suite; end: the eight checks on the slice's final working copy)
+
+== the registered readings, by driver ==
+claude-sonnet-5-5 high
+  cut: sonnet-high-due-F1-1: 12 criteria, 2 steps (7, 5); product files 11 (per step -, -): past the numbers and cut, a step over a number
+  cut: sonnet-high-due-F1-2: 12 criteria, 2 steps (9, 4); product files 10 (per step -, -): past the numbers and cut, no step over a number
+  time: baseline 30.0, 27.1 min (mean 28.5); F1 25.6, 25.7 min (mean 25.6); change -10.2%: no readable difference
+  quality at the end (of 8): baseline [8, 8], F1 [8, 8]: no loss seen
+  first implementation (of 7): baseline [7, 7], F1 [7, 7]: the named risk does not show
+  steps planned: baseline [5, 4], F1 [2, 2]; steps built: baseline [5, 4], F1 [3, 2]; test refusals: baseline [4, 6], F1 [1, 1]; send-backs: baseline [0, 0], F1 [2, 0]
+gpt-6.2-sol medium
+  cut: sol-medium-due-F1-1: 7 criteria, 1 step (7); product files 7 (per step 6): PAST THE NUMBERS AND NOT CUT
+  cut: sol-medium-due-F1-2: 5 criteria, 1 step (5); product files 6 (per step 5): inside the numbers, one step: the cut is not exercised
+  time: baseline 11.3, 12.1 min (mean 11.7); F1 9.5, 9.4 min (mean 9.4); change -19.4%: F1 saves time
+  quality at the end (of 8): baseline [8, 8], F1 [8, 8]: no loss seen
+  first implementation (of 7): baseline [7, 7], F1 [7, 7]: the named risk does not show
+  steps planned: baseline [4, 3], F1 [1, 1]; steps built: baseline [4, 3], F1 [1, 1]; test refusals: baseline [3, 2], F1 [1, 2]; send-backs: baseline [0, 0], F1 [0, 0]

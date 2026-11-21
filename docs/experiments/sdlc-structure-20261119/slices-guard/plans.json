@@ -1,0 +1,624 @@
+{
+ "/Users/dadleet/e2e-runs-sdlc7/20261120/grok-xhigh-due-plan-F1": {
+  "criteria": 12,
+  "files": [
+   "src/config.js",
+   "src/tickets/due.js",
+   "src/store.js",
+   "src/persistence.js",
+   "src/server.js",
+   "src/tickets/query.js",
+   "src/app.js",
+   "package.json"
+  ],
+  "steps": [
+   {
+    "criteria": 5,
+    "files": [
+     "src/config.js",
+     "src/tickets/due.js",
+     "src/store.js",
+     "src/persistence.js",
+     "src/server.js"
+    ],
+    "id": "S1",
+    "listed": true,
+    "task": "Add dueHours and dueTimes to loadConfig (C1, reject DUE_HOURS_* below 1); add src/tickets/due.js; set due on create and never in apply (C2); pass hours from cre"
+   },
+   {
+    "criteria": 7,
+    "files": [
+     "src/tickets/query.js",
+     "src/app.js",
+     "src/server.js",
+     "src/store.js",
+     "package.json"
+    ],
+    "id": "S2",
+    "listed": true,
+    "task": "Parse overdue when dueTimes is on (C9, C10); ignore overdue when the flag is not on (C6); present due on every ticket JSON only when DUE_TIMES is the exact stri"
+   }
+  ]
+ },
+ "/Users/dadleet/e2e-runs-sdlc7/20261120/grok-xhigh-due-plan-base": {
+  "criteria": 10,
+  "files": [
+   "src/tickets/due.js",
+   "src/config.js",
+   "src/persistence.js",
+   "src/store.js",
+   "src/server.js",
+   "src/app.js",
+   "src/tickets/query.js",
+   "package.json"
+  ],
+  "steps": [
+   {
+    "criteria": 3,
+    "files": [
+     "src/tickets/due.js",
+     "src/config.js"
+    ],
+    "id": "S1",
+    "listed": true,
+    "task": "Add src/tickets/due.js and loadConfig DUE_HOURS_* plus DUE_TIMES for C1 C2 C3."
+   },
+   {
+    "criteria": 3,
+    "files": [
+     "src/persistence.js",
+     "src/store.js",
+     "src/server.js"
+    ],
+    "id": "S2",
+    "listed": true,
+    "task": "Persist optional due on the version-1 ticket (ticketRecord/readTicket keep due only when present), default dueHours to DEFAULT_HOURS so existing TicketStore({cl"
+   },
+   {
+    "criteria": 4,
+    "files": [
+     "src/app.js",
+     "src/tickets/query.js",
+     "src/store.js"
+    ],
+    "id": "S3",
+    "listed": true,
+    "task": "Map every ticket HTTP body (create, get, list items, patch, transition) through publicTicket, parse overdue only when dueTimes is on (parseListQuery second argu"
+   }
+  ]
+ },
+ "/Users/dadleet/e2e-runs-sdlc7/20261120/sol-medium-due-1": {
+  "built": [
+   [
+    "src/config.js",
+    "src/server.js",
+    "src/store.js"
+   ],
+   [
+    "src/persistence.js",
+    "src/store.js"
+   ],
+   [
+    "src/app.js",
+    "src/store.js"
+   ],
+   [
+    "bin/tickets.js",
+    "src/format.js"
+   ]
+  ],
+  "criteria": 7,
+  "files": [
+   "src/config.js",
+   "src/server.js",
+   "src/store.js",
+   "src/persistence.js",
+   "src/app.js",
+   "bin/tickets.js",
+   "src/format.js"
+  ],
+  "steps": [
+   {
+    "criteria": 2,
+    "files": [
+     "src/config.js",
+     "src/server.js",
+     "src/store.js"
+    ],
+    "id": "S1",
+    "listed": true,
+    "task": "Wire configurable response hours and the exact on switch through service configuration to the store. Stamp at creation and expose through copies only when enabl"
+   },
+   {
+    "criteria": 2,
+    "files": [
+     "src/persistence.js",
+     "src/store.js"
+    ],
+    "id": "S2",
+    "listed": true,
+    "task": "Persist optional due in version 1 and fill missing values before listening. Reuse the store's snapshot save and preserve audit, outbox and numbering. (C3, C4; A"
+   },
+   {
+    "criteria": 2,
+    "files": [
+     "src/app.js",
+     "src/store.js"
+    ],
+    "id": "S3",
+    "listed": true,
+    "task": "Apply the overdue condition before pagination and combine it with the legacy filters without changing their existing OR semantics. (C5, C6; AD-1)."
+   },
+   {
+    "criteria": 1,
+    "files": [
+     "bin/tickets.js",
+     "src/format.js"
+    ],
+    "id": "S4",
+    "listed": true,
+    "task": "Gate due display in human list and show on DUE_TIMES=on and keep raw column positions and read-only behavior. (C7; AD-1)."
+   }
+  ]
+ },
+ "/Users/dadleet/e2e-runs-sdlc7/20261120/sol-medium-due-2": {
+  "built": [
+   [
+    "src/persistence.js",
+    "src/store.js"
+   ],
+   [
+    "src/config.js",
+    "src/server.js",
+    "src/store.js"
+   ],
+   [
+    "src/app.js",
+    "src/store.js",
+    "src/tickets/query.js"
+   ]
+  ],
+  "criteria": 6,
+  "files": [
+   "src/store.js",
+   "src/persistence.js",
+   "src/config.js",
+   "src/server.js",
+   "src/app.js",
+   "src/tickets/query.js"
+  ],
+  "steps": [
+   {
+    "criteria": 2,
+    "files": [
+     "src/store.js",
+     "src/persistence.js"
+    ],
+    "id": "S1",
+    "listed": true,
+    "task": "Implement due assignment and atomic, idempotent version 1 backfill for C1 and C2 under AD-1."
+   },
+   {
+    "criteria": 2,
+    "files": [
+     "src/config.js",
+     "src/server.js",
+     "src/store.js"
+    ],
+    "id": "S2",
+    "listed": true,
+    "task": "Wire the response-hour settings and gated ticket response projection for C3 and C4 under AD-1."
+   },
+   {
+    "criteria": 2,
+    "files": [
+     "src/app.js",
+     "src/tickets/query.js",
+     "src/store.js"
+    ],
+    "id": "S3",
+    "listed": true,
+    "task": "Add gated overdue filtering and request validation for C5 and C6 under AD-1."
+   }
+  ]
+ },
+ "/Users/dadleet/e2e-runs-sdlc7/20261120/sol-medium-due-F1-1": {
+  "built": [
+   [
+    "package.json",
+    "src/app.js",
+    "src/config.js",
+    "src/persistence.js",
+    "src/server.js",
+    "src/store.js",
+    "src/tickets/query.js"
+   ]
+  ],
+  "criteria": 7,
+  "files": [
+   "src/config.js",
+   "src/server.js",
+   "src/app.js",
+   "src/store.js",
+   "src/tickets/query.js",
+   "src/persistence.js",
+   "package.json"
+  ],
+  "steps": [
+   {
+    "criteria": 7,
+    "files": [
+     "src/config.js",
+     "src/server.js",
+     "src/app.js",
+     "src/store.js",
+     "src/tickets/query.js",
+     "src/persistence.js"
+    ],
+    "id": "S1",
+    "listed": true,
+    "task": "Use AD-1 to implement C1\u2013C7 through the existing service entry points and storage adapter."
+   }
+  ]
+ },
+ "/Users/dadleet/e2e-runs-sdlc7/20261120/sol-medium-due-F1-2": {
+  "built": [
+   [
+    "package.json",
+    "src/app.js",
+    "src/config.js",
+    "src/persistence.js",
+    "src/server.js",
+    "src/store.js"
+   ]
+  ],
+  "criteria": 5,
+  "files": [
+   "src/config.js",
+   "src/server.js",
+   "src/store.js",
+   "src/persistence.js",
+   "src/app.js",
+   "package.json"
+  ],
+  "steps": [
+   {
+    "criteria": 5,
+    "files": [
+     "src/config.js",
+     "src/server.js",
+     "src/store.js",
+     "src/persistence.js",
+     "src/app.js"
+    ],
+    "id": "S1",
+    "listed": true,
+    "task": "Implement C1\u2013C5 and AD-1 across the configured service, store, version-1 file records and HTTP boundary."
+   }
+  ]
+ },
+ "/Users/dadleet/e2e-runs-sdlc7/20261120/sonnet-high-due-1": {
+  "built": [
+   [
+    "src/persistence.js",
+    "src/store.js",
+    "src/tickets/due.js"
+   ],
+   [
+    "src/config.js",
+    "src/persistence.js",
+    "src/server.js"
+   ],
+   [
+    "src/app.js",
+    "src/store.js",
+    "src/tickets/query.js"
+   ],
+   [
+    "bin/tickets.js",
+    "src/format.js"
+   ],
+   [
+    "package.json"
+   ]
+  ],
+  "criteria": 12,
+  "files": [
+   "bin/tickets.js",
+   "package.json",
+   "src/app.js",
+   "src/config.js",
+   "src/format.js",
+   "src/persistence.js",
+   "src/server.js",
+   "src/store.js",
+   "src/tickets/due.js",
+   "src/tickets/query.js"
+  ],
+  "steps": [
+   {
+    "criteria": 4,
+    "files": [
+     "src/tickets/due.js",
+     "src/persistence.js",
+     "src/store.js"
+    ],
+    "id": "S1",
+    "listed": true,
+    "task": "AD-1, AD-2. New src/tickets/due.js (DEFAULT_DUE_HOURS frozen {urgent:4,high:24,normal:72,low:168}; dueFor(created, priority, hours = DEFAULT_DUE_HOURS) returnin"
+   },
+   {
+    "criteria": 3,
+    "files": [
+     "src/config.js",
+     "src/server.js"
+    ],
+    "id": "S2",
+    "listed": true,
+    "task": "AD-3, AD-4. src/config.js: loadConfig adds dueTimes (true only when DUE_TIMES, trimmed, is exactly `on`) and dueHours (frozen {urgent,high,normal,low} from DUE_"
+   },
+   {
+    "criteria": 2,
+    "files": [
+     "src/tickets/query.js",
+     "src/store.js",
+     "src/app.js"
+    ],
+    "id": "S3",
+    "listed": true,
+    "task": "AD-3, AD-5. src/tickets/query.js: parseListQuery(params, { dueTimes = false } = {}) returns `overdue: true` as an extra key only when dueTimes is on and overdue"
+   },
+   {
+    "criteria": 2,
+    "files": [
+     "src/format.js",
+     "bin/tickets.js"
+    ],
+    "id": "S4",
+    "listed": true,
+    "task": "AD-2, AD-3. src/format.js: details(ticket, history, { due = false } = {}) adds a `due` line after `updated` (`-` for a ticket without one) and a tableColumns({ "
+   },
+   {
+    "criteria": 1,
+    "files": [
+     "package.json"
+    ],
+    "id": "S5",
+    "listed": true,
+    "task": "R-1, AD-1..AD-5. package.json version 1.5.0 and a CHANGELOG.md 1.5.0 section (CONTRIBUTING's release rule). README.md: configuration rows for DUE_TIMES and DUE_"
+   }
+  ]
+ },
+ "/Users/dadleet/e2e-runs-sdlc7/20261120/sonnet-high-due-2": {
+  "built": [
+   [
+    "src/config.js",
+    "src/tickets/due.js"
+   ],
+   [
+    "src/persistence.js",
+    "src/server.js",
+    "src/store.js"
+   ],
+   [
+    "src/app.js",
+    "src/store.js",
+    "src/tickets/query.js"
+   ],
+   [
+    "bin/tickets.js",
+    "package.json",
+    "src/format.js"
+   ]
+  ],
+  "criteria": 13,
+  "files": [
+   "src/tickets/due.js",
+   "src/config.js",
+   "src/store.js",
+   "src/persistence.js",
+   "src/server.js",
+   "src/tickets/query.js",
+   "src/app.js",
+   "src/format.js",
+   "bin/tickets.js",
+   "package.json"
+  ],
+  "steps": [
+   {
+    "criteria": 4,
+    "files": [
+     "src/tickets/due.js",
+     "src/config.js"
+    ],
+    "id": "S1",
+    "listed": true,
+    "task": "Cites AD-1, AD-3, AD-4, AD-5. New src/tickets/due.js ('use strict', CommonJS, named exports, contract docstrings): DEFAULT_RESPONSE_HOURS = frozen {urgent 4, hi"
+   },
+   {
+    "criteria": 4,
+    "files": [
+     "src/store.js",
+     "src/persistence.js",
+     "src/server.js"
+    ],
+    "id": "S2",
+    "listed": true,
+    "task": "Cites AD-1, AD-2, AD-3, AD-4. src/persistence.js: ticketRecord adds `due: ticket.due`; readTicket checks due with the time() check only when it is present and n"
+   },
+   {
+    "criteria": 4,
+    "files": [
+     "src/tickets/query.js",
+     "src/app.js",
+     "src/store.js"
+    ],
+    "id": "S3",
+    "listed": true,
+    "task": "Cites AD-3, AD-5. src/tickets/query.js: parseListQuery(params, { dueTimes = false } = {}); only when dueTimes and the overdue parameter is present: 'true' adds "
+   },
+   {
+    "criteria": 1,
+    "files": [
+     "src/format.js",
+     "bin/tickets.js"
+    ],
+    "id": "S4",
+    "listed": true,
+    "task": "Cites AD-3, AD-4. src/format.js: details(ticket, history, { dueTimes = false } = {}) prints a `due` field line after updated when dueTimes and the ticket has on"
+   }
+  ]
+ },
+ "/Users/dadleet/e2e-runs-sdlc7/20261120/sonnet-high-due-F1-1": {
+  "built": [
+   [
+    "src/config.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/tickets/due.js",
+    "src/tickets/query.js",
+    "testdata/release-1.4.0/bin/tickets.js",
+    "testdata/release-1.4.0/package.json",
+    "testdata/release-1.4.0/src/app.js",
+    "testdata/release-1.4.0/src/audit.js",
+    "testdata/release-1.4.0/src/backoff.js",
+    "testdata/release-1.4.0/src/clock.js",
+    "testdata/release-1.4.0/src/config.js",
+    "testdata/release-1.4.0/src/errors.js",
+    "testdata/release-1.4.0/src/format.js",
+    "testdata/release-1.4.0/src/http.js",
+    "testdata/release-1.4.0/src/log.js",
+    "testdata/release-1.4.0/src/notifier.js",
+    "testdata/release-1.4.0/src/outbox.js",
+    "testdata/release-1.4.0/src/pagination.js",
+    "testdata/release-1.4.0/src/persistence.js",
+    "testdata/release-1.4.0/src/router.js",
+    "testdata/release-1.4.0/src/server.js",
+    "testdata/release-1.4.0/src/store.js",
+    "testdata/release-1.4.0/src/templates.js",
+    "testdata/release-1.4.0/src/tickets/ids.js",
+    "testdata/release-1.4.0/src/tickets/priorities.js",
+    "testdata/release-1.4.0/src/tickets/query.js",
+    "testdata/release-1.4.0/src/tickets/states.js",
+    "testdata/release-1.4.0/src/tickets/validate.js",
+    "testdata/release-1.4.0/src/worker.js"
+   ],
+   [
+    "src/config.js",
+    "src/persistence.js",
+    "src/store.js",
+    "src/tickets/due.js",
+    "src/tickets/query.js",
+    "testdata/release-1.4.0/bin/tickets.js",
+    "testdata/release-1.4.0/package.json",
+    "testdata/release-1.4.0/src/app.js",
+    "testdata/release-1.4.0/src/audit.js",
+    "testdata/release-1.4.0/src/backoff.js",
+    "testdata/release-1.4.0/src/clock.js",
+    "testdata/release-1.4.0/src/config.js",
+    "testdata/release-1.4.0/src/errors.js",
+    "testdata/release-1.4.0/src/format.js",
+    "testdata/release-1.4.0/src/http.js",
+    "testdata/release-1.4.0/src/log.js",
+    "testdata/release-1.4.0/src/notifier.js",
+    "testdata/release-1.4.0/src/outbox.js",
+    "testdata/release-1.4.0/src/pagination.js",
+    "testdata/release-1.4.0/src/persistence.js",
+    "testdata/release-1.4.0/src/router.js",
+    "testdata/release-1.4.0/src/server.js",
+    "testdata/release-1.4.0/src/store.js",
+    "testdata/release-1.4.0/src/templates.js",
+    "testdata/release-1.4.0/src/tickets/ids.js",
+    "testdata/release-1.4.0/src/tickets/priorities.js",
+    "testdata/release-1.4.0/src/tickets/query.js",
+    "testdata/release-1.4.0/src/tickets/states.js",
+    "testdata/release-1.4.0/src/tickets/validate.js",
+    "testdata/release-1.4.0/src/worker.js"
+   ],
+   [
+    "bin/tickets.js",
+    "package.json",
+    "src/app.js",
+    "src/format.js",
+    "src/server.js"
+   ]
+  ],
+  "criteria": 12,
+  "files": [
+   "src/tickets/due.js",
+   "src/config.js",
+   "src/persistence.js",
+   "src/store.js",
+   "src/tickets/query.js",
+   "src/server.js",
+   "src/app.js",
+   "src/format.js",
+   "bin/tickets.js",
+   "package.json",
+   "testdata/release-1.4.0/**"
+  ],
+  "steps": [
+   {
+    "criteria": 7,
+    "files": [],
+    "id": "S1",
+    "listed": false,
+    "task": "Core, no HTTP or command-line change (AD-1..AD-6). (1) New src/tickets/due.js: DEFAULT_DUE_HOURS {urgent:4,high:24,normal:72,low:168}, dueTime(created, priority"
+   },
+   {
+    "criteria": 5,
+    "files": [],
+    "id": "S2",
+    "listed": false,
+    "task": "Wiring (AD-3, AD-5). src/server.js: createService passes config.dueTimes and config.dueHours to TicketStore.open (both may be undefined, as in the existing test"
+   }
+  ]
+ },
+ "/Users/dadleet/e2e-runs-sdlc7/20261120/sonnet-high-due-F1-2": {
+  "built": [
+   [
+    "src/config.js",
+    "src/persistence.js",
+    "src/server.js",
+    "src/store.js",
+    "src/tickets/due.js"
+   ],
+   [
+    "bin/tickets.js",
+    "package.json",
+    "src/app.js",
+    "src/format.js",
+    "src/tickets/query.js"
+   ]
+  ],
+  "criteria": 12,
+  "files": [
+   "src/tickets/due.js",
+   "src/config.js",
+   "src/persistence.js",
+   "src/store.js",
+   "src/server.js",
+   "src/tickets/query.js",
+   "src/app.js",
+   "src/format.js",
+   "bin/tickets.js",
+   "package.json"
+  ],
+  "steps": [
+   {
+    "criteria": 9,
+    "files": [],
+    "id": "S1",
+    "listed": false,
+    "task": "Implement the stored, set-once due time (AD-1, AD-2, AD-3, AD-4). (1) New src/tickets/due.js, CommonJS, named exports with contract docstrings: DEFAULT_DUE_HOUR"
+   },
+   {
+    "criteria": 4,
+    "files": [],
+    "id": "S2",
+    "listed": false,
+    "task": "Surface the due times and ship 1.5.0 (AD-3, AD-5). (1) src/tickets/query.js: parseListQuery(params, { dueTimes = false } = {}): only when dueTimes, an `overdue`"
+   }
+  ]
+ }
+}

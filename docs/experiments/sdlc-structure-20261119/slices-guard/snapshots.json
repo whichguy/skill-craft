@@ -1,0 +1,1552 @@
+{
+ "sol-medium-due-1": {
+  "case": "tickets-due-times",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "steps": [
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "pristine",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "suite": "FAIL: the delivery's own node --test passes 117 tests, no more than the base's 117: no test of the new behaviour was added",
+      "migrate": "FAIL: migrate: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "restart": "FAIL: restart, first start: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "switch": "FAIL: switch, after DUE_TIMES=on: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`"
+     }
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "restart": "FAIL: restart, first start: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "switch": "FAIL: switch, after DUE_TIMES=on: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`"
+     }
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "restart": "FAIL: restart, first start: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "switch": "FAIL: switch, after DUE_TIMES=on: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`"
+     }
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "restart": "FAIL: restart, first start: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "switch": "FAIL: switch, after DUE_TIMES=on: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`"
+     }
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: GET /tickets?overdue=true lists ['T-0001', 'T-0002', 'T-0003', 'T-0004', 'T-0005', 'T-0006', 'T-0007', 'T-0008'], not ['T-0001', 'T-0002', 'T-0003', 'T-0006', 'T-0008'] (missing [], extra ['T-0004', 'T-0005', 'T-0007'])"
+     }
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: GET /tickets?overdue=true lists ['T-0001', 'T-0002', 'T-0003', 'T-0004', 'T-0005', 'T-0006', 'T-0007', 'T-0008'], not ['T-0001', 'T-0002', 'T-0003', 'T-0006', 'T-0008'] (missing [], extra ['T-0004', 'T-0005', 'T-0007'])"
+     }
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: GET /tickets?overdue=true lists ['T-0001', 'T-0002', 'T-0003', 'T-0004', 'T-0005', 'T-0006', 'T-0007', 'T-0008'], not ['T-0001', 'T-0002', 'T-0003', 'T-0006', 'T-0008'] (missing [], extra ['T-0004', 'T-0005', 'T-0007'])"
+     }
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: GET /tickets?overdue=true lists ['T-0001', 'T-0002', 'T-0003', 'T-0004', 'T-0005', 'T-0006', 'T-0007', 'T-0008'], not ['T-0001', 'T-0002', 'T-0003', 'T-0006', 'T-0008'] (missing [], extra ['T-0004', 'T-0005', 'T-0007'])"
+     }
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    }
+   }
+  ],
+  "end": {
+   "observed": true,
+   "passed": [
+    "suite",
+    "pristine",
+    "migrate",
+    "restart",
+    "switch",
+    "rollback",
+    "off",
+    "cli"
+   ],
+   "failed": {}
+  }
+ },
+ "sol-medium-due-2": {
+  "case": "tickets-due-times",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "steps": [
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "pristine",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "suite": "FAIL: the delivery's own node --test passes 117 tests, no more than the base's 117: no test of the new behaviour was added",
+      "migrate": "FAIL: migrate: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "restart": "FAIL: restart, first start: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "switch": "FAIL: switch, after DUE_TIMES=on: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`"
+     }
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "restart": "FAIL: restart, first start: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "switch": "FAIL: switch, after DUE_TIMES=on: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`"
+     }
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "restart": "FAIL: restart, first start: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "switch": "FAIL: switch, after DUE_TIMES=on: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`"
+     }
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "restart": "FAIL: restart, first start: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "switch": "FAIL: switch, after DUE_TIMES=on: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`"
+     }
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: GET /tickets?overdue=true lists ['T-0001', 'T-0002', 'T-0003', 'T-0004', 'T-0005', 'T-0006', 'T-0007', 'T-0008'], not ['T-0001', 'T-0002', 'T-0003', 'T-0006', 'T-0008'] (missing [], extra ['T-0004', 'T-0005', 'T-0007'])"
+     }
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: GET /tickets?overdue=true lists ['T-0001', 'T-0002', 'T-0003', 'T-0004', 'T-0005', 'T-0006', 'T-0007', 'T-0008'], not ['T-0001', 'T-0002', 'T-0003', 'T-0006', 'T-0008'] (missing [], extra ['T-0004', 'T-0005', 'T-0007'])"
+     }
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: GET /tickets?overdue=true lists ['T-0001', 'T-0002', 'T-0003', 'T-0004', 'T-0005', 'T-0006', 'T-0007', 'T-0008'], not ['T-0001', 'T-0002', 'T-0003', 'T-0006', 'T-0008'] (missing [], extra ['T-0004', 'T-0005', 'T-0007'])"
+     }
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: GET /tickets?overdue=true lists ['T-0001', 'T-0002', 'T-0003', 'T-0004', 'T-0005', 'T-0006', 'T-0007', 'T-0008'], not ['T-0001', 'T-0002', 'T-0003', 'T-0006', 'T-0008'] (missing [], extra ['T-0004', 'T-0005', 'T-0007'])"
+     }
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli",
+      "pristine"
+     ],
+     "failed": {},
+     "reran": {
+      "pristine": {
+       "first": "FAIL: the base's own tests do not pass in the base (rc None, pass 0, fail 0): node --test did not end within 120 s",
+       "runs": 1,
+       "passed": true
+      }
+     }
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    }
+   }
+  ],
+  "end": {
+   "observed": true,
+   "passed": [
+    "suite",
+    "pristine",
+    "migrate",
+    "restart",
+    "switch",
+    "rollback",
+    "off",
+    "cli"
+   ],
+   "failed": {}
+  }
+ },
+ "sol-medium-due-F1-1": {
+  "case": "tickets-due-times",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "steps": [
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "suite": "FAIL: the delivery's own node --test passes 117 tests, no more than the base's 117: no test of the new behaviour was added"
+     }
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    }
+   }
+  ],
+  "end": {
+   "observed": true,
+   "passed": [
+    "suite",
+    "pristine",
+    "migrate",
+    "restart",
+    "switch",
+    "rollback",
+    "off",
+    "cli"
+   ],
+   "failed": {}
+  }
+ },
+ "sol-medium-due-F1-2": {
+  "case": "tickets-due-times",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "steps": [
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "suite": "FAIL: the delivery's own node --test passes 117 tests, no more than the base's 117: no test of the new behaviour was added"
+     }
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    }
+   }
+  ],
+  "end": {
+   "observed": true,
+   "passed": [
+    "suite",
+    "pristine",
+    "migrate",
+    "restart",
+    "switch",
+    "rollback",
+    "off",
+    "cli"
+   ],
+   "failed": {}
+  }
+ },
+ "sonnet-high-due-1": {
+  "case": "tickets-due-times",
+  "host": "claude",
+  "model": "claude-sonnet-5-5",
+  "effort": "high",
+  "steps": [
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "pristine",
+      "restart",
+      "switch",
+      "rollback",
+      "cli"
+     ],
+     "failed": {
+      "suite": "FAIL: the delivery's own node --test passes 117 tests, no more than the base's 117: no test of the new behaviour was added",
+      "migrate": "FAIL: migrate: GET /tickets?overdue=true lists ['T-0001', 'T-0002', 'T-0003', 'T-0004', 'T-0005', 'T-0006', 'T-0007', 'T-0008'], not ['T-0001', 'T-0002', 'T-0003', 'T-0006', 'T-0008'] (missing [], extra ['T-0004', 'T-0005', 'T-0007'])",
+      "off": "FAIL: off (DUE_TIMES unset): GET /tickets answers 200 {\"items\": [{\"id\": \"T-0001\", \"title\": \"Printer on the second floor jams\", \"priority\": \"urgent\", \"requester\": \"ana@example.com\", \"status\": \"open\", \"created\": \"2025-09-01T08:00:00.000Z\", \"u"
+     }
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "restart",
+      "switch",
+      "rollback",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: GET /tickets?overdue=true lists ['T-0001', 'T-0002', 'T-0003', 'T-0004', 'T-0005', 'T-0006', 'T-0007', 'T-0008'], not ['T-0001', 'T-0002', 'T-0003', 'T-0006', 'T-0008'] (missing [], extra ['T-0004', 'T-0005', 'T-0007'])",
+      "off": "FAIL: off (DUE_TIMES unset): GET /tickets answers 200 {\"items\": [{\"id\": \"T-0001\", \"title\": \"Printer on the second floor jams\", \"priority\": \"urgent\", \"requester\": \"ana@example.com\", \"status\": \"open\", \"created\": \"2025-09-01T08:00:00.000Z\", \"u"
+     }
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "restart",
+      "switch",
+      "rollback",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: GET /tickets?overdue=true lists ['T-0001', 'T-0002', 'T-0003', 'T-0004', 'T-0005', 'T-0006', 'T-0007', 'T-0008'], not ['T-0001', 'T-0002', 'T-0003', 'T-0006', 'T-0008'] (missing [], extra ['T-0004', 'T-0005', 'T-0007'])",
+      "off": "FAIL: off (DUE_TIMES unset): GET /tickets answers 200 {\"items\": [{\"id\": \"T-0001\", \"title\": \"Printer on the second floor jams\", \"priority\": \"urgent\", \"requester\": \"ana@example.com\", \"status\": \"open\", \"created\": \"2025-09-01T08:00:00.000Z\", \"u"
+     }
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "restart",
+      "switch",
+      "rollback",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: GET /tickets?overdue=true lists ['T-0001', 'T-0002', 'T-0003', 'T-0004', 'T-0005', 'T-0006', 'T-0007', 'T-0008'], not ['T-0001', 'T-0002', 'T-0003', 'T-0006', 'T-0008'] (missing [], extra ['T-0004', 'T-0005', 'T-0007'])",
+      "off": "FAIL: off (DUE_TIMES unset): GET /tickets answers 200 {\"items\": [{\"id\": \"T-0001\", \"title\": \"Printer on the second floor jams\", \"priority\": \"urgent\", \"requester\": \"ana@example.com\", \"status\": \"open\", \"created\": \"2025-09-01T08:00:00.000Z\", \"u"
+     }
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "restart",
+      "switch",
+      "rollback",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: GET /tickets?overdue=true lists ['T-0001', 'T-0002', 'T-0003', 'T-0004', 'T-0005', 'T-0006', 'T-0007', 'T-0008'], not ['T-0001', 'T-0002', 'T-0003', 'T-0006', 'T-0008'] (missing [], extra ['T-0004', 'T-0005', 'T-0007'])",
+      "off": "FAIL: off (DUE_TIMES unset): GET /tickets answers 200 {\"items\": [{\"id\": \"T-0001\", \"title\": \"Printer on the second floor jams\", \"priority\": \"urgent\", \"requester\": \"ana@example.com\", \"status\": \"open\", \"created\": \"2025-09-01T08:00:00.000Z\", \"u"
+     }
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "restart",
+      "switch",
+      "rollback",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: GET /tickets?overdue=true lists ['T-0001', 'T-0002', 'T-0003', 'T-0004', 'T-0005', 'T-0006', 'T-0007', 'T-0008'], not ['T-0001', 'T-0002', 'T-0003', 'T-0006', 'T-0008'] (missing [], extra ['T-0004', 'T-0005', 'T-0007'])",
+      "off": "FAIL: off (DUE_TIMES unset): GET /tickets answers 200 {\"items\": [{\"id\": \"T-0001\", \"title\": \"Printer on the second floor jams\", \"priority\": \"urgent\", \"requester\": \"ana@example.com\", \"status\": \"open\", \"created\": \"2025-09-01T08:00:00.000Z\", \"u"
+     }
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "restart",
+      "switch",
+      "rollback",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: GET /tickets?overdue=true lists ['T-0001', 'T-0002', 'T-0003', 'T-0004', 'T-0005', 'T-0006', 'T-0007', 'T-0008'], not ['T-0001', 'T-0002', 'T-0003', 'T-0006', 'T-0008'] (missing [], extra ['T-0004', 'T-0005', 'T-0007'])",
+      "off": "FAIL: off (DUE_TIMES unset): GET /tickets answers 200 {\"items\": [{\"id\": \"T-0001\", \"title\": \"Printer on the second floor jams\", \"priority\": \"urgent\", \"requester\": \"ana@example.com\", \"status\": \"open\", \"created\": \"2025-09-01T08:00:00.000Z\", \"u"
+     }
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "restart",
+      "switch",
+      "rollback",
+      "cli",
+      "pristine"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: GET /tickets?overdue=true lists ['T-0001', 'T-0002', 'T-0003', 'T-0004', 'T-0005', 'T-0006', 'T-0007', 'T-0008'], not ['T-0001', 'T-0002', 'T-0003', 'T-0006', 'T-0008'] (missing [], extra ['T-0004', 'T-0005', 'T-0007'])",
+      "off": "FAIL: off (DUE_TIMES unset): GET /tickets answers 200 {\"items\": [{\"id\": \"T-0001\", \"title\": \"Printer on the second floor jams\", \"priority\": \"urgent\", \"requester\": \"ana@example.com\", \"status\": \"open\", \"created\": \"2025-09-01T08:00:00.000Z\", \"u"
+     },
+     "reran": {
+      "pristine": {
+       "first": "FAIL: the base's pristine tests against the delivered source: 0 of 117 pass, 0 fail (rc None); failing: no failing test named; output tail: node --test did not end within 120 s",
+       "runs": 1,
+       "passed": true
+      }
+     }
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    }
+   }
+  ],
+  "end": {
+   "observed": true,
+   "passed": [
+    "suite",
+    "pristine",
+    "migrate",
+    "restart",
+    "switch",
+    "rollback",
+    "off",
+    "cli"
+   ],
+   "failed": {}
+  }
+ },
+ "sonnet-high-due-2": {
+  "case": "tickets-due-times",
+  "host": "claude",
+  "model": "claude-sonnet-5-5",
+  "effort": "high",
+  "steps": [
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "pristine",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "suite": "FAIL: the delivery's own node --test passes 117 tests, no more than the base's 117: no test of the new behaviour was added",
+      "migrate": "FAIL: migrate: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "restart": "FAIL: restart, first start: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "switch": "FAIL: switch, after DUE_TIMES=on: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`"
+     }
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "restart": "FAIL: restart, first start: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "switch": "FAIL: switch, after DUE_TIMES=on: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`"
+     }
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "restart": "FAIL: restart, first start: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "switch": "FAIL: switch, after DUE_TIMES=on: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`"
+     }
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "restart": "FAIL: restart, first start: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "switch": "FAIL: switch, after DUE_TIMES=on: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`"
+     }
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "restart",
+      "switch",
+      "rollback",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: GET /tickets?overdue=true lists ['T-0001', 'T-0002', 'T-0003', 'T-0004', 'T-0005', 'T-0006', 'T-0007', 'T-0008'], not ['T-0001', 'T-0002', 'T-0003', 'T-0006', 'T-0008'] (missing [], extra ['T-0004', 'T-0005', 'T-0007'])",
+      "off": "FAIL: off (DUE_TIMES unset): GET /tickets answers 200 {\"items\": [{\"id\": \"T-0001\", \"title\": \"Printer on the second floor jams\", \"priority\": \"urgent\", \"requester\": \"ana@example.com\", \"status\": \"open\", \"created\": \"2025-09-01T08:00:00.000Z\", \"u"
+     }
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "restart",
+      "switch",
+      "rollback",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: GET /tickets?overdue=true lists ['T-0001', 'T-0002', 'T-0003', 'T-0004', 'T-0005', 'T-0006', 'T-0007', 'T-0008'], not ['T-0001', 'T-0002', 'T-0003', 'T-0006', 'T-0008'] (missing [], extra ['T-0004', 'T-0005', 'T-0007'])",
+      "off": "FAIL: off (DUE_TIMES unset): GET /tickets answers 200 {\"items\": [{\"id\": \"T-0001\", \"title\": \"Printer on the second floor jams\", \"priority\": \"urgent\", \"requester\": \"ana@example.com\", \"status\": \"open\", \"created\": \"2025-09-01T08:00:00.000Z\", \"u"
+     }
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "restart",
+      "switch",
+      "rollback",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: GET /tickets?overdue=true lists ['T-0001', 'T-0002', 'T-0003', 'T-0004', 'T-0005', 'T-0006', 'T-0007', 'T-0008'], not ['T-0001', 'T-0002', 'T-0003', 'T-0006', 'T-0008'] (missing [], extra ['T-0004', 'T-0005', 'T-0007'])",
+      "off": "FAIL: off (DUE_TIMES unset): GET /tickets answers 200 {\"items\": [{\"id\": \"T-0001\", \"title\": \"Printer on the second floor jams\", \"priority\": \"urgent\", \"requester\": \"ana@example.com\", \"status\": \"open\", \"created\": \"2025-09-01T08:00:00.000Z\", \"u"
+     }
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "restart",
+      "switch",
+      "rollback",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: GET /tickets?overdue=true lists ['T-0001', 'T-0002', 'T-0003', 'T-0004', 'T-0005', 'T-0006', 'T-0007', 'T-0008'], not ['T-0001', 'T-0002', 'T-0003', 'T-0006', 'T-0008'] (missing [], extra ['T-0004', 'T-0005', 'T-0007'])",
+      "off": "FAIL: off (DUE_TIMES unset): GET /tickets answers 200 {\"items\": [{\"id\": \"T-0001\", \"title\": \"Printer on the second floor jams\", \"priority\": \"urgent\", \"requester\": \"ana@example.com\", \"status\": \"open\", \"created\": \"2025-09-01T08:00:00.000Z\", \"u"
+     }
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    }
+   }
+  ],
+  "end": {
+   "observed": true,
+   "passed": [
+    "suite",
+    "pristine",
+    "migrate",
+    "restart",
+    "switch",
+    "rollback",
+    "off",
+    "cli"
+   ],
+   "failed": {}
+  }
+ },
+ "sonnet-high-due-F1-1": {
+  "case": "tickets-due-times",
+  "host": "claude",
+  "model": "claude-sonnet-5-5",
+  "effort": "high",
+  "steps": [
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "pristine",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "suite": "FAIL: the delivery's own node --test passes 117 tests, no more than the base's 117: no test of the new behaviour was added",
+      "migrate": "FAIL: migrate: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "restart": "FAIL: restart, first start: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "switch": "FAIL: switch, after DUE_TIMES=on: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`"
+     }
+    },
+    "test": null,
+    "before_review": null,
+    "commit": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "restart": "FAIL: restart, first start: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "switch": "FAIL: switch, after DUE_TIMES=on: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`"
+     }
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "restart": "FAIL: restart, first start: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "switch": "FAIL: switch, after DUE_TIMES=on: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`"
+     }
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "restart": "FAIL: restart, first start: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "switch": "FAIL: switch, after DUE_TIMES=on: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`"
+     }
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "restart": "FAIL: restart, first start: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "switch": "FAIL: switch, after DUE_TIMES=on: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`"
+     }
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "restart": "FAIL: restart, first start: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`",
+      "switch": "FAIL: switch, after DUE_TIMES=on: T-0001 (urgent, created 2025-09-01T08:00:00.000Z) shows no `due`"
+     }
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    }
+   }
+  ],
+  "end": {
+   "observed": true,
+   "passed": [
+    "suite",
+    "pristine",
+    "migrate",
+    "restart",
+    "switch",
+    "rollback",
+    "off",
+    "cli"
+   ],
+   "failed": {}
+  }
+ },
+ "sonnet-high-due-F1-2": {
+  "case": "tickets-due-times",
+  "host": "claude",
+  "model": "claude-sonnet-5-5",
+  "effort": "high",
+  "steps": [
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "pristine",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "suite": "FAIL: the delivery's own node --test passes 117 tests, no more than the base's 117: no test of the new behaviour was added",
+      "migrate": "FAIL: migrate: GET /tickets?overdue=true lists ['T-0001', 'T-0002', 'T-0003', 'T-0004', 'T-0005', 'T-0006', 'T-0007', 'T-0008'], not ['T-0001', 'T-0002', 'T-0003', 'T-0006', 'T-0008'] (missing [], extra ['T-0004', 'T-0005', 'T-0007'])"
+     }
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: GET /tickets?overdue=true lists ['T-0001', 'T-0002', 'T-0003', 'T-0004', 'T-0005', 'T-0006', 'T-0007', 'T-0008'], not ['T-0001', 'T-0002', 'T-0003', 'T-0006', 'T-0008'] (missing [], extra ['T-0004', 'T-0005', 'T-0007'])"
+     }
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "migrate": "FAIL: migrate: GET /tickets?overdue=true lists ['T-0001', 'T-0002', 'T-0003', 'T-0004', 'T-0005', 'T-0006', 'T-0007', 'T-0008'], not ['T-0001', 'T-0002', 'T-0003', 'T-0006', 'T-0008'] (missing [], extra ['T-0004', 'T-0005', 'T-0007'])"
+     }
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "pristine",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "suite": "FAIL: the delivery's own node --test: 149 pass, 1 fail (rc 1); failing: test/due-rollback.test.js (128.192667ms)",
+      "migrate": "FAIL: migrate: GET /tickets?overdue=true lists ['T-0001', 'T-0002', 'T-0003', 'T-0004', 'T-0005', 'T-0006', 'T-0007', 'T-0008'], not ['T-0001', 'T-0002', 'T-0003', 'T-0006', 'T-0008'] (missing [], extra ['T-0004', 'T-0005', 'T-0007'])"
+     }
+    }
+   },
+   {
+    "implement": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "test": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "before_review": {
+     "observed": true,
+     "passed": [
+      "suite",
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {}
+    },
+    "commit": {
+     "observed": true,
+     "passed": [
+      "pristine",
+      "migrate",
+      "restart",
+      "switch",
+      "rollback",
+      "off",
+      "cli"
+     ],
+     "failed": {
+      "suite": "FAIL: the delivery's own node --test: 152 pass, 2 fail (rc 1); failing: test/due-cli.test.js (134.023292ms); test/due-rollback.test.js (133.473208ms)"
+     }
+    }
+   }
+  ],
+  "end": {
+   "observed": true,
+   "passed": [
+    "pristine",
+    "migrate",
+    "restart",
+    "switch",
+    "rollback",
+    "off",
+    "cli",
+    "suite"
+   ],
+   "failed": {},
+   "reran": {
+    "suite": {
+     "first": "FAIL: the delivery's own node --test: 0 pass, 0 fail (rc None); failing: no failing test named",
+     "runs": 1,
+     "passed": true
+    }
+   }
+  }
+ }
+}
