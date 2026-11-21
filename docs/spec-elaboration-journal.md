@@ -2865,3 +2865,118 @@ sets, the plain counts and a hand reading stand beside it. Codex sessions in thi
 own installed skills (section 7), alike in both arms and unlike the bench. The specification is read after its
 review. Nothing here looks at a product or at tests. The sentence is one way of delivering the material, not the
 only one.
+
+## 40. The review of section 39, what was checked of it, and the amended design (12:40, 2026-11-21)
+
+Section 39's design is replaced by this one in its arms, samples, readings, bar, outcomes and predictions. Its
+question, its sentence and its base stand. Nothing has been run with a model except the review. Running any of it
+needs the owner's word.
+
+**The review.** The latest Sol at maximum effort, read-only over this repository
+(`review/guides-test-prompt.md`, `review/guides-test-review.md`). Verdict: fix first; thirteen findings, nine of
+the first rank. Checked here before anything was changed, by reading the code it cites, by a Sonnet worker's reading
+of the harness and the engine with a line for each claim, and on two run folders that already exist:
+
+- True: the base serves two read routes over three users in memory and nothing else. A judge did score the
+  beyond-the-request item covered for a specification that excluded cancellation. On the bench, "touched" for this
+  sentence is at its ceiling (16 or 17 of 18 on Sol), and two draws of the same text differ item by item: up to 3
+  items higher under both judges on Sol and 2 on Sonnet, net up to 3 (computed from six draws a driver).
+- True of the driver: with planning reviews on, the first `complete` that leaves `spec` is the author's submission
+  to the review, and the specification is accepted by the `complete` that enters `test-strategy`. The review is
+  bound to the submission by the spec action's id, not by time. ShipLoop commits the knowledge files at acceptance,
+  so the accepted specification can be read from a commit and cannot move; `test-strategy` writes
+  `architecture.md` and `environment.md`, not `spec.md`. A Claude run ended by the stop file reports no dollars.
+  The review's seconds are under `planning.stages`. The harness has its own rule for which run under a folder is
+  the run (`run_choice.choose`).
+- True of the reading: a heading in the stream also matches a specification that writes the same heading.
+- One thing the review did not have: the spec packet is about 21,300 characters and reached both hosts whole in
+  the two runs checked. The host limit I know of for shell output on Claude is 30,000 characters, and the harness
+  does not change it, so there is room for about 6,800 characters of guide text and not for all four sections
+  (about 20,000). Each sample is checked for a whole packet.
+
+**One consequence for section 38.** Its count of guides opened used the heading match, which can only count too
+many. The finding that the requirements guide was opened in none of 35 Sol and Sonnet deliveries stands. The 3 and 1
+for `requirements-definition.md` are upper bounds: replayed with the stricter check below, today's Sonnet delivery
+read that file after its spec was submitted, at the plan's review, and not while writing the spec.
+
+**The amended design.**
+
+Three questions, kept apart. From one sentence in a real run: how full is the released stage's specification (arm
+A); does the guide text add anything beyond a cue (X against C); does the cue alone (C against A).
+
+- Arm A: ShipLoop as on `main` at the commit the runs are built from.
+- Arm C: one cue sentence at the head of the spec stage's first duty, 17 words: "Before you write, work out the
+  behaviour model and the state and data changes for this request." (`overlays/guides-cue.json`).
+- Arm X: the same sentence, and after the stage's last duty the unchanged text of two guide sections, 838 words:
+  `behavioral-requirements.md` "Behavior model" (with its sequence flows and states and transitions) and
+  `requirements-definition.md` "State and data change assessment" (`overlays/guides-excerpt.json`, written from
+  the guide files by `guides_test.py overlays`). Two sections and not four because of the packet's size; they are
+  the two the stage's duties cite for what a specification must cover.
+
+Section 39's arm B, an instruction to open the guides, is dropped: it would have tested a reminder.
+
+Request and base as in section 39. Each sample's own records are checked for the starting commit, the opening
+prompt and the route ShipLoop took; what intake, discovery and research handed the spec stage is saved beside it.
+
+**Step 0, before any run: which items apply here.** The checklist was sorted from the sentence alone. The two
+outside sorters label its 21 items again with the base in front of them: `applies` (a correct and safe import
+built into this program has to settle it), `capability` (it needs a product capability this program lacks and the
+sentence does not ask for) or `unclear`. The text is `SORT_PROMPT` in `guides_test.py`. Items both call `applies`
+are the list everything is scored on. If there are fewer than 8, the base is too thin for this checklist and
+nothing is run.
+
+**Step 1: one set on Sol.** Arms A, C and X launched together on Codex `gpt-6.2-sol` at medium, each stopped
+through the harness's stop file when its specification is accepted, 20 minutes' limit. Then:
+
+- Ending and use. A sample is used when its acceptance is in ShipLoop's trace and the specification's commit
+  exists; how the host ended is recorded beside it (stopped at acceptance, time limit, cap, blocked, ended by
+  itself, harness failure). A set with an unusable arm is incomplete and is reported as that.
+- What the author was shown. The spec packet as the session received it: whole or not, with the cue or not, with
+  the guide text or not. And every read of either guide file, counted only when a call names the file and its
+  result returns one of that file's headings, placed before the packet, while writing, or after the submission.
+- The specification. The accepted one from its commit and the submitted one from the tree bound for its review;
+  words and requirement ids of each; the author's seconds and the review's.
+- Judging. The accepted `spec.md` alone, in a slot whose name does not show the arm, by the bench's two judges and
+  unchanged judge text. A sample is scored only if both judges return all 21 items.
+- Scoring, on the items that apply: for each pair of arms, the items higher under both judges, how many of those
+  were absent before, the items lower under both, and the net.
+- Capability. A Sonnet reader who does not know the arms lists, with the words, every requirement that adds a
+  product capability the sentence does not ask for; I check its list against the files.
+
+**What one set can say.** Two draws of the same text differ by up to 3 items under both judges, so:
+
+- A signal worth repeating: X is higher than C on at least 4 items, net at least 4. Then a second Sol set is run,
+  and if it meets the same rule the gain has been seen twice on Sol; one Sonnet set would follow.
+- A signal of harm: X is lower than C on at least 4 items net, or the reader finds capability added in X alone.
+- No signal: fewer than 2 items either way. One set cannot show that there is no effect, and is not read as that.
+- Delivery failed: X's packet arrived cut or without the guide text, or a control's author read a guide file while
+  writing. Then the set says nothing about the guide text.
+- Anything else is described as it is and nothing is claimed from it.
+
+**Predictions for the first set, written before any run.**
+
+1. All three samples reach acceptance inside the limit and are usable.
+2. X's packet arrives whole with the guide text, and neither A's nor C's author reads a guide file while writing.
+3. Arm A's accepted specification is between 300 and 1,500 words.
+4. C over A: fewer than 2 items higher under both judges.
+5. X over C: at least 2 items higher under both judges. I do not predict that it reaches 4.
+6. The reader finds no requirement adding a capability in X that A and C lack.
+7. X's author takes at least 1.2 times C's seconds.
+
+**What it costs.** Step 0 is two sorter sessions. Step 1 is three Sol runs side by side, about 5 to 10 minutes, on
+subscription, then six judge readings, about one dollar for the registered judge's three, and one Sonnet reader.
+About a quarter of an hour in all.
+
+**What is ready, with no model called.** The rewritten `guides_test.py` (`overlays`, `prepare`, `sort`, `run`,
+`collect`, `judge`, `score`, `replay`). Both overlays apply. A dry `prepare` built the three arms and enforced
+that C and X differ from A in `shiploop_prompts.py` alone and by the overlay's edits exactly: the rendered spec
+stage is 8,786, 8,885 and 15,552 characters. `replay`, which reads a run folder as `collect` would and writes
+only into a folder of its own, was run on two runs that exist
+(`evidence/guides-test/replay-of-two-existing-runs.txt`): a Codex sample another session stopped at acceptance is
+read as that, with its accepted specification taken from commit `51dc0e28d17c86b437fcd1dfde1865cfbc960be0` of
+that run's own repository (674 words); a finished Claude delivery exercises that host's records. Nothing was
+written into either folder.
+
+**Limits.** As in section 39, and: the guide text tested is two sections of the material, chosen by this session
+for size; the cue is this session's wording; the first step is one set of three runs on one driver, which can
+give a signal and cannot settle anything; the item list is fixed only at step 0.

@@ -688,12 +688,15 @@ started from requests of 76 to 322 words where the bench's are 7 to 15. Read the
 both in mind. `evidence/readings/coverage-by-category.txt` gives what the released stage reached in each of the
 checklist's ten categories.
 
-## The guides test (registered 2026-11-21, journal section 39; not run without the owner's word)
+## The guides test (journal sections 39 and 40; not run without the owner's word)
 
 A small real-ShipLoop test of the question section 38 left open: from one sentence, how full is the specification
-the released spec stage writes in a real run, and is it fuller when the stage has read its reference guides?
-`overlays/guides-read.json` is arm B's one sentence; `guides_test.py prepare|run|collect` lays down the base
-(`fixtures/node-base`), builds the two arms, launches real runs with `test/shiploop_e2e/run.py` and ends each when
-the navigator enters `test-strategy`. The bench's checklist for `csv-user-import`, its sorter labels and its two
-judges grade the specifications. The readings, the bar and six predictions are in the journal.
-
+the released spec stage writes in a real run, and does the text of its reference guides add anything beyond a cue?
+Section 39 is the first design; a review at maximum effort said to fix it first (`review/guides-test-review.md`),
+and section 40 is the amended design. Three arms of one build: A as released, C with one cue sentence
+(`overlays/guides-cue.json`), X with the cue and the unchanged text of two guide sections
+(`overlays/guides-excerpt.json`). `guides_test.py` lays down the base (`fixtures/node-base`), builds the arms,
+launches real runs with `test/shiploop_e2e/run.py`, ends each when its specification is accepted, and reads the
+accepted specification from the commit ShipLoop made for it. `replay` reads an existing run folder the same way
+without writing into it. The bench's checklist for `csv-user-import`, re-sorted for this base by the two outside
+sorters, and its two judges grade the specifications.
