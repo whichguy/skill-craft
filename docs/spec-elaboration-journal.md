@@ -945,6 +945,15 @@ that the released stage's duties do not: the people who run it (operator 3 to 6 
 unhappy paths (8 to 11, 7 to 10). Everything else moves by one either way. That is a small, located effect and it
 is the one thing in this experiment that points at the released stage's text and not at the instrument.
 
+> **Superseded 2026-11-21** (the saved specifications read item by item; section 19): the gain on the operator
+> items does not point at something the released stage's text misses. In all eight of the block's specifications
+> it is a requirement for the operator's own controls (a staff roster with a Remove action, a global and a
+> per-class switch, an operations surface to pause and roll back) that the released stage leaves out, in places
+> saying so. By the owner's rule of 2026-09-27 that is product capability the request did not ask for. On the
+> unhappy paths the released stage leaves no item untouched in either draw on Sonnet, and of the block's eight
+> gains there on the two categories together, three are the same handling scored differently and two are items
+> the released stage covered in its other draw.
+
 **What it costs:** not time or tokens (Sonnet's Q sessions were shorter than its P sessions; Sol's the same), but
 obligations: Sonnet's specifications go from 11.5 requirements to 16.5, and each is a check to plan and work to
 map in the stages after. Whether those five are wanted is exactly what the review said this experiment had not
@@ -980,6 +989,10 @@ What the experiment leaves, in order of how firmly it stands:
 4. **The released stage is weakest on the operator's work and on unhappy paths, and a cue naming them moves both
    a little on both drivers.** Interim. If the owner wants that pursued it is a two-sentence cue tied to the
    affected outcome, as the review words it, with its own paired check and an E2E round, not this block.
+   > **Superseded 2026-11-21** (section 19): the stage is not weak there in the sense this finding meant. It
+   > reaches those items and mostly leaves them out or open on purpose; the cue's movement on the operator's work
+   > was added capability. The cue named here is not run. A different two-sentence cue (a set's members, a
+   > limit's bound) is registered in its place for rounds 7 and 8.
 5. **The instrument**: four frozen requests, an 89-item checklist, a coverage judge calibrated on two layouts and
    re-read by a second family, a clause audit, a pre-flight that proves what a Codex session is shown, and a leak
    check. Its known faults are recorded where they were found: the judge scores a stated exclusion or an open
@@ -990,6 +1003,9 @@ Open and the owner's:
 - Whether a specification should decide more of what it reaches. The request that started this asked for a
   verbose, elaborated specification; the released stage's duties tell it to leave some things open and out. The
   lens arms without those duties wrote what the request described. That is a choice about what the stage is for.
+  > **Answered in part 2026-11-21** (section 19): the owner's rule of 2026-09-27 (commit
+  > e18cbce9ec577a61a8cdea353c6794804b09f1d9) already says which way for the part that mattered here: rigour is
+  > to be settled even for a small request, and capability the request did not ask for is not to be added.
 - Whether finding 4 is worth a second, smaller attempt.
 - Whether finding 2 goes to the ratchet pilot's session.
 - The E2E harness's Codex sessions being shown the user's own skills (section 7), put up as its own task.
@@ -1105,6 +1121,12 @@ who run the thing and its unhappy paths (interim evidence; the review's rewordin
 round and the owner's go); the stale sentence in `references/behavioral-requirements.md`; and, under both, whether
 the stage should decide more of what it reaches.
 
+> **Updated 2026-11-21** (section 19): still not. The candidate named here, a cue for the people who run the thing
+> and its unhappy paths, is withdrawn: read item by item, its measured lift on the operator's work was capability
+> the request did not ask for, which the owner's rule of 2026-09-27 calls overbuilding. A different two-sentence
+> cue (name a set's members; state a limit's bound) is registered for rounds 7 and 8 against the released stage.
+> The to-do stays open until that result is in.
+
 ## 18. The lens form goes to a built-product test in the pilot's session, and a reworded arm is drafted for it (2026-11-21)
 
 **Received from the Ratchet session, at the owner's word there** ("We should pick up the elaboration message from the
@@ -1164,3 +1186,144 @@ owner as a third enrichment text. Three predictions were stated to it so that th
 measurement behind any of them: against `L-lenses-once` on the same case the reworded arm writes fewer clauses,
 gets a lower share of clauses whose test fails on a correct product, and loses none of the calibrated defects
 caught. Whether it is run is the owner's.
+
+## 19. The smaller attempt is re-aimed before it runs: the lift on operator items was capability nobody asked for (2026-11-21)
+
+The owner said yes on 2026-11-21 to the smaller attempt section 15 left open (its finding 4): a two-sentence cue in
+duty 2 naming the people who run the thing and its unhappy paths, with its own paired check. This section records
+what was read before that check was designed, the three decisions the reading led to, and the check now registered
+in its place. No model was called for any of it; everything below comes from verdicts and specifications already
+saved.
+
+### What was read
+
+**The released stage leaves almost none of those items untouched.** The checklist has 21 operator and unhappy-path
+items (9 and 12). Covered / partial / absent for the released stage P, under the registered judge and then the
+second:
+
+| | Sonnet, round 5 | Sonnet, round 6 | Sol, round 5 | Sol, round 6 |
+| --- | --- | --- | --- | --- |
+| P, claude-opus-5-5 | 11 / 9 / 1 | 11 / 9 / 1 | 11 / 10 / 0 | 8 / 10 / 3 |
+| P, gpt-6.2-astra | 12 / 7 / 2 | 10 / 9 / 2 | 7 / 13 / 1 | 6 / 12 / 3 |
+| Q (the earlier block), opus | | 17 / 4 / 0 | | 13 / 8 / 0 |
+| Q, astra | | 15 / 6 / 0 | | 12 / 9 / 0 |
+
+A cue can find at most the 0 to 3 a draw leaves absent, and P's own two draws on Sol differ by 3 there. The room
+is in the partial column, so the question is what a partial is. Status: firm (four draws, two judges).
+
+**Read in the specifications, a partial on these items is mostly a choice.** Sonnet's round-6 specifications, the
+ten items of the 21 not scored covered: the staff view of the waitlist is under "Exclusions (domain rules the
+request leaves out, bounding this R)" with a gap asking whether staff need a count; a persistent audit of who asked
+the bot what is a "Justified exclusion" with a gap to reopen it; payments at promotion are excluded with "any
+existing rule of these kinds still applies"; several billing contacts are folded into an open gap; a per-customer
+opt-out is "Left out"; hostile spreadsheet content is stored verbatim with its neutralizing excluded and the
+length limit an open gap; cancelling an import is answered by the import being all-or-nothing. Two are mentions
+that settle less than the item asks, and one (a switch to turn the waitlist off) is absent. That is the stage
+doing what its duties 4 and 9 tell it to. My reading of ten verdicts and the passages they cite; interim.
+
+**The earlier block's gain on these items, item by item** (`evidence/round-6/operator-unhappy-item-by-item.md`;
+round 6, Q against P in the same round, with P's round-5 state beside it):
+
+| | Sonnet | Sol |
+| --- | --- | --- |
+| items Q covers and P does not, registered judge | 8 (and 2 the other way) | 5 (0) |
+| the same, second judge | 5 (0) | 6 (0) |
+| of the registered judge's: a control or view for the operator that P does not require | 3 | 2 |
+| the same handling in both, scored differently | 3 | 0 |
+| P covered it in its other draw | 2 | 2 |
+| an unhappy path settled that P left open or did not reach | 0 | 1 |
+
+The three on Sonnet: an enable checkbox and a log line per failed request for the bot; a staff roster of the
+queue with a Remove action and an event log of who was promoted when; a global waitlist switch with a per-class
+override. The two on Sol: starting the bot disabled with a stop for all users, diagnosis by category and a
+restore procedure; pausing waitlisting globally or for one occurrence "through an approved operations surface".
+The three scored differently are an exclusion in both arms: "Out of scope ... several recipient addresses per
+invoice" was scored covered where "Folded into G-1 ... One recipient address per invoice" was scored partial, and
+"Not cancellable in this version" covered where "there is no cancel, resume, update or delete event on a committed
+import (out of scope)" was partial. The classification is my reading; the passages are quoted in the evidence
+file. Interim.
+
+**The titles say the same thing without a judge** (`evidence/round-6/requirement-titles.txt`). Every one of the
+block's eight specifications carries a requirement for the operator's own controls: "Operator controls: turn on,
+turn off, know it worked", "Audit and observability" and "rollout and rollback" (waitlist, Sonnet); "Operate, pause
+and recover waitlisting" (waitlist, Sol); "Turning reminders off, everywhere or for one account" and "Pausing one
+invoice" (reminders, Sonnet); "Control automatic reminders" and "Inspect outcomes, contain failures and roll back"
+(reminders, Sol); "Administrator configuration and turn-off" and "Operability: enable, observe, undo" (bot,
+Sonnet); "Configure, restrict, diagnose and recover the bot" (bot, Sol); "Operator controls" (import, Sonnet);
+"Stop further writes and recover operationally" (import, Sol). The released stage's sixteen specifications are in
+the same file. They are not empty on the operator's side: the reminder feature's own account switch and its
+history (Sonnet, both draws), administrator settings for the bot (Sonnet, both draws), outcome logging or audit
+in several, and in one draw a staff view of the waitlist "conditional on G-4". The block's specifications name
+where theirs came from: the waitlist's operator requirement gives as its basis the lens "turning it on and
+knowing it worked ... turning it off for everyone or for one case ... going back to the version before", adding
+"(a run-it reading of a user-facing feature; inside the request's intent, adds no user feature)". Status: the
+titles are verbatim; that the block is their cause rests on those basis lines and on one draw a cell.
+
+**The released stage does not hold one line on this either.** Its round-5 waitlist specification on Sonnet has a
+requirement "Staff view and management (conditional on G-4)"; its round-6 one excludes the staff view. The stage's
+text says nothing about the operator's side, and its draws go both ways.
+
+**Where it does fall short in both draws** (`labels/stable-shortfalls.txt`). On Sonnet P covered 53 items in both
+draws, 12 in one of the two and 24 in neither; on Sol 39, 8 and 42; 18 items are covered in neither draw on both
+drivers. The earlier block covered 14 of Sonnet's 24 (13 under the second judge) and 7 of Sol's 42 (7), and left
+uncovered 6 items P had covered both times on Sonnet (2 on Sol). Among the 24 are items that are not capability
+by any reading: the platform's limits named with their numbers, every condition that stops a reminder sequence,
+the retry policy and who is told when sending keeps failing, the initial state of a created user, one person
+waiting for two overlapping classes. Each of those five is partial in both draws on both drivers under both
+judges. Interim: two draws a driver, and a partial is not yet separated into an open item recorded on purpose and
+a mention that settles nothing.
+
+### Three decisions, and why
+
+All three are mine to make under AGENTS.md's Decisions (choosing between equivalent ways to do approved work, and
+launching verification runs); none changes anything ShipLoop does.
+
+1. **The cue as first described is not run.** Its operator half asks for what the owner's rule calls
+   overbuilding. The rule is on record from 2026-09-27, in commit e18cbce9ec577a61a8cdea353c6794804b09f1d9:
+   "Engineering rigour in a plan (tests against the real runtime, correct deployment steps, quotas, failure routing
+   and ownership, data retention, security checks, marked assumptions) is the expected standard even for a small
+   request; only product capability the request does not need (features, stores, services, sign-in, user-facing
+   channels) is overbuilding." That commit met the same thing in plan reviews, which added "draw offers,
+   resignation and draw adjudication" to a two-person checkers game. Its unhappy-path half has nothing to find: the
+   stage's duty 2 already asks for failure and boundary expectations on every acceptance line, and on Sonnet no
+   unhappy-path item is untouched in either draw. A version worded to respect the stage's rules (unsettled things
+   to open gaps, no new capability) would restate duties 2, 4, 7 and 9. That last sentence is an inference; it was
+   not measured.
+2. **The owner is not asked again whether the stage should decide more.** Section 15 left that open as "a choice
+   about what the stage is for". The rule above already answers the part that bears on this cue: settle what
+   rigour requires, add no capability the request did not ask for. What stays open is narrower and is in the list
+   at the end of this section.
+3. **The check is re-aimed at what the reading found, and registered** (README, "The smaller attempt: re-aimed
+   before it ran"). Arm `M-shiploop-spec-members` adds two sentences to duty 2: name the members of a set an
+   acceptance line depends on, and state the bound an acceptance line depends on with the behaviour at it,
+   recording an unresolved one where duties 4 and 6 put it. The words are the independent review's own replacement
+   for the last two sentences of the earlier block (its findings 11 and 4). The earlier arms carried the same idea
+   as "the enumeration rule" (arms C, D and F); round 3 found it carried their gain, and section 14's review found
+   their wording invited schema inventories and invented numbers.
+
+### How the check differs from round 6's
+
+Round 6 read the block by the whole checklist's covered count, and the review said that count rewards deciding.
+This check reads it by sets fixed beforehand by two sorters who are not the author: claude-opus-5-5 and
+gpt-6.2-astra label each of the 89 items by kind (a set's members, a limit, neither) and by scope (needed, beyond,
+mixed, under the owner's rule quoted above), shown the requests and the items and nothing else. The target is the
+set-or-limit items not agreed beyond; the items agreed beyond are read separately, and a gain there counts against
+the cue. Bands come from the four clean repeat pairs on record. Rounds 7 and 8 pair M with a fresh P each. The
+tests, the decision rule and the one permitted extension are in the README.
+
+A third sentence was considered and left out: for an outcome that runs unattended, who is told and what record
+exists when it keeps failing. The owner's rule names "failure routing and ownership" as rigour, and one checklist
+item on exactly that stands unsettled in both draws on both drivers. One item is not a case for a sentence. It is
+noted here and not run.
+
+### What this changes in earlier sections
+
+- Section 15, "What the block does do, consistently" and its finding 4: superseded there, with the reason.
+- Section 15's first open question and section 17's to-do entry: updated there.
+- Section 18's reworded arm R is unaffected: it is another session's to run, and its first line of thought still
+  names "the operator's work". If that session measures it through built products, the three operator
+  requirements above are what to look for in what gets built.
+
+Still open and the owner's: the E2E harness's Codex sessions being shown the user's own skills (section 7); the
+stale sentence in `skills/shiploop/references/behavioral-requirements.md` (section 14); and, if rounds 7 and 8
+show the cue, whether it goes into duty 2.

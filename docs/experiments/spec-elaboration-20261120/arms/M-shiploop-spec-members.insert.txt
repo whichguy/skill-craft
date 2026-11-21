@@ -1,0 +1,14 @@
+The two sentences arms/M-shiploop-spec-members.md adds to arms/P-shiploop-spec.md: inserted into duty 2 of
+DUTIES['spec'] in skills/shiploop/scripts/shiploop_prompts.py, after its first paragraph, at the place the earlier
+block (arms/Q-shiploop-spec-lenses.insert.txt) went. Nothing else differs between the arms.
+
+Wording: the replacement text the independent review (review/sol-max-review.md, findings 11 and 4) gave for the
+last two sentences of the earlier block, joined. Two changes from the review's words: 'of states, conditions or
+inputs' is added after 'a set' so that 'set' cannot be read as stored data, and the review's 'as duty 4 directs'
+is written '(item 4)', the way the stage's own duties point at each other. No example is given, so that none can
+repeat an item of the held-out checklist.
+
+   Where an acceptance line depends on a set of states, conditions or inputs, name its members, or the groups with
+   distinct observable behaviour, and explain material exclusions. Where one depends on a limit, state the applicable
+   bound and the behaviour at it; record an unresolved behaviour bound as an open gap under its R-<n> (item 4), and an
+   unresolved non-functional bound under ## Non-functional requirements (item 6).

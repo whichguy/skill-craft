@@ -1,0 +1,70 @@
+sonnet-high: the released stage covered 53 items in both draws, 12 in one of the two, 24 in neither
+  in neither, by category: async 2, data 4, edge 1, interaction 3, nonfunctional 2, operator 6, permission 1, platform 2, preserve 1, unhappy 2
+  grokbot-salesforce N-4 [permission] partial/partial  Who may use the bot and who may administer it, expressed as a permission set or equivalent, not as 'everyone'.
+  grokbot-salesforce N-6 [platform] partial/partial  The model call is an external callout, so it cannot run synchronously from a trigger and cannot follow [...]
+  grokbot-salesforce N-8 [platform] partial/partial  Governor limits that bind this design are named with their numbers: callout timeout ceiling, callouts [...]
+  grokbot-salesforce N-17 [data] partial/partial  The stored shape: a conversation and its turns as records, with role, text, status, timestamps, the [...]
+  grokbot-salesforce N-22 [operator] partial/partial  An administrator can turn the bot off, change the model, and see failed requests.
+  grokbot-salesforce N-23 [operator] partial/partial  An audit record of who asked what and what was answered, with its retention.
+  gym-waitlist N-3 [interaction] partial/partial  A person on the waitlist for two classes that overlap in time: promoting one must resolve the other.
+  gym-waitlist N-17 [operator] partial/partial  Staff can see the waitlist, promote or remove someone by hand, and see who was promoted when.
+  gym-waitlist N-18 [operator] absent/absent  The feature can be turned off, or enabled per class or class type.
+  invoice-reminders N-2 [interaction] partial/partial  Every condition that stops the sequence: paid, part-paid, voided, credited, disputed, or on a payment plan.
+  invoice-reminders N-4 [interaction] partial/partial  An existing do-not-contact, paused or unsubscribed state on the customer, and whether a billing notice [...]
+  invoice-reminders N-7 [async] partial/partial  The send failing: retry policy, a provider outage, and escalation to a person when it keeps failing.
+  invoice-reminders N-8 [async] partial/absent  The sending provider's rate limit and how a large batch is paced within it.
+  invoice-reminders N-13 [unhappy] partial/partial  More than one billing contact, and which of them is written to.
+  invoice-reminders N-15 [data] partial/partial  What the reminder contains: invoice reference, amount, due date and a way to pay, and whether that link [...]
+  invoice-reminders N-17 [operator] partial/partial  Turning it off globally and per customer, previewing or dry-running it, and resending by hand.
+  invoice-reminders N-19 [nonfunctional] partial/partial  A bound on sending volume or on how late a scheduled reminder may go out.
+  csv-user-import N-9 [edge] partial/partial  A limit on file size or row count, and what happens to a file above it.
+  csv-user-import N-14 [data] partial/partial  The initial state of a created user: active or pending, with or without a password, and how they first [...]
+  csv-user-import N-16 [data] absent/partial  Date, number and locale handling of the file's values.
+  csv-user-import N-18 [operator] partial/partial  Cancelling an import that is running, and retrying only the rows that failed.
+  csv-user-import N-19 [nonfunctional] partial/partial  A bound on how long a file of the stated maximum size takes, and visible progress while it runs.
+  csv-user-import N-20 [preserve] partial/partial  Creating a single user by hand still works exactly as it does, and existing users are not modified.
+  csv-user-import N-21 [unhappy] partial/partial  Hostile content in the file: a value that becomes a formula when the result is opened in a spreadsheet, [...]
+sol-medium: the released stage covered 39 items in both draws, 8 in one of the two, 42 in neither
+  in neither, by category: async 6, data 5, edge 7, interaction 5, nonfunctional 4, operator 6, permission 2, platform 3, preserve 1, unhappy 3
+  grokbot-salesforce N-6 [platform] partial/partial  The model call is an external callout, so it cannot run synchronously from a trigger and cannot follow [...]
+  grokbot-salesforce N-8 [platform] partial/partial  Governor limits that bind this design are named with their numbers: callout timeout ceiling, callouts [...]
+  grokbot-salesforce N-9 [platform] partial/partial  Apex tests cannot make real callouts, so the test approach requires a mock callout implementation.
+  grokbot-salesforce N-11 [async] partial/partial  How the interface learns the answer arrived: a platform event, change data capture, a polled status [...]
+  grokbot-salesforce N-13 [async] partial/partial  Queue depth or concurrent-job limits, and what happens to a request that cannot be enqueued.
+  grokbot-salesforce N-21 [edge] partial/partial  The first use (no history), an empty question, and an answer or question at the maximum accepted length.
+  grokbot-salesforce N-22 [operator] partial/partial  An administrator can turn the bot off, change the model, and see failed requests.
+  grokbot-salesforce N-24 [operator] partial/partial  A development org is not production: how the configuration and credential differ per environment, and [...]
+  grokbot-salesforce N-25 [nonfunctional] partial/partial  A latency target or bound for an answer, and truthful in-progress feedback in the interface while the [...]
+  gym-waitlist N-2 [interaction] partial/partial  The order the waitlist is served in (join time), how ties resolve, and whether any membership tier or [...]
+  gym-waitlist N-3 [interaction] partial/partial  A person on the waitlist for two classes that overlap in time: promoting one must resolve the other.
+  gym-waitlist N-4 [interaction] absent/absent  The no-show or late-cancellation policy that already exists: whether a declined or missed promotion [...]
+  gym-waitlist N-5 [async] partial/partial  Promotion is triggered by a cancellation that happens outside the person's session, so it is background [...]
+  gym-waitlist N-9 [unhappy] partial/partial  Payment for a promoted booking: when it is taken and what happens when it fails.
+  gym-waitlist N-10 [edge] partial/absent  A cap on the waitlist itself, and what a person sees when even the waitlist is full.
+  gym-waitlist N-11 [edge] partial/partial  A cut-off before class start after which no promotion happens.
+  gym-waitlist N-14 [data] partial/partial  The waitlist entry as a record with its join time and state, and whether a position is stored or derived.
+  gym-waitlist N-15 [data] partial/partial  What becomes of waitlist entries after the class has run, and how long they are kept.
+  gym-waitlist N-17 [operator] partial/partial  Staff can see the waitlist, promote or remove someone by hand, and see who was promoted when.
+  gym-waitlist N-18 [operator] partial/absent  The feature can be turned off, or enabled per class or class type.
+  gym-waitlist N-19 [nonfunctional] partial/partial  A bound on how soon a promotion follows a cancellation.
+  gym-waitlist N-21 [preserve] partial/absent  Classes that are already full when the feature ships: whether they gain a waitlist and how.
+  invoice-reminders N-2 [interaction] partial/partial  Every condition that stops the sequence: paid, part-paid, voided, credited, disputed, or on a payment plan.
+  invoice-reminders N-4 [interaction] partial/partial  An existing do-not-contact, paused or unsubscribed state on the customer, and whether a billing notice [...]
+  invoice-reminders N-7 [async] partial/partial  The send failing: retry policy, a provider outage, and escalation to a person when it keeps failing.
+  invoice-reminders N-8 [async] partial/partial  The sending provider's rate limit and how a large batch is paced within it.
+  invoice-reminders N-9 [edge] partial/partial  Invoices already overdue when the feature is switched on: the whole backlog of reminders does not go out [...]
+  invoice-reminders N-10 [edge] partial/partial  Time zone and sending hours: the customer's local time, business hours, weekends and holidays.
+  invoice-reminders N-11 [edge] partial/partial  Currency and amount formatting for the recipient.
+  invoice-reminders N-13 [unhappy] partial/absent  More than one billing contact, and which of them is written to.
+  invoice-reminders N-14 [data] partial/partial  A record per invoice per reminder step, showing what was sent and when, visible on the invoice.
+  invoice-reminders N-16 [permission] partial/partial  Who may configure the schedule and who may send or stop a reminder by hand.
+  invoice-reminders N-17 [operator] partial/partial  Turning it off globally and per customer, previewing or dry-running it, and resending by hand.
+  invoice-reminders N-19 [nonfunctional] partial/partial  A bound on sending volume or on how late a scheduled reminder may go out.
+  csv-user-import N-5 [permission] partial/partial  Who may import at all, and that the ability is not implied by being able to create one user.
+  csv-user-import N-9 [edge] partial/partial  A limit on file size or row count, and what happens to a file above it.
+  csv-user-import N-13 [async] partial/partial  The new users' invitation or welcome mail: whether hundreds go out at once, and the pacing if so.
+  csv-user-import N-14 [data] partial/partial  The initial state of a created user: active or pending, with or without a password, and how they first [...]
+  csv-user-import N-16 [data] absent/partial  Date, number and locale handling of the file's values.
+  csv-user-import N-17 [operator] partial/partial  An audit of who imported what and when.
+  csv-user-import N-19 [nonfunctional] partial/partial  A bound on how long a file of the stated maximum size takes, and visible progress while it runs.
+  csv-user-import N-21 [unhappy] partial/absent  Hostile content in the file: a value that becomes a formula when the result is opened in a spreadsheet, [...]

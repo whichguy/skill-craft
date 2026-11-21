@@ -327,3 +327,98 @@ What stands: against the ratchet pilot's single pass the lens arms cover far mor
 about half the iterating one and loses nothing shown; and the released stage, run alone, already reaches nearly
 every nuance on this checklist. The outcome of the plan to conclude is its first: **no fold-back into the released
 stage on this evidence.**
+
+## The smaller attempt: re-aimed before it ran (2026-11-21)
+
+The owner said yes on 2026-11-21 to the smaller attempt the journal's section 15 left open: a two-sentence cue in
+duty 2 naming the people who run the thing and its unhappy paths, with its own paired check. Before the check was
+designed, the specifications already saved were read item by item (journal section 19). The reading changed the
+aim. This section registers the check as it will run; when it is committed no model has been called for it.
+
+**What the reading found.** Evidence: `evidence/round-6/operator-unhappy-item-by-item.md`,
+`evidence/round-6/requirement-titles.txt`, `labels/stable-shortfalls.txt`.
+
+- On the 21 operator and unhappy-path items the released stage leaves 0 to 3 untouched in a draw (1 and 1 on
+  Sonnet, 0 and 3 on Sol); the rest it settles or mentions, and where it only mentions one it has usually left it
+  out on purpose or recorded it as open.
+- The earlier block's gain on those items was, in all eight of its specifications, a requirement for the
+  operator's own controls that the released stage does not write: a staff roster with a Remove action, a global and
+  a per-class switch, an operations surface to pause and roll back.
+- The owner's rule, recorded 2026-09-27 (commit e18cbce9ec577a61a8cdea353c6794804b09f1d9, and the value audit in
+  `skills/rubric-eval/scripts/rubric_eval.py`): engineering rigour is the expected standard even for a small
+  request; product capability the request does not need is overbuilding. By that rule those requirements are
+  capability nobody asked for. A cue that asks for them is not a candidate, and the cue as first described is not
+  run.
+- Where the released stage does fall short in both of its draws is elsewhere: 24 of the 89 items on Sonnet, 42 on
+  Sol, 18 on both. Several are a set named without its members or a limit named without its value. The earlier
+  block closed 14 of Sonnet's 24 (13 under the second judge) and 7 of Sol's 42.
+
+**The cue, re-aimed.** Arm `M-shiploop-spec-members` is `arms/P-shiploop-spec.md` with two sentences added to duty
+2 at the place the earlier block went (`arms/M-shiploop-spec-members.insert.txt`; 67 words; the arms differ by
+those four lines and nothing else):
+
+> Where an acceptance line depends on a set of states, conditions or inputs, name its members, or the groups with
+> distinct observable behaviour, and explain material exclusions. Where one depends on a limit, state the
+> applicable bound and the behaviour at it; record an unresolved behaviour bound as an open gap under its R-<n>
+> (item 4), and an unresolved non-functional bound under ## Non-functional requirements (item 6).
+
+The wording is the replacement the independent review gave for the last two sentences of the earlier block
+(findings 11 and 4), joined, with "of states, conditions or inputs" added so that "set" cannot be read as stored
+data. It carries no example, so none can repeat a checklist item. It names nobody who runs the thing.
+
+**The items are sorted before any subject call** (`label.py`). The judge counts an item as covered when a
+specification settles it, asked for or not, so a covered count cannot tell rigour from capability. Two models of
+different families (claude-opus-5-5 and gpt-6.2-astra, both high), shown the four requests and the 89 items and no
+specification, arm or verdict, give each item two labels: `kind` (does settling it mean naming a set's members, or
+stating a limit, or neither) and `scope` (needed: the requested outcome's own behaviour or engineering rigour;
+beyond: capability the request did not ask for; mixed), the second by the owner's rule in the words of the commit
+above. Only items both sort alike are used:
+
+| set | what is in it | reading |
+| --- | --- | --- |
+| X1 | both say set, limit or both; not agreed beyond | R16, the cue's target |
+| X2 | both say needed; not in the target | R17, what must not be lost |
+| X3 | both say beyond | R18, capability that must not grow |
+
+The author of the checklist and of the cue sorts nothing. The labels, the sets and the bands are committed before
+round 7 starts (`labels/`).
+
+**Bands.** For each set, the band is the largest move in covered count between two draws of one arm on one driver
+among the four clean repeat pairs on record (A on Sonnet in rounds 1 and 4, D on Sonnet in rounds 3 and 4, P on
+both drivers in rounds 5 and 6), under the registered judge, and never less than 2 (`label.py bands
+--upto=round-6`).
+
+**Rounds 7 and 8.** Each runs M and P on both drivers over the four cases (16 sessions a round, 32 in all), with the
+Codex pre-flight before and the leak check after, read by both judges (`queue-6.sh`). M is compared with the P of
+its own round, so the two share whatever the hour did to them.
+
+**Readings, per driver.** d is M's covered count minus P's on a set in one round.
+
+- **R16, the target (X1).** Shown: under both judges the mean of d over the rounds is at least the band and d is
+  above zero in every round. Interim: the mean is above zero under both judges and at least half the band under
+  the registered judge. Otherwise nothing shown.
+- **R17, nothing lost (X2).** Fails when, under both judges, the mean of d is at or below minus the band and d is
+  below zero in every round.
+- **R18, no capability added (X3).** Fails when R16's "shown" test is met on X3. Each X3 item M settles and P does
+  not is also listed with what the specification says, since the judge sometimes scores a stated exclusion as
+  covered.
+- **R19, the standing shortfalls.** On the items the released stage covered in neither round 5 nor round 6 (24 on
+  Sonnet, 42 on Sol; the lists are fixed in `labels/stable-shortfalls.json`), how many M covers and how many a
+  fresh P covers. Descriptive: a fresh P will cover some by chance, which is why M is not compared with the old
+  draws.
+- **Size.** Words, R-n requirements and output tokens, M against P in the same round. Reported; a mean ratio of
+  1.2 or more in words on a driver is named as a cost when the result is put to the owner.
+- The whole checklist is reported with its registered band of 12 for context and decides nothing.
+
+**Decision rule.** The cue is put to the owner as a proposed change to duty 2 only if R16 is shown on at least one
+driver, is not worse on the other, and neither R17 nor R18 fails on either. If R16 is interim on a driver and
+nothing fails, one more paired round is run (round 9) and the readings are taken over three rounds by the same
+tests; that result stands. Anything else: no change is proposed, and the result is recorded as the answer to the
+owner's to-do. Before a proposal goes to the owner it is reviewed by the latest Sol at maximum effort, as the
+earlier block was. Nothing under `skills/` changes without the owner's word, and a change would need its packet
+tests, a change note and an E2E round after it.
+
+**What this cannot show.** Whether a built product is better: these are counts over a written specification. The
+checklist and the earlier lenses share an author, and the reviewer whose wording the cue takes had read the
+checklist. Two rounds are two draws an arm. The standalone frame has no repository, research result or selected
+baseline, so the stage is read without what usually precedes it.
