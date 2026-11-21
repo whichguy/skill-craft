@@ -889,3 +889,20 @@ on a corrected suite.
 **Prediction for G7.** After the one correction most items pass, and between 5 and 20 still fail on further
 execution details the writer could not try (how it clicks, the page's `fetch` being hooked, the two numbers it
 made up for "narrow" and "tiny").
+
+**G7, first number (13:19).** With the one function corrected by hand, 73 of 115 items pass on the build (one pass,
+three at a time, 13:15 to 13:18). The 42 that still fail fall into a few families by their messages: 15 cannot see
+a new assistant reply in the transcript; about 17 wait for a task to show finished steps or reach Completed or
+Failed; 5 cannot find a named thing or some text; and five single ones (a held view response, a background
+refresh, the provider's execution, an alternate conversation, visible keyboard focus). They ran three at a time on
+a busy machine, so some may be the load's and not the suite's.
+
+**A second reading added before it is taken (G7b, a catch-up under the rule of section 3).** A Sonnet subagent
+works in a further scratch copy with one rule: it may change only the execution files (`acceptance/adapter.cjs`,
+`acceptance/webkit.swift`), never `acceptance/suite.cjs`, which holds what the tests expect, and never the
+product. It reruns each failing item alone, finds each cause, corrects those that are execution, and lists the
+items that would need an assertion changed or that show a fault in the build, with its evidence. It stops when no
+execution cause is left or after 40 minutes. I read its changes and make the final count myself with a full pass.
+This is a model catching a suite up, on Sonnet and outside the loop's packets, so it sizes the work and is not a
+measured Ratchet stage. Prediction: it reaches 100 or more of 115 with five or fewer further corrections, and a
+handful of items remain that need an assertion changed.
