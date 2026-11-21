@@ -1,20 +1,24 @@
-import json,sys,re
+import json
+import re
+import sys
+
 FAILRE=re.compile(r'not ok|✖|# fail [1-9]')
 def load(f):
-    rows=[json.loads(l) for l in open(f)]
+    with open(f) as handle:
+        rows=[json.loads(l) for l in handle]
     res={r['toolCallId']:r for r in rows if r.get('type')=='tool_call_update'}
     cmds=[]
     for r in rows:
         if r.get('type')=='tool_call' and r.get('toolName')=='run_terminal_command':
             u=res.get(r['toolCallId'],{}).get('rawOutput',{}) or {}
-            cmds.append(dict(id=r['toolCallId'],cmd=r['rawInput']['command'],out=u.get('output_for_prompt') or '',exit=u.get('exit_code')))
+            cmds.append({'id':r['toolCallId'],'cmd':r['rawInput']['command'],'out':u.get('output_for_prompt') or '','exit':u.get('exit_code')})
     edits=sum(1 for r in rows if r.get('type')=='tool_call' and r.get('toolName')=='search_replace')
     end=[r for r in rows if r.get('type')=='end']
     usage=end[-1].get('usage') if end else None
     return rows,cmds,edits,usage
 def strip_heredoc_writes(c):
     # remove bodies of 'cat > file <<EOF ... EOF' and 'cat >> file <<EOF'
-    return re.sub(r"cat >>? [^\n]*<<'?\\?'?(\w+)'?\n.*?\n\1\n?",'CATWRITE\n',c,flags=re.S)
+    return re.sub(r"cat >>? [^\n]*<<'?\\?'?(\w+)'?\n.*?\n\1\n?",'CATWRITE\n',c,flags=re.DOTALL)
 def is_acc_run(c):
     s=strip_heredoc_writes(c)
     if 'acceptance.json' in s and re.search(r'subprocess\.run|spawn\(|exec\(|execSync|spawnSync',s): return 'runner'
@@ -26,7 +30,7 @@ def prod_tests(c):
     s=strip_heredoc_writes(c)
     return bool(re.search(r'npm test|node --test(?![^\n]*acceptance)',s)) and not is_acc_run(c)
 def main(f):
-    rows,cmds,edits,usage=load(f)
+    _rows,cmds,edits,usage=load(f)
     print(f, 'cmds',len(cmds),'edits',edits,'usage',usage)
     acc=[];prod=[];files=set()
     for i,c in enumerate(cmds,1):
@@ -38,7 +42,9 @@ def main(f):
             # only count files in reading commands; avoid counting writes
             for m in FILE.findall(s): files.add(m)
     for i,k,c in acc:
-        print(' ACC #%d %s exit=%s fail=%s'%(i,k,c['exit'],bool(FAILRE.search(c['out']))))
-    for i,c in prod: print(' PROD #%d exit=%s %s'%(i,c['exit'],c['cmd'][:120].replace('\n',' ')))
+        print(f" ACC #{i} {k} exit={c['exit']} fail={bool(FAILRE.search(c['out']))}")
+    for i,c in prod:
+        shown=c['cmd'][:120].replace('\n',' ')
+        print(f" PROD #{i} exit={c['exit']} {shown}")
     print(' files',len(files),sorted(files))
 main(sys.argv[1])
