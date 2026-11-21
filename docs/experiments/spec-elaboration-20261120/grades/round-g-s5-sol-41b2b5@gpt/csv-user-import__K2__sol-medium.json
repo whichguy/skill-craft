@@ -1,0 +1,142 @@
+{
+ "slot": "csv-user-import__K2__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Rejection, including a disconnected incomplete upload, leaves the store and ID allocation unchanged."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Errors describe the issue and include the logical record number when applicable (header is record 1)."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "An email already present or repeated in the upload is a 409 for the first conflicting record, using a case-insensitive comparison."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Admins send `POST /users/import` using the configured `ADMIN_TOKEN` as an Authorization bearer credential.",
+   "missing": "The relationship between permission to create one user and permission to import is unspecified."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Header has exactly `name` and `email`, in either order."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "optional leading UTF-8 BOM, LF and CRLF, and optional final line break. Header has exactly `name` and `email`, in either order. Support quoted fields, doubled quotes and embedded delimiters and newlines in quoted fields."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "Flows and state transitions, F-1",
+   "quote": "At end of input the server parses and validates the file. T-1 validates email uniqueness against the current process store, then synchronously appends the batch."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Accept up to 1,048,576 bytes and 1,000 data records per upload as implementation defaults. Count bytes received for all request framing, including chunked input. Reject when either limit is exceeded and keep the store unchanged (C-5)."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "At least one data record is required."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "Verification cases, C-4",
+   "quote": "A successful batch replay reports 409 and leaves state intact."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "Flows and state transitions, F-1",
+   "quote": "T-1 validates email uniqueness against the current process store, then synchronously appends the batch. 201 and existing GET reads expose completion.",
+   "missing": "The spec chooses synchronous completion. A background import for large files would need a way to report completion after the upload request returns."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "Persistence, invitation delivery, identity-provider integration and a browser client are outside this scope."
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "Flows and state transitions, F-3",
+   "quote": "CSV bytes are transient and discarded after response or interruption."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "Flows and state transitions, F-2",
+   "quote": "T-2 discards transient input without mutation, and replies with the applicable error if the connection remains available. The caller can correct validation failures and resend.",
+   "missing": "Disconnecting during upload and resending corrected input are addressed. Cancellation after upload and selection of failed rows for retry are unspecified."
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "Flows and state transitions, F-1",
+   "quote": "T-1 validates email uniqueness against the current process store, then synchronously appends the batch.",
+   "missing": "Appending preserves existing users. The spec gives no behavior to preserve for manual creation of a single user."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

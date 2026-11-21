@@ -1,0 +1,147 @@
+{
+ "slot": "csv-user-import__K3__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Validate the entire batch before adding any users."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "return 400 with an actionable error, including the record number where applicable.",
+   "missing": "A builder must decide whether to report every failing record and give a reason for each, including records rejected as duplicates."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Email duplicates within an upload or against the store, ignoring case, return 409."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Invitations, passwords, roles and durable storage are outside this feature.",
+   "missing": "The specification excludes role assignment from the CSV. It gives no rule relating an imported user's access to the importer's authority."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "A caller with the configured administrator bearer credential can POST a UTF-8 file as `text/csv` to `/users/import`.",
+   "missing": "The relationship between the import credential and permission to create a single user is unspecified."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Malformed UTF-8/CSV, header mismatch, no data, empty names, invalid emails and incorrect field counts return 400 with an actionable error, including the record number where applicable."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "an optional UTF-8 BOM, CRLF or LF, and CSV quoted fields with escaped quotes. Trim field edges and skip blank lines. Confirm through loopback HTTP using a real CSV body with quoted delimiters, BOM and CRLF.",
+   "missing": "The spec gives no explicit rule for a newline inside a quoted field."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Creation is synchronous after validation. Invitations, passwords, roles and durable storage are outside this feature."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Requests larger than 1 MiB or containing more than 1,000 records return 413 and leave no created users."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Malformed UTF-8/CSV, header mismatch, no data, empty names, invalid emails and incorrect field counts return 400 with an actionable error, including the record number where applicable.",
+   "missing": "The no-data rule covers empty and header-only uploads. The success example uses two rows and leaves the one-row case implicit."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Email duplicates within an upload or against the store, ignoring case, return 409. Validate the entire batch before adding any users."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Creation is synchronous after validation.",
+   "missing": "The HTTP response signals synchronous completion. Large-file background processing and a way to learn when a background import finishes are unspecified."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Invitations, passwords, roles and durable storage are outside this feature."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Invitations, passwords, roles and durable storage are outside this feature.",
+   "missing": "A builder has no rule for the new user's active or pending status or how the user first signs in."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Request data is transient and errors do not echo personal fields or secrets.",
+   "missing": "The temporary storage location, point of deletion, and whether anyone may retrieve the original CSV are unspecified."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Email duplicates within an upload or against the store, ignoring case, return 409. Validate the entire batch before adding any users.",
+   "missing": "Rejecting duplicates protects existing records. There is no requirement to preserve manual single-user creation."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

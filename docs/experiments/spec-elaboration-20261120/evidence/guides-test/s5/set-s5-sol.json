@@ -1,0 +1,68 @@
+{
+ "set": "s5-sol",
+ "cell": "sol-medium",
+ "complete": true,
+ "round": "round-g-s5-sol-41b2b5",
+ "slots": {
+  "K1": {
+   "arm": "A",
+   "sample": "s5-sol-A",
+   "spec_sha256": "f65e27354a703bcc93b3cb1d396af4b2b2528053b7ce61292a0d8dc7ba812e02"
+  },
+  "K3": {
+   "arm": "C",
+   "sample": "s5-sol-C",
+   "spec_sha256": "85392a6d0f0106081fc56c69ebffe360fa4f41f18a6c0cb9741c42a3a00f59e7"
+  },
+  "K4": {
+   "arm": "R",
+   "sample": "s5-sol-R",
+   "spec_sha256": "afeb0d50cea3c0b1ce4312baf36638e0e1d7af92e62393aaae2a9d532e85dafe"
+  },
+  "K2": {
+   "arm": "X",
+   "sample": "s5-sol-X",
+   "spec_sha256": "126fe1f1052de8176124013c87cc964a8967989b4ee33efce9dbaa88ae530a47"
+  }
+ },
+ "delivered": {
+  "A": false,
+  "C": true,
+  "R": true,
+  "X": true
+ },
+ "items": {
+  "applies": [
+   "N-1",
+   "N-2",
+   "N-3",
+   "N-5",
+   "N-6",
+   "N-7",
+   "N-9",
+   "N-10",
+   "N-11"
+  ],
+  "capability": [
+   "N-12",
+   "N-13",
+   "N-18"
+  ],
+  "other": [
+   "N-4",
+   "N-8",
+   "N-14",
+   "N-15",
+   "N-16",
+   "N-17",
+   "N-19",
+   "N-20",
+   "N-21"
+  ],
+  "label_files_sha256": {
+   "opus": "8dab83faf27250ff122d99930ccf1f036c70a7f33005a2d88db314861863dd16",
+   "astra": "542d66c71f476fe5b448d2423d48cddd24338869820cb76d1d63639d292624d8"
+  },
+  "fixture_digest": "8f445d24ed3c"
+ }
+}

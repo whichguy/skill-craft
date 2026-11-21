@@ -1,0 +1,147 @@
+{
+ "slot": "csv-user-import__K1__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2 C4",
+   "quote": "No failure writes a partial batch."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2 C4",
+   "quote": "Row errors identify logical CSV record numbers, counting the header as 1, when applicable.",
+   "missing": "Whether the response lists every failing record and gives the specific reason for each failure."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2 C4",
+   "quote": "Existing and within-file email comparisons are case-insensitive. A conflict returns 409. No failure writes a partial batch."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1 introduction and C1",
+   "quote": "The baseline has no write endpoint or role model (src/server.js and src/users.js at ec1f94c). A configured server-side bearer token identifies an admin for this operation."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-1 C2",
+   "quote": "Accept name and email headers in either order, with case and surrounding whitespace normalized.",
+   "missing": "Whether an additional column alongside name and email is rejected or ignored."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1 C2",
+   "quote": "CSV supports CRLF and LF, a UTF-8 BOM, escaped quotes and quoted commas/newlines."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Behavior model F-1",
+   "quote": "decodes and validates records, commits synchronously, and responds.",
+   "missing": "Whether invitations or other external effects are deferred until commit, and what happens to any already issued if a later row fails."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1 C3",
+   "quote": "Accept up to and including 256 KiB and 1,000 data records. Exceeding either returns 413."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1 C1\u2013C3",
+   "quote": "Bad headers, malformed CSV or UTF-8, empty imports, a blank name or an email without one @ and a dotted domain return 400."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "Behavior model, worked case",
+   "quote": "Replaying hits the existing email conflict at record 2 and leaves five records."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "Behavior model F-1 and T-3",
+   "quote": "operator sends a completed file, server authorizes, checks media and bounds, decodes and validates records, commits synchronously, and responds.",
+   "missing": "The HTTP response signals synchronous completion. The specification explicitly excludes background processing, so there is no completion notice for a background job."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "Behavior model T-1",
+   "quote": "Payload bytes are transient.",
+   "missing": "Where the bytes reside during processing, when they are discarded, and whether anyone can retrieve the upload."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "Behavior model T-1",
+   "quote": "incomplete or rejected request leaves the user store as observed before this request. Caller can correct and resend.",
+   "missing": "How an admin cancels an in-flight import and whether the service supports a retry restricted to failed rows."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "No throughput or hosted availability commitment is defined.",
+   "missing": "A completion-time bound for a maximum-size import and what progress the admin can see before the response arrives."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-2 C4",
+   "quote": "A successful batch appends users with unique increasing numeric IDs in file order.",
+   "missing": "The append and conflict rules preserve existing users. R-1 describes a baseline with no write endpoint, and the specification gives no manual creation workflow to preserve."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-2 C4",
+   "quote": "Error responses omit raw row data and credentials.",
+   "missing": "Omitting raw row values keeps formulas out of row errors. The specification gives no field-length limit or behavior for an oversized field within the overall file limit."
+  }
+ ]
+}

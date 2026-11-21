@@ -1,0 +1,143 @@
+{
+ "slot": "csv-user-import__K1__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.18067,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2 C4",
+   "quote": "No failure writes a partial batch."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2 C4",
+   "quote": "Row errors identify logical CSV record numbers, counting the header as 1, when applicable. Error responses omit raw row data and credentials.",
+   "missing": "Whether all failing rows are reported or only the first, and what reason/message each carries beyond the status code."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2 C4",
+   "quote": "Existing and within-file email comparisons are case-insensitive. A conflict returns 409."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The baseline has no write endpoint or role model ... A configured server-side bearer token identifies an admin for this operation."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-1 C2",
+   "quote": "Accept name and email headers in either order, with case and surrounding whitespace normalized. ... Bad headers ... return 400.",
+   "missing": "What counts as a bad header: whether extra/unexpected columns are rejected or ignored, and explicit handling of a missing header row."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1 C2",
+   "quote": "CSV supports CRLF and LF, a UTF-8 BOM, escaped quotes and quoted commas/newlines."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-2 C4 / T-1",
+   "quote": "No failure writes a partial batch. ... incomplete or rejected request leaves the user store as observed before this request.",
+   "missing": "Side effects beyond store writes (e.g. invitations) are not addressed; whether any exist or are deferred until commit."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1 C3",
+   "quote": "Accept up to and including 256 KiB and 1,000 data records. Exceeding either returns 413."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1 C2",
+   "quote": "Bad headers, malformed CSV or UTF-8, empty imports ... return 400.",
+   "missing": "Whether 'empty imports' covers both a zero-byte file and a header-only file, and explicit single-row behaviour."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2 C4 / Worked case",
+   "quote": "Replaying hits the existing email conflict at record 2 and leaves five records."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "Behavior model T-3 / F-1",
+   "quote": "commits synchronously, and responds. ... There is no asynchronous completion or derived state."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "Behavior model T-1",
+   "quote": "Payload bytes are transient."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "No throughput or hosted availability commitment is defined.",
+   "missing": "No time bound for a maximum-size file; progress visibility is not addressed (only implied moot by synchronous response)."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2 C5 / T-2",
+   "quote": "Preserve public GET list and ID lookup, seeded records, response shapes and 404 for unknown IDs. ... An overlapping conflict or replay leaves the existing set intact."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__K4__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1.4",
+   "quote": "Any rejected file leaves the store and its next generated ID unchanged."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1.2",
+   "quote": "Invalid UTF-8 or CSV, a header-only file, wrong columns, or invalid field data return 400. Record-specific errors include the logical CSV record number counting the header as 1.",
+   "missing": "Whether the response lists every failing record and gives the specific reason for each failure."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1.4",
+   "quote": "Email addresses compare case-insensitively within a file and against all existing users. A duplicate yields HTTP 409 and identifies the conflicting record number."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1.3",
+   "quote": "The configured admin bearer credential is required before upload processing.",
+   "missing": "Whether permission to create one user also grants access to the import credential."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1.2",
+   "quote": "Accept exactly the two headers `name` and `email` in either order \u2026 Invalid UTF-8 or CSV, a header-only file, wrong columns, or invalid field data return 400."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1.2",
+   "quote": "optional UTF-8 BOM, LF and CRLF, optional final newline, and standard CSV quoting including commas, doubled quotes, and embedded line breaks."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-1.4",
+   "quote": "Any rejected file leaves the store and its next generated ID unchanged. A corrected file can be retried. Test late failure",
+   "missing": "Whether invitations or other external effects are deferred until commit, and what happens to effects already triggered when a later row fails."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1.5",
+   "quote": "A file can include up to 256 KiB and 1,000 data records. A request beyond either boundary returns 413, with no users created."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1.1 and R-1.2",
+   "quote": "A valid file creates one user per data record in order \u2026 Accept exactly the two headers `name` and `email` in either order \u2026 a header-only file, wrong columns, or invalid field data return 400."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1.4",
+   "quote": "Email addresses compare case-insensitively within a file and against all existing users. A duplicate yields HTTP 409 and identifies the conflicting record number. Any rejected file leaves the store and its next generated ID unchanged."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1.1",
+   "quote": "A valid file creates one user per data record in order and returns HTTP 201 with `{\"created\":2}` for a two-record batch.",
+   "missing": "Whether large imports run in the background and, if so, how the admin obtains their final result."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-1, State",
+   "quote": "Request bytes and bearer credentials do not appear in errors or logs. The service has no external cache, queue or persistence.",
+   "missing": "Whether the service retains the raw upload in memory after processing, for how long, and who can retrieve it."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-1.4",
+   "quote": "A corrected file can be retried.",
+   "missing": "Whether the admin can cancel an in-flight import or select only failed rows for retry."
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-1.4",
+   "quote": "Email addresses compare case-insensitively within a file and against all existing users. A duplicate yields HTTP 409 and identifies the conflicting record number. Any rejected file leaves the store and its next generated ID unchanged.",
+   "missing": "Whether the existing way to create one user by hand continues to work exactly as before."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

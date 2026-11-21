@@ -1620,21 +1620,23 @@ SEVERAL = {
 }  # the net each new set must reach (section 46)
 
 
-def several(nets: dict[str, list[int]]) -> dict[str, str]:
+def several(nets: dict[str, list[int | None]]) -> dict[str, str]:
     """The registered reading over the new sets: shown when every set reaches the pair's net, the opposite when two or more
-    sets are at -1 or lower, and not shown otherwise."""
+    sets are at -1 or lower, and not shown otherwise. None stands for a set whose arms in the pair were not delivered:
+    it does not reach the net and is not counted as the opposite."""
     said = {}
     for pair, least in SEVERAL.items():
         row = nets.get(pair) or []
-        said[pair] = (
-            "no sets"
-            if not row
-            else "shown"
-            if all(net >= least for net in row)
-            else "the opposite"
-            if sum(net <= -1 for net in row) >= 2
-            else "not shown"
-        )
+        if not row:
+            said[pair] = "no sets"
+        elif all(net is not None and net >= least for net in row):
+            said[pair] = "shown"
+        else:
+            said[pair] = (
+                "the opposite"
+                if sum(net is not None and net <= -1 for net in row) >= 2
+                else "not shown"
+            )
     return said
 
 
@@ -1687,8 +1689,14 @@ def cmd_sets(rule: list[str], pairs: list[str]) -> int:
                 print(
                     f"  {pair}: net {found['net']} (higher {found['higher']}, lower {found['lower']})"
                 )
-                if set_id in rule:
-                    nets[pair].append(found["net"])
+                if (
+                    set_id in rule
+                ):  # a pair counts in a set only when both of its arms were delivered
+                    both = all(
+                        by_arm[arm].get("delivered") is True
+                        for arm in pair.split(" over ")
+                    )
+                    nets[pair].append(found["net"] if both else None)
         if score:  # a wider, descriptive reading: the nine and the items both sorters call mixed, each with a part that applies
             wider = score["items"]["applies"] + both_mixed()
             lists = {

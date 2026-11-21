@@ -1,0 +1,146 @@
+{
+ "slot": "csv-user-import__K1__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.1952248,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1, R-2",
+   "quote": "creates all records together ... Retrying after failure or success cannot leave a partial batch."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "A row validation failure identifies the CSV record number (header is record 1).",
+   "missing": "Whether all failing rows or only the first are reported, and what reason/message accompanies each record number."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Compare normalized email addresses case-insensitively and reject duplicates inside the upload or against existing users with 409 and a record number."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "POST /users/import with the configured Bearer credential ... Missing or wrong credentials return 401 ... With no configured credential, return 403.",
+   "missing": "Whether import permission is distinct from (not implied by) permission to create a single user."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1, R-2",
+   "quote": "header columns name and email ... Accept column reordering ... Reject ... malformed CSV, missing or additional columns, empty input and invalid required fields with HTTP 400."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "a UTF-8 text/csv body ... Accept column reordering, BOM, LF or CRLF, empty records and standard quoted fields with doubled quotes."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Retrying after failure or success cannot leave a partial batch. Verify with duplicates following a valid row and read-back of the unchanged collection.",
+   "missing": "Whether any side effects beyond record creation (e.g. invitation mail) occur for earlier rows and how they are handled when a later row fails."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "reject uploads above 256 KiB or 1,000 nonempty data records with 413."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Reject invalid UTF-8, malformed CSV, missing or additional columns, empty input and invalid required fields with HTTP 400.",
+   "missing": "Whether a header-only file counts as empty input or succeeds with zero created; single-row file behaviour."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "reject duplicates inside the upload or against existing users with 409 and a record number. Retrying after failure or success cannot leave a partial batch."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Use dependency-free Node APIs and an immediate response; no UI, persisted file, asynchronous job or new hosted service is required."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Imported users use unique sequential numeric IDs, the existing name/email shape and public GET visibility.",
+   "missing": "Whether created users are active or pending, have a password, and how they first sign in."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Keep upload bytes and credentials out of errors and logs. ... no UI, persisted file, asynchronous job or new hosted service is required."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Retrying after failure or success cannot leave a partial batch.",
+   "missing": "Cancellation of a running import, and whether retrying only failed rows is possible (implied whole-file retry is not stated as such)."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Bound request memory and row work by the declared limits. ... an immediate response",
+   "missing": "A concrete time bound for a maximum-size file; progress visibility."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-1, R-2",
+   "quote": "Existing records survive each failed upload. ... Preserve the original JSON read responses, missing-ID status and list order. Verify with the existing suite.",
+   "missing": "That single-user creation by hand is unchanged, and that a successful import never modifies existing users."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

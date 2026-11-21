@@ -1,0 +1,144 @@
+{
+ "slot": "csv-user-import__K4__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.1973576,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Any failure leaves the store and next available ID unchanged. Test a valid row preceding a conflict"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Malformed CSV, invalid UTF-8, missing rows, or invalid field values return 400. Errors identify the logical record where applicable without echoing row data.",
+   "missing": "Whether every failing record is reported or only the first, and what reason is given per record beyond the status code."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A duplicate email, case-insensitively within the file or in the existing store, returns 409."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "The header contains exactly name and email in either order.",
+   "missing": "No statement of the access level of created users or that it cannot exceed the importer's; only implied by the two-column schema."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "An admin presents the configured bearer token and POSTs raw UTF-8 text/csv to /users/import. Missing or invalid credentials return 401... With no configured token, the import is disabled"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "The header contains exactly name and email in either order. Each record supplies both... Malformed CSV, invalid UTF-8, missing rows, or invalid field values return 400."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Accept standard CSV quotes, escaped quotes, embedded newlines inside quotes, LF or CRLF, and an optional UTF-8 BOM."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Any failure leaves the store and next available ID unchanged... No external services or users' sign-in credentials are involved."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "The upload accepts at most 1 MiB and 1,000 data records. A bigger body or batch returns 413 with no new accounts, including when the client streams without a content length."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "The header contains exactly name and email in either order... Malformed CSV, invalid UTF-8, missing rows, or invalid field values return 400."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A duplicate email, case-insensitively within the file or in the existing store, returns 409. Any failure leaves the store and next available ID unchanged."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "A valid upload returns 201 with a JSON object containing the created count and records in file order, with server-assigned IDs.",
+   "missing": "Implies synchronous processing but never states that no background processing occurs or how long the request may take."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "No external services or users' sign-in credentials are involved."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "No external services or users' sign-in credentials are involved.",
+   "missing": "Whether created users are active or pending and how, if ever, they first sign in."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Upload bodies and tokens are not logged.",
+   "missing": "Whether the uploaded file is retained at all, for how long, and who may retrieve it."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Preserve GET /users (200 list in ID order) and GET /users/:id (200 user or 404). Existing users and response shape stay intact.",
+   "missing": "Nothing states that single-user creation keeps working unchanged; only read routes are preserved."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

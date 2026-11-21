@@ -1,0 +1,26 @@
+set s3-sol: items that apply here for both sorters (9): ['N-1', 'N-2', 'N-3', 'N-5', 'N-6', 'N-7', 'N-9', 'N-10', 'N-11']
+  A opus: covered 6, partly 3, absent 0
+  A astra: covered 7, partly 2, absent 0
+  R opus: covered 7, partly 2, absent 0
+  R astra: covered 7, partly 2, absent 0
+  C opus: covered 6, partly 3, absent 0
+  C astra: covered 7, partly 2, absent 0
+  X opus: covered 6, partly 3, absent 0
+  X astra: covered 7, partly 2, absent 0
+  X over C: higher under both judges ['N-5']; of them newly raised []; lower ['N-6']; net 0
+  C over A: higher under both judges []; of them newly raised []; lower []; net 0
+  X over A: higher under both judges ['N-5']; of them newly raised []; lower ['N-6']; net 0
+  R over A: higher under both judges []; of them newly raised []; lower []; net 0
+  not in the rule (mixed, unclear or the sorters differ), as states under the two judges:
+    N-4: A 1/0, R 2/1, C 1/0, X 0/0
+    N-8: A 2/2, R 2/0, C 2/1, X 1/1
+    N-14: A 1/0, R 0/0, C 0/0, X 0/0
+    N-15: A 2/2, R 1/1, C 1/1, X 2/1
+    N-16: A 0/0, R 0/0, C 0/0, X 0/0
+    N-17: A 0/0, R 0/0, C 0/0, X 0/0
+    N-19: A 1/0, R 0/0, C 1/0, X 1/1
+    N-20: A 1/1, R 1/1, C 1/1, X 2/1
+    N-21: A 1/0, R 0/0, C 0/0, X 0/1
+  delivered as each arm intends: {'A': True, 'C': True, 'R': False, 'X': True}
+  OUTCOME (X over C): no signal
+  OUTCOME (R over A): delivery failed: this contrast cannot be read

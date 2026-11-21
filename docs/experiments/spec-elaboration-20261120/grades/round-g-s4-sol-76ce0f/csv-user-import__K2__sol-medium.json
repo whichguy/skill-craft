@@ -1,0 +1,141 @@
+{
+ "slot": "csv-user-import__K2__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.20065819999999998,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1; T-2",
+   "quote": "Every rejection leaves state unchanged. ... Store and next ID unchanged; administrator can correct and retry"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Error text identifies the relevant record when feasible without echoing submitted values.",
+   "missing": "Whether the response lists every failing row or only the first, and the structure of the per-row reason; 'when feasible' leaves it optional."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "409 for an email conflict with the store or within the batch (case-insensitive)."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "exactly the name and email columns in either order ... Columns cannot supply privileges or IDs."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "accept POST /admin/users/import from an operator authorized with an Authorization Bearer value matching ADMIN_TOKEN. Missing or invalid credentials and missing token configuration return 401"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "with exactly the name and email columns in either order ... 400 for invalid UTF-8, syntax, header or rows"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "optionally with a UTF-8 BOM ... Accept LF or CRLF, optional trailing newline, comma and newline inside quoted fields, and doubled quotes."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "F-1; R-1",
+   "quote": "The store checks all identities and applies T-1. ... A failed check terminates with the matching status and T-2. ... Every rejection leaves state unchanged."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "413 above 1 MiB or 1,000 data rows"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1; Verification cases",
+   "quote": "An empty file or header-only file is invalid. ... a subsequent valid Jane-only upload gets ID 4."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "409 for an email conflict with the store or within the batch (case-insensitive). ... Every rejection leaves state unchanged."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "Non-functional requirements; R-1",
+   "quote": "The user list receives the batch synchronously ... Respond 201 with JSON containing created count and users."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "stores names and emails in the same process memory exposed by the existing GET surface. The upload body is transient. Additional persistence ... do not apply"
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "F-1; T-2",
+   "quote": "An interrupted request before body completion never commits. ... administrator can correct and retry",
+   "missing": "Cancellation of an import once the body is complete, and whether retry of only failed rows is supported versus resubmitting the whole file."
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2; T-1",
+   "quote": "Preserve the public GET /users array and GET /users/:id object or 404 ... Same existing users plus the new rows, with consecutive IDs"
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1; Non-functional requirements",
+   "quote": "Error text identifies the relevant record when feasible without echoing submitted values. ... The server emits a sanitized HTTP result",
+   "missing": "A per-field maximum length and how formula-leading values (=, +, -, @) are treated."
+  }
+ ]
+}

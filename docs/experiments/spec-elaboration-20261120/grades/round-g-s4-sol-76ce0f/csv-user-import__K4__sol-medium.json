@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__K4__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.1860486,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Reject the entire batch on any error. Verify via status, response and unchanged list."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Invalid input returns 400, duplicate email returns 409, and non-CSV media returns 415. Report the CSV record's starting line for malformed rows or conflicts when available.",
+   "missing": "Whether the error response lists every failing row or only the first, and the shape of the per-row reason."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "require case-insensitive email uniqueness across the entire store and upload ... duplicate email returns 409 ... Reject the entire batch on any error."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "No browser UI, user updates, roles within records, or external persistence is required.",
+   "missing": "What happens when a file contains a role (or other privilege) column: ignored, rejected, or checked against the importer."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "An operator configures ADMIN_TOKEN. POST /users/import accepts the matching Authorization: Bearer credential. Missing, invalid or unconfigured credentials return 401 and leave users unchanged."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Upload raw UTF-8 text/csv with a name,email header (either order), and at least one data record.",
+   "missing": "Whether unexpected extra columns or duplicate header columns are rejected or ignored, and the specific error for a missing header."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Upload raw UTF-8 text/csv ... Allow BOM, LF, CRLF, quoted fields and doubled quotes."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Reject the entire batch on any error. ... Validation and commit are synchronous once the request is decoded",
+   "missing": "Whether any invitation or other external side effect occurs at all, and how it relates to a batch that later fails."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Limit the request body to 1 MiB and data records to 1,000. Return 413 when either limit is exceeded."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "with a name,email header (either order), and at least one data record. ... Invalid input returns 400"
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "require case-insensitive email uniqueness across the entire store and upload ... duplicate email returns 409",
+   "missing": "A deliberate statement that re-uploading the same file is not idempotent and fails with 409, rather than an implication of the uniqueness rule."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Validation and commit are synchronous once the request is decoded ... A successful request returns 201 with created count and the new records"
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "GET by ID and list expose them with the same shape as existing records.",
+   "missing": "Whether created users are active or pending, have any credential, and how they first sign in."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The service stores user fields, never the raw upload or credential."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Latency and availability targets follow the local dependency-free baseline with no service SLA.",
+   "missing": "A concrete time bound for a maximum-size file and whether any progress is visible."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Existing GET behavior and seeds are preserved. ... No browser UI, user updates, roles within records, or external persistence is required."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

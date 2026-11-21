@@ -1,0 +1,144 @@
+{
+ "slot": "csv-user-import__K3__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Validate the entire batch before creation"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Include the starting physical line of an error when attributable to a row.",
+   "missing": "Whether to report every failed row and what explanation to return for each row."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "an email already stored, or repeated within the same file, returns 409 with its row."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Import creates no accounts with admin authority.",
+   "missing": "R-2 excludes a role column. The specification sets a ceiling on imported access but gives no rule comparing a requested role with the importer's authority."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "The admin sends UTF-8 CSV as the raw body of POST /users/import with Content-Type text/csv and a valid configured Authorization bearer token.",
+   "missing": "Whether permission to create one user is granted independently of permission to import."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "The CSV must contain exactly the name and email headers, in either order, and at least one data record."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Accept unquoted and quoted cells, escaped double quotes, embedded line breaks in quoted cells, LF or CRLF, and an optional UTF-8 BOM."
+  },
+  {
+   "id": "N-8",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "R-2 bounds an upload to 262144 bytes and 1000 user records per request. Confirm each exact boundary succeeds with valid fixture data and a one-unit excess returns 413 with unchanged state."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "The CSV must contain exactly the name and email headers, in either order, and at least one data record."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Confirm a valid preceding row is absent after failure and retrying a successful file creates no additional records."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "The API returns HTTP 201 and a JSON object with createdCount and users.",
+   "missing": "The response reports completion of the request. No rule specifies background processing for large files or how an admin learns that a background job finished."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "The raw upload and token are kept out of application logs.",
+   "missing": "Whether the uploaded file is stored elsewhere, how long it is retained, and who may download it."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "an email already stored, or repeated within the same file, returns 409 with its row.",
+   "missing": "The import rejects a match with an existing user. The specification does not say whether manual creation of a single user retains its existing behavior."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

@@ -1,0 +1,21 @@
+{
+ "name": "s3-sol-C",
+ "set": "s3-sol",
+ "arm": "C",
+ "driver": "sol",
+ "pid": 85795,
+ "started_at": 1795301105.18866,
+ "limit_minutes": 20.0,
+ "decided_at": 1795301281.05217,
+ "watcher": "saw the acceptance",
+ "stop_written": true,
+ "seen": {
+  "run_dir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-ac4b66/samples/s3-sol-C/.shiploop-runs/work-20261121-224527-956215/run",
+  "spec_action": "nav-a8c2f22cb02642dbacf2c10f89bdf0fb",
+  "at": "2026-11-21T22:48:00Z",
+  "ts": 1795301280.312,
+  "spec_sha256": "af3a16253ec9421fe9da874d749eb90fae55bd54a150bef9453c04131b67834c",
+  "head": "5e104dd0d126f5e5cd03caeda91378c606aec930"
+ },
+ "returncode": 1
+}

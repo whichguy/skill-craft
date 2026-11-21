@@ -1,0 +1,143 @@
+{
+ "slot": "csv-user-import__K3__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.17608320000000002,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Validate the entire batch before creation ... Confirm a valid preceding row is absent after failure"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Include the starting physical line of an error when attributable to a row.",
+   "missing": "Whether every failing row is reported or only the first, and the shape and wording of the reason in the error body."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "an email already stored, or repeated within the same file, returns 409 with its row. ... Compare email addresses case-insensitively while preserving the submitted spelling."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1 / R-2",
+   "quote": "Import creates no accounts with admin authority. ... The CSV must contain exactly the name and email headers"
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "a valid configured Authorization bearer token ... absent, malformed or wrong credentials return 401 before parsing. Missing admin configuration returns 503.",
+   "missing": "Whether import permission is distinct from (not implied by) permission to create a single user."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "The CSV must contain exactly the name and email headers, in either order ... missing or extra columns, empty input ... return 400."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Accept unquoted and quoted cells, escaped double quotes, embedded line breaks in quoted cells, LF or CRLF, and an optional UTF-8 BOM."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Validate the entire batch before creation ... Confirm a valid preceding row is absent after failure"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "bounds an upload to 262144 bytes and 1000 user records per request ... a one-unit excess returns 413 with unchanged state."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "exactly the name and email headers ... and at least one data record. ... empty input ... return 400."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "retrying a successful file creates no additional records."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "The API returns HTTP 201 and a JSON object with createdCount and users.",
+   "missing": "No deliberate statement that import is synchronous rather than backgrounded, nor how an admin learns a long import finished."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "The raw upload and token are kept out of application logs.",
+   "missing": "Whether the uploaded file is stored at all, for how long, and who may retrieve it."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Existing read routes stay public and retain their JSON and 404 behavior as documented by README.md and src/server.js.",
+   "missing": "That single-user manual creation is unchanged, and an explicit statement that existing user records are never modified."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

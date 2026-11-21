@@ -725,3 +725,11 @@ Section 44 records the owner's go-ahead, step 0 (`labels/here-opus.json`, `label
 for both sorters) and a fourth arm, R: the released stage with one sentence in the spec stage's goal telling the
 author to print and read the whole packet (`overlays/guides-read-all.json`). A set is four runs, and `score` reads
 two contrasts by one rule: X over C and R over A.
+
+Sections 45 to 47 are the runs: five sets of four real runs on Sol at medium from the one sentence
+(`evidence/guides-test/s1/` to `s5/`: the collected facts, the sealed readings, the blind reader's file, the four
+accepted specifications and their packets; `evidence/guides-test/five-sets.txt` is `guides_test.py sets` over all
+five). After two sets the delivery conditions were amended and three more were read by a rule fixed beforehand
+(section 46). Result: not shown for any of the four contrasts; described, the guide-text arm is never worse and
+covers 38 of 45 item readings against 29 for the released stage, the read-all sentence 35, the cue 30, and no
+specification of any arm leaves an applicable item out.

@@ -1,0 +1,144 @@
+{
+ "slot": "csv-user-import__K3__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Verify rejection and unchanged GET state after a valid first row followed by an invalid one."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Row-specific errors identify the one-based logical CSV record.",
+   "missing": "The response must identify the record, but the specification leaves open whether it explains the cause for each failed row or reports all failed rows."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Duplicates in the file or directory return 409 with a record number."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "The configured ADMIN_TOKEN is the authority for this write. Its absence disables imports.",
+   "missing": "The relationship between permission to create an individual user and permission to import is unspecified."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1 and R-2",
+   "quote": "Malformed CSV, invalid UTF-8, absent or unexpected headers, no data rows, incorrect column count, and invalid field values each produce 400."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "CSV accepts name and email headers in either order, LF and CRLF records, an optional UTF-8 BOM and terminating newline, and quoted fields with commas, embedded line breaks and escaped double quotes."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Validate before writing and return errors without displaying submitted personal data.",
+   "missing": "The order of validation and directory writes is specified. The timing of other per-row effects, such as invitations, and their disposition after a later failure are unspecified."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A body over 1 MiB returns 413 for both declared and streamed requests. A body of exactly 1 MiB is accepted when otherwise valid."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1 and R-2",
+   "quote": "Malformed CSV, invalid UTF-8, absent or unexpected headers, no data rows, incorrect column count, and invalid field values each produce 400."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Duplicates in the file or directory return 409 with a record number. Retrying a successful file or racing imports of the same email creates only one copy."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "returns 201 with both created users, in file order",
+   "missing": "The HTTP response signals completion for the example upload. The specification gives no rule for moving large imports into the background or signaling completion of a background job."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "The original file is discarded after processing and upload errors omit user values and credential contents.",
+   "missing": "The specification leaves the file's storage location and access to it during processing unspecified."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Duplicates in the file or directory return 409 with a record number.",
+   "missing": "The duplicate rule protects existing users from being overwritten on a match. The specification leaves preservation of the manual single-user creation workflow unstated."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

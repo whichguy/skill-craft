@@ -1,0 +1,147 @@
+{
+ "slot": "csv-user-import__K4__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.203737,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1.4",
+   "quote": "Any rejected file leaves the store and its next generated ID unchanged. A corrected file can be retried. Test late failure"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1.2",
+   "quote": "Record-specific errors include the logical CSV record number counting the header as 1.",
+   "missing": "Whether all failing records are reported or only the first, and the shape/content of the reason given per record."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1.4",
+   "quote": "Email addresses compare case-insensitively within a file and against all existing users. A duplicate yields HTTP 409 and identifies the conflicting record number."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1.2",
+   "quote": "Accept exactly the two headers `name` and `email` in either order",
+   "missing": "No statement about privilege escalation; roles are excluded only implicitly by the fixed column set, with no rule tying created users' access to the importer's authority."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1.3",
+   "quote": "The configured admin bearer credential is required before upload processing.",
+   "missing": "Whether import permission is distinct from single-user creation permission is not stated."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1.2",
+   "quote": "Accept exactly the two headers `name` and `email` in either order ... a header-only file, wrong columns, or invalid field data return 400."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1.2",
+   "quote": "optional UTF-8 BOM, LF and CRLF, optional final newline, and standard CSV quoting including commas, doubled quotes, and embedded line breaks."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-1.4",
+   "quote": "Any rejected file leaves the store and its next generated ID unchanged. ... Test late failure"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1.5",
+   "quote": "A file can include up to 256 KiB and 1,000 data records. A request beyond either boundary returns 413, with no users created."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1.2",
+   "quote": "Invalid UTF-8 or CSV, a header-only file, wrong columns, or invalid field data return 400.",
+   "missing": "Behaviour for a completely empty (zero-byte) body and an explicit single-record file are not stated."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1.4",
+   "quote": "Email addresses compare case-insensitively within a file and against all existing users. A duplicate yields HTTP 409 and identifies the conflicting record number."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1.1 / State",
+   "quote": "returns HTTP 201 with `{\"created\":2}` ... The service has no external cache, queue or persistence.",
+   "missing": "Not stated deliberately that even a maximum-size file is processed synchronously in-request; no background/notification decision."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-1 State",
+   "quote": "Request bytes and bearer credentials do not appear in errors or logs. The service has no external cache, queue or persistence.",
+   "missing": "Explicit statement that the uploaded file is not retained, its lifetime, and who (if anyone) can retrieve it."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-1.4",
+   "quote": "A corrected file can be retried.",
+   "missing": "Cancelling a running import is not addressed; retry is whole-file only, not stated as a deliberate alternative to retrying failed rows."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "No throughput or durability target was requested.",
+   "missing": "No time bound for a maximum-size file and no progress visibility."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "`GET /users` still lists all stored users in ID order. `GET /users/:id` returns the stored record or 404.",
+   "missing": "Single-user manual creation is not mentioned; that a successful import never modifies existing users is only implied by duplicate rejection."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

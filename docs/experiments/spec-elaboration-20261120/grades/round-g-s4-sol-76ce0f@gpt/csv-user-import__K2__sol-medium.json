@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__K2__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Every rejection leaves state unchanged."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Error text identifies the relevant record when feasible without echoing submitted values.",
+   "missing": "The status codes distinguish broad failure types. The specification leaves open which failing rows to report and how to explain the cause for each."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "409 for an email conflict with the store or within the batch (case-insensitive)."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Columns cannot supply privileges or IDs.",
+   "missing": "File-supplied roles are ruled out. The specification does not define the access assigned to a new user or bound it by the importer's authority."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "accept POST /admin/users/import from an operator authorized with an Authorization Bearer value matching ADMIN_TOKEN.",
+   "missing": "The import credential is explicit. Its relationship to permission to create a single user is unspecified."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "with exactly the name and email columns in either order. \u2026 400 for invalid UTF-8, syntax, header or rows"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "optionally with a UTF-8 BOM, with exactly the name and email columns in either order. Accept LF or CRLF, optional trailing newline, comma and newline inside quoted fields, and doubled quotes."
+  },
+  {
+   "id": "N-8",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "413 above 1 MiB or 1,000 data rows"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1 and Verification cases",
+   "quote": "An empty file or header-only file is invalid. \u2026 a subsequent valid Jane-only upload gets ID 4."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "409 for an email conflict with the store or within the batch (case-insensitive). \u2026 Every rejection leaves state unchanged."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "Flows, F-1",
+   "quote": "The store checks all identities and applies T-1. The response reports 201; a subsequent GET reads the result.",
+   "missing": "The HTTP response signals completion. The specification gives no background processing or later completion notification for large files."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "stores names and emails in the same process memory exposed by the existing GET surface. The upload body is transient.",
+   "missing": "The storage location and disposal point for the CSV itself are unspecified, as is whether anyone can retrieve it again."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "Flows, F-1 and State and transitions, T-2",
+   "quote": "An interrupted request before body completion never commits. \u2026 Store and next ID unchanged; administrator can correct and retry",
+   "missing": "The specification leaves cancellation after upload and the handling of a retry containing only failed rows unspecified."
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "State and transitions, T-1",
+   "quote": "Same existing users plus the new rows, with consecutive IDs",
+   "missing": "The specification preserves existing users but gives no compatibility requirement for creating one user by hand."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

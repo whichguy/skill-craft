@@ -1,0 +1,147 @@
+{
+ "slot": "csv-user-import__K2__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.197288,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1 CSV-04",
+   "quote": "Failures leave the entire store unchanged."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1 CSV-04",
+   "quote": "A row error identifies its starting file line and omits field values. A duplicate email ... returns 409 and identifies the conflicting line.",
+   "missing": "Whether the response lists every failing row or only the first, and whether it states the reason for each failure."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1 CSV-04",
+   "quote": "A duplicate email (case-insensitive across existing users and within the upload) returns 409 and identifies the conflicting line."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1 CSV-04",
+   "quote": "missing or unexpected columns ... return 400. A valid row has exactly two fields, a nonempty trimmed name and a trimmed email",
+   "missing": "No explicit statement of what access or role imported users receive relative to the importer's authority; only implied by the two-field row shape."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1 CSV-01, CSV-03",
+   "quote": "POST /users/import with a configured admin bearer token ... Invalid credentials or an unconfigured admin token return 401 without mutation.",
+   "missing": "Whether import permission is distinct from any single-user creation permission is not stated."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1 CSV-01, CSV-04",
+   "quote": "a UTF-8 text/csv file with one name and one email header, in either order ... Malformed CSV, invalid UTF-8, missing or unexpected columns ... return 400."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1 CSV-02",
+   "quote": "Quoted commas, quote escaping and line breaks in names, LF and CRLF, an optional UTF-8 BOM, optional final newline and blank lines are accepted."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-1 CSV-04; R-1 closing paragraph",
+   "quote": "Failures leave the entire store unchanged. ... User invitations, individual admin accounts and durable storage are outside the existing product scope."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1 CSV-05",
+   "quote": "Requests above 1 MiB return 413, including when no Content-Length is present."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1 CSV-04",
+   "quote": "Malformed CSV, invalid UTF-8, missing or unexpected columns, empty imports and invalid rows return 400.",
+   "missing": "Whether a header-only file counts as an empty import, and the behaviour for a single-row file, are not stated explicitly."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1 CSV-04",
+   "quote": "Retrying a successful import yields 409."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-1 closing paragraph",
+   "quote": "Imports complete synchronously after body receipt."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-1 closing paragraph",
+   "quote": "User invitations, individual admin accounts and durable storage are outside the existing product scope."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1 closing paragraph",
+   "quote": "Valid records share the existing process-local lifecycle and read visibility, and reset on process restart.",
+   "missing": "Whether created users are active or pending, have any credential, and how (or whether) they sign in."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-1 closing paragraph",
+   "quote": "The caller owns the CSV file; the service holds bytes during the request and never persists the source file."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-1 CSV-04; closing paragraph",
+   "quote": "Failures leave the entire store unchanged. ... Imports complete synchronously after body receipt.",
+   "missing": "Cancellation of an in-flight import is not addressed; retry of only failed rows is only implied moot by all-or-nothing."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "cap buffered request bodies at 1 MiB to bound per-request memory.",
+   "missing": "No time bound for a maximum-size file and no statement about progress visibility."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-1 CSV-06",
+   "quote": "Existing GET status, ordering, seeded IDs and user field shape remain available.",
+   "missing": "Whether existing single-user creation remains unchanged, and an explicit statement that existing users are never modified."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1 CSV-04; CSV-05",
+   "quote": "Fields cannot contain NUL. ... Requests above 1 MiB return 413",
+   "missing": "Spreadsheet formula-injection handling and a per-field length limit are not stated."
+  }
+ ]
+}

@@ -1,0 +1,142 @@
+{
+ "slot": "csv-user-import__K2__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1, CSV-04",
+   "quote": "Failures leave the entire store unchanged."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1, CSV-04",
+   "quote": "A row error identifies its starting file line and omits field values. A duplicate email (case-insensitive across existing users and within the upload) returns 409 and identifies the conflicting line.",
+   "missing": "For two invalid rows, a builder must decide whether to report both lines and whether to tell the admin which validation rule each row failed."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1, CSV-04",
+   "quote": "A duplicate email (case-insensitive across existing users and within the upload) returns 409 and identifies the conflicting line."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1, CSV-01 and CSV-03",
+   "quote": "POST /users/import with a configured admin bearer token \u2026 Invalid credentials or an unconfigured admin token return 401 without mutation.",
+   "missing": "The relationship between permission to create one user and permission to import is unspecified."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1, CSV-01 and CSV-04",
+   "quote": "one name and one email header, in either order \u2026 Malformed CSV, invalid UTF-8, missing or unexpected columns, empty imports and invalid rows return 400."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1, CSV-02",
+   "quote": "Quoted commas, quote escaping and line breaks in names, LF and CRLF, an optional UTF-8 BOM, optional final newline and blank lines are accepted."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-1, CSV-04 and closing paragraph",
+   "quote": "Failures leave the entire store unchanged. \u2026 User invitations, individual admin accounts and durable storage are outside the existing product scope."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1, CSV-05",
+   "quote": "Requests above 1 MiB return 413, including when no Content-Length is present."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1, CSV-01 and CSV-04",
+   "quote": "one name and one email header, in either order, creates each row in input order. \u2026 missing or unexpected columns, empty imports and invalid rows return 400."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1, CSV-04",
+   "quote": "A duplicate email (case-insensitive across existing users and within the upload) returns 409 and identifies the conflicting line. \u2026 Retrying a successful import yields 409."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1, CSV-01 and closing paragraph",
+   "quote": "The HTTP response is 201 with `{created, users}` \u2026 Imports complete synchronously after body receipt.",
+   "missing": "The response tells the admin when a synchronous import succeeds. Background processing for large files and notification of a background job\u2019s completion are outside that flow."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-1, closing paragraph",
+   "quote": "User invitations, individual admin accounts and durable storage are outside the existing product scope."
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-1, closing paragraph",
+   "quote": "The caller owns the CSV file; the service holds bytes during the request and never persists the source file."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-1, CSV-04",
+   "quote": "A duplicate email (case-insensitive across existing users and within the upload) returns 409 and identifies the conflicting line. Failures leave the entire store unchanged.",
+   "missing": "The duplicate rule protects existing users from being overwritten. The specification gives no behavior to preserve or verify for manual single-user creation."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

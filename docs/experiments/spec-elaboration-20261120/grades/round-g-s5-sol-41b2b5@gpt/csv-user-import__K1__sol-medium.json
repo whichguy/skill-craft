@@ -1,0 +1,146 @@
+{
+ "slot": "csv-user-import__K1__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "creates all records together."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "A row validation failure identifies the CSV record number (header is record 1).",
+   "missing": "Whether the response lists every failing record and explains which validation rule each record failed."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Compare normalized email addresses case-insensitively and reject duplicates inside the upload or against existing users with 409 and a record number."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Missing or wrong credentials return 401 with a Bearer challenge. With no configured credential, return 403.",
+   "missing": "Whether permission to create an individual user is granted independently of the import credential."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1 (header columns name and email) and R-2",
+   "quote": "Reject invalid UTF-8, malformed CSV, missing or additional columns, empty input and invalid required fields with HTTP 400."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Accept column reordering, BOM, LF or CRLF, empty records and standard quoted fields with doubled quotes."
+  },
+  {
+   "id": "N-8",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "reject uploads above 256 KiB or 1,000 nonempty data records with 413."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Reject invalid UTF-8, malformed CSV, missing or additional columns, empty input and invalid required fields with HTTP 400.",
+   "missing": "Whether a valid header with zero data rows succeeds with createdCount zero or returns 400."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Compare normalized email addresses case-insensitively and reject duplicates inside the upload or against existing users with 409 and a record number."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Use dependency-free Node APIs and an immediate response; no UI, persisted file, asynchronous job or new hosted service is required.",
+   "missing": "The specified import completes in the HTTP request. A background workflow would still need a completion signal for the admin."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Keep upload bytes and credentials out of errors and logs. Configure credentials per server and fail closed. Use dependency-free Node APIs and an immediate response; no UI, persisted file, asynchronous job or new hosted service is required.",
+   "missing": "Whether the service retains any copy of the upload, its storage location and retention period if kept, and who can retrieve it."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Retrying after failure or success cannot leave a partial batch.",
+   "missing": "What happens if the admin cancels an active request and how the admin can retry only the failed records."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Use dependency-free Node APIs and an immediate response",
+   "missing": "A measurable completion deadline for a maximum-size upload and what progress the admin can see while waiting."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "reject duplicates inside the upload or against existing users with 409 and a record number.",
+   "missing": "Whether the existing workflow for manually creating one user retains its behavior."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

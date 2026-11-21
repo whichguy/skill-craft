@@ -1,0 +1,140 @@
+{
+ "slot": "csv-user-import__K2__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.19973819999999998,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Atomic user creation ... With a valid authorized request, create all rows ... Rejection, including a disconnected incomplete upload, leaves the store and ID allocation unchanged."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2, R-3",
+   "quote": "Errors describe the issue and include the logical record number when applicable (header is record 1). ... An email already present or repeated in the upload is a 409 for the first conflicting record"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "An email already present or repeated in the upload is a 409 for the first conflicting record, using a case-insensitive comparison."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Admins send `POST /users/import` using the configured `ADMIN_TOKEN` as an Authorization bearer credential. When unset or unusable, the route returns 503."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Header has exactly `name` and `email`, in either order. ... Each record has the same two fields. ... malformed CSV or field values get 400"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "optional leading UTF-8 BOM, LF and CRLF, and optional final line break. ... Support quoted fields, doubled quotes and embedded delimiters and newlines in quoted fields."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "F-2, R-4",
+   "quote": "neither partial effects nor queued work exist. ... Persistence, invitation delivery, identity-provider integration and a browser client are outside this scope."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Accept up to 1,048,576 bytes and 1,000 data records per upload ... Reject when either limit is exceeded and keep the store unchanged"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2, C-3",
+   "quote": "At least one data record is required. ... Reject unsupported media type, malformed encoding, malformed quoting, bad headers, empty upload and invalid later rows."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "After a successful request whose response is lost, retry reports the duplicate and creates zero additional records."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "F-1, F-2",
+   "quote": "T-1 validates email uniqueness against the current process store, then synchronously appends the batch. 201 and existing GET reads expose completion. ... neither partial effects nor queued work exist."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "Persistence, invitation delivery, identity-provider integration and a browser client are outside this scope."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Public reads include the same name and email fields for seed and imported users. ... identity-provider integration ... outside this scope.",
+   "missing": "Whether an imported user is active or pending, has any credential, and how (or whether) they sign in."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-4, F-3",
+   "quote": "The server does not persist uploaded bodies or log row contents. ... CSV bytes are transient and discarded after response or interruption."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-3, F-2",
+   "quote": "Rejection, including a disconnected incomplete upload, leaves the store and ID allocation unchanged. ... The caller can correct validation failures and resend."
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Public list and ID read behavior, seed records, JSON shape and unknown ID 404 remain as evidenced by src/server.js, src/users.js and test/server.test.js at ec1f94c.",
+   "missing": "Nothing addresses single-user creation continuing to work, nor states explicitly that an import never modifies existing user records."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

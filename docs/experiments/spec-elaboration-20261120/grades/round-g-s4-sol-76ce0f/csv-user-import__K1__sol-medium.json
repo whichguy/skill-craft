@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__K1__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.18216179999999998,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Write all records together after validation, including a final duplicate check against current state. ... verify that each rejected batch leaves the original users intact."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Reject invalid UTF-8, missing or invalid headers, malformed quoting, missing fields, blank names or malformed emails with 400. Reject a duplicate email ... with 409.",
+   "missing": "Whether the error response identifies which row(s) failed and the reason per row, and its shape."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Reject a duplicate email (already present or repeated in the batch, case-insensitive) with 409."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "A configured administrator can POST UTF-8 `text/csv` to `/users/import` using the server's bearer credential.",
+   "missing": "Whether import permission is distinct from single-user creation permission; nothing says the ability is not implied by being able to create one user."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "CSV requires one `name` and one `email` header in either order, and at least one data row. ... Reject ... missing or invalid headers ... with 400.",
+   "missing": "Whether unexpected extra columns are ignored or rejected."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Accept quoted commas, escaped quotes, quoted multiline fields, LF or CRLF and an optional UTF-8 BOM."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Write all records together after validation, including a final duplicate check against current state.",
+   "missing": "Whether any side effects beyond the store write (invitations or notifications) occur and how they relate to batch failure."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Return 413 for bodies over 1 MiB."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "CSV requires one `name` and one `email` header in either order, and at least one data row.",
+   "missing": "The explicit response status for an empty or header-only file, and single-row file behaviour."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Reject a duplicate email (already present or repeated in the batch, case-insensitive) with 409."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Use a bounded body and immediate synchronous commit after validation."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Keep upload contents and bearer credentials out of errors and logs.",
+   "missing": "Whether the uploaded file itself is stored, for how long, and who may retrieve it."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Confirm with HTTP and verify that each rejected batch leaves the original users intact.",
+   "missing": "That existing single-user creation is unchanged, and that successful imports never modify existing users."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

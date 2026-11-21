@@ -1,0 +1,143 @@
+{
+ "slot": "csv-user-import__K3__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.1879524,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Validate the entire batch before adding any users."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "return 400 with an actionable error, including the record number where applicable",
+   "missing": "Whether every failing row is reported or only the first, and whether 409 duplicate errors identify the offending rows."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Email duplicates within an upload or against the store, ignoring case, return 409."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Accept a `name,email` header ... Invitations, passwords, roles and durable storage are outside this feature."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "A caller with the configured administrator bearer credential can POST ... When no credential is configured, nobody can import."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Malformed UTF-8/CSV, header mismatch, no data, empty names, invalid emails and incorrect field counts return 400"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Accept a `name,email` header, an optional UTF-8 BOM, CRLF or LF, and CSV quoted fields with escaped quotes.",
+   "missing": "Whether quoted fields may contain embedded newlines (quoted delimiters/commas are covered)."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Validate the entire batch before adding any users. ... Invitations, passwords, roles and durable storage are outside this feature."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Requests larger than 1 MiB or containing more than 1,000 records return 413 and leave no created users."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "header mismatch, no data ... return 400",
+   "missing": "Explicit behaviour for a completely empty file versus header-only, and that a single-row file is accepted."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Email duplicates within an upload or against the store, ignoring case, return 409."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Creation is synchronous after validation."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Invitations, passwords, roles and durable storage are outside this feature."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Invitations, passwords, roles and durable storage are outside this feature.",
+   "missing": "Whether created users are active or pending and how (or whether) they ever sign in."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Request data is transient and errors do not echo personal fields or secrets."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "GET /users lists users in ID order. GET /users/1 returns Ada Lovelace on a fresh process",
+   "missing": "An explicit statement that existing user records are never modified by an import and that any single-user creation path is unchanged."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

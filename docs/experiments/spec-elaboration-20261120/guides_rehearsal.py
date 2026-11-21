@@ -617,6 +617,23 @@ def main() -> int:
         },
     )
     expect(
+        "a set whose arms were not delivered does not reach the net and is not the opposite",
+        g.several(
+            {
+                "X over A": [2, None, 2],
+                "X over C": [None, None, 1],
+                "R over A": [1, 1, 1],
+                "C over A": [-1, None, -1],
+            }
+        )
+        == {
+            "X over A": "not shown",
+            "X over C": "not shown",
+            "R over A": "shown",
+            "C over A": "the opposite",
+        },
+    )
+    expect(
         "sets side by side are printed, with the rule over the ones named",
         g.cmd_sets(["r1-sol"], [str(root), "r1-sol", str(root), "r3-sol"]) == 0,
     )

@@ -3510,3 +3510,95 @@ failed (`evidence/guides-test/rehearsal.txt` is that run's transcript).
 **Limits.** One sentence, one base, one driver at one effort. Nine items, on all of which the released stage already
 says something, so what can be seen is a move from partly to covered, which the second review warned can be firmer
 wording and not new breadth. The judges do not know the arms; this session does.
+
+## 47. Sets s3 to s5 and the result of the guides test: not shown by the rule; the guide text is never worse and a little fuller (15:00, 2026-11-21)
+
+**The runs.** Three more sets of four runs, one after another from 14:45, from a clean checkout at the commit that
+holds section 46. All twelve reached the spec's acceptance in 2.3 to 3.3 minutes and are usable. Each set was
+judged by the two judges (24 readings) and read by a blind Sonnet reader.
+
+| Set | Arm | Words accepted | Instruction lines given | Reference lines given | Block lines given | Author, review (s) |
+|---|---|---|---|---|---|---|
+| s3 | A | 458 (427 as submitted) | 99 of 102 | 8 of 57 | 0 of 81 | 22.8, 41.2 |
+| s3 | R | 434 | 88 of 102 | 7 of 55 | 0 of 81 | 19.9, 33.1 |
+| s3 | C | 474 | 92 of 104 | 6 of 54 | 0 of 81 | 25.8, 30.2 |
+| s3 | X | 583 | 185 of 187 | 8 of 54 | 81 of 81 | 26.6, 45.4 |
+| s4 | A | 367 | 88 of 102 | 8 of 56 | 0 of 81 | 18.9, 36.1 |
+| s4 | R | 486 | 97 of 102 | 13 of 55 | 0 of 81 | 27.1, 29.9 |
+| s4 | C | 328 | 82 of 104 | 8 of 55 | 0 of 81 | 21.0, 34.0 |
+| s4 | X | 630 | 131 of 187 | 54 of 57 | 30 of 81 | 32.0, 29.0 |
+| s5 | A | 345 | 16 of 102 | 15 of 54 | 0 of 81 | 15.3, 29.7 |
+| s5 | R | 375 | 94 of 102 | 39 of 54 | 0 of 81 | 25.4, 37.6 |
+| s5 | C | 419 | 99 of 104 | 1 of 53 | 0 of 81 | 20.5, 52.5 |
+| s5 | X | 930 | 172 of 187 | 12 of 55 | 81 of 81 | 42.4, 36.6 |
+
+Delivery by section 46's checks: in s3, R's author was not given its own sentence (its script printed the packet's
+first line and then went straight to the duties, past the goal); in s4, X's author gave itself 30 of the block's
+81 lines; in s5, A's author gave itself 16 of 102 instruction lines, the skim of section 43 seen in a live run. No
+author without the block was given a passage of either spec guide in s3 to s5; X's authors in s3 and s4 opened
+`requirements-definition.md` by themselves, on top of the block. Nobody in any of the twenty runs opened
+`behavioral-requirements.md`: its text reached an author only through the block. (Every author was given passages
+of four to ten of the 39 guides before its acceptance, mostly the start guides.)
+
+**The rule of section 46, over s3 to s5** (`evidence/guides-test/five-sets.txt`). Nets on the nine items, a set
+counted for a pair only when both of its arms were delivered:
+
+| Pair | s3 | s4 | s5 | Needed in every set | Reading |
+|---|---|---|---|---|---|
+| X over A | 0 | 1, X not delivered | 2, A not delivered | 2 | not shown |
+| X over C | 0 | 0, X not delivered | 3 | 1 | not shown |
+| R over A | 0, R not delivered | 1 | 1, A not delivered | 1 | not shown |
+| C over A | 0 | 0 | minus 1, A not delivered | 1 | not shown |
+
+None of the four is shown, with or without the delivery condition. The reader verified no capability in any of the
+twelve specifications, so there is no sign of harm either.
+
+**The predictions.** 11 failed (X over A reached 2 in one set of three). 12 failed (X over C reached 1 in one of
+three). 13 held (R over A was 0, 1 and 1). 14 held (X's specification is the longest in each set, and in all five).
+15 held.
+
+**All five sets together, as a description** (20 specifications; s1 and s2 led to the amendment and are not in the
+rule).
+
+- Nothing is ever absent. On the nine items that apply, no specification of any arm leaves an item out under
+  either judge. From one vague sentence the released stage says something on every one.
+- Items covered by both judges, of 45 (nine items, five sets): A 29, C 30, R 35, X 38. Mean covered of nine, Opus
+  and Astra: A 6.2 and 6.2, C 6.6 and 6.8, R 7.2 and 7.0, X 8.0 and 7.8.
+- X over A net, set by set: 3, 1, 0, 1, 2. Never below zero, and above it in four sets of five. X over C: 1, 0, 0,
+  0, 3. R over A: 1, 0, 0, 1, 1. C over A: 1, 0, 0, 0, minus 1.
+- Where the released stage is thin, by item: N-2, what the admin gets back naming the rows that failed and why, is
+  covered by both judges in none of the 15 specifications of A, R and C and in 3 of X's 5. N-5, who may import at
+  all, in none of A's 5, 1 of R's, 1 of C's, 2 of X's. N-10, an empty file, a header alone and one row, in 2 of
+  A's 5, 3 of C's, 4 of R's, 4 of X's. The other six items are covered by every arm four or five times of five,
+  but for N-6 and N-7 in A and C (3 or 4).
+- Words, mean of five: A 420, C 417, R 475, X 764. Author's seconds: A 19.8, C 22.0, R 25.2, X 35.0.
+- On the thirteen items (the nine and the four both sorters called mixed), X over A net: 6, 3, minus 1, 1, 2.
+- What the authors read. The block was given whole in three sets, 71 of 81 lines in one and 30 in one. R's sentence
+  was given in four sets of five; when given, its author gave itself 54, 51, 13 and 39 of about 54 reference lines.
+  One author of twenty skimmed its instructions (A in s5), and it wrote the shortest specification (345 words) yet
+  covered as many items as A did elsewhere. Four of the six authors without the block opened the requirements
+  guide in s1 and s2, and none of the nine in s3 to s5; I have no explanation for that difference. Two of X's five
+  authors opened it as well.
+
+**What it means** (this session's reading).
+
+1. The owner's vague-request case is now measured in real runs, and the released stage does it well: every item
+   that applies is addressed every time, and about two thirds are fully settled. That was not known before today;
+   it had only been run on the bench.
+2. Putting two guide sections into the spec packet is not shown to make the specification fuller by the rule I
+   fixed. It is never worse, it settles about one and a half more items of nine on average, it is the only arm that
+   ever settles what the admin gets back, it costs about 80% more words and 75% more of the author's time, and it
+   adds no scope. That is a small gain of the kind the second review warned about (partly to covered), sitting
+   inside the released stage's own run-to-run swing (A covered 5 to 8). Five sets cannot tell it from chance.
+3. One sentence telling the author to read its whole packet does about half as much (35 of 45 against 29), for 13%
+   more words, when it is printed at all. It is the cheapest thing tried.
+4. The cue alone does nothing (30 of 45 against 29).
+5. If the owner wants fuller specifications from vague requests on this host, the evidence so far points to two
+   narrow gaps and not to a missing guide: the result returned to the caller, and who may use the change. A duty
+   that names those would be a ShipLoop change and is his to decide; nothing is proposed here.
+
+**Limits.** One sentence, one small base, one driver at one effort, five sets. Nine items, all touched by every
+arm, so only the move from partly to covered can be seen. The rule was amended once, after two sets. The judges and
+the reader do not know the arms; this session does. The machine was under load throughout, so seconds are rough.
+
+**Where it stops.** The registered step is done. Anything further is a new entry.

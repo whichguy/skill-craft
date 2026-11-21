@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__K1__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Write all records together after validation, including a final duplicate check against current state."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Reject invalid UTF-8, missing or invalid headers, malformed quoting, missing fields, blank names or malformed emails with 400.",
+   "missing": "Whether the error response identifies each failed row and gives its specific reason."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Reject a duplicate email (already present or repeated in the batch, case-insensitive) with 409."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "A configured administrator can POST UTF-8 `text/csv` to `/users/import` using the server's bearer credential.",
+   "missing": "Whether someone authorized to create a single user needs a separate grant to import."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "CSV requires one `name` and one `email` header in either order, and at least one data row.",
+   "missing": "Whether an additional, unrecognized column is accepted, ignored, or grounds for rejecting the file."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Accept quoted commas, escaped quotes, quoted multiline fields, LF or CRLF and an optional UTF-8 BOM."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Write all records together after validation, including a final duplicate check against current state.",
+   "missing": "Whether invitations or other side effects are deferred until the batch succeeds, and how to handle any already triggered when a later row fails."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Return 413 for bodies over 1 MiB."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "CSV requires one `name` and one `email` header in either order, and at least one data row."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Reject a duplicate email (already present or repeated in the batch, case-insensitive) with 409."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Assign unused IDs, return 201 with the created records and make them visible through existing GET endpoints.",
+   "missing": "Whether large uploads run in the background and how an admin learns that a background job has finished after the upload request returns."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Keep upload contents and bearer credentials out of errors and logs.",
+   "missing": "Whether the original file is retained, where and for how long, and who can download it again."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Reject a duplicate email (already present or repeated in the batch, case-insensitive) with 409.",
+   "missing": "Whether the existing single-user creation workflow must keep its current behavior."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

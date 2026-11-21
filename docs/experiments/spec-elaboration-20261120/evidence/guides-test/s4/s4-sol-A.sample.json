@@ -1,0 +1,21 @@
+{
+ "name": "s4-sol-A",
+ "set": "s4-sol",
+ "arm": "A",
+ "driver": "sol",
+ "pid": 2074,
+ "started_at": 1795301307.011029,
+ "limit_minutes": 20.0,
+ "decided_at": 1795301463.3874938,
+ "watcher": "saw the acceptance",
+ "stop_written": true,
+ "seen": {
+  "run_dir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-ac4b66/samples/s4-sol-A/.shiploop-runs/work-20261121-224846-2d8dbd/run",
+  "spec_action": "nav-3fa3ca5c44024ba7b4c8c3d3105be5b0",
+  "at": "2026-11-21T22:51:02Z",
+  "ts": 1795301462.906,
+  "spec_sha256": "e5ef0c65f2c963d27f39863cf3feae884b1315f68dcfb54f851cbeea3a577527",
+  "head": "0ed13249152b47d3b3b2fcd5daffc7c3068f4bd4"
+ },
+ "returncode": 1
+}

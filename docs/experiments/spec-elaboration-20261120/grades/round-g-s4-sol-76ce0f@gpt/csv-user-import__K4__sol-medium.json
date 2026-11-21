@@ -1,0 +1,144 @@
+{
+ "slot": "csv-user-import__K4__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Reject the entire batch on any error."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Invalid input returns 400, duplicate email returns 409, and non-CSV media returns 415. Report the CSV record's starting line for malformed rows or conflicts when available.",
+   "missing": "Whether to report every failed record and identify the particular validation rule each record failed."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "require case-insensitive email uniqueness across the entire store and upload. Assign IDs in ascending order after the existing highest ID. Invalid input returns 400, duplicate email returns 409"
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "No browser UI, user updates, roles within records, or external persistence is required.",
+   "missing": "The specification makes record roles optional. It gives no rule comparing a requested role with the importer's authority if roles are supported."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "An operator configures ADMIN_TOKEN. POST /users/import accepts the matching Authorization: Bearer credential. Missing, invalid or unconfigured credentials return 401 and leave users unchanged.",
+   "missing": "Whether permission to create a single user is granted separately from access to the import credential."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Upload raw UTF-8 text/csv with a name,email header (either order), and at least one data record."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Upload raw UTF-8 text/csv with a name,email header (either order), and at least one data record. Allow BOM, LF, CRLF, quoted fields and doubled quotes."
+  },
+  {
+   "id": "N-8",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Limit the request body to 1 MiB and data records to 1,000. Return 413 when either limit is exceeded."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Upload raw UTF-8 text/csv with a name,email header (either order), and at least one data record."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "require case-insensitive email uniqueness across the entire store and upload. Assign IDs in ascending order after the existing highest ID. Invalid input returns 400, duplicate email returns 409"
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "A successful request returns 201 with created count and the new records, in input order.",
+   "missing": "The admin receives completion in the HTTP response. There is no provision for processing a large file as a background job or learning its outcome after the request ends."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The service stores user fields, never the raw upload or credential."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Latency and availability targets follow the local dependency-free baseline with no service SLA.",
+   "missing": "A maximum processing time for the largest accepted file and a way for the admin to see progress during the import."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Existing GET behavior and seeds are preserved.",
+   "missing": "The specification preserves seeded users and defines conflicts for existing emails, but gives no preservation requirement for a manual single-user creation workflow."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

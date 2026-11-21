@@ -1,0 +1,33 @@
+{
+ "rubric_sha256": "e189dc7b9046d48fa9dc418fd8fd920d8c7b1f933d523e9875c1645ed831c27c",
+ "slots": {
+  "K1": {
+   "spec_sha256": "f65e27354a703bcc93b3cb1d396af4b2b2528053b7ce61292a0d8dc7ba812e02",
+   "grades": {
+    "opus": "5af80942e8a6d56e0f228fd48ee59720f9f3ed2efbc54678e6d02122785a669a",
+    "astra": "214d2096986812ab6299f921f1c0983b478ed51478736bd23155d6c26aeb5187"
+   }
+  },
+  "K3": {
+   "spec_sha256": "85392a6d0f0106081fc56c69ebffe360fa4f41f18a6c0cb9741c42a3a00f59e7",
+   "grades": {
+    "opus": "52bb1f6597d61595e801230673d4378dc08f476fd96e71eee955c44fc2ddf2ce",
+    "astra": "3c56b00b8aeec5082b832724f06012042e5e890c3eb3ef5eaf4ad6919a2cbc78"
+   }
+  },
+  "K4": {
+   "spec_sha256": "afeb0d50cea3c0b1ce4312baf36638e0e1d7af92e62393aaae2a9d532e85dafe",
+   "grades": {
+    "opus": "0653941238240f3dfca6f21da1f146b9fc28652b88b9d78633ec80389b955485",
+    "astra": "3bc1b2860d8bfb9c7a83c199b34ff41d4c58ba995c518f95cc6ececf017170af"
+   }
+  },
+  "K2": {
+   "spec_sha256": "126fe1f1052de8176124013c87cc964a8967989b4ee33efce9dbaa88ae530a47",
+   "grades": {
+    "opus": "93215fc50090ac0c31983e8b9a004fca04e7d982153c4c2f50060f5a8d82812c",
+    "astra": "e1a709ffa4258382aee4785be53b0bc5bd43dc8eac71ae3cda50143f3d7bcb63"
+   }
+  }
+ }
+}

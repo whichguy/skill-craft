@@ -1,0 +1,21 @@
+{
+ "name": "s5-sol-R",
+ "set": "s5-sol",
+ "arm": "R",
+ "driver": "sol",
+ "pid": 8015,
+ "started_at": 1795301477.657994,
+ "limit_minutes": 20.0,
+ "decided_at": 1795301626.069831,
+ "watcher": "saw the acceptance",
+ "stop_written": true,
+ "seen": {
+  "run_dir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-ac4b66/samples/s5-sol-R/.shiploop-runs/work-20261121-225132-d87b70/run",
+  "spec_action": "nav-7dc9e26da73e466791d4bc5462ff34cc",
+  "at": "2026-11-21T22:53:45Z",
+  "ts": 1795301625.123,
+  "spec_sha256": "afeb0d50cea3c0b1ce4312baf36638e0e1d7af92e62393aaae2a9d532e85dafe",
+  "head": "8ec21712ec6608c5281edb0cead9b33fa04a0ca6"
+ },
+ "returncode": 1
+}

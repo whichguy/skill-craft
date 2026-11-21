@@ -1,0 +1,58 @@
+guides_test.py sets --rule s3-sol,s4-sol,s5-sol ..., 2026-11-21 14:59 PST: the five sets side by side; the rule of journal section 46 over s3 to s5.
+
+set s1-sol
+  A: 501 words; covered 6/5 of 9; instructions [94, 102]; references [35, 53]; block [0, 81]; guide lines it opened none; delivered True
+  R: 571 words; covered 6/6 of 9; instructions [100, 102]; references [54, 54]; block [0, 81]; guide lines it opened {'before the spec packet': {'requirements-definition.md': 21}}; delivered True
+  C: 458 words; covered 7/7 of 9; instructions [104, 104]; references [10, 57]; block [0, 81]; guide lines it opened {'before the spec packet': {'requirements-definition.md': 21}}; delivered False
+  X: 844 words; covered 9/9 of 9; instructions [182, 187]; references [8, 55]; block [81, 81]; guide lines it opened none; delivered True
+  X over A: net 3 (higher ['N-2', 'N-6', 'N-7'], lower [])
+  X over C: net 1 (higher ['N-2'], lower [])
+  R over A: net 1 (higher ['N-6', 'N-7'], lower ['N-10'])
+  C over A: net 1 (higher ['N-6'], lower [])
+  on 13 items (the 9 and ['N-8', 'N-14', 'N-15', 'N-19']): X over A net 6; X over C net 1; R over A net 1; C over A net 2
+  capability the reader verified in one arm alone: none
+set s2-sol
+  A: 429 words; covered 8/7 of 9; instructions [102, 102]; references [19, 58]; block [0, 81]; guide lines it opened {'before the spec packet': {'requirements-definition.md': 21}}; delivered False
+  R: 508 words; covered 8/8 of 9; instructions [99, 102]; references [51, 54]; block [22, 81]; guide lines it opened {'while writing the spec': {'requirements-definition.md': 21}}; delivered True
+  C: 405 words; covered 8/8 of 9; instructions [103, 104]; references [35, 55]; block [0, 81]; guide lines it opened none; delivered True
+  X: 835 words; covered 8/8 of 9; instructions [168, 187]; references [9, 56]; block [71, 81]; guide lines it opened none; delivered False
+  X over A: net 1 (higher ['N-2'], lower [])
+  X over C: net 0 (higher ['N-2'], lower ['N-5'])
+  R over A: net 0 (higher [], lower [])
+  C over A: net 0 (higher [], lower [])
+  on 13 items (the 9 and ['N-8', 'N-14', 'N-15', 'N-19']): X over A net 3; X over C net 3; R over A net 0; C over A net -1
+  capability the reader verified in one arm alone: none
+set s3-sol  (counted in the rule)
+  A: 458 words; covered 6/7 of 9; instructions [99, 102]; references [8, 57]; block [0, 81]; guide lines it opened none; delivered True
+  R: 434 words; covered 7/7 of 9; instructions [88, 102]; references [7, 55]; block [0, 81]; guide lines it opened none; delivered False
+  C: 474 words; covered 6/7 of 9; instructions [92, 104]; references [6, 54]; block [0, 81]; guide lines it opened none; delivered True
+  X: 583 words; covered 6/7 of 9; instructions [185, 187]; references [8, 54]; block [81, 81]; guide lines it opened none; delivered True
+  X over A: net 0 (higher ['N-5'], lower ['N-6'])
+  X over C: net 0 (higher ['N-5'], lower ['N-6'])
+  R over A: net 0 (higher [], lower [])
+  C over A: net 0 (higher [], lower [])
+  on 13 items (the 9 and ['N-8', 'N-14', 'N-15', 'N-19']): X over A net -1; X over C net 0; R over A net -1; C over A net -1
+  capability the reader verified in one arm alone: none
+set s4-sol  (counted in the rule)
+  A: 367 words; covered 5/6 of 9; instructions [88, 102]; references [8, 56]; block [0, 81]; guide lines it opened none; delivered True
+  R: 486 words; covered 7/7 of 9; instructions [97, 102]; references [13, 55]; block [0, 81]; guide lines it opened none; delivered True
+  C: 328 words; covered 6/7 of 9; instructions [82, 104]; references [8, 55]; block [0, 81]; guide lines it opened none; delivered True
+  X: 630 words; covered 8/7 of 9; instructions [131, 187]; references [54, 57]; block [30, 81]; guide lines it opened none; delivered False
+  X over A: net 1 (higher ['N-6'], lower [])
+  X over C: net 0 (higher [], lower [])
+  R over A: net 1 (higher ['N-6'], lower [])
+  C over A: net 0 (higher [], lower [])
+  on 13 items (the 9 and ['N-8', 'N-14', 'N-15', 'N-19']): X over A net 1; X over C net -1; R over A net 1; C over A net 2
+  capability the reader verified in one arm alone: none
+set s5-sol  (counted in the rule)
+  A: 345 words; covered 6/6 of 9; instructions [16, 102]; references [15, 54]; block [0, 81]; guide lines it opened none; delivered False
+  R: 375 words; covered 8/7 of 9; instructions [94, 102]; references [39, 54]; block [0, 81]; guide lines it opened none; delivered True
+  C: 419 words; covered 6/5 of 9; instructions [99, 104]; references [1, 53]; block [0, 81]; guide lines it opened none; delivered True
+  X: 930 words; covered 9/8 of 9; instructions [172, 187]; references [12, 55]; block [81, 81]; guide lines it opened none; delivered True
+  X over A: net 2 (higher ['N-2', 'N-10'], lower [])
+  X over C: net 3 (higher ['N-2', 'N-7', 'N-10'], lower [])
+  R over A: net 1 (higher ['N-10'], lower [])
+  C over A: net -1 (higher [], lower ['N-7'])
+  on 13 items (the 9 and ['N-8', 'N-14', 'N-15', 'N-19']): X over A net 2; X over C net 3; R over A net 1; C over A net -1
+  capability the reader verified in one arm alone: none
+over the sets counted in the rule ['s3-sol', 's4-sol', 's5-sol']: {'X over A': 'not shown', 'X over C': 'not shown', 'R over A': 'not shown', 'C over A': 'not shown'}  (nets {'X over A': [0, None, None], 'X over C': [0, None, 3], 'R over A': [None, 1, None], 'C over A': [0, 0, None]})
