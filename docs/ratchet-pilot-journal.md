@@ -44,8 +44,10 @@ Status words: **firm** (measured, registered reading), **interim** (measured onc
 Added 02:00: the two results that were open when this was written are in section 17. The Ratchet arm on
 Grokbot-local ended after 207.7 minutes with every check of both yardsticks passing at every stage, as at its first
 build (12.3 times a bare session's time). Each build's own tests against 60 seeded faults: ShipLoop 37, the bare
-sessions 24 to 31, the Ratchet builder 23 (F22): the one measured thing ShipLoop's extra time buys. The branch is
-not merged; the owner was asked.
+sessions 24 to 31, the Ratchet builder 23 (F22): the one measured thing ShipLoop's extra time buys.
+
+Added 03:15: the branch was merged into `main` on 2026-11-21 at 03:09 with the owner's yes. Section 19 records
+the merge, completes the audit of what sessions saw, and adds a later result about the enrichment text.
 
 ## 1. The idea, in the owner's words (2026-11-20)
 
