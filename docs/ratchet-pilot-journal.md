@@ -2221,3 +2221,89 @@ session.
 Evidence: `evidence/reworded-enrichment/` (`sm-*/`, `p1S-ticket-assignment-high/` and `-medium/`,
 `sonnet-effort-specs-log.txt` and `.json`; and `spec-final.md` added to the five `p1R-*` and `p3R-*` folders, whose
 records had no final specification).
+
+## 22. Amendment 12, 2026-11-21 12:02: one question from ShipLoop's own catalog, on preserved behaviour, answered in the specification or in the plan (registered before any run)
+
+Owner, 11:39: "how much we might be able to leverage existing ShipLoop reference material in Ratchet ... If we know
+key categories or key questions that need to be considered, that might actually help give us better breadth and
+coverage (possibly even better depth) for when we elaborate the incoming prompt or we're trying to elaborate the
+spec." He also asked that this be coordinated with the session "Spec elaboration". Asked whether to start the first
+small experiment (six cells on Sonnet at medium, about 25 minutes and 9 dollars), he answered at 11:59: "Yes, start
+it".
+
+**What was found before designing anything.**
+
+- *In ShipLoop's text.* A helper listed, with quotes, every place ShipLoop tells a session what to consider; I read
+  the passages. Two lists of this kind are in text a session is handed: the intake's twelve key questions K1 to K12
+  (`skills/shiploop/scripts/shiploop_prompts.py`, `DUTIES["intake"]` item 9), each with a route (inspect, research,
+  experiment, default, person), a default and what it blocks; and the plan's fifteen concerns
+  (`skills/shiploop/scripts/shiploop_concerns.py`), each a row or "applies: no" with a reason. The reference guides
+  hold more (an audit of event families, a non-functional list).
+- *From the session "Spec elaboration"* (its journal, section 38, and its answers to five questions; its work, not
+  re-run here). Real builders do not open the guides: `references/behavioral-requirements.md` was opened in none of
+  26 Sol and none of 9 Sonnet deliveries, and in nearly all sessions of its bench, where the folder's first lines
+  point at them. K1 to K12 has run at intake in every real delivery since 2026-10-31, and on Sol its routes collapse
+  to "inspect": default and person go unused and 26 real specifications hold no open gap. Of its 89 checklist items
+  two outside sorters call 74 needed and 4 beyond the request, all four operator features; K1 to K12 has no operator
+  question. A category list must not be judged by a covered count over the specification, which it always wins.
+  It checked this amendment's reasoning before the owner saw it and corrected one sentence of mine (both long
+  specifications caught the existing-behaviour defect, not only the lens one).
+- *From this pilot.* What the short reworded specification gives up is existing behaviour: three cells on two
+  models miss the same defect, and catches that rest only on the product's own tests rise as the specification
+  shortens (F36; 0, 1, 3, 5). Clauses that restate existing behaviour almost never reject a correct product (F25),
+  while the writer's own decisions do (F26, F28). The owner told that session he wants fuller specifications. So
+  fuller should mean more existing behaviour pinned and more points raised, with nothing decided by the writer.
+
+**The ladder.** Three rungs; only the first is registered here.
+
+1. One question, K2 word for word: "Scope and preserved behaviour: what is in and out, and what existing behaviour
+   must not change?", answered in writing by the spec stage or by the plan stage, each answer a clause sourced to a
+   file, or an open point.
+2. Not registered: all twelve questions, each ending as a clause with its source, an `Open:` line, or "does not
+   apply" with a reason that can be checked; no choice clause.
+3. Not registered: the fifteen concerns as rows in the plan.
+
+**The text** (`ratchet.py`: `PRESERVE_SPEC`, `PRESERVE_PLAN`, chosen by `--preserve spec` or `--preserve plan` with
+`--enrich reworded`). Only the question is ShipLoop's. In the specification text it sits above "How to get there",
+outside the questions that text calls aids to thinking, and says the answer is written: each thing that must not
+change is a clause "stating what the product does today, with `Source: existing: <the file that shows it>`", and
+what the repository does not settle is an `Open:` line. In the plan text it asks for a sixth section, `## Preserved
+behaviour`, and for a clause at the end of the specification wherever the specification has none. With the option
+off both packets render byte for byte as before (checked against the committed script); the standing self-test
+passes for all three settings; the paragraph appears only in the prompt of the stage it is set for.
+
+**Cells.** The test-strength cell on ticket assignment (spec, plan, the correct reference laid in as the build, heavy
+test pass, `--stop-after tests`, then `grade.py strength`), each one run from the request, Claude host,
+`claude-sonnet-5-5` at medium, 6 dollars a session at most:
+
+- `q-base-1`, `q-base-2`: the reworded text as it is. With amendment 11's medium cell that makes three baseline runs.
+- `q-spec-1`, `q-spec-2`: `--preserve spec`.
+- `q-plan-1`, `q-plan-2`: `--preserve plan`.
+
+**Readings.**
+
+- **R13.1, the first reading: catches that rest only on the product's own tests.** Defects caught only through
+  clauses that are checked by running the product's test suite (`by_source.py`, `RUNS_PRODUCT_TESTS`, now counted by
+  the script; it reproduces 0, 1, 3 and 5 for the four cells on record). A placement *helps* if both of its runs
+  are below the lowest of the three baseline runs. It *does not* if either is at or above the highest. Otherwise
+  not shown.
+- **R13.2, strength.** Calibrated defects caught of 27, kept at 25 or more, and whether `update-rejects-resolved` is
+  caught, a run at a time. One defect in one run is nothing; caught in both runs of a placement and in no baseline
+  run is worth saying.
+- **R13.3, harm.** Clauses failing on the correct reference: *no harm shown* if neither run of a placement exceeds
+  the worst baseline run by more than 2. Choice clauses written stay at 2 or fewer in each.
+- **R13.4, spread.** For the three baseline runs, the range of each reading: this pilot's first measure of
+  run-to-run spread, on Sonnet at medium.
+- Reported: clauses and `existing` clauses written, clauses the plan added, items the second correct delivery fails
+  beyond the reference, minutes and cost.
+
+**Predictions.** Baseline: 25 to 27 caught, 3 to 6 resting only on the product's own tests. In the specification:
+`existing` clauses rise from 2 to between 8 and 20, the first reading falls to between 2 and 4, the missed defect is
+caught in at most one of two runs, failing clauses stay at 0 to 2. In the plan: 3 to 8 clauses added, a smaller
+effect, most likely not shown.
+
+**Limits known before the runs.** One case, two runs a placement, one model at one effort. The first reading is a
+word match. Only the question is ShipLoop's; the sentences around it are mine and were written knowing which
+defect the short specifications miss, which is why the question was taken unchanged and the sentences name no
+behaviour. Every request in this pilot is precise (180 to 280 words); nothing here reads the vague request the owner
+has in mind, for which this pilot has no instrument yet.

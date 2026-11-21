@@ -28,6 +28,9 @@ import ratchet  # the loop's own reader of a specification
 KINDS = ("request", "implied", "existing", "choice", "discovery")
 # A clause that is about the tests the request asks for, told by its statement: a rough mark, checked by reading.
 ABOUT_TESTS = re.compile(r"node:test|npm test|test suite|tests? run|test command", re.IGNORECASE)
+# A clause that is checked by running the product's own test suite, told by its statement or Observable: a rough mark.
+# A defect caught only through such clauses is caught by tests the product ships, not by tests the session wrote.
+RUNS_PRODUCT_TESTS = re.compile(r"npm test|node:test|existing tests|tests in `test/`", re.IGNORECASE)
 # A clause whose statement makes the product refuse, fail or require something, told by its words: a rough mark.
 # The list was written once, after reading the clauses, and was not adjusted after its first run.
 REFUSES = re.compile(r"\b(error|errors|invalid|refuse[sd]?|reject[s]?|prevent[s]?|must|throws?|raises?|unusable|cannot"
@@ -85,10 +88,17 @@ def read_run(folder):
             counts["failing"][group][kind] += 1
             listing.append({"id": ident, "kind": kind, "plan_added": ident in plan_added, "refuses": refuses,
                             "statement": item["statement"], "source": item["source"]})
+    suite_clauses = [ident for ident, item in items.items() if ident.startswith("C-")
+                     and RUNS_PRODUCT_TESTS.search(item["statement"] + " " + item["observable"])]
+    only_suite = sorted(name for name, row in strength.get("defects", {}).items()
+                        if row["caught"] and set(row["by"]) <= set(suite_clauses))
     request_failing = [entry["id"] for entry in listing if entry["kind"] == "request" and entry["id"].startswith("C-")]
     about_tests = [entry["id"] for entry in listing if entry["id"] in request_failing and ABOUT_TESTS.search(entry["statement"])]
     return {"case": strength["case"], "enrich": run.get("enrich", "single"), "counts": counts,
             "request_clauses_failing": request_failing, "request_clauses_about_tests": about_tests,
+            "suite_clauses": suite_clauses, "caught_only_through_suite": only_suite,
+            "caught": strength.get("caught"), "defects": len(strength.get("defects", {})),
+            "missed": sorted(name for name, row in strength.get("defects", {}).items() if not row["caught"]),
             "refusing": {side: dict(count) for side, count in refusing.items()}, "choice_clauses": choices,
             "plan_added": plan_added, "plan_added_failing": [ident for ident in plan_added if ident in failing],
             "failing_not_in_spec": [ident for ident in failing if ident not in items], "failing_items": listing}
@@ -182,6 +192,9 @@ def main():
         print(f"   the plan stage added {run['plan_added'] or 'nothing'}; of those failing: {run['plan_added_failing'] or 'none'}")
         print(f"   request-clauses-about-tests: of the request clauses failing {run['request_clauses_failing']}, "
               f"about the tests the request asks for: {run['request_clauses_about_tests'] or 'none'}")
+        print(f"   defects caught {run['caught']} of {run['defects']}; missed {run['missed'] or 'none'}; clauses that run the product's "
+              f"own tests {run['suite_clauses']}; caught only through them: {len(run['caught_only_through_suite'])} "
+              f"{run['caught_only_through_suite']}")
         if run["failing_not_in_spec"]:
             print(f"   failing ids not found in the specification: {run['failing_not_in_spec']}")
     for text, pool in pools.items():
