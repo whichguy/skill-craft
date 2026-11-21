@@ -577,3 +577,51 @@ verdicts or the specification before being accepted:
 
 **The review's verdict** is not for arm K's sentences: it is to ask the owner to authorize a trial, on built
 products, of a narrower rule in duty 4 (its text is in journal section 24). Nothing under `skills/` has changed.
+
+## A filter round for the review's wording (2026-11-21, registered before any call)
+
+The review's proposed text has never been run. A trial of it on built products as the review describes one is 36
+full deliveries. Before the owner is asked to authorize that, two rounds on this instrument ask a cheaper question:
+does that text change what the stage writes at all? Its fifth sentence ("If the basis for such a default is
+missing, keep the bound open under its R-<n>") is the way out that arm M and the earlier block both offered, and
+both moved nothing on Sol.
+
+**Arms.** `G-shiploop-spec-duty4-bounds` is `arms/P-shiploop-spec.md` with duty 4's sentence "Mark each unresolved
+prerequisite or user decision as an open gap under its R-<n> in KNOWLEDGE/spec.md." replaced by the review's seven
+sentences, word for word (`arms/G-shiploop-spec-duty4-bounds.insert.txt`; nothing is added to duty 2; the arm is
+derived by script and checked to differ from P by that sentence only). `H-shiploop-spec-duty4-no-open` is G
+without its fifth sentence: a contrast, to say why G does what it does. H is not a candidate and cannot be
+proposed from these rounds.
+
+**A second sort, before any subject call** (`label.py label-limits`). The review's point is that a limit the
+behaviour cannot work without and a limit that need not exist are different things, and the target set mixed
+them. The same two sorters (claude-opus-5-5 and gpt-6.2-astra, high, shown the requests and the items and nothing
+else) label each of the target's 15 limit items `necessary` ("the requested behaviour cannot work correctly or
+safely without it", the review's words), `optional` or `unclear`. N1 is the items both call necessary; O1 the
+items both call optional.
+
+**Bands** (`label.py bands --upto=round-8 --sets=N1,O1,X2,X3,all --out=bands-2.json`): the largest move between two
+draws of one arm on one driver among every clean repeat pair through round 8, which now includes four draws of P
+a driver and two each of M and K; never less than 2.
+
+**Rounds 9 and 10** run G, H and P on both drivers over the four cases: 48 sessions, with the pre-flight before
+and the scan after, read by both judges (`queue-7.sh`).
+
+**Readings**, per driver, each cue arm against the P of its own round, by the tests registered for R16:
+
+- **R20, limits that must exist (N1).** Shown, interim or nothing shown.
+- **R21, limits that need not exist (O1).** A "shown" here counts against the arm. And the twelve waitlist
+  specifications are read for two things, with the passage quoted: a maximum size for the waitlist, and a cutoff
+  before class that the specification sets itself. Arm K did the first in three of four.
+- **R22, the other needed items (X2).** The net, as before, and item by item both ways.
+- **R23, capability not asked for (X3).** As R18, and every K-style control found by reading is named.
+- **Size.** Words of judged input, requirements, output tokens.
+
+**What it decides.** This is a filter and its result stands as read; there is no extension round. The review's
+text is put to the owner for a trial on built products only if R20 is shown for G on a driver, no harm reading
+fails, and no G specification gives the waitlist a cap. Otherwise the owner is told that the careful wording does
+not move the stage on this instrument, with H's result as the reason or not, and no trial is recommended on this
+evidence. Nothing under `skills/` changes either way.
+
+**Predictions, written before the sort and before any subject call:** G moves Sol's N1 by less than 2; no G
+specification caps the waitlist; H moves Sol's N1 by 3 or more; at most one H specification caps the waitlist.

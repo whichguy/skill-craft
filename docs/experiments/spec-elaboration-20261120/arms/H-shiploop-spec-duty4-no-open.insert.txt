@@ -1,0 +1,15 @@
+arms/H-shiploop-spec-duty4-no-open.md is arms/G-shiploop-spec-duty4-bounds.md without its fifth sentence ("If the
+basis for such a default is missing, keep the bound open under its R-<n>."). Nothing else differs. It is a contrast
+arm, to say why G does what it does; it is not a candidate and is not the review's text:
+
+   Mark unresolved prerequisites and decisions that require the user as open gaps under their R-<n> in
+   KNOWLEDGE/spec.md.
+   Use applicable bounds from the request or preserved contract.
+   Introduce a functional limit the request leaves unstated only where the requested behaviour cannot work
+   correctly or safely without it.
+   When only its value is open, take the best reversible default supported by the available evidence and applicable
+   runtime limits (item 10).
+   State the observable behaviour at and beyond the effective bound and label any chosen value as a default in its
+   acceptance line.
+   Record that value, its basis, alternatives and revalidation condition as an assumption for that R-<n> in
+   `summary`.

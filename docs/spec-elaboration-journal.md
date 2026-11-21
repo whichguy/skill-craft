@@ -1781,3 +1781,31 @@ block both offered, and on Sol both moved nothing. With no repository and no res
 nearly every time. Prediction: on this instrument the review's text behaves like M on Sol (under 2 of the target)
 and does not add a waitlist cap on either driver. If so, a 36-delivery trial of it would be testing a sentence
 that changes little.
+
+## 25. A filter round for the review's wording, registered before any call (06:05, 2026-11-21)
+
+Decision, routine (launching a verification run on the experiment's own instrument; nothing ShipLoop does
+changes): before the owner is asked to authorize 36 deliveries for the review's text, two rounds here ask whether
+that text changes what the stage writes at all. About 80 minutes and about what rounds 7 and 8 cost.
+
+Why it is worth asking first. Section 24's last paragraph: the review's fifth sentence gives back the way out that
+arm M offered. If the text behaves like M, a trial on built products would be measuring a sentence that changes
+little, and the honest answer to the owner's to-do is "no change" without the trial. If it keeps K's gain on the
+limits that have to exist and drops the cap on the waitlist, the trial has something to test.
+
+What is registered (README, "A filter round for the review's wording"):
+
+- Arm G: the released stage with one sentence of duty 4 replaced by the review's seven, word for word. Arm H: G
+  without its fifth sentence, as a contrast and not a candidate. P as the control of each round.
+- A second sort by the same two outside sorters, before any subject call: each of the target's 15 limit items is
+  `necessary`, `optional` or `unclear`, by the review's own test ("cannot work correctly or safely without
+  it"). N1 and O1 are what both sorters agree on. I sort nothing.
+- Bands from every clean repeat pair through round 8, which is more pairs than the four behind rounds 7 and 8 and
+  includes K's and M's own two draws.
+- R20 on N1; R21 on O1 with the twelve waitlist specifications read for a cap and for a self-set cutoff; R22 the
+  other needed items, net and item by item both ways, as the review asked; R23 the capability items with any
+  added control named.
+- It is a filter: no extension round, and H cannot be proposed from it.
+
+Predictions, on record before the sort: G moves Sol's N1 by less than 2; no G specification caps the waitlist; H
+moves Sol's N1 by 3 or more; at most one H specification caps the waitlist.

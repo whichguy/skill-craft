@@ -16,6 +16,9 @@ to every arm and every verdict; only the items both sort the same way are used. 
     python3 -I label.py gains ROUND --arm=A --control=P [--control-round=R] [--categories=a,b] [--set=X3]   item by item
     python3 -I label.py pair --rounds=R1,R2 --arm=A --control=P     the registered readings R16 to R19
     python3 -I label.py stable --rounds=R1,R2 --arm=A --control=P [--set=X1]   items A settles in every round and P in none
+    python3 -I label.py label-limits --judge=opus|astra   sort the target's limit items: must the limit exist at all?
+                                                          -> labels/limits-<judge>.json, and the sets N1 and O1
+    (bands takes --sets=N1,O1,... and --out=FILE; pair takes --target=SET and --bands=FILE)
 
 Run from anywhere. Needs grade.py beside it.
 """
@@ -77,6 +80,87 @@ Write `verdict.json` in your working directory, and nothing else:
 {"labels": [{"case": "<case id>", "id": "<item id>", "kind": "set|limit|both|neither", "scope": "needed|beyond|mixed", "why": "<one line>"}, ...]}
 One entry for every item of every case, in the order given.
 """
+
+
+LIMIT_NEEDS = ("necessary", "optional", "unclear")
+LIMIT_PROMPT = """You are sorting the items of a fixed checklist. You judge; you change nothing but the one file named at the end.
+
+`items.json` in your working directory holds one-sentence requests for software and, under each, a list of items.
+Each item asks a written specification for that request to state a limit (a bound, cap, size, rate, time or count)
+and what happens at it. You are shown no specification and need none.
+
+Give every item one label, `need`: must such a limit exist at all?
+- "necessary": the requested behaviour cannot work correctly or safely without it. Any correct implementation is
+  bounded here by something (a platform, a resource, the safety of the operation), so a specification has to say
+  what the limit is or how it is set.
+- "optional": the requested behaviour works correctly and safely without it. A correct product could have no such
+  limit, so a specification may rightly say there is none; imposing one is a product decision the request did not
+  ask for.
+- "unclear": the request does not let you tell.
+
+Judge each item against its own request only. Do not ask whether the limit would be sensible to have: ask whether
+the requested behaviour can be correct and safe with none.
+
+Write `verdict.json` in your working directory, and nothing else:
+{"labels": [{"case": "<case id>", "id": "<item id>", "need": "necessary|optional|unclear", "why": "<one line>"}, ...]}
+One entry for every item of every case, in the order given.
+"""
+
+
+def limit_items():
+    """The target's limit items: both sorters called them a limit, or both a set and a limit."""
+    a, b = load_labels("opus"), load_labels("astra")
+    return [(k, n) for k, n in items() if a[k]["kind"] in ("limit", "both") and b[k]["kind"] in ("limit", "both")
+            and not (a[k]["scope"] == b[k]["scope"] == "beyond")]
+
+
+def cmd_label_limits(flags):
+    name = flags.get("judge", "opus")
+    judge = grade.JUDGES[name]
+    out = LABELS / f"limits-{name}.json"
+    if out.is_file():
+        print("SKIP", out.name, "exists")
+        return
+    wanted = [k for k, _ in limit_items()]
+    by_case = defaultdict(list)
+    for (case, nid), n in limit_items():
+        by_case[case].append({"id": nid, "nuance": n["nuance"]})
+    cwd = grade.WORK / "labels" / f"limits-{name}-{uuid.uuid4().hex[:6]}"
+    cwd.mkdir(parents=True)
+    (cwd / "items.json").write_text(json.dumps(
+        [{"case": c["id"], "request": c["request"], "items": by_case[c["id"]]} for c in grade.cases().values()
+         if by_case[c["id"]]], indent=1) + "\n")
+    rc, cost = grade.run_session(LIMIT_PROMPT, cwd, judge, int(flags.get("timeout", 1800)))
+    labels, problem = grade.read_verdict(cwd, "labels")
+    if rc != 0 or labels is None:
+        raise SystemExit(f"FAIL label-limits {name}: rc={rc} {problem or ''}  (session folder {cwd})")
+    seen = {}
+    for entry in labels:
+        if isinstance(entry, dict) and "case" in entry and "id" in entry:
+            entry["need"] = str(entry.get("need") or "").strip().lower()
+            seen[(entry["case"], entry["id"])] = entry
+    missing = [list(k) for k in wanted if k not in seen]
+    odd = [list(k) for k in wanted if k in seen and seen[k]["need"] not in LIMIT_NEEDS]
+    out.write_text(json.dumps({
+        "judge": judge["model"], "judge_effort": judge["effort"], "cost_usd": cost,
+        "prompt_sha256": hashlib.sha256(LIMIT_PROMPT.encode()).hexdigest(),
+        "missing": missing, "unknown_labels": odd, "labels": [seen[k] for k in wanted if k in seen]}, indent=1) + "\n")
+    print(f"DONE label-limits {name}: {len(seen)} of {len(wanted)} items, missing={len(missing)} unknown={len(odd)}",
+          dict(Counter(seen[k]["need"] for k in wanted if k in seen)))
+    if missing or odd:
+        raise SystemExit("the labels are incomplete: remove the file and sort again")
+
+
+def limit_sets():
+    """N1 and O1 from the two sorters' limit labels, or {} until both exist."""
+    files = [LABELS / "limits-opus.json", LABELS / "limits-astra.json"]
+    if not all(f.is_file() for f in files):
+        return {}
+    a, b = ({(e["case"], e["id"]): e for e in json.loads(f.read_text())["labels"]} for f in files)
+    keys = [k for k, _ in limit_items()]
+    return {"N1": [k for k in keys if a[k]["need"] == b[k]["need"] == "necessary"],
+            "O1": [k for k in keys if a[k]["need"] == b[k]["need"] == "optional"],
+            "_labels": (a, b)}
 
 
 def items():
@@ -144,6 +228,7 @@ def build_sets():
         "X1": [k for k in target if k not in beyond],             # R16: set-or-limit items not agreed beyond
         "X2": [k for k in needed if k not in target],             # R17: the other needed items
         "X3": beyond,                                              # R18: agreed beyond
+        **{name: keys for name, keys in limit_sets().items() if not name.startswith("_")},   # N1, O1 once sorted
     }, a, b
 
 
@@ -222,13 +307,14 @@ def repeat_pairs():
 
 
 def cmd_bands(flags):
-    if (LABELS / "bands.json").is_file() and not flags.get("force"):
-        raise SystemExit("labels/bands.json exists: the bands are fixed before the paired rounds and are not recomputed")
+    out = LABELS / flags.get("out", "bands.json")
+    if out.is_file() and not flags.get("force"):
+        raise SystemExit(f"labels/{out.name} exists: the bands are fixed before the paired rounds and are not recomputed")
     sets, _, _ = build_sets()
     upto = flags.get("upto")  # only pairs from rounds before the paired check: fixed when registered
     pairs = [p for p in repeat_pairs() if not upto or (p[2] <= upto and p[3] <= upto)]
     lines, bands = [f"repeat pairs (same arm, same driver, two rounds, clean sessions, registered judge): {len(pairs)}"], {}
-    for name in ("X1", "X2", "X3", "all"):
+    for name in flags.get("sets", "X1,X2,X3,all").split(","):
         moves = []
         for arm, driver, r1, r2 in pairs:
             d = covered(verdict_states(r2, None, arm, driver), sets[name]) - covered(verdict_states(r1, None, arm, driver), sets[name])
@@ -239,8 +325,8 @@ def cmd_bands(flags):
             f"{m[5]:+d} ({m[1].split('-')[0]} {m[2].split('-')[0]} {m[3][6:]}>{m[4][6:]})" for m in moves)
             + f"  -> band {bands[name]}")
     print("\n".join(lines))
-    (LABELS / "bands.json").write_text(json.dumps({"pairs": [list(p) for p in pairs], "bands": bands}, indent=1) + "\n")
-    (LABELS / "bands.txt").write_text("\n".join(lines) + "\n")
+    out.write_text(json.dumps({"pairs": [list(p) for p in pairs], "bands": bands}, indent=1) + "\n")
+    out.with_suffix(".txt").write_text("\n".join(lines) + "\n")
 
 
 def stable_shortfalls():
@@ -393,8 +479,14 @@ def status(deltas, band):
 
 def cmd_pair(flags):
     sets, _, _ = build_sets()
-    bands = json.loads((LABELS / "bands.json").read_text())["bands"]
+    bands = json.loads((LABELS / flags.get("bands", "bands.json")).read_text())["bands"]
     rounds, arm, control = flags["rounds"].split(","), flags["arm"], flags.get("control", RELEASED)
+    target = flags.get("target", "X1")
+    readings = [(target, "the target: " + ("set-or-limit items" if target == "X1" else "limits that must exist")),
+                ("X2", "the other needed items"), ("X3", "capability not asked for")]
+    if target != "X1" and "O1" in sets:
+        readings.append(("O1", "limits that need not exist"))
+    readings.append(("all", "the whole checklist"))
     short = stable_shortfalls()
     lines = [f"{arm} against {control}, same-round pairs in {', '.join(rounds)}",
              f"bands (the largest move between two draws of one arm, fixed before these rounds): {bands}", ""]
@@ -406,8 +498,7 @@ def cmd_pair(flags):
             lines.append("   not every round is graded by both judges yet")
             continue
         verdict[driver] = {}
-        for name, reading in (("X1", "R16 set-or-limit items"), ("X2", "R17 the other needed items"),
-                              ("X3", "R18 capability not asked for"), ("all", "the whole checklist")):
+        for name, reading in readings:
             deltas, shown = {}, []
             for j in JUDGE_TAGS:
                 per = [(covered(states[(j, r, arm)], sets[name]), covered(states[(j, r, control)], sets[name])) for r in rounds]
@@ -417,6 +508,14 @@ def cmd_pair(flags):
             verdict[driver][name] = status(deltas, bands[name])
             lines.append(f"   {reading} ({len(sets[name])} items, band {bands[name]}): " + "; ".join(shown)
                          + f"  => {verdict[driver][name]}")
+            if name == "X2":
+                for j in JUDGE_TAGS:
+                    lost = sum(1 for r in rounds for k in sets[name] if states[(j, r, control)][k]["state"] == "covered"
+                               and states[(j, r, arm)][k]["state"] != "covered")
+                    won = sum(1 for r in rounds for k in sets[name] if states[(j, r, arm)][k]["state"] == "covered"
+                              and states[(j, r, control)][k]["state"] != "covered")
+                    lines.append(f"      item by item, {j}: {arm.split('-')[0]} covers {won} item-cells {control.split('-')[0]} does not, "
+                                 f"and fails to cover {lost} that {control.split('-')[0]} does")
         keys = short[driver]
         lines.append(f"   R19 the {len(keys)} items the released stage covered in neither earlier draw: " + "; ".join(
             f"{j}: " + ", ".join(f"{covered(states[(j, r, arm)], keys)} vs {covered(states[(j, r, control)], keys)}" for r in rounds)
@@ -428,15 +527,16 @@ def cmd_pair(flags):
                          + (f"  mean ratio {sum(ratios) / len(ratios):.2f}" if ratios else ""))
         lines.append("")
     if len(verdict) == 2:
-        r16 = [verdict[d]["X1"] for d in verdict]
-        harm = [d for d in verdict if verdict[d]["X2"] == "worse" or verdict[d]["X3"] == "shown" or verdict[d]["X1"] == "worse"]
+        r16 = [verdict[d][target] for d in verdict]
+        harm = [d for d in verdict if verdict[d]["X2"] == "worse" or verdict[d]["X3"] == "shown" or verdict[d][target] == "worse"
+                or verdict[d].get("O1") == "shown"]
         if "shown" in r16 and not harm:
-            lines.append("DECISION RULE: R16 is shown on a driver and no harm reading fails -> the cue is put to the owner.")
+            lines.append("DECISION RULE: the target is shown on a driver and no harm reading fails -> it goes forward.")
         elif "interim" in r16 and not harm and len(rounds) < 3:
-            lines.append("DECISION RULE: R16 is interim on a driver and no harm reading fails -> one more paired round, then the result stands.")
+            lines.append("DECISION RULE: the target is interim on a driver and no harm reading fails -> one more paired round, then the result stands.")
         else:
-            lines.append("DECISION RULE: R16 is not shown" + (f", and a harm reading fails on {', '.join(harm)}" if harm else "")
-                         + " -> no change is proposed.")
+            lines.append("DECISION RULE: the target is not shown" + (f", and a harm reading fails on {', '.join(harm)}" if harm else "")
+                         + " -> it does not go forward.")
     text = "\n".join(lines)
     print(text)
     if flags.get("out"):
@@ -449,7 +549,7 @@ def main():
         print(__doc__)
         raise SystemExit(2)
     simple = {"label": cmd_label, "sets": cmd_sets, "bands": cmd_bands, "shortfalls": cmd_shortfalls, "pair": cmd_pair,
-              "stable": cmd_stable}
+              "stable": cmd_stable, "label-limits": cmd_label_limits}
     if args[0] in simple:
         simple[args[0]](flags)
     elif args[0] in ("split", "gains") and len(args) > 1:
