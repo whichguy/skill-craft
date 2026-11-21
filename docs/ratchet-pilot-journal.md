@@ -1328,8 +1328,8 @@ pilot has measured was written under an unconditional operator line. Nothing in 
 superseded sentence. (2) Read item by item, the lens arms' gain on that experiment's operator items was an
 operator-controls requirement added to specifications written without a repository, and two outside sorters labelled
 four of its 89 items, all of them operator controls, capability nobody asked for; here such requirements would be
-among the clauses that fail on a correct product. (3) Its rounds 7 and 8 test two short cues in ShipLoop's released spec stage, one that leaves a limit open
-and one that takes a default; it will send the result.
+among the clauses that fail on a correct product. (3) Its rounds 7 and 8 test two short cues in ShipLoop's released
+spec stage, one that leaves a limit open and one that takes a default; it will send the result.
 
 **The count** (`by_source.py`, new: it reads each run's specification with the loop's own reader and the run's
 `strength.json`, and counts clauses by the first word of their Source line).
@@ -1409,3 +1409,69 @@ started at 03:22:49 from commit 43d5486168448f221763d9413f7ea02878f6d237 (`run.j
 
 Evidence: `by_source.py`; `evidence/lens-enrichment/failing-by-source.json` (every failing item with its Source
 line), `failing-by-source-log.txt` (the tables), `operator-items-read-by-hand.txt`.
+
+### Received: the other session's rounds 7 and 8, and what these records hold for its open question (2026-11-21 05:42)
+
+Status: what was received is recorded as received (its work, its instruments; I re-ran nothing of it). The count
+below is firm for these six runs as a count and rough as a mark (a word match); the hand reading is exploratory.
+No model ran. No registered reading changes.
+
+**Received at 05:36.** The session "Spec elaboration" ran two two-sentence cues inside ShipLoop's released spec
+stage (its journal, section 22, read here at commit 0d46d085479bf43e02cf964ee86917cc5b44dcb0, on its local main
+and not on origin when read; 48 sessions, Sonnet high and Sol 6.2 medium, four requests with no repository, two
+judges, a covered count on 22 items). The cue that records an unresolved bound as an open gap moved nothing (+0.5
+and 0.0 on Sonnet, +0.5 and +1.0 on Sol). The cue that takes "a limit the request leaves to choice as the best
+default, recorded as an assumption" is shown on both drivers under both judges (+3.0 and +3.0 on Sonnet, +5.5 and
++6.5 on Sol), with nothing else lost and no capability added on the four items its sorters call beyond the request.
+Read item by item by that session, the 20 gains are: 12 a default for a limit the released stage also says exists
+and leaves without a value (a file's size and row limits, an input's maximum length, a reply timeout); 3 a cap on a
+waitlist the request never mentioned (10, 10 and 20, where the released stage wrote "Assumed none"); 2 platform
+limits given their numbers; 1 a set named; 2 no difference. The defaults differ between draws (1 MiB and 1,000
+rows; 2 MiB and 5,000; 256 KiB and 500). Its standing there: the default cue goes to a Sol review at maximum effort
+and then to the owner, as evidence that the stage's two instructions are resolved differently by the two drivers,
+"not evidence that the defaults are right". Its section cites F24 and F26 as the only built-product evidence, and
+asks its review how to word the sentence "so that it covers a limit the requested behaviour cannot work without and
+not a limit that need not exist". It added that this pilot's instrument could tell those two kinds apart.
+
+**What these records hold on that.**
+
+- *Few bounds, and the ones chosen sit behind a chosen name.* The three requests here state their own limits (64
+  characters; 4, 24, 72 and 168 hours; the meter's 10,000 ticks), so the writers chose few. Where a writer chose no
+  further limit, or the unit the product already uses, the clause passes on the reference: 5 of 5. Where it chose a
+  range for the hours setting it fails: 3 of 3. But those three fail through the setting's name. Both specifications
+  chose one variable a priority (`DUE_HOURS_URGENT` and three more: lens C-6, the pilot's C-7) and their tests set
+  those; the correct reference reads one `RESPONSE_HOURS` setting. Every test that changes the hours fails on it,
+  the test of the request's own clause included (lens C-5, the pilot's C-6). So these records cannot say a chosen
+  bound is wrong. They say that a thing which had to be decided, a setting needs a name, was decided differently by
+  two correct products (`evidence/lens-enrichment/choices-read-by-hand.txt`).
+- **F28 (firm as a count, rough as a mark).** What rejects a correct product is a refusal the writer added. Clauses
+  whose statement makes the product refuse, fail or require something (a fixed word list in `by_source.py`,
+  written once and not adjusted after its first run), both texts pooled:
+
+  | Source of the clause | Refuses or requires: written | failing on the correct reference | The rest of its kind: written | failing |
+  |---|---|---|---|---|
+  | `choice` | 27 | 18 (67%) | 74 | 20 (27%) |
+  | `implied` | 19 | 10 (53%) | 137 | 25 (18%) |
+  | `request` | 20 | 2 (10%) | 125 | 20 (16%) |
+  | `existing` | 85 | 1 (1%) | 438 | 10 (2%) |
+
+  A refusal the writer added on its own (`choice` or `implied`) rejects a correct product 28 times in 46; its other
+  additions 45 times in 211; a refusal the request states or the product already has, 3 times in 105. Each text
+  alone shows the same split (choices: 9 of 14 against 12 of 39 with the lens text, 9 of 13 against 8 of 35 with the
+  pilot's). My own labels of the 101 choices, made knowing the outcomes, give 65% against 28% and 67% against 21%.
+  This is amendment 2's "loosest choice" seen from the other side: the choices that pass are the ones that add no
+  refusal ("named fields can appear in any order", "no safe-integer ceiling", "the existing convention").
+- *What it says to the other session's question, and what it cannot.* A cap on a waitlist and a maximum size for a
+  file are both refusals the request did not state, so this mark does not separate its two kinds. What it supports
+  is narrower: an added refusal is where two correct products most often part ways, whatever its reason; and a
+  default that must exist (a name here, a size there) is still decided differently by different writers, as its own
+  three draws of the file limits show. Whether a given added refusal is *wanted* is not something "fails on the
+  reference" can tell. The held-out checks, written from the request alone, can: in this pilot they failed for one
+  added refusal (refuse to start on a file without due times, F20 and F24) and for no chosen name.
+- *Bearing on the reworded text.* In this pilot an `Open:` point is handled as the default cue's rule without the
+  test: the build takes a reasonable answer and reports it, and no test pins it. A run of that text would show
+  whether leaving the writer's added refusals unpinned costs caught defects (the 36 or 37 of 37) or only the
+  rejections.
+
+Evidence: `by_source.py` (the `REFUSES` word list); `evidence/lens-enrichment/failing-by-source.json`
+(`choice_clauses`, `refusing`), `failing-by-source-log.txt`, `choices-read-by-hand.txt`.

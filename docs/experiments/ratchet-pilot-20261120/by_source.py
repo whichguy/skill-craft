@@ -5,8 +5,9 @@ usage: by_source.py OUT_JSON TEXT:NAME=RUN_DIR...
 A run here is a test-strength cell that `grade.py strength` has graded: RUN_DIR holds work/ratchet/spec.md, run.json
 and strength.json. TEXT names the enrichment text the run used, so runs of one text are pooled. For every run and
 every text it counts, over the clauses written and over the clauses that fail on the reference, how many carry each
-kind of Source (request, implied, existing, choice, discovery), how many the plan stage added, and lists each
-failing item so it can be read. It reads and never writes inside a run folder. Standard library only.
+kind of Source (request, implied, existing, choice, discovery), how many the plan stage added, and how many of each
+kind make the product refuse or require something (a word match on the statement); it lists each failing item and
+each choice clause so they can be read. It reads and never writes inside a run folder. Standard library only.
 """
 import json
 import re
@@ -20,6 +21,10 @@ import ratchet  # the loop's own reader of a specification
 KINDS = ("request", "implied", "existing", "choice", "discovery")
 # A clause that is about the tests the request asks for, told by its statement: a rough mark, checked by reading.
 ABOUT_TESTS = re.compile(r"node:test|npm test|test suite|tests? run|test command", re.IGNORECASE)
+# A clause whose statement makes the product refuse, fail or require something, told by its words: a rough mark.
+# The list was written once, after reading the clauses, and was not adjusted after its first run.
+REFUSES = re.compile(r"\b(error|errors|invalid|refuse[sd]?|reject[s]?|prevent[s]?|must|throws?|raises?|unusable|cannot"
+                     r"|fails?|exclude[s]?)\b", re.IGNORECASE)
 
 
 def kind_of(source):
@@ -56,19 +61,28 @@ def read_run(folder):
     plan_added = [ident for cycle in run.get("cycles", []) for ident in cycle.get("plan_added") or []]
     counts = {"written": {"clauses": Counter(), "use_cases": Counter()},
               "failing": {"clauses": Counter(), "use_cases": Counter()}}
-    listing = []
+    listing, choices = [], []
+    refusing = {"written": Counter(), "failing": Counter()}  # clauses only, by kind, where the statement refuses
     for ident, item in items.items():
         group = "clauses" if ident.startswith("C-") else "use_cases"
         kind = kind_of(item["source"])
         counts["written"][group][kind] += 1
+        refuses = group == "clauses" and bool(REFUSES.search(item["statement"]))
+        if refuses:
+            refusing["written"][kind] += 1
+            refusing["failing"][kind] += ident in failing
+        if group == "clauses" and kind == "choice":
+            choices.append({"id": ident, "failing": ident in failing, "refuses": refuses,
+                            "statement": item["statement"], "source": item["source"]})
         if ident in failing:
             counts["failing"][group][kind] += 1
-            listing.append({"id": ident, "kind": kind, "plan_added": ident in plan_added,
+            listing.append({"id": ident, "kind": kind, "plan_added": ident in plan_added, "refuses": refuses,
                             "statement": item["statement"], "source": item["source"]})
     request_failing = [entry["id"] for entry in listing if entry["kind"] == "request" and entry["id"].startswith("C-")]
     about_tests = [entry["id"] for entry in listing if entry["id"] in request_failing and ABOUT_TESTS.search(entry["statement"])]
     return {"case": strength["case"], "enrich": run.get("enrich", "single"), "counts": counts,
             "request_clauses_failing": request_failing, "request_clauses_about_tests": about_tests,
+            "refusing": {side: dict(count) for side, count in refusing.items()}, "choice_clauses": choices,
             "plan_added": plan_added, "plan_added_failing": [ident for ident in plan_added if ident in failing],
             "failing_not_in_spec": [ident for ident in failing if ident not in items], "failing_items": listing}
 
@@ -86,13 +100,16 @@ def main():
         result["runs"][label] = run
         pool = pools.setdefault(text, {"written": {"clauses": Counter(), "use_cases": Counter()},
                                        "failing": {"clauses": Counter(), "use_cases": Counter()},
-                                       "plan_added": 0, "plan_added_failing": 0, "about_tests": 0, "runs": []})
+                                       "plan_added": 0, "plan_added_failing": 0, "about_tests": 0, "runs": [],
+                                       "refusing": {"written": Counter(), "failing": Counter()}})
         for side in ("written", "failing"):
             for group in ("clauses", "use_cases"):
                 pool[side][group].update(run["counts"][side][group])
         pool["plan_added"] += len(run["plan_added"])
         pool["plan_added_failing"] += len(run["plan_added_failing"])
         pool["about_tests"] += len(run["request_clauses_about_tests"])
+        for side in ("written", "failing"):
+            pool["refusing"][side].update(run["refusing"][side])
         pool["runs"].append(label)
         written, failing = run["counts"]["written"], run["counts"]["failing"]
         print(f"== {label} ({run['case']}; run.json says enrich={run['enrich']}): "
@@ -110,9 +127,18 @@ def main():
         print("\n".join(table(pool["written"]["clauses"], pool["failing"]["clauses"])))
         print(f"   clauses the plan stage added: {pool['plan_added']}, failing on the reference: {pool['plan_added_failing']}")
         print(f"   request clauses failing that are about the tests the request asks for: {pool['about_tests']}")
+        print("   clauses whose statement makes the product refuse or require something, against the rest of their kind:")
+        for kind in KINDS:
+            total, bad = pool["written"]["clauses"].get(kind, 0), pool["failing"]["clauses"].get(kind, 0)
+            if not total:
+                continue
+            hard, hard_bad = pool["refusing"]["written"].get(kind, 0), pool["refusing"]["failing"].get(kind, 0)
+            print(f"      {kind:10s} refuses: written {hard:3d}, failing {hard_bad:3d} ({share(hard_bad, hard)});   "
+                  f"rest: written {total - hard:3d}, failing {bad - hard_bad:3d} ({share(bad - hard_bad, total - hard)})")
         result["pooled"][text] = {"runs": pool["runs"], "plan_added": pool["plan_added"],
                                   "plan_added_failing": pool["plan_added_failing"],
                                   "request_clauses_about_tests": pool["about_tests"],
+                                  "refusing": {side: dict(count) for side, count in pool["refusing"].items()},
                                   "written": {group: dict(count) for group, count in pool["written"].items()},
                                   "failing": {group: dict(count) for group, count in pool["failing"].items()}}
     for run in result["runs"].values():

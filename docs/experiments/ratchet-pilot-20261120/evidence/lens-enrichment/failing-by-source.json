@@ -37,6 +37,162 @@
     "C-79",
     "C-80"
    ],
+   "refusing": {
+    "written": {
+     "request": 6,
+     "choice": 6,
+     "implied": 2,
+     "existing": 4
+    },
+    "failing": {
+     "request": 0,
+     "choice": 5,
+     "implied": 0,
+     "existing": 0
+    }
+   },
+   "choice_clauses": [
+    {
+     "id": "C-6",
+     "failing": true,
+     "refuses": false,
+     "statement": "Physical line breaks also include CRLF, bare CR, U+2028, and U+2029",
+     "source": "choice: use the ECMAScript line-terminator set, with CRLF counted as one break, to accept text from different environments"
+    },
+    {
+     "id": "C-14",
+     "failing": false,
+     "refuses": false,
+     "statement": "The first equals sign separates the key from the full field value",
+     "source": "choice: keep the entire value available to its field's validation so a suffix cannot be discarded silently"
+    },
+    {
+     "id": "C-15",
+     "failing": false,
+     "refuses": false,
+     "statement": "Leading, repeated, or trailing semicolons introduce an empty field",
+     "source": "choice: interpret the delimiter as a separator so blank field fragments receive the same error as other fields without an equals sign"
+    },
+    {
+     "id": "C-17",
+     "failing": false,
+     "refuses": false,
+     "statement": "Trimming and judging blank lines use the same whitespace definition",
+     "source": "choice: use Node.js string whitespace semantics consistently for values and blanks"
+    },
+    {
+     "id": "C-18",
+     "failing": false,
+     "refuses": false,
+     "statement": "Surrounding whitespace on a field key is accepted",
+     "source": "choice: accept harmless spacing around the key\u2013value separator"
+    },
+    {
+     "id": "C-19",
+     "failing": false,
+     "refuses": false,
+     "statement": "Field names use the listed case-sensitive spellings",
+     "source": "choice: use the five spellings given for the input schema, with case normalization reserved for status values"
+    },
+    {
+     "id": "C-20",
+     "failing": false,
+     "refuses": false,
+     "statement": "Named fields can appear in any order",
+     "source": "choice: the keys identify fields without imposing a position on callers"
+    },
+    {
+     "id": "C-21",
+     "failing": true,
+     "refuses": true,
+     "statement": "Omitting any expected key makes a record a syntax error",
+     "source": "choice: treat the listed keys as the record schema so absent fields and present empty values remain distinguishable"
+    },
+    {
+     "id": "C-22",
+     "failing": true,
+     "refuses": true,
+     "statement": "A field outside the expected schema makes a record a syntax error",
+     "source": "choice: surface misspellings and unsupported data instead of silently dropping a submitted field"
+    },
+    {
+     "id": "C-23",
+     "failing": true,
+     "refuses": true,
+     "statement": "Repeating any key within one record makes that record a syntax error",
+     "source": "choice: reject ambiguous record definitions without picking a field by position"
+    },
+    {
+     "id": "C-26",
+     "failing": false,
+     "refuses": false,
+     "statement": "Numeric field text uses full-string ECMAScript Number conversion for nonempty values",
+     "source": "choice: accept numeric spellings the runtime can read in full without a special decimal spelling requirement or silent acceptance of a numeric prefix"
+    },
+    {
+     "id": "C-27",
+     "failing": true,
+     "refuses": true,
+     "statement": "An ID without a finite numeric value throws SyntaxError",
+     "source": "choice: the request requires a numeric ID and assigns range errors specifically to quantity and price"
+    },
+    {
+     "id": "C-28",
+     "failing": false,
+     "refuses": false,
+     "statement": "Finite IDs have no sign or whole-number restriction",
+     "source": "choice: apply the request's whole-number and minimum rules only to qty and price"
+    },
+    {
+     "id": "C-35",
+     "failing": true,
+     "refuses": true,
+     "statement": "Empty text in a numeric quantity or price field is invalid",
+     "source": "choice: an empty value supplies no quantity or cents even though ECMAScript Number conversion of an empty string yields zero"
+    },
+    {
+     "id": "C-36",
+     "failing": false,
+     "refuses": false,
+     "statement": "Whole-number validation uses the numeric value produced by conversion",
+     "source": "choice: use ECMAScript binary64 Number semantics, whose largest safe integer is `9,007,199,254,740,991`, without adding a smaller application ceiling"
+    },
+    {
+     "id": "C-42",
+     "failing": false,
+     "refuses": false,
+     "statement": "Date validation uses the stated shape as the complete test for a nonempty date",
+     "source": "choice: the request specifies a textual date shape and leaves calendar validity open"
+    },
+    {
+     "id": "C-47",
+     "failing": false,
+     "refuses": true,
+     "statement": "With invalid records on multiple lines, the earliest failing line is reported",
+     "source": "choice: match the order in which the importer encounters records"
+    },
+    {
+     "id": "C-48",
+     "failing": false,
+     "refuses": false,
+     "statement": "A line with multiple violations can report any one of its applicable violations",
+     "source": "choice: the request assigns each rule an error type while leaving precedence inside a single line open"
+    },
+    {
+     "id": "C-53",
+     "failing": false,
+     "refuses": false,
+     "statement": "Total accepts arrays of orders with valid numeric quantities and prices",
+     "source": "choice: support array inputs with the two values used by the calculation without requiring caller metadata or specifying an error protocol for unsupported inputs"
+    },
+    {
+     "id": "C-57",
+     "failing": false,
+     "refuses": false,
+     "statement": "The cents calculation follows JavaScript Number arithmetic in array order",
+     "source": "choice: use the runtime's numeric multiplication and addition for the requested sum without introducing an overflow error or another return type"
+    }
+   ],
    "plan_added": [],
    "plan_added_failing": [],
    "failing_not_in_spec": [],
@@ -45,6 +201,7 @@
      "id": "U-8",
      "kind": "existing",
      "plan_added": false,
+     "refuses": false,
      "statement": "A maintainer checks that existing meter consumers still work",
      "source": "existing: README.md, src/meter.js, test/meter.test.js and package.json"
     },
@@ -52,6 +209,7 @@
      "id": "C-6",
      "kind": "choice",
      "plan_added": false,
+     "refuses": false,
      "statement": "Physical line breaks also include CRLF, bare CR, U+2028, and U+2029",
      "source": "choice: use the ECMAScript line-terminator set, with CRLF counted as one break, to accept text from different environments"
     },
@@ -59,6 +217,7 @@
      "id": "C-21",
      "kind": "choice",
      "plan_added": false,
+     "refuses": true,
      "statement": "Omitting any expected key makes a record a syntax error",
      "source": "choice: treat the listed keys as the record schema so absent fields and present empty values remain distinguishable"
     },
@@ -66,6 +225,7 @@
      "id": "C-22",
      "kind": "choice",
      "plan_added": false,
+     "refuses": true,
      "statement": "A field outside the expected schema makes a record a syntax error",
      "source": "choice: surface misspellings and unsupported data instead of silently dropping a submitted field"
     },
@@ -73,6 +233,7 @@
      "id": "C-23",
      "kind": "choice",
      "plan_added": false,
+     "refuses": true,
      "statement": "Repeating any key within one record makes that record a syntax error",
      "source": "choice: reject ambiguous record definitions without picking a field by position"
     },
@@ -80,6 +241,7 @@
      "id": "C-27",
      "kind": "choice",
      "plan_added": false,
+     "refuses": true,
      "statement": "An ID without a finite numeric value throws SyntaxError",
      "source": "choice: the request requires a numeric ID and assigns range errors specifically to quantity and price"
     },
@@ -87,6 +249,7 @@
      "id": "C-35",
      "kind": "choice",
      "plan_added": false,
+     "refuses": true,
      "statement": "Empty text in a numeric quantity or price field is invalid",
      "source": "choice: an empty value supplies no quantity or cents even though ECMAScript Number conversion of an empty string yields zero"
     },
@@ -94,6 +257,7 @@
      "id": "C-78",
      "kind": "request",
      "plan_added": false,
+     "refuses": false,
      "statement": "The node:test suite covers the order parser",
      "source": "request"
     },
@@ -101,6 +265,7 @@
      "id": "C-79",
      "kind": "request",
      "plan_added": false,
+     "refuses": false,
      "statement": "The node:test suite covers the order total",
      "source": "request"
     },
@@ -108,6 +273,7 @@
      "id": "C-80",
      "kind": "request",
      "plan_added": false,
+     "refuses": false,
      "statement": "The complete suite passes through npm test",
      "source": "request"
     }
@@ -150,6 +316,120 @@
    "request_clauses_about_tests": [
     "C-150"
    ],
+   "refusing": {
+    "written": {
+     "request": 3,
+     "existing": 11,
+     "choice": 2,
+     "implied": 3
+    },
+    "failing": {
+     "request": 0,
+     "existing": 0,
+     "choice": 1,
+     "implied": 2
+    }
+   },
+   "choice_clauses": [
+    {
+     "id": "C-11",
+     "failing": false,
+     "refuses": false,
+     "statement": "A successful assignment PUT returns the full ticket",
+     "source": "choice: this follows the response used for the other successful mutations of an existing ticket"
+    },
+    {
+     "id": "C-24",
+     "failing": false,
+     "refuses": false,
+     "statement": "Agent names use the service's trimmed text convention",
+     "source": "choice: apply the existing requester name convention to the new name field"
+    },
+    {
+     "id": "C-25",
+     "failing": false,
+     "refuses": false,
+     "statement": "The name limit counts UTF-16 code units",
+     "source": "choice: match the existing Node.js string length convention for requester and actor names"
+    },
+    {
+     "id": "C-26",
+     "failing": false,
+     "refuses": true,
+     "statement": "Agent names exclude the control characters that would disrupt text rows",
+     "source": "choice: use the existing control-character rule for ticket text so the new CLI column remains on one tab-delimited row"
+    },
+    {
+     "id": "C-28",
+     "failing": false,
+     "refuses": false,
+     "statement": "Agent identity compares the entire normalized name exactly",
+     "source": "choice: exact equality after trimming matches the existing service's string comparisons without introducing an identity inference rule"
+    },
+    {
+     "id": "C-42",
+     "failing": true,
+     "refuses": false,
+     "statement": "A failed assignment save leaves the previously committed state visible",
+     "source": "choice: the documented single-change contract must hold for failed assignment saves as well as for successful ones"
+    },
+    {
+     "id": "C-51",
+     "failing": true,
+     "refuses": false,
+     "statement": "Distinct assignment changes get distinct notification identities",
+     "source": "choice: pending-key deduplication must distinguish a real new assignment from repetition of the same change"
+    },
+    {
+     "id": "C-53",
+     "failing": false,
+     "refuses": false,
+     "statement": "An assignment notice is distinguishable from the existing requester notices",
+     "source": "choice: operators and the relay need to distinguish the three kinds of notification without requiring a particular label"
+    },
+    {
+     "id": "C-58",
+     "failing": true,
+     "refuses": false,
+     "statement": "A nonempty assignee query value is interpreted using the name rules",
+     "source": "choice: the filter names the same agent as the PUT, while preserving the special meaning of an explicitly empty parameter"
+    },
+    {
+     "id": "C-61",
+     "failing": true,
+     "refuses": false,
+     "statement": "Repeated assignee query parameters use their first value",
+     "source": "choice: use the established single-value query convention for the new filter dimension"
+    },
+    {
+     "id": "C-106",
+     "failing": false,
+     "refuses": false,
+     "statement": "Delivery of a queued assignment survives subsequent ticket changes",
+     "source": "choice: the outbox records committed historical events, and the request calls for notifying each agent who was assigned"
+    },
+    {
+     "id": "C-112",
+     "failing": true,
+     "refuses": true,
+     "statement": "Present saved assignees must be valid stored values",
+     "source": "choice: keep saved tickets within the valid stored-name contract while treating only an absent field as the legacy default"
+    },
+    {
+     "id": "C-121",
+     "failing": false,
+     "refuses": false,
+     "statement": "The operator can return to the prior release with compatible state",
+     "source": "choice: give operators a rollback path without assuming the released binary can preserve new fields or process new notices"
+    },
+    {
+     "id": "C-125",
+     "failing": false,
+     "refuses": false,
+     "statement": "The CLI raw listing appends an assignee field",
+     "source": "choice: appending the requested information preserves the fields used by the weekly report, and an empty field is unambiguous because a stored name cannot be empty"
+    }
+   ],
    "plan_added": [
     "C-152",
     "C-153"
@@ -164,6 +444,7 @@
      "id": "U-3",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "An API caller diagnoses a failed assignment to correct or retry it",
      "source": "implied: the assignment route participates in the existing API error and persistence contracts"
     },
@@ -171,6 +452,7 @@
      "id": "U-5",
      "kind": "request",
      "plan_added": false,
+     "refuses": false,
      "statement": "An API caller lists tickets to find an agent's work or unassigned work",
      "source": "request"
     },
@@ -178,6 +460,7 @@
      "id": "U-7",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "An operator reads assignments from the command line",
      "source": "implied: the CLI listing must show assignment and the existing CLI reads the saved tickets"
     },
@@ -185,6 +468,7 @@
      "id": "C-42",
      "kind": "choice",
      "plan_added": false,
+     "refuses": false,
      "statement": "A failed assignment save leaves the previously committed state visible",
      "source": "choice: the documented single-change contract must hold for failed assignment saves as well as for successful ones"
     },
@@ -192,6 +476,7 @@
      "id": "C-51",
      "kind": "choice",
      "plan_added": false,
+     "refuses": false,
      "statement": "Distinct assignment changes get distinct notification identities",
      "source": "choice: pending-key deduplication must distinguish a real new assignment from repetition of the same change"
     },
@@ -199,6 +484,7 @@
      "id": "C-58",
      "kind": "choice",
      "plan_added": false,
+     "refuses": false,
      "statement": "A nonempty assignee query value is interpreted using the name rules",
      "source": "choice: the filter names the same agent as the PUT, while preserving the special meaning of an explicitly empty parameter"
     },
@@ -206,6 +492,7 @@
      "id": "C-61",
      "kind": "choice",
      "plan_added": false,
+     "refuses": false,
      "statement": "Repeated assignee query parameters use their first value",
      "source": "choice: use the established single-value query convention for the new filter dimension"
     },
@@ -213,6 +500,7 @@
      "id": "C-112",
      "kind": "choice",
      "plan_added": false,
+     "refuses": true,
      "statement": "Present saved assignees must be valid stored values",
      "source": "choice: keep saved tickets within the valid stored-name contract while treating only an absent field as the legacy default"
     },
@@ -220,6 +508,7 @@
      "id": "C-123",
      "kind": "request",
      "plan_added": false,
+     "refuses": false,
      "statement": "The CLI table shows each ticket's assignee",
      "source": "request"
     },
@@ -227,6 +516,7 @@
      "id": "C-127",
      "kind": "existing",
      "plan_added": false,
+     "refuses": false,
      "statement": "The CLI retains the existing listing filter flags",
      "source": "existing: bin/tickets.js and src/tickets/query.js establish the CLI behavior, and the requested conjunction is for GET /tickets"
     },
@@ -234,6 +524,7 @@
      "id": "C-128",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "CLI show reports the ticket's current assignee",
      "source": "implied: every ticket shows its assignee and the existing show command displays the ticket in full"
     },
@@ -241,6 +532,7 @@
      "id": "C-130",
      "kind": "existing",
      "plan_added": false,
+     "refuses": false,
      "statement": "CLI failures retain the established exit codes",
      "source": "existing: bin/tickets.js"
     },
@@ -248,6 +540,7 @@
      "id": "C-131",
      "kind": "existing",
      "plan_added": false,
+     "refuses": false,
      "statement": "The weekly report keeps its existing counts",
      "source": "existing: README.md and scripts/weekly-report.js"
     },
@@ -255,6 +548,7 @@
      "id": "C-150",
      "kind": "request",
      "plan_added": false,
+     "refuses": false,
      "statement": "New assignment tests run as part of the same test command",
      "source": "request"
     },
@@ -262,6 +556,7 @@
      "id": "C-152",
      "kind": "implied",
      "plan_added": true,
+     "refuses": true,
      "statement": "Agent names must be representable across HTTP and command-line text",
      "source": "implied: U-5 and U-7 need the exact stored name to survive a URL query and UTF-8 CLI output, both of which replace unpaired surrogates"
     },
@@ -269,6 +564,7 @@
      "id": "C-153",
      "kind": "implied",
      "plan_added": true,
+     "refuses": true,
      "statement": "Exhausted notification IDs cannot make an assignment snapshot unusable",
      "source": "implied: U-3 and U-10 need a named assignment to leave restartable data when the saved next event ID reaches the largest safe integer allowed by C-120"
     }
@@ -313,6 +609,153 @@
    "request_clauses_about_tests": [
     "C-190"
    ],
+   "refusing": {
+    "written": {
+     "choice": 6,
+     "implied": 9,
+     "existing": 20
+    },
+    "failing": {
+     "choice": 3,
+     "implied": 5,
+     "existing": 0
+    }
+   },
+   "choice_clauses": [
+    {
+     "id": "C-6",
+     "failing": true,
+     "refuses": false,
+     "statement": "Response-hour overrides are launch settings named DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL and DUE_HOURS_LOW",
+     "source": "choice: startup environment settings fit the existing service and require no live configuration endpoint"
+    },
+    {
+     "id": "C-7",
+     "failing": false,
+     "refuses": false,
+     "statement": "Each unset or blank response-hour override falls back to its own priority default",
+     "source": "choice: use the existing convention for unset and empty settings"
+    },
+    {
+     "id": "C-8",
+     "failing": true,
+     "refuses": false,
+     "statement": "A supplied response-hour override accepts decimal whole hours from 1 through 4800000000 inclusive",
+     "source": "choice: follow the service's whole-number convention with the representable time span as the ceiling"
+    },
+    {
+     "id": "C-9",
+     "failing": true,
+     "refuses": true,
+     "statement": "An invalid response-hour override prevents service startup",
+     "source": "choice: use the existing configuration-failure path because hidden assignments still use the policy"
+    },
+    {
+     "id": "C-14",
+     "failing": false,
+     "refuses": true,
+     "statement": "A create whose due instant cannot be represented fails without creating a ticket",
+     "source": "choice: an unrepresentable clock or policy result is a service fault and a partial ticket cannot satisfy the deadline promise"
+    },
+    {
+     "id": "C-31",
+     "failing": false,
+     "refuses": false,
+     "statement": "The enabled overdue query accepts false as a neutral value",
+     "source": "choice: permit an explicit off setting for clients that send a boolean filter"
+    },
+    {
+     "id": "C-32",
+     "failing": false,
+     "refuses": true,
+     "statement": "An unsupported enabled overdue value is a list validation error",
+     "source": "choice: follow the existing invalid-filter convention and accept only the two boolean literals"
+    },
+    {
+     "id": "C-33",
+     "failing": false,
+     "refuses": false,
+     "statement": "Repeated overdue query keys use the first decoded value",
+     "source": "choice: match the first-value convention of status, priority, limit and cursor"
+    },
+    {
+     "id": "C-36",
+     "failing": true,
+     "refuses": false,
+     "statement": "With overdue=true the three filters use intersection when all three are supplied",
+     "source": "choice: the documented intersection applies to new overdue queries while the shipped union remains for legacy queries"
+    },
+    {
+     "id": "C-37",
+     "failing": false,
+     "refuses": false,
+     "statement": "Overdue qualification uses a single current time for a page",
+     "source": "choice: one evaluation instant keeps a page internally consistent without promising a snapshot across requests"
+    },
+    {
+     "id": "C-48",
+     "failing": true,
+     "refuses": false,
+     "statement": "Startup prepares unassigned file-backed tickets before serving",
+     "source": "choice: startup preparation supports staged activation without a new command or a background dependency"
+    },
+    {
+     "id": "C-52",
+     "failing": false,
+     "refuses": false,
+     "statement": "A completed file needs no backfill write on a repeated startup",
+     "source": "choice: make a completed preparation a no-op so a retry or configuration change introduces no gratuitous write"
+    },
+    {
+     "id": "C-53",
+     "failing": false,
+     "refuses": true,
+     "statement": "A corrupt stored due is a startup data error",
+     "source": "choice: distinguish missing legacy data from damaged assigned data to avoid silently replacing a promise"
+    },
+    {
+     "id": "C-54",
+     "failing": true,
+     "refuses": true,
+     "statement": "An unrepresentable legacy deadline prevents preparation",
+     "source": "choice: fail through the existing startup data-error path rather than skip a ticket or publish a fabricated deadline"
+    },
+    {
+     "id": "C-55",
+     "failing": true,
+     "refuses": true,
+     "statement": "A failed required backfill save is a startup error",
+     "source": "choice: use the operation's existing data-error exit contract for preparation failures"
+    },
+    {
+     "id": "C-70",
+     "failing": true,
+     "refuses": false,
+     "statement": "A return from writable rollback has a documented way to recover prior assignments",
+     "source": "choice: the 1.4.0 writer omits added fields, so retain the promises operationally using the existing copy-backup convention"
+    },
+    {
+     "id": "C-142",
+     "failing": false,
+     "refuses": false,
+     "statement": "A generated due time is excluded from new audit changes",
+     "source": "choice: treat due as generated ticket metadata like created and updated, keeping the existing audit contract"
+    },
+    {
+     "id": "C-181",
+     "failing": true,
+     "refuses": false,
+     "statement": "Human CLI ticket views show assigned deadlines only with DUE_TIMES=on",
+     "source": "choice: cover the human ticket views using the shared visibility setting while preserving the raw reporting protocol"
+    },
+    {
+     "id": "C-182",
+     "failing": true,
+     "refuses": false,
+     "statement": "An unprepared file read by the enabled CLI remains read-only",
+     "source": "choice: the CLI may run during preparation and cannot make authoritative assignments"
+    }
+   ],
    "plan_added": [
     "C-191"
    ],
@@ -325,6 +768,7 @@
      "id": "U-5",
      "kind": "request",
      "plan_added": false,
+     "refuses": false,
      "statement": "A help-desk operator changes promised hours to apply a new policy to future assignments",
      "source": "request"
     },
@@ -332,6 +776,7 @@
      "id": "U-6",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "A production operator prepares legacy data to switch due times on safely",
      "source": "implied: production must hold due times before they are exposed"
     },
@@ -339,6 +784,7 @@
      "id": "U-7",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "A production operator retries interrupted preparation to reach a fully migrated file",
      "source": "implied: tickets keep their deadline once assigned and existing production data must survive deployment"
     },
@@ -346,6 +792,7 @@
      "id": "U-8",
      "kind": "request",
      "plan_added": false,
+     "refuses": false,
      "statement": "An operator disables due-time responses to recover the old API while continuing to take tickets",
      "source": "request"
     },
@@ -353,6 +800,7 @@
      "id": "U-9",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "A production operator rolls back to release 1.4.0 to keep the desk working",
      "source": "implied: rollback must work with live data and assigned deadlines are permanent"
     },
@@ -360,6 +808,7 @@
      "id": "U-10",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "An operator reads the CLI to inspect deadlines without disrupting the weekly report",
      "source": "implied: tickets show their due time and the existing CLI and report keep working"
     },
@@ -367,6 +816,7 @@
      "id": "U-12",
      "kind": "request",
      "plan_added": false,
+     "refuses": false,
      "statement": "A maintainer runs the suite to verify deadline behavior alongside 1.4.0 behavior",
      "source": "request"
     },
@@ -374,6 +824,7 @@
      "id": "C-5",
      "kind": "request",
      "plan_added": false,
+     "refuses": false,
      "statement": "Operators can override the response interval independently for each of the four priorities",
      "source": "request"
     },
@@ -381,6 +832,7 @@
      "id": "C-6",
      "kind": "choice",
      "plan_added": false,
+     "refuses": false,
      "statement": "Response-hour overrides are launch settings named DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL and DUE_HOURS_LOW",
      "source": "choice: startup environment settings fit the existing service and require no live configuration endpoint"
     },
@@ -388,6 +840,7 @@
      "id": "C-8",
      "kind": "choice",
      "plan_added": false,
+     "refuses": false,
      "statement": "A supplied response-hour override accepts decimal whole hours from 1 through 4800000000 inclusive",
      "source": "choice: follow the service's whole-number convention with the representable time span as the ceiling"
     },
@@ -395,6 +848,7 @@
      "id": "C-9",
      "kind": "choice",
      "plan_added": false,
+     "refuses": true,
      "statement": "An invalid response-hour override prevents service startup",
      "source": "choice: use the existing configuration-failure path because hidden assignments still use the policy"
     },
@@ -402,6 +856,7 @@
      "id": "C-12",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "A visible due time follows the API's existing UTC timestamp convention",
      "source": "implied: docs/api.md defines the convention for API times"
     },
@@ -409,6 +864,7 @@
      "id": "C-15",
      "kind": "request",
      "plan_added": false,
+     "refuses": false,
      "statement": "A policy change leaves every assigned deadline fixed",
      "source": "request"
     },
@@ -416,6 +872,7 @@
      "id": "C-34",
      "kind": "implied",
      "plan_added": false,
+     "refuses": true,
      "statement": "An overdue result must also satisfy the selected status filter",
      "source": "implied: U-3 and the status parameter's documented meaning in docs/api.md"
     },
@@ -423,6 +880,7 @@
      "id": "C-36",
      "kind": "choice",
      "plan_added": false,
+     "refuses": false,
      "statement": "With overdue=true the three filters use intersection when all three are supplied",
      "source": "choice: the documented intersection applies to new overdue queries while the shipped union remains for legacy queries"
     },
@@ -430,6 +888,7 @@
      "id": "C-47",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "A legacy ticket uses the priority stored when its first assignment is made",
      "source": "implied: U-6 needs the current legacy record's priority and the policy in force for the backfill"
     },
@@ -437,6 +896,7 @@
      "id": "C-48",
      "kind": "choice",
      "plan_added": false,
+     "refuses": false,
      "statement": "Startup prepares unassigned file-backed tickets before serving",
      "source": "choice: startup preparation supports staged activation without a new command or a background dependency"
     },
@@ -444,6 +904,7 @@
      "id": "C-49",
      "kind": "request",
      "plan_added": false,
+     "refuses": false,
      "statement": "The production service exposes due-time responses only once its configured ticket file holds all existing deadlines",
      "source": "request"
     },
@@ -451,6 +912,7 @@
      "id": "C-54",
      "kind": "choice",
      "plan_added": false,
+     "refuses": true,
      "statement": "An unrepresentable legacy deadline prevents preparation",
      "source": "choice: fail through the existing startup data-error path rather than skip a ticket or publish a fabricated deadline"
     },
@@ -458,6 +920,7 @@
      "id": "C-55",
      "kind": "choice",
      "plan_added": false,
+     "refuses": true,
      "statement": "A failed required backfill save is a startup error",
      "source": "choice: use the operation's existing data-error exit contract for preparation failures"
     },
@@ -465,6 +928,7 @@
      "id": "C-56",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "Backfill publishes the updated file as a whole state",
      "source": "implied: existing whole-state persistence in docs/decisions/0008-json-data-file.md applies to U-7"
     },
@@ -472,6 +936,7 @@
      "id": "C-63",
      "kind": "implied",
      "plan_added": false,
+     "refuses": true,
      "statement": "A refused create cannot leave a partially assigned ticket",
      "source": "implied: deadline assignment must be part of the indivisible ticket creation promised by README.md and docs/decisions/0008-json-data-file.md"
     },
@@ -479,6 +944,7 @@
      "id": "C-64",
      "kind": "implied",
      "plan_added": false,
+     "refuses": true,
      "statement": "A file-backed ticket change that fails before commit leaves the old state observable",
      "source": "implied: the existing ticket-change contract is one complete state, including its deadline"
     },
@@ -486,6 +952,7 @@
      "id": "C-70",
      "kind": "choice",
      "plan_added": false,
+     "refuses": false,
      "statement": "A return from writable rollback has a documented way to recover prior assignments",
      "source": "choice: the 1.4.0 writer omits added fields, so retain the promises operationally using the existing copy-backup convention"
     },
@@ -493,6 +960,7 @@
      "id": "C-71",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "Returning from rollback uses the latest ticket state",
      "source": "implied: U-9 must preserve work done during rollback as well as work before it"
     },
@@ -500,6 +968,7 @@
      "id": "C-73",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "Operators can find the rollout and rollback procedure in the operating documentation",
      "source": "implied: the request gives the help desk responsibility for configuration, production activation and rollback"
     },
@@ -507,6 +976,7 @@
      "id": "C-112",
      "kind": "implied",
      "plan_added": false,
+     "refuses": true,
      "statement": "A save cannot exhaust the allocation counters into an unreadable version 1 file",
      "source": "implied: the ECMAScript safe-integer rule and the 1.4.0 loader's strict counter checks bind rollback-compatible saves"
     },
@@ -514,6 +984,7 @@
      "id": "C-140",
      "kind": "existing",
      "plan_added": false,
+     "refuses": false,
      "statement": "Committed ticket history is append-only",
      "source": "existing: docs/decisions/0007-append-only-audit-log.md"
     },
@@ -521,6 +992,7 @@
      "id": "C-181",
      "kind": "choice",
      "plan_added": false,
+     "refuses": false,
      "statement": "Human CLI ticket views show assigned deadlines only with DUE_TIMES=on",
      "source": "choice: cover the human ticket views using the shared visibility setting while preserving the raw reporting protocol"
     },
@@ -528,6 +1000,7 @@
      "id": "C-182",
      "kind": "choice",
      "plan_added": false,
+     "refuses": false,
      "statement": "An unprepared file read by the enabled CLI remains read-only",
      "source": "choice: the CLI may run during preparation and cannot make authoritative assignments"
     },
@@ -535,6 +1008,7 @@
      "id": "C-190",
      "kind": "request",
      "plan_added": false,
+     "refuses": false,
      "statement": "npm test discovers the new node:test coverage under test/",
      "source": "request"
     },
@@ -542,6 +1016,7 @@
      "id": "C-191",
      "kind": "implied",
      "plan_added": true,
+     "refuses": true,
      "statement": "A notification remains retryable when its delivery result cannot be saved",
      "source": "implied: U-11 needs retries to continue after a transient delivery-state save failure, while C-159 covers the separate case of a crash after sending"
     }
@@ -585,6 +1060,132 @@
     "C-67",
     "C-68"
    ],
+   "refusing": {
+    "written": {
+     "request": 7,
+     "choice": 7,
+     "existing": 4
+    },
+    "failing": {
+     "request": 2,
+     "choice": 5,
+     "existing": 0
+    }
+   },
+   "choice_clauses": [
+    {
+     "id": "C-29",
+     "failing": false,
+     "refuses": false,
+     "statement": "CRLF can separate order lines",
+     "source": "choice: accept ordinary Windows text in addition to the LF text shown in the example"
+    },
+    {
+     "id": "C-30",
+     "failing": true,
+     "refuses": true,
+     "statement": "A field whose key differs from the named key spellings raises `SyntaxError`",
+     "source": "choice: use the five listed keys literally because the request specifies normalization only for values"
+    },
+    {
+     "id": "C-31",
+     "failing": true,
+     "refuses": true,
+     "statement": "A line missing any named key raises `SyntaxError`",
+     "source": "choice: require explicit fields so an absent value and an intentionally empty shipped date remain distinguishable"
+    },
+    {
+     "id": "C-32",
+     "failing": true,
+     "refuses": true,
+     "statement": "A repeated key within one order line raises `SyntaxError`",
+     "source": "choice: a line gives each order property one value and provides no priority between conflicting fields"
+    },
+    {
+     "id": "C-33",
+     "failing": false,
+     "refuses": true,
+     "statement": "An empty semicolon-delimited segment raises `SyntaxError`",
+     "source": "choice: treat a delimiter as requiring a field on each side"
+    },
+    {
+     "id": "C-34",
+     "failing": false,
+     "refuses": false,
+     "statement": "The first `=` in a field separates the key from its value",
+     "source": "choice: retain the complete field value for its field-specific validation"
+    },
+    {
+     "id": "C-35",
+     "failing": false,
+     "refuses": false,
+     "statement": "Decimal numeric text is interpreted by its numeric value",
+     "source": "choice: ordinary decimal text suffices for the requested fields, with support for other numeric spellings left open"
+    },
+    {
+     "id": "C-36",
+     "failing": true,
+     "refuses": true,
+     "statement": "An identifier without a finite numeric value raises `SyntaxError`",
+     "source": "choice: treat unusable identifier text as a malformed field since the request provides no identifier error rule"
+    },
+    {
+     "id": "C-37",
+     "failing": true,
+     "refuses": true,
+     "statement": "An empty price raises `RangeError`",
+     "source": "choice: an empty price supplies no cents value, even though JavaScript can coerce empty text to zero"
+    },
+    {
+     "id": "C-38",
+     "failing": false,
+     "refuses": false,
+     "statement": "The whole-number rules impose no safe-integer ceiling",
+     "source": "choice: the stated minimums and JavaScript number representation suffice without a separate maximum for these fields"
+    },
+    {
+     "id": "C-39",
+     "failing": false,
+     "refuses": false,
+     "statement": "Shipped date validation checks the written shape without calendar validation",
+     "source": "choice: the request specifies the date pattern and supplies no calendar rule"
+    },
+    {
+     "id": "C-40",
+     "failing": false,
+     "refuses": true,
+     "statement": "One applicable validation error suffices when an input has multiple faults",
+     "source": "choice: the request supplies no priority among validation errors"
+    },
+    {
+     "id": "C-42",
+     "failing": false,
+     "refuses": false,
+     "statement": "Parsing leaves the meter count unchanged",
+     "source": "choice: the request allocates meter work to totaling, so reading order text consumes none of that shared budget"
+    },
+    {
+     "id": "C-52",
+     "failing": false,
+     "refuses": false,
+     "statement": "`total` leaves the supplied orders unchanged",
+     "source": "choice: a calculation on caller-supplied orders can leave those orders reusable"
+    },
+    {
+     "id": "C-53",
+     "failing": false,
+     "refuses": false,
+     "statement": "The specified `total` input is an array of valid order objects",
+     "source": "choice: the request gives argument validation rules only for `parseOrders`"
+    },
+    {
+     "id": "C-69",
+     "failing": false,
+     "refuses": false,
+     "statement": "Loading the orders module leaves the meter count unchanged",
+     "source": "choice: loading the helpers consumes none of the shared budget available for totaling orders"
+    }
+   ],
    "plan_added": [],
    "plan_added_failing": [],
    "failing_not_in_spec": [],
@@ -593,6 +1194,7 @@
      "id": "U-5",
      "kind": "request",
      "plan_added": false,
+     "refuses": false,
      "statement": "A caller submits quantities and prices near their lower bounds to distinguish valid orders from invalid ones",
      "source": "request"
     },
@@ -600,6 +1202,7 @@
      "id": "U-7",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "A caller submits an ambiguous field list to discover which input is accepted",
      "source": "implied: the field grammar, numeric identifier, and shipped date rules need outcomes for these inputs"
     },
@@ -607,6 +1210,7 @@
      "id": "U-12",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "A maintainer starts using the new helpers with the project's existing test command",
      "source": "implied: the request adds a Node module and tests to the project described in README.md"
     },
@@ -614,6 +1218,7 @@
      "id": "C-20",
      "kind": "request",
      "plan_added": false,
+     "refuses": true,
      "statement": "A quantity that is not a whole number raises `RangeError`",
      "source": "request"
     },
@@ -621,6 +1226,7 @@
      "id": "C-22",
      "kind": "request",
      "plan_added": false,
+     "refuses": true,
      "statement": "A price that is not a whole number raises `RangeError`",
      "source": "request"
     },
@@ -628,6 +1234,7 @@
      "id": "C-30",
      "kind": "choice",
      "plan_added": false,
+     "refuses": true,
      "statement": "A field whose key differs from the named key spellings raises `SyntaxError`",
      "source": "choice: use the five listed keys literally because the request specifies normalization only for values"
     },
@@ -635,6 +1242,7 @@
      "id": "C-31",
      "kind": "choice",
      "plan_added": false,
+     "refuses": true,
      "statement": "A line missing any named key raises `SyntaxError`",
      "source": "choice: require explicit fields so an absent value and an intentionally empty shipped date remain distinguishable"
     },
@@ -642,6 +1250,7 @@
      "id": "C-32",
      "kind": "choice",
      "plan_added": false,
+     "refuses": true,
      "statement": "A repeated key within one order line raises `SyntaxError`",
      "source": "choice: a line gives each order property one value and provides no priority between conflicting fields"
     },
@@ -649,6 +1258,7 @@
      "id": "C-36",
      "kind": "choice",
      "plan_added": false,
+     "refuses": true,
      "statement": "An identifier without a finite numeric value raises `SyntaxError`",
      "source": "choice: treat unusable identifier text as a malformed field since the request provides no identifier error rule"
     },
@@ -656,6 +1266,7 @@
      "id": "C-37",
      "kind": "choice",
      "plan_added": false,
+     "refuses": true,
      "statement": "An empty price raises `RangeError`",
      "source": "choice: an empty price supplies no cents value, even though JavaScript can coerce empty text to zero"
     },
@@ -663,6 +1274,7 @@
      "id": "C-67",
      "kind": "request",
      "plan_added": false,
+     "refuses": false,
      "statement": "`node:test` coverage exercises the new order helpers",
      "source": "request"
     },
@@ -670,6 +1282,7 @@
      "id": "C-68",
      "kind": "request",
      "plan_added": false,
+     "refuses": false,
      "statement": "`npm test` succeeds with the orders coverage present",
      "source": "request"
     }
@@ -712,6 +1325,104 @@
    "request_clauses_about_tests": [
     "C-185"
    ],
+   "refusing": {
+    "written": {
+     "existing": 24,
+     "request": 4,
+     "implied": 1
+    },
+    "failing": {
+     "existing": 0,
+     "request": 0,
+     "implied": 0
+    }
+   },
+   "choice_clauses": [
+    {
+     "id": "C-3",
+     "failing": false,
+     "refuses": false,
+     "statement": "Successful assignment requests answer HTTP 200",
+     "source": "choice: match the service's successful PATCH and transition responses"
+    },
+    {
+     "id": "C-4",
+     "failing": false,
+     "refuses": false,
+     "statement": "A successful assignment request returns the resulting ticket",
+     "source": "choice: match the service's other ticket mutation responses"
+    },
+    {
+     "id": "C-19",
+     "failing": false,
+     "refuses": false,
+     "statement": "The active-state requirement also applies to an assignment request that would leave the value equal",
+     "source": "choice: apply the state gate before the no-op rule, as PATCH does for closed tickets"
+    },
+    {
+     "id": "C-25",
+     "failing": false,
+     "refuses": false,
+     "statement": "Assignee input is trimmed before assignment validation",
+     "source": "choice: follow the existing requester-name convention"
+    },
+    {
+     "id": "C-26",
+     "failing": false,
+     "refuses": false,
+     "statement": "Assignee length uses the same units as requester length",
+     "source": "choice: measure JavaScript string length in UTF-16 code units, as src/tickets/validate.js does for requester names"
+    },
+    {
+     "id": "C-27",
+     "failing": false,
+     "refuses": false,
+     "statement": "An assignee name uses the service's single-line text convention",
+     "source": "choice: apply the existing single-line name rule so a name cannot split a row or a column in raw output"
+    },
+    {
+     "id": "C-87",
+     "failing": true,
+     "refuses": false,
+     "statement": "The assignee filter interprets non-empty values as assignment names",
+     "source": "choice: give callers one interpretation for names entered through assignment or search"
+    },
+    {
+     "id": "C-88",
+     "failing": false,
+     "refuses": false,
+     "statement": "Agent names compare case-sensitively",
+     "source": "choice: compare stored names the same way the existing ticket filters compare string values"
+    },
+    {
+     "id": "C-90",
+     "failing": false,
+     "refuses": false,
+     "statement": "A repeated assignee query parameter follows the existing single-value parameter convention",
+     "source": "choice: retain the existing duplicate-parameter convention for the new filter"
+    },
+    {
+     "id": "C-107",
+     "failing": false,
+     "refuses": false,
+     "statement": "The raw assignee is the fifth column",
+     "source": "choice: append the new field after the columns the weekly report already consumes"
+    },
+    {
+     "id": "C-108",
+     "failing": false,
+     "refuses": false,
+     "statement": "The raw assignee column uses an empty value for an unassigned ticket",
+     "source": "choice: represent no name without reserving a valid name as a sentinel"
+    },
+    {
+     "id": "C-135",
+     "failing": false,
+     "refuses": false,
+     "statement": "The previous release can open a data file saved by the assignment release",
+     "source": "choice: keep changes additive within the file shape already accepted by the previous loader"
+    }
+   ],
    "plan_added": [
     "C-191",
     "C-192"
@@ -726,6 +1437,7 @@
      "id": "U-5",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "An API client uses the name boundaries so it can distinguish valid assignments from mistakes",
      "source": "implied: by the non-empty name of at most 64 characters and the existing JSON body rules"
     },
@@ -733,6 +1445,7 @@
      "id": "U-8",
      "kind": "request",
      "plan_added": false,
+     "refuses": false,
      "statement": "An agent filters the queue so they can find their own work or work nobody owns",
      "source": "request"
     },
@@ -740,6 +1453,7 @@
      "id": "U-10",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "An operator inspects notifications so every recipient gets the assignment made to them",
      "source": "implied: by notifying the agent for each assignment through an outbox with pending-key deduplication"
     },
@@ -747,6 +1461,7 @@
      "id": "U-12",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "An operator reads the data file from the command line so they can see who owns each ticket",
      "source": "implied: by the command-line listing requirement, every ticket showing its assignee and README.md's raw-column contract"
     },
@@ -754,6 +1469,7 @@
      "id": "U-17",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "A client retries a failed save so an assignment cannot be half recorded",
      "source": "implied: by making the ticket, audit and outbox change in one step"
     },
@@ -761,6 +1477,7 @@
      "id": "C-64",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "A later real assignment to a former assignee has its own notification",
      "source": "implied: by the request's no-op applying only when the ticket already has that assignee"
     },
@@ -768,6 +1485,7 @@
      "id": "C-74",
      "kind": "existing",
      "plan_added": false,
+     "refuses": false,
      "statement": "A delivery failure is visible on the outbox event",
      "source": "existing: src/outbox.js"
     },
@@ -775,6 +1493,7 @@
      "id": "C-87",
      "kind": "choice",
      "plan_added": false,
+     "refuses": false,
      "statement": "The assignee filter interprets non-empty values as assignment names",
      "source": "choice: give callers one interpretation for names entered through assignment or search"
     },
@@ -782,6 +1501,7 @@
      "id": "C-103",
      "kind": "request",
      "plan_added": false,
+     "refuses": false,
      "statement": "The operator's table listing shows each assignee",
      "source": "request"
     },
@@ -789,6 +1509,7 @@
      "id": "C-114",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "The existing single-ticket CLI display includes the assignee",
      "source": "implied: by every ticket showing its assignee and the CLI's full-ticket display"
     },
@@ -796,6 +1517,7 @@
      "id": "C-123",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "A failed assignment save leaves no partial live change",
      "source": "implied: by applying the assignment and its effects together in U-17"
     },
@@ -803,6 +1525,7 @@
      "id": "C-133",
      "kind": "existing",
      "plan_added": false,
+     "refuses": false,
      "statement": "A present malformed assignee in a stored ticket is rejected",
      "source": "existing: docs/decisions/0008-json-data-file.md"
     },
@@ -810,6 +1533,7 @@
      "id": "C-136",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "Rollback instructions explain what an old data-file writer does to assignees",
      "source": "implied: by the rollback in U-15 and the old loader and writer keeping only known ticket fields"
     },
@@ -817,6 +1541,7 @@
      "id": "C-137",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "Rollback instructions explain pending assignment notices",
      "source": "implied: by rolling back with a pending new notification kind and the old template behavior"
     },
@@ -824,6 +1549,7 @@
      "id": "C-185",
      "kind": "request",
      "plan_added": false,
+     "refuses": false,
      "statement": "New behaviour has node:test coverage under test/",
      "source": "request"
     },
@@ -831,6 +1557,7 @@
      "id": "C-187",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "A retry after a failed save can perform the assignment",
      "source": "implied: by failed changes being unapplied in U-17"
     },
@@ -838,6 +1565,7 @@
      "id": "C-189",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "The API reference describes assignment",
      "source": "implied: by extending the ticket API documented in docs/api.md"
     },
@@ -845,6 +1573,7 @@
      "id": "C-190",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "The CLI reference describes the raw assignee field",
      "source": "implied: by extending the documented raw columns consumed by operators and scripts"
     },
@@ -852,6 +1581,7 @@
      "id": "C-191",
      "kind": "implied",
      "plan_added": true,
+     "refuses": false,
      "statement": "A failed assignment save leaves the saved state and identifiers unchanged",
      "source": "implied: by U-17 requiring the failed assignment to leave no partial record and the retry to record the change with its usual audit entry and notification"
     },
@@ -859,6 +1589,7 @@
      "id": "C-192",
      "kind": "implied",
      "plan_added": true,
+     "refuses": false,
      "statement": "An accepted assignee name can be represented in an encoded query and the raw listing",
      "source": "implied: by U-8 and U-12 requiring the stored name to round-trip through the URL query and the UTF-8 raw listing, both of which replace an unpaired surrogate"
     }
@@ -907,6 +1638,160 @@
     "C-231",
     "C-232"
    ],
+   "refusing": {
+    "written": {
+     "choice": 6,
+     "existing": 22,
+     "implied": 4
+    },
+    "failing": {
+     "choice": 4,
+     "existing": 1,
+     "implied": 3
+    }
+   },
+   "choice_clauses": [
+    {
+     "id": "C-7",
+     "failing": true,
+     "refuses": false,
+     "statement": "Each priority has its own environment variable for its response hours",
+     "source": "choice: per-priority overrides follow the service's environment configuration convention"
+    },
+    {
+     "id": "C-9",
+     "failing": true,
+     "refuses": false,
+     "statement": "A response-hour override is a positive whole number",
+     "source": "choice: use the existing whole-number environment setting convention for a positive response window"
+    },
+    {
+     "id": "C-10",
+     "failing": true,
+     "refuses": true,
+     "statement": "An override that overflows the supported timestamp range is unusable",
+     "source": "choice: the timestamp range supplies the upper boundary without a separate policy limit in hours"
+    },
+    {
+     "id": "C-25",
+     "failing": false,
+     "refuses": false,
+     "statement": "A deadline equal to the current instant has yet to pass",
+     "source": "choice: treat \u201chas passed\u201d as strictly earlier than the current time"
+    },
+    {
+     "id": "C-29",
+     "failing": false,
+     "refuses": false,
+     "statement": "`overdue=false` leaves deadline filtering off",
+     "source": "choice: provide the ordinary false value for the optional Boolean filter"
+    },
+    {
+     "id": "C-30",
+     "failing": false,
+     "refuses": true,
+     "statement": "An unsupported `overdue` value is an invalid query in enabled mode",
+     "source": "choice: validate the new parameter like the existing enumerated query parameters"
+    },
+    {
+     "id": "C-31",
+     "failing": false,
+     "refuses": false,
+     "statement": "Repeating `overdue` uses the first value",
+     "source": "choice: follow the existing list query's first-value convention"
+    },
+    {
+     "id": "C-34",
+     "failing": true,
+     "refuses": false,
+     "statement": "An overdue list requires all supplied filters to match",
+     "source": "choice: use the conjunction documented in docs/api.md for overdue listings while preserving the current behavior of ordinary queries"
+    },
+    {
+     "id": "C-36",
+     "failing": false,
+     "refuses": false,
+     "statement": "An ordinary enabled list preserves the current combined-filter behavior",
+     "source": "choice: preserve existing ordinary list behavior where the new filter is unused"
+    },
+    {
+     "id": "C-46",
+     "failing": true,
+     "refuses": false,
+     "statement": "The new release can prepare an existing file with visibility disabled",
+     "source": "choice: startup preparation lets the operator finish storage rollout before enabling visibility without a new command"
+    },
+    {
+     "id": "C-48",
+     "failing": true,
+     "refuses": true,
+     "statement": "Enabled startup refuses a persistent file that still needs preparation",
+     "source": "choice: fail closed at cutover and point the operator back to the preparation step"
+    },
+    {
+     "id": "C-49",
+     "failing": false,
+     "refuses": false,
+     "statement": "Preparing an already complete file performs no backfill rewrite",
+     "source": "choice: repeatable preparation should have no write to do once the file is complete"
+    },
+    {
+     "id": "C-50",
+     "failing": false,
+     "refuses": false,
+     "statement": "The release records a new ticket's deadline even while due times are disabled",
+     "source": "choice: keep a prepared production file ready for cutover while it continues accepting tickets"
+    },
+    {
+     "id": "C-63",
+     "failing": true,
+     "refuses": true,
+     "statement": "Any stored deadline must be valid when read",
+     "source": "choice: validate supplied deadline values like persisted timestamps instead of treating corruption as a missing deadline"
+    },
+    {
+     "id": "C-64",
+     "failing": true,
+     "refuses": true,
+     "statement": "An assigned deadline must be later than the ticket's creation time",
+     "source": "choice: every supported response duration is positive"
+    },
+    {
+     "id": "C-66",
+     "failing": false,
+     "refuses": true,
+     "statement": "A create whose deadline cannot be represented returns the usual internal error",
+     "source": "choice: an unrepresentable server-assigned timestamp is a server fault and must not produce a partial creation"
+    },
+    {
+     "id": "C-71",
+     "failing": true,
+     "refuses": false,
+     "statement": "The rollback runbook captures assigned deadlines before 1.4.0 owns the file",
+     "source": "choice: use the existing file-copy backup mechanism to retain deadlines that the old writer cannot preserve"
+    },
+    {
+     "id": "C-72",
+     "failing": true,
+     "refuses": false,
+     "statement": "The rollout runbook explains how to recover assigned deadlines after a rollback save",
+     "source": "choice: support returning to the new release with fixed deadlines through the operator's existing backup and offline file-maintenance workflow"
+    },
+    {
+     "id": "C-187",
+     "failing": false,
+     "refuses": false,
+     "statement": "Ticket deadlines are stored as a new optional field on version 1 ticket records",
+     "source": "choice: the old reader ignores unknown ticket fields and keeping the deadline beside the old fields makes file inspection and offline recovery direct"
+    },
+    {
+     "id": "C-214",
+     "failing": true,
+     "refuses": false,
+     "statement": "The human-readable CLI shows saved deadlines when enabled",
+     "source": "choice: apply the visibility gate to human-readable ticket output without adding another setting"
+    }
+   ],
    "plan_added": [
     "C-237",
     "C-238"
@@ -921,6 +1806,7 @@
      "id": "U-4",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "A dashboard client pages through overdue tickets to review all matching work",
      "source": "implied: the overdue filter extends the existing ticket listing"
     },
@@ -928,6 +1814,7 @@
      "id": "U-6",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "A help-desk operator adjusts response hours to change deadlines for future tickets",
      "source": "implied: response hours are configurable, while assigned deadlines are fixed"
     },
@@ -935,6 +1822,7 @@
      "id": "U-7",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "A production operator prepares the existing file to enable due times safely",
      "source": "implied: production activation follows durable backfill"
     },
@@ -942,6 +1830,7 @@
      "id": "U-8",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "A production operator retries a failed preparation to protect the current data",
      "source": "implied: production activation requires a usable, completely prepared file"
     },
@@ -949,6 +1838,7 @@
      "id": "U-9",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "An operator restarts or disables the feature to control exposure",
      "source": "implied: the gate controls the API while persisted deadlines remain fixed"
     },
@@ -956,6 +1846,7 @@
      "id": "U-11",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "An operator rolls back to 1.4.0 to keep the help desk running",
      "source": "implied: an unmodified 1.4.0 must consume the new release's output and previously assigned deadlines must remain recoverable"
     },
@@ -963,6 +1854,7 @@
      "id": "U-12",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "An operator reads tickets from disk to inspect due times without writing state",
      "source": "implied: displaying due times reaches the existing human-facing ticket reader"
     },
@@ -970,6 +1862,7 @@
      "id": "U-15",
      "kind": "request",
      "plan_added": false,
+     "refuses": false,
      "statement": "A maintainer runs the test suite to check the change and the existing service together",
      "source": "request"
     },
@@ -977,6 +1870,7 @@
      "id": "C-1",
      "kind": "request",
      "plan_added": false,
+     "refuses": false,
      "statement": "A new ticket's deadline is based on its creation time",
      "source": "request"
     },
@@ -984,6 +1878,7 @@
      "id": "C-6",
      "kind": "request",
      "plan_added": false,
+     "refuses": false,
      "statement": "Operators can configure the response hours without changing code",
      "source": "request"
     },
@@ -991,6 +1886,7 @@
      "id": "C-7",
      "kind": "choice",
      "plan_added": false,
+     "refuses": false,
      "statement": "Each priority has its own environment variable for its response hours",
      "source": "choice: per-priority overrides follow the service's environment configuration convention"
     },
@@ -998,6 +1894,7 @@
      "id": "C-9",
      "kind": "choice",
      "plan_added": false,
+     "refuses": false,
      "statement": "A response-hour override is a positive whole number",
      "source": "choice: use the existing whole-number environment setting convention for a positive response window"
     },
@@ -1005,6 +1902,7 @@
      "id": "C-10",
      "kind": "choice",
      "plan_added": false,
+     "refuses": true,
      "statement": "An override that overflows the supported timestamp range is unusable",
      "source": "choice: the timestamp range supplies the upper boundary without a separate policy limit in hours"
     },
@@ -1012,6 +1910,7 @@
      "id": "C-11",
      "kind": "existing",
      "plan_added": false,
+     "refuses": true,
      "statement": "An invalid response-hour setting fails startup",
      "source": "existing: README.md and src/server.js"
     },
@@ -1019,6 +1918,7 @@
      "id": "C-34",
      "kind": "choice",
      "plan_added": false,
+     "refuses": false,
      "statement": "An overdue list requires all supplied filters to match",
      "source": "choice: use the conjunction documented in docs/api.md for overdue listings while preserving the current behavior of ordinary queries"
     },
@@ -1026,6 +1926,7 @@
      "id": "C-42",
      "kind": "request",
      "plan_added": false,
+     "refuses": false,
      "statement": "The release backfills deadlines for all production tickets that lack them",
      "source": "request"
     },
@@ -1033,6 +1934,7 @@
      "id": "C-43",
      "kind": "request",
      "plan_added": false,
+     "refuses": false,
      "statement": "Backfill calculates each missing deadline from that ticket's saved creation time",
      "source": "request"
     },
@@ -1040,6 +1942,7 @@
      "id": "C-44",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "Backfill selects response hours from the ticket's own stored priority",
      "source": "implied: the request bases backfill on the existing tickets' own priority"
     },
@@ -1047,6 +1950,7 @@
      "id": "C-45",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "Backfill preserves deadlines already present in a partially prepared file",
      "source": "implied: a persisted deadline is set once"
     },
@@ -1054,6 +1958,7 @@
      "id": "C-46",
      "kind": "choice",
      "plan_added": false,
+     "refuses": false,
      "statement": "The new release can prepare an existing file with visibility disabled",
      "source": "choice: startup preparation lets the operator finish storage rollout before enabling visibility without a new command"
     },
@@ -1061,6 +1966,7 @@
      "id": "C-47",
      "kind": "request",
      "plan_added": false,
+     "refuses": false,
      "statement": "An enabled persistent service accepts traffic only once its file holds the assigned deadlines",
      "source": "request"
     },
@@ -1068,6 +1974,7 @@
      "id": "C-48",
      "kind": "choice",
      "plan_added": false,
+     "refuses": true,
      "statement": "Enabled startup refuses a persistent file that still needs preparation",
      "source": "choice: fail closed at cutover and point the operator back to the preparation step"
     },
@@ -1075,6 +1982,7 @@
      "id": "C-52",
      "kind": "implied",
      "plan_added": false,
+     "refuses": true,
      "statement": "An enabled persistent create cannot expose a ticket whose initial save failed",
      "source": "implied: a persistent ticket must have a saved deadline before the enabled service shows it"
     },
@@ -1082,6 +1990,7 @@
      "id": "C-60",
      "kind": "existing",
      "plan_added": false,
+     "refuses": false,
      "statement": "Preparation publishes a complete saved state atomically",
      "source": "existing: docs/decisions/0008-json-data-file.md"
     },
@@ -1089,6 +1998,7 @@
      "id": "C-61",
      "kind": "implied",
      "plan_added": false,
+     "refuses": true,
      "statement": "A preparation that cannot persist its result does not start the service",
      "source": "implied: production cannot enable due times until preparation is durable"
     },
@@ -1096,6 +2006,7 @@
      "id": "C-63",
      "kind": "choice",
      "plan_added": false,
+     "refuses": true,
      "statement": "Any stored deadline must be valid when read",
      "source": "choice: validate supplied deadline values like persisted timestamps instead of treating corruption as a missing deadline"
     },
@@ -1103,6 +2014,7 @@
      "id": "C-64",
      "kind": "choice",
      "plan_added": false,
+     "refuses": true,
      "statement": "An assigned deadline must be later than the ticket's creation time",
      "source": "choice: every supported response duration is positive"
     },
@@ -1110,6 +2022,7 @@
      "id": "C-65",
      "kind": "implied",
      "plan_added": false,
+     "refuses": true,
      "statement": "Preparation rejects a ticket whose calculated deadline cannot be represented",
      "source": "implied: preparation cannot commit a ticket for which it cannot supply a usable deadline"
     },
@@ -1117,6 +2030,7 @@
      "id": "C-71",
      "kind": "choice",
      "plan_added": false,
+     "refuses": false,
      "statement": "The rollback runbook captures assigned deadlines before 1.4.0 owns the file",
      "source": "choice: use the existing file-copy backup mechanism to retain deadlines that the old writer cannot preserve"
     },
@@ -1124,6 +2038,7 @@
      "id": "C-72",
      "kind": "choice",
      "plan_added": false,
+     "refuses": false,
      "statement": "The rollout runbook explains how to recover assigned deadlines after a rollback save",
      "source": "choice: support returning to the new release with fixed deadlines through the operator's existing backup and offline file-maintenance workflow"
     },
@@ -1131,6 +2046,7 @@
      "id": "C-73",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "The operational documentation describes how to prepare a production file before enabling visibility",
      "source": "implied: operators need a way to satisfy the production cutover condition"
     },
@@ -1138,6 +2054,7 @@
      "id": "C-74",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "The API documentation describes the deadline field",
      "source": "implied: clients need to discover the new ticket response field"
     },
@@ -1145,6 +2062,7 @@
      "id": "C-75",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "The API documentation describes overdue listing",
      "source": "implied: clients need to discover how to request overdue tickets"
     },
@@ -1152,6 +2070,7 @@
      "id": "C-76",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "The configuration documentation describes how to change the response hours",
      "source": "implied: operators must be able to configure the promised hours"
     },
@@ -1159,6 +2078,7 @@
      "id": "C-214",
      "kind": "choice",
      "plan_added": false,
+     "refuses": false,
      "statement": "The human-readable CLI shows saved deadlines when enabled",
      "source": "choice: apply the visibility gate to human-readable ticket output without adding another setting"
     },
@@ -1166,6 +2086,7 @@
      "id": "C-216",
      "kind": "implied",
      "plan_added": false,
+     "refuses": false,
      "statement": "The CLI documentation describes deadline visibility",
      "source": "implied: operators need to discover how to inspect deadlines from the command line"
     },
@@ -1173,6 +2094,7 @@
      "id": "C-231",
      "kind": "request",
      "plan_added": false,
+     "refuses": false,
      "statement": "New due-time tests use `node:test` under `test/`",
      "source": "request"
     },
@@ -1180,6 +2102,7 @@
      "id": "C-232",
      "kind": "request",
      "plan_added": false,
+     "refuses": false,
      "statement": "`npm test` discovers the entire test suite",
      "source": "request"
     },
@@ -1187,6 +2110,7 @@
      "id": "C-234",
      "kind": "existing",
      "plan_added": false,
+     "refuses": false,
      "statement": "The data-format decision is recorded using the repository convention",
      "source": "existing: CONTRIBUTING.md and docs/decisions/README.md"
     },
@@ -1194,6 +2118,7 @@
      "id": "C-235",
      "kind": "existing",
      "plan_added": false,
+     "refuses": false,
      "statement": "The release bumps the package version",
      "source": "existing: CONTRIBUTING.md"
     },
@@ -1201,6 +2126,7 @@
      "id": "C-236",
      "kind": "existing",
      "plan_added": false,
+     "refuses": false,
      "statement": "The release changelog records the due-time change",
      "source": "existing: CONTRIBUTING.md"
     },
@@ -1208,6 +2134,7 @@
      "id": "C-237",
      "kind": "implied",
      "plan_added": true,
+     "refuses": false,
      "statement": "A failed initial save leaves no creation effects in enabled mode",
      "source": "implied: U-14 preserves the associated audit and notification effects, and C-52 requires the unsuccessfully saved ticket to remain absent"
     },
@@ -1215,6 +2142,7 @@
      "id": "C-238",
      "kind": "implied",
      "plan_added": true,
+     "refuses": false,
      "statement": "Persistent writes preserve usable identifier sequences at their limits",
      "source": "implied: U-11 and C-67 require rollback on the new release's saved file, while C-192 and C-206 require safe next identifiers even after a save"
     }
@@ -1231,6 +2159,20 @@
    "plan_added": 3,
    "plan_added_failing": 3,
    "request_clauses_about_tests": 5,
+   "refusing": {
+    "written": {
+     "request": 9,
+     "choice": 14,
+     "implied": 14,
+     "existing": 35
+    },
+    "failing": {
+     "request": 0,
+     "choice": 9,
+     "implied": 7,
+     "existing": 0
+    }
+   },
    "written": {
     "clauses": {
      "implied": 78,
@@ -1267,6 +2209,20 @@
    "plan_added": 4,
    "plan_added_failing": 4,
    "request_clauses_about_tests": 5,
+   "refusing": {
+    "written": {
+     "request": 11,
+     "choice": 13,
+     "existing": 50,
+     "implied": 5
+    },
+    "failing": {
+     "request": 2,
+     "choice": 9,
+     "existing": 1,
+     "implied": 3
+    }
+   },
    "written": {
     "clauses": {
      "request": 73,
