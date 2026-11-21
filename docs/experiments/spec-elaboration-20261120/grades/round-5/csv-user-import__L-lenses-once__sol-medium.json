@@ -1,0 +1,144 @@
+{
+ "slot": "csv-user-import__L-lenses-once__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3254538,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-44",
+   "quote": "The import commits either every user record or zero user records."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-46",
+   "quote": "For an invalid record, identify its starting physical line using line 1 as the first line of the file... Identify the column for field-specific errors and the involved line numbers for duplicates within the file."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-41, C-42",
+   "quote": "Put the same host-equivalent identity in two or more records of one file. No account is created for that identity... Include an identity already held by a user created manually or in an earlier import... The record is refused"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-50",
+   "quote": "Attempt to include a role, permission, administrative flag, or privileged membership assignment in a header or field. The supplied data cannot give a user administrative access or change ordinary account privileges."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-7",
+   "quote": "An admin needs ordinary user-creation authority in the destination.",
+   "missing": "Whether bulk import needs its own permission distinct from single-user creation; the spec treats ordinary creation authority as sufficient rather than stating import is not implied by it."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-26, C-27, C-28",
+   "quote": "The first record contains the headers... Omit a required header or include it twice. The file is refused with the missing or repeated header identified... a column outside the published accepted set. The file is refused"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-19, C-22, C-23",
+   "quote": "Import the same valid columns with or without the initial three bytes EF BB BF... A file using either line ending outside quoted fields works... Inside the enclosing quotes, a comma, LF, or CRLF is part of the value"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-56",
+   "quote": "a rejected import triggers none of those creation notices for its rows. A committed import triggers the ordinary notices"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-34, C-35",
+   "quote": "At 1,048,577 bytes, the admin sees a file-size refusal... An otherwise valid file with 1,000 data records is within the limit. At 1,001, it is refused."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-32, C-33",
+   "quote": "Upload a zero-byte file, a file with only a mark or ignored lines, or a valid header with no user records. The attempt is refused as having no user records... Submit valid headers followed by one eligible record. One user is created."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-63",
+   "quote": "Submit the same valid file again after it commits, including by repeating a timed-out submission or double-submitting it. At most one account per identity exists"
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-74",
+   "quote": "Host request deadlines, processing deadlines, and whether work may continue after a request ends are unconfirmed.",
+   "missing": "Whether large files are processed in the background and how the admin is notified of completion."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-56",
+   "quote": "A committed import triggers the ordinary notices under their ordinary timing and delivery rules.",
+   "missing": "Whether up to 1,000 invitations are sent at once and any pacing or throttling of that mail."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-52, C-53, C-54",
+   "quote": "Compare account status and sign-in eligibility with equivalent ordinary creation... No CSV cell becomes a credential... An imported user can use the same account claim, activation, or initial sign-in steps as an equivalent ordinarily created user."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-60, C-61",
+   "quote": "After success, rejection, or failure, the raw upload is unavailable as an import download or history item... The raw CSV, cell values, and rejected credential values do not appear in import-specific operational records."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-39",
+   "quote": "both make the same decision about its allowed characters, format, length, allowable values, and dependencies on other fields. Exact host rules and bounds for each field are unconfirmed",
+   "missing": "How dates, numbers and locale-dependent formats in CSV values are parsed."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-62",
+   "quote": "Operator visibility covers the attempt time and destination when known, the outcome, and the count on success.",
+   "missing": "Recording which admin performed the import and which users it created."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-71, C-44",
+   "quote": "the requested upload needs clear outcome semantics without adding a cancellation feature... The import commits either every user record or zero user records."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-74",
+   "quote": "a valid file at both limits can reach a definitive result. Host request deadlines, processing deadlines... are unconfirmed.",
+   "missing": "A concrete time bound for a maximum-size file and any visible progress while it runs."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-81, C-43",
+   "quote": "An authorized admin can still create one user through the ordinary entry point with the same accepted fields, validation, defaults, and outcome as before... The import leaves existing users unmodified."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-58, C-39",
+   "quote": "Formula-like text, markup, and URLs in a field are processed only as candidate account data. Uploading or viewing the result cannot execute or fetch them"
+  }
+ ]
+}

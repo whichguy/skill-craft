@@ -1,0 +1,180 @@
+{
+ "slot": "grokbot-salesforce__F-guarded__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.5634505999999999,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-56",
+   "quote": "The chat screen works in Lightning Experience in a current desktop browser. Salesforce Classic, the Salesforce mobile app, Experience Cloud sites and guest or external users are not supported"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-53",
+   "quote": "the bot reads no Salesforce record on a user's behalf"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-50",
+   "quote": "A recording stand-in sees no Salesforce record data, user name, email address, user Id, org Id or any other field beyond those listed."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-84",
+   "quote": "The administrator permission set grants: reading and changing settings, and reading and deleting call-log rows. It grants no chat access and no access to other users' conversations"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-49",
+   "quote": "The administrator permission set does not widen this. (Holders of the platform's View All Data or Modify All Data permission keep the platform's own visibility, which the bot does not try to remove.)"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-73",
+   "quote": "runtime rule: the platform refuses a callout after a database write in the same transaction; C-24 therefore forces the turn to be stored after the reply",
+   "missing": "The design is synchronous (C-74 'long-running synchronous requests'); no asynchronous mechanism (Queueable, future, batch) is chosen."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-38",
+   "quote": "After saving it, no screen, API response or deployment retrieval shows the key's value to anyone, including the administrator."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-29",
+   "quote": "the platform allows at most 120 seconds for all callouts in one request (default per call is 10 seconds, too short for reasoning models); 60 leaves headroom",
+   "missing": "Callouts-per-transaction, heap and CPU time limits are not named with numbers (only timeout, the 6 MB size cap in C-75 and concurrency in C-74)."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-77",
+   "quote": "Running all the project's Apex tests in the org reports no failures; no test sends a request to api.x.ai"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-58",
+   "quote": "No one has to authorize api.x.ai separately in Setup; the deployment already contains that authorization."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-5",
+   "quote": "Between pressing Send and the reply or error appearing, a waiting indicator is visible, Send is disabled",
+   "missing": "No mechanism by which the interface learns the reply arrived is named; the design implicitly relies on the synchronous server action returning inline."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-4",
+   "quote": "a single Send (including a double-click, or Enter pressed twice quickly) produces exactly one request; the call log gains exactly one row."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-74",
+   "quote": "the refused send shows the C-27 message, the text returns to the box, and nothing is stored."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-26",
+   "quote": "When the key is missing or empty, or Grok answers HTTP 400, 401, 403 or 404, the error shown says the bot is not available because of a set-up problem"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-30",
+   "quote": "A stand-in that answers 503 receives exactly one request per Send; the retry happens only when the user presses Send again."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-32",
+   "quote": "When the first choice's finish reason is `length` and it has text, the text is shown and stored, with a visible note that the reply was cut off"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-45",
+   "quote": "the model identifier used; an outcome that is exactly one of Success, SetupProblem, TemporaryProblem, OtherFailure, SaveFailed",
+   "missing": "Conversation and message records are described only by text, sender and time (C-18); model and token counts live on log rows not linked to turns, and no record schema is given."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-54",
+   "quote": "A daily clean-up removes call-log rows older than 30 days and conversations idle for more than 90 days",
+   "missing": "What happens to a user's conversations when the user is deactivated or removed."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-50",
+   "quote": "Messages sent to xAI contain only the system prompt, the conversation's included messages, the new message, the model and the maximum reply length"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-7",
+   "quote": "Then come at most the 20 most recent stored messages of that conversation, oldest first"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-12",
+   "quote": "A message of exactly 4,000 characters is accepted and sent. One of 4,001 is refused with a message saying the limit is 4,000 characters"
+  },
+  {
+   "id": "N-22",
+   "state": "covered",
+   "where": "C-33",
+   "quote": "An administrator can see and edit exactly these four values in the org without deploying code"
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "C-47",
+   "quote": "The call log never contains the API key, message text or reply text",
+   "missing": "The call log records who and when (30-day retention, C-54) but deliberately not what was asked or answered; no audit of content exists."
+  },
+  {
+   "id": "N-24",
+   "state": "covered",
+   "where": "C-82",
+   "quote": "Deploying the same project to a second, different org works after that org's own key is entered and its permission set assigned; no org Id, username, instance address or key was baked in."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "C-29",
+   "quote": "the user sees the C-27 message no sooner than 60 and no later than 75 seconds after pressing Send"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "C-67",
+   "quote": "A user who owns no conversations sees a list area saying there are no conversations yet, an empty transcript, and a message box that is ready to type in"
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-61",
+   "quote": "Deployment only adds to the org; it changes nothing that existed before"
+  }
+ ]
+}

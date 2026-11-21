@@ -558,3 +558,52 @@ round 5, 0 of 24**; and no session in any round named the held-out material.
   case on Sonnet. It opened 4 to 12 of the skill's guides a session, wrote an `architecture.md` beside the
   specification in 5 of 8 sessions, and both Grokbot sessions opened the skill's Salesforce card, which is
   recorded so that their platform score can be read as partly the card's.
+
+## 11. Round 5: the lenses in one pass do the work, iterating adds nothing shown, and the released stage is only beaten clearly on Sol (2026-11-20)
+
+24 specifications judged; readings `evidence/round-5/readings.txt`, against the band of 12 fixed in section 8.
+Covered of 89, clean sessions only (A and D are the clean references: Sonnet the mean of two draws, Sol round 4c):
+
+| arm | Sonnet high | Sol medium | minutes a case, Sonnet / Sol |
+| --- | --- | --- | --- |
+| A-single (the ratchet pilot's enrich text) | 43 | 29 | 2.1 / 2.9 |
+| **P-shiploop-spec (the released stage, alone)** | **58** | **43** | 5.7 / 5.1 |
+| **L-lenses-once** | **64** | **62** | 2.9 / 3.8 |
+| F-guarded (iterating) | 68 | 60 | 5.5 / 7.1 |
+| D-enumerated-only (iterating, no guard) | 72 | 64 | 7.3 / 6.6 |
+
+**R9, which form: one pass.** F minus L is +4 on Sonnet and -2 on Sol, neither near 12, and L costs 52% and 54% of
+F's minutes. By the rule fixed beforehand the one-pass form is the candidate. And the lenses in one pass, against
+the single pass without them, are **+21 on Sonnet and +33 on Sol**: that is where the gain of sections 3 to 9
+comes from. What this experiment called "the recursive form" earned its numbers through what it told the model to
+consider, not through going round again. Section 5's first-draft table had pointed there; this is the arm that
+could say so. Status: firm at this size (a real effect of iterating under about 12 cannot be excluded and would
+not change the decision at twice the cost).
+
+**R8, the guard: holds.** F is 4 under D on both drivers, inside the band. Putting back "Add no feature the
+request's intent does not cover" and the coverage sentence costs no coverage shown. Whether it buys less scope is
+the clause audit's question (R10), still running.
+
+**R14, does it add to the stage ShipLoop ships: clearly on Sol, not shown on Sonnet.**
+- Sol medium: L is **+19** over P (F +17). Shown.
+- Sonnet high: L is +6 over P, not shown; F is +10, in the interim range, and F is not the candidate.
+- The released stage itself is +15 and +14 over the ratchet pilot's single pass, so section 6 was right to doubt
+  the control: most of what sections 3 to 5 reported as the elaboration's lead on Sonnet (+29) was a lead over a
+  text ShipLoop does not ship. Against what it does ship, Sonnet's lead is 6 to 10.
+- Where the lenses beat the released stage: on Sonnet almost only the operator's work (2 of 9 for P, 5 for both
+  lens arms); on Sol nearly everywhere, most in edges (5 of 12 to 9), unhappy paths (8 to 11), non-functional
+  bounds (1 of 5 to 3), platform rules (2 of 5 to 4) and permissions (5 of 8 to 7). The released stage's weakest
+  category on both drivers is the operator's work: 2 and 3 of 9.
+- P is the stage without the stages that feed it and with every guide to hand; both Grokbot P sessions opened the
+  skill's Salesforce card. It is a stand-in for the real stage, not the real stage.
+
+**What the four answers say** (the third is still running):
+1. Real beyond noise: yes for the lens content (+21, +33 in one pass).
+2. Which form: one pass.
+3. Does it overbuild: pending the clause audit.
+4. Does it add to the released stage: yes on Sol at medium (+19); not shown on Sonnet at high (+6).
+
+So the outcome the plan to conclude called "fold in the lenses as one pass" is the one the evidence supports, with
+its size stated honestly: a large gain for a weaker driver, a small or no gain for a stronger one, at no cost in
+coverage either way. And one thing the plan did not foresee: L and P are alternatives here, and the fold-back is
+neither. It is P with the lenses added, a text no round has run.

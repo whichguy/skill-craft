@@ -1,0 +1,137 @@
+{
+ "slot": "invoice-reminders__F-guarded__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3069786,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-5",
+   "quote": "Each reminder step is an integer number of days relative to the invoice's due date (negative = before, 0 = on, positive = after). The default schedule is 0, 7, 14 and 30."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-3",
+   "quote": "Once an invoice is paid in full, void, written off, or has a balance of 0.00 or less (fully paid, credited or refunded), no further reminder is sent for it",
+   "missing": "Whether an invoice on a payment plan stops reminders, and whether a disputed invoice stops automatically (the spec only offers a manual per-invoice pause, U-6)."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-4",
+   "quote": "For a partially paid invoice the reminder states the outstanding balance (total minus payments and credits), not the original total."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-68",
+   "quote": "Deliberately not provided: ... pausing per customer, ... a customer-facing unsubscribe link",
+   "missing": "Whether an existing do-not-contact, paused or unsubscribed flag on the customer is honoured, and whether billing reminders are exempt from a marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-32",
+   "quote": "Whatever happens \u2014 two evaluations at the same time, an evaluation run twice, a restart, a retry \u2014 no recipient receives more than one email for the same invoice and offset."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-36",
+   "quote": "The invoice state is checked immediately before each email is handed to the delivery provider; a payment, void, pause or turning off recorded before that check prevents the send"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-37",
+   "quote": "retried to that recipient at an evaluation at least 60 minutes later, up to 3 attempts in total per recipient and step; after the third failure the recipient's result is \"error\"",
+   "missing": "Retry and outage (C-82) are covered, but nothing escalates to or alerts a person when sending keeps failing; operators must find failures themselves in the C-60 list."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-62",
+   "quote": "Emails are handed to the delivery provider at no more than 10 per second by default ... the remaining sends are delayed, not dropped"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "U-9",
+   "quote": "Only invoices that have a step whose date is within the last 3 days (or today) receive a reminder, one email per invoice. An invoice 20 days overdue receives nothing that day"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-9, C-10",
+   "quote": "sent at the first evaluation at or after the send time (default 09:00) on the step's date in the business time zone ... sent on its date even if it is a Saturday, Sunday or public holiday"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-49",
+   "quote": "The outstanding balance is shown with its ISO currency code and with the currency's standard number of decimal places (2 for USD and EUR, 0 for JPY)"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-53, C-76, C-27",
+   "quote": "After a permanent bounce or a rejection ... later steps of that invoice show that address as \"suppressed\"; ... If an eligible step has no recipient, it stays pending with the reason \"no recipient\""
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-24",
+   "quote": "Recipients are the billing email addresses listed on the invoice. If it lists none, the customer's default billing email ... At most 5 recipients"
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-31",
+   "quote": "For every step the invoice shows: offset, scheduled date, outcome (pending, sent, skipped, failed, outcome unknown), the reason for skipped/failed, the time of the last attempt, and per recipient address and result"
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-28",
+   "quote": "the invoice number; the outstanding balance with its currency code; the due date; ... the invoice's payment link where it has one, otherwise the payment-instructions text",
+   "missing": "Whether the payment link can expire and what the reminder does if it has."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-21, C-79, C-68",
+   "quote": "Turning on/off, editing settings and pausing/resuming an invoice are refused for users without the permission to manage reminders; ... only administrators of the account hold the permission"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-68",
+   "quote": "Deliberately not provided: sending a reminder on demand, pausing per customer",
+   "missing": "Global off (C-17), per-customer and manual resend are decided, but no preview or dry-run of what will be sent exists in production; only non-production shows would-be content (C-43)."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-31, C-60",
+   "quote": "It also shows the next scheduled step and its date. ... An operator can list reminder steps across all invoices filtered by step outcome"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-11",
+   "quote": "A step more than 3 days past is not sent and is recorded as skipped with the reason \"window expired\""
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-41, C-42",
+   "quote": "Reminders do not modify an invoice's status, amounts, due date or payments. ... Creating invoices, recording payments and voiding work as without the feature"
+  }
+ ]
+}

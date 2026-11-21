@@ -1,0 +1,140 @@
+{
+ "slot": "gym-waitlist__P-shiploop-spec__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3910148,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-5 / D-1",
+   "quote": "the first eligible entry in join order is turned into a real booking, in the same atomic operation that freed the seat ... Promotion is automatic, with no accept/decline step."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-3 / AC-3.1",
+   "quote": "entries are served strictly in join order ... two joins at the same instant get distinct join orders (no tie) ... Left out: priority by membership tier, by attendance record or by booking history"
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "joining several overlapping classes' waitlists is allowed only to the extent the app already allows booking overlapping classes (G-2)",
+   "missing": "What happens to the member's Waiting entry for the overlapping class once they are promoted into one; only an indirect existing-overlap eligibility check at later promotion is implied."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "D-1",
+   "quote": "a promoted member who cannot attend must cancel through the existing cancel flow (late-cancel rules apply as today)"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "F-3 / Service boundaries",
+   "quote": "any seat-freeing event (member cancels booking, staff removes a booking, staff raises capacity) ... Async completion: promotion is synchronous with the seat release (no queue, no worker)"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-9 / AC-9.1",
+   "quote": "one notification through the app's existing notification channel (G-3), stating the class, its time and the outcome ... channel returns an error \u2192 booking and entry stay Promoted, the failure is logged"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AC-8.1",
+   "quote": "two simultaneous cancellations free two seats ... exactly Cara and Dev promoted, Eli position 1; no one promoted twice."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "AC-7.1 / R-8",
+   "quote": "a member with a Waiting entry who books directly gets ON_WAITLIST; entry unchanged ... resolve concurrent changes as if run one at a time (serialisable per session)"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-6 / AC-6.1",
+   "quote": "Preserved: every existing eligibility, credit/payment, overlap and cutoff rule ... head-of-queue Cara fails the check ... becomes Ineligible, Dev (next) is evaluated for the same seat"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1 / G-5",
+   "quote": "a waitlist length cap (G-5, default none) ... Maximum waitlist length per class ... No cap"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-11 / AC-11.2",
+   "quote": "When the class is no longer bookable under the app's existing rule (started or past cutoff), no join and no promotion happens ... the waitlist adds no second clock."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "AC-5.2",
+   "quote": "staff sets capacity 4 \u2192 Cara and Dev promoted in that order ... capacity 4 \u2192 3 with booked 4 (staff cut): no booking is removed"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-11 / AC-11.1",
+   "quote": "when the studio cancels a class, every Waiting entry becomes Closed and the member is told (R-9)."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "Domain model / AD-4",
+   "quote": "Waitlist entry (member, session, join order, state, link to booking) ... Derived values (never stored as authority): position of a Waiting entry = 1 + number of Waiting entries ... earlier join order"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-11 / D-11",
+   "quote": "entries are shown as \"Class closed\" and are never turned into bookings afterwards ... Retention of terminal entries follows existing booking-record retention until G-7 is decided."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-3 / AC-3.2",
+   "quote": "A member sees their own position; they never see who else is queued ... any field carrying another member's name, email, id or avatar is a defect."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-12 / AC-12.1",
+   "quote": "a staff member opens S1 and sees the ordered waiting members with their join order and can remove one entry",
+   "missing": "Manual promotion by staff and a staff view of who was promoted when are not stated; the whole staff view is conditional on G-4."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "Service boundaries / T-4",
+   "quote": "promotion is synchronous with the seat release (no queue, no worker); acknowledgement of a cancel means the promotion also committed or neither did"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-13 / AC-13.1",
+   "quote": "a class with free seats and no queue is booked and cancelled exactly as before ... existing clients that know nothing of the waitlist keep working"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "State and data assessment / R-1",
+   "quote": "No migration of existing data is needed: entries start empty. ... a signed-in member viewing a full, bookable class can join its waitlist"
+  }
+ ]
+}

@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__L-lenses-once__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.2663596,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-34",
+   "quote": "If a file passes the checks of C-8 to C-20 but any row is invalid, then after the response the set of users is exactly what it was before the upload"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-33",
+   "quote": "Each error entry shows the row number (C-22), the column name (`email`, `name` or `role`, or \"row\" ...), and a reason in words that a person can act on."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-30, C-31",
+   "quote": "the row is invalid with an error on column `email` and the reason \"already exists\". The existing user is not changed. / each later occurrence is invalid ... \"duplicate of row 4\"."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-27",
+   "quote": "`member` and `admin` are the least set that lets an admin create both ordinary and administrative users",
+   "missing": "No rule checks a file's roles against the importer's own authority; whether a role above the importer's (e.g. any role beyond admin in the system) could be granted is never stated as a constraint."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-1, C-2",
+   "quote": "A signed-in user whose role is not `admin` who requests the import page or sends an upload receives HTTP status 403",
+   "missing": "Who may import is stated (admins), but not whether the import permission is distinct from, or implied by, the permission to create a single user."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-15, C-17, C-18",
+   "quote": "If it has no `email` column, or no `name` column, the file is refused with a message naming each missing column ... Columns other than `email`, `name` and `role` are ignored and reported"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-11, C-13",
+   "quote": "A file starting with the UTF-8 byte-order mark (EF BB BF) is read as if the mark were absent ... A field wrapped in double quotes may contain commas, line breaks ... Records end with LF, CRLF or CR."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-42, C-37",
+   "quote": "Invitations are sent after the users are saved and do not delay or undo the import / the set of users is as before, no invitation is sent"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-9, C-20",
+   "quote": "A file of 1,048,577 bytes or more is refused with a message that states the limit \"1 MiB\" ... A file with 1,001 or more data rows ... is refused"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-10, C-19, C-35",
+   "quote": "A file of zero bytes ... is refused with a message saying the file is empty / A file whose only non-blank record is the header row ... is refused / for each row there is exactly one user"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "U-4, C-30",
+   "quote": "re-uploads a file that already succeeded ... Each email ends up with exactly one account; the upload that cannot create an account for some email is refused as a whole with the reason \"already exists\""
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-20, C-53",
+   "quote": "a bound is required because the import runs inside one web request and must finish in time (C-53)"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-41, C-42",
+   "quote": "For each created user, one email arrives at the user's address ... The success response of C-36 is shown without waiting for the emails to be delivered.",
+   "missing": "Whether up to 1,000 invitations go out at once or are paced/throttled, and at what rate."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-35, C-40, U-7",
+   "quote": "in the active state ... Right after an import, signing in as a new user with any password ... fails. / opens the link in it, chooses a password, and is then able to sign in"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-48",
+   "quote": "After the response, the uploaded file is not available anywhere in the application (not retrievable by any URL, not stored in the import record)."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "C-49",
+   "quote": "one import record with: the admin who made it, the time (UTC), the original file name ..., the outcome"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-34, C-37",
+   "quote": "Valid rows in the same file are not created. ... the admin can upload the same file again.",
+   "missing": "Cancelling an import in progress is not addressed; retry is by re-uploading the whole file, with no failed-rows-only retry stated."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-53",
+   "quote": "Uploading a valid file of 1,000 rows ... shows the success result of C-36 in no more than 30 seconds",
+   "missing": "Whether any progress is shown to the admin while the import runs."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "C-39",
+   "quote": "No existing user is updated, deactivated or deleted by an import.",
+   "missing": "That the existing single-user creation path continues to work unchanged is not stated."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "C-26, C-47",
+   "quote": "A name is required and at most 200 characters ... Any other characters are allowed, including ... a leading `=`.",
+   "missing": "Long fields are bounded, but formula-injection handling (escaping a leading =, +, -, @) when values are opened in a spreadsheet is not decided."
+  }
+ ]
+}

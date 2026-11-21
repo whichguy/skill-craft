@@ -1,0 +1,141 @@
+{
+ "slot": "invoice-reminders__L-lenses-once__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.367015,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-15, C-18, C-19, C-20, C-21",
+   "quote": "An unpaid invoice due October 10 cannot receive a reminder at any time on or before October 10 ... opportunity 2 begins at the start of October 17 ... An invoice has at most 3 automatic reminder opportunities"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-12, C-13, C-11",
+   "quote": "paid or fully settled, voided, canceled, written off ... produces zero new handoffs ... Archiving, a dispute, or a pending payment alone affects eligibility only if billing already treats it as closing or suspending collection.",
+   "missing": "Payment plans are never named, and whether a dispute stops reminders depends on existing billing rules rather than being decided; a builder must still determine those two stop conditions."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-43",
+   "quote": "An invoice with USD 60.00 still payable shows an outstanding USD amount of 60.00, regardless of the original invoice total."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-39",
+   "quote": "Zero, multiple equally designated, syntactically unusable, or billing-suppressed destination addresses result in a visible recipient blocker.",
+   "missing": "Whether a customer-level do-not-contact/paused/unsubscribed state blocks reminders, and whether a billing notice is exempt from a marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-50, C-52, C-82",
+   "quote": "Re-evaluating the same account and invoice at the same opportunity, including with overlapping workers or after a restart, results in at most 1 delivery-service acceptance of that opportunity."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-33",
+   "quote": "If a payment, closure, hold, account disable, invoice edit or recipient change becomes effective in billing before a handoff begins, that handoff uses the new facts or is suppressed."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-54, C-55, C-56, C-57, C-69",
+   "quote": "One opportunity allows at most 3 handoff attempts ... The first retry waits at least 1 elapsed hour ... A reported outage before any handoff begins leaves the opportunity pending with zero attempts consumed.",
+   "missing": "Escalation to a person when sends keep failing: failures are only visible on inspection, with no alert or notification to an operator."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-86, C-58",
+   "quote": "If available delivery capacity is exhausted, due work stays visible for reevaluation and the system obeys the sender's restrictions on additional handoffs. Sender rate, burst, daily volume and destination limits are unconfirmed.",
+   "missing": "The actual rate limit and how a large batch is paced or spread within it."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C-22, U-4",
+   "quote": "Only the latest reached opportunity is considered for a new handoff ... A late start, downtime or an old invoice can warrant a reminder without replaying missed messages.",
+   "missing": "Missed steps are not replayed, but every overdue invoice still becomes eligible right away (C-27, C-30), so nothing staggers or ramps the first burst of sends across the backlog."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "C-16, C-17",
+   "quote": "the applicable zone is the one billing associates with that invoice, else the account billing zone, else UTC ... A reminder opportunity begins at the first valid instant of its scheduled local date",
+   "missing": "Sending hours (business hours), and whether to avoid weekends and holidays; the customer's own local time is not used."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-43",
+   "quote": "shows an outstanding USD amount of 60.00 ... Currency presentation can follow existing billing conventions.",
+   "missing": "How amounts and currency are formatted for the recipient's locale; this is left to unspecified existing conventions."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-39, C-59, C-63",
+   "quote": "Zero, multiple equally designated, syntactically unusable, or billing-suppressed destination addresses result in a visible recipient blocker."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-38, C-39",
+   "quote": "The email goes to the primary billing address designated for that invoice by the existing invoice delivery rules ... Unrelated contacts, internal users, and automatic CC or BCC recipients receive zero copies."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-66",
+   "quote": "Each begun handoff can be identified by its opportunity number, attempt number, destination address, handoff time, current outcome, last outcome update time and failure reason when applicable."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-42, C-43, C-44, C-45",
+   "quote": "The email includes the invoice's existing customer-facing payment link or its actionable payment instructions. It introduces no new checkout, payment method or payment terms.",
+   "missing": "Whether the payment link expires, and what happens if it has expired by the time a later reminder is sent."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-4, C-8",
+   "quote": "An operator with the account's billing-settings permission can enable or disable reminders ... Per-invoice switches, schedule editing, template editing, additional channels and a manual reminder replay control are outside this policy."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-2, C-8, C-81, C-88",
+   "quote": "Enabling reminders for one account leaves the setting for a second account as it was ... a manual reminder replay control are outside this policy.",
+   "missing": "A preview or dry-run for operators, and whether reminders can be turned off for an individual customer (only per-billing-account toggles and rollout stop are defined)."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-65, C-66",
+   "quote": "The view shows the relevant reason, applicable opportunity and next eligible attempt time where known."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-21, C-22, C-23, C-55",
+   "quote": "An invoice has at most 3 automatic reminder opportunities ... When opportunity 2 opens, a pending attempt or retry for opportunity 1 cannot begin."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-73, C-74, C-75, C-77",
+   "quote": "Evaluation, sending and delivery outcomes have no effect on the ledger or collectible amount. Existing payments, credits, refunds and write-offs retain their billing effects."
+  }
+ ]
+}

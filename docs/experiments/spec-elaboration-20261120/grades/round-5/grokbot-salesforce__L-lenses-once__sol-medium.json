@@ -1,0 +1,178 @@
+{
+ "slot": "grokbot-salesforce__L-lenses-once__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.4317166,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "C-6",
+   "quote": "A signed-in user with access can locate a Salesforce entry point whose visible description identifies Grok.",
+   "missing": "Which surface hosts the bot (record page component, utility bar, app page, Flow action) is not chosen; only that it hands no record context (U-13) and excludes Experience Cloud (C-10)."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-61",
+   "quote": "The operation does not read a business record for the answer, even if the user has Salesforce record access."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-61",
+   "quote": "ask for stored Accounts, Contacts, or any other org data without supplying it in the prompt. The operation does not read a business record for the answer"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-9",
+   "quote": "An internal Salesforce user needs an explicit bot grant. ... An internal user without it cannot submit, even from a direct link or an already open view."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-58",
+   "quote": "past drafts, prompts, replies, and errors are unavailable through the bot. They cannot be retrieved by an administrator via a bot-owned record, transcript, or export."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-87",
+   "quote": "try to send from a transaction with pending record changes, queued asynchronous work, scheduled work, or email sends. Salesforce refuses the external callout while those pending operations remain.",
+   "missing": "Whether the callout runs synchronously or asynchronously (Queueable, future, batch) is left open; C-89 treats async only 'when the chosen route uses it'."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-65",
+   "quote": "Inspect the bot UI, subsequent configuration views, exported bot metadata, client assets, browser request traffic, errors, and bot-emitted diagnostics after provisioning. None reveals the key"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-53, C-80, C-84, C-85",
+   "quote": "per-call override from 1 through 120,000 milliseconds; ... used its 100 available callouts; heap limits are 10 MB synchronous and 25 MB asynchronous; 10,000 ms synchronous and 60,000 ms asynchronous"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-106",
+   "quote": "In an ordinary Apex unit-test run, external HTTP calls are blocked and substitutes supply their results."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-66",
+   "quote": "Salesforce requires a usable Named Credential for that destination or the applicable Remote Site Setting for a direct Apex callout."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-26",
+   "quote": "While Grok is generating, the view shows pending status. When the answer is complete, it becomes visible together. The bot exposes no incremental stream.",
+   "missing": "The mechanism by which the view learns the reply arrived (inline return, polling, platform event, LMS) is not decided."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-33",
+   "quote": "Deliver the same send action twice while it is pending or replay it after it finishes. Observe at most 1 inference request and at most 1 displayed final result for that action."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-89",
+   "quote": "If the bot uses asynchronous Apex and the org has exhausted its standard licensed quota, an attempt that cannot run within the interaction deadline shows failure or timeout."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-50, C-51, C-53",
+   "quote": "such as HTTP 400, 405, 415, or 422 ... the user sees a request failure; Return HTTP 5xx ... Grok service is unavailable; The originating view reports timeout."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-45, C-37",
+   "quote": "At a provider HTTP 429 rate-limit response, the view indicates that capacity is temporarily unavailable. / The bot performs zero automatic retries of user inference."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-48, C-35",
+   "quote": "The attempt indicates that there is no complete reply. Any displayed excerpt is identified as incomplete. / if a final result has not reached the view 45 seconds after it indicated pending, the view ends the attempt with a timeout outcome."
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "C-58",
+   "quote": "The bot has no bot-managed conversation or result history."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-58, C-59",
+   "quote": "This applies to bot-managed storage, with provider retention governed separately. / default provider audit retention is 30 days unless the team is configured for Zero Data Retention."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-57",
+   "quote": "Its application data consists of the current submitted text and the selected Grok model ... No Salesforce records, record context, Salesforce user identifiers, session tokens, conversation history, or browser state are included."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-28",
+   "quote": "The second provider exchange includes neither the earlier text nor the earlier response nor a reference that retrieves them."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-16, C-20, C-19",
+   "quote": "the prompt is empty and no earlier pending state, answer, or error is displayed; ... entirely of Unicode White_Space characters yields a prompt-required outcome; prompts of 1 and 4,000 Unicode code points pass"
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "C-73, C-67, C-78",
+   "quote": "For a fresh sample attempt, the administrator can distinguish success, local access denial, ... Lookups or live checks suffice. A historical diagnostics dashboard is outside scope.",
+   "missing": "Disable and model change are covered, but the administrator cannot see failed requests made by users; only fresh sample attempts are diagnosable."
+  },
+  {
+   "id": "N-23",
+   "state": "covered",
+   "where": "C-58, C-59",
+   "quote": "They cannot be retrieved by an administrator via a bot-owned record, transcript, or export. / default provider audit retention is 30 days unless the team is configured for Zero Data Retention."
+  },
+  {
+   "id": "N-24",
+   "state": "covered",
+   "where": "C-107, C-105, C-101",
+   "quote": "The destination administrator supplies authorized credential material there before a live Grok request works. / Salesforce rejects inadequate org-wide Apex coverage below 75%"
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "C-35, C-24",
+   "quote": "A pending view has a 45-second interaction deadline. / The originating view shows that the attempt is in progress until it reaches a final outcome."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "C-16, C-24, C-39, C-47",
+   "quote": "no earlier pending state, answer, or error is displayed; shows that the attempt is in progress; For each refusal or failure, the view gives the applicable next step; the user sees a refusal"
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-90, C-91, C-92",
+   "quote": "Existing Salesforce records and field values remain as before installation ... Existing user logins, object and field permissions, and record sharing work as before ... Existing triggers, flows ... retain their prior conditions"
+  }
+ ]
+}

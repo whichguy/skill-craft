@@ -1,0 +1,145 @@
+{
+ "slot": "invoice-reminders__P-shiploop-spec__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3303452,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Default to one reminder per eligible invoice over its lifetime. Eligibility requires ... a current cutoff strictly earlier than the evaluation instant"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Partially paid invoices with a remaining balance qualify. Draft, paid, void, canceled, deleted and collection-held invoices are ineligible.",
+   "missing": "Treatment of credited and disputed invoices is left as an open gap (\"collectible status mapping (including credits, disputes and holds)\"); payment plans are not addressed."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C4",
+   "quote": "states the current outstanding amount and currency"
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-2 Open gaps",
+   "quote": "The billing owner must confirm channel, sender, contact selection for multiple contacts, required content, contact permissions or exclusions",
+   "missing": "How do-not-contact, paused or unsubscribed customer states suppress reminders, and whether a billing notice is exempt from a marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C5",
+   "quote": "One confirmed acceptance consumes the reminder for that scoped invoice. Concurrent evaluations, retries after acceptance, restart and later invoice edits produce no additional accepted submission."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C3",
+   "quote": "Immediately before each submission, including a retry, use current invoice facts, contact and enabled scope... A payment ... effective by the final authority check suppresses the submission."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C6",
+   "quote": "Confirmed permanent failure or exhausted retry allowance ends automatic attempts and exposes an actionable outcome.",
+   "missing": "Retry intervals and the retry budget are left open (R-3 Open gaps), and the spec does not say how a provider outage is handled or who is alerted."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "At the selected runtime and authorized provider quota, excess work stays recoverable and visible to operators... Evaluation interval, dispatch-lag target, workload, concurrency, retry and cost bounds remain open.",
+   "missing": "The provider rate limit, and how a large batch is paced within it."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-1 Open gaps",
+   "quote": "The billing owner must identify the approved sender scope and rollout cohort, including whether to enable existing overdue invoices.",
+   "missing": "Whether the backlog of already-overdue invoices is throttled or staggered rather than sent all at once on enablement."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1 Open gaps",
+   "quote": "The billing owner must confirm cutoff semantics for date-only invoices and time zones",
+   "missing": "Time-zone handling for the cutoff, and whether sends are limited to the customer's local business hours or avoid weekends and holidays."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C4",
+   "quote": "states the current outstanding amount and currency",
+   "missing": "How the amount and currency are formatted for the recipient's locale."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C4",
+   "quote": "If there is no valid authorized contact, submit nothing, record the reason and allow future evaluation after correction. Never substitute an unverified recipient."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-2 Open gaps",
+   "quote": "The billing owner must confirm channel, sender, contact selection for multiple contacts",
+   "missing": "Which of several billing contacts receives the reminder."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3 Lifecycle and service boundary",
+   "quote": "Durable reminder state may retain scoped identifiers, attempt references, status, reason codes and timestamps needed for recovery and read-back.",
+   "missing": "Whether the record shows what was sent and whether it appears on the invoice; the operator surface is still unidentified and message content is excluded."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C4",
+   "quote": "It identifies the sender and invoice, states the current outstanding amount and currency, and directs the recipient to the existing authorized invoice or payment route when available.",
+   "missing": "Whether the due date is included, and whether the payment link expires."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "Source and scope",
+   "quote": "Authorized account configuration determines the enabled scope... No new identity, shared workspace, settings page, or manual send control is required.",
+   "missing": "Which roles may configure or enable reminders and who may stop a reminder by hand; \"authorized\" is not defined."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Disabling the approved scope stops new attempts at the next final check, including during recovery.",
+   "missing": "A per-customer off switch, preview or dry-run, and manual resend; manual send control is explicitly not provided."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C8",
+   "quote": "Authorized billing operators can distinguish ineligible or suppressed, pending, retryable, unresolved, accepted and ended without acceptance."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-3 Open gaps",
+   "quote": "The billing and runtime owners must agree retry intervals, finite budget, maximum reminder age",
+   "missing": "The actual cap on sending volume and the maximum lateness or age of a reminder."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Original invoice and payment workflows retain their authority and behavior."
+  }
+ ]
+}

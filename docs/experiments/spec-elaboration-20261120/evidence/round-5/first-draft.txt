@@ -1,0 +1,27 @@
+session                                                         clauses: first draft -> kept  covered  in first draft  only later  unplaced
+round-4/csv-user-import__D-enumerated-only__sol-medium         first write of spec.md not found in the stream; left out
+round-4/csv-user-import__D-enumerated-only__sonnet-high                   77 -> 86                  17              16           1         0
+round-4/grokbot-salesforce__D-enumerated-only__sol-medium      first write of spec.md not found in the stream; left out
+round-4/grokbot-salesforce__D-enumerated-only__sonnet-high                81 -> 89                  24              24           0         0
+round-4/gym-waitlist__D-enumerated-only__sol-medium                       19 -> 174                 11               6           5         0
+round-4/gym-waitlist__D-enumerated-only__sonnet-high                      32 -> 93                  15               7           8         0
+round-4/invoice-reminders__D-enumerated-only__sol-medium       first write of spec.md not found in the stream; left out
+round-4/invoice-reminders__D-enumerated-only__sonnet-high                 22 -> 98                  15               6           9         0
+round-4c/csv-user-import__D-enumerated-only__sol-medium                   14 -> 101                 17               3          14         0
+round-4c/grokbot-salesforce__D-enumerated-only__sol-medium                18 -> 114                 17               1          16         0
+round-4c/gym-waitlist__D-enumerated-only__sol-medium           first write of spec.md not found in the stream; left out
+round-4c/invoice-reminders__D-enumerated-only__sol-medium                 18 -> 118                 14               1          13         0
+round-5/csv-user-import__F-guarded__sol-medium                 first write of spec.md not found in the stream; left out
+round-5/csv-user-import__F-guarded__sonnet-high                           70 -> 70                  17              16           1         0
+round-5/grokbot-salesforce__F-guarded__sol-medium                         14 -> 134                 21               0          21         0
+round-5/grokbot-salesforce__F-guarded__sonnet-high                        55 -> 86                  21              13           8         0
+round-5/gym-waitlist__F-guarded__sol-medium                               96 -> 141                 12               9           3         0
+round-5/gym-waitlist__F-guarded__sonnet-high                               6 -> 66                  15               0          15         0
+round-5/invoice-reminders__F-guarded__sol-medium                          20 -> 134                 14               2          12         0
+round-5/invoice-reminders__F-guarded__sonnet-high                         44 -> 86                  15              12           3         0
+
+POOLED, of the nuances finally covered whose covering words could be located in the kept file
+  D-enumerated-only    sol-medium   sessions 4: clauses 69 -> 507; covered 59, worded in the first draft 11 (19%), only later 48 (81%), unplaced 0
+  D-enumerated-only    sonnet-high  sessions 4: clauses 212 -> 366; covered 71, worded in the first draft 53 (75%), only later 18 (25%), unplaced 0
+  F-guarded            sol-medium   sessions 3: clauses 130 -> 409; covered 47, worded in the first draft 11 (23%), only later 36 (77%), unplaced 0
+  F-guarded            sonnet-high  sessions 4: clauses 175 -> 308; covered 68, worded in the first draft 41 (60%), only later 27 (40%), unplaced 0

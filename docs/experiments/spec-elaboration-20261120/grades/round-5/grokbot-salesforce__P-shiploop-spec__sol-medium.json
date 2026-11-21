@@ -1,0 +1,184 @@
+{
+ "slot": "grokbot-salesforce__P-shiploop-spec__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.6030042000000002,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "AD-1; C-05",
+   "quote": "Build the bot as a Lightning Web Component exposed as a custom tab. ... Only that question and fixed bot instructions, if used, supply content. No model tools or Salesforce record context."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "AD-2; C-10",
+   "quote": "This path has no CRM object reads, CRUD, field-level data handling or record-sharing dependencies. ... No automatic enrichment with CRM data or Salesforce user identifiers"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "This path has no CRM object reads, CRUD, field-level data handling or record-sharing dependencies."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "AD-1; R-3 State and recovery",
+   "quote": "Grant access only to the intended users after the setup checks, using a feature-scoped permission set. ... The Salesforce admin owns the selected endpoint and model configuration, which users cannot edit from the bot."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-09; C-11",
+   "quote": "A completion from an abandoned view cannot update a replacement view or another user's view. ... No new persistent telemetry, per-user history or bot audit system. Platform and provider traces follow their own access and retention settings."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-3; R-4 State and interaction",
+   "quote": "A single Apex callout is sufficient for the foreground interaction. ... The stateless foreground design has no worker, broker or persisted operation record.",
+   "missing": "The callout restrictions (no callout from a trigger, no callout after uncommitted DML) are not stated, and the design is a synchronous foreground callout rather than Queueable/future/batch; a builder must still decide how those constraints are respected."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AD-2; C-11",
+   "quote": "Use a modern Named Credential ... and a Custom authentication External Credential with a named principal. ... Ship credential metadata without the secret. ... Application diagnostics omit credentials"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "NFR Capacity and failure containment",
+   "quote": "The Salesforce synchronous ceilings include 100 callouts and 120 seconds cumulative callout timeout per transaction, with a 6 MB callout payload limit that also counts towards heap.",
+   "missing": "The CPU time limit and the heap limit's own value are not named."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C-06",
+   "quote": "At the integration boundary exercise each error class with controlled responses, assert outbound counts and sanitized outcomes",
+   "missing": "No statement that Apex tests cannot make real callouts or that a mock callout implementation (HttpCalloutMock) is required."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "Use a modern Named Credential targeting the approved xAI HTTPS base URL"
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "AD-2; Boundary and flow model",
+   "quote": "The component uses a non-cacheable imperative Apex entry point. ... There is no incremental record state, cache invalidation, callback, subscription or durable recovery because this interaction is a fresh request/response.",
+   "missing": "The spec relies on the imperative call returning the answer inline; no platform event, CDC, polled status field or LMS mechanism is defined."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-06; C-08",
+   "quote": "One outbound attempt at most per admitted send. ... No automatic resend, and a manual resend is a fresh request. ... Attempts to repeat Send while pending produce no second call."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "NFR Capacity and failure containment",
+   "quote": "Selected prompt and output limits, timeout, expected concurrent load and any spend ceiling remain unresolved",
+   "missing": "No concurrency or queue limit is named, and the outcome for a request that cannot be admitted because of concurrency is not stated."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-06",
+   "quote": "upstream 401/403 or unavailable model yields setup guidance. Rate limiting yields a wait-and-retry message. Transport, timeout, upstream failure or an invalid, blank or incomplete success response gives a safe failure",
+   "missing": "Timeout and 5xx share one outcome rather than distinct ones; other 4xx refusals (e.g. 400) are not assigned an outcome."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-06",
+   "quote": "Rate limiting yields a wait-and-retry message. ... One outbound attempt at most per admitted send. ... No automatic resend, and a manual resend is a fresh request."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-06; AD-3",
+   "quote": "Transport, timeout, upstream failure or an invalid, blank or incomplete success response gives a safe failure with a recovery action. ... Treat an incomplete or pending provider response as a failure for this path."
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "C-10; C-11",
+   "quote": "Bot storage excludes transcript records, browser persistence and provider response history. ... No new persistent telemetry, per-user history or bot audit system."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-5 State ownership and retention",
+   "quote": "Owner-visible local content is dropped on clear or view exit and excludes application persistence and logs. ... xAI's documented default audit retention is 30 days with automatic deletion."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-05; C-10",
+   "quote": "Only that question and fixed bot instructions, if used, supply content. No model tools or Salesforce record context. ... use synthetic text only ... No automatic enrichment with CRM data or Salesforce user identifiers"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-05; AD-3",
+   "quote": "A second question starts a new turn. Only that question and fixed bot instructions, if used, supply content. ... omit tools, prior response IDs and provider-side conversation state."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "C-07",
+   "quote": "An empty view presents a labeled prompt field and Send action. ... Empty or whitespace-only input is not submitted. ... At the selected input cap, admit otherwise-valid text. At one unit above, reject without sending.",
+   "missing": "The actual input cap, its unit and the output limit are left open."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-3 State and recovery; C-02; C-11",
+   "quote": "The Salesforce admin owns the selected endpoint and model configuration ... keep access closed or withdraw the feature grant ... No new persistent telemetry, per-user history or bot audit system.",
+   "missing": "No way is given for an administrator to see failed requests (deferred to platform/provider traces), and there is no explicit off switch beyond withdrawing grants."
+  },
+  {
+   "id": "N-23",
+   "state": "covered",
+   "where": "C-11; R-5 State ownership and retention",
+   "quote": "No new persistent telemetry, per-user history or bot audit system. ... xAI's documented default audit retention is 30 days with automatic deletion."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "Scope and baseline; AD-1",
+   "quote": "Deploy the feature-owned Salesforce metadata with rollback on deployment error. Verify terminal success and candidate identity separately from secret provisioning",
+   "missing": "Per-environment configuration and credential differences, scratch org vs sandbox, and the production code-coverage requirement are not stated (production rollout is excluded)."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "C-07; NFR Capacity and failure containment",
+   "quote": "A valid send enters a distinct, announced pending state. ... No throughput, availability or latency SLA was requested.",
+   "missing": "No latency target or timeout value is set; the timeout remains open."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "NFR Interaction and visual quality; C-12",
+   "quote": "Design the empty, pending, answer and persistent error states together. A distinct, calm status area next to the composer communicates progress and recovery."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "Scope and baseline; R-3; C-02",
+   "quote": "Preserving unrelated org configuration and data applies ... without reading or changing Salesforce records. ... Unrelated navigation, assignments and metadata retain their pre-change values."
+  }
+ ]
+}

@@ -1,0 +1,146 @@
+{
+ "slot": "csv-user-import__P-shiploop-spec__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.336058,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3 State and recovery; R-3.b",
+   "quote": "Rejection rolls back the full batch."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2.b",
+   "quote": "reject the batch. Provide a file-level reason or a logical record number and field when attributable."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3.b",
+   "quote": "A duplicate within the file or an identity already reserved by ordinary account policy rejects the entire batch. Report affected input record numbers where known"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-2 Input contract default",
+   "quote": "Reject unsupported columns, including credentials or privileged role inputs."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1.a",
+   "quote": "A signed-in admin with current user-create authority for the managed scope can open and submit the import.",
+   "missing": "The spec ties import to ordinary user-create authority. It never says import is a separate permission that creating one user does not imply, and the actual permission is left as an open gap."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2.b; R-2 Input contract default",
+   "quote": "missing, repeated or unsupported headers, wrong field count, invalid required value or an exceeded limit reject the batch ... a required header"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2 Input contract default",
+   "quote": "optional leading UTF-8 BOM, a required header, and LF or CRLF record endings ... Double quotes delimit fields and a doubled quote escapes a quote. A quoted record spanning lines has one logical record number."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-3.a",
+   "quote": "Invocation that fails definitively before commit leaves zero created records and produces no account lifecycle effects for the failed batch."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2.b",
+   "quote": "A file exactly at each published maximum is eligible, and the next byte or logical record is rejected when the other limit is satisfied.",
+   "missing": "The actual numeric byte and row limits. They are left to the runtime owner."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2.b; R-2 Input contract default",
+   "quote": "A header with zero data records is rejected. A single permitted record is accepted. ... a required header"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-3.b",
+   "quote": "Replaying a committed file creates zero additional users and updates none."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-4 State and recovery; Service boundaries",
+   "quote": "No new import history, job continuation promise, cancellation after submit or external notification channel is in scope. ... background job recovery are inapplicable to the default interaction.",
+   "missing": "How a file near the maximum size is handled if it outlasts the request or view. Caps and request lifetime are unresolved, and there is no completion notice beyond the active view."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3 Open gap",
+   "quote": "Confirm ... activation and invitation behavior ... No new invitation, credential or privilege policy is authorized here.",
+   "missing": "Whether invitation or welcome mail is sent for imported users and, if so, how it is paced for large batches."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3.a; R-3 Open gap",
+   "quote": "commits one new ordinary user for each data record with the submitted supported values and ordinary defaults ... Confirm ... activation and invitation behavior",
+   "missing": "Whether new users start active or pending, with or without a password, and how they first sign in."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2 State and recovery",
+   "quote": "The import authority reads the upload only for the active attempt within the authorized scope. Release raw bytes and parsed input at the terminal outcome or attempt expiry ... Keep them out of ordinary history, logs and other clients."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-4.c; R-4 State and recovery",
+   "quote": "Relevant metadata is limited to safe correlation, outcome, safe reason category, timing and any permitted aggregate count.",
+   "missing": "An audit record of which admin imported which users, and when. Only operational outcome diagnostics are specified, and import history is excluded."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-4 State and recovery; R-4.b",
+   "quote": "No new import history, job continuation promise, cancellation after submit ... is in scope. ... can retry with source rows known to be absent."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-4.a; Non-functional requirements (Capacity)",
+   "quote": "Show processing while the operation is outstanding ... No sourced latency SLA, availability target or cost target is available.",
+   "missing": "A time bound for a maximum-size file, and progress beyond a generic processing indicator."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1 Basis; R-3.a; R-3.b",
+   "quote": "Preserves ordinary user-creation authority ... The batch changes only the intended scope and submitted identities. ... Replaying a committed file creates zero additional users and updates none."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-2 Open gap; R-2.b",
+   "quote": "Runtime owner sets and verifies byte, record and field limits",
+   "missing": "The value of the per-field length limit, and any handling of formula-like values (spreadsheet injection) in results."
+  }
+ ]
+}

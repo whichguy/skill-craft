@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__F-guarded__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3711202,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-40",
+   "quote": "A file with one invalid record alongside valid records, or a write failure confirmed before the batch took effect, creates zero accounts attributable to that upload."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-43",
+   "quote": "If several checks fail, the result identifies at least one blocking input error. Error ordering and the number of further errors are left open.",
+   "missing": "Whether the result lists every failing row and its reason or only the first; C-41/C-100 locate a reported error but completeness is left open."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-37, C-36",
+   "quote": "When a submitted identity conflicts with an account reserved under the destination's ordinary uniqueness policy, the affected record gets a conflict error. / Two rows resolving to the same uniqueness key cause a file conflict."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-76, C-29",
+   "quote": "CSV submission itself cannot grant elevated privileges. / In the default schema `name`, `role`, `password`, `id`, `tenant`, `status` and `permissions` are unsupported"
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-12",
+   "quote": "A signed-out caller, a signed-in non-admin or an admin without create authority in that destination cannot open it.",
+   "missing": "Whether import needs a permission distinct from single-user create authority; the spec gates import on admin plus create authority, so the ability is effectively implied by create permission."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-25, C-26, C-29, C-109",
+   "quote": "The first record after any ignored empty lines is read as column labels. / An empty header field or header with no `email` yields a header error. / A file with headers beyond the supported required fields yields an error"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-19, C-21, C-22",
+   "quote": "valid UTF-8 with no byte-order mark or with one UTF-8 byte-order mark / LF, CRLF or a mixture pass / A field enclosed in double quotes treats commas and LF or CRLF as part of the value."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-40, C-79",
+   "quote": "Submitting a confirmed rejected or failed batch causes zero invitations or onboarding messages attributable to that batch."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-6, C-31",
+   "quote": "A file of 1,048,577 bytes is refused with a file-size error. / A file with 1,001 user records yields a record-count error."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-5, C-4",
+   "quote": "A zero-byte file or a valid header with zero user records creates zero users and yields an input error. / An otherwise valid file with exactly one new user record creates one user."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-51, C-80",
+   "quote": "If the identities in the original file are still reserved, resubmitting it yields conflicts and creates zero accounts."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-64, C-52",
+   "quote": "any requirement to continue work outside the request are unconfirmed / While the result is pending and the admin stays in the flow, the import shows that the submission is still being processed.",
+   "missing": "Whether a large file runs in the background and how the admin is told it finished if they leave the flow."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-78",
+   "quote": "an imported user gets that same notification under the same conditions after the account exists... Notification channels, triggers and delivery rules are unconfirmed.",
+   "missing": "Whether up to 1,000 invitations are sent at once or paced, and at what rate."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-75, C-77",
+   "quote": "An imported user starts in the state ordinary creation assigns to the corresponding user... A CSV cannot directly set account status. / credential setup and sign-in eligibility follow the ordinary new-user policy... No CSV field is used as a credential."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-90, C-88",
+   "quote": "After success or confirmed failure, returning to the application offers no way to retrieve the uploaded file.",
+   "missing": "Where the uploaded file is stored during processing and how long it is retained or when it is deleted."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-93",
+   "quote": "If ordinary account creation records an audit event, each account created by import is observable through the same audit policy with the submitting admin attributed as the initiator",
+   "missing": "An import-level record of who imported which file when, especially when ordinary creation records no audit event."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-57, C-40, C-58",
+   "quote": "the directory may show a completed batch when the admin returns. Source: choice: the requested upload does not require a cancellation operation"
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-64, C-52",
+   "quote": "The product promises no separate completion-time figure. / the import shows that the submission is still being processed.",
+   "missing": "A time bound for a maximum-size file and progress beyond a pending indicator."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-70, C-71, C-72, C-73",
+   "quote": "An admin can still use the ordinary create action with the same fields, requiredness, accepted values and limits as before release. / existing accounts retain their profile data, identity, roles..."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-91, C-34",
+   "quote": "An admin submitting a filename, header or value containing markup or formula-like text sees it rejected under the applicable rule or handled as inert text. / at most 254 ASCII characters total"
+  }
+ ]
+}

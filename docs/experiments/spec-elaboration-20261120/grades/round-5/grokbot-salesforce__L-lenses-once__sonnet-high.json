@@ -1,0 +1,179 @@
+{
+ "slot": "grokbot-salesforce__L-lenses-once__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3667892,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-1",
+   "quote": "The bot is a chat page inside a Lightning app that appears in the App Launcher in Lightning Experience ... The bot is offered nowhere else: not in Salesforce Classic, not in the Salesforce mobile app, not in Experience Cloud sites"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-11",
+   "quote": "The callout carries no Salesforce record content, no user name, email or Id, and no org Id or URL, except text the user typed into their message."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "C-11",
+   "quote": "The callout carries no Salesforce record content",
+   "missing": "Field-level security is never mentioned; whether the bot's own conversation/message fields (e.g. failure detail, tokens) are FLS-restricted for chat users is undecided."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-2",
+   "quote": "Two permission sets control access: one to chat, one to administer"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-4",
+   "quote": "User B, holding the chat permission set, cannot see user A's conversations or messages ... Only user A, and administrators holding the administer permission set, can."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-38",
+   "quote": "Salesforce forbids a callout after unsaved database changes in the same request, so the builder must order work so this holds.",
+   "missing": "The callout-after-DML rule is named, but the spec picks a synchronous call (C-20) and leaves it to the builder how to order the DML around the callout. It does not choose a Queueable/future/batch design."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-5",
+   "quote": "The key is not in the deployed source, not in any custom object or setting record, not in any field a user can query ... Searching the debug log of a full chat exchange for the key finds nothing."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-31",
+   "quote": "Salesforce allows at most 120 seconds for one callout and for all callouts in one request together",
+   "missing": "Callout timeout (120 s) and heap (6 MB, C-29) are given with numbers. CPU time and the callouts-per-transaction count are not."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-65",
+   "quote": "zero real outbound calls (Salesforce forbids callouts in tests, so a simulated xAI is used)"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-8",
+   "quote": "No administrator step to allow the host (such as a Remote Site Setting) is needed beyond what deployment brings."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-20",
+   "quote": "The runtime does not let the server push partial output to the page during one request, which forces this.",
+   "missing": "The spec relies on the synchronous server call returning the answer inline. It names no platform event, polled status or message channel to tell the interface the answer has arrived."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-32",
+   "quote": "For any failure, the callout log shows exactly one request to xAI for that send. Only the user pressing Send again makes another."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-44",
+   "quote": "Salesforce refuses the request (for example because the org has too many concurrent long-running requests ...), the panel shows a \"could not send, try again\" message, re-enables the input and keeps the typed text."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-40, C-41",
+   "quote": "These cases show a message advising the user to try again later: (a) HTTP 429; (b) HTTP 408 or any 500 to 599; (c) the 100-second timeout (C-31)"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-41",
+   "quote": "These cases show a message advising the user to try again later: (a) HTTP 429"
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-30",
+   "quote": "If xAI's response reports finish reason \"length\", the transcript shows the partial text with a visible note stating the answer was shortened"
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "C-49",
+   "quote": "role (user or Grok), text, time sent, order within the conversation, status (success or failed), failure category, HTTP status, failure detail, model used, finish reason, prompt tokens and completion tokens"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-50",
+   "quote": "A conversation, with all its messages, is deleted when its last activity is older than the retention period; default 30 days, allowed 1 to 365",
+   "missing": "What happens to a user's conversations when that user is deactivated or removed is not stated."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-10",
+   "quote": "Each request to Grok carries exactly these items: the system prompt, the history window, the new message, the model name and the reply-length cap ... Nothing else about the user or the org is in the body."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-22",
+   "quote": "With N = 20, in a conversation of 30 earlier successful messages the request body holds the 20 most recent of them in chronological order ... Older messages remain stored and visible and are not sent."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-16",
+   "quote": "a message of exactly 4,000 characters can be sent and one of 4,001 cannot"
+  },
+  {
+   "id": "N-22",
+   "state": "covered",
+   "where": "U-8",
+   "quote": "In Setup the administrator changes the model ... or switches the bot off."
+  },
+  {
+   "id": "N-23",
+   "state": "covered",
+   "where": "C-45",
+   "quote": "An attempt that reaches the callout stage leaves a user message record, and either a Grok answer record, or the user message record marked failed with the category"
+  },
+  {
+   "id": "N-24",
+   "state": "covered",
+   "where": "C-7",
+   "quote": "Secrets do not travel with source deployment, which is why the step exists in every org."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "C-31",
+   "quote": "The bot waits up to 100 seconds for Grok's answer and then gives up with a timeout failure"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "C-47",
+   "quote": "A user opening the app for the first time sees no messages and an invitation to type."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-63",
+   "quote": "every pre-existing profile, permission set, standard and custom object and field, flow, Apex class, trigger, page and setting is unchanged"
+  }
+ ]
+}

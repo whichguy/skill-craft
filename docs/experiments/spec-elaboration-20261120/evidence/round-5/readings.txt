@@ -1,0 +1,53 @@
+ROUND 5, read against a band of 12 fixed before it ran (covered of 89; per case grokbot, gym, invoice, csv)
+
+  F-guarded        sonnet-high  68  [21, 15, 15, 17]
+  L-lenses-once    sonnet-high  64  [22, 16, 13, 13]
+  P-shiploop-spec  sonnet-high  58  [19, 18, 9, 12]
+  A-single         sonnet-high  43  (clean reference: mean of two draws)
+  D-enumerated-only sonnet-high  72
+
+  F-guarded        sol-medium   60  [21, 12, 14, 13]
+  L-lenses-once    sol-medium   62  [23, 13, 11, 15]
+  P-shiploop-spec  sol-medium   43  [17, 7, 7, 12]
+  A-single         sol-medium   29  (clean reference: the clean draw of round 4c)
+  D-enumerated-only sol-medium   64
+
+R8  the restored scope guard and coverage sentence cost no coverage (F within 12 of D)
+    sonnet-high  F - D = -4   holds
+    sol-medium   F - D = -4   holds
+
+R9  iterating against the lenses in one pass (F - L); the cost side was met: L is 52% and 54% of F's minutes
+    sonnet-high  F - L = +4   not shown
+    sol-medium   F - L = -2   not shown
+    what the lenses buy in one pass (L - A): sonnet-high +21, sol-medium +33
+
+R14 does the elaboration add to the stage ShipLoop ships (against P)
+    sonnet-high  L-lenses-once  - P = +6   not shown
+    sonnet-high  F-guarded      - P = +10   interim (8 to 11)
+    sol-medium   L-lenses-once  - P = +19   SHOWN
+    sol-medium   F-guarded      - P = +17   SHOWN
+    the released stage against the single pass it was never compared with (P - A): sonnet-high +15, sol-medium +14
+
+BY CATEGORY (covered): P, then L, then F
+  sonnet-high
+    async          of 11:  P  7   L  7 (+0)   F  8 (+1)
+    data           of 10:  P  6   L  7 (+1)   F  4 (-2)
+    edge           of 12:  P 10   L 11 (+1)   F 12 (+2)
+    interaction    of 12:  P  9   L  9 (+0)   F  8 (-1)
+    nonfunctional  of  5:  P  3   L  4 (+1)   F  5 (+2)
+    operator       of  9:  P  2   L  5 (+3)   F  5 (+3)
+    permission     of  8:  P  5   L  4 (-1)   F  8 (+3)
+    platform       of  5:  P  3   L  3 (+0)   F  3 (+0)
+    preserve       of  5:  P  4   L  4 (+0)   F  5 (+1)
+    unhappy        of 12:  P  9   L 10 (+1)   F 10 (+1)
+  sol-medium
+    async          of 11:  P  4   L  5 (+1)   F  6 (+2)
+    data           of 10:  P  4   L  6 (+2)   F  5 (+1)
+    edge           of 12:  P  5   L  9 (+4)   F 10 (+5)
+    interaction    of 12:  P  7   L  8 (+1)   F  7 (+0)
+    nonfunctional  of  5:  P  1   L  3 (+2)   F  3 (+2)
+    operator       of  9:  P  3   L  4 (+1)   F  4 (+1)
+    permission     of  8:  P  5   L  7 (+2)   F  6 (+1)
+    platform       of  5:  P  2   L  4 (+2)   F  3 (+1)
+    preserve       of  5:  P  4   L  5 (+1)   F  5 (+1)
+    unhappy        of 12:  P  8   L 11 (+3)   F 11 (+3)

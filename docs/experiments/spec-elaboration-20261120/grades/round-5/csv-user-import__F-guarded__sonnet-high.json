@@ -1,0 +1,142 @@
+{
+ "slot": "csv-user-import__F-guarded__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3123124,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-42",
+   "quote": "When a file contains one or more invalid rows or a file-level problem, the user listing before and after the submission is identical"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-38",
+   "quote": "Each entry in the report shows: the row number (C-21); the column ...; the value found, cut to its first 100 characters; and the reason"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-36, C-35",
+   "quote": "A row whose address (compared ignoring letter case) belongs to any existing user ... is reported with the reason \"already registered\"; that user is not changed. / every later row is reported with the reason \"duplicate of row N\""
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-46, C-15",
+   "quote": "Every created user holds the role a user created individually holds by default and is not an admin; no file content can change this."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-3",
+   "quote": "Every signed-in account that does not hold the admin role right now (ordinary users, accounts whose admin role was revoked, deactivated or suspended accounts) is refused with HTTP status 403"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-12, C-14, C-15",
+   "quote": "The first record is the header and columns are matched by name, in any order / the required column `email` is missing / the message lists each unrecognised header exactly as found"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-9, C-11",
+   "quote": "records end at LF or CRLF; a field wrapped in double quotes may contain commas and line breaks / A file that starts with the bytes EF BB BF is processed exactly as the same file without them"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-48",
+   "quote": "A rejected or failed import sends no message to any address in the file; an applied import sends one per created user"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-23, C-24",
+   "quote": "one of 1,048,577 bytes is rejected with HTTP status 413 ... / one of 1,001 data rows is rejected with HTTP status 422 and a message stating the limit of 1,000; no user is created"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-18, C-19, C-43",
+   "quote": "A file of 0 bytes, or one with only blank records, is rejected ... / A file whose header is valid but which has no data row is rejected / a file of N valid data rows"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-54",
+   "quote": "A second submission of a file already applied is rejected with every data row reported as \"already registered\" and the user listing unchanged."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-24, C-25",
+   "quote": "1,000 is large enough for a team or class and small enough to finish synchronously / shows the result within 30 seconds of the upload finishing"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-48",
+   "quote": "an applied import sends one per created user, which may arrive after the result page is shown",
+   "missing": "Whether up to 1,000 messages are sent at once or throttled, and at what pacing."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-47",
+   "quote": "Each imported user goes through the same first-access step (an invitation, a set-password message or whatever an individually created user goes through; unconfirmed what that is) ... the file contains no password",
+   "missing": "Whether the created user is active or pending and how they first sign in is deferred to an unconfirmed existing mechanism."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-59",
+   "quote": "After the response is sent, the file's contents are not stored anywhere readable by admins or operators, other than the users it created."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-13, C-9",
+   "quote": "Header names other than `email` and `name` are not accepted (see C-15); no other column sets anything on the created user. / a semicolon is not a separator"
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "C-61",
+   "quote": "For each attempt the operator can find, in the product's logs, the admin's identity, the time, the file's name, the outcome ..., the number of users created and the number of invalid rows"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-42, C-52",
+   "quote": "all-or-nothing makes a retry after correction safe / When the connection drops before the whole request body has been received, no user is created.",
+   "missing": "Whether and how an admin can deliberately cancel an import in progress."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-25, C-56",
+   "quote": "Submitting a valid file of 1,000 data rows ... shows the result within 30 seconds / the control is disabled and an in-progress indication is shown until the result arrives"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-65, C-64",
+   "quote": "Every action and every outcome of single-user creation ... is the same with the feature present as without it. / every user that existed before it has the same fields, role and state as before"
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "C-34, C-38",
+   "quote": "all other characters, including `=`, `<`, quotes and non-Latin letters, are accepted verbatim / the value found, cut to its first 100 characters",
+   "missing": "How values beginning with `=`, `+`, `-`, `@` are neutralised against formula execution when data is later opened in a spreadsheet."
+  }
+ ]
+}

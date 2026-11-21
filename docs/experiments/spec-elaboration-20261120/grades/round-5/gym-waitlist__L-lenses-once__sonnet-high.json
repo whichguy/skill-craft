@@ -1,0 +1,142 @@
+{
+ "slot": "gym-waitlist__L-lenses-once__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.22911580000000004,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "U-4",
+   "quote": "Without the waitlisted member doing anything, the earliest eligible waitlisted member becomes booked in the class."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-6",
+   "quote": "Waitlist order is the order in which members joined, earliest first, and nothing else changes it ... whatever the two members' tenure, plan or booking history; no joins ever share a position."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "C-15",
+   "quote": "there is no refusal for holding several entries, including for two classes that overlap in time.",
+   "missing": "What happens to the entry for the overlapping class when the member is promoted into one of them (kept, removed, or booking both allowed)."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-47",
+   "quote": "Any existing cutoff, late-cancellation penalty or credit refund applies identically, with no extra grace for having been promoted late."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-32",
+   "quote": "The cancellation (or the capacity increase, or other event) and the resulting promotions succeed or fail together"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-36",
+   "quote": "They receive a message through the same means the app uses to confirm a direct booking, naming the class, its date and time, saying the place came from the waitlist, and saying how to cancel."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-33",
+   "quote": "two members cancelling at the same moment book the first two waitlisted members, never the same member twice, and places taken never exceeds 10 afterwards."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-40",
+   "quote": "A member who obtains a booking in the class through any path other than promotion has their entry removed",
+   "missing": "How a simultaneous direct booking by the same waitlisted member and their promotion resolve (only leave-vs-promotion races are specified in C-35)."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-27",
+   "quote": "Promotion takes from the member whatever a direct booking would take, at the moment of promotion, and joining the waitlist takes nothing"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-10",
+   "quote": "With 20 active entries, a 21st member's join is refused with a message that the waitlist is full, and no entry is created"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-39",
+   "quote": "An entry stops being active when booking closes for the class and no promotion occurs after that"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-25",
+   "quote": "A capacity raised from 10 to 13 with 5 waiting books the first 3 eligible members in order and leaves the other 2 waiting at positions 1 and 2"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-38",
+   "quote": "Every active entry is removed, no promotion occurs, and each waitlisted member receives a message naming the class and saying it was cancelled"
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-5",
+   "quote": "A member's position is 1 plus the number of active entries ahead of theirs"
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-39",
+   "quote": "An entry stops being active when booking closes for the class",
+   "missing": "Whether inactive entries are kept or deleted after the class runs, and for how long."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-19",
+   "quote": "No page or message addressed to a member shows another member's name, contact or account details through the waitlist; a member sees only their own position."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-43",
+   "quote": "No control in the staff view adds, removes, reorders or promotes an entry",
+   "missing": "Whether staff can see who was promoted and when (a promotion history); manual promote/remove is decided against."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-31",
+   "quote": "the waitlisted member already holds the place; no instant exists at which the opening is bookable directly."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-45",
+   "quote": "A member booking a class with a free place gets a booking and the same confirmation and charge as before; no waitlist step appears."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-48",
+   "quote": "classes already full show the join control and an empty waitlist."
+  }
+ ]
+}

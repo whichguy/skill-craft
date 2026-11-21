@@ -1,0 +1,144 @@
+{
+ "slot": "gym-waitlist__F-guarded__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.33493880000000004,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-19",
+   "quote": "The member does not have to be signed in, open the app, or confirm anything for the place to be given; they are booked."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-16, C-30",
+   "quote": "the active entry that joined earliest and is eligible becomes booked into the class ... their positions are 3, 4 and 5 once each, in the order the system accepted their requests",
+   "missing": "Whether any membership tier or staff override can jump the queue is never stated."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "C-13, C-23",
+   "quote": "an overlapping booking at the same time ... At the time a place is to be given, an entry whose member now fails any condition listed in C-13 is not booked; their entry is removed",
+   "missing": "What happens to the other overlapping waitlist entry right when one promotion happens. The overlap condition only applies if the app already has one, and the spec only implies the other entry is dropped later."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-22",
+   "quote": "cancelling it follows the same cancellation rules, penalties and refunds that apply to any booking of that class at that time"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-17, C-20",
+   "quote": "A place counts as freed, and C-16 applies, when: a member cancels their booking; ... Within 60 seconds of a place becoming free while an eligible member is waiting, that member is booked."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-32, C-33, C-34",
+   "quote": "arrive by the channel or channels by which the app confirms a booking to the member today ... When the message in C-32 or C-24 cannot be sent, the member is booked, or passed over, all the same"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-28",
+   "quote": "When 2 bookings in a class of 10 are cancelled at the same moment with 5 waiting, exactly the members at positions 1 and 2 are booked, each once, the booked count is 10"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-31",
+   "quote": "If a member who is waiting for a class becomes booked into it by any route ... their waitlist entry is removed and they are not booked a second time."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C-21",
+   "quote": "A promoted member's class credit, pass balance or payment changes by exactly what a direct booking of that class would have changed it, once, at the time they are booked.",
+   "missing": "What happens when the payment taken at promotion fails, such as a declined card. Only having no credit or pass balance left is handled, by passing the member over."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-9",
+   "quote": "When 20 members are waiting for a class, the 21st member who tries to join is refused with a message that the waitlist is full"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-45",
+   "quote": "At the booking cutoff of the class (as in C-11), every remaining entry ends. Nobody is booked from the waitlist at or after that moment"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-18, C-50",
+   "quote": "Raising capacity from 10 to 13 with 10 booked and 5 waiting books the members at positions 1, 2 and 3 ... Lowering the capacity of a class below its booked count removes no booked member, books no waiting member"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-47",
+   "quote": "When a class is cancelled or deleted, every waiting entry ends, no one is booked from it, no charge is made, and each waiting member is told that the class is cancelled"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-51, C-16",
+   "quote": "the member's name, their position and the date and time they joined ... the active entry that joined earliest",
+   "missing": "Whether position is stored or derived from join order, and which states an entry can have, are not set out explicitly."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-45",
+   "quote": "At the booking cutoff of the class (as in C-11), every remaining entry ends.",
+   "missing": "Whether ended entries are kept or deleted after the class has run, and for how long."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-39",
+   "quote": "A member sees only their own position, never another member's name or details on a waitlist"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-51",
+   "quote": "A staff member opening a class sees the waitlist as a list in order, with for each entry the member's name, their position and the date and time they joined",
+   "missing": "Whether staff can promote or remove a waiting member by hand, and whether staff can see who was promoted and when."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-61",
+   "quote": "When the waitlist is switched off, every member booked at that time, including those booked from a waitlist, is still booked, no one waiting is booked or charged"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-20",
+   "quote": "Within 60 seconds of a place becoming free while an eligible member is waiting, that member is booked."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-55, C-60",
+   "quote": "A member who books a class with a free place is booked as before, with the same checks, cost and confirmation. ... every existing class, booking, member and balance is unchanged"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-60",
+   "quote": "classes full at that time show the waitlist offer with an empty waitlist"
+  }
+ ]
+}

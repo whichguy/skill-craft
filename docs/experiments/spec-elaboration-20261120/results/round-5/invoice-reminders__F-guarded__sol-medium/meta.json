@@ -1,0 +1,27 @@
+{
+ "round": "round-5",
+ "case": "invoice-reminders",
+ "arm": "F-guarded",
+ "arm_sha256_12": "0b2d411e928f",
+ "driver": "sol-medium",
+ "host": "codex",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "rc": 0,
+ "seconds": 487.1,
+ "ok": true,
+ "wrote": [
+  "spec.md",
+  "passes.md"
+ ],
+ "stray_files": [],
+ "workdir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/round-5/invoice-reminders__F-guarded__sol-medium-b5cdf3",
+ "user_skills_turned_off": 11,
+ "usage": {
+  "input_tokens": 606135,
+  "cached_input_tokens": 545792,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 21266,
+  "reasoning_output_tokens": 4209
+ }
+}

@@ -1,0 +1,146 @@
+{
+ "slot": "csv-user-import__P-shiploop-spec__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3782152,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "PD-1",
+   "quote": "All-or-nothing. If any file or row error exists, no user is created."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "\"rowErrors\":[{\"row\",\"column\",\"code\",\"message\"}]}, both arrays always present. `message` is human-readable English (A-3); `code` is stable and machine-readable."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "PD-6",
+   "quote": "An existing user is never updated or skipped: an email that already exists is a row error. ... R-3: `duplicate_in_file` (same canonical email as an earlier row ...; the earlier row is not flagged)"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "PD-4",
+   "quote": "Created users get the Default role only. Setting a role, and creating admins, via CSV is out of scope. ... Privilege escalation through a bulk file is a security decision the request did not make."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "the import capability (endpoint and page) is available to an Admin only. Authorization is decided before the body is read or parsed.",
+   "missing": "Whether the import permission is distinct from (not implied by) the permission to create a single user."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Header names trimmed, case-insensitive, must be exactly {`email`,`name`}, any order. ... `missing_column`, `unknown_column`, `duplicate_column` (each with `column`)"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "UTF-8 with or without BOM; `,` delimiter; RFC 4180-style quoting (quoted fields may contain commas, doubled quotes and newlines); LF or CRLF line ends"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "A persistence failure during commit \u2192 rollback, zero users ... retrying the same file is safe because nothing was written. (PD-5: Created users have no credential and no message is sent.)"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "at most M data rows and at most B bytes (G-3, configured; behaviour fixed here). ... M+1 rows is `too_many_rows`; B+1 bytes is `file_too_large`.",
+   "missing": "The actual numeric values of the row limit M and byte limit B (left open in G-3)."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "`empty_file` (zero bytes or whitespace only), `no_data_rows` (header only, blank lines don't count) ... R-4: a 1-row file creates 1 user"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "AC-6.2",
+   "quote": "A posts FX-1 and gets `201`; A posts FX-1 again \u2192 `422`, `email_exists` on rows 2, 3, 4, created 0, count unchanged"
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "AD-1 / R-11",
+   "quote": "the import runs inside one HTTP request ... No queue, worker, polling or job record. ... AD-1 (synchronous) must be revisited if M cannot be processed inside the request limit.",
+   "missing": "Whether large files need background processing and how the admin is notified, since M is unknown and the synchronous choice is conditional."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "creating a user through import does not set a password or token and does not send mail, SMS or any notification."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "PD-5",
+   "quote": "Created users have no credential and no message is sent. ... Consequence: users cannot sign in until a separate activation path exists (G-2).",
+   "missing": "Whether the user is active or pending, and how the user first signs in (activation path left open in G-2)."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "State, ownership and lifecycle",
+   "quote": "Uploaded file bytes | Server, request memory or request-scoped temp storage | Only the handling request; never another admin, never logs ... Discarded when the request ends ... The uploaded file is never persisted."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "every attempt (created, rejected, failed, denied) writes one audit record: actor id ..., UTC timestamp, outcome, number of rows seen, ... and on success the new user ids."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "Flows and transitions / R-7",
+   "quote": "there is no cancel, resume, update or delete event on a committed import (out of scope). ... an aborted upload writes no `created` record and no users",
+   "missing": "An explicit admin cancel action for a running import; failed-row-only retry is not addressed beyond retrying the whole file."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-11 / R-8",
+   "quote": "Missing: B and M (G-3) and a latency target ... uploading (submit disabled, visible and announced progress status, the file cannot be changed)",
+   "missing": "A numeric time bound for a maximum-size file; progress is only a pending status, not progress through rows."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Existing users are never modified.",
+   "missing": "That the existing single-user creation path continues to work unchanged."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-10 / PD-9 / PD-8",
+   "quote": "File content is data: no cell is ever evaluated, executed, expanded as a template or inserted into markup ... Name is valid when non-empty after trimming and at most 100 characters.",
+   "missing": "Handling of spreadsheet formula-injection values (e.g. leading =, +, -, @) in names or results."
+  }
+ ]
+}

@@ -1,0 +1,179 @@
+{
+ "slot": "grokbot-salesforce__F-guarded__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.421903,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "C-15",
+   "quote": "A granted user can find a navigation entry identifiable as Grok without already knowing its address.",
+   "missing": "Which Lightning surface hosts the bot (tab/app page, utility bar, record page component, Flow action); only the context it hands (none, per C-82) is implied."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-82",
+   "quote": "The bot supplies no automatically fetched Salesforce object data, field values or relationships to xAI."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-82",
+   "quote": "The bot supplies no automatically fetched Salesforce object data, field values or relationships to xAI."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-19",
+   "quote": "A signed-in target-org user without the grant tries both navigation and a direct invocation and can start zero Grok requests."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-45",
+   "quote": "Open two views as the same user or as different users. ... with neither receiving the other's prompts, context or replies."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-64",
+   "quote": "If the transaction still holds pending record writes, asynchronous Apex work, scheduled Apex work or email, the provider receives no callout from that transaction.",
+   "missing": "Whether the callout runs synchronously or in Queueable/future/batch Apex; C-115 rules out 'a background workflow' without settling the execution model."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-84",
+   "quote": "ordinary bot interaction, org settings readback, deployed bot artifacts, browser traffic, diagnostics and logs expose no copy of that key."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-61",
+   "quote": "a provider that stays silent reaches the 10-second callout timeout. A configured timer is within 1 to 120,000 milliseconds inclusive."
+  },
+  {
+   "id": "N-9",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-55",
+   "quote": "Remove the applicable Salesforce outbound authorization and observe that the provider does not receive the prompt."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-35",
+   "quote": "Hold a reply open at the provider and see a pending state associated with the submitted prompt.",
+   "missing": "The mechanism by which the interface learns the reply arrived (inline response, platform event, polling, LMS) is not stated."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-134",
+   "quote": "Deliver the same submission twice to Salesforce... At most one Grok inference begins for that submission."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-59",
+   "quote": "With all 20 applicable callout slots occupied, an additional bot callout cannot proceed at the same time. A Salesforce refusal surfaces as unavailable capacity."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-100",
+   "quote": "An xAI HTTP 401, HTTP 403 ... is distinguished from a Salesforce sign-in or grant failure."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-68",
+   "quote": "An xAI HTTP 429 results in a capacity failure the user can explicitly retry later."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-96",
+   "quote": "Return a reply xAI explicitly marks incomplete for its length limit. Inspect the available text with an indication that it is incomplete."
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "C-88",
+   "quote": "After a view closes, later use and administrator inspection recover no bot-stored transcript, prompt draft or prior response from Salesforce, browser persistence, logs or analytics."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-88",
+   "quote": "The bot keeps no durable conversation history of its own."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-83",
+   "quote": "there is no Salesforce user ID, username, email, org ID or session credential automatically supplied by the bot."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-32",
+   "quote": "all complete prompt-reply pairs still visible in that view up to the four most recent... With five, the oldest pair is omitted."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-26",
+   "quote": "A prompt with 4,000 code points passes length validation when otherwise valid. A prompt with 4,001 is refused with the 4,000 limit indicated."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "C-10",
+   "quote": "Disable Grok in the target org and see that a previously authorized user cannot start a new request.",
+   "missing": "Turn-off and model change are covered (C-10, C-22), but no place where an administrator sees failed requests; C-108 excludes new durable diagnostics."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "C-74",
+   "quote": "xAI documents a default audit retention of 30 days for API inputs and outputs, subject to the xAI team's retention terms.",
+   "missing": "No record of who asked what; only provider-side retention is described and C-88/C-83 keep no attributable Salesforce record."
+  },
+  {
+   "id": "N-24",
+   "state": "covered",
+   "where": "C-71",
+   "quote": "In that production validation mode, Salesforce refuses deployment with overall coverage below 75%."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "C-93",
+   "quote": "The interactive attempt has a 60-second deadline."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "C-117",
+   "quote": "The attempt is refused before inference and adds no terminal conversation entry."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-78",
+   "quote": "Existing flows, triggers, validation rules and scheduled jobs outside the bot have the same configuration and results for the same inputs before and after bot installation"
+  }
+ ]
+}

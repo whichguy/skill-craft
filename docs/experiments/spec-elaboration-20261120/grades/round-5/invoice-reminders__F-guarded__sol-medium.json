@@ -1,0 +1,138 @@
+{
+ "slot": "invoice-reminders__F-guarded__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.41974019999999995,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-9",
+   "quote": "The automatic schedule has three occurrences at 1, 7, and 14 calendar days after the due date ... with zero occurrences on every other date for that due date."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-30",
+   "quote": "Draft or unissued, fully paid, zero- or negative-balance, voided, canceled, fully credited, written-off, explicitly collection-blocked ... A disputed ... invoice qualifies only if the billing workflow treats it as issued, payable now, and free of a collection block",
+   "missing": "Whether an invoice on a payment plan stops or continues receiving reminders is never stated; it is left to whatever the host calls a collection block."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-13",
+   "quote": "An invoice issued for USD 100.00 with USD 60.00 still due shows USD 60.00 as the amount outstanding in the reminder."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-88",
+   "quote": "If the host already blocks billing email to a destination or for an account, a reminder generates zero submissions there while the restriction is active.",
+   "missing": "Whether a marketing opt-out or unsubscribe state suppresses a billing reminder or is exempt from it; customer-level pause/do-not-contact handling beyond host billing-email blocks."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-47",
+   "quote": "Overlapping processing, repeated triggers, late completion reports, and restarts cannot produce two accepted submissions for the same account, invoice, and schedule offset."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-43",
+   "quote": "If a full payment, withdrawal, collection block, account disable, window expiry, or loss of required invoice data takes effect before the email submission starts, the email service receives zero submissions"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-53",
+   "quote": "A confirmed temporary failure that rules out acceptance is retried automatically if the occurrence remains eligible after its required wait, has an attempt left, and has enough open time and capacity",
+   "missing": "Retry policy (C-54, C-55) and outage recovery (C-67) are stated, but nothing alerts or escalates to a person when sends keep failing; a failure is only visible in the activity history."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-74",
+   "quote": "If the service reports a rate, concurrency, or daily volume limit, the automation defers eligible work when capacity is unavailable."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-33",
+   "quote": "Enabling on April 18 for an invoice due April 10 produces no catch-up for April 11 or 17. The April 24 occurrence can still send."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "C-31",
+   "quote": "it uses the date containing that instant in the invoice's established billing zone ... The calendar uses UTC if no established zone is available.",
+   "missing": "Sending hours within the day, business hours, and how weekends and holidays are treated are not decided (C-32 only bounds the send to the civil date)."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-13",
+   "quote": "shows USD 60.00 as the amount outstanding in the reminder.",
+   "missing": "How the currency and amount are formatted for the recipient (locale, symbol vs code, separators) is not specified."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-25",
+   "quote": "An invoice with a blank, malformed, ambiguous, or unresolved billing email produces zero submissions."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-24",
+   "quote": "For an invoice whose billing workflow designates a primary billing recipient and additional contacts, the automation uses the primary address only."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-63",
+   "quote": "the operator can see its invoice reference, schedule offset, due date used, billing zone, scheduled date, disposition ... each attempt\u2019s start time, submitted destination, submitted amount and currency"
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-14",
+   "quote": "The recipient can identify at least one next step from the reminder: existing payment instructions, an authorized invoice or payment destination, or the issuer's established billing contact.",
+   "missing": "Reference, amount, due date and way to pay are stated (C-12, C-13, C-35, C-14), but whether a payment or invoice link in the reminder expires is not."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-40",
+   "quote": "Rights equivalent to managing account billing allow changing reminder settings. ... A read-only billing user with no billing administration authority cannot change the setting."
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "C-36",
+   "quote": "The feature provides no controls for offsets, templates, channels, arbitrary recipients, customer overrides, per-invoice scheduling, or sending an automatic occurrence on demand."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-64",
+   "quote": "The operator can tell the applicable disposition among awaiting evaluation, eligible but deferred, skipped for ineligibility, awaiting submission result, pending retry ... expired with no acceptance ... permanently rejected"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-32",
+   "quote": "For an April 11 occurrence, a submission can start only at instants whose local calendar date in the billing zone is April 11."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-81",
+   "quote": "its normal issuance action still creates the same issued invoice with reminders enabled or disabled. Enabling reminders alone issues zero invoices."
+  }
+ ]
+}

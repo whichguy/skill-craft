@@ -1,0 +1,26 @@
+{
+ "round": "round-5",
+ "case": "invoice-reminders",
+ "arm": "L-lenses-once",
+ "arm_sha256_12": "b99ad14b7ec2",
+ "driver": "sol-medium",
+ "host": "codex",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "rc": 0,
+ "seconds": 213.9,
+ "ok": true,
+ "wrote": [
+  "spec.md"
+ ],
+ "stray_files": [],
+ "workdir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/round-5/invoice-reminders__L-lenses-once__sol-medium-971bc8",
+ "user_skills_turned_off": 11,
+ "usage": {
+  "input_tokens": 118502,
+  "cached_input_tokens": 95360,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 9544,
+  "reasoning_output_tokens": 995
+ }
+}

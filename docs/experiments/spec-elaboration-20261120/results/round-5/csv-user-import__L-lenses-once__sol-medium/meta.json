@@ -1,0 +1,26 @@
+{
+ "round": "round-5",
+ "case": "csv-user-import",
+ "arm": "L-lenses-once",
+ "arm_sha256_12": "b99ad14b7ec2",
+ "driver": "sol-medium",
+ "host": "codex",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "rc": 0,
+ "seconds": 199.5,
+ "ok": true,
+ "wrote": [
+  "spec.md"
+ ],
+ "stray_files": [],
+ "workdir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/round-5/csv-user-import__L-lenses-once__sol-medium-a384b5",
+ "user_skills_turned_off": 11,
+ "usage": {
+  "input_tokens": 136959,
+  "cached_input_tokens": 121344,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 8585,
+  "reasoning_output_tokens": 877
+ }
+}

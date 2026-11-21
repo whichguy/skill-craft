@@ -1,0 +1,151 @@
+{
+ "slot": "gym-waitlist__P-shiploop-spec__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3160744,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3 A",
+   "quote": "While booking is open, each newly bookable seat goes to the oldest eligible active entry for that occurrence. The booking and completion of the entry take effect together."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-3 State and recovery / Domain rules",
+   "quote": "The booking authority resolves concurrent joins in a deterministic commit order ... Product and booking owners must confirm ... any existing priority or reserved-seat rules.",
+   "missing": "Join-time order and tie-breaking are stated, but whether a membership tier, reserved seats or a staff override jumps the queue is left open."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-3 Domain rules and open gaps",
+   "quote": "Product and booking owners must confirm admission and allocation eligibility, definitive disqualification, membership and time conflicts",
+   "missing": "What happens to the waitlist entry for an overlapping class when the member is promoted into another one."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-3 A / R-3 C / NFR Integrity",
+   "quote": "The booking authority reconciles a committed release after interruption without requiring member interaction. ... The operations owner must confirm recovery obligations and any numeric completion deadline under R-3.",
+   "missing": "The trigger and background nature are stated, but how quickly the background promotion must happen is left open."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-3 Domain rules and open gaps / R-3 A",
+   "quote": "Claim windows, manual offers, configurable priority, and outbound notifications are outside scope. Member status is available in-app. ... The promoted member sees Booked and ordinary booking details on return"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-3 B / R-3 A",
+   "quote": "Competing releases, direct bookings, repeated release signals and allocations cannot overbook or book any one member twice. ... If multiple seats open, allocate in order up to available capacity"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-3 B / R-1 C",
+   "quote": "Competing releases, direct bookings, repeated release signals and allocations cannot overbook or book any one member twice."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-3 D",
+   "quote": "Allocation cannot bypass a booking guard or impose a new automatic charge or commitment beyond established consent.",
+   "missing": "When payment for a promoted booking is taken and what happens to the booking and entry when payment fails."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "Non-functional requirements, Performance",
+   "quote": "Latency, throughput, queue size, availability, cost and runtime quotas are unresolved.",
+   "missing": "Whether the waitlist has a cap, its value, and what a member sees when the waitlist is full."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-4 A / R-4 Domain rules",
+   "quote": "When the occurrence is cancelled, finally closes for booking or ends, waiting ends. ... The schedule owner must establish cutoff, cancellation and schedule-change semantics",
+   "missing": "The actual cut-off point before class start after which no promotion happens."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-3 State and recovery / Behavior review C116",
+   "quote": "A capacity reduction follows existing policy for incumbent bookings. ... An authorized scheduling change in this fixture raises capacity from 1 to 3. ... M01, M02 and M03 are booked, M04 still waits"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-4 A",
+   "quote": "When the occurrence is cancelled, finally closes for booking or ends, waiting ends. Returning members can see the occurrence status and that their entries are inactive."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-5 Data lifecycle / R-4 State and recovery",
+   "quote": "Booking authority owns shared membership and order across visits and devices. ... Withdrawn, allocated, disqualified and closed entries are inactive.",
+   "missing": "The record's fields (e.g. stored join time) and whether position is stored or derived from it."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-5 Data lifecycle",
+   "quote": "Retain only terminal information needed for status and recovery under approved retention, then remove it.",
+   "missing": "How long ended entries are kept after the class has run; the retention period is deferred to approved policy."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-5 Data lifecycle / R-5 A",
+   "quote": "Only the member's relevant status reaches their client. ... Denials reveal no other member's membership or identity.",
+   "missing": "Whether the member sees their own waitlist position; only a Waitlisted status is specified."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-5 Data lifecycle / R-5 C / R-3 Domain rules",
+   "quote": "Privileged access follows existing role policy. ... Authorized operators can correlate committed join, leave, allocation and closure outcomes",
+   "missing": "Whether staff can view the waitlist and promote or remove a member by hand (manual offers are out of scope)."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-1 Domain rules / R-3 D",
+   "quote": "If the app cannot honor the disclosed allocation for a class type, the product owner must settle its join availability and wording before exposing the action for that type.",
+   "missing": "A switch to turn the feature off or to enable it per class or class type."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements, Integrity and recovery",
+   "quote": "The operations owner must confirm recovery obligations and any numeric completion deadline under R-3.",
+   "missing": "The actual time bound between a cancellation and the resulting promotion."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1 Basis and delta / R-1 A / R-1 B",
+   "quote": "Preserve ordinary booking when a seat is available under existing policy. ... If a seat is ordinarily bookable ... show the existing booking action. ... Joining leaves confirmed occupancy unchanged."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "Non-functional requirements, Privacy and compatibility",
+   "quote": "The actual target, retention constraints and any migration or cutover needs remain open.",
+   "missing": "Whether classes already full at launch get a waitlist, and how."
+  }
+ ]
+}

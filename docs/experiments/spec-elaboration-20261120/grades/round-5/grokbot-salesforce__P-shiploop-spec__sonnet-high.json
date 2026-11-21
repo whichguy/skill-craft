@@ -1,0 +1,182 @@
+{
+ "slot": "grokbot-salesforce__P-shiploop-spec__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.6045574,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-20",
+   "quote": "Supported surface: the Lightning Experience desktop browser as a custom tab in the target org. ... Excluded, with reason: Experience Cloud"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-17",
+   "quote": "the Apex service class is declared `with sharing` (it reads no records, so this is defence in depth only). ... If a later change reads org data, this requirement reopens."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-17",
+   "quote": "Field-level security: none apply, no record field is read, written or sent."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-8",
+   "quote": "One permission set, `Grok_Bot_User`, grants everything a user needs: the tab, the app, access to the Apex service class and the External Credential principal.",
+   "missing": "Who may administer the bot (edit configuration, set the key, assign the set) is only named as an 'Administrator' using Setup, not expressed as a permission set or specific permission."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "The conversation is not stored in the org (no custom object, no Chatter, no file, no platform cache) and the transcript exists only in the open component (T-10). User text and model output are not written to any log"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-15",
+   "quote": "One send is one Apex transaction with exactly one callout and no DML before it (the callout would otherwise be refused)",
+   "missing": "The design is deliberately synchronous (imperative Apex call), not asynchronous via Queueable/future/batch; no async mechanism is specified."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "The key exists in one place, an administrator-managed credential entry set in Setup. It is never in source control, the component bundle, a configuration record, a debug line"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-15",
+   "quote": "this stage has not re-read the synchronous Apex heap limit from primary documentation, so no claim is made that the maxima fit",
+   "missing": "Callout timeout cap (120 s) and one callout per send are stated, but heap and CPU time limits are not given with numbers."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-21",
+   "quote": "Apex tests (remote, in the org, TAP output) prove request construction ... with the HTTP callout mocked (`HttpCalloutMock`) ... Apex tests must not call xAI."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "The endpoint host is fixed to `https://api.x.ai` by deployed metadata (AD-2)"
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "Actors, channels, state and flows",
+   "quote": "Apex to xAI: one synchronous HTTPS request/response per send. No queue, polling, push or streaming: the answer is complete when the single response arrives",
+   "missing": "The spec assumes the answer returns inline from the call; no platform event, polled status field or message channel is specified for learning that an answer arrived."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "The product makes one attempt per send and never retries on its own (so a user is never billed twice without acting)."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-15",
+   "quote": "In Developer Edition, S-5 limits concurrent external callouts to 20 for the whole org; the 21st concurrent send may fail and surfaces as CONNECTION_FAILED or UPSTREAM_ERROR (R-7)"
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "REQUEST_REJECTED | HTTP 400, 404, 405, 415, 422 ... UPSTREAM_ERROR | HTTP 5xx ... TIMEOUT | Callout exceeds `Timeout_Seconds` | \"Grok did not respond within {Timeout_Seconds} seconds.\""
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "RATE_LIMITED | HTTP 429 | \"Grok is receiving too many requests. Wait a moment, then retry.\" ... Left out: automatic retry or backoff"
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-11",
+   "quote": "When the response `status` is `incomplete` and text exists, the text is shown with the notice \"Response was cut off at the output limit.\""
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "A-6",
+   "quote": "No saved conversations. A transcript lives only in the open component. Reload, navigation away or \"New conversation\" ends it.",
+   "missing": "No stored conversation/turn record shape (role, text, status, timestamps, model id, usage) is defined; the spec decides not to persist conversations."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "The conversation is not stored in the org (no custom object, no Chatter, no file, no platform cache) and the transcript exists only in the open component (T-10)."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "The only data sent to xAI is the configured system prompt, the windowed history and the new user text ... No Salesforce record, field, user name, email or org id is added to the request."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "The request carries at most the last `Max_History_Turns` turns (default 10), oldest dropped first ... Left out: summarising dropped turns, token-count based windowing"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "Empty after trimming is rejected; longer than `Max_Input_Chars` (default 4,000) characters after trimming is rejected. ... Exactly `Max_Input_Chars` characters is accepted; one more is rejected."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-6",
+   "quote": "A change to the record takes effect on the next send with no code deploy.",
+   "missing": "Changing the model is covered and failures are visible only via debug log with a trace flag (R-12), but no administrator switch to turn the bot off is specified."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "R-12",
+   "quote": "Each send writes one line to the standard Apex debug log with: outcome category ... It never contains user text, history, model output",
+   "missing": "No audit record of who asked what and what was answered, and no retention for it; the spec states no audit store is added."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-13",
+   "quote": "A validation (dry-run) deploy to the target org succeeds with its test level recorded ... coverage of the Apex classes meets the org's actual deploy gate. Whether a gate applies to the target is unknown (G-4).",
+   "missing": "How configuration and credential differ per environment, and the production code-coverage requirement value; production is declared out of scope."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "R-14",
+   "quote": "a call that exceeds it ends as TIMEOUT, so the user waits at most that long plus rendering time. The UI shows its pending indicator before the Apex call resolves"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "R-18",
+   "quote": "States designed. Empty (R-1 prompts), loading (R-9 indicator), error (R-7 persistent item with Retry), truncated (R-11 notice) and long-content states each exist and are visible"
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-13",
+   "quote": "The deploy never contains a secret and never changes unrelated existing metadata."
+  }
+ ]
+}
