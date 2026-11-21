@@ -1050,7 +1050,7 @@ browser-backed items) is not in this table; running it once a fault would take h
 
 Read with F19: the builds behave alike on both yardsticks, and differ in the tests they leave behind.
 
-Evidence: `evidence/grokbot-local/seeded-faults/` (each build's 60 faults with the verdict on each, and the log).
+Evidence: `evidence/grokbot-local/seeded-faults/` (each build's 60 faults with the verdict on each, and `run-log.txt`).
 
 ### The Ratchet arm at its end (2026-11-21 02:00)
 
@@ -1086,7 +1086,7 @@ and script 42.2 (each gate runs about 300 browser-backed tests).
 - **Like every other whole loop, it did not stop by itself.**
 
 Evidence: `evidence/grokbot-local/ratchet/` (run.json, gates.json, the three closing looks, the fix note, the
-gradings at every stage in `final-grading.json` and `end-grading.log`, summary.json).
+gradings at every stage in `final-grading.json` and `end-grading-log.txt`, summary.json).
 
 ## 18. An apparatus fault of mine that loaded the machine for four hours (found 2026-11-21 02:02)
 
@@ -1173,3 +1173,10 @@ How I read it against this pilot, as my reading:
   through built products is that decided clauses are where correct products were rejected (F10) and where one was
   made to fail (F20). More coverage on a checklist is not yet shown to make a better product.
 - Its second bullet agrees with this pilot from another side: going round again added cost and not substance.
+
+**Five logs that were cited and not committed (found 03:16 while removing the worktree).** The repository ignores
+`*.log`. Five logs I had copied into the evidence folders were therefore never in a commit, although commit messages
+and two evidence lines of this journal name them. They are now saved as text files: `baselines/mutate-ratchet-log.txt`,
+`grokbot-local/bare/run-and-grading-log.txt`, `grokbot-local/final-grading-log.txt`,
+`grokbot-local/ratchet/end-grading-log.txt` and `grokbot-local/seeded-faults/run-log.txt`. Every number they hold is
+also in a committed JSON file beside them.
