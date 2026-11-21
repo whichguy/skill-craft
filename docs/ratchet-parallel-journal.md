@@ -69,6 +69,30 @@ they fail the same way on both products, so they do not move the comparison. The
 The suites and builds compared come from different specifications, which a parallel run would not have: the counts
 are an upper bound on its catch-up.
 
+**How much a test session uses the product while it writes** (08:16; exploratory: counted from the five test
+sessions' event records by a Sonnet subagent, at the owner's standing word to use one where possible, with each
+command labelled by hand; I checked its method and the command totals roughly, not each label;
+`evidence/parallel/test-session-activity.md`).
+
+| Test session | Shell commands | Runs of its own acceptance tests | of those, showing a failing test | First such run comes after | Product code files read |
+|---|---|---|---|---|---|
+| due times, loop a | 36 | 12 | 7 | 50% of the commands | 2 |
+| due times, loop b | 25 | 5 | 1 | 52% | 12 |
+| due times, test-strength cell | 29 | 8 | 7 | 62% | 12 |
+| ticket assignment, test-strength cell | 31 | 6 | 4 | 61% | 5 |
+| orders, test-strength cell | 29 | 9 | 6 | 48% | 0 |
+| all five | 150 | 40 | 25 | | |
+
+- A test session spends about the first half of its commands reading and writing, and runs nothing of its own
+  until then. From there it runs its tests on the product 5 to 12 times, and in 25 of 40 runs a test fails.
+- So the test pass has two halves. The first, writing, needs the specification and the plan. The second,
+  getting the tests to run true, needs a product. This is the part the overlay above cannot see: it compared
+  suites that had already been through it.
+- That answers "is there anything material to catch up on" more exactly. Not what the tests say (nothing, when the
+  answers are shared). Getting them to run: about half a test pass, which has to come after the build, except for
+  tests of existing behaviour, which can be run on the starting product while the build is still going (13 to
+  24 of these specifications' 31 to 44 clauses are `existing`).
+
 ## 3. The design this points to
 
 **One rule.** A stage starts when the least it needs exists. It writes down what it took as given. When a stage it
@@ -116,14 +140,16 @@ strong (36 of 37 today).
 | Schedule | Loop a | Loop b |
 |---|---|---|
 | as run: one after another | 38.9 | 32.8 |
-| tests beside the build, after the whole plan | 29.9 | 24.0 |
-| the same, with the test pass split among three writers by area (7 minutes each assumed) | about 22 | about 19 |
-| fork after a short decide step (2.5 minutes assumed), the rest of the plan beside the build, test pass split | about 18 | about 17 |
+| tests written beside the build after the whole plan, then got to run true on it (half the test pass each way) | about 30 | about 26 |
+| the same, with both halves of the test pass split among three writers by area | about 25 | about 22 |
+| the same, with a short decide step (2.5 minutes assumed) in place of waiting for the whole plan | about 21 | about 19 |
 
-Every row but the first has a catch-up to add, which rung 0 puts near nothing when the decisions are shared and
-which rungs 1 and 2 below would measure. Splitting the test pass is the larger lever and needs no catch-up at all:
-the loops' test sessions already wrote their tests in several files by area. The decide step only pays once the
-test pass is split, because until then the test pass, not plan and build, is the longest path.
+These take the second reading at its word: half of a test pass can run beside the build and half must follow it.
+So writing tests beside the build saves about a fifth, not the whole length of the build. Splitting the test pass
+is the larger lever and needs no catch-up of its own: the loops' test sessions already wrote their tests in
+several files by area. The decide step only pays once the test pass is split, because until then the test pass,
+not plan and build, is the longest path. What could shorten the second half is not in these numbers: tests of
+existing behaviour got to run true on the starting product while the build is still going.
 
 It buys time only. Tokens do not fall; a split test pass and a catch-up add some. By the owner's order of
 priorities (quality, then tokens, then time) it is worth having only if quality holds, and the same instruments
