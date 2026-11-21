@@ -1017,3 +1017,32 @@ includes browser scripts it wrote to check itself.
 Evidence: `evidence/grokbot-local/` (`final-grading.json` holds every arm's result on the final version with each
 failing check's note; `bare/`, `bare-low/`, `bare-sonnet/`, `shiploop/`, `ratchet/` hold the runs' records, the
 earlier gradings and the probes; `teeth/` the planted defects).
+
+### What each build's own tests are worth (exploratory; no model call; 2026-11-21 01:13)
+
+Not registered: a measure taken on the finished builds, as section 10's baselines were. `mutate.py` seeds the E2E
+harness's simple faults (a flipped comparison, a moved bound, flipped logic, a flipped boolean, flipped arithmetic)
+one at a time on lines the build wrote, 60 a build taken in turn across its files, and runs the build's own
+`npm test`. A fault is caught when the suite fails twice on it.
+
+| Build | Fault sites in its own code | Caught of 60 | In server code | In page code (`public/`) |
+|---|---|---|---|---|
+| one session, Sol 6.2 low | 114 | 31 (52%) | 31 of 57 | 0 of 3 |
+| one session, Sol 6.2 high | 324 | 24 (40%) | 24 of 45 | 0 of 15 |
+| one session, Sonnet 5.5 high | 462 | 31 of the 54 that ended (57%) | 31 of 56 | 0 of 4 |
+| ShipLoop, Sol 6.2 high | 359 | 37 (62%) | 33 of 50 | 4 of 10 |
+| Ratchet, Sol 6.2 high, first build (the builder's own tests) | 595 | 23 of the 58 that ended (40%) | 23 of 52 | 0 of 8 |
+
+**F22 (interim: one run a build, 60 faults each, a simple fault catalog).** This is the one measured thing in the
+pilot that ShipLoop's extra time buys. On the same model and effort its tests catch 37 of 60 seeded faults where the
+bare session's catch 24, and it is the only build whose tests reach the page's code at all. ShipLoop's run shows why:
+its own check of tests against seeded faults refused the test stage twice, with 2 of 8 and then 6 of 8 seeded faults
+surviving, until they were dealt with (`evidence/grokbot-local/shiploop/metrics-compact.json`: `gate_counts`,
+`shiploop_failures`). The Ratchet builder's own tests
+are no stronger than a bare session's (23 of 58), although its build prompt lists testing among its duties: a duty
+stated in a prompt did not do what a script-run check did. Ratchet's separately written acceptance suite (291
+browser-backed items) is not in this table; running it once a fault would take hours.
+
+Read with F19: the builds behave alike on both yardsticks, and differ in the tests they leave behind.
+
+Evidence: `evidence/grokbot-local/seeded-faults/` (each build's 60 faults with the verdict on each, and the log).

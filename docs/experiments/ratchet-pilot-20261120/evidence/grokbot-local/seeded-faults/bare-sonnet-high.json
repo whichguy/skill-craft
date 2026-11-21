@@ -1,0 +1,513 @@
+{
+ "label": "bare, Sonnet 5.5 high",
+ "tree": "<runs>/g-bare-sonnet-high/work",
+ "sites_on_changed_lines": 462,
+ "files": {
+  "lib/api.js": 78,
+  "lib/away.js": 24,
+  "lib/engine.js": 92,
+  "lib/memory.js": 17,
+  "lib/proposals.js": 23,
+  "lib/provider.js": 7,
+  "lib/records.js": 41,
+  "lib/runner.js": 9,
+  "lib/store.js": 9,
+  "lib/tasks.js": 27,
+  "lib/util.js": 5,
+  "public/app.js": 127,
+  "server.js": 3
+ },
+ "sampled": 60,
+ "invalid": 0,
+ "commands_failing_on_the_untouched_copy": [],
+ "untouched_failures": {},
+ "faults": [
+  {
+   "file": "lib/api.js",
+   "line": 22,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": null
+  },
+  {
+   "file": "lib/away.js",
+   "line": 14,
+   "op": "bool-flip",
+   "old": "false",
+   "new": "true",
+   "own": true
+  },
+  {
+   "file": "lib/engine.js",
+   "line": 38,
+   "op": "bool-flip",
+   "old": "false",
+   "new": "true",
+   "own": false
+  },
+  {
+   "file": "lib/memory.js",
+   "line": 12,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "lib/proposals.js",
+   "line": 16,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "lib/provider.js",
+   "line": 28,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": true
+  },
+  {
+   "file": "lib/records.js",
+   "line": 14,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "own": true
+  },
+  {
+   "file": "lib/runner.js",
+   "line": 24,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "own": false
+  },
+  {
+   "file": "lib/store.js",
+   "line": 31,
+   "op": "bool-flip",
+   "old": "true",
+   "new": "false",
+   "own": true
+  },
+  {
+   "file": "lib/tasks.js",
+   "line": 18,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": true
+  },
+  {
+   "file": "lib/util.js",
+   "line": 10,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "public/app.js",
+   "line": 12,
+   "op": "bool-flip",
+   "old": "false",
+   "new": "true",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 14,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": false
+  },
+  {
+   "file": "lib/api.js",
+   "line": 24,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": null
+  },
+  {
+   "file": "lib/away.js",
+   "line": 15,
+   "op": "arith-flip",
+   "old": "-",
+   "new": "+",
+   "own": true
+  },
+  {
+   "file": "lib/engine.js",
+   "line": 40,
+   "op": "rel-bound",
+   "old": ">",
+   "new": ">=",
+   "own": false
+  },
+  {
+   "file": "lib/memory.js",
+   "line": 14,
+   "op": "rel-bound",
+   "old": ">",
+   "new": ">=",
+   "own": false
+  },
+  {
+   "file": "lib/proposals.js",
+   "line": 16,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "own": true
+  },
+  {
+   "file": "lib/provider.js",
+   "line": 29,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "own": true
+  },
+  {
+   "file": "lib/records.js",
+   "line": 19,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "lib/runner.js",
+   "line": 38,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": null
+  },
+  {
+   "file": "lib/store.js",
+   "line": 41,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "lib/tasks.js",
+   "line": 27,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "lib/util.js",
+   "line": 13,
+   "op": "rel-bound",
+   "old": ">",
+   "new": ">=",
+   "own": false
+  },
+  {
+   "file": "public/app.js",
+   "line": 29,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 36,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": false
+  },
+  {
+   "file": "lib/api.js",
+   "line": 30,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": null
+  },
+  {
+   "file": "lib/away.js",
+   "line": 15,
+   "op": "rel-bound",
+   "old": ">",
+   "new": ">=",
+   "own": false
+  },
+  {
+   "file": "lib/engine.js",
+   "line": 40,
+   "op": "bound-literal",
+   "old": "0",
+   "new": "1",
+   "own": false
+  },
+  {
+   "file": "lib/memory.js",
+   "line": 23,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": true
+  },
+  {
+   "file": "lib/proposals.js",
+   "line": 16,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "lib/provider.js",
+   "line": 31,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "own": false
+  },
+  {
+   "file": "lib/records.js",
+   "line": 29,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "lib/runner.js",
+   "line": 38,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "lib/store.js",
+   "line": 46,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": false
+  },
+  {
+   "file": "lib/tasks.js",
+   "line": 28,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": false
+  },
+  {
+   "file": "lib/util.js",
+   "line": 19,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "public/app.js",
+   "line": 30,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": false
+  },
+  {
+   "file": "server.js",
+   "line": 62,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": null
+  },
+  {
+   "file": "lib/api.js",
+   "line": 45,
+   "op": "rel-bound",
+   "old": ">",
+   "new": ">=",
+   "own": false
+  },
+  {
+   "file": "lib/away.js",
+   "line": 15,
+   "op": "bool-flip",
+   "old": "true",
+   "new": "false",
+   "own": true
+  },
+  {
+   "file": "lib/engine.js",
+   "line": 40,
+   "op": "bool-flip",
+   "old": "true",
+   "new": "false",
+   "own": false
+  },
+  {
+   "file": "lib/memory.js",
+   "line": 23,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "lib/proposals.js",
+   "line": 23,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": false
+  },
+  {
+   "file": "lib/provider.js",
+   "line": 32,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": true
+  },
+  {
+   "file": "lib/records.js",
+   "line": 34,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": false
+  },
+  {
+   "file": "lib/runner.js",
+   "line": 39,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": true
+  },
+  {
+   "file": "lib/store.js",
+   "line": 46,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": null
+  },
+  {
+   "file": "lib/tasks.js",
+   "line": 31,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "lib/util.js",
+   "line": 22,
+   "op": "rel-bound",
+   "old": ">",
+   "new": ">=",
+   "own": false
+  },
+  {
+   "file": "public/app.js",
+   "line": 30,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": false
+  },
+  {
+   "file": "lib/api.js",
+   "line": 54,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "own": false
+  },
+  {
+   "file": "lib/away.js",
+   "line": 17,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "own": true
+  },
+  {
+   "file": "lib/engine.js",
+   "line": 44,
+   "op": "bool-flip",
+   "old": "false",
+   "new": "true",
+   "own": true
+  },
+  {
+   "file": "lib/memory.js",
+   "line": 38,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "lib/proposals.js",
+   "line": 31,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "lib/provider.js",
+   "line": 41,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": true
+  },
+  {
+   "file": "lib/records.js",
+   "line": 34,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": true
+  },
+  {
+   "file": "lib/runner.js",
+   "line": 40,
+   "op": "rel-bound",
+   "old": "<",
+   "new": "<=",
+   "own": true
+  },
+  {
+   "file": "lib/store.js",
+   "line": 46,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": false
+  }
+ ],
+ "own": {
+  "caught": 31,
+  "survived": 23,
+  "did_not_end": 6,
+  "not_measured": 0,
+  "share": 0.574
+ }
+}
