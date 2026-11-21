@@ -688,7 +688,7 @@ started from requests of 76 to 322 words where the bench's are 7 to 15. Read the
 both in mind. `evidence/readings/coverage-by-category.txt` gives what the released stage reached in each of the
 checklist's ten categories.
 
-## The guides test (journal sections 39 and 40; not run without the owner's word)
+## The guides test (journal sections 39 to 41; not run without the owner's word)
 
 A small real-ShipLoop test of the question section 38 left open: from one sentence, how full is the specification
 the released spec stage writes in a real run, and does the text of its reference guides add anything beyond a cue?
@@ -700,3 +700,12 @@ launches real runs with `test/shiploop_e2e/run.py`, ends each when its specifica
 accepted specification from the commit ShipLoop made for it. `replay` reads an existing run folder the same way
 without writing into it. The bench's checklist for `csv-user-import`, re-sorted for this base by the two outside
 sorters, and its two judges grade the specifications.
+
+A second review at maximum effort also said to fix first (`review/guides-test-2-review.md`); section 41 records what
+was checked of it and the design as it now stands: the cue moved to the end of the first duty, four labels at step 0
+with the list fixed and at least 8 items needed before `run` will launch, six checks for a usable sample, three for
+delivery, one manifest for a set with sealed readings, a registered audit for added capability (`audit-pack`,
+`audit-check`) and one rule for a complete set (`outcome`). `guides_rehearsal.py TEMPLATE_RUN SCRATCH_ROOT` runs the
+driver end to end with no model, a stub in place of the harness and made-up labels and readings; its transcript is
+`evidence/guides-test/rehearsal.txt`, and `evidence/guides-test/replay-of-two-existing-runs-2.txt` is the final
+reader on two runs that exist (the earlier replay file is of the driver before the second review).

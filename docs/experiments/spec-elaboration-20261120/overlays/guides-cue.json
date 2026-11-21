@@ -1,12 +1,12 @@
 {
- "about": "Spec-elaboration journal section 40, arm C of the guides test: one cue sentence at the head of the spec stage's first duty. It names two things to work out and delivers no guide text. For an experiment only; not a proposed change to ShipLoop.",
+ "about": "Spec-elaboration journal sections 40 and 41, arm C of the guides test: one cue sentence at the end of the spec stage's first duty; it delivers no guide text. For an experiment only; not a proposed change to ShipLoop.",
  "edits": [
   {
    "module": "shiploop_prompts.py",
    "constant": "DUTIES",
    "key": "spec",
-   "old": "1. Read KNOWLEDGE/spec.md whole, the research and discovery results; reopen the selected baseline in Discovery's `evidence_refs`\n   (Current-system baseline guide).",
-   "new": "1. Before you write, work out the behaviour model and the state and data changes for this request.\n   Read KNOWLEDGE/spec.md whole, the research and discovery results; reopen the selected baseline in Discovery's `evidence_refs`\n   (Current-system baseline guide)."
+   "old": "never relax a requirement to fit the code\n   or tests.",
+   "new": "never relax a requirement to fit the code\n   or tests.\n   Before you write the requirements, work out the behaviour model and the state and data changes of what this\n   request asks for, and which decisions it leaves open."
   }
  ]
 }

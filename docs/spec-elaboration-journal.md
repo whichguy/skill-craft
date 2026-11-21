@@ -2868,6 +2868,10 @@ only one.
 
 ## 40. The review of section 39, what was checked of it, and the amended design (12:40, 2026-11-21)
 
+*Superseded in part, 2026-11-21 13:26 (section 41): the cue's wording and place, the labels of step 0, what counts as
+a usable sample and as delivery, the rule for one set and the predictions are replaced there, after a second review.
+The question, the sentence, the base and the three arms stand.*
+
 Section 39's design is replaced by this one in its arms, samples, readings, bar, outcomes and predictions. Its
 question, its sentence and its base stand. Nothing has been run with a model except the review. Running any of it
 needs the owner's word.
@@ -2980,3 +2984,141 @@ written into either folder.
 **Limits.** As in section 39, and: the guide text tested is two sections of the material, chosen by this session
 for size; the cue is this session's wording; the first step is one set of three runs on one driver, which can
 give a signal and cannot settle anything; the item list is fixed only at step 0.
+
+## 41. The second review of the guides test, what was checked of it, and the design as it now stands (13:26, 2026-11-21)
+
+Section 40's design stands in its question, its sentence, its base and its three arms. This section replaces its
+cue, its step 0 labels, what counts as a usable sample and as delivery, its rule for one set and its predictions.
+Nothing has been run with a model except the two reviews. Running any of it needs the owner's word.
+
+**The review.** The latest Sol at maximum effort, read-only over this repository
+(`review/guides-test-2-prompt.md`, `review/guides-test-2-review.md`). Verdict: fix first. Of the first review's
+thirteen findings it calls one resolved and twelve partly resolved, and it adds eleven of the first rank, five of
+the second and one of the third. Its last lines: step 0 should wait for labels that can handle an item of two parts
+and for a fixed list; step 1 should wait for a gate at launch, evidence of the acceptance and of the stop, a checked
+reading of what the author was shown, and a rehearsal through the blind copies and the scoring.
+
+**Checked before anything was changed**, in the engine's and the harness's code and on two run folders that exist:
+
+- True: the line that ends a ShipLoop print also stands in the packet's opening recovery line (characters 623 and
+  21,211 of a 21,238-character result), so "the result holds the end line" passed for a cut packet. The run keeps
+  each packet as it printed it (`packets/sent/`), and a whole result contains that text.
+- True: the acceptance is the command row whose `accepted` list holds the spec stage as done; the list names the
+  spec action. ShipLoop writes that row when the command ends (`record_command`).
+- True: the knowledge files are committed inside the accepting command, only when they changed, and a failed commit
+  does not undo the acceptance (`knowledge.commit` and its caller). In the stopped Codex sample the commit is
+  ShipLoop's own, stamped in the same second as the row. In the finished Claude delivery there is none for the spec
+  stage: its review had already committed the text, and three later commits change the specification. The first
+  driver took the latest of those, made an hour after the acceptance, as the review said.
+- True: the review's bind file is named by the spec action, holds the repository's top folder, the prefix and a
+  tree, and is written again under the same name when a review is restarted (`_improve_restart`).
+- True: Codex results carry a status and an exit code, and Claude results an error flag. The first reader used
+  neither.
+- True: the bench judge's text tells the judge the document has use cases U-n and clauses C-n. A ShipLoop
+  specification has requirements R-n with acceptance lines and other sections.
+- Checked for the fix: the host's installed copy of a build keeps the build's bytes (the same SHA-256 for
+  `shiploop_prompts.py` in a build and in its run's plugin folder), so the build a host loaded can be told by hash.
+- Found while fixing, and not in the review: one line of `requirements-definition.md`, a link, also stands in
+  another guide, and a run's opening read of the start guides returned it. A check on any line of the file would
+  have failed every control arm. The check now counts only lines of the two sections that no other file of the
+  skill holds (52 and 21 lines of 60 characters or more), and takes three or more of them in one result as the
+  passage and fewer as a search hit.
+
+**What changed.**
+
+1. *The cue.* It now ends the spec stage's first duty, after the instruction to read the baseline, and is limited
+   to what the request asks for and to open decisions, 28 words: "Before you write the requirements, work out the
+   behaviour model and the state and data changes of what this request asks for, and which decisions it leaves
+   open." Arm X's block is unchanged in content. The rendered spec stage is 8,786 characters in A, 8,954 in C and
+   15,630 in X. X against C is the effect of having this block in the packet, given the cue. It is not the effect
+   of the guide's ideas apart from the block's length and place.
+2. *Step 0.* Four labels: `applies`, `capability`, `mixed` (with the part that applies written out) and `unclear`.
+   Only items both sorters call `applies` enter the rule. The others are shown for each arm and never counted.
+   `run` refuses to launch unless both label files are committed and at least 8 items apply, and writes the list
+   to `items.json` with the label files' hashes and the base's digest; any later difference stops every command.
+3. *A usable sample* meets six checks: the acceptance is inside the limit; the specification is pinned to a commit
+   with a witness; the acceptance found afterwards is the one the watcher saw; the launch used the registered
+   sentence; it started from the prepared base; the host loaded the arm's build. The witness is one of: the commit
+   is the accepting command's own knowledge commit; or its text equals the working file as the watcher copied it
+   within a second of the acceptance. (`replay`, which has no watcher, also takes the working file as it stands
+   when no later commit touches it.)
+4. *Delivered as the arm intends* is three checks: the result of the print holds the whole packet as ShipLoop kept
+   it; the cue is in C's and X's packet and not in A's; X's packet holds the whole block, and A's and C's sessions
+   were returned no passage of X's two sections before their acceptance, in any successful call, whatever the call
+   was. Calls are placed by the session's own callbacks for the spec action and for its review.
+5. *The watcher* decides once for each run and records why (it saw the acceptance, the run ended with none, or the
+   time limit), the acceptance it saw, a copy of the working specification at that moment and each review bind
+   when it first appears. It ends its own launch when no output folder appears inside the limit, and waits ten
+   minutes for all three runs, not for each. Collection keeps the harness's own facts beside the one-word ending.
+6. *The handoff.* One manifest for a set, with a round name that cannot repeat, the slots and each blind copy's
+   hash. `judge`, the audit and `score` work only from it. After judging, each grade file's hash is sealed, and
+   `score` refuses a changed copy, a changed or missing grade file, and a set whose audit has not been checked in.
+   An incomplete set gets no copies and is not judged.
+7. *The judge's text* for these specifications is the bench's with four phrases changed to name requirements R-n
+   and acceptance lines (`LIVE_RUBRIC`). Numbers from the bench are for description only beside these.
+8. *The capability audit* is registered: `AUDIT_PROMPT`; `audit-pack` makes the reader's folder (the sentence, the
+   base, the specifications under codes); `audit-check` verifies every quote in its file before any arm is shown.
+9. *The rule for one complete set* (`outcome`), the first of these that holds:
+   - delivery unknown (a session's events or kept packet are missing): nothing is claimed;
+   - delivery failed (any of the three checks fails in any arm): the set says nothing about the guide text;
+   - a signal of harm: X is lower than C by 4 or more items on net, or the reader finds a verified capability in
+     X alone;
+   - a signal worth repeating: X is higher than C under both judges on at least 4 items, net at least 4, and at
+     least 2 of those items were absent in C under both judges. A second Sol set would follow, and one on Sonnet
+     only after its own registration;
+   - no signal: fewer than 2 items higher and fewer than 2 lower;
+   - anything else is described and nothing is claimed.
+
+**Predictions for the first set**, written before any run, each with what it needs to be read:
+
+1. All three samples are usable by the six checks.
+2. All three are delivered as their arms intend. Unknown when a session's events or kept packet are missing.
+3. Arm A's accepted specification is between 300 and 1,500 words. Unknown when A is not usable.
+4. C over A: fewer than 2 items higher and fewer than 2 lower under both judges. Unknown unless the set is
+   complete and its readings are sealed; the same for 5.
+5. X over C: at least 2 items higher under both judges, and at least 2 on net. I make no prediction about the
+   rule for repeating.
+6. The reader finds no verified capability in X alone. Unknown without a checked audit of all three.
+7. X's author takes at least 1.2 times C's seconds, each taken from the accepted spec action's own row (the
+   stage's seconds less its review's, both measured in both arms). Unknown when either is missing.
+
+**Not adopted, and why.**
+
+- A filler block in C to match X's length and place. This test does not claim to isolate the guide's ideas; it
+  asks whether putting this block in the packet changes the specification.
+- The position of each result and the actor of each call. Calls are placed in order, and a passage a helper of
+  the session read counts as shown to the session. That can fail a control and cannot pass one.
+- Copies of every input the spec stage named. A sample's folder is kept whole; three earlier results and the
+  packet are copied beside the specification for convenience.
+- A Claude set. Its preset is out of the driver: it needs its own registration, with its cap and with the way a
+  build is checked on that host.
+- A third review at maximum effort. What is left to find is in running, which the rehearsal below covers offline
+  and a first set would show for about a quarter of an hour.
+
+**What is ready, with no model called.** `guides_test.py` (`overlays`, `prepare`, `sort`, `run`, `collect`,
+`judge`, `audit-pack`, `audit-check`, `score`, `replay`), and `guides_rehearsal.py`, which runs the driver end to
+end with a stub in place of the harness and made-up labels, readings and reader's file. Its transcript is
+`evidence/guides-test/rehearsal.txt`: 63 checks held and none failed. In it: the real `prepare` finds no problem;
+`run` refuses with no label files, with five items that apply, and with a driver that is not registered; three
+stub runs reach acceptance and are each stopped, usable and delivered, with the cue in C's and X's packet alone
+and the block in X's alone; the blind copies show no arm; `score` refuses before the readings are sealed and
+before the audit; a made-up capability in X alone turns five items higher into a signal of harm, and with none
+the same readings are a signal worth repeating; the rule is checked case by case; a changed grade file, blind
+copy or label file is refused; and a run that never accepts, a launch that makes no folder and a run that ends by
+itself are told apart, leave the set incomplete with no copies, and are not judged. The rehearsal first failed on
+its own stub, which shows it can fail. `replay` with the final reader
+(`evidence/guides-test/replay-of-two-existing-runs-2.txt`): the stopped Codex sample is pinned by ShipLoop's own
+commit; the finished Claude delivery is not pinned without a witness, is pinned with a copy equal to its commit's
+text and is not with one that differs. Nothing was written into either folder.
+
+**What the rehearsal does not show.** A real host or a real stop (another session's sample shows the harness's
+stop file works); real sorters, judges or a real reader; that 8 items will apply; anything on the Claude host.
+
+**What it costs**, unchanged: step 0 is two sorter sessions; step 1 is three Sol runs side by side, about 5 to 10
+minutes on subscription, six judge readings (about one dollar for the registered judge's three) and one Sonnet
+reader.
+
+**Limits.** As in section 40, and: three lines for a passage and 60 characters for a line are this session's
+choices; "2 newly raised" has no measure of run-to-run spread behind it from real runs, where specifications are
+several times shorter than the bench's, and the second set is the guard against that; the driver is long for what
+it does, which is the price of the two reviews' checks.
