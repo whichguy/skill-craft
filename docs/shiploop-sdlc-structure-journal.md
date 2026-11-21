@@ -2195,6 +2195,32 @@ folders of rounds 4 to 7, one rehearsal does.
 - The held-out checks of `ticket-due-times` count one planning choice five times (F46).
 - No Grok run on the latest ShipLoop exists yet; R65 and R66 are an older version and were not judged.
 
+### Correction, 2026-11-21: the baseline's time readings are withdrawn
+
+The session running the Ratchet pilot reports ten stray test processes of its own at full CPU on this machine
+from about 22:00 to 02:02 (recorded by the spec-elaboration session in
+6a9731322ba8aecbe308f625570aa8370452d3b6; the fix is ffe1c68d6fe6299173b21cf47bc9304a3a0d1cf2). The
+six Sol 6.2 high runs ran from 22:13 to 22:55, inside that window. Their medium base ran from 20:03 to 20:39,
+before it, beside this study's own other runs. So R68 compared minutes taken under different loads. The minutes
+stay as measured. The readings "high is slower" and finding F52 are withdrawn until the paired redo below.
+Nothing else in the round rests on minutes: the held-out checks, the planning choice (F51) and the runs that
+switched planning reviews off (F53) stand.
+
+Related, from that session's pilot (7c4631e31913a02454367f79ff187cd4a2da0901): a different build loop on Sol 6.2
+high read the same request the operator-step way and failed the same five probes from its first build to its
+last, with its own tests green throughout. That is F46's reading again, on a third apparatus.
+
+### Registered design: a paired redo of the timing (written and committed before any counted run)
+
+- **Runs.** The baseline's build (ShipLoop 2.4.0, no overlay). Medium and high start together, so each pair runs
+  under the same load: `shared-expenses` two medium and two high at once; `ticket-due-times` one medium and one
+  high at once, twice. This round's Grok delivery runs beside them.
+- **Time.** Per request, high against medium in mean minutes from start to end: slower at 15% or more above,
+  faster at 15% or more below, otherwise no readable difference. The two milestones are reported. A run that
+  records `none` by itself is compared only with runs of the same option.
+- **Counts.** Held-out checks, the planning choice and the option each run records are added to R69 and R70.
+- **Limits known before the run.** Two runs a cell, two requests, one evening.
+
 ## Evidence (all rounds)
 
 | File | Holds |
