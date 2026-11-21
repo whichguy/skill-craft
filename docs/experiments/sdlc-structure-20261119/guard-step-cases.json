@@ -1,0 +1,20 @@
+{
+ "_about": "Round 6 guard round (docs/shiploop-sdlc-structure-journal.md). Step cases that exist only for this experiment: merge them into test/shiploop_e2e/step_cases.json of a throwaway worktree (guard_apply.py), never into the checkout. Their hidden yardstick is not listed here on purpose: a step case's `checks` are printed into the seeded environment.md, which the model reads.",
+ "tickets-due-times": {
+  "about": "The whole ticket-due-times request (cases.json, the planning-points probe of 2026-11-14) as one work item on its base, node-tickets: a stored field with a data-file migration, a setting with defaults, a listing filter, a staged switch-on (DUE_TIMES=on) and a way back to release 1.4.0. The largest recorded item: Grok 4.6 xhigh planned it with 15, 20 and 27 criteria in 8, 9 and 11 steps.",
+  "fixture": "node-tickets",
+  "prompt": "This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable, with a command-line tool in bin/. The help desk is starting to promise response times. Each ticket gets a due time: the time it was created plus the response time for its priority, which is 4 hours for urgent tickets, 24 for high, 72 for normal and 168 for low, and the help desk must be able to change those hours without a code change. A ticket's due time is set once: a later change of the hours or of the ticket's priority does not move it. Every ticket shows its due time as `due`, and `GET /tickets?overdue=true` lists only the open and in-progress tickets whose due time has passed. The tickets already in the production data file get due times too, from their own creation time and priority, and keep them from then on. Due times are switched on in production only once the data file holds them: until the DUE_TIMES environment variable is `on`, the service answers exactly as it does today. If the new release misbehaves, operators must be able to go back to the current release, 1.4.0, and it must still start on the data file the new release wrote and show every ticket. Everything the service already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones.",
+  "work_item": {
+   "id": "W1",
+   "title": "Add ticket due times with a staged switch-on and a way back to 1.4.0",
+   "context": "Each ticket gets a due time: its creation time plus the response hours for its priority (urgent 4, high 24, normal 72, low 168), and the help desk can change those hours without a code change. A due time is set once: a later change of the hours or of the ticket's priority does not move it. Every ticket shows `due`; GET /tickets?overdue=true lists only the open and in-progress tickets whose due time has passed. The tickets already in the production data file get due times from their own creation time and priority and keep them. Until the DUE_TIMES environment variable is `on` the service answers exactly as it does today. Operators must be able to go back to release 1.4.0, which must still start on the data file the new release wrote and show every ticket. Everything the service already does keeps working and its existing tests pass as they are."
+  },
+  "expect_paths": [
+   "src/*",
+   "test/*.test.js"
+  ],
+  "checks": [
+   "npm test"
+  ]
+ }
+}

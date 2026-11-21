@@ -62,7 +62,8 @@ def main(census, iteration, snapshots):
     def score(name, mark):
         if not mark or not mark.get("observed"):
             return None
-        total = {"shared-expenses-w1": 6, "node-chess-engine": 10}.get(runs[name]["case"], 14 - len(everywhere))
+        total = {"shared-expenses-w1": 6, "node-chess-engine": 10, "tickets-due-times": 8}.get(runs[name]["case"],
+                                                                                              14 - len(everywhere))
         return len([c for c in mark["passed"] if c not in everywhere]), total
 
     def show(pair):

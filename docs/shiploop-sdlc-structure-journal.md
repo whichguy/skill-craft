@@ -1392,6 +1392,83 @@ driver a step's `test`, `document` and review time followed its content, not the
   it. One step also means one step commit, so the history is coarser; nothing here prices that.
 - Up to seven slices ran at once. The Grok comparison is one slice against one from round 4, hours apart.
 
+### Guard round: an item large enough to need cutting (registered before any counted guard slice)
+
+**Question.** Owner, 2026-11-20, asked "Should I run the guard round on a larger item before you decide on the
+wording?": "Run guard round". Recommendation 2 above named it: an item past F1's numbers or across layers, F1
+against the shipped text, to see that F1 still cuts where it should and what its larger steps cost there.
+
+**The item, and why not the one named.** Recommendation 2 named E-SIZE1's battleship server
+(`node-battleship-server`). Read again, that item is one product file with one held-out check: under F1 it would
+be one step by design, as the engine was, and `tickets-assign` already built a change across six files and three
+layers as one step. The guard needs an item past the numbers. The largest recorded item is the `ticket-due-times`
+request (`cases.json`, the planning-points probe of 2026-11-14), on the same ticket service as `tickets-assign`:
+a due time stored on every ticket, a data-file migration for the tickets already in production, a setting for
+the response hours, a listing filter, a staged switch-on (nothing changes until `DUE_TIMES=on`) and a way back
+(release 1.4.0 must still start on the data file the new release wrote). Grok 4.6 xhigh planned it with 15, 20
+and 27 criteria in 8, 9 and 11 steps and spent 207 to 222 minutes in its inner loop; no other driver has run it.
+
+**Apparatus.** A step case, `tickets-due-times` (`guard-step-cases.json`): the whole request as one work item on
+the `node-tickets` fixture, its only visible check `npm test`. `guard_apply.py` merges it into `step_cases.json`
+of a throwaway worktree, never the checkout, because several hermetic suites walk every committed step case;
+`slice.py` runs from that worktree, at ddf922c4e3c43e7106e13dca3c2963831dadb959 (the same ShipLoop 2.3.0 build).
+
+**Yardstick the model never sees.** The eight checks of the full case: `suite` and `pristine` (the service's
+own tests still pass, with new ones beside them, and unchanged) and the six modes of `checks/due_times_probe.py`
+(`migrate`, `restart`, `switch`, `rollback`, `off`, `cli`). The case was calibrated when it was made against its
+base, a reference and six planted defects. Through this round's grader (`slice_snapshots.due_times`) the base
+passes 4 of 8 (not `suite`, `migrate`, `restart`, `switch`), the reference 7 of 8 (it adds no tests, so not
+`suite`), and the planted defect `version-two` fails `rollback`, `pristine` and `suite`. Unlike the yardsticks of
+rounds 4 to 6, this one has a known way for a plausible first implementation to be wrong: raise the data file's
+format version and 1.4.0 no longer starts on it.
+
+**Rehearsal** (four runs stopped after `step-plan`, not counted).
+
+| Driver | Shipped text | F1 |
+|---|---|---|
+| Sol 6.2 medium | 5 criteria, 4 steps (1, 1, 2, 1), 9 product files | 7 criteria, 1 step of 6 product files |
+| Sonnet 5.5 high | 10 criteria, 5 steps (2, 4, 2, 1, 1) | 14 criteria, 2 steps (7, 7): the due-time model and its storage first, then the API, the command line and the documents |
+
+The step-plan reviews left all four plans as submitted. The item exercises both of F1's behaviours: Sonnet's
+plan is past 12 criteria and is cut at a layer boundary, and Sol 6.2's fits inside the numbers and stays one
+step.
+
+**Runs.** Sonnet 5.5 high, two slices an arm, the four at once. Sol 6.2 medium, two slices an arm, the four at
+once. Grok 4.6 xhigh, the plan only: one run an arm stopped after `step-plan`, because a full Grok slice of this
+item does not fit in the two hours a background task gets here.
+
+**Measures**, each per slice: criteria, steps planned, criteria and product files per step and which files each
+step holds; minutes, and seconds by part; hidden checks at the last step's `implement` snapshot and at the end;
+`test` refusals and send-backs.
+
+**Readings.** A cell is one driver; two slices a cell read only large effects.
+
+- *F1 cuts where it should*: an F1 plan that holds more than 12 criteria or more than 6 product files has two
+  or more steps, none over either number. An F1 plan that fits inside the numbers as one step does not exercise
+  the cut and is reported as such.
+- *Quality at the end*: no loss is seen in a cell if every F1 slice passes at least as many of the eight checks
+  at its end as the least of that cell's baseline slices.
+- *The first implementation*, with round 6's lesson applied before the run: at the last step's `implement`
+  snapshot the seven checks other than `suite` are read, since `suite` counts the new tests the `test` stage
+  writes. The named risk shows in a cell if an F1 slice fails one of the seven there that every baseline slice
+  of the cell passes there. A failure there that a later stage repairs is reported with the stage that repaired
+  it.
+- *Time*: as before, F1 saves time at 15% or more below the baseline's mean minutes and is slower at 15% or
+  more above.
+- *The guard holds* if F1 cuts wherever its plan is past the numbers, no cell shows a quality loss at the end
+  and F1 is not slower in any cell. *The guard fails* if an F1 plan past the numbers stays one step, or a cell
+  shows a quality loss at the end.
+- Registered fallback (round 6's lesson): if the two arms' plans overlap in step count within a cell, the
+  slices are also read by the steps planned, labelled exploratory.
+
+**Limits known before the run.** One item, two slices a cell. The item is a brownfield change of a few hundred
+lines, larger than anything in rounds 4 to 6 and still not a large build. Planners fit their criteria to the
+bound (F34), so whether a plan is "past the numbers" depends on how many criteria the planner writes: in the
+rehearsal only Sonnet's was. Grok is read by its plan alone. A slice ends at `carry-forward`.
+
+**Budget and failures.** At most $25 for a Claude slice; each Grok plan about $3. A slice that ends without its
+`carry-forward` accepted is reported as it ended and run once more if time allows.
+
 ## Evidence (all rounds)
 
 | File | Holds |
