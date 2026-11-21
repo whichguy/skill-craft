@@ -2005,3 +2005,43 @@ with either text (6, 4, 2, 3, 1 with the lens text; 0, 2, 0, 1, 1 with the rewor
 
 Evidence: `evidence/reworded-enrichment/` (`s1-*/` and `s1L-*/` with each run's `run.json` and `spec.md`;
 `sonnet-specs-log.txt` and `.json`).
+
+### Received from this session's fork: a suite is written against one product's answers (2026-11-21 08:18)
+
+Status: received, not re-run here; the reading of what it does to R9.5 and F31 is mine.
+
+The owner forked this conversation at 08:00 to ask whether Ratchet's stages can run at once, with a catch-up. That
+session, "Ratchet (fork)", works in a worktree and branch of its own (`ratchet-parallel-6f54fb`, cut from this
+branch at e16be4938; its commits 810cbe5135358b4614f2bf210f63699bae271789 and
+164edda800ebbeac4eca1bdcc025357e5e469fde; its journal `docs/ratchet-parallel-journal.md`) and reads this
+amendment's run folders without changing them.
+
+**What it found**, with no model, by laying one run's frozen suite over another run's product (its `overlay.py`,
+as `grade.py` does for a variant), on due times:
+
+| Suite | On loop a's build | On loop b's build | On the correct reference |
+|---|---|---|---|
+| loop a's (42 items) | 39 in its exported copy; 41 at this run's own gate | 38 | 29 or 31 |
+| loop b's (41 items) | 41 | 41 at its own gate | 29 or 31 |
+| the test-strength cell's (39 items) | 31 | 31 | 35 |
+
+(It gives the two loops' results on the reference as "29 and 31" without saying which is which.) Every cross
+failure, it reports, is about how a test drives the product at an open point (one `RESPONSE_HOURS` setting against
+four `DUE_HOURS_*` ones; how the data file is prepared) or about the product's own tests. None is about what a
+clause asserts.
+
+**What that does to the readings above.** R9.5 stands as it was read: no test asserts an answer to an open point.
+But it said too little. A suite is written against one product, drives it through the answers that product took,
+and so does not carry to another correct product that answered differently: a loop's suite fails 10 to 13 of its
+items on the reference. R9.2 could not show this, because in a test-strength cell the tests are written with the
+reference as the product in front of them, for every text alike. So F31's "removed most of what rejected a correct
+product" holds for what a clause asserts and not for how its test reaches the product. With the earlier texts the
+specification fixed a control's name and a correct product that named it otherwise failed; with this text nothing
+fixes it, and the test takes it from the product at hand. A second correct product still needs the plan's answers,
+or tests that find a product's controls from its documents.
+
+**Two notes on the apparatus.** The fork's exported copy of loop a's own build counts 39 of 42 where this run's
+gate counted 41 (C-33 and U-8, both about `npm test`): not examined, and the same kind of difference as loop b's
+`suite` check in section 20, a copy without Git history. And for about a minute (08:03 to 08:04:43), before it knew
+it was the fork, it had left one untracked file in this worktree: the launch guards here read a clean tree at
+08:03:08 and at 08:06:59, and no commit of this branch holds it.
