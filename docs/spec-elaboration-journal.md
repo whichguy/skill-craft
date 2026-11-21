@@ -1809,3 +1809,73 @@ What is registered (README, "A filter round for the review's wording"):
 
 Predictions, on record before the sort: G moves Sol's N1 by less than 2; no G specification caps the waitlist; H
 moves Sol's N1 by 3 or more; at most one H specification caps the waitlist.
+
+## 26. Two free readings of deliveries that already ran: what happens to a limit nobody stated, and what the final report shows (07:06, 2026-11-21)
+
+The owner, asked whether there was enough to conclude early, said to conclude and then agreed to two readings that
+cost nothing: follow open points through deliveries already run, and check whether the final report shows the
+defaults a run chose. No model was called. Tool: `limits_census.py` (it reads each delivery's work tree, its
+specification at the spec stage, its tests and its final report). Evidence:
+`evidence/readings/limits-census.txt` and `evidence/readings/due-hours-ceiling.txt`.
+
+**The sample.** 31 deliveries on the latest ShipLoop that have a work tree and a final report: 30 from the SDLC
+session's study (its runs, read and not touched) and one from the Ratchet session's pilot. By case: 16 ticket due
+times, 11 shared expenses, 2 hello, 1 ticket assignment, 1 local chat app. By driver: 26 on Sol 6.2 (medium and
+high), 5 on Sonnet high. All four requests are several paragraphs long and precise.
+
+### What the readings found
+
+**1. This experiment's frame is not what the stage does in a real run.** Words in the specification at the spec
+stage: Sol a median of 384 (120 to 731), Sonnet 2,207 (1,718 to 2,288). In rounds 5 to 10 here the same stage text
+wrote 4,400 to 6,600 words on Sol and 6,000 to 10,000 on Sonnet. And open gaps: none in any of the 26 Sol
+specifications, one each in 3 of the 5 Sonnet ones. The open points this experiment kept counting hardly occur in
+a real run. Real Sol specifications do not leave a limit open; they do not mention it.
+
+**2. A limit the request does not state still ends up in the product, and on Sol nobody writes it down.**
+
+| | Sonnet high | Sol 6.2 (medium and high) |
+| --- | --- | --- |
+| ticket due times: the request lets the help desk change the hours and names no upper bound. Products that enforce a ceiling | 4 of 4 | 12 of 12 |
+| specifications that state that ceiling | 4 of 4 | 0 of 12 |
+| final reports that mention it | 4 of 4 | 0 of 12 |
+| the ceilings chosen | 100,000; 87,600; 8,760; 8,760 hours | from 1,000,000 hours up to the largest date JavaScript can hold |
+| shared expenses: a JSON service. Products that cap the size of a request | 1 of 1 (1 MiB, answered 413) | 0 of 10 |
+| the cap is a requirement with a test | yes: "R-12 Request robustness (extra defaults, assumption A4)", tested either side of 1,048,576 bytes | none to test |
+
+The chat app delivered on Sol at high has nine limits its builder chose (a 64 KB request, 80 characters for a
+name, 8,000 for a message, an instruction or a memory, 100 for an identifier, 44 for a title). None is in its
+specification, its knowledge files or its README, and a search of its tests finds none that sends an over-long
+value or an oversized request.
+
+So on Sol a limit nobody stated is either chosen by the builder without a record, or not built. On Sonnet the
+specification states it, a test holds it, and the owner can read it.
+
+**3. The final report shows what a stage wrote down, and only that.** It has sections for open items (each
+assumption with how to settle it, why, when and who), unverified request outcomes and follow-on. Sonnet's reports
+list a median of 6 assumptions (0 to 10) and show the ceiling in 4 of 4. Sol's list a median of 0 (0 to 2), show
+the ceiling in 0 of 12 and none of the chat app's nine limits. The report is not where the gap is: what no stage
+writes cannot be shown.
+
+### What it means for this experiment
+
+- **The lever is real in built products, on Sol.** Rounds 7 to 10 found that telling the stage to give a default
+  to a limit the behaviour cannot work without changes what Sol writes. These deliveries show the thing it would
+  change: limits enforced that the owner never sees, and a network service with no bound on a request. By the
+  owner's rule of 2026-09-27 quotas and security checks are rigour, expected even for a small request.
+- **And this experiment cannot say what the rule would do in a real run.** Its frame makes the stage write ten
+  times as much and leave points open that a real run never raises. Every number in sections 3 to 25 is a number
+  about that frame. The token figures (a median of 44,000 output tokens a specification on Sonnet) are the
+  frame's too, not the stage's.
+- **The next experiment that could matter is small, and its control already exists.** The archive holds 12 Sol
+  deliveries of ticket due times and 10 of shared expenses on the latest ShipLoop, with 0 of 12 and 0 of 10 on the
+  two counts above. Two or three deliveries a case with the rule in duty 4 would show whether the specification
+  starts to state the ceiling and the request limit, whether a test holds them and the report shows them, and
+  whether the held-out verdicts move. That is a ShipLoop candidate run and is not started: it is the owner's to
+  authorize.
+
+Limits. One study's cases, three kinds of request, all detailed; five Sonnet deliveries. The limit finder is a
+pattern match and its candidates were read; "no cap" means no product file the run added holds a 413, a "too
+large" refusal or a named maximum, and a service could bound a body some other way that I did not look for. The
+deliveries' own verdicts (many of the due-times ones failed) are about other things; nothing here shows a limit
+changed a verdict. Whether an unstated ceiling of a million hours is a defect at all is a judgement: the point is
+that it was decided and not written.
