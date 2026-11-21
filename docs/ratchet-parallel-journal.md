@@ -852,3 +852,40 @@ is still in doubt.
 **Limits known in advance.** One cell a side, one model family. The build was right the first time. The test
 sessions find their own way to a browser on this machine. A session ends at 45 minutes whatever it has done. The
 machine is shared (the load was 20 a few minutes before launch), so minutes are loose.
+
+## 15. Grokbot-local, first meeting, and a reading added before it is taken (2026-11-21 13:14)
+
+**G1, as measured: 4 of 115.** The build-less suite passes C-1 to C-4 on the build and fails the other 111, on its
+first and only run there (30.4 minutes for the pass; no item unstable). The suite written beside the build passes
+115 of 115 at its first gate. My prediction of 0 to 5 failing items was wrong, in the other direction this time.
+
+**One cause, read by hand.** Every failing item stops at its first step with the same message: `Activate
+{"kind":"button","name":"Continue as Maya"} (last observation: [])`. The page is there and so is the button (a
+probe through the suite's own adapter shows the title, the three entry buttons, all visible). The specification
+asks for buttons named `Continue as Maya` (C-9) and the build has them: `public/app.js` puts an avatar letter and
+an arrow inside each button and marks both `aria-hidden`, so the button's accessible name is as specified. The
+build-less adapter works out an element's name itself (`name()` in its `adapter.cjs`) and falls back to the
+element's whole text, hidden parts included: it reads "MContinue as Maya→" and finds no button of the name it
+wants. The suite written beside the build asks the browser for its own accessibility tree and gets the right name.
+
+So the 111 failures are *execution*, by section 10's three kinds: how a test finds a thing on the page. No
+assertion is wrong and the product is right. It is the owner's case exactly (section 8): how a test executes had to
+become more specific once the code existed, and here the writer, with nothing to try its page code on, got one
+piece of it wrong for every test that opens the page.
+
+**A reading added now, before it is taken (G7, the size of the catch-up).** In a scratch copy, and by my hand, not
+a session's, that one function is changed to leave out `aria-hidden` descendants when it reads an element's text.
+All 115 commands are then run once on the build. Reading: how many pass; each item still failing is read as
+execution, assertion or product; and how many further corrections it takes, if I make any, each one named. This
+is a what-if, not a measured catch-up session: it says how much of the suite one correction unlocks and what lies
+behind it, and nothing about how long a session would take to find it. I found it in about eight minutes from the
+failing output, with one probe.
+
+**G6 is not taken as registered.** With 4 of 115 commands passing on the untouched build there is nothing for
+seeded faults to be caught by; and one pass of this suite takes half an hour, so even 30 faults would take hours.
+If the corrected copy passes most items, a small fault sample against it is a possible later reading, labelled as
+on a corrected suite.
+
+**Prediction for G7.** After the one correction most items pass, and between 5 and 20 still fail on further
+execution details the writer could not try (how it clicks, the page's `fetch` being hooked, the two numbers it
+made up for "narrow" and "tiny").
