@@ -1324,6 +1324,12 @@ noted here and not run.
   names "the operator's work". If that session measures it through built products, the three operator
   requirements above are what to look for in what gets built.
 
+  > **Superseded 2026-11-21, 04:47** (reading arm R again while recording section 21): wrong about R. The
+  > unconditional line, "the operator's work (start, stop, configure, observe, recover, ...)", is arm L's, which is
+  > the text the pilot's session ran. R already carries the review's rewording: "Where running it or recovering
+  > from it is part of what was asked, state how the person who runs it observes it, stops it or recovers it, using
+  > the controls that already exist." The advice stands for L and for the earlier block, not for R.
+
 Still open and the owner's: the E2E harness's Codex sessions being shown the user's own skills (section 7); the
 stale sentence in `skills/shiploop/references/behavioral-requirements.md` (section 14); and, if rounds 7 and 8
 show the cue, whether it goes into duty 2.
@@ -1411,3 +1417,52 @@ its defaults are good ones; this instrument reads a specification and builds not
 
 Predictions, written before any subject call so they can be held against the result: M moves Sol's X1 by less than
 2 and Sonnet's by 1 to 3; K moves Sol's X1 by 4 or more; neither moves X3.
+
+## 21. Received: the pilot's session graded the lens form through built products (2026-11-21, 04:47)
+
+Recorded as received, while rounds 7 and 8 were running. The work, the instruments and the findings are the
+Ratchet session's; its record is section 20 of `docs/ratchet-pilot-journal.md` and
+`docs/experiments/ratchet-pilot-20261120/evidence/lens-enrichment/`, in commit
+58cf265fb3c3a78930f423adc4e701d91483adc4 on its branch `ratchet-lens-08805f`, not on `main` when this was written.
+I read that section in the commit and the figures below match it; I did not re-run or re-grade anything.
+
+What it ran: arm L of this experiment (`arms/L-lenses-once.md`) set into its pilot's enrich stage, on Codex
+gpt-6.2-sol at high, one run a cell (two for the loop), three Node.js cases that have a repository, against the same
+cells run with the pilot's own enrichment text the evening before.
+
+| its reading | lens form | the pilot's own text | its verdict |
+| --- | --- | --- | --- |
+| clauses whose test fails on a correct product | 47 of 426 (11.0%) | 59 of 499 (11.8%) | no difference shown (bars 7.9% and 15.7%) |
+| calibrated defects caught | 36 of 37 | 37 of 37 | kept (bar 35) |
+| clauses / use cases written | 426 / 31 | 499 / 44 | 15% and 30% fewer |
+| minutes, output tokens (three cells) | 105.9, 270,820 | 112.2, 256,223 | about the same |
+| the due-times request, first build, held-out checks | 3 of 8 and 2 of 8 | 3 of 8 | the misreading is not avoided |
+
+Its two findings, in its words: "the lens form changes how much a specification says and not how sound it is ...
+Its large gain on the other experiment's checklist does not appear as a gain in anything a built product shows
+here" (F23); and the due-times failure "is not a gap in elaboration that a better elaboration closes. The
+specification sees the question, decides it, and labels the decision a choice; four times in five it decides
+against what the customer meant, and the tests then hold the product to it. A text that tells the writer to decide
+where the request is silent will keep producing this" (F24). Its limits, also in its record: one run a cell and no
+measure of its own run-to-run spread; three cases of one kind; the comparison cells ran on a busier machine.
+
+**Against this experiment's own count.** With a repository the lens form wrote fewer clauses than the pilot's text,
+not more (its record cites this experiment's count on Sol, with no repository, as 372 against 225). 77 of the 86
+clauses of difference on the
+two ticket cases are restatements of existing behaviour.
+
+**What it means here.**
+
+1. The lens arms' large gain on this checklist (sections 11 and 16) is now measured against built products once,
+   and nothing shows there. That was the limit sections 14 and 15 named; it is no longer only a caution. It does
+   not touch the released stage's result, which the pilot did not run.
+2. F24 bears directly on the check that is running. Arm K tells the writer to take a default where the request
+   leaves a limit to choice; arm M and the released stage's duty 4 tell it to leave the point open. K is the
+   stage's own rule for unattended runs and the owner's; F24 is evidence, from five specifications of one request,
+   that a decided point is where a correct product gets rejected. The two are not the same kind of point: F24's is
+   a behaviour (refuse to start, or prepare the data), K's is a bound. But a covered count will credit K for
+   deciding either way, so if K is shown here that is what it shows, and whether its defaults are right needs a
+   built product. Written before either round is read.
+3. The three predictions of section 18 for arm R stand as registered. The pilot's session has ported R and told
+   its later stages what an `Open:` line means; it is not registered or run there, and whether it runs is with
+   the owner in that session.
