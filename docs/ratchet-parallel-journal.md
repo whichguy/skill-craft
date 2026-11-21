@@ -41,6 +41,10 @@ suites of the same request (ticket due times) and three correct products, each o
 loop a's build and loop b's build, made from two specifications of the reworded text and their own plans, and the
 harness's reference.
 
+> **Superseded 2026-11-21 09:05** (section 6): the tool made its copies under the system's temporary folder, which
+> fails tests that watch `npm test`. Measured again, the table reads 41, 39, 30; 41, 41, 31; 32, 32, 35. The
+> readings below it stand; of the counts in them, "7 further items" stays 7 and "10 to 13" becomes 10 to 12.
+
 | Items passing | on loop a's build | on loop b's build | on the reference |
 |---|---|---|---|
 | loop a's suite, 42 items (written beside a's build) | 39 | 38 | 29 |
@@ -144,6 +148,10 @@ strong (36 of 37 today).
 | the same, with both halves of the test pass split among three writers by area | about 25 | about 22 |
 | the same, with a short decide step (2.5 minutes assumed) in place of waiting for the whole plan | about 21 | about 19 |
 
+> **Superseded 2026-11-21 09:05** (section 6): for a change to an existing product the second half runs on the
+> starting product, so nothing has to follow the build. The table above is too cautious; section 6 gives the
+> corrected projection and the measured lengths.
+
 These take the second reading at its word: half of a test pass can run beside the build and half must follow it.
 So writing tests beside the build saves about a fifth, not the whole length of the build. Splitting the test pass
 is the larger lever and needs no catch-up of its own: the loops' test sessions already wrote their tests in
@@ -225,3 +233,118 @@ other draws of the test session, so a difference of two or three items is inside
 The overlay's exported copy differs from a run's own folder on two `npm test` items of loop a (section 2), so
 every count is taken under the one tool. A wrong test and a strict test are told apart by reading, which a Sonnet
 subagent drafts and I check.
+
+## 6. Rung 1, result (2026-11-21 09:05; two test sessions, 08:21:47 to 08:43:27)
+
+Status: firm for what was run: two sessions, one request, one model family. Both specifications were accepted by the
+script on the first try; neither session's record holds a held-out mark; neither built or copied a product (each
+ended with the product's files unchanged).
+
+**P1.1, what a writer gets wrong without the build: nothing, in either cell.**
+
+| Suite | Written | On the build made from its own specification and plan | On the other loop's build |
+|---|---|---|---|
+| `b1-due-times-a`, 42 items | without the build | 42 of 42 | 42 of 42 |
+| `b1-due-times-b`, 41 items | without the build | 41 of 41 | 41 of 41 |
+| loop a's own, 42 items | beside its build | 41 of 42 (C-31) | 39 of 42 |
+| loop b's own, 41 items | beside its build | 41 of 41 | 41 of 41 |
+
+- The bar for "little to catch up" was 5 failing items; there are none, so no item was left to read into the four
+  kinds. My prediction of 4 to 10, mostly tests wrong in themselves, was wrong.
+- The one failing item in the table belongs to the suite written beside the build: loop a's C-31, the test that
+  writes a tab into a ticket title by hand and is stricter than the shipped product (pilot journal, section 21).
+  The session that wrote without the build has no such test: it had to make its tests of existing behaviour pass
+  on the starting project, and a test stricter than the shipped product cannot.
+
+**P1.2, what the starting product catches early.** Each session ran all its commands on the starting project and
+reported the exceptions, as asked.
+
+| Cell | `existing` items | of them failing on the starting project | other items | of them passing there |
+|---|---|---|---|---|
+| a | 16 | 2 (C-7, C-22) | 26 | 7 (C-3, C-13, C-23, C-28, C-29, C-33, U-5) |
+| b | 18 | 1 (U-6) | 23 | 4 (C-8, C-11, C-28, C-33) |
+
+Each is explained in the session's report and none is a wrong test. The failing `existing` items are clauses the
+specification filed under an existing convention whose observable needs the new behaviour (C-7: "1.4.0 ignores the
+response-hours setting ... The configuration-error convention is existing, but applying it to the new setting is
+new"). The passing others are clauses already true of the old release (answers stay as in 1.4.0 with the feature
+off; the old release can read the file). So the Source label is too coarse to decide by script which tests must
+pass on the starting project; the session's own account is what makes the run useful.
+
+**P1.3, carry-over: whole.** Each suite passes every item on the other loop's build.
+
+**P1.4, cost and what the sessions did** (counted from the event records by a Sonnet subagent; labels by hand;
+`evidence/parallel/blind-session-activity.md`).
+
+| Test session | Minutes | Output tokens | Shell commands | Runs of its own tests | of those, showing a failure | First such run | Product code files read |
+|---|---|---|---|---|---|---|---|
+| a, without the build | 15.9 | 44,295 | 26 | 3 | 3 | command 18 of 26 | 12 |
+| b, without the build | 19.7 | 51,912 | 35 | 8 | 6 | command 17 of 35 | 16 |
+| a, beside the build | 16.7 | 43,678 | 36 | 15 | 7 | command 14 of 36 | 3 |
+| b, beside the build | 13.4 | 35,653 | 25 | 5 | 1 | command 13 of 25 | 12 |
+
+- A session without the build is not cheaper: about the same in cell a, 47% longer with 46% more output tokens in
+  cell b. The machine's load average was 6 to 11 throughout, so the minutes are loose. My prediction of a shorter
+  session was wrong.
+- It still runs its tests, on the starting product: 3 and 8 runs. That is where its "second half" went. Section 2
+  read the second half of a test pass as needing the build; this says it needs *a* product, and for a change to an
+  existing product the starting one will do.
+
+**The adapter** (same subagent's count). Each session kept everything that drives the product in one file: 446 of
+1,584 acceptance lines in a, 465 of 1,463 in b. Outside it there is no process start and no product setting's
+name. In the suites written beside the build the setting names are spread through the test files (`DUE_HOURS` 12
+and 11 times outside the helper file, `DATA_FILE` 5 and 2, `DUE_TIMES` 3 and 8). Every name an adapter sets to
+start or configure the product is in the plan (`PORT`, `DATA_FILE`, `DUE_TIMES`, the four `DUE_HOURS_*`, `--data`)
+or in the specification and the starting documents. Each report lists what it had to assume: three and four
+things, the first in both being that the plan's starting commit does not exist in this repository and the local
+one is used.
+
+**The measuring tool was wrong in one way, and is corrected.** `overlay.py` first made its copies under the system's
+temporary folder. On macOS that folder is reached through a symbolic link, and a test that watches `npm test` by
+file path then sees no test run. Shown by running one suite on one product both ways: session a's C-33 passes in
+its run's own gate on the starting project and failed in the copy. With `--scratch` naming a plain folder, and
+`--history product` giving the copy the product's repository as one shared run would have, the tool reproduces
+three counts the runs themselves made: 21 of 42 for session a's suite on its starting project, 41 of 42 for loop
+a's suite on its build, 41 of 41 for loop b's. The first readings of this section's table, taken before the fix,
+were 39 of 42 and 38 of 41 with three `npm test` items failing in each; they were reported to the owner at 08:42
+and corrected at 09:00.
+
+**Section 2's table, measured again with the corrected tool** (the first version is marked superseded there).
+
+| Items passing | on loop a's build | on loop b's build | on the reference |
+|---|---|---|---|
+| loop a's suite, 42 items | 41 | 39 | 30 |
+| loop b's suite, 41 items | 41 | 41 | 31 |
+| the test-strength cell's suite, 39 items | 32 | 32 | 35 |
+| session a's suite, written without a build, 42 items | 42 | 42 | 31 |
+| session b's suite, written without a build, 41 items | 41 | 41 | 31 |
+
+The test-strength cell's suite and the two loops' builds come from repositories with different starting commits,
+and each side has tests that read its own: its row is given under the history that fails fewer items (the suite's;
+under the product's it is 26 on loop a's build). The readings of section 2 stand: between products that took the
+same answers a suite carries over, and against the reference, which took others, 10 to 13 items fail.
+
+**What this changes in the design of section 3.**
+
+1. Tests can be written beside the build with nothing to catch up, when both have the plan's answers. Two of two.
+2. The catch-up is not "half a test pass" for a change to an existing product: the session gets its tests to run
+   true on the starting product. Section 3's projection can drop the second half. Taking the test pass at the
+   length the loops' own took, tests beside the build come to 29.9 and 24.0 minutes for loops a and b, against
+   38.9 and 32.8 as run. Taking it at the length these two sessions took on a loaded machine (15.9 and 19.7), they
+   come to 29.1 and 30.3. So the gain is between a twelfth and a quarter until a run measures it, and the test
+   pass is still the longest path: splitting it remains the larger lever.
+3. The starting-product run earns its place. It is where the one over-strict test of the sequential suite would
+   have been caught, and the session's account of the exceptions is short and checkable.
+4. The adapter is real and cheap: one file, a third of the suite, nothing bypassing it. That is what would make a
+   catch-up small when a build takes another answer than the plan's, which these two builds did not.
+
+**Is there enough to conclude early?** On whether a test pass can be written beside the build without a catch-up:
+for this request and this model, yes, two of two with nothing failing. Not yet on the two things that would make
+it safe to adopt: whether such a suite catches planted defects as well as one written beside the product (a suite
+can pass on a correct build by asserting little), and what the catch-up costs when the build does take another
+answer. Rung 2 measures both at once, because the planted defects are variants of the reference, which took
+other answers than these plans.
+
+Evidence: `evidence/parallel/` (`overlay-rung1.json` and `-log.txt`; `overlay-due-times-v2.json` and `-log.txt`;
+`b1-due-times-a/` and `-b/` with each run's record, prompt, report, manifest, adapter and its gate on the starting
+project; `blind-session-activity.md`).

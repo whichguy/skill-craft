@@ -1,0 +1,964 @@
+[
+ {
+  "label": "S1-on-reference",
+  "suite": "p1R-ticket-due-times",
+  "product": "the case's reference",
+  "history": "suite",
+  "items": 39,
+  "failing": [
+   "C-19",
+   "C-29",
+   "C-3",
+   "U-8"
+  ],
+  "unstable": [],
+  "did_not_end": [],
+  "seconds": 28.1,
+  "tails": {
+   "C-19": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: [ '/tickets/T-0002 exposed due', '/tickets?overdue=true exposed due and overdue selection', '/tickets/T-0001 exposed due', '/tickets exposed due' ],",
+    "    expected: [],",
+    "    operator: 'deepStrictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-29": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: false,",
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-3": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: { status: 500, body: { error: [Object] } },",
+    "    expected: { status: 201, body: { id: 'T-0001', title: 'VPN needs attention', priority: 'urgent', requester: 'requester@example.com', status: 'open', created: '+275760-09-13T00:00:00.000Z', updated: '+275760-09-13T00:00:00.000Z' } },",
+    "    operator: 'deepStrictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "U-8": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: false,",
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ]
+  }
+ },
+ {
+  "label": "Sa-on-reference",
+  "suite": "p3R-ticket-due-times-a",
+  "product": "the case's reference",
+  "history": "suite",
+  "items": 42,
+  "failing": [
+   "C-10",
+   "C-17",
+   "C-18",
+   "C-21",
+   "C-22",
+   "C-31",
+   "C-34",
+   "C-6",
+   "C-7",
+   "U-2",
+   "U-4",
+   "U-8"
+  ],
+  "unstable": [],
+  "did_not_end": [],
+  "seconds": 81.8,
+  "tails": {
+   "C-10": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: '2025-09-02T08:15:00.000Z',",
+    "    expected: '2025-09-02T14:15:00.000Z',",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-17": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: undefined,",
+    "    expected: '2025-09-02T08:15:00.000Z',",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-18": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: undefined,",
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-21": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: undefined,",
+    "    expected: '2025-09-06T08:15:00.000Z',",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-22": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: undefined,",
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-31": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: 5,",
+    "    expected: 4,",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-34": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: false,",
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-6": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: '2025-09-01T12:15:00.000Z',",
+    "    expected: '2025-09-01T14:15:00.000Z',",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-7": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: undefined,",
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "U-2": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: '2025-09-11T08:15:00.000Z',",
+    "    expected: '2025-09-11T14:15:00.000Z',",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "U-4": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: undefined,",
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "U-8": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: false,",
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ]
+  }
+ },
+ {
+  "label": "Sb-on-reference",
+  "suite": "p3R-ticket-due-times-b",
+  "product": "the case's reference",
+  "history": "suite",
+  "items": 41,
+  "failing": [
+   "C-10",
+   "C-19",
+   "C-20",
+   "C-21",
+   "C-26",
+   "C-34",
+   "C-4",
+   "C-5",
+   "U-2",
+   "U-7"
+  ],
+  "unstable": [],
+  "did_not_end": [],
+  "seconds": 39.1,
+  "tails": {
+   "C-10": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 317.068958"
+   ],
+   "C-19": [
+    "# pass 1",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 295.417167"
+   ],
+   "C-20": [
+    "# pass 1",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 426.895667"
+   ],
+   "C-21": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 222.348584"
+   ],
+   "C-26": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 314.299833"
+   ],
+   "C-34": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 647.56075"
+   ],
+   "C-4": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 213.415917"
+   ],
+   "C-5": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 5119.120833"
+   ],
+   "U-2": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 319.430791"
+   ],
+   "U-7": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 659.648416"
+   ]
+  }
+ },
+ {
+  "label": "Sa-on-B",
+  "suite": "p3R-ticket-due-times-a",
+  "product": "p3R-ticket-due-times-b at build-1 (fde553154dd7)",
+  "history": "product",
+  "items": 42,
+  "failing": [
+   "C-31",
+   "C-34",
+   "U-8"
+  ],
+  "unstable": [],
+  "did_not_end": [],
+  "seconds": 51.1,
+  "tails": {
+   "C-31": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: 5,",
+    "    expected: 4,",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-34": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: \"startup prepares every legacy status before serving and preserves tickets, audit and outbox\\noff mode ignores overdue and keeps stored deadlines through request, worker and shutdown saves\\na failed preparation leaves the mixed file intact and retry assigns only missing deadlines\\na failed enabled create leaves the previous state in memory and on disk\\nunusable response hours and invalid legacy records fail startup with status 2\\noverdue pagination orders numeric IDs and pages across skipped tickets\\nthe operator CLI and weekly report read both file generations without writing\\nenabled ticket responses show the deadline for every priority, including the default\\ndue is invalid in each ticket write body whether the feature is on or off\\ndeadline arithmetic uses elapsed hours across daylight-saving changes\\na deadline can reach the last representable instant but cannot exceed it\\noverdue includes only active tickets strictly past due, with the ordinary filters still available\\n'use strict';\\n\\nconst { test } = require('node:test');\\nconst assert = require('node:assert/strict');\\nconst { execFileSync, spawnSync } = require('node:child_process');\\nconst fs = require('node:fs');\\nconst os = require('node:os');\\nconst path = require('node:path');\\nconst { manualClock } = require('../src/clock');\\nconst { loadConfig } = require('../src/config');\\nconst { silentLogger } = require('../src/log');\\nconst { createPersistence } = require('../src/persistence');\\nconst { createService } = require('../src/server');\\nconst { TicketStore } = require('../src/store');\\nconst { formatId } = require('../src/tickets/ids');\\nconst { ticketBody, withService } = require('./helpers');\\n\\nconst CREATED = '2025-09-01T08:15:00.000Z';\\nconst HOUR_MS = 3_600_000;\\n\\nfunction dataFileFor(t) {\\n  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tickets-due-'));\\n  t.after(() => fs.rmSync(dir, { recursive: true }));\\n  return path.join(dir, 'tickets.json');\\n}\\n\\nfunction settings(dataFile, env = {}) {\\n  return loadConfig({ PORT: '0', WORKER_INTERVAL_MS: '0', DATA_FILE: dataFile, DUE_TIMES: 'on', ...env });\\n}\\n\\nfunction readFile(file) {\\n  return JSON.parse(fs.readFileSync(file, 'utf8'));\\n}\\n\\nfunction seedLegacy(file, clock) {\\n  const store = TicketStore.open({ clock, persistence: createPersistence(file, { clock }) });\\n  for (const priority of ['high', 'urgent', 'normal', 'low']) store.create(ticketBody({ priority }), 'desk');\\n  store.recordDelivery(1);\\n  for (let attempt = 0; attempt < 5; attempt += 1) store.recordDelivery(2, new Error('mail relay unavailable'));\\n  clock.advance(HOUR_MS);\\n  store.update('T-0001', { title: 'Printer still jams' }, 'agent');\\n  store.transition('T-0002', 'in_progress', 'agent');\\n  for (const id of ['T-0003', 'T-0004']) {\\n    for (const status of ['in_progress', 'resolved']) store.transition(id, status, 'agent');\\n  }\\n  store.transition('T-0004', 'closed', 'agent');\\n}\\n\\ntest('startup prepares every legacy status before serving and preserves tickets, audit and outbox', async (t) => {\\n  const dataFile = dataFileFor(t);\\n  const clock = manualClock(CREATED);\\n  seedLegacy(dataFile, clock);\\n  const before = readFile(dataFile);\\n  const deadlines = [\\n    '2025-09-02T08:15:00.000Z', '2025-09-01T12:15:00.000Z',\\n    '2025-09-04T08:15:00.000Z', '2025-09-08T08:15:00.000Z',\\n  ];\\n\\n  await withService({ ...settings(dataFile), clock }, async (api) => {\\n    const prepared = readFile(dataFile);\\n    assert.equal(prepared.version, 1);\\n    assert.equal(prepared.nextNumber, before.nextNumber);\\n    assert.deepEqual(prepared.tickets, before.tickets.map((ticket, index) => ({ ...ticket, due: deadlines[index] })));\\n    assert.deepEqual(prepared.audit, before.audit);\\n    assert.deepEqual(prepared.outbox, before.outbox);\\n    const { status, body } = await api.get('/tickets');\\n    assert.equal(status, 200);\\n    assert.deepEqual(body.items, prepared.tickets);\\n    assert.deepEqual((await api.get('/tickets/T-0003/audit')).body.items, before.audit.filter((entry) => entry.ticket === 'T-0003'));\\n\\n    const created = await api.post('/tickets', ticketBody({ priority: 'urgent' }));\\n    assert.equal(created.status, 201);\\n    assert.equal(created.body.id, 'T-0005');\\n    assert.equal(created.body.due, '2025-09-01T13:15:00.000Z');\\n    const saved = readFile(dataFile);\\n    assert.deepEqual(saved.tickets.at(-1), created.body);\\n    assert.equal(saved.audit.at(-1).seq, before.audit.length + 1);\\n    assert.equal(saved.audit.at(-1).changes.priority.to, 'urgent');\\n    assert.equal(saved.outbox.events.at(-1).id, before.outbox.nextId);\\n    assert.equal(saved.outbox.events.at(-1).key, 'ticket.created:T-0005');\\n    for (const to of ['in_progress', 'resolved', 'open', 'in_progress', 'resolved']) {\\n      assert.equal((await api.post('/tickets/T-0005/transition', { to })).status, 200);\\n    }\\n    const { pending } = (await api.get('/admin/outbox')).body;\\n    assert.equal(pending.filter((event) => event.key === 'ticket.resolved:T-0005').length, 1);\\n  });\\n\\n  await withService({ ...settings(dataFile, { DUE_HOURS_URGENT: '6' }), clock }, async (api) => {\\n    assert.equal((await api.get('/tickets/T-0002')).body.due, deadlines[1]);\\n    assert.equal((await api.patch('/tickets/T-0002', { priority: 'low' })).body.due, deadlines[1]);\\n    assert.equal((await api.get('/tickets/T-0005')).body.due, '2025-09-01T13:15:00.000Z');\\n    assert.equal((await api.post('/tickets', ticketBody({ priority: 'urgent' }))).body.due, '2025-09-01T15:15:00.000Z');\\n  });\\n});\\n\\ntest('off mode ignores overdue and keeps stored deadlines through request, worker and shutdown saves', async (t) => {\\n  const dataFile = dataFileFor(t);\\n  const clock = manualClock(CREATED);\\n  seedLegacy(dataFile, clock);\\n  const baseline = readFile(dataFile);\\n  let prepared;\\n  await withService({ ...settings(dataFile), clock }, async () => {\\n    prepared = readFile(dataFile).tickets;\\n  });\\n  const assertSaved = () => assert.deepEqual(readFile(dataFile).tickets.slice(0, 4).map((ticket) => ticket.due),\\n    prepared.map((ticket) => ticket.due));\\n\\n  for (const flag of [undefined, '', 'ON', ' on ']) {\\n    await withService({ ...settings(dataFile, { DUE_TIMES: flag }), clock }, async (api) => {\\n      const ordinary = await api.get('/tickets');\\n      assert.equal(ordinary.status, 200);\\n      assert.deepEqual(ordinary.body, { items: baseline.tickets, next: null });\\n      for (const query of ['overdue=true', 'overdue=', 'overdue=no&overdue=true']) {\\n        assert.deepEqual((await api.get(`/tickets?${query}`)).body, ordinary.body);\\n      }\\n      assert.deepEqual((await api.get('/tickets/T-0002')).body, baseline.tickets[1]);\\n      assert.equal((await api.get('/tickets?overdue=true&limit=0')).status, 400);\\n    });\\n    assertSaved();\\n  }\\n\\n  await withService({ ...settings(dataFile, { DUE_TIMES: '' }), clock }, async (api, service) => {\\n    for (const response of [\\n      await api.patch('/tickets/T-0001', { title: 'Revised title' }),\\n      await api.patch('/tickets/T-0001', { title: 'Revised title' }),\\n      await api.post('/tickets/T-0001/transition', { to: 'in_progress' }),\\n    ]) {\\n      assert.equal(response.status, 200);\\n      assert.equal(Object.hasOwn(response.body, 'due'), false);\\n    }\\n    assertSaved();\\n    const newTicket = await api.post('/tickets', ticketBody({ priority: 'urgent' }));\\n    assert.equal(newTicket.status, 201);\\n    assert.equal(Object.hasOwn(newTicket.body, 'due'), false);\\n    assertSaved();\\n    const sentBefore = readFile(dataFile).outbox.events.filter((event) => event.status === 'sent').length;\\n    service.worker.tick();\\n    assert.ok(readFile(dataFile).outbox.events.filter((event) => event.status === 'sent').length > sentBefore);\\n    assertSaved();\\n  });\\n  assertSaved();\\n  await withService({ ...settings(dataFile, { DUE_HOURS_URGENT: '6' }), clock }, async (api) => {\\n    assert.equal((await api.get('/tickets/T-0002')).body.due, prepared[1].due);\\n    assert.equal((await api.get('/tickets/T-0005')).body.due, '2025-09-01T15:15:00.000Z');\\n  });\\n});\\n\\ntest('a failed preparation leaves the mixed file intact and retry assigns only missing deadlines', async (t) => {\\n  const dataFile = dataFileFor(t);\\n  const clock = manualClock(CREATED);\\n  seedLegacy(dataFile, clock);\\n  const disk = createPersistence(dataFile, { clock });\\n  const state = disk.load();\\n  state.tickets[1].due = '2025-09-01T12:15:00.000Z';\\n  disk.save(state);\\n  const retained = fs.readFileSync(dataFile, 'utf8');\\n  const blocked = `${dataFile}.${process.pid}.tmp`;\\n  const config = settings(dataFile, { DUE_HOURS_URGENT: '6' });\\n  fs.mkdirSync(blocked);\\n  try {\\n    assert.throws(() => createService(config, { clock, log: silentLogger }), { name: 'DataFileError' });\\n    assert.equal(fs.readFileSync(dataFile, 'utf8'), retained);\\n  } finally {\\n    fs.rmdirSync(blocked);\\n  }\\n  await withService({ ...config, clock }, async (api) => {\\n    assert.equal((await api.get('/tickets/T-0001')).body.due, '2025-09-02T08:15:00.000Z');\\n    assert.equal((await api.get('/tickets/T-0002')).body.due, state.tickets[1].due);\\n    assert.equal(readFile(dataFile).tickets[1].due, state.tickets[1].due);\\n  });\\n});\\n\\ntest('a failed enabled create leaves the previous state in memory and on disk', async (t) => {\\n  const dataFile = dataFileFor(t);\\n  const clock = manualClock(CREATED);\\n  await withService({ ...settings(dataFile), clock }, async (api, service) => {\\n    assert.equal((await api.post('/tickets', ticketBody())).status, 201);\\n    const fileBefore = fs.readFileSync(dataFile, 'utf8');\\n    const liveBefore = service.store.snapshot();\\n    const blocked = `${dataFile}.${process.pid}.tmp`;\\n    fs.mkdirSync(blocked);\\n    try {\\n      assert.equal((await api.post('/tickets', ticketBody())).status, 500);\\n      assert.equal((await api.get('/tickets/T-0002')).status, 404);\\n      assert.equal(fs.readFileSync(dataFile, 'utf8'), fileBefore);\\n      assert.deepEqual(service.store.snapshot(), liveBefore);\\n    } finally {\\n      fs.rmdirSync(blocked);\\n    }\\n    const retry = await api.post('/tickets', ticketBody());\\n    assert.equal(retry.status, 201)\"... 11847 more characters,",
+    "    expected: /1\\.4\\.0|rollback|legacy.reader|legacyDocument/i,",
+    "    operator: 'match',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "U-8": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: \"startup prepares every legacy status before serving and preserves tickets, audit and outbox\\noff mode ignores overdue and keeps stored deadlines through request, worker and shutdown saves\\na failed preparation leaves the mixed file intact and retry assigns only missing deadlines\\na failed enabled create leaves the previous state in memory and on disk\\nunusable response hours and invalid legacy records fail startup with status 2\\noverdue pagination orders numeric IDs and pages across skipped tickets\\nthe operator CLI and weekly report read both file generations without writing\\nenabled ticket responses show the deadline for every priority, including the default\\ndue is invalid in each ticket write body whether the feature is on or off\\ndeadline arithmetic uses elapsed hours across daylight-saving changes\\na deadline can reach the last representable instant but cannot exceed it\\noverdue includes only active tickets strictly past due, with the ordinary filters still available\\n'use strict';\\n\\nconst { test } = require('node:test');\\nconst assert = require('node:assert/strict');\\nconst { execFileSync, spawnSync } = require('node:child_process');\\nconst fs = require('node:fs');\\nconst os = require('node:os');\\nconst path = require('node:path');\\nconst { manualClock } = require('../src/clock');\\nconst { loadConfig } = require('../src/config');\\nconst { silentLogger } = require('../src/log');\\nconst { createPersistence } = require('../src/persistence');\\nconst { createService } = require('../src/server');\\nconst { TicketStore } = require('../src/store');\\nconst { formatId } = require('../src/tickets/ids');\\nconst { ticketBody, withService } = require('./helpers');\\n\\nconst CREATED = '2025-09-01T08:15:00.000Z';\\nconst HOUR_MS = 3_600_000;\\n\\nfunction dataFileFor(t) {\\n  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tickets-due-'));\\n  t.after(() => fs.rmSync(dir, { recursive: true }));\\n  return path.join(dir, 'tickets.json');\\n}\\n\\nfunction settings(dataFile, env = {}) {\\n  return loadConfig({ PORT: '0', WORKER_INTERVAL_MS: '0', DATA_FILE: dataFile, DUE_TIMES: 'on', ...env });\\n}\\n\\nfunction readFile(file) {\\n  return JSON.parse(fs.readFileSync(file, 'utf8'));\\n}\\n\\nfunction seedLegacy(file, clock) {\\n  const store = TicketStore.open({ clock, persistence: createPersistence(file, { clock }) });\\n  for (const priority of ['high', 'urgent', 'normal', 'low']) store.create(ticketBody({ priority }), 'desk');\\n  store.recordDelivery(1);\\n  for (let attempt = 0; attempt < 5; attempt += 1) store.recordDelivery(2, new Error('mail relay unavailable'));\\n  clock.advance(HOUR_MS);\\n  store.update('T-0001', { title: 'Printer still jams' }, 'agent');\\n  store.transition('T-0002', 'in_progress', 'agent');\\n  for (const id of ['T-0003', 'T-0004']) {\\n    for (const status of ['in_progress', 'resolved']) store.transition(id, status, 'agent');\\n  }\\n  store.transition('T-0004', 'closed', 'agent');\\n}\\n\\ntest('startup prepares every legacy status before serving and preserves tickets, audit and outbox', async (t) => {\\n  const dataFile = dataFileFor(t);\\n  const clock = manualClock(CREATED);\\n  seedLegacy(dataFile, clock);\\n  const before = readFile(dataFile);\\n  const deadlines = [\\n    '2025-09-02T08:15:00.000Z', '2025-09-01T12:15:00.000Z',\\n    '2025-09-04T08:15:00.000Z', '2025-09-08T08:15:00.000Z',\\n  ];\\n\\n  await withService({ ...settings(dataFile), clock }, async (api) => {\\n    const prepared = readFile(dataFile);\\n    assert.equal(prepared.version, 1);\\n    assert.equal(prepared.nextNumber, before.nextNumber);\\n    assert.deepEqual(prepared.tickets, before.tickets.map((ticket, index) => ({ ...ticket, due: deadlines[index] })));\\n    assert.deepEqual(prepared.audit, before.audit);\\n    assert.deepEqual(prepared.outbox, before.outbox);\\n    const { status, body } = await api.get('/tickets');\\n    assert.equal(status, 200);\\n    assert.deepEqual(body.items, prepared.tickets);\\n    assert.deepEqual((await api.get('/tickets/T-0003/audit')).body.items, before.audit.filter((entry) => entry.ticket === 'T-0003'));\\n\\n    const created = await api.post('/tickets', ticketBody({ priority: 'urgent' }));\\n    assert.equal(created.status, 201);\\n    assert.equal(created.body.id, 'T-0005');\\n    assert.equal(created.body.due, '2025-09-01T13:15:00.000Z');\\n    const saved = readFile(dataFile);\\n    assert.deepEqual(saved.tickets.at(-1), created.body);\\n    assert.equal(saved.audit.at(-1).seq, before.audit.length + 1);\\n    assert.equal(saved.audit.at(-1).changes.priority.to, 'urgent');\\n    assert.equal(saved.outbox.events.at(-1).id, before.outbox.nextId);\\n    assert.equal(saved.outbox.events.at(-1).key, 'ticket.created:T-0005');\\n    for (const to of ['in_progress', 'resolved', 'open', 'in_progress', 'resolved']) {\\n      assert.equal((await api.post('/tickets/T-0005/transition', { to })).status, 200);\\n    }\\n    const { pending } = (await api.get('/admin/outbox')).body;\\n    assert.equal(pending.filter((event) => event.key === 'ticket.resolved:T-0005').length, 1);\\n  });\\n\\n  await withService({ ...settings(dataFile, { DUE_HOURS_URGENT: '6' }), clock }, async (api) => {\\n    assert.equal((await api.get('/tickets/T-0002')).body.due, deadlines[1]);\\n    assert.equal((await api.patch('/tickets/T-0002', { priority: 'low' })).body.due, deadlines[1]);\\n    assert.equal((await api.get('/tickets/T-0005')).body.due, '2025-09-01T13:15:00.000Z');\\n    assert.equal((await api.post('/tickets', ticketBody({ priority: 'urgent' }))).body.due, '2025-09-01T15:15:00.000Z');\\n  });\\n});\\n\\ntest('off mode ignores overdue and keeps stored deadlines through request, worker and shutdown saves', async (t) => {\\n  const dataFile = dataFileFor(t);\\n  const clock = manualClock(CREATED);\\n  seedLegacy(dataFile, clock);\\n  const baseline = readFile(dataFile);\\n  let prepared;\\n  await withService({ ...settings(dataFile), clock }, async () => {\\n    prepared = readFile(dataFile).tickets;\\n  });\\n  const assertSaved = () => assert.deepEqual(readFile(dataFile).tickets.slice(0, 4).map((ticket) => ticket.due),\\n    prepared.map((ticket) => ticket.due));\\n\\n  for (const flag of [undefined, '', 'ON', ' on ']) {\\n    await withService({ ...settings(dataFile, { DUE_TIMES: flag }), clock }, async (api) => {\\n      const ordinary = await api.get('/tickets');\\n      assert.equal(ordinary.status, 200);\\n      assert.deepEqual(ordinary.body, { items: baseline.tickets, next: null });\\n      for (const query of ['overdue=true', 'overdue=', 'overdue=no&overdue=true']) {\\n        assert.deepEqual((await api.get(`/tickets?${query}`)).body, ordinary.body);\\n      }\\n      assert.deepEqual((await api.get('/tickets/T-0002')).body, baseline.tickets[1]);\\n      assert.equal((await api.get('/tickets?overdue=true&limit=0')).status, 400);\\n    });\\n    assertSaved();\\n  }\\n\\n  await withService({ ...settings(dataFile, { DUE_TIMES: '' }), clock }, async (api, service) => {\\n    for (const response of [\\n      await api.patch('/tickets/T-0001', { title: 'Revised title' }),\\n      await api.patch('/tickets/T-0001', { title: 'Revised title' }),\\n      await api.post('/tickets/T-0001/transition', { to: 'in_progress' }),\\n    ]) {\\n      assert.equal(response.status, 200);\\n      assert.equal(Object.hasOwn(response.body, 'due'), false);\\n    }\\n    assertSaved();\\n    const newTicket = await api.post('/tickets', ticketBody({ priority: 'urgent' }));\\n    assert.equal(newTicket.status, 201);\\n    assert.equal(Object.hasOwn(newTicket.body, 'due'), false);\\n    assertSaved();\\n    const sentBefore = readFile(dataFile).outbox.events.filter((event) => event.status === 'sent').length;\\n    service.worker.tick();\\n    assert.ok(readFile(dataFile).outbox.events.filter((event) => event.status === 'sent').length > sentBefore);\\n    assertSaved();\\n  });\\n  assertSaved();\\n  await withService({ ...settings(dataFile, { DUE_HOURS_URGENT: '6' }), clock }, async (api) => {\\n    assert.equal((await api.get('/tickets/T-0002')).body.due, prepared[1].due);\\n    assert.equal((await api.get('/tickets/T-0005')).body.due, '2025-09-01T15:15:00.000Z');\\n  });\\n});\\n\\ntest('a failed preparation leaves the mixed file intact and retry assigns only missing deadlines', async (t) => {\\n  const dataFile = dataFileFor(t);\\n  const clock = manualClock(CREATED);\\n  seedLegacy(dataFile, clock);\\n  const disk = createPersistence(dataFile, { clock });\\n  const state = disk.load();\\n  state.tickets[1].due = '2025-09-01T12:15:00.000Z';\\n  disk.save(state);\\n  const retained = fs.readFileSync(dataFile, 'utf8');\\n  const blocked = `${dataFile}.${process.pid}.tmp`;\\n  const config = settings(dataFile, { DUE_HOURS_URGENT: '6' });\\n  fs.mkdirSync(blocked);\\n  try {\\n    assert.throws(() => createService(config, { clock, log: silentLogger }), { name: 'DataFileError' });\\n    assert.equal(fs.readFileSync(dataFile, 'utf8'), retained);\\n  } finally {\\n    fs.rmdirSync(blocked);\\n  }\\n  await withService({ ...config, clock }, async (api) => {\\n    assert.equal((await api.get('/tickets/T-0001')).body.due, '2025-09-02T08:15:00.000Z');\\n    assert.equal((await api.get('/tickets/T-0002')).body.due, state.tickets[1].due);\\n    assert.equal(readFile(dataFile).tickets[1].due, state.tickets[1].due);\\n  });\\n});\\n\\ntest('a failed enabled create leaves the previous state in memory and on disk', async (t) => {\\n  const dataFile = dataFileFor(t);\\n  const clock = manualClock(CREATED);\\n  await withService({ ...settings(dataFile), clock }, async (api, service) => {\\n    assert.equal((await api.post('/tickets', ticketBody())).status, 201);\\n    const fileBefore = fs.readFileSync(dataFile, 'utf8');\\n    const liveBefore = service.store.snapshot();\\n    const blocked = `${dataFile}.${process.pid}.tmp`;\\n    fs.mkdirSync(blocked);\\n    try {\\n      assert.equal((await api.post('/tickets', ticketBody())).status, 500);\\n      assert.equal((await api.get('/tickets/T-0002')).status, 404);\\n      assert.equal(fs.readFileSync(dataFile, 'utf8'), fileBefore);\\n      assert.deepEqual(service.store.snapshot(), liveBefore);\\n    } finally {\\n      fs.rmdirSync(blocked);\\n    }\\n    const retry = await api.post('/tickets', ticketBody());\\n    assert.equal(retry.status, 201)\"... 11847 more characters,",
+    "    expected: /1\\.4\\.0|rollback|legacy.reader|legacyDocument/i,",
+    "    operator: 'match',",
+    "    diff: 'simple'",
+    "  }"
+   ]
+  }
+ },
+ {
+  "label": "Sb-on-A",
+  "suite": "p3R-ticket-due-times-b",
+  "product": "p3R-ticket-due-times-a at build-1 (3f1e98405b15)",
+  "history": "product",
+  "items": 41,
+  "failing": [],
+  "unstable": [],
+  "did_not_end": [],
+  "seconds": 29.7,
+  "tails": {}
+ },
+ {
+  "label": "S1-on-A",
+  "suite": "p1R-ticket-due-times",
+  "product": "p3R-ticket-due-times-a at build-1 (3f1e98405b15)",
+  "history": "product",
+  "items": 39,
+  "failing": [
+   "C-17",
+   "C-18",
+   "C-20",
+   "C-25",
+   "C-29",
+   "C-3",
+   "C-30",
+   "C-5",
+   "C-6",
+   "U-3",
+   "U-4",
+   "U-5",
+   "U-8"
+  ],
+  "unstable": [],
+  "did_not_end": [],
+  "seconds": 24.0,
+  "tails": {
+   "C-17": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: false,",
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-18": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: false,",
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-20": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: 128,",
+    "    expected: 0,",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-25": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: 128,",
+    "    expected: 0,",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-29": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: 128,",
+    "    expected: 0,",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-3": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: 128,",
+    "    expected: 0,",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-30": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: 128,",
+    "    expected: 0,",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-5": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: '2025-09-01T12:15:00.000Z',",
+    "    expected: '2025-09-01T14:15:00.000Z',",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-6": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: [Object],",
+    "    expected: null,",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "U-3": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: '2025-09-01T12:15:00.000Z',",
+    "    expected: '2025-09-01T16:15:00.000Z',",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "U-4": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: false,",
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "U-5": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: 128,",
+    "    expected: 0,",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "U-8": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: 128,",
+    "    expected: 0,",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ]
+  }
+ },
+ {
+  "label": "S1-on-B",
+  "suite": "p1R-ticket-due-times",
+  "product": "p3R-ticket-due-times-b at build-1 (fde553154dd7)",
+  "history": "product",
+  "items": 39,
+  "failing": [
+   "C-17",
+   "C-18",
+   "C-20",
+   "C-25",
+   "C-29",
+   "C-3",
+   "C-30",
+   "C-5",
+   "C-6",
+   "U-3",
+   "U-4",
+   "U-5",
+   "U-8"
+  ],
+  "unstable": [],
+  "did_not_end": [],
+  "seconds": 23.4,
+  "tails": {
+   "C-17": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: false,",
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-18": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: false,",
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-20": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: 128,",
+    "    expected: 0,",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-25": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: 128,",
+    "    expected: 0,",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-29": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: 128,",
+    "    expected: 0,",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-3": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: 128,",
+    "    expected: 0,",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-30": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: 128,",
+    "    expected: 0,",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-5": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: '2025-09-01T12:15:00.000Z',",
+    "    expected: '2025-09-01T14:15:00.000Z',",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-6": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: [Object],",
+    "    expected: null,",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "U-3": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: '2025-09-01T12:15:00.000Z',",
+    "    expected: '2025-09-01T16:15:00.000Z',",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "U-4": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: false,",
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "U-5": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: 128,",
+    "    expected: 0,",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "U-8": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: 128,",
+    "    expected: 0,",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ]
+  }
+ },
+ {
+  "label": "blind-a-on-reference",
+  "suite": "b1-due-times-a",
+  "product": "the case's reference",
+  "history": "suite",
+  "items": 42,
+  "failing": [
+   "C-10",
+   "C-17",
+   "C-18",
+   "C-21",
+   "C-22",
+   "C-34",
+   "C-6",
+   "C-7",
+   "U-2",
+   "U-4",
+   "U-8"
+  ],
+  "unstable": [],
+  "did_not_end": [],
+  "seconds": 55.6,
+  "tails": {
+   "C-10": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 578.549834"
+   ],
+   "C-17": [
+    "# pass 1",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 855.541167"
+   ],
+   "C-18": [
+    "# pass 0",
+    "# fail 2",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 588.743625"
+   ],
+   "C-21": [
+    "# pass 3",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 1694.621875"
+   ],
+   "C-22": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 310.783208"
+   ],
+   "C-34": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 12699.454542"
+   ],
+   "C-6": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 316.19"
+   ],
+   "C-7": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 316.5655"
+   ],
+   "U-2": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 528.620875"
+   ],
+   "U-4": [
+    "# pass 0",
+    "# fail 2",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 530.013167"
+   ],
+   "U-8": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 1193.814125"
+   ]
+  }
+ },
+ {
+  "label": "blind-b-on-reference",
+  "suite": "b1-due-times-b",
+  "product": "the case's reference",
+  "history": "suite",
+  "items": 41,
+  "failing": [
+   "C-19",
+   "C-20",
+   "C-26",
+   "C-34",
+   "C-4",
+   "C-5",
+   "C-6",
+   "U-2",
+   "U-4",
+   "U-7"
+  ],
+  "unstable": [],
+  "did_not_end": [],
+  "seconds": 49.6,
+  "tails": {
+   "C-19": [
+    "# pass 0",
+    "# fail 2",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 875.909083"
+   ],
+   "C-20": [
+    "# pass 1",
+    "# fail 2",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 1390.208875"
+   ],
+   "C-26": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 621.691292"
+   ],
+   "C-34": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 1196.337584"
+   ],
+   "C-4": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 354.438458"
+   ],
+   "C-5": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 807.24725"
+   ],
+   "C-6": [
+    "# pass 3",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 1046.510459"
+   ],
+   "U-2": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 817.400083"
+   ],
+   "U-4": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 858.783958"
+   ],
+   "U-7": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 1214.636"
+   ]
+  }
+ },
+ {
+  "label": "S1-on-A",
+  "suite": "p1R-ticket-due-times",
+  "product": "p3R-ticket-due-times-a at build-1 (3f1e98405b15)",
+  "history": "suite",
+  "items": 39,
+  "failing": [
+   "C-17",
+   "C-18",
+   "C-20",
+   "C-5",
+   "C-6",
+   "U-3",
+   "U-4"
+  ],
+  "unstable": [],
+  "did_not_end": [],
+  "seconds": 31.0,
+  "tails": {
+   "C-17": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: false,",
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-18": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: false,",
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-20": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: false,",
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-5": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: '2025-09-01T12:15:00.000Z',",
+    "    expected: '2025-09-01T14:15:00.000Z',",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-6": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: [Object],",
+    "    expected: null,",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "U-3": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: '2025-09-01T12:15:00.000Z',",
+    "    expected: '2025-09-01T16:15:00.000Z',",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "U-4": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: false,",
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ]
+  }
+ },
+ {
+  "label": "S1-on-B",
+  "suite": "p1R-ticket-due-times",
+  "product": "p3R-ticket-due-times-b at build-1 (fde553154dd7)",
+  "history": "suite",
+  "items": 39,
+  "failing": [
+   "C-17",
+   "C-18",
+   "C-20",
+   "C-5",
+   "C-6",
+   "U-3",
+   "U-4"
+  ],
+  "unstable": [],
+  "did_not_end": [],
+  "seconds": 29.7,
+  "tails": {
+   "C-17": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: false,",
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-18": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: false,",
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-20": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: false,",
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-5": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: '2025-09-01T12:15:00.000Z',",
+    "    expected: '2025-09-01T14:15:00.000Z',",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-6": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: [Object],",
+    "    expected: null,",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "U-3": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: '2025-09-01T12:15:00.000Z',",
+    "    expected: '2025-09-01T16:15:00.000Z',",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "U-4": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: false,",
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ]
+  }
+ }
+]

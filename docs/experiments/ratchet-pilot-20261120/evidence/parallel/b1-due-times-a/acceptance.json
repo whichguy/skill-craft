@@ -1,0 +1,128 @@
+{
+  "U-1": {
+    "command": "RATCHET_ITEM=U-1 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "U-2": {
+    "command": "RATCHET_ITEM=U-2 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "U-3": {
+    "command": "RATCHET_ITEM=U-3 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "U-4": {
+    "command": "RATCHET_ITEM=U-4 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "U-5": {
+    "command": "RATCHET_ITEM=U-5 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "U-6": {
+    "command": "RATCHET_ITEM=U-6 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "U-7": {
+    "command": "RATCHET_ITEM=U-7 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "U-8": {
+    "command": "RATCHET_ITEM=U-8 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-1": {
+    "command": "RATCHET_ITEM=C-1 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-2": {
+    "command": "RATCHET_ITEM=C-2 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-3": {
+    "command": "RATCHET_ITEM=C-3 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-4": {
+    "command": "RATCHET_ITEM=C-4 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-5": {
+    "command": "RATCHET_ITEM=C-5 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-6": {
+    "command": "RATCHET_ITEM=C-6 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-7": {
+    "command": "RATCHET_ITEM=C-7 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-8": {
+    "command": "RATCHET_ITEM=C-8 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-9": {
+    "command": "RATCHET_ITEM=C-9 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-10": {
+    "command": "RATCHET_ITEM=C-10 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-11": {
+    "command": "RATCHET_ITEM=C-11 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-12": {
+    "command": "RATCHET_ITEM=C-12 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-13": {
+    "command": "RATCHET_ITEM=C-13 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-14": {
+    "command": "RATCHET_ITEM=C-14 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-15": {
+    "command": "RATCHET_ITEM=C-15 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-16": {
+    "command": "RATCHET_ITEM=C-16 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-17": {
+    "command": "RATCHET_ITEM=C-17 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-18": {
+    "command": "RATCHET_ITEM=C-18 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-19": {
+    "command": "RATCHET_ITEM=C-19 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-20": {
+    "command": "RATCHET_ITEM=C-20 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-21": {
+    "command": "RATCHET_ITEM=C-21 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-22": {
+    "command": "RATCHET_ITEM=C-22 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-23": {
+    "command": "RATCHET_ITEM=C-23 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-24": {
+    "command": "RATCHET_ITEM=C-24 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-25": {
+    "command": "RATCHET_ITEM=C-25 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-26": {
+    "command": "RATCHET_ITEM=C-26 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-27": {
+    "command": "RATCHET_ITEM=C-27 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-28": {
+    "command": "RATCHET_ITEM=C-28 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-29": {
+    "command": "RATCHET_ITEM=C-29 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-30": {
+    "command": "RATCHET_ITEM=C-30 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-31": {
+    "command": "RATCHET_ITEM=C-31 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-32": {
+    "command": "RATCHET_ITEM=C-32 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-33": {
+    "command": "RATCHET_ITEM=C-33 node --test --test-reporter=tap acceptance/suite.cjs"
+  },
+  "C-34": {
+    "command": "RATCHET_ITEM=C-34 node --test --test-reporter=tap acceptance/suite.cjs"
+  }
+}

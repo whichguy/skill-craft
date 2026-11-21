@@ -1,0 +1,8 @@
+overlay.py --history product --scratch <a plain folder>, 2026-11-21 08:53 to 08:58; one line per suite and product
+check:blind-a-on-its-starting-project: suite b1-due-times-a on b1-due-times-a at plan-1 (a258541cb01c): 21 of 42 pass; failing C-10, C-11, C-12, C-14, C-17, C-18, C-19, C-20, C-21, C-22, C-34, C-4, C-6, C-7, C-8, U-1, U-2, U-3, U-4, U-6, U-8; did not end none; 57.5 s
+check:Sa-on-A: suite p3R-ticket-due-times-a on p3R-ticket-due-times-a at build-1 (3f1e98405b15): 41 of 42 pass; failing C-31; did not end none; 46.1 s
+check:Sb-on-B: suite p3R-ticket-due-times-b on p3R-ticket-due-times-b at build-1 (fde553154dd7): 41 of 41 pass; failing none; did not end none; 29.0 s
+blind-a-on-A: suite b1-due-times-a on p3R-ticket-due-times-a at build-1 (3f1e98405b15): 42 of 42 pass; failing none; did not end none; 45.2 s
+blind-b-on-B: suite b1-due-times-b on p3R-ticket-due-times-b at build-1 (fde553154dd7): 41 of 41 pass; failing none; did not end none; 44.4 s
+blind-a-on-B: suite b1-due-times-a on p3R-ticket-due-times-b at build-1 (fde553154dd7): 42 of 42 pass; failing none; did not end none; 53.4 s
+blind-b-on-A: suite b1-due-times-b on p3R-ticket-due-times-a at build-1 (3f1e98405b15): 41 of 41 pass; failing none; did not end none; 44.8 s

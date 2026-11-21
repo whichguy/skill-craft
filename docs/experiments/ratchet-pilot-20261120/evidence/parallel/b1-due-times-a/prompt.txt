@@ -1,0 +1,66 @@
+# Ratchet stage: tests (the heavy test pass)
+
+You are one stage of a loop that a script runs: the request enriched into a specification, a plan, a build of all of it in one pass, a heavy test pass, fixes until every check passes, then a look at what was learned, which may lengthen the specification and start the next cycle. A different session does each stage and knows only what the files say. In this run a clause of the specification may carry an `Open:` line. It marks a point the request does not settle and says who would settle it. The clause above the line is the requirement; the open point is not one. A plan says how each open point is handled. A build takes a reasonable answer to it and says which in its report. A test checks only what its clause states, and must pass whichever reasonable answer a build took. No stage adds a clause that settles an open point: that is the requester's to do. This stage owns the acceptance tests. You did not build the product, and you judge it by the specification,
+never by what the code happens to do.
+
+The product is being built by another session at this moment and is not in this folder. What is here is the
+starting project, as it was before the change. You write the acceptance tests now, from the specification and the
+plan, and they will be run on the build when it arrives. You will not see it.
+
+## The request
+This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable, with a command-line tool in bin/. The help desk is starting to promise response times. Each ticket gets a due time: the time it was created plus the response time for its priority, which is 4 hours for urgent tickets, 24 for high, 72 for normal and 168 for low, and the help desk must be able to change those hours without a code change. A ticket's due time is set once: a later change of the hours or of the ticket's priority does not move it. Every ticket shows its due time as `due`, and `GET /tickets?overdue=true` lists only the open and in-progress tickets whose due time has passed. The tickets already in the production data file get due times too, from their own creation time and priority, and keep them from then on. Due times are switched on in production only once the data file holds them: until the DUE_TIMES environment variable is `on`, the service answers exactly as it does today. If the new release misbehaves, operators must be able to go back to the current release, 1.4.0, and it must still start on the data file the new release wrote and show every ticket. Everything the service already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones.
+
+## What to do
+1. For every clause (C-n) of `ratchet/spec.md` write test cases under `acceptance/` that fail when exactly that clause is broken in an otherwise correct
+   product and pass when it holds. Take each expected result from the clause's own words and its Observable line,
+   and assert only what that clause states: a detail that belongs to another clause (the wording of a message, when
+   the clause is about the kind of error) is tested there and nowhere else. For
+   every number or limit a clause states, test the last value that must be accepted and the first that must be
+   refused. Test what a clause implies without saying it: the empty case, the repeated case, and the case after a
+   restart where data is kept.
+   For every use case (U-n) write one scenario test that walks its whole flow as that user would, start to end.
+   `ratchet/plan.md` (How we will know, Nuances) names scenarios worth a test: add those, and any other scenario
+   the specification implies.
+2. Reach the product only as its users do: its HTTP interface, its command line, the module interface the request
+   names, a data file the request names. Never its internal functions: another correct implementation must pass the
+   same tests.
+   Keep everything about how the product is started, configured and called (the command that starts it, the names
+   of its settings, how a data file is prepared) in one adapter file under `acceptance/`, and reach the product only
+   through it. Take each name, and each answer at an open point, from `ratchet/plan.md`: the build is being made to
+   that plan. Where the plan gives none, take the likeliest and list it in your report under Assumed.
+3. Give every clause and every use case an entry in `ratchet/acceptance.json`:
+   {"C-1": {"command": "<one shell command, run from this folder, that runs only this item's tests and exits 0 when they pass>"}, "U-1": {...}, ...}
+   Each command ends within 60 seconds, uses a free port and leaves no process behind.
+   Start every test's name with its item id (`C-12 rejects ...`, `U-3 an operator ...`) and make sure the command's
+   output prints that name when the test runs: the gate fails a command whose output never names its item, because
+   a selection that matches no test otherwise looks like a pass.
+4. You cannot run a test of new behaviour to a pass, because the build is not here. Run every command against the
+   starting project instead. A test of a clause whose Source is `existing` must pass there: if it fails, the test is
+   wrong or stricter than the shipped product, and it is yours to correct. A test of new behaviour must fail there,
+   and for the reason its clause gives (the behaviour is absent), not because the test cannot start, cannot find a
+   file or has an error of its own. Do not build any part of the product.
+5. Write `ratchet/tests-1.md`:
+## On the starting project
+ids of `existing` clauses whose tests fail there, and ids of other clauses whose tests pass there, each with why
+("none" when there are none)
+## Assumed
+each name or answer you took that the plan does not give, one a line ("none" when there are none)
+## Discoveries
+what writing and running the tests taught you that the specification does not say: an unstated limit, a clause with
+two readings, behaviour next to the change that surprised you. One a line, or "none":
+- <the statement the specification should carry> | Observable: <how to see it> | Why: <what you met>
+
+## Done when
+- every clause and every use case has tests and an entry, and you changed nothing outside `acceptance/`, `ratchet/acceptance.json` and
+  `ratchet/tests-1.md`.
+
+## Rules of conduct
+- Work only inside this folder: /Users/dadleet/e2e-runs/ratchet-parallel-20261121-6f54fb/b1-due-times-a/work. Nothing outside it is yours to read for this task or to change, with two
+  exceptions this packet may name: the scripts under /Users/dadleet/e2e-runs/ratchet-parallel-20261121-6f54fb/b1-due-times-a/tools (run them, do not edit them) and the loop's own
+  contract and receipt files under /Users/dadleet/e2e-runs/ratchet-parallel-20261121-6f54fb/b1-due-times-a/loops (the loop script reads and writes them; you never write them).
+- Temporary files go under /Users/dadleet/e2e-runs/ratchet-parallel-20261121-6f54fb/b1-due-times-a/tmp (TMPDIR is set to it).
+- A server you start listens on a port that is free at that moment (ask the system for port 0, or pick a random high
+  port), never a fixed default. Stop every process you started, by its process id. Never stop processes by name
+  (no pkill, no killall).
+- Install nothing from the network. Do not commit, push or change Git history: the script that runs you commits.
+- You run unattended. Ask no questions: where you must choose, choose, and write the choice where this packet says.
