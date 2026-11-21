@@ -399,3 +399,28 @@ test pass is going to be built. If one is, writing the tests in parallel is how 
 longer for it (the last row against the fourth), and the next rung is then the split test pass, the larger lever,
 with one strength check at the end on the suite the whole design produces. Worth keeping either way: the test
 writer's run on the starting product (section 6, P1.2), which needs no parallel machinery.
+
+**Addendum, 10:51: what these rows include of catching the tests up.** The owner asked: "even though we wrote
+the tests in parallel, we may have to update the tests after the code has been written. Are we including that
+catch-up-to-accuracy time for the tests in our evaluation?" Partly:
+
+- *Included:* the time each build-less session spent getting its own tests to run true. With no build it ran them
+  on the starting product, 3 and 8 times, inside its 15.9 and 19.7 minutes. Also included: one run of the finished
+  suite on the finished build (the gates' 1.7 and 1.3 minutes).
+- *Included at its measured value, which is nothing:* updates after the build. Of the 83 items, 41 had never
+  passed anywhere before the build existed for them (21 of session a's 42 and 20 of session b's 41 fail on the
+  starting project; section 6, P1.2). All 41 passed the first time the suite was run on the build. Two of two.
+- *Not included:* a build that takes another answer than the plan's at an open point. Neither build did. Against
+  the reference, which did, 10 to 12 of about 41 items fail in each of the four suites, and what has to change is
+  how the product is set up and called, not what is asserted (section 6's last table; section 2). How long that
+  catch-up session takes is not measured; the shortest session on file is a 3-minute fix of one clause (pilot
+  journal, R3.3). It also costs a second run of the gate.
+- *Break-even.* At the ceiling the saving survives a catch-up session shorter than 7.3 and 7.4 minutes (9.0 and
+  8.7, less a second gate). With the measured lengths it survives one shorter than 8.1 minutes in loop a and 1.2
+  in loop b: in loop b's case any catch-up at all makes the parallel schedule slower than one stage after another.
+- A test pass written after the build pays nothing when the build takes another answer: the writer sees what the
+  build did. The cost of a differing answer falls on the parallel schedule only.
+
+So the third row is the parallel schedule's best case on catch-up, and what is unmeasured can only lower the
+saving. It does not change the recommendation. It would matter to a decision to go on, and rung 2 would then come
+first: it measures a catch-up session's length when 10 to 12 items need the adapter changed.
