@@ -1,0 +1,47 @@
+The 101 clauses the specification writers marked "choice", read by hand
+(2026-11-21 05:41; one reader, the session that ran the cells; made knowing which clauses fail on the
+correct reference, so not blind; exploratory. The script-run count that goes with it is the "refuses"
+table in failing-by-source-log.txt; every choice clause, with its statement, its Source line, whether
+it fails and whether the word match marked it, is under "choice_clauses" in failing-by-source.json.)
+
+1. Choices that make the product refuse, fail or require something the request does not state
+   (my labels; the script's word match disagrees on 9 of the 101 and gives the same split).
+
+   lens text
+     orders:            C-15 C-19 C-21 C-22 C-23 C-27 C-35      (5 of 7 fail on the reference)
+     ticket assignment: C-26 C-112                              (1 of 2)
+     ticket due times:  C-8 C-9 C-14 C-32 C-53 C-54 C-55 C-182  (5 of 8)
+     total 17, failing 11 (65%); the other 36 choices, failing 10 (28%)
+   the pilot's text
+     orders:            C-30 C-31 C-32 C-33 C-36 C-37           (5 of 6)
+     ticket assignment: C-19 C-27                               (0 of 2)
+     ticket due times:  C-9 C-10 C-30 C-48 C-63 C-64 C-66       (5 of 7)
+     total 15, failing 10 (67%); the other 33 choices, failing 7 (21%)
+   the word match, for comparison: lens 9 of 14 (64%) against 12 of 39 (31%); the pilot's 9 of 13 (69%)
+   against 8 of 35 (23%).
+
+2. Choices that are a bound (a size, a range or a ceiling). The three requests state their own limits
+   (64 characters; 4, 24, 72 and 168 hours; the meter's 10,000 ticks), so there are few.
+
+   the writer chose no further limit, or the unit the product already uses: 5, all pass on the reference
+     lens orders C-28 (an id has no sign or whole-number restriction), C-36 (no ceiling under the largest
+     safe integer); lens ticket assignment C-25 (the 64 counts UTF-16 code units, as requester names do);
+     the pilot's orders C-38 (no safe-integer ceiling); the pilot's ticket assignment C-26 (same units).
+   the writer chose a range for the hours setting: 3, all fail on the reference
+     lens due times C-8 (whole hours from 1 through 4800000000); the pilot's due times C-9 (a positive
+     whole number), C-10 (unusable when it overflows the timestamp range).
+   Those three fail through the setting's name, not its range. Both specifications also chose the name:
+   one variable a priority, DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL and DUE_HOURS_LOW (lens C-6;
+   the pilot's C-7), and both sets of acceptance tests set those variables. The correct reference reads
+   one setting, RESPONSE_HOURS, as priority=hours pairs (its src/config.js). So every test that changes the
+   hours fails on it, the test of the request's own clause included (lens C-5, the pilot's C-6: "the help
+   desk must be able to change those hours without a code change").
+
+3. What the reading supports, and what it cannot.
+   - A requirement the writer adds that makes the product refuse something is where two correct products
+     part ways most often: two times in three, against about one in four for its other choices.
+   - A setting the request requires must have a name, and two correct products gave it different ones.
+     These records cannot say that a chosen bound is wrong: the only chosen bounds sit behind a chosen name.
+   - Whether an added refusal is wanted is not something "fails on the reference" can tell. The held-out
+     checks, written from the request alone, failed in this pilot for one added refusal (refuse to start
+     on a file without due times) and for no chosen name.

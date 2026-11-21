@@ -1191,3 +1191,857 @@ tests checked against seeded faults in the lines it wrote, a short document, cle
 ShipLoop. Readings: held-out checks, the share of 60 seeded faults the delivery's own tests catch, minutes and
 output tokens. The harness for it is here: `ratchet.py run --bare` is the first arm, `grade.py`, `mutate.py` and
 `analyze.py` take the three readings, and section 17 is the yardstick lesson to keep. Not started; the owner's call.
+
+## 20. Amendment 7, 2026-11-21 03:22: the other session's lens form as the enrichment text, measured through built products (registered before any run)
+
+Owner, 2026-11-21: "We should pick up the elaboration message from the other chat about a new elaboration of a spec
+prompt." My reading, told to the owner before starting: take the one-pass lens form that the session "Spec
+elaboration prompt for Shiploop" measured (section 19; its journal `docs/spec-elaboration-journal.md`, sections 11 to
+16) into this pilot's enrich stage, and measure it with this pilot's instruments.
+
+Why it is worth a run. That experiment found the lens form covers far more of a held-out checklist than this
+pilot's enrichment text (64 against 43 of 89 on Sonnet high, 62 against 29 on Sol 6.2 medium), and its own review
+said what its instrument cannot: whether deciding more is right. This pilot's instruments can say that for three
+cases, because they run the tests a specification leads to against products known to be correct and products known
+to be wrong. The pilot's findings about enrichment (F10, F20, R1.1, R1.3) were made with one text, and section 19
+recorded that as a limit.
+
+What changes. `ratchet.py` gains `SPEC_PACKET_LENSES` and `--enrich lenses` (default `single`, the pilot's own
+text; `run.json` records which). The lens text is `docs/experiments/spec-elaboration-20261120/arms/L-lenses-once.md`
+set into this stage: this stage's frame and file path, its repository-reading step kept as the first thing to do,
+and its `existing` source kind kept (that experiment's cases had no repository). Nothing else differs
+(`evidence/lens-enrichment/port-against-L-lenses-once.diff`). The plan, build, tests, fix and closing-look packets
+are unchanged, and so are the gate and the graders.
+
+Runs, each Codex `gpt-6.2-sol` at high (the runner of every cell they are compared with), one new Git repository
+each, outside the checkout:
+
+| Cell | What runs | Compared with |
+|---|---|---|
+| `p1L-stand-in-rules`, `p1L-ticket-assignment`, `p1L-ticket-due-times` | enrich with the lens text, plan, the correct reference laid in as the build, heavy test pass, stop; then `grade.py strength` | `p1e2-*` of 2026-11-20 (section 10, "P1, enriched form") |
+| `p3L-ticket-due-times-a`, `-b` | enrich with the lens text, plan, build, heavy test pass, stop; then the held-out checks at the first build | `p3-ticket-due-times-sol-high` (3 of 8 at its first build; the reference passes 7) and F20 |
+
+Readings:
+
+- **R8.1, the reading of the due-times request.** The pilot's text read "Due times are switched on in production
+  only once the data file holds them" as an operator's preparation step and a service that refuses to start, in two
+  of two specifications. The lens form *avoids the misreading* if both `p3L` first builds pass the five held-out
+  checks that failed (`cli`, `migrate`, `restart`, `rollback`, `switch`); it *does not* if both fail them; one of
+  each is not settled. Each specification is also read by hand for the preparation step and the refusal.
+- **R8.2, clauses that reject a correct product.** Pooled over the three `p1L` cells, the share of clauses that
+  fail on the harness's correct reference. With the pilot's text it was 59 of 499 (11.8%). *Better* at or under
+  7.9% (a third lower), *worse* at or over 15.7% (a third higher), otherwise no difference shown. Reported beside
+  it: use cases failing on the reference (16 of 44 before), and items the second correct ticket-assignment
+  delivery fails beyond the reference (17 before).
+- **R8.3, strength.** Calibrated defects caught of 37 (37 before). *Kept* at 35 or more.
+- **R8.4, reported.** Clauses and use cases written, minutes of the enrich session and of the cell, output tokens.
+
+Limits known before the runs: one run a cell on both sides (two for R8.1), and no measure of this pilot's own
+run-to-run spread, so the thresholds are set wide on purpose; the comparison cells ran on 2026-11-20 between 19:23
+and 20:33, before the stray processes of section 18, and these run on a quieter machine, so minutes are compared
+loosely; Codex still shows the account's skills to every session (section 19), the same on both sides; the gradings
+are run after all five runs have ended, not beside them.
+
+### Result (2026-11-21 04:45; five runs, graded one after another once all had ended)
+
+Status: firm for what was run (one run a cell; two for R8.1), read against bars registered before the runs.
+
+**Test strength, lens text against the pilot's own (`p1L-*` against `p1e2-*`).**
+
+| Case, text | Clauses / use cases written | Clauses failing on the correct reference | Use cases failing on it | Second correct delivery, beyond the reference | Defects caught | Minutes (of which enrich) | Output tokens |
+|---|---|---|---|---|---|---|---|
+| orders, lens | 82 / 8 | 9 (11.0%) | 1 | none exists | 4 of 4 | 23.7 (5.0) | 61,805 |
+| orders, pilot's | 69 / 12 | 9 (13.0%) | 3 | none exists | 4 of 4 | 18.8 (6.1) | 49,042 |
+| ticket assignment, lens | 153 / 11 | 13 (8.5%) | 3 | 15 (11 clauses, 4 use cases) | 26 of 27 | 38.0 (7.0) | 96,512 |
+| ticket assignment, pilot's | 192 / 17 | 15 (7.8%) | 5 | 17 (14 clauses, 3 use cases) | 27 of 27 | 46.7 (13.5) | 94,976 |
+| ticket due times, lens | 191 / 12 | 25 (13.1%) | 7 | none exists | 6 of 6 | 44.2 (8.0) | 112,503 |
+| ticket due times, pilot's | 238 / 15 | 35 (14.7%) | 8 | none exists | 6 of 6 | 46.7 (10.1) | 112,205 |
+| **pooled, lens** | **426 / 31** | **47 (11.0%)** | 11 of 31 | | **36 of 37** | 105.9 | 270,820 |
+| **pooled, pilot's** | **499 / 44** | **59 (11.8%)** | 16 of 44 | | **37 of 37** | 112.2 | 256,223 |
+
+- **R8.2, clauses that reject a correct product: no difference shown.** 11.0% against 11.8%; the bars were 7.9% and
+  15.7%. The second correct ticket-assignment delivery fails 15 further items where it failed 17.
+- **R8.3, strength: kept.** 36 of 37 (the bar was 35). The one missed is `cli-no-assignee` on ticket assignment.
+- **R8.4, size and cost.** 15% fewer clauses and 30% fewer use cases than the pilot's text, written in 5 to 8 minutes
+  where the pilot's text took 6 to 14. Whole cells: 6% less time, 6% more output tokens. The size runs the other way
+  from that experiment's own count (372 clauses against 225 on Sol), whose cases had no repository: on the two
+  ticket cases 77 of the pilot text's 86 extra clauses were `existing` ones (134 and 158 against 104 and 111).
+  *Corrected 2026-11-21 05:00:* by clauses it is 78 of 86 (132 and 157 against 101 and 110); the figures first
+  written counted use cases too (the count by Source, below).
+
+**The due-times loop, twice, with the lens text (`p3L-ticket-due-times-a`, `-b`).**
+
+| Run | Specification | Its own gate after the test pass | Held-out checks at the first build | Minutes to that gate |
+|---|---|---|---|---|
+| a | 173 clauses, 11 use cases | 184 of 184 | 3 of 8: `cli`, `migrate`, `restart`, `rollback`, `switch` fail | 57.8 |
+| b | 199 clauses, 16 use cases | 215 of 215 | 2 of 8: the same five, and `suite` | 61.9 |
+| the pilot's text (section 10) | 301 items at its first gate | 301 of 301 | 3 of 8: the same five | 57.2 |
+
+- **R8.1, the reading of the due-times request: the lens form does not avoid it.** Both first builds fail the five
+  checks, each with "cannot start: ... tickets[0]" on a file without due times, and both gates are fully green.
+- **It is a choice the specification makes, and says so.** Both specifications wrote the refusal as a clause of its
+  own with `Source: choice`: "Enabled startup refuses a persisted ticket collection with an unassigned deadline ...
+  fail before serving when an operator enables the feature before completing preparation" (a, C-58), and "Enabled
+  persistent startup refuses an existing file with missing due ... make the production readiness order enforceable
+  and avoid automatic startup backfill" (b, C-67). The third lens specification of the same request, in the
+  test-strength cell, chose the other way: "Startup prepares unassigned file-backed tickets before serving"
+  (C-48, also a choice). Over both texts, four of five specifications of this request chose the refusal
+  (`evidence/lens-enrichment/due-times-reading.txt`).
+- Loop b's `suite` failure is the grader's, not the build's: its own tests pass in its repository (130 of 130) and
+  one fails in the graded copy, which has no Git history, because it fetches release 1.4.0 with `git archive`.
+
+**F23 (firm at this size).** On this pilot's instruments the lens form changes how much a specification says and
+not how sound it is. It is shorter on the cases with a repository, costs about the same, loses nothing in test
+strength that these cases can show, and the same one clause in nine rejects a correct product. Its large gain on
+the other experiment's checklist does not appear as a gain in anything a built product shows here.
+
+> **Sharpened 2026-11-21 05:00** (the count by Source, below; F25): "one clause in nine" is a pooled figure that
+> clauses restating existing behaviour dilute. Of the clauses about the change it is one in five with the lens text
+> against one in four, lower in all three cases and still inside R8.2's bar, so "no difference shown" stands.
+
+**F24 (firm; five specifications of one request).** The due-times failure is not a gap in elaboration that a better
+elaboration closes. The specification sees the question, decides it, and labels the decision a choice; four times
+in five it decides against what the customer meant, and the tests then hold the product to it. A text that tells
+the writer to decide where the request is silent will keep producing this. What has not been tried is a text that
+tells the writer to leave such a point undecided and mark it: that is the reworded lens text the other session has
+drafted (`docs/experiments/spec-elaboration-20261120/arms/R-lenses-reworded.md`, an `Open:` line under a clause).
+It is prepared here as a third enrichment text and has not been registered or run; whether it runs is the owner's
+decision.
+
+Evidence: `evidence/lens-enrichment/` (each run's record; the three graded suites; the two loops' held-out results;
+`summary.json`; `grading-log.txt`; the reading clauses; the port diff).
+
+### After the result: where the rejecting clauses come from, and a correction received (2026-11-21 05:00)
+
+Status: the counts are firm for these six runs and are a reading made after the result, not a registered one, so
+R8.1 to R8.4 stand as read above. The operator reading is exploratory: one reader, this session, not blind.
+
+**Received.** The session "Spec elaboration" recorded this section's result (its journal, section 21) and sent three
+facts at 04:50. (1) Its own journal had said the reworded text "still names the operator's work"; that was wrong and
+is marked superseded there. Checked here against `ratchet.py`: the lens text that ran carries the line without a
+condition ("the operator's work (start, stop, configure, observe, recover, carry on with data that already exists,
+go back to the version before)"); the reworded text carries "Where running it or recovering from it is part of what
+was asked, state how the person who runs it observes it, stops it or recovers it, using the controls that already
+exist"; and the pilot's own text carries it without a condition too ("What an operator does: start, restart,
+configure, carry on with the data that exists today, go back to the version before"). So every specification this
+pilot has measured was written under an unconditional operator line. Nothing in this journal had repeated the
+superseded sentence. (2) Read item by item, the lens arms' gain on that experiment's operator items was an
+operator-controls requirement added to specifications written without a repository, and two outside sorters labelled
+four of its 89 items, all of them operator controls, capability nobody asked for; here such requirements would be
+among the clauses that fail on a correct product. (3) Its rounds 7 and 8 test two short cues in ShipLoop's released
+spec stage, one that leaves a limit open and one that takes a default; it will send the result.
+
+**The count** (`by_source.py`, new: it reads each run's specification with the loop's own reader and the run's
+`strength.json`, and counts clauses by the first word of their Source line).
+
+| Source of the clause | Lens text: written | failing on the correct reference | Pilot's text: written | failing |
+|---|---|---|---|---|
+| `request` | 72 | 9 (12.5%) | 73 | 13 (17.8%) |
+| `implied` | 78 | 13 (16.7%) | 78 | 22 (28.2%) |
+| `choice` | 53 | 21 (39.6%) | 48 | 17 (35.4%) |
+| `existing` | 223 | 4 (1.8%) | 300 | 7 (2.3%) |
+| all | 426 | 47 (11.0%) | 499 | 59 (11.8%) |
+| all but `existing` | 203 | 43 (21.2%) | 199 | 52 (26.1%) |
+| added by the plan stage (all `implied`) | 3 | 3 | 4 | 4 |
+
+Per case, all but `existing`: orders 9 of 70 (12.9%) against 9 of 58 (15.5%); ticket assignment 10 of 52 (19.2%)
+against 13 of 60 (21.7%); due times 24 of 81 (29.6%) against 30 of 81 (37.0%).
+
+- **F25 (firm as a count).** The lens form is shorter only in how much existing behaviour it restates. It writes as
+  many clauses from the request (72 against 73) and implied by it (78 against 78), a few more choices (53 against
+  48), and 77 fewer `existing` ones. A clause that restates existing behaviour almost never rejects the reference
+  (2%), since the reference is built on the same repository. So R8.2's pooled share moves with how much a text
+  restates, and "one clause in nine" (F23) understates what a specification adds: of the clauses about the change,
+  one in five (lens) and one in four (the pilot's text) reject a correct product.
+- On that base the lens text is lower in all three cases, by a fifth pooled (21.2% against 26.1%). That is inside
+  the bar R8.2 registered (a third), with one run a cell and no measure of this pilot's run-to-run spread, so the
+  reading stays "no difference shown". It is the same direction three times, and a registration of any further text
+  should read this base beside the registered one.
+- **F26 (firm as a count).** The writer's own choices are where a correct product is rejected: two in five of them
+  (39.6% and 35.4%), against 16.7% and 28.2% of the implied clauses and 12.5% and 17.8% of the request's own.
+  Choices are an eighth of what the lens text writes and 21 of its 47 rejecting clauses. This is F24 with a number,
+  on three cases instead of one request. Of the request's own clauses that fail, five in each text are about the
+  tests the request asks for (`request-clauses-about-tests` in the log; on orders the reference ships no tests,
+  section 10; the ticket cases were not examined).
+- **F27 (interim: seven clauses, two cases).** Every clause the plan stage added fails on the correct reference: 3
+  of 3 with the lens text and 4 of 4 with the pilot's. They are edge conditions: identifiers at their limit, a name
+  with an unpaired surrogate, what a failed save leaves behind. Why each test fails on the reference was not
+  examined. Amendment 1 made the plan stage heavy and let it add a clause where the specification "lacks something
+  a use case needs"; in these cells what it added was stricter than a correct delivery. No whole loop is read this
+  way here, because a loop's builder builds to the clause.
+
+**Correction to the Result above.** "77 of the pilot text's 86 extra clauses were `existing` ones (134 and 158
+against 104 and 111)" counted use cases in the 77 and in the four figures. By clauses it is 78 of 86 (132 and 157
+against 101 and 110). Marked in place.
+
+**The operator's work among the failing items** (exploratory;
+`evidence/lens-enrichment/operator-items-read-by-hand.txt` holds the rule and every id). About half of the items
+that fail on a correct product are the operator's work: 27 of 58 with the lens text and 35 of 75 with the pilot's.
+None is on orders (a library); on ticket assignment it is the existing command-line tool; on due times it is 21 of
+32 and 27 of 43, and that request is itself about operating the product (change the hours, backfill, switch on, roll
+back). No failing item in either text requires a new control: where a setting or a switch appears the request names
+it, and the specifications say as much in their reasons ("require no live configuration endpoint", "without a new
+command"). What the specification adds on due times is the form: the name and range of a setting, refuse or prepare
+at start, which failure stops a start. What goes beyond the request is documents: 10 of the 11 such items (3 with
+the lens text, 8 with the pilot's) require a runbook, instructions or a reference page to say something, and a
+correct product without that page fails them. So the other session's guess holds here: with a repository the
+unconditional operator line did not produce controls nobody asked for. It produced decided forms of the work the
+request names, and required documents.
+
+**What this says about the reworded text, before any run of it.**
+
+- The most its `Open:` line can do on this count: choices are 21 of the lens text's 47 rejecting clauses, so if it
+  wrote none of them as requirements and nothing else moved, 26 of 373 clauses (7.0%) would reject a correct
+  product. The text keeps a clause above each `Open:` line, so how much of that it takes is what a run would show.
+- Its operator line is conditional ("where running it or recovering from it is part of what was asked"). On due
+  times the condition holds, so the line stays in force there; on ticket assignment and orders the lens text
+  already wrote nothing beyond the request. On these three cases the difference between the reworded and the lens
+  text should therefore come mostly from the `Open:` line. The words "using the controls that already exist" are
+  the part that could still act on due times, and a result there could not separate the two.
+- If the owner says to run it, its registration reads, beside the readings of this section: choice clauses written
+  and rejecting, the share rejecting among clauses not `existing`, and the plan stage's added clauses. Those
+  baselines are in this entry, before any run of it.
+
+**A provenance note on the gradings above.** Each `strength.json` says it was graded "with uncommitted changes to
+the pilot folder". That change is the reworded text's port in `ratchet.py`, written at 03:33:13. All five runs had
+started at 03:22:49 from commit 43d5486168448f221763d9413f7ea02878f6d237 (`run.json`: `started`, `local_head`), and
+`grade.py` does not load `ratchet.py`. No graded path was touched.
+
+Evidence: `by_source.py`; `evidence/lens-enrichment/failing-by-source.json` (every failing item with its Source
+line), `failing-by-source-log.txt` (the tables), `operator-items-read-by-hand.txt`.
+
+### Received: the other session's rounds 7 and 8, and what these records hold for its open question (2026-11-21 05:42)
+
+Status: what was received is recorded as received (its work, its instruments; I re-ran nothing of it). The count
+below is firm for these six runs as a count and rough as a mark (a word match); the hand reading is exploratory.
+No model ran. No registered reading changes.
+
+**Received at 05:36.** The session "Spec elaboration" ran two two-sentence cues inside ShipLoop's released spec
+stage (its journal, section 22, read here at commit 0d46d085479bf43e02cf964ee86917cc5b44dcb0, on its local main
+and not on origin when read; 48 sessions, Sonnet high and Sol 6.2 medium, four requests with no repository, two
+judges, a covered count on 22 items). The cue that records an unresolved bound as an open gap moved nothing (+0.5
+and 0.0 on Sonnet, +0.5 and +1.0 on Sol). The cue that takes "a limit the request leaves to choice as the best
+default, recorded as an assumption" is shown on both drivers under both judges (+3.0 and +3.0 on Sonnet, +5.5 and
++6.5 on Sol), with nothing else lost and no capability added on the four items its sorters call beyond the request.
+Read item by item by that session, the 20 gains are: 12 a default for a limit the released stage also says exists
+and leaves without a value (a file's size and row limits, an input's maximum length, a reply timeout); 3 a cap on a
+waitlist the request never mentioned (10, 10 and 20, where the released stage wrote "Assumed none"); 2 platform
+limits given their numbers; 1 a set named; 2 no difference. The defaults differ between draws (1 MiB and 1,000
+rows; 2 MiB and 5,000; 256 KiB and 500). Its standing there: the default cue goes to a Sol review at maximum effort
+and then to the owner, as evidence that the stage's two instructions are resolved differently by the two drivers,
+"not evidence that the defaults are right". Its section cites F24 and F26 as the only built-product evidence, and
+asks its review how to word the sentence "so that it covers a limit the requested behaviour cannot work without and
+not a limit that need not exist". It added that this pilot's instrument could tell those two kinds apart.
+
+**What these records hold on that.**
+
+- *Few bounds, and the ones chosen sit behind a chosen name.* The three requests here state their own limits (64
+  characters; 4, 24, 72 and 168 hours; the meter's 10,000 ticks), so the writers chose few. Where a writer chose no
+  further limit, or the unit the product already uses, the clause passes on the reference: 5 of 5. Where it chose a
+  range for the hours setting it fails: 3 of 3. But those three fail through the setting's name. Both specifications
+  chose one variable a priority (`DUE_HOURS_URGENT` and three more: lens C-6, the pilot's C-7) and their tests set
+  those; the correct reference reads one `RESPONSE_HOURS` setting. Every test that changes the hours fails on it,
+  the test of the request's own clause included (lens C-5, the pilot's C-6). So these records cannot say a chosen
+  bound is wrong. They say that a thing which had to be decided, a setting needs a name, was decided differently by
+  two correct products (`evidence/lens-enrichment/choices-read-by-hand.txt`).
+- **F28 (firm as a count, rough as a mark).** What rejects a correct product is a refusal the writer added. Clauses
+  whose statement makes the product refuse, fail or require something (a fixed word list in `by_source.py`,
+  written once and not adjusted after its first run), both texts pooled:
+
+  | Source of the clause | Refuses or requires: written | failing on the correct reference | The rest of its kind: written | failing |
+  |---|---|---|---|---|
+  | `choice` | 27 | 18 (67%) | 74 | 20 (27%) |
+  | `implied` | 19 | 10 (53%) | 137 | 25 (18%) |
+  | `request` | 20 | 2 (10%) | 125 | 20 (16%) |
+  | `existing` | 85 | 1 (1%) | 438 | 10 (2%) |
+
+  A refusal the writer added on its own (`choice` or `implied`) rejects a correct product 28 times in 46; its other
+  additions 45 times in 211; a refusal the request states or the product already has, 3 times in 105. Each text
+  alone shows the same split (choices: 9 of 14 against 12 of 39 with the lens text, 9 of 13 against 8 of 35 with the
+  pilot's). My own labels of the 101 choices, made knowing the outcomes, give 65% against 28% and 67% against 21%.
+  This is amendment 2's "loosest choice" seen from the other side: the choices that pass are the ones that add no
+  refusal ("named fields can appear in any order", "no safe-integer ceiling", "the existing convention").
+- *What it says to the other session's question, and what it cannot.* A cap on a waitlist and a maximum size for a
+  file are both refusals the request did not state, so this mark does not separate its two kinds. What it supports
+  is narrower: an added refusal is where two correct products most often part ways, whatever its reason; and a
+  default that must exist (a name here, a size there) is still decided differently by different writers, as its own
+  three draws of the file limits show. Whether a given added refusal is *wanted* is not something "fails on the
+  reference" can tell. The held-out checks, written from the request alone, can: in this pilot they failed for one
+  added refusal (refuse to start on a file without due times, F20 and F24) and for no chosen name.
+- *Bearing on the reworded text.* In this pilot an `Open:` point is handled as the default cue's rule without the
+  test: the build takes a reasonable answer and reports it, and no test pins it. A run of that text would show
+  whether leaving the writer's added refusals unpinned costs caught defects (the 36 or 37 of 37) or only the
+  rejections.
+
+Evidence: `by_source.py` (the `REFUSES` word list); `evidence/lens-enrichment/failing-by-source.json`
+(`choice_clauses`, `refusing`), `failing-by-source-log.txt`, `choices-read-by-hand.txt`.
+
+## 21. Amendment 8, 2026-11-21 06:55: the reworded lens text, in three rungs, the small one first (registered before any run of it)
+
+Owner, 2026-11-21 06:46, answering "Should I run the reworded text as a third arm (the same five runs, about an
+hour)?": "Yes, plan small experiments before doing larger ones to see if you can get fast iteration". My reading: run
+it, as a ladder. A cheap run comes first, whose result can change the wording within minutes; then one whole cell;
+then the rest. A rung is climbed only by a rule written here before it runs.
+
+**What runs.** `--enrich reworded`: the other session's `docs/experiments/spec-elaboration-20261120/arms/
+R-lenses-reworded.md` (its commit f2ffbfdf7a4f38e1daf6505daf51d1cd5353dce5, unchanged since), set into this stage
+the way the lens text was: this stage's frame and file path, the repository-reading step first, the `existing` source
+kind kept, and nothing else (`evidence/reworded-enrichment/port-against-R-lenses-reworded.diff`). It differs from
+the lens text in what section 20 found to matter: a clause is earned only by a sentence of the request, by what the
+outcome needs, or by what must be preserved; "add no capability, duty or restriction that the request's purpose does
+not call for"; a point the request leaves unsettled is the loosest choice when any answer serves the requester
+equally, and otherwise a clause "at the loosest reading that is certainly wanted" with an `Open:` line; "invent no
+bound"; and the operator line is conditional. In such a run every later stage's frame gains one paragraph
+(`OPEN_NOTE`): an open point is not a requirement, a plan says how each is handled, a build takes a reasonable
+answer and says which in its report, a test checks only what its clause states, and no stage adds a clause that
+settles one. Runner as in every compared cell: Codex `gpt-6.2-sol` at high, one new Git repository a run, outside
+the checkout.
+
+**Apparatus added for the ladder** (self-tested with the scripted stand-in before this commit: the standing check
+passes for all three texts; a spec-only run records `stop-after-spec`, one session, no gate; a run started from it
+commits a byte-identical specification, runs no spec session and ends converged; a start from another text's
+specification is refused).
+
+- `ratchet.py run --stop-after spec`: the spec stage alone.
+- `ratchet.py run --spec-from RUN`: a run that starts from the specification RUN wrote, as written, with no spec
+  session; `run.json` records `spec_from` and the seconds of RUN's spec sessions. So a specification read at the
+  first rung is the one built and tested on at the later rungs, and no session is paid for twice.
+- `by_source.py specs`: counts what a specification wrote at its `spec` commit, with no grading: clauses by Source,
+  the refusals the writer added on its own (choice or implied clauses that F28's word list marks), `Open:` lines.
+
+**The specifications already on file, counted the same way** (the base for the first rung):
+
+| Specification | Clauses | Use cases | request | implied | existing | choice | Added refusals | `Open:` lines | Minutes |
+|---|---|---|---|---|---|---|---|---|---|
+| lens, orders | 82 | 8 | 26 | 24 | 12 | 20 | 8 | 0 | 5.0 |
+| lens, ticket assignment | 151 | 11 | 18 | 18 | 101 | 14 | 3 | 0 | 7.0 |
+| lens, due times (test-strength cell) | 190 | 12 | 28 | 33 | 110 | 19 | 14 | 0 | 8.0 |
+| lens, due times (loop a) | 170 | 11 | 19 | 31 | 95 | 25 | 7 | 0 | 7.6 |
+| lens, due times (loop b) | 197 | 16 | 16 | 53 | 104 | 24 | 18 | 0 | 13.3 |
+| pilot's, orders | 69 | 12 | 28 | 14 | 11 | 16 | 7 | 0 | 6.1 |
+| pilot's, ticket assignment | 190 | 17 | 19 | 27 | 132 | 12 | 1 | 0 | 13.5 |
+| pilot's, due times (test-strength cell) | 236 | 15 | 26 | 33 | 157 | 20 | 10 | 0 | 10.1 |
+| pilot's, due times (loop) | 278 | 21 | 24 | 44 | 184 | 26 | 14 | 0 | 10.8 |
+
+Three specifications of one request with one text spread from 7 to 18 added refusals and from 19 to 25 choices, so
+a difference is read only where the new text's three fall outside that range.
+
+**The rungs.**
+
+| Rung | What runs | About | What it can show |
+|---|---|---|---|
+| 1, small | five spec-only runs: `r1-orders`, `r1-ticket-assignment`, `r1-due-times-1`, `-2`, `-3` | 5 to 13 minutes | whether the text writes what it is meant to (open lines, fewer choices, fewer added refusals) and how it treats the due-times start |
+| 2, medium | from rung 1's specifications: the orders test-strength cell `p1R-stand-in-rules`; the two due-times loops `p3R-ticket-due-times-a` and `-b` (specifications 2 and 3), whose first builds are graded on the held-out checks as soon as they are committed, while the loops go on to their test pass | 20 minutes | whether later stages cope with an open line; rejecting clauses and caught defects on one case; two first builds against the held-out checks |
+| 3, large | from rung 1's specifications: `p1R-ticket-assignment` and `p1R-ticket-due-times` (specification 1); the two loops end their test pass | 35 minutes | the pooled readings |
+
+**Rules for climbing.**
+
+- After rung 1, go on if every specification is accepted by the script and at least one of these holds. (a) On due
+  times all three specifications write fewer choice clauses than the lens text's fewest (19) and fewer added
+  refusals than its fewest (7). (b) At most one of the three writes, as a requirement and not under an `Open:`
+  line, that an enabled start refuses a data file without due times (read by hand; four of the five on file do).
+  If neither holds, the wording is changed: one change, stated with its reason in this journal before its run, and
+  rung 1 runs again on due times. At most three wordings in all; then stop and report what was seen.
+- After rung 2, go on unless the apparatus failed, or the orders tests pin an answer to an open point (read in the
+  tests). Either is fixed and the orders cell run once more before rung 3.
+- Rung 3 has no rule: it completes the cells.
+
+**Readings.**
+
+- **R9.1, due times.** As R8.1, on the two loops' first builds: *avoided* if both pass the five held-out checks
+  that failed before (`cli`, `migrate`, `restart`, `rollback`, `switch`), *not avoided* if both fail them, otherwise
+  not settled. Read beside it, in each specification, plan and build report: whether the start on a file without
+  due times was a requirement, an open point or unsaid, and which answer the build took. The text's author knew
+  this case when writing it, so a pass is not a blind result.
+- **R9.2, clauses that reject a correct product.** Pooled over the three `p1R` cells, among clauses not `existing`
+  (the base F25 argued for): the lens text's is 43 of 203 (21.2%). *Better* at or under 14.1% (a third lower),
+  *worse* at or over 28.2%, otherwise no difference shown. Reported beside it: the share over all clauses (lens
+  11.0%), use cases failing (11 of 31), and the second correct ticket-assignment delivery (15 more).
+- **R9.3, strength.** Calibrated defects caught of 37: *kept* at 35 or more (lens 36).
+- **R9.4, what was written and what it cost.** Clauses by Source, added refusals written and rejecting (lens: 28
+  written, 16 rejecting), `Open:` lines, minutes and output tokens.
+- **R9.5, open lines after the spec stage.** Of the clauses that carry an `Open:` line, how many fail on the
+  correct reference; whether any clause a later stage added settles an open point; what each build did at each.
+
+**Predictions, mine, before any run.** Fewer clauses than the lens text on every case. Fewer choices and fewer
+added refusals, outside the lens range on due times. R9.2 lower but not by a third (between 14% and 19%). R9.3
+kept. R9.1 most likely not settled, one build of each kind: a builder told to take a reasonable answer may take the
+refusal as the specification writers did; avoided in both about one time in three. The author's three, registered
+in its commit 917eee6047304c0c880faf87456b20b5d356c5de: fewer clauses than the lens form, a lower share of clauses
+failing on a correct product, no loss of defects caught.
+
+**Limits known before the runs.** One run a cell and three specifications of due times; no measure of this pilot's
+run-to-run spread beyond the table above. The lens cells ran three and a half hours earlier on the same machine.
+A cell here is a specification written in one run and continued in another, where the lens cells did both in one;
+its minutes are the two added. Rung 2's held-out gradings run while the two loops are still in their test pass (one
+build's held-out checks take seconds); amendment 7 graded only after every run had ended. If the wording is changed
+at rung 1, what runs is no longer the other session's arm as drafted and is named for what it is. Codex still shows
+the account's skills to every session (section 19), the same on every side.
+
+### Rung 1, result (2026-11-21 07:03; five spec-only runs, 06:55:21 to 07:00:13)
+
+Status: firm for what was run (one specification each of orders and ticket assignment, three of due times). Every
+specification was accepted by the script on its first try; no session's record holds a held-out mark.
+
+| Specification, reworded text | Clauses | Use cases | request | implied | existing | choice | Added refusals | `Open:` lines | Minutes |
+|---|---|---|---|---|---|---|---|---|---|
+| orders | 26 | 5 | 24 | 1 | 1 | 0 | 0 | 8 | 2.6 |
+| ticket assignment | 43 | 9 | 12 | 7 | 24 | 0 | 1 | 7 | 3.8 |
+| due times 1 | 30 | 8 | 12 | 5 | 13 | 0 | 0 | 10 | 4.9 |
+| due times 2 | 34 | 8 | 13 | 6 | 15 | 0 | 0 | 8 | 4.6 |
+| due times 3 | 34 | 7 | 12 | 5 | 17 | 0 | 0 | 9 | 4.3 |
+| *lens text, same cases (base table above)* | *82; 151; 170 to 197* | *8; 11; 11 to 16* | | | *12; 101; 95 to 110* | *20; 14; 19 to 25* | *8; 3; 7 to 18* | *0* | *5.0; 7.0; 7.6 to 13.3* |
+
+- **Rule (a) holds.** On due times the three write 0, 0 and 0 choice clauses (the lens text's fewest: 19) and 0, 0
+  and 0 added refusals (its fewest: 7). No specification of any case writes a single choice; nine earlier
+  specifications never wrote fewer than 12.
+- **Rule (b) holds: none of the three requires the refusal to start.** Each writes the request's sentence as a
+  clause and puts the decision in its `Open:` line, naming both answers: "The operator decides how an attempted
+  enabled start with an incomplete file is handled, for example by requiring preparation first or completing
+  preparation before serving enabled requests" (1, C-19); "The requester decides the operator workflow for
+  preparation and early activation, such as a preparation step before starting the enabled server or startup
+  preparation that finishes before any enabled response" (2, C-18); "The requester decides how operators initiate
+  preparation and confirm readiness, including whether setting `DUE_TIMES=on` on an unprepared file waits for
+  preparation or requires a prior operation" (3, C-20). Four of the five earlier specifications decided it, for the
+  refusal (`evidence/reworded-enrichment/rung-1-due-times-reading.txt`).
+- **What the open points are.** On orders, the eight are the things the other two texts decided and a correct
+  product then failed: missing, repeated and unknown keys, further line separators, which ids and number spellings
+  are admissible, an empty price, a date that is no calendar date, which error comes first, sums past the largest
+  safe integer. On due times they include how two filters combine with `overdue=true` (the documents and the
+  shipped code disagree), whether the command-line tool shows the due time, and what a return from a rollback must
+  recover: each a clause that failed on the correct reference with the lens text (C-36, C-181, C-70 there).
+- **The size.** A sixth of the lens text's on due times (30 to 34 clauses against 170 to 197), a third on orders,
+  written in under five minutes. It restates far less existing behaviour (13 to 17 `existing` clauses against 95
+  to 110) and writes fewer implied clauses (5 or 6 against 31 to 53). That is the thing to watch at the next rungs:
+  the calibrated defects of the ticket cases sit partly in behaviour these specifications no longer pin.
+- **Is there enough to conclude early?** Enough to say the text changes what a specification decides, and not by
+  chance of the draw: five of five without a choice. Not enough to say anything about a built product, or about
+  how many planted defects tests written from so short a specification catch. Rung 2 is the cheapest run that can
+  say either, so the ladder goes on.
+
+By the registered rule: go on to rung 2, with these specifications and this wording unchanged.
+
+Evidence: `evidence/reworded-enrichment/` (`rung-1-specs.json`, `rung-1-specs-log.txt`,
+`rung-1-due-times-reading.txt`, and each run's `run.json` and `spec.md` under `r1-*/`).
+
+### Amendment 9, 2026-11-21 07:08: two larger cases join the ladder, as a guard against saying too little (registered before any run of them)
+
+Owner, 07:05, while rung 2 ran: "Do we need to raise the complexity of the test cases to provide more depth of
+insight? I was suggesting doing a scenario of using board games in node, another more complex would be Grokbot in
+node".
+
+**What the records say.** Both scenarios exist here and have been run: `node-chess-engine` (a chess rules engine
+in Node.js; 10 held-out checks) and `grokbot-local` (amendments 4 to 6; two browser yardsticks of 49 and 28 checks,
+calibrated on five builds). On both, every arm's first build passed everything: the pilot's whole loop on chess (10
+of 10, at 20.5 minutes), and on Grokbot the pilot's first build, ShipLoop's delivery and one session at low effort
+in 6.8 minutes (49, and 23 stated with 5 implied). So neither could separate the arms (F19), and size was not what
+gave insight. The one case that taught something is the small due-times change: a change to an existing product
+that leaves one consequential thing unsaid.
+
+**What they can do now.** Rung 1 changed the question. The reworded text writes a third to a sixth of what the
+other texts write. A case that every arm passes cannot show a gain, but it can show a loss, and a loss from saying
+too little is this text's risk. A rule-dense case (chess) and a large, loosely worded one (Grokbot, whose second
+yardstick has five checks on things the request implies without stating) are where a short specification is most
+likely to cost. So both join as a guard, the small rung first.
+
+**Cells.** `r1-chess` and `r1-grokbot`: the spec stage alone. Then, if each specification is accepted,
+`p3R-node-chess-engine` and `p3R-grokbot-local` from those specifications: plan and build, stopped at the first
+build (`--stop-after build`, new; self-tested with the scripted stand-in: two sessions, gates `after-build-1` and
+`final`, `stop-after-build`, and the standing check still passes), graded on the held-out yardsticks.
+
+**Readings.**
+
+- **R10.1, chess.** Held-out checks at the first build: *no loss* at 10 of 10 (the pilot's text: 10 of 10). A
+  failing check is read against the specification: was the rule stated, left open, or missing.
+- **R10.2, Grokbot.** Both yardsticks at the first build: *no loss* at 49, and 23 stated with 5 implied (the pilot's
+  text's first build and one bare session: 49, 23, 5; Sonnet's bare build: 48, 23, 4). A failing check is read by
+  hand with a probe before it counts, under amendment 4's rule: the yardstick is corrected only where it assumes
+  what the request does not say (F18).
+- Reported: clauses, open lines, minutes to the first build (the pilot's text: 20.5 on chess, 37.5 on Grokbot;
+  these run beside up to five other runs, so minutes are read loosely).
+
+Prediction: no loss on chess (the rules are public and the request says "every legal move"); on Grokbot at most
+one check lost, among the five implied ones.
+
+**Limits.** One run a case. They can only show a loss. The Grokbot yardsticks have met five builds, and a sixth
+design may meet an assumption they still hold.
+
+**Not done, and the owner's to decide:** a new or harder scenario (another game, a larger Grokbot). The records
+give no reason to expect more insight from size alone, and a browser yardstick written new took six rounds and five
+builds before it could be trusted (F18). What would add depth on the other side of the question, deciding too
+much, is more cases like due times: a change to an existing product with one thing left unsaid, which the text's
+author has not seen. There is one such case today.
+
+### Rung 2, result (2026-11-21 07:22; the orders cell and the two due-times first builds)
+
+Status: firm for what was run: one test-strength cell and two first builds, each from a specification of rung 1.
+
+**Orders, test strength (`p1R-stand-in-rules`, from `r1-orders`; graded 07:19 from commit 80d2f064fc7c).**
+
+| Text | Clauses / use cases tested | Clauses failing on the correct reference | Use cases failing | Defects caught | Minutes (of which enrich) | Output tokens |
+|---|---|---|---|---|---|---|
+| reworded | 27 / 5 | 2 (7.4%) | 1 | 4 of 4 | 18.2 (2.6) | 42,611 |
+| lens | 82 / 8 | 9 (11.0%) | 1 | 4 of 4 | 23.7 (5.0) | 61,805 |
+| pilot's | 69 / 12 | 9 (13.0%) | 3 | 4 of 4 | 18.8 (6.1) | 49,042 |
+
+- The three items that fail on the reference (C-25, C-26, U-5) are the request's own "cover it with node:test
+  tests; npm test must pass": this case's reference ships no tests of its own, the artifact noted in section 10 and
+  in the lens cell (C-78 to C-80 there). No other clause fails. The six that failed with the lens text were choices,
+  and this specification has none: those points are its open lines, and every clause that carries one passes.
+- All four planted defects are caught, each by request clauses (`one-rule-missing` by C-6, C-11, U-1; `tested-only`
+  by C-13, C-20; `limit-never-trips` by C-23, C-24, C-27, U-3, U-4; `cross-field` by C-18, C-19, C-20). A third of
+  the clauses, the same catch.
+- The plan stage added one clause (C-27, recovery after the meter's limit error) and it passes on the reference;
+  the seven it added in earlier cells all failed (F27).
+- The tests pin no open point. The plan says so in words ("Inputs whose outcomes depend on an `Open:` choice are
+  outside those assertions, including field permutations, alternative separators and number spellings, shape-valid
+  calendar anomalies, multiple simultaneous errors, and out-of-contract or overflowing totals"), and a search of
+  the acceptance tests finds no assertion on an unknown, missing or repeated key, another separator, calendar
+  validity, precedence, or an empty price.
+
+**Due times, the two first builds (`p3R-ticket-due-times-a` from specification 2, `-b` from specification 3),
+graded on the held-out checks when each build was committed, while the runs went on to their test pass.**
+
+| First build | Held-out checks | Minutes to it (enrich, plan, build) |
+|---|---|---|
+| reworded, a | 8 of 8 | 20.5 (4.6, 6.9, 9.0) |
+| reworded, b | 8 of 8 | 18.1 (4.3, 5.0, 8.7) |
+| lens, a and b | 3 of 8 and 2 of 8 | 28.1 and 31.9 |
+| pilot's | 3 of 8 | 32.3 |
+
+- **R9.1, due times: avoided.** Both first builds pass the five checks that failed in all three earlier loops
+  (`cli`, `migrate`, `restart`, `rollback`, `switch`), and the other three.
+- **How.** Each specification had left the start open and named both answers (rung 1). Each plan then took the
+  same one as its default for the build and said it was a default: "Choose preparation as part of enabled startup
+  ... It fills gaps before binding" (a); "For the open preparation policy, use one enabled startup to prepare
+  missing deadlines synchronously before listening" (b). Each build report lists the answer it took at every open
+  point under its discoveries (a: C-18; b: C-20), as the stage frame asks. So the same model family that decided
+  for the refusal four times in five when it wrote a specification chose the other answer two times in two when
+  the point reached it open, at planning, with both answers in front of it.
+- **Other decisions moved the same way.** Both plans also chose the settings' names (`DUE_HOURS_URGENT` and three
+  more) and a range for the hours (1 to 876,000 in a; up to the largest safe integer in b), how two filters combine
+  with `overdue=true`, and what the command-line tool shows. With the earlier texts each of those was a clause with
+  a test, and failed on the correct reference. Here each is a line in the build report, and no test holds a second
+  correct product to it.
+- Limits: two builds, one model family, and a text whose author knew this case. The held-out checks ask for none of
+  the other decisions, so they say nothing about whether those defaults are what a customer wants.
+
+**Is there enough to conclude early?** For R9.1, yes: the registered reading is settled, two of two. For the text as
+a whole, no. Orders is the case with the least existing behaviour. Whether tests written from a specification of
+30 to 43 clauses still catch the 27 and 6 planted defects of the two ticket cases is the open risk, and only rung 3
+measures it.
+
+By the registered rule (no apparatus failure; the orders tests pin no open point): go on. Rung 3 started at
+07:20:52, from commit 80d2f064fc7c.
+
+Evidence: `evidence/reworded-enrichment/p1R-stand-in-rules/` (run record, `strength.json`, plan, tests report,
+manifest), `p3R-ticket-due-times-a/` and `-b/` (`build-1-hidden.json`, and the plan and build report at the first
+build's commit), `rung-2-orders-by-source-log.txt`.
+
+### The two larger cases, result (2026-11-21 07:41; amendment 9's cells), and the end of the two loops
+
+Status: firm for what was run, one run a case. These cells can only show a loss.
+
+| Case, text | Specification: clauses / use cases, choices, open lines | First build: held-out checks | Minutes to it (enrich, plan, build) | Output tokens to it |
+|---|---|---|---|---|
+| chess engine, reworded | 56 / 7, 0, 5 | 10 of 10 | 14.7 (4.2, 4.7, 5.8) | 38,371 |
+| chess engine, pilot's (section 10) | 94 / 15, 4, 0 | 10 of 10 | 20.5 | |
+| Grokbot-local, reworded | 100 / 15, 0, 18 | 49 of 49; 23 of 23 stated and 5 of 5 implied | 26.8 (4.6, 7.0, 15.0) | 71,898 |
+| Grokbot-local, pilot's (section 17) | | 49 of 49; 23 and 5 | 37.5 | |
+| Grokbot-local, one bare session at high (section 17) | none | 49 of 49; 23 and 5 | 16.9 | 47,308 |
+
+- **R10.1, chess: no loss.** The specification kept the rules the request leans on: 27 of its 56 clauses are
+  `implied` (the pilot's text wrote 40 of 94), and none is a choice. Its five open lines are about a malformed or
+  impossible position, a move not in UCI form, which test positions to use, and on what machine the two speed
+  limits are measured.
+- **R10.2, Grokbot: no loss.** All 49 checks of the first yardstick and all 28 of the second pass at the first
+  build, the five implied ones among them, where I had predicted that at most one of those would be lost. No check
+  needed a second run or a probe. The gradings ran at 07:35 to 07:37 beside three live runs.
+- Both first builds came sooner than with the pilot's text (14.7 against 20.5 minutes, 26.8 against 37.5), run
+  beside four or five other runs. A single session with no specification is still the quickest on Grokbot (16.9).
+- What this does not show: a gain. Every arm passed these cases before (F19). It shows that a specification a
+  third to a half the size, with its undecided points marked and not decided, lost nothing on a rule-dense build
+  or on a large, loosely worded one.
+
+**The two due-times loops, at their end** (`--stop-after tests`).
+
+| Loop | Its own gate after the test pass | Held-out checks, first build and end | Minutes to that gate | Output tokens |
+|---|---|---|---|---|
+| reworded, a | 41 of 42: C-31 fails | 8 of 8, 8 of 8 | 38.9 | 96,229 |
+| reworded, b | 41 of 41 | 8 of 8, 8 of 8 | 32.8 | 79,353 |
+| lens, a and b (section 20) | 184 of 184; 215 of 215 | 3 of 8; 2 of 8 | 57.8; 61.9 | 148,407; 157,262 |
+
+- Loop a's failing test is on an `existing` clause (C-31, "The raw CLI list retains its existing row layout"). The
+  test session wrote a data file by hand with a tab inside a ticket title and asserts four raw fields; the
+  formatter, which this build did not change, joins the columns with tabs and prints five. The service refuses
+  such a title at its API. So the test is stricter than the shipped product on existing behaviour: the kind of
+  clause that rejected a correct product one time in fifty in section 20's count. A full loop would have sent it
+  to a fix session.
+- With the lens text every own test was green and the product was wrong (F20's pattern). Here one own test is red
+  and the product passes every held-out check.
+
+Evidence: `evidence/reworded-enrichment/` (`r1-chess/`, `r1-grokbot/`, `p3R-node-chess-engine/`,
+`p3R-grokbot-local/` with both yardsticks' results and the grading log, `guard-specs-log.txt`; the loops' `run.json`,
+`hidden.json` and, for a, `gate-after-tests-failing.txt`).
+
+### Rung 3, result, and the readings of amendment 8 (2026-11-21 07:56)
+
+Status: firm for what was run: one run a cell; three test-strength cells, two loops, two larger cases; one model
+family (Codex `gpt-6.2-sol` at high) as writer, planner, builder and tester.
+
+**Test strength, reworded text against the lens text and the pilot's own** (the ticket cells graded from the
+specifications of rung 1; each cell's minutes are the specification run and the continued run added).
+
+| Case, text | Clauses / use cases tested | Clauses failing on the correct reference | Use cases failing on it | Second correct delivery, beyond the reference | Defects caught | Minutes (of which enrich) | Output tokens |
+|---|---|---|---|---|---|---|---|
+| orders, reworded | 27 / 5 | 2 (7.4%) | 1 | none exists | 4 of 4 | 18.2 (2.6) | 42,611 |
+| orders, lens | 82 / 8 | 9 (11.0%) | 1 | none exists | 4 of 4 | 23.7 (5.0) | 61,805 |
+| ticket assignment, reworded | 44 / 9 | 3 (6.8%) | 0 | 3 (2 clauses, 1 use case) | 26 of 27 | 26.9 (3.8) | 63,618 |
+| ticket assignment, lens | 153 / 11 | 13 (8.5%) | 3 | 15 (11 clauses, 4 use cases) | 26 of 27 | 38.0 (7.0) | 96,512 |
+| ticket due times, reworded | 31 / 8 | 3 (9.7%) | 1 | none exists | 6 of 6 | 25.3 (4.9) | 62,333 |
+| ticket due times, lens | 191 / 12 | 25 (13.1%) | 7 | none exists | 6 of 6 | 44.2 (8.0) | 112,503 |
+| pooled, reworded | 102 / 22 | 8 (7.8%) | 2 of 22 | | 36 of 37 | 70.4 | 168,562 |
+| pooled, lens | 426 / 31 | 47 (11.0%) | 11 of 31 | | 36 of 37 | 105.9 | 270,820 |
+| pooled, pilot's own | 499 / 44 | 59 (11.8%) | 16 of 44 | | 37 of 37 | 112.2 | 256,223 |
+
+**The readings of amendment 8.**
+
+- **R9.1, due times: avoided.** Both first builds pass 8 of 8 (recorded under "Rung 2, result").
+- **R9.2, clauses that reject a correct product: better.** Among clauses not `existing`: 8 of 64 (12.5%) against the
+  lens text's 43 of 203 (21.2%); the bar was 14.1%. Over all clauses 7.8% against 11.0%. Use cases 2 of 22 against
+  11 of 31. The second correct ticket-assignment delivery fails 3 further items where it failed 15.
+- **R9.3, strength: kept.** 36 of 37 (bar 35; lens 36; pilot's 37). The one missed is `update-rejects-resolved` on
+  ticket assignment, a defect in existing behaviour; the lens text missed `cli-no-assignee` there, which this text's
+  tests catch. Same count, different defect.
+- **R9.4, what was written and what it cost.** A quarter of the clauses (102 against 426). No choice clause in any
+  of the seven specifications written with this text (five of rung 1, chess, Grokbot). Added refusals at the end of
+  the three cells: 3 written and none rejecting (lens: 28 written, 16 rejecting). A third less time on the three
+  cells (70.4 against 105.9 minutes) and 38% fewer output tokens.
+- **R9.5, open lines after the spec stage.** 25 clauses in the three cells carry an open line; 2 of them fail on
+  the correct reference (ticket assignment C-36, due times C-19), and neither failure is about its open point.
+  C-19's test says in a comment that refusal until explicit preparation "is a supported outcome" and accepts either
+  answer. C-36 is the command-line table showing the assignee, which failed on this reference with all three texts.
+  The plan stage added 3 clauses (orders C-27, ticket assignment C-44, due times C-31); one fails on the reference
+  (C-44), and none settles an open point. Both builds list the answer taken at every open point in their reports.
+
+**What still fails on the correct reference, all eight clauses.** Four are the request's own clauses about the tests
+it asks for (orders C-25, C-26; ticket assignment C-42; due times C-29), the kind section 20 counted five of in each
+earlier text. One is the command-line table (ticket assignment C-36: on the reference "the assigned and unassigned
+rows both show "-""), failing with every text. One was added by the plan stage (C-44, a failed save leaves an
+assignment available to retry: on the reference "refused assignment changed live state"). Two are sentences of the
+request tested at an edge where the reference does not do what the sentence says: due times C-3 (with due times
+off, a ticket created
+at the last representable instant answers 500 where release 1.4.0 answers 201) and C-19 (a due time is shown before
+the data file holds it). None is an addition of the specification writer's: this text wrote none.
+
+**Predictions scored.** Mine, six: four held (fewer clauses; fewer choices and added refusals; strength kept; no
+loss on chess and at most one implied check lost on Grokbot), two did not (I said R9.2 would land between 14% and
+19%: it is 12.5%; I said R9.1 would most likely be not settled: it is avoided). The author's three (fewer clauses, a
+lower share failing on a correct product, no loss of defects caught) all held.
+
+**Findings.**
+
+- **F29 (firm: seven specifications).** The reworded text takes the writer's own decisions out of the specification:
+  no choice clause in seven of seven, and 5 to 18 open lines each, where nine earlier specifications never wrote
+  fewer than 12 choices. No second wording was needed.
+- **F30 (two builds; not blind, the text's author knew this case).** A decision left open and named was made right
+  downstream: both due-times plans chose to prepare the data file at an enabled start, where four of five
+  specification writers had chosen to refuse. The pattern of F20, every own test green over a wrong product, did not
+  recur: the gates were 41 of 42 and 41 of 41, with 8 of 8 held-out checks.
+- **F31 (firm at this size).** A quarter of the clauses kept the tests as strong (36 of 37) and removed most of
+  what rejected a correct product (12.5% against 21.2% of clauses not `existing`). What the shorter specification
+  gave up is one defect in existing behaviour that it no longer pins; what it gained is one defect the longer one
+  missed.
+- **F32 (reported).** It is cheaper at every stage: specifications in 2.6 to 4.9 minutes, the three cells a third
+  quicker with 38% fewer output tokens, first builds sooner on every case (due times 18 to 21 minutes against 28 to
+  32), loops to their gate in 33 and 39 minutes against 58 and 62.
+- **F33 (one run a case; can only show a loss).** On the two larger cases the owner named, a rule-dense one and a
+  large loosely worded one, the shorter specification lost nothing: chess 10 of 10, Grokbot 49 of 49 and 28 of 28.
+
+**Is there enough to conclude?** For the question the owner asked (run the reworded text as a third arm), yes: on
+every registered reading it is at least as good as both earlier texts and on three it is better, at lower cost, with
+no loss on the two guards. What it does not establish: that it holds for another model family (every stage here was
+Sol); that it holds on more than one case with a consequential thing left unsaid (there is one, and the text's author
+knew it); that the defaults the plan now takes and reports (names, ranges) are what a customer wants; and anything
+about ShipLoop, whose released spec stage is a different text that the other session's experiment concluded on
+without a change.
+
+**Checked twice.** At the owner's word ("use sonnet in Task() where you can") a Sonnet subagent recounted every
+figure of the table and of R9.2 to R9.5 from `strength.json` and the specifications with a script of its own, not
+`by_source.py`: all match. It also copied the evidence and drafted this subsection from the facts given to it.
+
+**Received, 07:19, from the session "Spec elaboration"** (its journal sections 26 to 28; its commit 2f4f56fe2; its
+work, not re-run here). It has concluded at the owner's word with no change to ShipLoop's templates. Two things it
+sent bear on this text. Inside ShipLoop's released spec stage, three wordings that let the writer leave a point
+open did nothing on its covered count, so it asked whether this text's writers would use `Open:` for points they
+would otherwise have settled: rung 1 answers that they do, in seven of seven specifications. And its census of 31
+real ShipLoop deliveries found limits chosen at build and written nowhere (nine in this pilot's own ShipLoop
+Grokbot delivery); in the runs above the builder still chooses such limits, and its report lists each one because
+the stage frame asks for it.
+
+**Limits.** One run a cell. The machine's load average was 7 to 8 while five or six runs were in flight, so minutes
+are loose. The comparison cells ran three to four hours earlier. One held-out mark, in loop b's test session, is a
+process listing that showed another session's command line naming the installed skill (no path of the repository
+appears in that session's record); it is read as the five marks of section 19 were, and the run is counted. The
+gradings of rung 2 and of the two larger cases ran beside live runs; the two last test-strength gradings did not.
+
+Evidence: `evidence/reworded-enrichment/` (`p1R-ticket-assignment/`, `p1R-ticket-due-times/` with each run's record,
+`strength.json`, plan, tests report, manifest and grading log; `failing-by-source-log.txt` and `.json` for the three
+cells against the lens text's; `summary.json`).
+
+### Amendment 10, 2026-11-21 08:02: the small step again on the other runner, Sonnet (registered before any run of it)
+
+Owner, 08:00, to "What next: the 5-minute Sonnet check first, or merge and push this branch?": "Sonnet check first".
+
+**Why.** Every stage of amendment 8 ran on one model family. The first limit named in the result above is that
+nothing shows the reworded text does the same to another. The owner's other named runner is Sonnet at high
+(section 1). The cheapest run that can say is rung 1 again: the spec stage alone.
+
+**Cells**, each `--host claude --model claude-sonnet-5-5 --effort high --stop-after spec`, one new repository a
+run, a cap of 3 dollars a session so a session that runs away ends (`--max-budget-usd 3`):
+
+- Wave 1, the check: the reworded text, `s1-orders`, `s1-ticket-assignment`, `s1-due-times-1`, `-2`, `-3`.
+- Wave 2, the base on the same model: the lens text, `s1L-orders`, `s1L-ticket-assignment`, `s1L-due-times-1`,
+  `-2`, `-3`. No Sonnet specification exists with either earlier text, and "stops deciding" needs what Sonnet
+  decides when it is told to. It runs when wave 1 has ended, unless wave 1 already reads "does not hold".
+
+**Readings**, counted by `by_source.py specs` at each run's `spec` commit:
+
+- **R11.1, the mechanism.** *Holds* if each of the five reworded specifications writes at most 2 choice clauses and
+  at least one `Open:` line (Sol: none and 7 to 10). *Does not hold* if any writes 12 or more choices (the fewest
+  any Sol specification wrote with the other two texts). Otherwise partly.
+- **R11.2, the due-times start.** Of the three, how many require, not under an `Open:` line, that an enabled start
+  refuse a data file without due times (Sol with this text: none of three; with the other texts: four of five).
+- **R11.3, the base.** The same counts and the same reading for the lens text on Sonnet, beside them.
+- Reported: clauses and use cases, added refusals, minutes, and the cost the host reports.
+
+**What it cannot show.** Anything about a built product or about tests on Sonnet: that is a later rung, with priced
+sessions, and it is put to the owner with the result, not run. One specification of two of the cases.
+
+**Prediction.** With the reworded text Sonnet writes 0 to 2 choices and several open lines in each, and at most one
+of its three due-times specifications requires the refusal. With the lens text it writes choices, but I do not
+know how many: Sonnet and Sol resolved the same instruction differently in the other session's rounds, so its base
+may be well under Sol's 14 to 25.
+
+**Limits known before the runs.** A Claude session started by the pilot runs in the real home, so it is shown the
+account's own instructions, as Codex is shown its skills (section 19); the same in both waves. Minutes are not
+compared with Sol's.
+
+### Amendment 10, result (2026-11-21 08:12; ten spec-only runs with Sonnet as the writer, 08:03 to 08:10)
+
+Status: firm for what was run: five specifications with each text, one of orders and of ticket assignment and three
+of due times; the Claude host with `claude-sonnet-5-5` at high; every specification accepted on its first try, no
+held-out mark, nothing put back by the script; 1.74 dollars for the reworded wave and 2.57 for the lens wave.
+
+| Specification, text | Clauses | Use cases | request | implied | existing | choice | `Open:` lines | Minutes |
+|---|---|---|---|---|---|---|---|---|
+| orders, reworded | 21 | 4 | 18 | 2 | 1 | 0 | 9 | 1.0 |
+| ticket assignment, reworded | 32 | 6 | 16 | 10 | 6 | 0 | 7 | 2.0 |
+| due times 1, reworded | 22 | 6 | 12 | 5 | 3 | 2 | 12 | 1.4 |
+| due times 2, reworded | 28 | 6 | 18 | 4 | 6 | 0 | 8 | 2.6 |
+| due times 3, reworded | 22 | 6 | 12 | 3 | 6 | 1 | 6 | 1.6 |
+| orders, lens | 39 | 7 | 23 | 4 | 2 | 10 | 0 | 1.7 |
+| ticket assignment, lens | 79 | 13 | 24 | 19 | 24 | 12 | 0 | 3.2 |
+| due times 1, lens | 57 | 9 | 20 | 11 | 17 | 8 | 0 | 3.1 |
+| due times 2, lens | 66 | 9 | 21 | 12 | 21 | 12 | 0 | 2.6 |
+| due times 3, lens | 80 | 13 | 28 | 16 | 27 | 9 | 0 | 3.5 |
+| *Sol, reworded (rung 1)* | *26; 43; 30, 34, 34* | | | | | *0 in all* | *8; 7; 10, 8, 9* | |
+| *Sol, lens (base table)* | *82; 151; 190, 170, 197* | | | | | *20; 14; 19, 25, 24* | *0* | |
+
+The Sonnet rows are counted by the first word of each clause's `Source:` line; one clause of the lens specification
+due times 1 has a `Source:` outside the four kinds (C-38, the runtime's own rule), so its row adds to 56 of 57. The Sol
+rows are as recorded under "Rung 1, result" and in the base table; their other columns are not repeated here.
+
+- **R11.1, the mechanism: holds.** The five reworded specifications write 0, 0, 2, 0 and 1 choice clauses and 9, 7,
+  12, 8 and 6 open lines. The bar was at most 2 choices and at least one open line in each.
+- **R11.2, the due-times start: none of the three requires the refusal.** One has a start with due times off, and
+  a stop, leave the file holding them, and marks as open whether an operator must run a separate step instead (due
+  times 1, C-11: "When the file is written. The loosest reading is that the file holds them after the service has
+  started and stopped normally ... The requester decides if an operator has to run a separate step instead"). One
+  states the request's sentence without a mechanism and adds that a start on a file release 1.4.0 has
+  since written gives the missing ones (due times 2, C-20 and C-24). One states giving due times at start as what the
+  request says (due times 3, C-8).
+- **R11.3, the base.** With the lens text Sonnet writes 10, 12, 8, 12 and 9 choice clauses and no open line, in
+  specifications of 39 to 80 clauses. None of its three due-times specifications requires the refusal either: all
+  three give the missing due times at start, as clauses sourced to the request (C-28; C-26 and C-29; C-37).
+
+**Predictions scored.** For the reworded text all held: 0 to 2 choices, several open lines, and at most one of three
+due-times specifications requiring the refusal (none did). For the base I had said I did not know and that it might
+be well under Sol's 14 to 25: it is 8 to 12.
+
+**Findings.**
+
+- **F34 (firm: ten specifications of a second model).** The reworded text takes the writer's own decisions out of the
+  specification on Sonnet as it did on Sol: 3 choice clauses in five specifications against 51 with the lens text, 42
+  open lines against none, 21 to 32 clauses against 39 to 80. Two of the three choices it did write, both on
+  `overdue` values other than `true`, say the value is left unspecified, one adding that a test must not assert
+  either way; the third keeps the existing audit and notification output and leaves recording `due` there open.
+- **F35 (firm: six Sonnet specifications against five of Sol's; it narrows F24 and F30).** The due-times
+  misreading is Sol's, not every model's. Sonnet reads "the tickets already in the production data file get due
+  times" as giving them at start with either text: none of six specifications requires the refusal, where Sol's
+  writers chose it four times in five with the two earlier texts. So what the reworded text repaired on due times is
+  a decision one model family gets wrong. On Sonnet there was nothing to repair, and that case cannot show the
+  text's worth there.
+
+**What to watch.** Sonnet's reworded specifications restate even less existing behaviour than Sol's (1, 6, 3, 6 and
+6 `existing` clauses; Sol's 1, 24, 13, 15 and 17), so the risk F31 named, a defect in existing behaviour that
+nothing pins, is larger on Sonnet and is not measured.
+
+**Is there enough to conclude?** For the question asked (does another model also stop deciding), yes. Not
+established: anything about a product built or tests written on Sonnet. The cheapest next step would be one
+test-strength cell, ticket assignment with its 27 planted defects, from the Sonnet reworded specification; its
+sessions are priced and it takes about twenty minutes, so it is put to the owner and not run.
+
+**Checked twice, and who decided what.** The readings above were made in the main session, at the owner's word
+("Use this context session for any judgment calls that are material"). A Sonnet subagent copied the evidence,
+recounted every cell of the table with a script of its own (all match) and searched the six due-times
+specifications for a clause that refuses a start on a file without due times: none in any of the six.
+
+**Limits.** One specification of two of the cases with each text. A Claude session started by the pilot runs in the
+real home and is shown the account's own instructions, the same in both waves. Sonnet sometimes writes a `Source:`
+line that names two kinds ("request; existing: ..."), which the count reads by its first word, and one clause of one
+lens specification has a `Source:` outside the four kinds. Added refusals were not read here because Sonnet adds few
+with either text (6, 4, 2, 3, 1 with the lens text; 0, 2, 0, 1, 1 with the reworded).
+
+Evidence: `evidence/reworded-enrichment/` (`s1-*/` and `s1L-*/` with each run's `run.json` and `spec.md`;
+`sonnet-specs-log.txt` and `.json`).
+
+### Received from this session's fork: a suite is written against one product's answers (2026-11-21 08:18)
+
+Status: received, not re-run here; the reading of what it does to R9.5 and F31 is mine.
+
+The owner forked this conversation at 08:00 to ask whether Ratchet's stages can run at once, with a catch-up. That
+session, "Ratchet (fork)", works in a worktree and branch of its own (`ratchet-parallel-6f54fb`, cut from this
+branch at e16be4938; its commits 810cbe5135358b4614f2bf210f63699bae271789 and
+164edda800ebbeac4eca1bdcc025357e5e469fde; its journal `docs/ratchet-parallel-journal.md`) and reads this
+amendment's run folders without changing them.
+
+**What it found**, with no model, by laying one run's frozen suite over another run's product (its `overlay.py`,
+as `grade.py` does for a variant), on due times:
+
+| Suite | On loop a's build | On loop b's build | On the correct reference |
+|---|---|---|---|
+| loop a's (42 items) | 39 in its exported copy; 41 at this run's own gate | 38 | 29 or 31 |
+| loop b's (41 items) | 41 | 41 at its own gate | 29 or 31 |
+| the test-strength cell's (39 items) | 31 | 31 | 35 |
+
+(It gives the two loops' results on the reference as "29 and 31" without saying which is which.) Every cross
+failure, it reports, is about how a test drives the product at an open point (one `RESPONSE_HOURS` setting against
+four `DUE_HOURS_*` ones; how the data file is prepared) or about the product's own tests. None is about what a
+clause asserts.
+
+**What that does to the readings above.** R9.5 stands as it was read: no test asserts an answer to an open point.
+But it said too little. A suite is written against one product, drives it through the answers that product took,
+and so does not carry to another correct product that answered differently: a loop's suite fails 10 to 13 of its
+items on the reference. R9.2 could not show this, because in a test-strength cell the tests are written with the
+reference as the product in front of them, for every text alike. So F31's "removed most of what rejected a correct
+product" holds for what a clause asserts and not for how its test reaches the product. With the earlier texts the
+specification fixed a control's name and a correct product that named it otherwise failed; with this text nothing
+fixes it, and the test takes it from the product at hand. A second correct product still needs the plan's answers,
+or tests that find a product's controls from its documents.
+
+**Two notes on the apparatus.** The fork's exported copy of loop a's own build counts 39 of 42 where this run's
+gate counted 41 (C-33 and U-8, both about `npm test`): not examined, and the same kind of difference as loop b's
+`suite` check in section 20, a copy without Git history. And for about a minute (08:03 to 08:04:43), before it knew
+it was the fork, it had left one untracked file in this worktree: the launch guards here read a clean tree at
+08:03:08 and at 08:06:59, and no commit of this branch holds it.

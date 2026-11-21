@@ -1,0 +1,249 @@
+{
+ "case": "ticket-due-times",
+ "host": "codex",
+ "model": "gpt-6.2-sol",
+ "effort": "high",
+ "started": "2026-11-21T07:03:50-0800",
+ "start_tree": null,
+ "frozen_from": null,
+ "build_from": null,
+ "bare": false,
+ "sessions": [
+  {
+   "number": 1,
+   "role": "plan",
+   "label": "plan-1",
+   "seconds": 413.2,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 413.2,
+   "held_out_marks": []
+  },
+  {
+   "number": 2,
+   "role": "build",
+   "label": "build-1",
+   "seconds": 540.7,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 540.7,
+   "held_out_marks": []
+  },
+  {
+   "number": 3,
+   "role": "tests",
+   "label": "tests-1-1",
+   "seconds": 1004.4,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 1004.4,
+   "held_out_marks": []
+  }
+ ],
+ "gates": [
+  {
+   "number": 1,
+   "label": "after-build-1",
+   "pass": true,
+   "failing": [],
+   "passing": [],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [],
+   "clauses": 0,
+   "at": 956.7
+  },
+  {
+   "number": 2,
+   "label": "cycle-1-first",
+   "pass": false,
+   "failing": [
+    "C-31"
+   ],
+   "passing": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8"
+   ],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [],
+   "clauses": 42,
+   "at": 2008.6
+  },
+  {
+   "number": 3,
+   "label": "final",
+   "pass": false,
+   "failing": [
+    "C-31"
+   ],
+   "passing": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8"
+   ],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [],
+   "clauses": 42,
+   "at": 2058.7
+  }
+ ],
+ "snapshots": [
+  {
+   "label": "base",
+   "commit": "ada051d8b4eca7b4b67a5b904f50fc7dd5612ff6",
+   "tree": "99d92357c06060cc6c277e7115a92b32c1852140",
+   "at": 0.1
+  },
+  {
+   "label": "spec",
+   "commit": "916d4c54bc16274edcefb803b13be03bc9cf6d6b",
+   "tree": "83d7897de33937302571c6662b0a77cf1298a9b9",
+   "at": 0.2
+  },
+  {
+   "label": "plan-1",
+   "commit": "9e38781313de1f43f02b50e3f5a5d275b6d873bc",
+   "tree": "9baeda77bb9680f67b7249b691a48f95aa84df74",
+   "at": 413.4
+  },
+  {
+   "label": "build-1",
+   "commit": "3f1e98405b15b2bfd5e390f1f9569f993139919c",
+   "tree": "918809c417fd62bf0dfdb83ba17647626aa1f310",
+   "at": 956.7
+  },
+  {
+   "label": "tests-1",
+   "commit": "995aa57df70d6d06258b46e5a01c6f3e43a85a11",
+   "tree": "b59acae90997afef4381df17cb7c87959310c8df",
+   "at": 1961.2
+  },
+  {
+   "label": "final",
+   "commit": "f12e8d5e9e08be3192bd5d5515e2377ed4beace4",
+   "tree": "b59acae90997afef4381df17cb7c87959310c8df",
+   "at": 2058.8
+  }
+ ],
+ "cycles": [
+  {
+   "cycle": 1,
+   "clauses_at_start": 42,
+   "new_clauses": [],
+   "plan_loops": [
+    {
+     "name": "plan-1",
+     "session": "exited",
+     "loop": "complete",
+     "iterations": 4,
+     "trivial_streak": 1
+    }
+   ],
+   "plan_added": [],
+   "build_loop": {
+    "loop": "complete",
+    "iterations": 1,
+    "trivial_streak": 0
+   },
+   "first_gate_failing": [
+    "C-31"
+   ]
+  }
+ ],
+ "reverted": [],
+ "spec_violations": [],
+ "local_head": "eace670d53149a866eb82dd1b87edb82fd53c111",
+ "named_checks": true,
+ "enrich": "reworded",
+ "spec_from": "/Users/dadleet/e2e-runs/ratchet-reworded-20261121-08805f/r1-due-times-2",
+ "spec_from_seconds": 273.3,
+ "stop": "stop-after-tests",
+ "final_pass": false,
+ "seconds": 2058.8,
+ "clauses": 34,
+ "use_cases": 8,
+ "tamper": [],
+ "finished": "2026-11-21T07:38:09-0800"
+}

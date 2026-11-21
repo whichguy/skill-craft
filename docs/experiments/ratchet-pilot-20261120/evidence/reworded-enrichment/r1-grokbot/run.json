@@ -1,0 +1,52 @@
+{
+ "case": "grokbot-local",
+ "host": "codex",
+ "model": "gpt-6.2-sol",
+ "effort": "high",
+ "started": "2026-11-21T07:07:30-0800",
+ "start_tree": null,
+ "frozen_from": null,
+ "build_from": null,
+ "bare": false,
+ "sessions": [
+  {
+   "number": 1,
+   "role": "spec",
+   "label": "spec-1",
+   "seconds": 276.3,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 276.3,
+   "held_out_marks": []
+  }
+ ],
+ "gates": [],
+ "snapshots": [
+  {
+   "label": "base",
+   "commit": "0710323bd1e857cb00a40364d97313bd54ab5a9a",
+   "tree": "0a8d3db05115ff6ebd5b2a18deb45fefd6a148b6",
+   "at": 0.1
+  },
+  {
+   "label": "spec",
+   "commit": "1e255a8eb4fd318ce245ad4fc7fcba7b09fe9724",
+   "tree": "e2173e298dad6f089c27a714d0043a3139388e18",
+   "at": 276.4
+  }
+ ],
+ "cycles": [],
+ "reverted": [],
+ "spec_violations": [],
+ "local_head": "80d2f064fc7cb984ad46526c5ce2948857d5d384",
+ "named_checks": true,
+ "enrich": "reworded",
+ "spec_from": null,
+ "stop": "stop-after-spec",
+ "final_pass": null,
+ "seconds": 276.4,
+ "clauses": 100,
+ "use_cases": 15,
+ "tamper": [],
+ "finished": "2026-11-21T07:12:07-0800"
+}

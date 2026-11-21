@@ -1,0 +1,471 @@
+{
+ "case": "stand-in-rules",
+ "graded_with": "80d2f064fc7cb984ad46526c5ce2948857d5d384",
+ "reference": {
+  "failing": [
+   "C-25",
+   "C-26",
+   "U-5"
+  ],
+  "unstable": [],
+  "did_not_end": [],
+  "ids": [
+   "C-1",
+   "C-10",
+   "C-11",
+   "C-12",
+   "C-13",
+   "C-14",
+   "C-15",
+   "C-16",
+   "C-17",
+   "C-18",
+   "C-19",
+   "C-2",
+   "C-20",
+   "C-21",
+   "C-22",
+   "C-23",
+   "C-24",
+   "C-25",
+   "C-26",
+   "C-27",
+   "C-3",
+   "C-4",
+   "C-5",
+   "C-6",
+   "C-7",
+   "C-8",
+   "C-9",
+   "U-1",
+   "U-2",
+   "U-3",
+   "U-4",
+   "U-5"
+  ],
+  "seconds": 9.2,
+  "tails": {
+   "U-5": [
+    "    expected: [],",
+    "    operator: 'deepStrictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-25": [
+    "    expected: [],",
+    "    operator: 'deepStrictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-26": [
+    "    expected: [],",
+    "    operator: 'deepStrictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ]
+  }
+ },
+ "controls": {},
+ "raw": {
+  "one-rule-missing": {
+   "failing": [
+    "C-11",
+    "C-25",
+    "C-26",
+    "C-6",
+    "U-1",
+    "U-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 10.0,
+   "tails": {
+    "U-1": [
+     "    expected: [ { id: 1, qty: 2, price: 150, status: 'open', shippedAt: '' }, { id: 2, qty: 1, price: 99, status: 'shipped', shippedAt: '2026-10-01' } ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-5": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-6": [
+     "      at Test.runInAsyncScope (node:async_hooks:226:14)",
+     "      at Test.run (node:internal/test_runner/test:1402:25)",
+     "      at Test.start (node:internal/test_runner/test:1262:17)",
+     "      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)"
+    ],
+    "C-11": [
+     "    expected: 'open',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-25": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-26": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "tested-only": {
+   "failing": [
+    "C-13",
+    "C-20",
+    "C-25",
+    "C-26",
+    "U-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 9.6,
+   "tails": {
+    "U-5": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-13": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-20": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-25": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-26": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "limit-never-trips": {
+   "failing": [
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 10.4,
+   "tails": {
+    "U-3": [
+     "    expected: 7,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-4": [
+     "      at Test.runInAsyncScope (node:async_hooks:226:14)",
+     "      at Test.run (node:internal/test_runner/test:1402:25)",
+     "      at Test.start (node:internal/test_runner/test:1262:17)",
+     "      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)"
+    ],
+    "U-5": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-23": [
+     "    expected: 7,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-24": [
+     "    expected: undefined,",
+     "    operator: 'doesNotThrow',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-25": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-26": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-27": [
+     "    expected: 2,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "cross-field": {
+   "failing": [
+    "C-18",
+    "C-19",
+    "C-20",
+    "C-25",
+    "C-26",
+    "U-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 9.8,
+   "tails": {
+    "U-5": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-18": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-19": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-20": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-25": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-26": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  }
+ },
+ "items": 32,
+ "clauses": 27,
+ "use_cases": 5,
+ "fails_on_reference": [
+  "C-25",
+  "C-26",
+  "U-5"
+ ],
+ "clauses_failing_on_reference": [
+  "C-25",
+  "C-26"
+ ],
+ "use_cases_failing_on_reference": [
+  "U-5"
+ ],
+ "defects": {
+  "one-rule-missing": {
+   "caught": true,
+   "by": [
+    "C-11",
+    "C-6",
+    "U-1"
+   ]
+  },
+  "tested-only": {
+   "caught": true,
+   "by": [
+    "C-13",
+    "C-20"
+   ]
+  },
+  "limit-never-trips": {
+   "caught": true,
+   "by": [
+    "C-23",
+    "C-24",
+    "C-27",
+    "U-3",
+    "U-4"
+   ]
+  },
+  "cross-field": {
+   "caught": true,
+   "by": [
+    "C-18",
+    "C-19",
+    "C-20"
+   ]
+  }
+ },
+ "caught": 4,
+ "pool": 4,
+ "not_judged": []
+}

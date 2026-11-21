@@ -1,0 +1,813 @@
+{
+ "case": "ticket-due-times",
+ "graded_with": "57fac46cf90b231e3d0b856f040280c815b5f84a",
+ "reference": {
+  "failing": [
+   "C-19",
+   "C-29",
+   "C-3",
+   "U-8"
+  ],
+  "unstable": [],
+  "did_not_end": [],
+  "ids": [
+   "C-1",
+   "C-10",
+   "C-11",
+   "C-12",
+   "C-13",
+   "C-14",
+   "C-15",
+   "C-16",
+   "C-17",
+   "C-18",
+   "C-19",
+   "C-2",
+   "C-20",
+   "C-21",
+   "C-22",
+   "C-23",
+   "C-24",
+   "C-25",
+   "C-26",
+   "C-27",
+   "C-28",
+   "C-29",
+   "C-3",
+   "C-30",
+   "C-31",
+   "C-4",
+   "C-5",
+   "C-6",
+   "C-7",
+   "C-8",
+   "C-9",
+   "U-1",
+   "U-2",
+   "U-3",
+   "U-4",
+   "U-5",
+   "U-6",
+   "U-7",
+   "U-8"
+  ],
+  "seconds": 30.7,
+  "tails": {
+   "U-8": [
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-3": [
+    "    expected: { status: 201, body: { id: 'T-0001', title: 'VPN needs attention', priority: 'urgent', requester: 'requester@example.com', status: 'open', created: '+275760-09-13T00:00:00.000Z', updated: '+275760-09-13T00:00:00.000Z' } },",
+    "    operator: 'deepStrictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-19": [
+    "    expected: [],",
+    "    operator: 'deepStrictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-29": [
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ]
+  }
+ },
+ "controls": {},
+ "raw": {
+  "version-two": {
+   "failing": [
+    "C-19",
+    "C-25",
+    "C-29",
+    "C-3",
+    "C-30",
+    "U-5",
+    "U-8"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8"
+   ],
+   "seconds": 32.4,
+   "tails": {
+    "U-5": [
+     "    expected: 1,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-8": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-3": [
+     "    expected: { status: 201, body: { id: 'T-0001', title: 'VPN needs attention', priority: 'urgent', requester: 'requester@example.com', status: 'open', created: '+275760-09-13T00:00:00.000Z', updated: '+275760-09-13T00:00:00.000Z' } },",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-19": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-25": [
+     "    expected: 1,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-29": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-30": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "priority-moves-due": {
+   "failing": [
+    "C-10",
+    "C-11",
+    "C-19",
+    "C-29",
+    "C-3",
+    "U-1",
+    "U-8"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8"
+   ],
+   "seconds": 32.9,
+   "tails": {
+    "U-1": [
+     "    expected: '2025-09-01T12:15:00.000Z',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-8": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-3": [
+     "    expected: { status: 201, body: { id: 'T-0001', title: 'VPN needs attention', priority: 'urgent', requester: 'requester@example.com', status: 'open', created: '+275760-09-13T00:00:00.000Z', updated: '+275760-09-13T00:00:00.000Z' } },",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-10": [
+     "    expected: '2025-09-01T12:15:00.000Z',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-11": [
+     "    expected: '2025-09-01T12:15:00.000Z',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-19": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-29": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "due-not-persisted": {
+   "failing": [
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-14",
+    "C-15",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-20",
+    "C-29",
+    "C-3",
+    "C-7",
+    "U-3",
+    "U-4",
+    "U-8"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8"
+   ],
+   "seconds": 36.0,
+   "tails": {
+    "U-3": [
+     "    expected: '2025-09-01T16:15:00.000Z',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-4": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-8": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-3": [
+     "    expected: { status: 201, body: { id: 'T-0001', title: 'VPN needs attention', priority: 'urgent', requester: 'requester@example.com', status: 'open', created: '+275760-09-13T00:00:00.000Z', updated: '+275760-09-13T00:00:00.000Z' } },",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-7": [
+     "    expected: '-271821-04-20T00:00:00.000Z',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-10": [
+     "    expected: '2025-09-01T12:15:00.000Z',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-11": [
+     "    expected: '2025-09-01T12:15:00.000Z',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-12": [
+     "    expected: [ 'T-0001' ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-14": [
+     "    expected: [ 'T-0001', 'T-0007' ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-15": [
+     "    ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-17": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-18": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-19": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-20": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-29": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "no-backfill": {
+   "failing": [
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-20",
+    "C-29",
+    "C-3",
+    "U-4",
+    "U-8"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8"
+   ],
+   "seconds": 33.4,
+   "tails": {
+    "U-4": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-8": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-3": [
+     "    expected: { status: 201, body: { id: 'T-0001', title: 'VPN needs attention', priority: 'urgent', requester: 'requester@example.com', status: 'open', created: '+275760-09-13T00:00:00.000Z', updated: '+275760-09-13T00:00:00.000Z' } },",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-17": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-18": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-19": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-20": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-29": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "flag-ignored": {
+   "failing": [
+    "C-19",
+    "C-29",
+    "C-3",
+    "U-4",
+    "U-8"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8"
+   ],
+   "seconds": 28.5,
+   "tails": {
+    "U-4": [
+     "    expected: [ { id: 'T-0002', title: 'Ticket 2 needs help', priority: 'urgent', requester: 'user2@example.com', status: 'open', created: '2025-09-01T08:15:00.000Z', updated: '2025-09-02T12:35:01.123Z' }, { id: 'T-0007', title: 'Ticket 7 needs help', priority: 'high', requester: 'user7@example.com', status: 'in_progress', created: '2025-09-02T08:15:00.000Z', updated: '2025-09-03T12:35:01.123Z' }, { id: 'T-0013', title: 'Ticket 13 needs help', priority: 'normal', requester: 'user13@example.com', status: 'resolved', created: '2025-09-03T08:15:00.000Z', updated: '2025-09-04T12:35:01.123Z' }, { id: 'T-0025', title: 'Ticket 25 needs help', priority: 'low', requester: 'user25@example.com', status: 'closed', created: '2025-09-04T08:15:00.000Z', updated: '2025-09-05T12:35:01.123Z' } ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-8": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-3": [
+     "    expected: { status: 201, body: { id: 'T-0001', title: 'VPN needs attention', priority: 'urgent', requester: 'requester@example.com', status: 'open', created: '+275760-09-13T00:00:00.000Z', updated: '+275760-09-13T00:00:00.000Z' } },",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-19": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-29": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "overdue-active": {
+   "failing": [
+    "C-12",
+    "C-14",
+    "C-15",
+    "C-19",
+    "C-29",
+    "C-3",
+    "U-2",
+    "U-8"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8"
+   ],
+   "seconds": 32.2,
+   "tails": {
+    "U-2": [
+     "    expected: { items: [], next: null },",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-8": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-3": [
+     "    expected: { status: 201, body: { id: 'T-0001', title: 'VPN needs attention', priority: 'urgent', requester: 'requester@example.com', status: 'open', created: '+275760-09-13T00:00:00.000Z', updated: '+275760-09-13T00:00:00.000Z' } },",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-12": [
+     "    expected: [ 'T-0001' ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-14": [
+     "    expected: [ 'T-0001', 'T-0007' ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-15": [
+     "    ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-19": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-29": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  }
+ },
+ "items": 39,
+ "clauses": 31,
+ "use_cases": 8,
+ "fails_on_reference": [
+  "C-19",
+  "C-29",
+  "C-3",
+  "U-8"
+ ],
+ "clauses_failing_on_reference": [
+  "C-19",
+  "C-29",
+  "C-3"
+ ],
+ "use_cases_failing_on_reference": [
+  "U-8"
+ ],
+ "defects": {
+  "version-two": {
+   "caught": true,
+   "by": [
+    "C-25",
+    "C-30",
+    "U-5"
+   ]
+  },
+  "priority-moves-due": {
+   "caught": true,
+   "by": [
+    "C-10",
+    "C-11",
+    "U-1"
+   ]
+  },
+  "due-not-persisted": {
+   "caught": true,
+   "by": [
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-14",
+    "C-15",
+    "C-17",
+    "C-18",
+    "C-20",
+    "C-7",
+    "U-3",
+    "U-4"
+   ]
+  },
+  "no-backfill": {
+   "caught": true,
+   "by": [
+    "C-17",
+    "C-18",
+    "C-20",
+    "U-4"
+   ]
+  },
+  "flag-ignored": {
+   "caught": true,
+   "by": [
+    "U-4"
+   ]
+  },
+  "overdue-active": {
+   "caught": true,
+   "by": [
+    "C-12",
+    "C-14",
+    "C-15",
+    "U-2"
+   ]
+  }
+ },
+ "caught": 6,
+ "pool": 6,
+ "not_judged": []
+}

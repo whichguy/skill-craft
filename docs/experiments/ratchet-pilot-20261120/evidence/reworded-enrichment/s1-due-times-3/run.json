@@ -1,0 +1,53 @@
+{
+ "case": "ticket-due-times",
+ "host": "claude",
+ "model": "claude-sonnet-5-5",
+ "effort": "high",
+ "started": "2026-11-21T08:03:08-0800",
+ "start_tree": null,
+ "frozen_from": null,
+ "build_from": null,
+ "bare": false,
+ "sessions": [
+  {
+   "number": 1,
+   "role": "spec",
+   "label": "spec-1",
+   "seconds": 95.2,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 95.2,
+   "held_out_marks": [],
+   "cost_usd": 0.3564654
+  }
+ ],
+ "gates": [],
+ "snapshots": [
+  {
+   "label": "base",
+   "commit": "ab7b9ee95a4e00e10e3304cfc38bb31973f819a7",
+   "tree": "99d92357c06060cc6c277e7115a92b32c1852140",
+   "at": 0.1
+  },
+  {
+   "label": "spec",
+   "commit": "8fd9e2794076c87a09ad4326e72ce7dab6365809",
+   "tree": "0e27dd04877be0406e0e2ebc5aa7dcd2cd1323be",
+   "at": 95.4
+  }
+ ],
+ "cycles": [],
+ "reverted": [],
+ "spec_violations": [],
+ "local_head": "e16be493890f666e4af886f21fd581fe8a6729d8",
+ "named_checks": true,
+ "enrich": "reworded",
+ "spec_from": null,
+ "stop": "stop-after-spec",
+ "final_pass": null,
+ "seconds": 95.4,
+ "clauses": 22,
+ "use_cases": 6,
+ "tamper": [],
+ "finished": "2026-11-21T08:04:44-0800"
+}

@@ -1,0 +1,52 @@
+{
+ "case": "ticket-due-times",
+ "host": "codex",
+ "model": "gpt-6.2-sol",
+ "effort": "high",
+ "started": "2026-11-21T06:55:20-0800",
+ "start_tree": null,
+ "frozen_from": null,
+ "build_from": null,
+ "bare": false,
+ "sessions": [
+  {
+   "number": 1,
+   "role": "spec",
+   "label": "spec-1",
+   "seconds": 273.3,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 273.3,
+   "held_out_marks": []
+  }
+ ],
+ "gates": [],
+ "snapshots": [
+  {
+   "label": "base",
+   "commit": "8b1b9086348ea14a832c258418dd2879c8d15aac",
+   "tree": "99d92357c06060cc6c277e7115a92b32c1852140",
+   "at": 0.1
+  },
+  {
+   "label": "spec",
+   "commit": "492f492f3d901cfe597415b8bd65d0657e370a6f",
+   "tree": "83d7897de33937302571c6662b0a77cf1298a9b9",
+   "at": 273.5
+  }
+ ],
+ "cycles": [],
+ "reverted": [],
+ "spec_violations": [],
+ "local_head": "0f4ee04a936c90f8aa689170cbb277e104855257",
+ "named_checks": true,
+ "enrich": "reworded",
+ "spec_from": null,
+ "stop": "stop-after-spec",
+ "final_pass": null,
+ "seconds": 273.5,
+ "clauses": 34,
+ "use_cases": 8,
+ "tamper": [],
+ "finished": "2026-11-21T06:59:54-0800"
+}

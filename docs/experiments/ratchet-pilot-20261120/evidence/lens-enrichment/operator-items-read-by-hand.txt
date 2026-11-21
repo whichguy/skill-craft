@@ -1,0 +1,62 @@
+The items that fail on the correct reference, read for the operator's work
+(2026-11-21; one reader, the session that ran the cells; not blind to which text wrote which
+specification; exploratory. The script-run counts are in failing-by-source-log.txt; every item's
+statement and Source line are in failing-by-source.json, so each label below can be read again.)
+
+Why it was read: the session "Spec elaboration" found that the gain of its lens arms on operator items
+was an operator-controls requirement nobody asked for, in specifications written without a repository,
+and said that in this pilot such requirements would land among the clauses that fail on a correct
+product. Both texts run here tell the writer, unconditionally, to cover the operator's work.
+
+Rule used.
+  operator's work: the item requires something of or for a person who runs the product, not one who
+    calls its API: configuring it, starting or stopping it, preparing or migrating its data file,
+    switching a feature on or off, rolling back or coming back, reading it through the command-line
+    tool or the report, or a document or runbook that tells that person how.
+  beyond the request: operator's work that requires a control, procedure or document the request does
+    not name (the requests are in cases.json). A chosen form of work the request does name (the name
+    and range of a setting, whether a start refuses or prepares, which failure stops a start) is not
+    counted as beyond.
+  new control: a command, endpoint or switch that neither the request nor the repository has.
+
+Lens text (p1L-*): 58 failing items (47 clauses, 11 use cases)
+  orders, 10 items: operator's work 0.
+  ticket assignment, 16 items: operator's work 6 (U-7, C-123, C-127, C-128, C-130, C-131: the existing
+    command-line tool and weekly report, and the listing the request names). Beyond the request: 0.
+  ticket due times, 32 items: operator's work 21.
+    configuring the hours: U-5, C-5, C-6, C-8, C-9
+    preparing the data file and switching on: U-6, U-7, U-8, C-47, C-48, C-49, C-54, C-55, C-56
+    rolling back and coming back: U-9, C-70, C-71
+    the command-line tool: U-10, C-181, C-182
+    documents: C-73
+    Beyond the request: 3 (C-70 a documented way to recover deadlines after a rollback; C-71 what a
+    return from rollback uses; C-73 a rollout and rollback procedure in the operating documentation).
+  total: operator's work 27 of 58; beyond the request 3; new control 0.
+
+The pilot's text (p1e2-*): 75 failing items (59 clauses, 16 use cases)
+  orders, 12 items: operator's work 0.
+  ticket assignment, 20 items: operator's work 8 (U-10, U-12, C-74, C-103, C-114, C-136, C-137, C-190).
+    Beyond the request: 3 (C-136 and C-137 rollback instructions, where the request names no rollback;
+    C-190 what the command-line reference must describe).
+  ticket due times, 43 items: operator's work 27.
+    configuring the hours: U-6, C-6, C-7, C-9, C-10, C-11
+    preparing the data file and switching on: U-7, U-8, U-9, C-42, C-43, C-44, C-45, C-46, C-47, C-48,
+      C-60, C-61, C-65
+    rolling back: U-11, C-71, C-72
+    the command-line tool: U-12, C-214
+    documents: C-73, C-76, C-216
+    Beyond the request: 5 (C-71 and C-72 what the rollback runbook must hold; C-73, C-76 and C-216 what
+    the operating, configuration and command-line documentation must describe).
+  total: operator's work 35 of 75; beyond the request 8; new control 0.
+
+What the reading says.
+  - No failing item in either text requires a new control. Where a setting or a switch appears, the
+    request names it (hours that change without a code change; DUE_TIMES), and the specifications say
+    so in their own reasons ("require no live configuration endpoint", "without a new command").
+  - About half of what fails on a correct product is the operator's work (27 of 58, 35 of 75), nearly
+    all of it on due times, whose request is itself about operating the product (configure, backfill,
+    switch on, roll back). What the specification adds there is the form: the name and range of a
+    setting, refuse or prepare at start, which failure stops a start.
+  - What goes beyond the request is documents: 10 of the 11 items (3 with the lens text, 8 with the
+    pilot's) require a runbook, instructions or a reference page to say something. A correct product
+    without that page fails them.

@@ -119,6 +119,217 @@ a clause: a statement joined by "and" is two clauses.
 {problems}
 {conduct}"""
 
+SPEC_PACKET_LENSES = """# Ratchet stage: enrich (the request, ground out until nothing is left implicit)
+
+{frame} This stage turns the incoming request into the enriched specification that everything after it is planned,
+built and tested from. Write no product code and no tests.
+
+A short request is not a small job. Almost everything that decides whether the built thing is right is absent from
+the words you were given: it is implied by them, and it stays implied until someone writes it down. Your work is to
+state what was implied, all of it, so that nothing a builder would otherwise have got wrong is left unsaid.
+
+## The incoming request
+{request}
+
+## The deliverable
+
+`ratchet/spec.md`, in exactly this form, use cases first:
+
+## Use cases
+
+### U-<n>: <who> <does what, to get what>
+Flow: <the steps they take and what they see, with the exact values where the request gives them>
+Source: <request | implied: <by which sentence or situation> | existing: <the file that describes it>>
+
+## Clauses
+
+### C-<n>: <one statement of one behaviour, complete in itself>
+Observable: <what someone outside the code does and sees when it holds, with the exact values>
+Source: <request | implied: <by which use case or sentence> | existing: <the file that states the rule> | choice: <why, where the request is silent>>
+
+Number use cases U-1, U-2, ... and clauses C-1, C-2, ... with no gaps. One behaviour a clause: a statement joined by
+"and" is two clauses. The specification says what is true for a user or a caller, not how it is built: a structure, a
+library or a technology choice is not a clause. Where the runtime this runs on makes a rule that binds the
+behaviour, the clause states the behaviour the rule forces and names the rule as its reason.
+
+The clauses cover every sentence of the request; every implied requirement; every limit, boundary and error case,
+with its exact number; every existing rule the change must keep (one clause each); and what must not change. Add no
+feature the request's intent does not cover.
+
+Where a clause names a dimension rather than a single fact — the states that stop something, the fields a
+record holds, the controls an operator has, the conditions that refuse an action, the parts of a message — the
+clause lists that dimension's members, every one of them, or says which it deliberately leaves out and why. A clause
+that names the dimension and leaves its members to the builder is half a clause: "the sequence stops once the invoice
+is settled" has to become the list of every state that counts as settled. The same holds for a bound: a clause about
+a limit states the limit's value, and where you cannot establish it, states your own decided value as a choice or
+says inside the clause that the figure is unconfirmed. A dimension with no list and a bound with no number are the
+two commonest ways a specification looks complete and is not.
+
+Where the request is silent and a builder would have to guess, decide and say so (Source: choice). A choice is the
+loosest requirement that still serves the user: fix what a user relies on, and never fix a spelling, a wording, a
+format, an order or an internal detail the request leaves open. A choice lives in its own clause, and an Observable
+states only what its own clause requires. Another correct product, built by someone who read only the request, must
+be able to pass every clause that is not a choice.
+
+## How to get there
+
+First read what is here: the README, the documents, the code and its tests, as far as the request touches them. In an
+existing product the rules it already follows (how it answers errors, how it stores data, what its documents
+promise) bind the change too.
+
+Then write `ratchet/spec.md` once. Think the whole thing through first, along every one of the lines below, and then
+write the complete specification in a single piece. Do not write a draft and go back over it in passes: whatever each
+line turns up belongs in what you write the first time.
+
+**The ground.** Who meets this, and every way they meet it: the ordinary use the request describes, the
+same use at its edges (the first time, the repeated time, the empty case, the largest case), the unhappy paths
+(wrong input, a refused action, a limit reached, a thing it depends on failing), the operator's work (start, stop,
+configure, observe, recover, carry on with data that already exists, go back to the version before). Write the use
+cases, then the clause each one plainly needs.
+
+**What each sentence takes for granted.** Take the request one sentence at a time, and then each clause you
+have written one at a time, and ask of it: what must already be true for this to mean anything? A sentence that
+names a thing takes for granted that the thing exists, that it is found somehow, that someone is allowed to see it,
+that there is one of it rather than none or many. Every answer is a clause. This is the recursion: your own new
+clauses are sentences too, so put them through the same question, and keep going down each line until the answers
+stop being about this product and become facts about the world.
+
+**Where the parts meet.** List the parts: each use case, each piece of state, each outside system, each
+existing feature this touches. Walk the pairs that can meet and ask what happens when they do — two of them at once,
+one during the other, one undone while the other runs, one arriving late, one arriving twice. Order, timing,
+duplication and partial completion live here. Each answer is a clause. Interactions nobody wrote down are where
+built things break.
+
+**The runtime's own rules.** Name the runtime, platform or service this sits on and the limits it imposes
+that this design cannot escape: what it forbids, what it caps, what it times out, what it will not do
+synchronously, what it requires before it will run at all, and what it demands before this could ship beyond a
+development environment. State each as the behaviour the rule forces, with its number where the rule has one. If
+you are unsure of a limit, write the clause and say in it that the exact figure is unconfirmed.
+
+**What must not change, and what must never happen.** The behaviour that exists today and still has to
+hold: one clause each. Then the things that must never be true however the rest is built — someone seeing what they
+may not see, a thing done twice that should happen once, data lost on the way, a rule enforced in one path and not
+another.
+
+**The builder's read.** Hold the whole specification in mind as someone who has to build it and will be blamed for
+what is wrong, and write it so that it has none of these: a clause whose Observable cannot actually be observed; a
+word in a clause that two readers would read differently; a number the request implies but nobody has written; a use
+case with no unhappy path; a piece of state with no end; a decision made silently rather than as a choice; a clause
+that is really two.
+
+Where the next answer needs someone to decide something only the requester can decide, write the clause as a choice
+with your decision and its reason, and carry on.
+
+## Done when
+- `ratchet/spec.md` exists in that form, written once, and is the only file you changed.
+{problems}
+{conduct}"""
+
+SPEC_PACKET_REWORDED = """# Ratchet stage: enrich (what the request needs and does not say)
+
+{frame} This stage turns the incoming request into the enriched specification that everything after it is planned,
+built and tested from. Write no product code and no tests.
+
+A short request leaves most of what decides whether the built thing is right unsaid. Your work is to find what the
+request needs that it does not say, to state the part of it that follows from the request, and to mark the part
+that someone still has to decide. A specification can fail by saying too little and by deciding too much: a clause
+nobody asked for is work to build, and a test written from it can reject a product that does what was asked.
+
+## The incoming request
+{request}
+
+## The deliverable
+
+`ratchet/spec.md`, in exactly this form, use cases first:
+
+## Use cases
+
+### U-<n>: <who> <does what, to get what>
+Flow: <the steps they take and what they see, with the exact values where the request gives them>
+Source: <request | implied: <by which sentence or situation> | existing: <the file that describes it>>
+
+## Clauses
+
+### C-<n>: <one statement of one behaviour, complete in itself>
+Observable: <what someone outside the code does and sees when it holds, with the exact values>
+Source: <request | implied: <by which use case or sentence> | existing: <the file that states the rule> | choice: <why, where the request is silent>>
+Open: <only where there is one: what this clause depends on that is not decided, and who or what would settle it>
+
+Number use cases U-1, U-2, ... and clauses C-1, C-2, ... with no gaps. One behaviour a clause: a statement joined by
+"and" is two clauses. The specification says what is true for a user or a caller, not how it is built: a structure, a
+library or a technology choice is not a clause.
+
+**What earns a clause.** Every sentence of the request. Beyond that, only distinct behaviour that can be checked
+and that the requested outcome needs in order to work, or that has to be preserved where the change touches it. Add
+no capability, duty or restriction that the request's purpose does not call for: if a builder could leave it out
+and still deliver what was asked, with nothing the requester would call missing or broken, it is not a clause.
+
+**What stays open.** Where the request needs something settled and neither the request nor what already exists
+settles it, do not settle it by guessing. If a builder cannot proceed without an answer and any reasonable answer
+serves the requester equally, make the loosest choice (Source: choice) and fix only what a user relies on, never a
+spelling, a wording, a format, an order or an internal detail. If the answer would change what the requester gets,
+write the clause at the loosest reading that is certainly wanted and give it an `Open:` line saying what is
+undecided and who decides. An open line is a finished piece of work, not a gap in yours. Another correct product,
+built by someone who read only the request, must be able to pass every clause that is not a choice.
+
+**Sets and bounds.** Where a clause depends on a set (the states that stop something, the conditions that refuse an
+action), name the members or groups that behave differently, and say which you left out where that matters. Where
+a clause depends on a bound, state the bound and what happens at it, taking the value from the request, from what
+exists, or from the runtime's own documentation. Invent no bound: one that none of those supplies is an `Open:`
+line.
+
+## How to get there
+
+First read what is here: the README, the documents, the code and its tests, as far as the request touches them. In an
+existing product the rules it already follows (how it answers errors, how it stores data, what its documents
+promise) bind the change too.
+
+Then write `ratchet/spec.md` once. The questions below are aids to thinking, to be used once while you draft; they are
+not a list of things to write, and most of what they turn up will confirm a clause you already have or show that
+nothing is needed. After drafting, check the draft once against the list at the end, and stop.
+
+**Who is affected.** Identify the people this affects and what each ordinarily gets from it. State a first-use,
+repeated, empty, boundary or failure outcome where it is distinct and bears on what was asked. Where running it or
+recovering from it is part of what was asked, state how the person who runs it observes it, stops it or recovers
+it, using the controls that already exist.
+
+**What an outcome depends on.** For each outcome the request asks for, name a prerequisite only if its absence or
+its failure would change that outcome or how it is checked. Follow a prerequisite no further than that.
+
+**Where paths share something.** Check where the changed behaviour shares state, timing or an outside effect with
+another affected path. State the required outcome, and the recovery, where two things at once, their order, a
+duplicate, a delay or an interruption could change what someone observes.
+
+**What the runtime constrains.** For the environment the request names, and no further, state the runtime's
+constraints that affect required behaviour, as the behaviour each one forces. Give the value where the constraint
+has one and you have it from documentation or from a probe; where you do not, that is an `Open:` line.
+
+**What is preserved.** Name the accepted behaviour this change touches and has to keep. State the invariants that
+apply to it (who may see what, an effect that must happen once, data that must not be lost, a rule that must hold on
+every path) as outcomes that can be checked, under the clause they bound.
+
+**The one check before you finish.** A clause whose Observable cannot actually be observed. A word two readers
+would read differently. A decision made silently, which belongs in a choice or an `Open:` line. A clause that is
+really two. A clause that a builder could leave out with nothing missing, which should go.
+
+## Done when
+- `ratchet/spec.md` exists in that form, written once, and is the only file you changed.
+{problems}
+{conduct}"""
+
+# The enrichment texts a run can use. "single" is the pilot's own (amendments 1 and 2). "lenses" is the one-pass lens
+# form measured in docs/experiments/spec-elaboration-20261120 (arms/L-lenses-once.md), set into this stage's frame with
+# this stage's file path, its repository-reading step and its `existing` source kept.
+# "reworded" is that experiment's arms/R-lenses-reworded.md, ported the same way; it adds an `Open:` line under a clause.
+ENRICH = {"single": SPEC_PACKET, "lenses": SPEC_PACKET_LENSES, "reworded": SPEC_PACKET_REWORDED}
+
+# What every later stage is told about an `Open:` line, in runs whose enrichment text can write one.
+OPEN_NOTE = (" In this run a clause of the specification may carry an `Open:` line. It marks a point the request does not "
+             "settle and says who would settle it. The clause above the line is the requirement; the open point is not one. "
+             "A plan says how each open point is handled. A build takes a reasonable answer to it and says which in its "
+             "report. A test checks only what its clause states, and must pass whichever reasonable answer a build took. No "
+             "stage adds a clause that settles an open point: that is the requester's to do.")
+
 PLAN_PACKET = """# Ratchet stage: plan ({title})
 
 {frame} This stage plans how to build it. It does not cut the work into steps for others: right after you, one
@@ -426,6 +637,7 @@ def load_fake(path):
 class Run:
     def __init__(self, args, case):
         self.args, self.case = args, case
+        self.frame = FRAME + (OPEN_NOTE if args.enrich == "reworded" else "")
         self.out = Path(args.output).resolve()
         if self.out.exists() and any(self.out.iterdir()):
             raise SystemExit(f"{self.out} is not empty; give a new output folder")
@@ -441,7 +653,7 @@ class Run:
                        "started": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "start_tree": args.start_tree,
                        "frozen_from": args.frozen_from, "build_from": args.build_from, "bare": bool(args.bare), "sessions": [], "gates": [], "snapshots": [], "cycles": [],
                        "reverted": [], "spec_violations": [], "local_head": git(REPO, "rev-parse", "HEAD").strip(),
-                       "named_checks": True}
+                       "named_checks": True, "enrich": args.enrich, "spec_from": args.spec_from}
         self.fake = load_fake(args.fake) if args.host == "fake" else None
         self.host = self.env = None
         if not self.fake:
@@ -646,7 +858,7 @@ class Run:
         problems = ""
         for attempt in range(1, 4):
             before = git(self.work, "rev-parse", "HEAD").strip()
-            self.session("spec", SPEC_PACKET.format(frame=FRAME, request=self.request, problems=problems, conduct=self.conduct()),
+            self.session("spec", ENRICH[self.args.enrich].format(frame=self.frame, request=self.request, problems=problems, conduct=self.conduct()),
                          f"spec-{attempt}")
             self.enforce(before, ["ratchet/spec.md"], "spec")
             try:
@@ -658,6 +870,20 @@ class Run:
             self.commit("spec")
             return clauses
         raise RuntimeError("no usable specification after three sessions")
+
+    def given_spec(self):
+        """The specification without a session: the one an earlier run wrote (--spec-from), copied in as it stands."""
+        source = Path(self.args.spec_from)
+        target = self.work / "ratchet" / "spec.md"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source / "work" / "ratchet" / "spec.md", target)
+        clauses = read_spec(self.work)
+        rows = json.loads((source / "run.json").read_text()).get("sessions", [])
+        self.record["spec_from_seconds"] = round(sum(row["seconds"] for row in rows if row.get("role") == "spec"), 1)
+        self.say(f"the specification is the one written in {source} ({len(clauses)} items, "
+                 f"{self.record['spec_from_seconds']} s of spec sessions there)")
+        self.commit("spec")
+        return clauses
 
     def stage_build(self, cycle, new):
         name = f"build-{cycle}"
@@ -675,7 +901,7 @@ class Run:
                     "the gate puts back any change and counts it.")
             work_text = "Build whatever the product lacks against the specification as it now stands, keeping every passing check passing."
         loop = self.loop_block(name, work_text, "The exit check passes and the report ratchet/" + name + ".md exists.")
-        self.session("build", BUILD_PACKET.format(frame=FRAME, title=title, request=self.request, what=what, acceptance_note=note,
+        self.session("build", BUILD_PACKET.format(frame=self.frame, title=title, request=self.request, what=what, acceptance_note=note,
                                                   loop=loop, cycle=cycle, conduct=self.conduct()), name)
         self.record["cycles"][-1]["build_loop"] = self.loop_state(name)
         self.gate(f"after-{name}")  # also puts back the frozen paths
@@ -699,7 +925,7 @@ class Run:
                 scope = ("The specification has grown. For each of these new items of `ratchet/spec.md` (" + ", ".join(new) +
                          "), and for any older clause you find weakly tested,")
                 keep = "\n   The acceptance tests already here stay: add to them and strengthen them, never weaken or remove one."
-            self.session("tests", TESTS_PACKET.format(frame=FRAME, request=self.request, scope=scope, keep=keep, cycle=cycle,
+            self.session("tests", TESTS_PACKET.format(frame=self.frame, request=self.request, scope=scope, keep=keep, cycle=cycle,
                                                       problems=problems, conduct=self.conduct()), f"tests-{cycle}-{attempt}")
             self.enforce(before, ["acceptance/", "ratchet/acceptance.json", f"ratchet/tests-{cycle}.md"], "tests")
             wrong = self.manifest_problems(clauses)
@@ -740,7 +966,7 @@ class Run:
             name = f"fix-{number}"
             loop = self.loop_block(name, "Fix the product so that every check the gate runs passes, and write the report.",
                                    f"The exit check passes, or every check still failing is named under Disputed in ratchet/{name}.md.")
-            self.session("fix", FIX_PACKET.format(frame=FRAME, request=self.request, failing=failing, loop=loop, number=number,
+            self.session("fix", FIX_PACKET.format(frame=self.frame, request=self.request, failing=failing, loop=loop, number=number,
                                                   conduct=self.conduct()), name)
             before_failing = list(record["failing"])
             record = self.gate(f"after-{name}")
@@ -755,7 +981,7 @@ class Run:
             if disputes:
                 before = git(self.work, "rev-parse", "HEAD").strip()
                 self.gate_config(frozen=None)
-                self.session("referee", REFEREE_PACKET.format(frame=FRAME, disputes="\n".join(f"- {line}" for line in disputes),
+                self.session("referee", REFEREE_PACKET.format(frame=self.frame, disputes="\n".join(f"- {line}" for line in disputes),
                                                               number=number, conduct=self.conduct()), f"referee-{number}")
                 self.enforce(before, ["acceptance/", "ratchet/acceptance.json", f"ratchet/referee-{number}.md"], "referee")
                 lost = self.manifest_problems(read_spec(self.work))
@@ -829,7 +1055,7 @@ class Run:
             name = f"plan-{cycle}" if attempt == 1 else f"plan-{cycle}-r{attempt}"
             loop = self.loop_block(name, work_text, "ratchet/plan.md covers the build, and a full pass after the first found nothing to add.",
                                    plan=True)
-            row = self.session("plan", PLAN_PACKET.format(frame=FRAME, title=title, request=self.request, what=what, append=append,
+            row = self.session("plan", PLAN_PACKET.format(frame=self.frame, title=title, request=self.request, what=what, append=append,
                                                           loop=loop, problems=problems, conduct=self.conduct()), name)
             self.enforce(before, ["ratchet/plan.md", "ratchet/spec.md"], "plan")
             grown, readable = self.grown("plan", cycle, clauses, old_text)
@@ -862,7 +1088,7 @@ class Run:
         before = git(self.work, "rev-parse", "HEAD").strip()
         old_text = (self.work / "ratchet" / "spec.md").read_text()
         self.gate_config(frozen=None)
-        row = self.session("delta", DELTA_PACKET.format(frame=FRAME, request=self.request, cycle=cycle, conduct=self.conduct()),
+        row = self.session("delta", DELTA_PACKET.format(frame=self.frame, request=self.request, cycle=cycle, conduct=self.conduct()),
                            f"delta-{cycle}")
         self.enforce(before, ["ratchet/spec.md", f"ratchet/delta-{cycle}.md"], "delta")
         new, readable = self.grown("delta", cycle, clauses, old_text)
@@ -895,8 +1121,13 @@ class Run:
         self.setup()
         if self.args.frozen_from:
             clauses = read_spec(self.work)
+        elif self.args.spec_from:
+            clauses = self.given_spec()
         else:
             clauses = self.stage_spec()
+        if self.args.stop_after == "spec":
+            self.record["stop"] = "stop-after-spec"
+            return self.finish(None)
         self.gate_config(frozen=git(self.work, "rev-parse", "HEAD").strip())
         new = {}
         cycle = 0
@@ -914,6 +1145,9 @@ class Run:
                     self.given_build()
                 else:
                     self.stage_build(cycle, new)
+                if self.args.stop_after == "build":
+                    self.record["stop"] = "stop-after-build"
+                    break
                 self.stage_tests(cycle, clauses, new)
             record = self.gate(f"cycle-{cycle}-first")
             entry["first_gate_failing"] = record["failing"]
@@ -937,15 +1171,20 @@ class Run:
                 break
         final = self.gate("final")
         self.commit("final")
+        return self.finish(final["pass"])
+
+    def finish(self, final_pass):
+        """Close the run's record. `final_pass` is the final gate's verdict, or None when the run stopped before any gate."""
         tamper = self.work / ".git" / "ratchet-tamper.log"
         ids = list(read_spec(self.work))
-        self.record.update(final_pass=final["pass"], seconds=round(time.time() - self.began, 1),
+        self.record.update(final_pass=final_pass, seconds=round(time.time() - self.began, 1),
                            clauses=sum(1 for ident in ids if ident.startswith("C-")),
                            use_cases=sum(1 for ident in ids if ident.startswith("U-")),
                            tamper=tamper.read_text().splitlines() if tamper.exists() else [],
                            finished=time.strftime("%Y-%m-%dT%H:%M:%S%z"))
         self.save()
-        self.say(f"run ended: {self.record.get('stop')}; final gate {'PASS' if final['pass'] else 'FAIL'}; "
+        verdict = "none run" if final_pass is None else ("PASS" if final_pass else "FAIL")
+        self.say(f"run ended: {self.record.get('stop')}; final gate {verdict}; "
                  f"{self.record['clauses']} clauses, {self.record['use_cases']} use cases; {len(self.record['sessions'])} sessions; {self.record['seconds']} s")
         return 0
 
@@ -963,8 +1202,13 @@ def main(argv=None):
     run.add_argument("--start-tree", help="start from this product tree instead of the case's fixture (a repair start)")
     run.add_argument("--frozen-from", help="a finished run whose spec and acceptance tests this run starts with, frozen")
     run.add_argument("--build-from", help="cycle 1's build is this product tree, laid over the work folder by the script: no build session")
-    run.add_argument("--stop-after", choices=("tests",), help="end the run once cycle 1's acceptance tests are frozen and gated")
+    run.add_argument("--spec-from", help="a run whose ratchet/spec.md this run starts with, as written: no spec session")
+    run.add_argument("--stop-after", choices=("spec", "build", "tests"),
+                     help="end the run once the specification is written, once cycle 1's build is committed, or once "
+                          "cycle 1's acceptance tests are frozen and gated")
     run.add_argument("--bare", action="store_true", help="no loop: one session is given the request and builds; a comparison arm")
+    run.add_argument("--enrich", choices=("single", "lenses", "reworded"), default="single",
+                     help="the enrichment text of the spec stage: the pilot's own, the one-pass lens form, or its reworded form")
     run.add_argument("--max-cycles", type=int, default=3, help="apparatus limit: cycles before the run is stopped (reported)")
     run.add_argument("--max-fixes", type=int, default=4, help="apparatus limit: fix sessions per cycle (reported)")
     run.add_argument("--max-budget-usd", type=float, default=None, help="per session, on hosts that price a session")
@@ -973,8 +1217,17 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if bool(args.start_tree) != bool(args.frozen_from):
         raise SystemExit("--start-tree and --frozen-from go together: a repair start needs both")
-    if args.frozen_from and (args.build_from or args.stop_after):
-        raise SystemExit("a repair start (--start-tree, --frozen-from) takes neither --build-from nor --stop-after")
+    if args.frozen_from and (args.build_from or args.stop_after or args.spec_from):
+        raise SystemExit("a repair start (--start-tree, --frozen-from) takes none of --build-from, --stop-after, --spec-from")
+    if args.stop_after == "spec" and (args.spec_from or args.build_from or args.bare):
+        raise SystemExit("--stop-after spec runs the spec stage alone: it takes none of --spec-from, --build-from, --bare")
+    if args.stop_after == "build" and (args.build_from or args.bare):
+        raise SystemExit("--stop-after build ends after the build session: it takes neither --build-from nor --bare")
+    if args.spec_from:
+        source = json.loads((Path(args.spec_from) / "run.json").read_text())
+        if source.get("case") != args.case or source.get("enrich", "single") != args.enrich:
+            raise SystemExit(f"--spec-from {args.spec_from} is case {source.get('case')!r} with enrich "
+                             f"{source.get('enrich', 'single')!r}; this run is {args.case!r} with {args.enrich!r}")
     return Run(args, load_case(args.case)).run()
 
 

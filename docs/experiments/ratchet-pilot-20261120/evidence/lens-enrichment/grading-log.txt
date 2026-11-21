@@ -1,0 +1,76 @@
+== all five runs ended; grading one after another 04:24:54
+[04:06:58] run ended: stop-after-tests; final gate FAIL; 191 clauses, 12 use cases; 3 sessions; 2649.5 s
+run-exit=0
+[04:00:50] run ended: stop-after-tests; final gate FAIL; 153 clauses, 11 use cases; 3 sessions; 2281.5 s
+run-exit=0
+[03:46:32] run ended: stop-after-tests; final gate FAIL; 82 clauses, 8 use cases; 3 sessions; 1423.1 s
+run-exit=0
+[04:20:38] run ended: stop-after-tests; final gate PASS; 173 clauses, 11 use cases; 4 sessions; 3469.4 s
+run-exit=0
+[04:24:44] run ended: stop-after-tests; final gate PASS; 199 clauses, 16 use cases; 4 sessions; 3715.6 s
+run-exit=0
+p1L-stand-in-rules: 82 clauses and 8 use cases tested; on the correct reference 9 clauses and 1 use cases fail: ['C-21', 'C-22', 'C-23', 'C-27', 'C-35', 'C-6', 'C-78', 'C-79', 'C-80', 'U-8']
+  one-rule-missing            caught     C-37, U-1, U-4
+  tested-only                 caught     C-14, C-30, C-31, C-36, U-3
+  limit-never-trips           caught     C-58, C-61, C-62, C-66, U-1, U-5, U-6, U-7
+  cross-field                 caught     C-43, C-44, U-4
+  caught 4 of 4 calibrated defects
+strength-exit=0 stand-in-rules 04:25:52
+p1L-ticket-assignment: 153 clauses and 11 use cases tested; on the correct reference 13 clauses and 3 use cases fail: ['C-112', 'C-123', 'C-127', 'C-128', 'C-130', 'C-131', 'C-150', 'C-152', 'C-153', 'C-42', 'C-51', 'C-58', 'C-61', 'U-3', 'U-5', 'U-7']
+  control alternative: fails C-11, C-111, C-125, C-24, C-26, C-28, C-3, C-43, C-45, C-49, C-52, U-1, U-10, U-4, U-6
+  filter-or                   caught     C-149, C-151, C-57, U-11
+  filter-after-page           caught     C-68, C-72
+  no-envelope                 caught     C-10, C-138, C-139, C-147, C-149, C-151, C-20, C-21, C-22, C-23, C-24, C-25, C-26, C-29, C-30, C-32, C-33, C-37, C-38, C-4, C-43, C-48, C-9, U-11, U-2, U-6
+  conflict-as-invalid         caught     C-10, C-149, C-151, C-37, C-43, C-9, U-11, U-2, U-6
+  closed-assignable           caught     C-10, C-149, C-151, C-37, C-40, C-43, C-9, U-11, U-2, U-6
+  notify-inline               caught     C-103, C-104, C-105, C-106, C-110, C-120, C-147, C-149, C-151, C-18, C-33, C-41, C-46, C-49, C-52, C-53, C-95, C-96, U-10, U-11, U-4, U-9
+  notify-no-template          caught     C-102, C-103, C-104, C-105, C-106, C-140, C-148, C-151, C-18, C-46, C-52, C-53, U-4
+  notify-key-per-ticket       caught     C-110, C-147, C-149, C-151, C-41, C-49, C-95, U-10, U-11, U-4
+  notify-requester            caught     C-102, C-104, C-105, C-106, C-120, C-140, C-147, C-148, C-149, C-151, C-18, C-41, C-49, C-52, C-53, C-96, U-11, U-4, U-9
+  audit-bypassed              caught     C-149, C-151, C-41, C-43, C-44, C-45, C-47, C-50, C-87, C-88, C-89, C-90, U-1, U-11, U-6
+  actor-ignored               caught     C-149, C-151, C-47, U-11, U-6
+  same-agent-not-noop         caught     C-149, C-151, C-16, C-17, C-18, C-19, C-28, C-43, C-44, U-11, U-2, U-4, U-6
+  memory-only-assignee        caught     C-102, C-109, C-110, C-111, C-113, C-121, C-125, C-14, C-140, C-143, C-15, C-16, C-18, C-19, C-41, C-54, C-55, C-57, C-59, C-68, C-69, C-70, C-72, U-10, U-9
+  old-data-refused            caught     C-100, C-101, C-102, C-110, C-111, C-114, C-116, C-117, C-120, C-121, C-122, C-126, C-137, C-55, C-60, C-62, C-63, C-64, C-65, C-66, C-67, C-74, C-81, C-83, C-84, C-85, C-93, C-94, C-97, C-98, C-99, U-10
+  old-assignee-undefined      caught     C-102, C-110, C-111, C-121, C-55, U-10
+  raw-column-inserted         caught     C-111, C-124, C-125, C-132, U-8
+  cli-no-assignee             MISSED     
+  no-unassign                 caught     C-1, C-10, C-11, C-110, C-113, C-12, C-149, C-151, C-22, C-30, C-31, C-41, C-45, C-50, C-69, C-7, C-72, C-8, C-87, C-89, C-9, C-90, U-11, U-2, U-6
+  empty-filter-ignored        caught     C-149, C-151, C-55, C-57, C-59, U-11
+  name-limit-off-by-one       caught     C-23, C-24, C-25, U-1
+  listing-hides-assignee      caught     C-1, C-125, C-3
+  update-rejects-resolved     caught     C-81
+  default-limit-changed       caught     C-149, C-151, C-66, U-11
+  resolved-template-replaced  caught     C-149, C-151, C-92, U-11
+  audit-not-saved             caught     C-110, C-114, C-149, C-151, C-41, C-90, U-10, U-11
+  backoff-linear              caught     C-149, C-99, U-11
+  validate-renamed            caught     C-149, U-11
+  caught 26 of 27 calibrated defects
+strength-exit=0 ticket-assignment 04:39:39
+p1L-ticket-due-times: 191 clauses and 12 use cases tested; on the correct reference 25 clauses and 7 use cases fail: ['C-112', 'C-12', 'C-140', 'C-15', 'C-181', 'C-182', 'C-190', 'C-191', 'C-34', 'C-36', 'C-47', 'C-48', 'C-49', 'C-5', 'C-54', 'C-55', 'C-56', 'C-6', 'C-63', 'C-64', 'C-70', 'C-71', 'C-73', 'C-8', 'C-9', 'U-10', 'U-12', 'U-5', 'U-6', 'U-7', 'U-8', 'U-9']
+  version-two                 caught     C-162, C-163, C-189, C-66, C-67, C-68, C-69, C-72
+  priority-moves-due          caught     C-16, C-35, C-61, U-2
+  due-not-persisted           caught     C-13, C-161, C-17, C-18, C-22, C-23, C-24, C-25, C-30, C-33, C-35, C-37, C-38, C-39, C-40, C-41, C-42, C-44, C-45, C-50, C-51, C-53, C-61, C-62, C-65, U-3, U-4
+  no-backfill                 caught     C-45, C-46, C-51, C-72, C-77
+  flag-ignored                caught     C-164, C-20, C-26, C-44, C-45, C-77
+  overdue-active              caught     C-30, C-33, C-35, C-37, C-38, C-40, C-41, C-42, U-3, U-4
+  caught 6 of 6 calibrated defects
+strength-exit=0 ticket-due-times 04:42:58
+p3L-ticket-due-times-a            build-1     passed  3  failed ['cli', 'migrate', 'restart', 'rollback', 'switch']
+p3L-ticket-due-times-a            final       passed  3  failed ['cli', 'migrate', 'restart', 'rollback', 'switch']
+snapshots-exit=0 a 04:43:13
+p3L-ticket-due-times-b            build-1     passed  2  failed ['cli', 'migrate', 'restart', 'rollback', 'suite', 'switch']
+p3L-ticket-due-times-b            final       passed  2  failed ['cli', 'migrate', 'restart', 'rollback', 'suite', 'switch']
+snapshots-exit=0 b 04:43:30
+WHOLE LOOPS
+- p3L-ticket-due-times-a (gpt-6.2-sol high): finished, stop stop-after-tests, 57.8 min, 4 sessions, first build at 28.1 min; held-out first build 3, final 3; tokens out 148,407, in 9,173,354 (8,731,904 cached)
+    minutes by stage: {'spec': 7.6, 'plan': 8.1, 'build': 12.3, 'tests': 26.7, 'gates and script': 3.1}
+    cycle 1: gate 184 of 184, failing [], fix sessions 0, plan added 3, closing look added None (product keeps: no None, yes None)
+- p3L-ticket-due-times-b (gpt-6.2-sol high): finished, stop stop-after-tests, 61.9 min, 4 sessions, first build at 31.9 min; held-out first build 2, final 2; tokens out 157,262, in 10,213,345 (9,684,224 cached)
+    minutes by stage: {'spec': 13.3, 'plan': 7.2, 'build': 11.4, 'tests': 25.7, 'gates and script': 4.4}
+    cycle 1: gate 215 of 215, failing [], fix sessions 0, plan added 2, closing look added None (product keeps: no None, yes None)
+TEST STRENGTH
+- p1L-stand-in-rules: 82 clauses, 8 use cases; failing on the reference 9 clauses, 1 use cases; caught 4 of 4; missed []; second correct delivery fails None more; 23.7 min; tokens out 61,805
+- p1L-ticket-assignment: 153 clauses, 11 use cases; failing on the reference 13 clauses, 3 use cases; caught 26 of 27; missed ['cli-no-assignee']; second correct delivery fails 15 more; 38.0 min; tokens out 96,512
+- p1L-ticket-due-times: 191 clauses, 12 use cases; failing on the reference 25 clauses, 7 use cases; caught 6 of 6; missed []; second correct delivery fails None more; 44.2 min; tokens out 112,503
+lens-grading-done 04:43:30
