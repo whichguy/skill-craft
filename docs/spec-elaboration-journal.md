@@ -1087,6 +1087,14 @@ experiment all ran inside that window; rounds 1 to 3 and round 4's subject calls
 > merge and not a rebase if its commits are cited by hash; no conflict is expected. An action is recorded after it
 > has happened and been seen to have happened, not before.
 
+> **Seen, 2026-11-21 03:24:** the owner pointed that session at the update in its own conversation, and it
+> reconciled. It merged origin/main into the shared checkout's local `main` (f6705923b41c0d8cf05bf4d4f777f13ac89c39d1), a merge and
+> not a rebase, with no conflict, and its commit message says the held message never reached it and names what
+> the message asked. The first message expired unapproved. A second, sent at the owner's word ("Update the SDLC
+> session") through the app's own session route, was reported by the app as not confirmed. So what is seen is that
+> the session has the facts and has acted on them, not which channel carried them. The shared checkout is no longer
+> behind origin; it is ahead by that session's two commits and its merge, which are its to push.
+
 ### The owner's to-do
 
 "Add todo: did we update the prompt templates for Shiploop to improve them?" (2026-11-21). **Not as of this
