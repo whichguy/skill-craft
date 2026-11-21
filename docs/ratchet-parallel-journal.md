@@ -674,3 +674,23 @@ reason is what made it countable.
 
 Evidence: `evidence/parallel/shiploop-test-changes.md` (every row, with its note file and the run's reason) and,
 in `evidence/parallel/shiploop-count/`, the deliveries taken and the rows as data.
+
+## 12. Battleship, a reading added before it is taken (registered 2026-11-21 11:57)
+
+Known when this is written: the build passes the harness's four checks, and the build-less suite passes 28 of 28
+on it at first meeting (B1; the full result follows in the next section). Not known: anything about faults.
+
+A suite can pass on a correct build by asserting little, and this one says it accepts several answers at the open
+points and finds the page's controls by where they are drawn (its own list of assumptions). So one more reading,
+registered now and taken by script with no model:
+
+- **B6, strength.** `mutate.py --manifest` seeds the harness's own catalog of faults on the build's product source
+  (the first 60 sites in its round-robin order; every line counts as changed, since the case starts empty) and runs
+  each suite's commands on each fault. The same 60 faults go to the build-less suite, laid over the build in a
+  scratch clone, and to the suite written beside the build, in its own work folder. Reading: faults caught of
+  those valid, for each suite, and which faults only one of them catches.
+- **Prediction.** The build-less suite catches fewer: 60 to 75% against 75 to 90%, with the difference at the open
+  points and on the page.
+- **Limits.** The catalog seeds faults in source files it can parse, so the page's inline script may get none. Its
+  copies are made under a plain folder (`TMPDIR` set), for the reason given in section 6. The product's own tests
+  are not measured: the tool runs `npm test` for them and this product has no package file.
