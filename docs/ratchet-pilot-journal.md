@@ -379,6 +379,41 @@ under `/Users/dadleet/e2e-runs/ratchet-pilot-20261120-b6eab2/` and may be pruned
   what the tests miss).
 - Evidence: `evidence/p2-orders/` (each start's run.json, hidden.json, fix-1.md, delta-1.md; the two chain logs).
 
+### P1, enriched form (amendments 1 to 3), the two ticket cases, and P1 as a whole (2026-11-20 20:57)
+
+| Case | Form | Clauses (request / implied / existing / choice) | Clauses failing on the reference | Use cases failing | Second correct delivery, beyond the reference | Defects caught | Minutes |
+|---|---|---|---|---|---|---|---|
+| orders | first | 63 (30 / 0 / 12 / 21) | 22 (35%) | none written | none exists | 2 of 4 | 12.9 |
+| orders | enriched (1, 2) | 69 (33 / 20 / 12 / 16) | 9 (13%) | 3 of 12 | none exists | 4 of 4 | 18.8 |
+| ticket assignment | first | 190 (29 / 0 / 134 / 27) | 13 (7%) | none written | 24 clauses | 27 of 27 | 28.4 |
+| ticket assignment | enriched (1 to 3) | 192 (22 / 41 / 134 / 12), 17 use cases | 15 (8%) | 5 of 17 | 14 clauses, 3 use cases | 27 of 27 | 46.7 |
+| ticket due times | first | 223 (41 / 0 / 144 / 38) | 45 (20%) | none written | none exists | 5 of 6 | 36.4 |
+| ticket due times | enriched (1 to 3) | 238 (29 / 46 / 158 / 20), 15 use cases | 35 (15%) | 8 of 15 | none exists | 6 of 6 | 46.7 |
+
+Registered readings, on the enriched arm:
+
+- **R1.2 strong: met.** 37 of 37 calibrated defects caught (first form 34 of 37). No command failed to end in either
+  ticket grading, none was unstable on the reference, although the machine's load average was above 30 at the time.
+- **R1.1 valid: not met.** 13%, 8% and 15% of clauses fail on the correct reference, and the second correct
+  ticket-assignment delivery fails 14 clauses and 3 use cases the reference passes.
+- **R1.3 enrichment helps the tests: not shown by the registered rule.** The enriched suites catch 3 more defects;
+  the rule asked for 4, and after the first form's regrade to 34 only 3 were left to gain, so the rule could no longer
+  be met. The clause share that rejects the reference fell on two cases (35% to 13%, 20% to 15%) and held on the
+  third (7% to 8%); the second correct delivery fails 14 clauses where it failed 24.
+
+- **F10 (interim).** In both forms the heavy test pass is strong enough to carry an exit on these cases. What it is
+  not is neutral: between 8% and 15% of what it enforces is the specification's own addition. In the enriched form
+  that addition is mostly `implied` clauses (14 of the 20 items failing on the ticket-assignment reference, 19 of the
+  43 on due times), which is what the enrichment stage is asked to write. The second ticket-assignment delivery shows
+  the cost: a correct product that made different choices fails 17 items.
+- **F11 (interim).** Scenario tests for use cases are the most brittle items: 5 of 17 and 8 of 15 fail on the correct
+  reference, 3 of 12 on orders. A scenario walks a whole flow, so one stricter step fails it.
+- `no-backfill`, the one due-times defect the first form missed, is caught in the enriched form by one clause
+  (C-187). The enriched due-times spec has 46 implied clauses and 158 existing ones.
+- Cost of the enriched form on a ticket case: enrich 10 to 13.5 minutes, plan 5.5 to 6, heavy tests 24 to 27; both
+  plan loops completed at iteration 2 with a trivial streak of 1 and added clauses (2 on due times).
+- Evidence: `evidence/p1-enriched-ticket-assignment/`, `evidence/p1-enriched-ticket-due-times/`.
+
 ## 11. Amendment 3, 2026-11-20 19:45: the apparatus hardened after a second outside review (before P2, P3 and the enriched ticket runs)
 
 Sol 6.1 at max effort, read-only, 21 minutes, reviewed the apparatus for ways a result could be wrong without the
