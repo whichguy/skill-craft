@@ -1,0 +1,85 @@
+Report of the Sonnet worker that read the finished run folder for journal section 32, saved as it was handed back
+(2026-11-21). It is model output: the values the evaluation rests on were re-read by qualcheck.py, whose output is
+the sample-check file beside this one.
+
+All values below come from files under R=/Users/dadleet/e2e-runs-sdlc11/20261121/ticket-assignment-sol-high (run folder) unless a path says otherwise. "Event index" = 0-based line number in R/events.jsonl (573 lines); R/timeline.jsonl maps {"line":N,"t":epoch}. Host is codex, not claude. No verdict given.
+
+A1. SOURCE OF THE BUILD
+(a) checkout-e496ac: HEAD c138c061c9e7eb236a374198645362450e6f94aa; HEAD^{tree} 317f3f12e2510bed854d73d50ff60692fc603c09; status --short: 0 lines (git -C <checkout> status --short | wc -l)
+(b) R/invocation.json "versions": {"source":"checkout","plugin_version":"4.2.0","shiploop_version":"2.4.0","plugin_sha256":"7180edb8236c","local_head":"c138c061c9e7eb236a374198645362450e6f94aa"}
+    R/invocation.json "plugin": loaded ["skill-craft@whichguy 4.2.0"], plugin_dir R/build/plugins/skill-craft, installed path R/home/.codex/plugins/cache/whichguy/skill-craft/4.2.0, pass true
+    R/result.json "versions" identical; R/baselines.jsonl row: "source":"checkout","local_head":"c138c061...","plugin_sha256":"7180edb8236c","planning_review":"stage"
+    No tree hash is recorded in the run folder. Checks done: `diff -r R/build/plugins/skill-craft R/home/.codex/plugins/cache/whichguy/skill-craft/4.2.0` gave no output; `diff -r R/build/plugins/skill-craft/skills/shiploop <checkout>/skills/shiploop` gave no output.
+
+A2. TEXT THE BUILDER WAS SHOWN
+(a) Card used: R/home/.codex/plugins/cache/whichguy/skill-craft/4.2.0/skills/shiploop/SKILL.md. The session's own rollout shows this path as the injected skill: R/home/.codex/sessions/2026/11/21/rollout-2026-11-21T08-02-38-01a1fed8-65eb-7981-9768-3949f40ce3de.jsonl line 14 (user message `<skill><name>skill-craft:shiploop</name><path>…/4.2.0/skills/shiploop/SKILL.md`), and that message contains the sentence.
+    Yes, SKILL.md:195: "Run options are the user's to set: pass one only when the user asks for it; otherwise pass none and the defaults" (continues on 196). Same sha256 e6e33a06…07b0a07 for the cache, build/skills and build/plugins copies. SKILL.md:198 says `--planning-review stage|none` (default `stage`; …).
+(b) First event with the line "- Record the PID of a background process you start and stop it by that PID…": event 10 (tool_call_update item_6, output of the `workspace start` command; header "ShipLoop navigator | intake | revision 0"). Events containing it: 27 (grep -c 'Record the PID of a background process' events.jsonl gives 27 lines; indices 10,18,44,52,84,92,100,122,146,152,189,199,231,285,316,330,348,378,419,455,467,471,499,521,533,547,559). Event 10 shows it inside the packet's RULES list after "Temporary files go in RUN/scratch, never /tmp." Source also at R/home/.codex/plugins/cache/whichguy/skill-craft/4.2.0/skills/shiploop/scripts/shiploop_prompts.py:512.
+
+A3. THE SUBJECT
+Harness (run.py) command line: NOT FOUND. grep for "run.py" / "--case" in result.json, metrics.json, review-export.json, flow.json and the .log gave 0 hits. Recorded host command (R/invocation.json "argv"; also R/resources.jsonl line 2 "leader.command"): codex exec --json -m gpt-6.2-sol --skip-git-repo-check -s danger-full-access -c approval_policy="never" --dangerously-bypass-hook-trust -C R/work -c agents.default_subagent_model="gpt-6.2-sol" -c model_reasoning_effort=high -c agents.default_subagent_reasoning_effort=high "$skill-craft:shiploop <request>"
+Host codex; CLI "codex-cli 0.171.0" (invocation.json "host_build"); model gpt-6.2-sol; effort high (invocation.json "model","effort").
+Sessions: 1, resumes 0 (result.json process.sessions[0], process.resumes 0, termination.sessions 1; R/sessions.jsonl rows start n=1 kind "first", end n=1 status exited rc 0; baselines.jsonl "sessions":1).
+Request: R/host-prompt.txt 1184 chars (R/prompt.txt 1163 bytes with trailing newline). First 300 chars: "$skill-craft:shiploop This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable, with a command-line tool in bin/. Add ticket assignment. `PUT /tickets/:i". Rollout line 12 holds the same 1184 chars as the builder's user message.
+Comparison with catalog: python compared cases.json ["ticket-assignment"]["prompt"] (R=checkout/test/shiploop_e2e/cases.json), 1162 chars. host-prompt.txt == "$skill-craft:shiploop " + catalog prompt: True. Rollout line 12 text == same: True. prompt.txt.rstrip("\n") == catalog prompt: True. Catalog prompt sha256 prefix 9d5ad8864525 = result.json "prompt_sha256".
+Later user/operator messages: 0. Rollout has 3 user messages: line 8 environment_context, line 12 the request, line 14 the injected skill card (no others).
+
+B1. HARNESS VERDICTS (result.json; baselines.jsonl "verdicts")
+pass: true; invoked.pass true ("ShipLoop CLI ran"); plugin.pass true; process.pass true (exited, returncode 0, 992.3 s, stop end_turn); shiploop.pass true (status done); committed.pass true; checks 3 of 3 pass (baselines "checks_passed":3,"checks":3); outcome_class "PASS", outcome_basis "every verdict passed".
+Engine final: status "done", stage "done", revision 34 (result.json shiploop; sessions.jsonl end row engine: accepted 26). Report: R/.shiploop-runs/work-20261121-160256-461680/run/report.html exists, 43360 bytes (result.json shiploop.report_html true).
+
+B2. CASE CHECKS (result.json "checks")
+[0] base_tests.py suite node-tickets: pass, rc 0, "the delivery's own node --test passes 121 tests, the base's 117 and 4 more"
+[1] base_tests.py pristine node-tickets: pass, rc 0, "the base's 18 pristine test files pass against the delivered source: 117 of 117 tests"
+[2] serve.py --start "node src/server.js" -- node -e (PUT assignee, GET, filter): pass, rc 0
+Held-out acceptance (result.json quality.acceptance): 18 passed of 18; failing items: none. Passed ids: ticket-lifecycle-unchanged, listing-unchanged, notifications-unchanged, restart-keeps-state, cli-raw-columns, old-data-loads, assign-and-unassign, assignee-validation, assign-state-and-missing, assign-same-agent-noop, assign-audited, assignee-notified, assignee-filter, filters-combine, assignee-filter-pages, assignee-persists, old-tickets-unassigned, cli-shows-assignee. quality.held_out_seen 0.
+
+B3. RETURNED SOURCE
+Product commit: 7cfb37762f6c0553ec4130fd24c7f10063dceedb (result.json committed.head; delivery.before/after.head; `git -C R/work rev-parse HEAD` agrees). start_head ef789422183e864df47476f648de1cbe57e391aa. Recorded clean: committed.uncommitted [] and delivery.before.status [] / delivery.after.status [], tree ef43672793b5ffcbfd84d23e67bf30b4f9b54d42.
+`git -C R/work status --short | wc -l` = 0; `git -C R/work log --oneline | wc -l` = 12. Branches in work: master, shiploop/run-f1a41bc050e4671e (result.json shiploop.knowledge.branches).
+
+C1. PLANNING-REVIEW OPTION
+(a) R/.shiploop-runs/work-20261121-160256-461680/run/state.md line 2281: `"planning_review": "stage",` (also line 2278 `"lint": "fix",`, line 1006 `"delegation": "inline",`). review-export/facts.md: "Planning review option (state.md): stage".
+(b) Event 9, t=1795276976.114 (2026-11-21T16:02:56Z), tool_call run_terminal_command, verbatim:
+/bin/zsh -lc "python3 '<P>/skills/shiploop/scripts/shiploop' workspace start --repo \""'$PWD" '"'--prompt="'$skill-craft:shiploop <full 1162-char request>'"'"
+where <P>=R/home/.codex/plugins/cache/whichguy/skill-craft/4.2.0. The only flags are --repo and --prompt. No --planning-review, --delegation or --lint.
+(c) None. Regex --(planning-review|delegation|--lint) over every tool_call input (279) in events.jsonl: 0 hits.
+
+C2. PROCESS STOPS
+Executed commands (tool_call events): 279 (272 run_terminal_command, 7 search_replace).
+Executed commands that stop or signal a process by kill/pkill/killall/xargs kill/fuser/lsof/ps/pgrep/kill %N: 0. A scan of the 272 commands for pkill, killall, fuser, pgrep, `$!`, nohup, disown, setsid, trailing `&` and `wait` found none. Counts: PID 0, NAME-OR-PATTERN 0, PORT 0, OTHER 1.
+Raw count of executed commands containing the substring "kill" (case-insensitive): 105; almost all are "skill" in plugin paths. Excluding "skill" (regex (?<![sS])kill): 1, event 9-equivalent below.
+OTHER (1): event 420, t=1795277751.181, stage system-test-author (rev 23). Builder command was a file write, `cat > '<RUN>/scratch/assignment-startup.test.cjs' <<'CODEX_WRITE_EOF' …`. The file spawns the service with spawn('npm',['start'],{detached:true,…}) and in t.after calls `process.kill(-service.pid, 'SIGTERM')` when service.pid is set and exitCode/signalCode are null (file lines 16-30). That is a kill by a PID the test itself got from spawn(); the builder did not run it as a shell command. Commands that later ran this test file: events 422 (t=1795277751.469), 446 (rev 24 improve), 456 (rev 25 system-test), 505 and 512 (release-check), 540 (release-verify).
+Background-start commands (trailing `&`, nohup, tool background option): 0; `$!` recorded: n/a. Only processes started were by that test file's spawn (detached) under node --test.
+Harness record of leftovers: result.json left_behind {"observed":true,"reaped":[],"survived":[]}; result.json resources.cleanup.end {"stopped":[],"survived":[],"gone":[],"reused":[],"unverified":[],"protected":[]}; quality.left_behind {"observed":true,"reaped":[],"survived":[]}; facts.md "Left behind: none". resources.jsonl: 1 host group (role host, ended "session ended") and 23 role-quality groups (`node src/server.js`), each ended "reaped by the harness". The .log line: "fidelity edits … name-pattern kills 0".
+
+C3. THE SPEC'S HOME
+Knowledge home: docs/shiploop/ in the product (spec.md, architecture.md, environment.md). Evidence: spec packet event 52 prints "KNOWLEDGE = <R>/.shiploop-runs/work-…/worktree/docs/shiploop (knowledge home)"; result.json shiploop.knowledge.spec true, spec_tracked true; .log "knowledge docs/shiploop/spec.md present, tracked".
+Spec path in product: R/work/docs/shiploop/spec.md; size 3582 bytes (wc -c; metrics.json delta.placement spec.md bytes final 3582).
+Requirement IDs: `grep -oE "\bR-[0-9]+\b" R/work/docs/shiploop/spec.md | sort | uniq -c` gives R-1 R-2 R-3 R-4 once each = 4 (result.json requirement_ids ["R-1","R-2","R-3","R-4"]).
+First commit adding it: `git -C R/work log --diff-filter=A --format='%h %ad %s' --date=iso -- docs/shiploop/spec.md` -> 68ab996 2026-11-21 08:05:22 -0800 docs(shiploop): record skill-craft-shiploop-this-directory-is-d031e0 knowledge after spec
+Spec stage submission: event 56 (t=1795277090.69, stage spec, rev 3), the shiploop-state block written to run/inbox/nav-9fdebc1ff4704f969e1a08076c0349ef.md. The spec itself was written by event 54 to worktree/docs/shiploop/spec.md. The submission body points at the file and carries a summary; evidence_refs[0] = <worktree>/docs/shiploop/spec.md, primary ["R-1","R-2","R-3","R-4"]. Summary quote: "Use the existing 400/404/409 convention, case-sensitive normalized names and legacy-null semantics. Each real non-null assignment is independently deliverable; filtering is conjunctive before pagination. CLI raw adds a trailing field with earlier positions preserved."
+
+C4. REFUSALS AND ERRORS (R/.shiploop-runs/work-20261121-160256-461680/run/trace.jsonl, kind "command" exit 2; metrics.json shiploop_failures[0..4])
+Total 5 (trace "refusals":3, "checks_failed":2; fidelity.refusals.count 5, repeated 0). Marked ** (mention run option, PID, pkill, killall, requirements guide): 0 of 5.
+1. test-strategy, complete, trace line 14, event 90 (t=1795277138.947): "test_layers[1].layer is one of unit, component, e2e"
+2. test-strategy, complete, trace line 17, event 98: "test_layers gives CLI, worker and complete service no unit or component row. All code the run writes is tested below the e2e layer: add its unit or component row, status prerequisite when its harness is missing."
+3. step-plan, complete, trace line 32, event 165: "the step-plan loop is still active: run the receipt's next_argv once, follow each instruction it returns until its status is complete or stopped, then submit done again"
+4. implement, check (--check-only), trace line 42, event 223: "not_covered is [{"behaviour": "<what this step added that no test case covers>", "reason": "<why>"}], each nonblank, or []; then run the same command again."
+5. test, check (--check-only), trace line 46, event 271: "ShipLoop mutation check: test is not done. 2 of 8 mutants of this item's changed product lines survived the focused tests, with no disposition: - src/tickets/validate.js:12:39 '200' -> '201' - …:12:55 '64' -> '65'"
+Not counted as refusal, a notice: event 84 and R/…/run/skill-calls.jsonl: "invoking the improve skill is not enforced on this host (only Claude Code's hooks record Skill calls…)". gate_counts: test_layers 2 caught, other 2 caught, mutation_not_done 1 caught. No recovery/blocked report found: end_state status done, blocked_by null, asked_user 0.
+
+D. FOR THE RECORD
+Start/end: span.started 1795276958.427 (2026-11-21T16:02:38.427Z) to span.ended 1795277948.441 (16:19:08.441Z); process elapsed_seconds 992.3 (result.json process); environment start 16:02:37Z, end 16:19:14Z. Turns 289; model_calls 79 (metrics.json); tokens: input 10,180,271 (cached 9,982,080), output 35,922, reasoning 5,529, input_peak 200,146, window 475,000; cost_usd null (not reported); compactions 0.
+Accepted revisions: 26 accepted, revision 34 (sessions.jsonl end row). Improve: 9 children, 9 review passes, 0 edited (metrics.json improve_reviews), stages reviewed: spec, test-strategy, plan, step-plan, document (x2), carry-forward, release-plan, system-test-author. Work items: 1 (W1); steps planned 2, executed 2 (S1, S2; commits "feat(W1/S1)", "feat(W1/S2)"; facts.md "steps planned 2, executed 2"). Planning window 318.0 s engine / 335.6 s host, closed at test-spec.
+Launch log (R/../ticket-assignment-sol-high.log) flags: five "failed" lines = the 5 refusals in C4; "metrics ... ShipLoop command failures 5"; "Retired terms in ShipLoop's output: terminal packet (the Until Loop's record) 9"; "environment load 7.6 -> 9.25 on 18 cpus"; "environment overlap: 20261121/shared-expenses-sonnet-high (claude) 990.0 s, began 1.4 s before this run started"; "fidelity ... declared script-run without a record: document"; "baseline nothing compared: no earlier row". R/stderr.txt: "Reading additional input from stdin...". events.jsonl lines 1-3 thought notices: "--dangerously-bypass-hook-trust is enabled", "clamping SessionEnd hook timeout to 3s". Stop hook decision allow "run is done" (trace.jsonl hook row). No timeout, retry or abnormal exit recorded: exit rc 0, stop end_turn.
+
+LAYOUT
+R/events.jsonl is the host event stream: codex events normalised to JSON lines (types tool_call / tool_call_update / text / thought / end), 573 lines; R/timeline.jsonl gives epoch per line; the raw codex rollout is R/home/.codex/sessions/2026/11/21/rollout-…jsonl. Product repo is R/work (git, master, HEAD 7cfb377); R/quality/copy is a post-run copy and R/delivery/work.bundle the bundle. ShipLoop run state is R/.shiploop-runs/work-20261121-160256-461680/ with run/ (state.md, trace.jsonl, packets/, inbox/, results/, notes/, scratch/, report.html), worktree/ (ShipLoop's working checkout, knowledge home docs/shiploop), and workspace.md. Harness records: result.json, metrics.json, invocation.json, resources.jsonl, sessions.jsonl, review-export/facts.md.
+
+COULD NOT DETERMINE
+- The run.py harness command line: searched result.json, metrics.json, invocation.json, review-export.json, flow.json, baselines.jsonl and the .log; only the codex exec argv is recorded (A3).
+- A checkout tree hash recorded in the run: not in invocation/result/metrics/baselines (only local_head and plugin_sha256); the tree value in A1(a) is from git rev-parse.
+- Per-stage turns and cost: metrics.json unmeasured (host reports one total per session); cost_usd null.
+- The stage label for event 9 (the `workspace start` itself): the first navigator header appears at event 10 (intake, rev 0). Stage labels for later events were derived from the last "ShipLoop navigator | <stage> | revision N" header seen before the event in events.jsonl.
+- Events 24-35 and others not individually inspected for kill-like actions beyond the keyword scans described in C2; fidelity edits note in metrics.json says kills by numeric pid or port are not seen by its detector, so my scan of the command text is the evidence for 0.

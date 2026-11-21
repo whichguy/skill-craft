@@ -1423,7 +1423,8 @@ Predictions, written before any subject call so they can be held against the res
 Recorded as received, while rounds 7 and 8 were running. The work, the instruments and the findings are the
 Ratchet session's; its record is section 20 of `docs/ratchet-pilot-journal.md` and
 `docs/experiments/ratchet-pilot-20261120/evidence/lens-enrichment/`, in commit
-58cf265fb3c3a78930f423adc4e701d91483adc4 on its branch `ratchet-lens-08805f`, not on `main` when this was written.
+58cf265fb3c3a78930f423adc4e701d91483adc4 on its branch `ratchet-lens-08805f`, not on `main` when this was written
+(on `main` since 08:25 on 2026-11-21, when that session merged and removed the branch: section 33).
 I read that section in the commit and the figures below match it; I did not re-run or re-grade anything.
 
 What it ran: arm L of this experiment (`arms/L-lenses-once.md`) set into its pilot's enrich stage, on Codex
@@ -2068,7 +2069,8 @@ user's skills, and locate one real difference between the two drivers in built p
 
 Recorded as received. The runs, instruments and findings are the Ratchet session's, made at the owner's word in
 that session; its record is section 21 of `docs/ratchet-pilot-journal.md` (amendment 8, rung 1 and rung 2, and
-amendment 9) at commit 17ba721c2a043e5884fe30d58dda5334331e374f on its branch `ratchet-lens-08805f`, not on main.
+amendment 9) at commit 17ba721c2a043e5884fe30d58dda5334331e374f on its branch `ratchet-lens-08805f`, not on main
+(on `main` since 08:25 on 2026-11-21, when that session merged and removed the branch: section 33).
 I read both result sections there and the figures below match them; nothing was re-run here.
 
 What ran: `arms/R-lenses-reworded.md` of this experiment (drafted in section 18 from the first review's findings,
@@ -2126,7 +2128,8 @@ a short specification is most at risk (the two ticket cases, 27 and 6 planted de
 
 Recorded as received. The runs, instruments and findings are the Ratchet session's. Its record is the subsection
 "Rung 3, result, and the readings of amendment 8" in section 21 of `docs/ratchet-pilot-journal.md` at commit
-b7c30191e368d337c46c3953c07611deef86ba15 on its branch `ratchet-lens-08805f`, not on main. A Sonnet worker of this
+b7c30191e368d337c46c3953c07611deef86ba15 on its branch `ratchet-lens-08805f`, not on main
+(on `main` since 08:25 on 2026-11-21, when that session merged and removed the branch: section 33). A Sonnet worker of this
 session checked the figures below against that record one by one, and they match; I read its report and spot-checked
 ten of them in the source myself. Four of them sit outside that subsection, in its section 20 (the
 choice-clause counts of 53 and 48, the 52 of 199 for the pilot's own text, and the pilot's 17 on the second
@@ -2198,7 +2201,8 @@ Section 29 held them against the first case only. On the three cells:
 
 Recorded as received. The runs, instruments and findings are the Ratchet session's. Its record is the subsection
 "Amendment 10, result" in section 21 of `docs/ratchet-pilot-journal.md` at commit
-6e2f63ceb268d887f72e1cc40e95cd75f9fdf143 on its branch `ratchet-lens-08805f`, not on main. A Sonnet worker of this
+6e2f63ceb268d887f72e1cc40e95cd75f9fdf143 on its branch `ratchet-lens-08805f`, not on main
+(on `main` since 08:25 on 2026-11-21, when that session merged and removed the branch: section 33). A Sonnet worker of this
 session checked the figures below against that record one by one: all ten of the figures it was given matched, and
 none was missing or differed; I read its report and spot-checked eight of them in the source myself. Section 30
 said this step was running and was "recorded as said and not as checked";
@@ -2337,3 +2341,49 @@ of its evidence, made from the run folders, and it stops, changes and reruns not
 **How it is done:** a Sonnet worker reads each finished run's folder and reports the raw values for each line above
 (numbers, the recorded option, command lines verbatim), not a verdict; I check a sample of them in the files myself
 and apply the rule.
+
+## 33. The qualification evaluation, first of two deliveries: `ticket-assignment` on Sol at high (08:35, 2026-11-21)
+
+Interim. One of the round's two deliveries had finished when section 32 was registered; this records what its files
+say. The verdict waits for the second delivery, which was still running when this was written.
+
+**How it was read.** A Sonnet worker read the run folder to the brief of section 32 and handed back raw values with
+the file and key each came from (225 seconds, 44 tool calls); its report is saved as it came, in
+`evidence/qualification/ticket-assignment-sol-high.worker-report.txt` under this experiment's folder. I then re-read
+every value the checks rest on with `qualcheck.py`, a script that prints them from the run's own files and grades
+nothing (`evidence/qualification/ticket-assignment-sol-high.sample-check.txt`). All of them agree with the worker's
+report. The script is committed with this section, before the second delivery has ended, so that one instrument
+reads both.
+
+| Check | `ticket-assignment`, Codex CLI 0.171.0, `gpt-6.2-sol` at high |
+|---|---|
+| A1 built from | The checkout's HEAD is the fix's commit and its tree is clean; the run records the same `local_head`, source `checkout`, plugin fingerprint `7180edb8236c`. The skill the run built, and the copy installed for the session, differ from the checkout's `skills/shiploop` in no entry |
+| A2 text shown | The installed card has "Run options are the user's to set" at line 195. 27 of the session's 573 events carry the PID rule, the first of them the intake packet |
+| A3 subject | One session, no resume. The request is the catalog's, byte for byte (1,162 characters), after the skill's name; no later message went in. The harness asked for no planning-review mode |
+| B1 verdicts | invoked, plugin, process (exit 0, `end_turn`), shiploop (`done`) and committed all pass; outcome "every verdict passed" |
+| B2 case checks | 3 of 3; held-out acceptance 18 of 18 |
+| B3 returned source | A clean committed product, `7cfb37762f6c0553ec4130fd24c7f10063dceedb` |
+| C1 option | `stage` in ShipLoop's `state.md`. The start command passed `--repo` and `--prompt` only, and no later command passes a run option. Nine Improve reviews, none edited, among them spec, test-strategy, plan and step-plan |
+| C2 stops | None. Of the 279 commands and edits the builder made, none stops or signals a process and none starts one in the background. One test file it wrote ends the service that file spawned with `process.kill(-service.pid, 'SIGTERM')`, the id its own `spawn` returned. Left behind: nothing reaped, nothing surviving |
+| C3 spec home | `docs/shiploop/spec.md` in the product (3,582 bytes, R-1 to R-4), committed "after spec"; the stage's submission points at the file |
+| C4 refusals | 5, each recovered in the session: two at test-strategy, one each at step-plan, implement and test. None names a run option, the PID rule or the requirements guide |
+| For the record | 992 seconds, 289 turns, 79 model calls, 26 accepted revisions; no cost reported |
+
+**Read against the rule, for this delivery only.** A and B hold and C4 finds nothing. C1 is `stage` with no flag
+passed; 20 of 27 as-shipped Sol starts also passed no `none`. C2 has no stop by name; none of 57 earlier Sol runs
+had one. Neither shows an effect of the text, as section 32 said in advance.
+
+**Limits of this reading.** The `run.py` command line is not in the run's records, only the host's own command, so
+"built with `--source checkout`" rests on the recorded `versions.source`. The stops were found by reading each
+command's text for the words `kill`, `pkill`, `killall` and `fuser`; a stop spelled another way would be missed.
+The launch log flags three things outside these checks: a stage that "declared script-run without a record"
+(`document`), nine uses of a retired term in ShipLoop's output, and the machine's load rising from 7.6 to 9.25 on 18
+processors while the round's two runs overlapped for 990 seconds. Those are the round's owner's to read and are not
+judged here.
+
+**Where the Ratchet session's record is now.** At 08:25 that session merged its branch into the remote `main` at
+the owner's word (merge `24845b8048b6a36d4471863482704fb75032715b`) and removed the branch. It told this session, and I
+checked after a fetch: every commit of its that sections 21 and 29 to 31 cite keeps its hash and is on `main`
+(`git merge-base --is-ancestor`, five of five). Read `docs/ratchet-pilot-journal.md` from `main`. The shared
+checkout's `main` is 4 commits ahead of that merge and 14 behind until the next push merges the two; a dry run with
+`git merge-tree` is clean, and none of the 106 incoming files, all under `docs/`, is one changed locally.

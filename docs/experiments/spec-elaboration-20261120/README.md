@@ -662,3 +662,11 @@ deliveries show both the one real difference between the drivers (on Sol a limit
 a record or not built; on Sonnet it is specified and tested) and that this experiment's frame makes the stage
 write ten times what it writes in a real run. Read the numbers above as comparisons between arms inside that
 frame.
+
+## A qualification evaluation, outside the experiment (2026-11-21)
+
+Journal sections 32 and after. The owner asked this session to evaluate the E2E round another session ran for a
+ShipLoop fix that sits beneath this journal's unpublished entries. `qualcheck.py RUN_DIR CHECKOUT` prints, from a
+finished run's own files, the values the registered checks rest on; it grades nothing. `evidence/qualification/`
+holds its output and the reading worker's report for each delivery. Nothing here bears on the experiment's
+conclusion.
