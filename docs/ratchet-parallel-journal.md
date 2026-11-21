@@ -567,3 +567,66 @@ this morning with the reworded text at the owner's earlier suggestion (pilot jou
 
 This would test the design-phase reading on a harder app. It does not reopen the parallel schedule, which stays
 stopped (section 0).
+
+## 10. Battleship, registered 2026-11-21 11:30: a new app, its tests written with no build and no product to run on (before any run)
+
+The owner, to section 9's proposal: "Yes, run Grokbot", and then: "Maybe we should start it with something more like
+a game of Battleship first before Grokbot, because it might actually induce too much early complexity." So
+Battleship first and Grokbot-local after it.
+
+**Why this case.** It removes the first of section 9's two easy conditions and stays small: a new app (the work
+folder starts empty), an HTTP API of two routes and a playable page. The request is the E2E harness's `battleship`
+case, copied by script into the pilot's `cases.json` (658 characters, the same text).
+
+**Cells** (Codex `gpt-6.2-sol` at high, as in rung 1; each run in its own repository under
+`/Users/dadleet/e2e-runs/ratchet-parallel-20261121-6f54fb/`).
+
+| Cell | Command | What it gives |
+|---|---|---|
+| `bs-loop` | `ratchet.py run --case battleship --enrich reworded --stop-after tests` | the specification, the plan, the build, and a test pass written beside the build, with its first gate |
+| `bs-blind` | the same with `--tests-blind-from bs-loop`, started as soon as `bs-loop` has committed its plan | a test pass from the same specification and plan with no build present; the packet is rung 1's, unchanged |
+
+Then, by script: the harness's four checks for the case on `bs-loop`'s build (`grade.py tree battleship`, new in
+this commit: it runs each check as the harness's `run.py` runs one), and `overlay.py --history product --scratch`
+laying each suite on that build.
+
+**Readings.**
+
+- **B1, first meeting.** Items of `bs-blind`'s suite passing on `bs-loop`'s build. Each failing item is read as
+  one of: *execution* (how the product is started, configured or called), *assertion* (what the test expects is
+  not what the request and the plan say), *product* (the build is wrong and the test is right). A Sonnet subagent
+  reads them first; I check each label against the test and the build.
+- **B2, the adapter.** Its share of the test lines, and whether anything outside it starts or configures the
+  product.
+- **B3, assumptions.** Each line of the writer's `## Assumed` list read as a design gap (a name or an answer the
+  plan should have held) or as execution.
+- **B4, with nothing to run on.** Runs of its own tests, and whether it wrote a stand-in for the product.
+- **B5, beside it.** `bs-loop`'s own suite at its first gate, and both test sessions' minutes, output tokens and
+  commands.
+- **Tool check before any count is reported.** `overlay.py` must reproduce `bs-loop`'s own first-gate count for
+  its own suite on its own build.
+
+**Predictions** (mine have been wrong three times in this journal). With no product to run on, the build-less
+suite fails more at first meeting than on due times: 3 to 8 items, nearly all execution (how the server is
+started, the shape of the JSON beyond what the request fixes, the names of things on the page), at most one
+assertion. The adapter's share rises above 30%. The writer lists more than four assumptions, and at least one is a
+design gap about the page.
+
+**Going on.** Grokbot-local follows at the owner's word, unless this run shows the instrument does not work on a
+new app: a session that cannot proceed, or a build that fails the harness's checks, which would leave failures
+unreadable. At the result I say whether there is enough to conclude early.
+
+**Limits known in advance.** One cell a side. The build is graded by four checks, not by a yardstick calibrated
+with planted defects, so "the build is right" is weaker here than on due times. The test sessions run at the same
+time as each other and, for a while, as the build, on a machine other sessions also use: minutes are loose, and
+this is not a registered reading of the parallel schedule, which stays stopped (section 0). The server's default
+port is 3000; a test of the default may meet another process there, and a failure that names the port is rerun
+alone.
+
+**Apparatus in this commit.** `cases.json` gains `battleship` (no fixture: the work folder starts empty; the
+project's own check is `node --test`, which the request names). `grade.py` gains the held-out kind `battleship`.
+`ratchet.py` adds `battleship_game` to the marks a session's record must not hold. The loop's own no-model check
+passes after the change (`selftest ok: 10 sessions, 6 gates, 14 snapshots`), and the new grader fails all four
+checks on two archived ShipLoop work folders whose `main` is an empty baseline, as it should. A product that passes
+it has not been shown yet: the run's build will be the first, and a build that fails is looked at by hand before it
+is called wrong.

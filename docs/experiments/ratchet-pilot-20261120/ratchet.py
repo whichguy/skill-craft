@@ -48,7 +48,7 @@ import gate as gate_module
 
 ITEM = re.compile(r"^### ((?:C|U)-\d+): *(.+)$", re.MULTILINE)
 HELD_OUT_MARKS = ("shiploop_e2e", "chess_hidden", "fixtures/quality", "due_times_probe", "ticket_assignment_accept",
-                  "expense_service.py", "skill-craft")
+                  "expense_service.py", "battleship_game", "skill-craft")
 SESSION_SECONDS = 2700
 
 CONDUCT = """## Rules of conduct
