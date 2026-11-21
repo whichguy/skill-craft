@@ -1,0 +1,146 @@
+{
+ "slot": "csv-ticket-import__K1__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Reject the entire batch on any bad record."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1 and R-3",
+   "quote": "Identify the first bad logical CSV record (header is record 1) for record-level errors. \u2026 Error text contains record numbers and validation messages without echoing data rows.",
+   "missing": "The agent gets the first failing record and its reason. The specification leaves open whether the result also identifies later invalid records and their reasons."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Every accepted row receives the next ordinary ID \u2026 A new successful upload always creates new tickets.",
+   "missing": "The specification defines what happens to accepted rows but leaves open whether a match against an existing ticket or another row in the file is accepted, skipped or rejected."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1 and R-3",
+   "quote": "values that fail existing single-ticket validation \u2026 The API uses existing internal access and X-Actor attribution.",
+   "missing": "A builder still has to decide whether each field value must also be permitted for the particular agent importing it."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "Key questions K1 and R-3",
+   "quote": "Internal help desk agents use the HTTP endpoint and see created tickets \u2026 The API uses existing internal access and X-Actor attribution.",
+   "missing": "The specification names the intended users but leaves open whether permission to import must be granted separately from permission to create one ticket."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The required header names are title and requester with optional priority, in any order. \u2026 Return 400 invalid in the existing envelope for missing or unsupported media type, bad UTF-8, missing/duplicate/unknown headers"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Allow BOM, LF and CRLF, field quoting, doubled quotes and one optional trailing line ending. \u2026 An embedded newline can be parsed in a quoted field"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2 and Key questions K5",
+   "quote": "Reject the entire batch on any bad record. A pre-commit storage failure keeps ticket, audit, outbox and ID state intact. \u2026 TicketStore owns persistent ticket/audit/outbox state and publishes atomically"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-3 and Non-functional requirements",
+   "quote": "The input is limited by MAX_BODY_BYTES and 100 ticket records. \u2026 The bounded body and row checks run before store mutation."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1 and R-2",
+   "quote": "Return 400 invalid in the existing envelope for missing or unsupported media type, bad UTF-8, missing/duplicate/unknown headers, empty input, missing data \u2026 Every accepted row receives the next ordinary ID"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A new successful upload always creates new tickets. No file, cache, client session or batch object is retained."
+  },
+  {
+   "id": "N-12",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Every accepted row receives the next ordinary ID and a ticket.created audit entry with X-Actor or system fallback plus a normal receipt notification.",
+   "missing": "The specification requires a receipt for each row but leaves the timing and rate of delivery for a batch unspecified."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Blank priority defaults to normal. \u2026 open, high and normal respectively, in file order.",
+   "missing": "The initial assignee and the timestamps assigned to each ticket are unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "No file, cache, client session or batch object is retained."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Every accepted row receives the next ordinary ID and a ticket.created audit entry with X-Actor or system fallback",
+   "missing": "The specification identifies the actor and the creation event for each ticket but leaves the audit timestamp unspecified."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1 and R-2",
+   "quote": "Preserve single-ticket JSON API and the read-only CLI, report, and existing error contracts. \u2026 Every accepted row receives the next ordinary ID \u2026 A new successful upload always creates new tickets."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Return 400 invalid in the existing envelope for \u2026 values that fail existing single-ticket validation.",
+   "missing": "A builder can reject values exceeding existing single-ticket limits, but the specification gives no field-length boundary or handling rule for spreadsheet formulas."
+  }
+ ]
+}

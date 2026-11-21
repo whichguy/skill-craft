@@ -1,0 +1,56 @@
+{
+ "set": "u2-sol",
+ "cell": "sol-medium",
+ "complete": true,
+ "round": "round-g-u2-sol-e7b3a2",
+ "slots": {
+  "K1": {
+   "arm": "A",
+   "sample": "u2-sol-A",
+   "spec_sha256": "1db8958bdcae2c00117fbe0073ffc62b53229f53f56974af6e3dd3cd0f5ba82a"
+  },
+  "K2": {
+   "arm": "S",
+   "sample": "u2-sol-S",
+   "spec_sha256": "de689ff6ed4663e3bdcdf0e932f141b0b974a1ee22377e1a64d5be51329ca082"
+  }
+ },
+ "delivered": {
+  "A": true,
+  "S": true
+ },
+ "items": {
+  "applies": [
+   "N-1",
+   "N-2",
+   "N-3",
+   "N-5",
+   "N-6",
+   "N-7",
+   "N-9",
+   "N-10",
+   "N-11"
+  ],
+  "capability": [
+   "N-12",
+   "N-13",
+   "N-18"
+  ],
+  "other": [
+   "N-4",
+   "N-8",
+   "N-14",
+   "N-15",
+   "N-16",
+   "N-17",
+   "N-19",
+   "N-20",
+   "N-21"
+  ],
+  "label_files_sha256": {
+   "opus": "8dab83faf27250ff122d99930ccf1f036c70a7f33005a2d88db314861863dd16",
+   "astra": "542d66c71f476fe5b448d2423d48cddd24338869820cb76d1d63639d292624d8"
+  },
+  "fixture_digest": "8f445d24ed3c"
+ }
+}

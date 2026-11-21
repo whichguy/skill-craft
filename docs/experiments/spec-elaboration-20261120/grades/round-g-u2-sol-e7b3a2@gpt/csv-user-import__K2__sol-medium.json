@@ -1,0 +1,143 @@
+{
+ "slot": "csv-user-import__K2__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "Key questions, K5",
+   "quote": "The server owns process-local users and applies batches atomically"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1.e",
+   "quote": "Errors return a JSON error message plus a 1-based logical CSV row number where applicable.",
+   "missing": "When several rows are invalid, the builder must decide whether to report every failing row and its reason or stop at the first."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2.b",
+   "quote": "An email already present or repeated within the file, compared case-insensitively, returns 409. Either rejection leaves the store and next ID unchanged."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-2, Basis",
+   "quote": "No persistence, invitation, user-role assignment or external side effect is in scope.",
+   "missing": "The name/email format excludes role requests. The specification gives no rule comparing a requested role with the importer's authority."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1.b",
+   "quote": "Only the configured ADMIN_TOKEN bearer credential authorizes import."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1.c",
+   "quote": "CSV has exactly the name and email headers, either order, followed by one or more records."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1.c",
+   "quote": "Accept an optional initial UTF-8 BOM, LF or CRLF line endings, an optional final newline, and quoted fields with embedded commas, line breaks and doubled quotes."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2, Basis",
+   "quote": "No persistence, invitation, user-role assignment or external side effect is in scope."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1.d",
+   "quote": "Requests may contain up to 1,048,576 bytes and 1,000 data rows. An exceeded bound returns 413 before any write."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1.c",
+   "quote": "CSV has exactly the name and email headers, either order, followed by one or more records."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2.b",
+   "quote": "An email already present or repeated within the file, compared case-insensitively, returns 409. Either rejection leaves the store and next ID unchanged."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1.e",
+   "quote": "A successful response is 201 with JSON containing the created count and the created user records in CSV order.",
+   "missing": "The response tells the admin when creation finishes. No background processing or later completion notification is specified for large files."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-2, Basis",
+   "quote": "No persistence, invitation, user-role assignment or external side effect is in scope."
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "Non-functional requirements, Security and privacy",
+   "quote": "CSV bytes are held only while processing and are omitted from logs. Accepted name and email values inherit the existing public GET policy."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements, Capacity and reliability",
+   "quote": "No load SLA or persistence guarantee was requested.",
+   "missing": "There is no completion-time bound for a maximum-size upload and no statement of what progress the admin sees while it runs."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-2.b",
+   "quote": "An email already present or repeated within the file, compared case-insensitively, returns 409. Either rejection leaves the store and next ID unchanged.",
+   "missing": "The specification protects existing users on a match but gives no requirement preserving manual single-user creation."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

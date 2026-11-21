@@ -3797,3 +3797,92 @@ readers. About 35 minutes.
 rendered spec stage is 8,786 characters in A and 10,780 in S); the rehearsal now also runs a two-arm folder and
 holds at 90 checks, none failed (`evidence/guides-test/rehearsal.txt`). Not reviewed at maximum effort: one overlay,
 one delivery check, the same rule.
+
+## 51. The third experiment: the section is always written and does not make the specification fuller (15:51, 2026-11-21)
+
+**The runs.** Six sets of two runs on Sol at medium (arms A and S), three on each case, from 15:30, from a clean
+checkout at the commit that holds section 50. All twelve reached the spec's acceptance in 2.2 to 3.8 minutes and
+are usable. ShipLoop accepted every specification that carried the extra section, with no refusal.
+
+| Set | Arm | Words accepted | Of them in the section | Requirement ids | Entries in the section |
+|---|---|---|---|---|---|
+| u1 | A | 678 | | 3 | |
+| u1 | S | 708 | 160 | 2 | 12 |
+| u2 | A | 432 | | 2 | |
+| u2 | S | 771 | 145 | 2 | 12 |
+| u3 | A | 383 | | 1 | |
+| u3 | S | 487 | 126 | 1 | 12 |
+| v1 | A | 666 | | 3 | |
+| v1 | S | 756 | 174 | 3 | 12 |
+| v2 | A | 530 | | 2 | |
+| v2 | S | 688 | 165 | 2 | 12 |
+| v3 | A | 471 | | 3 | |
+| v3 | S | 590 | 142 | 3 | 12 |
+
+**The form is answered.** All six S specifications end with a "Key questions" section holding an entry for each of
+the twelve questions, each entry one line that names the requirement or section stating it. That is the Ratchet
+session's finding on Sonnet, seen here on Sol in ShipLoop itself. In v2 the author gave itself only 8 of the
+duty's 20 lines (the first four questions) and still wrote all twelve entries: it had been given the twelve lines
+at intake. By section 50's delivery check that sample is not delivered.
+
+**The rule of section 46, for each case** (`evidence/guides-test/section-sets.txt`):
+
+| Case | Net, set by set | Needed in every set | Reading |
+|---|---|---|---|
+| The user service, nine items | 0, 0, minus 1 | 2 | not shown |
+| The ticket service, fifteen items | 0, 3 (S not delivered), 1 | 2 | not shown |
+
+The reader verified no capability in any of the twelve specifications. (The first reader on the ticket case said it
+had judged from the specifications and the sentence without reading the program; the next two were told to read it
+and say which files they read, and did.)
+
+**The predictions.** 22 held (twelve entries every time). 23 failed (the ticket nets are 0, 3 and 1). 24 failed
+(the user service's are 0, 0 and minus 1). 25 failed: of the 18 item readings of the six items no arm covered in
+section 49, S covers none under both judges. 26 held. 27 held (S's specification is the longer in every set).
+
+**As a description.**
+
+- Item readings covered by both judges: on the user service A 18 and S 21 of 27; on the ticket service A 20 and S
+  21 of 45.
+- What the section holds is an index. Each entry restates in a line what a requirement already says ("K4 Invalid
+  or duplicate records fail the entire batch (R-1)."). Without the section's words S's specifications are no
+  longer than A's (548, 626 and 361 words against 678, 432 and 383; 582, 523 and 448 against 666, 530 and 471), and
+  the requirement ids are the same in number.
+- One item moves every time: N-5 on the user service, who may import at all, is covered by both judges in all
+  three of S's specifications and in none of A's (and in 0 to 2 of 5 for the four arms of section 47). The entry
+  for K12, what the request's words mean here, makes the author say who an admin is.
+- On the ticket service the six items of section 49 stay as they were: the per-row result, what the file may set,
+  the notifications, the audit and hostile content at partly, dates and numbers absent.
+
+**The three experiments together** (56 specifications from two vague sentences, all on Sol at medium).
+
+| What was added to the released spec stage | User service: item readings covered | Ticket service | By the rule |
+|---|---|---|---|
+| nothing (A), sections 47 and 49 | 29 of 45 | 20 of 45 | |
+| a cue sentence (C) | 30 of 45 | 21 of 45 | not shown |
+| a sentence to read the whole packet (R) | 35 of 45 | 21 of 45 | not shown |
+| the cue and two guide sections (X) | 38 of 45 | 18 of 45 | not shown; the opposite against C on tickets |
+| nothing (A), this section | 18 of 27 | 20 of 45 | |
+| a section answering K1 to K12 (S) | 21 of 27 | 21 of 45 | not shown |
+
+1. Nothing tried makes a specification from a vague sentence reliably fuller. Guide text, a cue, an instruction to
+   read everything and a section that makes the author answer ShipLoop's own twelve questions all leave the judged
+   coverage where the released stage has it, within its own run-to-run swing.
+2. The released stage is steadier than its reputation in this journal. From one sentence it addresses every item
+   that applies on a small program and all but one or two on a richer one, and fully settles about two thirds and
+   under a half of them.
+3. What it leaves thin is the same handful of things every time, whatever is added: the result returned row by
+   row, what a caller may set, consequences for the program's own machinery (notifications, the audit), hostile
+   input, and dates and numbers. ShipLoop's twelve questions are too general to reach them: asked again as a
+   section they are answered in a line each and change nothing.
+4. So the next lever, if the owner wants one, is not more guidance and not a better form for the general
+   questions. It is a few particular questions. Which ones, and whether ShipLoop should carry them, is a product
+   decision and is his. A fair test of any such question needs a case whose checklist was written by someone who
+   has not seen these results; the two used here are spent for that purpose.
+
+**Why this stops here.** Three levers have been tried and none is shown. By the owner's own rule for unattended
+work (three steps without progress end the run and are reported), this step ends with a report and no fourth lever
+is started unasked.
+
+**Limits.** As section 49's, and: the third experiment has three sets a case and two arms; the second case's
+checklist is carried over and not independent; all of it is one driver at one effort, on one kind of request.

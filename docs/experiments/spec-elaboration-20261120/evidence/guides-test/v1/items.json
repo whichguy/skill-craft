@@ -1,0 +1,34 @@
+{
+ "applies": [
+  "N-1",
+  "N-2",
+  "N-3",
+  "N-4",
+  "N-6",
+  "N-7",
+  "N-8",
+  "N-9",
+  "N-10",
+  "N-11",
+  "N-13",
+  "N-16",
+  "N-17",
+  "N-20",
+  "N-21"
+ ],
+ "capability": [
+  "N-12",
+  "N-18"
+ ],
+ "other": [
+  "N-5",
+  "N-14",
+  "N-15",
+  "N-19"
+ ],
+ "label_files_sha256": {
+  "opus": "fc4a514f961d260c897b8385d29af49a5e174d20f3a5b586d5e33b49ed5d2c53",
+  "astra": "47b0e12bc389692acbd0673b2d7d15eb8c5b4499a842dd3bceccb7327100c52b"
+ },
+ "fixture_digest": "5652a97375d0"
+}

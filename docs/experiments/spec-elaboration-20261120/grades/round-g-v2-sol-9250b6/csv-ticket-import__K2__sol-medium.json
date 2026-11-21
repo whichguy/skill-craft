@@ -1,0 +1,145 @@
+{
+ "slot": "csv-ticket-import__K2__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.2193202,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1.c, R-2",
+   "quote": "Fail on the first error ... A rejected batch leaves tickets, counters, audit, and outbox intact."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1.c",
+   "quote": "return the standard 400 `invalid` envelope. Fail on the first error and identify the logical record number when the error belongs to a record (row 1 is the header)."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-1.d",
+   "quote": "The importer keeps no file or import history, and a second successful submission creates a second batch.",
+   "missing": "Whether a row matching an existing ticket, or duplicate rows within one file, are created anyway, skipped or rejected."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1.a, R-1.c",
+   "quote": "missing or extra headers, unknown or duplicate headers ... or invalid ticket fields return the standard 400 `invalid` envelope."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1.d",
+   "quote": "The real entry point uses the same internal access boundary and `X-Actor` attribution as POST /tickets.",
+   "missing": "The spec ties import to the single-create access boundary; it does not make import a separate permission beyond single-ticket creation."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1.a, R-1.c",
+   "quote": "missing or extra headers, unknown or duplicate headers, zero data rows, malformed CSV, unexpected column counts ... return the standard 400 `invalid` envelope."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1.a",
+   "quote": "Accept LF and CRLF, optional UTF-8 BOM and final line break, quoted commas and doubled quotes."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-1.c, R-2.a",
+   "quote": "A rejected batch leaves tickets, counters, audit, and outbox intact."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Reject bodies over the existing configurable `MAX_BODY_BYTES` (default 65536) and batches above 500 data rows before writing. Verify both limits, including acceptance at 500 rows."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1.c",
+   "quote": "missing or extra headers, unknown or duplicate headers, zero data rows ... return the standard 400 `invalid` envelope."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1.d",
+   "quote": "The importer keeps no file or import history, and a second successful submission creates a second batch."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1.b, R-2.a",
+   "quote": "Return 201 and `{\"items\":[...]}` containing the created open tickets in CSV order.",
+   "missing": "The spec implies a synchronous response but never says whether large files run in the background or how completion is signalled."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-1.d",
+   "quote": "each ticket has a normal `ticket.created` audit event attributed to casey and one receipt in the existing outbox ... The notification worker continues to own delivery.",
+   "missing": "Whether up to 500 notifications can go out at once, and any pacing or throttling."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1.a, R-1.b",
+   "quote": "A blank priority or absent priority column selects `normal`. ... containing the created open tickets",
+   "missing": "The assignee and the creation/update timestamps given to imported tickets."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-1.d, Non-functional requirements",
+   "quote": "The importer keeps no file or import history ... Existing request logging covers the route and its status without retaining file bytes."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-1.d",
+   "quote": "With header `X-Actor: casey`, each ticket has a normal `ticket.created` audit event attributed to casey"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-1.c",
+   "quote": "Fail on the first error ... A rejected batch leaves tickets, counters, audit, and outbox intact.",
+   "missing": "Cancelling a running import is not addressed. Retrying only the failed rows is moot under all-or-nothing, but the spec never says so."
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "Key questions K2, R-2.a",
+   "quote": "Single-ticket creation, ticket lifecycle, CLI and worker contracts carry forward ... reopening it exposes all rows, prior tickets and associated records."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1.a, Non-functional requirements",
+   "quote": "including the ordinary single-ticket validation rules ... Reject bodies over the existing configurable `MAX_BODY_BYTES` (default 65536)",
+   "missing": "Neutralising values that become spreadsheet formulas, and any explicit per-field length limit."
+  }
+ ]
+}

@@ -1,0 +1,146 @@
+{
+ "slot": "csv-ticket-import__K2__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.2981862,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Invalid input leaves tickets, next ticket number, audit and outbox as they were. Send one valid row followed by an invalid row, check the empty normal listing and outbox"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Identify the first offending CSV record by starting line for errors localized to one record, including header mistakes on line 1. Confirm with HTTP tests and check response messages for record errors."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "A new successful submission creates new tickets. New replay token, raw upload retention and access controls are outside this request.",
+   "missing": "Whether a row matching an existing ticket, or duplicate rows within one file, are skipped, merged or rejected."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "For malformed quoting, wrong field count, invalid ticket value, empty or header-only input, duplicate/unknown/missing column ... return 400 with the existing invalid envelope."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Preserve POST /tickets JSON and the existing internal access model ... The feature has no rendered interface or new role assignment.",
+   "missing": "Whether import is a distinct permission from single create; the spec only reuses the existing access model."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1 / R-2",
+   "quote": "Require title and requester headers and allow priority in any header order ... duplicate/unknown/missing column ... return 400"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Accept UTF-8 BOM, CRLF or LF, quoted values, doubled quotes and an optional terminal newline ... Parse quoted record boundaries before applying normal single-line field rules."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Every success inserts its tickets, creation audit entries and pending requester notifications as one store operation"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Count the entire raw request against MAX_BODY_BYTES. Accept a valid body exactly at the limit and return 400 for an oversized body."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "empty or header-only input ... return 400 with the existing invalid envelope",
+   "missing": "Behaviour for a single-row file is not stated explicitly."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "A new successful submission creates new tickets. New replay token, raw upload retention and access controls are outside this request."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "the upload returns 201 with items T-0001 and T-0002 in that order",
+   "missing": "No explicit statement on whether large files are processed synchronously or in the background, or how completion is reported for them."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "one pending creation event per requester ... Worker delivery remains asynchronous and separate from the 201.",
+   "missing": "Whether many notifications go out at once and any pacing or throttling of delivery."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "open, with priorities urgent and normal respectively ... A missing or blank priority uses normal.",
+   "missing": "Assignee of imported tickets and the timestamps they are stamped with."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Raw CSV belongs to the HTTP request for its lifetime; the persisted records follow the usual ownership and visibility."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Confirm one ticket.created entry per ticket with the upload actor"
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "No separate performance SLA, graphical accessibility work or production verification target is specified.",
+   "missing": "Any time bound for a maximum-size file and whether progress is visible while it runs."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Keep existing individual create, listing, cursor and CLI contracts. Confirm in the existing full suite."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Reuse the configured byte bound and existing field limits to constrain resource use.",
+   "missing": "Handling of spreadsheet formula-injection values; over-long fields rely on existing limits without stating the boundary."
+  }
+ ]
+}

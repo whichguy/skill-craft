@@ -1,0 +1,143 @@
+{
+ "slot": "csv-user-import__K2__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.19662639999999998,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2b",
+   "quote": "R-2b Atomic failure and retry. ... All invalid batches leave users and the next ID unchanged."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2b",
+   "quote": "When a data record is identifiable, the JSON error includes its one-based CSV record number, counting the header as one.",
+   "missing": "Whether all failing rows or only the first are reported, and what reason text or code the error body carries per row."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2b",
+   "quote": "An email matching any existing user or earlier row, regardless of case, returns 409."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-2 Basis",
+   "quote": "Imported users cannot assign their own IDs or privileges."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1a",
+   "quote": "An admin POSTs a CSV file as the raw request body to `/users/import` with `Authorization: Bearer <ADMIN_TOKEN>`. With absent, invalid or unconfigured credentials, the endpoint returns 401"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-1b",
+   "quote": "has a header with exactly one `name` and one `email` in either order. ... wrong field counts return 400.",
+   "missing": "Whether extra/unexpected columns are rejected or ignored, and the explicit outcome when the header row is missing."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1b",
+   "quote": "The input is UTF-8, optionally starts with a BOM ... accepts LF and CRLF separators, quoted values, embedded commas and line breaks in quotes, and doubled quotes."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2b",
+   "quote": "All invalid batches leave users and the next ID unchanged."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "NFR-1",
+   "quote": "the configured defaults are 1 MiB and 1,000 data records per request. An upload above either bound returns 413 before any user mutation, including when the sender omits Content-Length."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1b",
+   "quote": "Empty files, header-only files, invalid UTF-8, broken quoting, interior empty records and wrong field counts return 400.",
+   "missing": "A single-row file is not explicitly addressed."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2b",
+   "quote": "Retrying a previously successful file returns 409 and adds no duplicates."
+  },
+  {
+   "id": "N-12",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2c",
+   "quote": "The upload is read for validation and discarded after the request."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2b",
+   "quote": "Atomic failure and retry. ... Retrying a previously successful file returns 409 and adds no duplicates.",
+   "missing": "Cancelling a running import, and whether/how only failed rows can be retried."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "NFR-1",
+   "quote": "No service latency or throughput promise applies.",
+   "missing": "No time bound for a maximum-size file and no progress visibility while it runs."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3 / R-2b",
+   "quote": "Preserve the observed GET behavior in src/server.js and src/users.js ... An email matching any existing user or earlier row, regardless of case, returns 409."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

@@ -1,0 +1,147 @@
+{
+ "slot": "csv-user-import__K2__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2b",
+   "quote": "All invalid batches leave users and the next ID unchanged."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2b",
+   "quote": "When a data record is identifiable, the JSON error includes its one-based CSV record number, counting the header as one.",
+   "missing": "The builder must decide whether to report every failing row and how to tell the admin why each row failed."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2b",
+   "quote": "An email matching any existing user or earlier row, regardless of case, returns 409."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-2 Basis",
+   "quote": "Imported users cannot assign their own IDs or privileges.",
+   "missing": "The file cannot assign privileges, but the specification gives no rule tying a new user's effective access to the importer's authority."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1a",
+   "quote": "An admin POSTs a CSV file as the raw request body to `/users/import` with `Authorization: Bearer <ADMIN_TOKEN>`.",
+   "missing": "The import credential is specified, but its relationship to permission to create a single user is unstated."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1b",
+   "quote": "has a header with exactly one `name` and one `email` in either order."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1b",
+   "quote": "optionally starts with a BOM, and has a header with exactly one `name` and one `email` in either order. It accepts LF and CRLF separators, quoted values, embedded commas and line breaks in quotes, and doubled quotes."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-2b",
+   "quote": "All invalid batches leave users and the next ID unchanged.",
+   "missing": "The rollback rule covers stored users and IDs. The timing and disposition of external effects such as invitations are unspecified."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "NFR-1",
+   "quote": "the configured defaults are 1 MiB and 1,000 data records per request. An upload above either bound returns 413 before any user mutation, including when the sender omits Content-Length."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1b and R-2a",
+   "quote": "Empty files, header-only files, invalid UTF-8, broken quoting, interior empty records and wrong field counts return 400. \u2026 With every row valid, it creates all users in file order with consecutive, server-assigned IDs and returns 201 and `{\"created\":n}`."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2b",
+   "quote": "Retrying a previously successful file returns 409 and adds no duplicates."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-2a",
+   "quote": "With every row valid, it creates all users in file order with consecutive, server-assigned IDs and returns 201 and `{\"created\":n}`.",
+   "missing": "The HTTP response signals completion. The specification gives no background processing rule for large files or way for an admin to learn that a background job finished."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-2c",
+   "quote": "The upload is read for validation and discarded after the request.",
+   "missing": "Discarding the upload rules out later downloads. The builder must still decide where the raw file is held during the request."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2b",
+   "quote": "Retrying a previously successful file returns 409 and adds no duplicates.",
+   "missing": "The builder has no rule for cancelling a running import or for identifying and resubmitting only the rows that failed validation."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "NFR-1",
+   "quote": "No service latency or throughput promise applies.",
+   "missing": "The specification explicitly declines a time bound, including for a maximum-size file, and leaves progress reporting unspecified."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-2b",
+   "quote": "An email matching any existing user or earlier row, regardless of case, returns 409. All invalid batches leave users and the next ID unchanged.",
+   "missing": "The specification protects existing users but gives no compatibility requirement for manually creating a single user."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

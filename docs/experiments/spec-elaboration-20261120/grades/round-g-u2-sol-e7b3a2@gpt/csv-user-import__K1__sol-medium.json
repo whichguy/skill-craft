@@ -1,0 +1,144 @@
+{
+ "slot": "csv-user-import__K1__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1.d",
+   "quote": "Any failed batch leaves state and ID allocation unchanged."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1.b",
+   "quote": "Malformed CSV, headers or data return 400 with a logical record number where applicable.",
+   "missing": "The specification gives record numbers and status codes but leaves open whether the response lists every failed record and explains the specific cause for each."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1.d",
+   "quote": "Reject existing or in-batch email collisions case-insensitively with 409 and the offending record number."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1.a",
+   "quote": "An operator holding the configured admin token can POST a raw UTF-8 `text/csv` body to `/users/import`.",
+   "missing": "The token identifies who may import. The specification does not define a separate permission for creating one user or its relationship to import permission."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1.b",
+   "quote": "Require exactly `name` and `email` headers in either order and at least one data record."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1.b",
+   "quote": "Handle UTF-8 BOM, LF and CRLF, optional final newline, quoted commas, escaped quotes and quoted newlines."
+  },
+  {
+   "id": "N-8",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Enforce an initial operational limit of 1 MiB per request and 1,000 data records, with 413 and zero writes on overflow."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1.b",
+   "quote": "Require exactly `name` and `email` headers in either order and at least one data record."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1.d",
+   "quote": "Reject existing or in-batch email collisions case-insensitively with 409 and the offending record number. Any failed batch leaves state and ID allocation unchanged."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Import completion is synchronous and needs no job or cache.",
+   "missing": "Accepted uploads finish within the HTTP request. The specification provides no background processing or completion notice for a large file."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Editing, deleting, account sign-in and durable storage are outside CSV creation.",
+   "missing": "Sign-in is explicitly outside scope. The specification does not say whether an imported user has an activation status or a password at creation."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Upload bytes are request-scoped.",
+   "missing": "The request bounds retention and rules out later retrieval of the original upload. The specification leaves open where the bytes are held during the request."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-1.d",
+   "quote": "Reject existing or in-batch email collisions case-insensitively with 409 and the offending record number.",
+   "missing": "An existing email cannot be overwritten by import. The specification describes a read-only baseline and gives no manual single-user creation behavior to preserve."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

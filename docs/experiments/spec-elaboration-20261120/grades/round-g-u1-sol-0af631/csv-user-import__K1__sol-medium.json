@@ -1,0 +1,142 @@
+{
+ "slot": "csv-user-import__K1__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.1913534,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "When any row fails, user records and the next ID are unaffected."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Include a record number starting at 1 for header, row and quoting errors.",
+   "missing": "Whether all failing rows are listed or only the first, and whether/how the reason for each failure is reported in the 400 body."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "duplicate emails produce 400 ... Check duplicates case-insensitively against existing users and earlier rows."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "Key questions K6, K12",
+   "quote": "an import-specific ADMIN_IMPORT_TOKEN ... Admin means the caller holding the configured token"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1, R-2",
+   "quote": "CSV accepts exactly the lowercase name and email headers in either order ... empty/header-only files, wrong headers, malformed quoting, inconsistent rows ... produce 400."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "UTF-8 with optional BOM, LF or CRLF, a final newline, quoted commas and newlines, and doubled quote escapes."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2, Non-functional requirements",
+   "quote": "When any row fails, user records and the next ID are unaffected. ... No external service ... is in scope."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2, Non-functional requirements",
+   "quote": "uploads above 1 MiB yield 413 ... Accept at most 1,048,576 request bytes and stop buffering at the first excess."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1, R-2",
+   "quote": "empty/header-only files ... produce 400; respond 201 ... for the input header name,email and data row Lin,lin@example.com"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A retry after successful creation fails on the existing email."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Synchronous validation and commit avoid interleaving with other writes in the same process.",
+   "missing": "No explicit decision that a maximum-size file is handled within the request rather than in the background, nor how long the admin waits."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Keep token and raw CSV out of diagnostics",
+   "missing": "Whether the uploaded file is retained at all, where, for how long, and who may download it again."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "When any row fails, user records and the next ID are unaffected. ... accept a corrected batch.",
+   "missing": "Cancelling a running import is not addressed; retry-of-failed-rows is only implied by the atomic resubmit."
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1, R-2",
+   "quote": "Existing GET routes expose the same shape and visibility for existing and imported users. ... Check duplicates case-insensitively against existing users"
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

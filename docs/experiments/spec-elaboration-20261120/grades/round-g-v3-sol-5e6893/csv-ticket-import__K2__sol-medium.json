@@ -1,0 +1,148 @@
+{
+ "slot": "csv-ticket-import__K2__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.20859460000000002,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1 A3/A4",
+   "quote": "an invalid ticket field ... receives a 400 invalid envelope ... GET /tickets and GET /admin/outbox remain empty. ... saves the batch through one atomic file replacement."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1 A3",
+   "quote": "CSV record diagnostics use one-based record numbering with the header as record 1. ... expect an error identifying record 3 and priority.",
+   "missing": "Whether the response lists every failing row or only the first, and the response structure carrying row and reason."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1 A2/A4",
+   "quote": "Entries with the same valid inputs are distinct tickets, as with individual creation. ... A second successful submission creates new tickets."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1 A1/A2",
+   "quote": "title and requester headers, with optional priority ... The existing field validation governs title, requester and nonempty priority. ... open",
+   "missing": "No statement that file values are checked against the importer's own authority, nor whether extra columns (e.g. status, assignee) are rejected."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Existing request logging and internal network boundary apply.",
+   "missing": "Who may import and whether import requires a permission beyond single-ticket creation."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1 A1/A3",
+   "quote": "The first record must have unique, case-sensitive title and requester headers, with optional priority, in any order. ... Data records must match the header width. ... missing or invalid header ... receives a 400"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-1 A1",
+   "quote": "raw UTF-8 text/csv, including an optional UTF-8 BOM, CRLF or LF record separators and an optional final newline. ... Quoting supports commas and doubled quotes.",
+   "missing": "Whether quoted fields may contain embedded newlines."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-1 A3/A4",
+   "quote": "GET /tickets and GET /admin/outbox remain empty. ... If saving fails, ticket IDs, audit sequence, tickets and outbox remain at their prior state."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Enforce MAX_BODY_BYTES as for JSON requests and allow at most 500 data records per request ... Both limits yield a 400 invalid envelope without mutation."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1 A3",
+   "quote": "missing or invalid header ... or an upload with no data records receives a 400 invalid envelope."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1 A4",
+   "quote": "A second successful submission creates new tickets."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2, R-1 A2",
+   "quote": "allow at most 500 data records per request to bound synchronous mutation and response size ... Expect 201 with items T-0001 and T-0002"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-1 A2/A4",
+   "quote": "one corresponding pending notification ... The worker delivers pending notifications through its existing retry flow.",
+   "missing": "Whether up to 500 notifications go out at once and any pacing or throttling."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1 A1/A2",
+   "quote": "Empty or omitted priority uses normal. ... open, with priorities high and normal.",
+   "missing": "Assignee default and the timestamps stamped on imported tickets."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-1 A4",
+   "quote": "Upload contents are request-local. Only ordinary validated domain records persist."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1 A2",
+   "quote": "Each has a ticket.created audit entry attributed to dana",
+   "missing": "Whether an import-level audit record (who imported which batch, when) exists beyond per-ticket creation entries."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Document a complete curl upload and the row, format, response and retry rules.",
+   "missing": "Cancellation behavior and whether/how only failed rows can be retried."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "allow at most 500 data records per request to bound synchronous mutation and response size.",
+   "missing": "A time bound for a maximum-size file and any progress visibility."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Preserve single-ticket creation, HTTP audit attribution and the operator CLI's read-only behavior"
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1 A1, R-2",
+   "quote": "The existing field validation governs title, requester and nonempty priority. ... Enforce MAX_BODY_BYTES",
+   "missing": "Handling of spreadsheet formula-injection values and explicit per-field length limits."
+  }
+ ]
+}

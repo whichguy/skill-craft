@@ -1,0 +1,19 @@
+{
+ "rubric_sha256": "e189dc7b9046d48fa9dc418fd8fd920d8c7b1f933d523e9875c1645ed831c27c",
+ "slots": {
+  "K2": {
+   "spec_sha256": "309c1cb0ed617eb735da1859b1eb9d3787b1916ed1003251dc6c2c2d450bcf50",
+   "grades": {
+    "opus": "f455520c58b3d4707b98fbe517fd047f50562bb7122c4d1d676b4b7de1914745",
+    "astra": "74da280cb33e93887ff87a73ff24c834e4d52d5849109bdba6aeacabc3597dd6"
+   }
+  },
+  "K1": {
+   "spec_sha256": "c57fdebd4eec5eb1dea0328ef53d14ce48a5f9dce7a1beff5c39de912b31d49a",
+   "grades": {
+    "opus": "9560d1d741830e448dacc4f7421e34895ab47744ab6ec83055cbc8fa288993de",
+    "astra": "c2f2dc51c310f57791ba1a09e51d4840e6ad2e989a2b8de6ee78f43ef677dc86"
+   }
+  }
+ }
+}

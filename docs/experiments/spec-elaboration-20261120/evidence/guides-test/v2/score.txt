@@ -1,0 +1,13 @@
+set v2-sol: items that apply here for both sorters (15): ['N-1', 'N-2', 'N-3', 'N-4', 'N-6', 'N-7', 'N-8', 'N-9', 'N-10', 'N-11', 'N-13', 'N-16', 'N-17', 'N-20', 'N-21']
+  A opus: covered 7, partly 6, absent 2
+  A astra: covered 7, partly 5, absent 3
+  S opus: covered 11, partly 3, absent 1
+  S astra: covered 7, partly 7, absent 1
+  S over A: higher under both judges ['N-4', 'N-6', 'N-21']; of them newly raised ['N-21']; lower []; net 3
+  not in the rule (mixed, unclear or the sorters differ), as states under the two judges:
+    N-5: A 1/1, S 1/1
+    N-14: A 1/1, S 1/1
+    N-15: A 2/2, S 2/2
+    N-19: A 1/1, S 0/0
+  delivered as each arm intends: {'A': True, 'S': False}
+  OUTCOME (S over A): delivery failed: this contrast cannot be read

@@ -740,3 +740,11 @@ sentence "Let agents upload a CSV to bulk-create tickets." on `fixtures/node-tic
 `evidence/guides-test/t1/` to `t3/` and `ticket-sets.txt`). Fifteen items apply there. Result: not shown for the
 guide text or the read-all sentence, and the opposite for the guide text against the cue; covered by both judges of
 45 item readings, released 20, cue 21, read-all 21, guide text 18. Six items are covered by no arm in any set.
+
+Sections 50 and 51 are a third experiment: arm S, the released stage with one more duty, a section the spec stage
+must fill answering intake's own twelve key questions with the requirement that states each
+(`overlays/guides-section.json`; `prepare --arms A,S`; `evidence/guides-test/u1/` to `u3/`, `v1/` to `v3/` and
+`section-sets.txt`). The section is written every time, twelve entries, and is an index of what the requirements
+already say: not shown on either case (18 against 21 of 27 item readings, 20 against 21 of 45). Section 51 sets the
+three experiments side by side: nothing tried makes a specification from a vague sentence reliably fuller, and what
+the released stage leaves thin is the same few particular things every time.

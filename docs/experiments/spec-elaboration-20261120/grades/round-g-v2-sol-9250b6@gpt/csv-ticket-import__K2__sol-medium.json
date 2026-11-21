@@ -1,0 +1,148 @@
+{
+ "slot": "csv-ticket-import__K2__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1.c",
+   "quote": "A rejected batch leaves tickets, counters, audit, and outbox intact."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1.c",
+   "quote": "Fail on the first error and identify the logical record number when the error belongs to a record (row 1 is the header).",
+   "missing": "Only the first failure is reported. The text does not require the response to explain what was wrong with that record."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-1.d",
+   "quote": "a second successful submission creates a second batch.",
+   "missing": "Resubmitting the whole file creates tickets again, but the text gives no matching rule for an individual row that duplicates an existing ticket or another row in the file."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1.a, R-1.d",
+   "quote": "including the ordinary single-ticket validation rules. \u2026 The real entry point uses the same internal access boundary and `X-Actor` attribution as POST /tickets.",
+   "missing": "The text does not require checking whether this particular caller may set each supplied field value."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1.d",
+   "quote": "The real entry point uses the same internal access boundary and `X-Actor` attribution as POST /tickets.",
+   "missing": "The internal access boundary is defined, but no separate import permission is required for someone who can create a single ticket."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1.a, R-1.c",
+   "quote": "The first record must contain the case-sensitive headers `title`, `requester`, and optionally `priority` in any order. \u2026 missing or extra headers, unknown or duplicate headers, \u2026 return the standard 400 `invalid` envelope."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-1.a",
+   "quote": "Accept LF and CRLF, optional UTF-8 BOM and final line break, quoted commas and doubled quotes.",
+   "missing": "The text does not say whether a quoted field may contain an embedded newline."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-1.c, R-2.a, R-1.d",
+   "quote": "A rejected batch leaves tickets, counters, audit, and outbox intact. \u2026 Commit ticket, audit, outbox and sequence changes together. \u2026 The notification worker continues to own delivery."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Reject bodies over the existing configurable `MAX_BODY_BYTES` (default 65536) and batches above 500 data rows before writing. Verify both limits, including acceptance at 500 rows."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1.c, R-1.b",
+   "quote": "missing or extra headers, unknown or duplicate headers, zero data rows, \u2026 return the standard 400 `invalid` envelope. \u2026 Return 201 and `{\"items\":[...]}` containing the created open tickets in CSV order."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1.d",
+   "quote": "The importer keeps no file or import history, and a second successful submission creates a second batch."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1.b, R-2.a",
+   "quote": "Return 201 and `{\"items\":[...]}` containing the created open tickets in CSV order. \u2026 Simultaneous requests allocate distinct IDs because commit is synchronous.",
+   "missing": "The HTTP response signals completion. The text specifies no background processing for large files or way to learn the outcome of a background job."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-1.d",
+   "quote": "one receipt in the existing outbox. \u2026 The notification worker continues to own delivery.",
+   "missing": "The text does not specify how quickly the worker sends the receipts or whether it limits a burst from a large batch."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1.a, R-1.b",
+   "quote": "A blank priority or absent priority column selects `normal`. \u2026 Return 201 and `{\"items\":[...]}` containing the created open tickets in CSV order.",
+   "missing": "The default assignee and the timestamps assigned on creation are unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-1.d, Non-functional requirements",
+   "quote": "The importer keeps no file or import history, \u2026 Existing request logging covers the route and its status without retaining file bytes."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1.d",
+   "quote": "With header `X-Actor: casey`, each ticket has a normal `ticket.created` audit event attributed to casey and one receipt in the existing outbox.",
+   "missing": "The text identifies the actor and ticket but does not say that the audit records the import time or identifies the creation as part of an import."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "Key questions K2, R-2.a",
+   "quote": "Single-ticket creation, ticket lifecycle, CLI and worker contracts carry forward \u2026 reopening it exposes all rows, prior tickets and associated records."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1.a, R-1.c",
+   "quote": "including the ordinary single-ticket validation rules. \u2026 invalid ticket fields return the standard 400 `invalid` envelope.",
+   "missing": "Existing field validation applies, but the text gives no per-field length boundary or handling for spreadsheet-formula values."
+  }
+ ]
+}

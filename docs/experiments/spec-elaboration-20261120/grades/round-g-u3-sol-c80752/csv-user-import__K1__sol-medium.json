@@ -1,0 +1,144 @@
+{
+ "slot": "csv-user-import__K1__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.17548280000000002,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "A rejected batch creates no users and consumes no IDs."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Bad encoding, CSV syntax, header or record data receives 400 with an error and row number where applicable.",
+   "missing": "Whether the response lists every failing row or only the first, and what the error content per row looks like."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "A repeated email, including case-only variants within the file or already stored, receives 409 with its row number."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Only a configured shared administrator credential grants import access."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "The two headers are required once each and may be reordered.",
+   "missing": "Whether unexpected extra columns are accepted, ignored or rejected; missing header row is only implied by 'bad ... header'."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "UTF-8 BOM, LF and CRLF, quoted delimiters or line breaks, and doubled quotes are accepted."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "A rejected batch creates no users and consumes no IDs.",
+   "missing": "Whether any other side effects (invitations, notifications) occur per row and how they are handled when a later row fails."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "The upload accepts at most 1 MiB and 1,000 data rows as implementation defaults. The service rejects oversized requests with 413 without creating users."
+  },
+  {
+   "id": "N-10",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "A repeated email, including case-only variants within the file or already stored, receives 409 with its row number.",
+   "missing": "Re-upload behaviour is only implied by the stored-duplicate rule; the spec never deliberately decides idempotency for a repeated file."
+  },
+  {
+   "id": "N-12",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "The request body is temporary. ... The server does not include credentials or upload contents in errors or logs.",
+   "missing": "Retention duration and whether anyone may download the uploaded file again."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Existing public reads, seed users and ID order are preserved",
+   "missing": "Whether single-user creation still works unchanged, and an explicit statement that existing users are never modified by import."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

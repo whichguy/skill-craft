@@ -1,0 +1,145 @@
+{
+ "slot": "csv-ticket-import__K1__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.2129516,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Reject invalid imports without partial creation ... Atomic rejection and a synchronous result are product defaults. ... Check the whole upload before any write."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "CSV syntax and field errors identify the first failing CSV row where applicable, with the header numbered 1.",
+   "missing": "Only the first failing row is reported; whether all failing rows are listed, and how the reason is given beyond 'may name a row and field', is not decided."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Each successful submission, including a repeated file, creates a new batch.",
+   "missing": "Behaviour for a row matching an existing ticket and for duplicate rows within one file is not stated."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1 / R-3",
+   "quote": "The required header has `title` and `requester` and optionally `priority` ... Preserve the single-ticket JSON endpoint, existing request and actor rules",
+   "missing": "No explicit check of imported values (e.g. priority) against the importer's own authority as for single creation."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-2 / Non-functional requirements",
+   "quote": "invalid actor ... Reuse the internal service boundary and existing audit identity.",
+   "missing": "Who may import, and whether import needs permission beyond single-ticket creation, is not decided."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1 / R-2",
+   "quote": "The required header has `title` and `requester` and optionally `priority`, in any order. Column names are exact, unique and case-sensitive. ... empty/header-only input, invalid header, wrong row width"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Accept a leading UTF-8 BOM, LF or CRLF, an optional final newline, quoted commas and doubled quotes. Quoted fields must fit on one line."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Check the whole upload before any write. A save failure returns the standard 500 envelope and leaves ticket IDs, tickets, audits and pending notifications as they were."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements / R-2",
+   "quote": "Reuse `MAX_BODY_BYTES` (default 65536, configurable up to 1 MiB) for raw uploads. Cap the number of data rows at 1,000 ... Return 400 `invalid` for ... an exceeded limit."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Return 400 `invalid` for ... empty/header-only input"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Each successful submission, including a repeated file, creates a new batch."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2 / Non-functional requirements",
+   "quote": "Atomic rejection and a synchronous result are product defaults. ... Cap the number of data rows at 1,000 to bound synchronous creation and outbox scans."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-1 / R-2",
+   "quote": "Each ticket gets one normal creation audit entry and one enqueue for its requester. ... The existing worker owns delivery and retries.",
+   "missing": "Whether up to 1,000 notifications go out at once and any pacing of delivery is not stated."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Blank or omitted priority uses `normal`. ... Return 201 with `{ \"items\": [...] }` containing the open ticket objects in CSV order.",
+   "missing": "Assignee and the timestamps stamped on created tickets are not stated."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2 / Non-functional requirements",
+   "quote": "Upload bytes live only for request processing. Imported data follows normal ticket retention and visibility. ... does not include upload contents."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-1 / Non-functional requirements",
+   "quote": "Each ticket gets one normal creation audit entry ... Read back the tickets, audit actors ... Reuse the internal service boundary and existing audit identity."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Cap the number of data rows at 1,000 to bound synchronous creation and outbox scans.",
+   "missing": "No time bound for a maximum-size file and no statement on progress visibility."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Preserve the single-ticket JSON endpoint, existing request and actor rules, and ticket reads. The old suite and a single POST after an import verify compatibility."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

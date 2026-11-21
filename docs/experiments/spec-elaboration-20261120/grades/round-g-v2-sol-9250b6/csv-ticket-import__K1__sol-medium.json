@@ -1,0 +1,149 @@
+{
+ "slot": "csv-ticket-import__K1__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.21751320000000002,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2.b",
+   "quote": "Publish all ticket, ID, audit and outbox changes together after one successful save when persistence is configured. A failed validation or save leaves live changes and sequence counters untouched."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1.b",
+   "quote": "with 400 `invalid`. Identify the first bad CSV record when the error can be located. The header is row 1.",
+   "missing": "Only the first bad record is identified; whether all failing rows are listed and what reason is reported per row is undecided."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-2.c",
+   "quote": "A second successful upload is a new create, so existing ticket IDs are never reused.",
+   "missing": "No rule for a row matching an existing ticket by content, nor for duplicate rows within one file."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1.a / R-2.a",
+   "quote": "The header must contain `title` and `requester`, with optional `priority`... Every imported ticket receives its sequential ID, open status",
+   "missing": "Columns and forced open status limit fields, but nothing states imported values are checked against the importer's own per-ticket authority."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1 / R-2.d",
+   "quote": "adds an HTTP file upload for the internal agents described in README.md... No public delivery, app-level role system or schema migration is required.",
+   "missing": "Does not state who may import or whether import permission is distinct from single-ticket create."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-1.a / R-1.b",
+   "quote": "The header must contain `title` and `requester`, with optional `priority`, in any order... Reject ... empty or header-only input, invalid headers",
+   "missing": "Whether unexpected extra or duplicate columns count as invalid headers is not decided."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1.a",
+   "quote": "Accept LF and CRLF, optional UTF-8 BOM, quoted fields, commas and doubled quotes within quotes."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2.b / R-1.b",
+   "quote": "Publish all ticket, ID, audit and outbox changes together after one successful save... verify no tickets, audit events or outbox entries appear."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1.c",
+   "quote": "Honor `MAX_BODY_BYTES` and a maximum of 100 data rows. Confirm 100 valid rows succeed and 101 fail. Configure a lower test byte limit to distinguish exact-limit and oversized files."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1.b",
+   "quote": "Reject invalid media type or UTF-8, empty or header-only input",
+   "missing": "Single-row file behaviour is not stated."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2.c",
+   "quote": "A second successful upload is a new create, so existing ticket IDs are never reused."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1.a",
+   "quote": "Expect 201 and `{ \"items\": [...] }` with tickets in file order.",
+   "missing": "Synchronous processing is only implied by the response; background processing and completion signalling are not stated deliberately."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-2.a / R-2.c",
+   "quote": "one pending receipt notification... The worker sends notifications separately under its existing retry rules.",
+   "missing": "Whether up to 100 notifications go out at once and any pacing is undecided."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-2.a / R-1.b",
+   "quote": "Every imported ticket receives its sequential ID, open status... An omitted or empty priority defaults to `normal`.",
+   "missing": "Assignee and creation/update timestamps for imported tickets are not stated."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2.c",
+   "quote": "Keep the upload body request-local. Its accepted ticket data follow existing store, logging and access rules... Confirm no extra persisted state"
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-2.a",
+   "quote": "Every imported ticket receives ... creation audit entry with the normal `X-Actor` attribution"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2.b",
+   "quote": "A failed validation or save leaves live changes and sequence counters untouched. Confirm via save fault injection and a successful retry",
+   "missing": "Cancellation of a running import is not addressed; retry is only implied as whole-file resubmission."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Production latency and availability are outside this source-delivery change.",
+   "missing": "No time bound for a maximum-size file and no progress indication."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2.d",
+   "quote": "Preserve the JSON create, list and operator reporting contracts, checked by the existing suite."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

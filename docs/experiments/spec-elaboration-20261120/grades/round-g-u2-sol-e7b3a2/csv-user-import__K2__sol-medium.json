@@ -1,0 +1,140 @@
+{
+ "slot": "csv-user-import__K2__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.191271,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2.b",
+   "quote": "Either rejection leaves the store and next ID unchanged. ... Check through HTTP with a valid row before the rejected one"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1.e",
+   "quote": "Errors return a JSON error message plus a 1-based logical CSV row number where applicable."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2.b",
+   "quote": "An email already present or repeated within the file, compared case-insensitively, returns 409."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-2 Basis / R-1.c",
+   "quote": "No persistence, invitation, user-role assignment or external side effect is in scope. / CSV has exactly the name and email headers"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1.b",
+   "quote": "Only the configured ADMIN_TOKEN bearer credential authorizes import. Missing, malformed, incorrect, and unconfigured credentials return 401 before CSV processing"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1.c",
+   "quote": "CSV has exactly the name and email headers, either order, followed by one or more records. ... Reject ... unexpected field counts, invalid headers and missing data with 400."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1.c",
+   "quote": "Accept an optional initial UTF-8 BOM, LF or CRLF line endings, an optional final newline, and quoted fields with embedded commas, line breaks and doubled quotes."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2 Basis / R-2.b",
+   "quote": "No persistence, invitation, user-role assignment or external side effect is in scope. ... Either rejection leaves the store and next ID unchanged."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1.d",
+   "quote": "Requests may contain up to 1,048,576 bytes and 1,000 data rows. An exceeded bound returns 413 before any write."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1.c",
+   "quote": "CSV has exactly the name and email headers, either order, followed by one or more records. ... Reject ... invalid headers and missing data with 400."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2.b",
+   "quote": "An email already present or repeated within the file, compared case-insensitively, returns 409. Either rejection leaves the store and next ID unchanged."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "No job or event system exists. ... Synchronous commit and GET read-back are verified on the real local HTTP boundary."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-2 Basis",
+   "quote": "No persistence, invitation, user-role assignment or external side effect is in scope."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-2 Basis",
+   "quote": "the observed id/name/email model in src/users.js ... No persistence, invitation, user-role assignment or external side effect is in scope.",
+   "missing": "Whether created users are active or pending, whether they have any credential, and how (or whether) they first sign in."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "CSV bytes are held only while processing and are omitted from logs."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "No load SLA or persistence guarantee was requested.",
+   "missing": "A time bound for a maximum-size file and any progress indication while it runs."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2.c / R-2.b",
+   "quote": "Preserve public GET /users in ID order, GET /users/:id and 404 for unknown IDs and routes, including when import is unconfigured. / An email already present ... returns 409."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

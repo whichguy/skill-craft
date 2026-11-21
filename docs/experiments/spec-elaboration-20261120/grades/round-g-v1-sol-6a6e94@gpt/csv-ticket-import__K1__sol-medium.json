@@ -1,0 +1,146 @@
+{
+ "slot": "csv-ticket-import__K1__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "Key questions, K4",
+   "quote": "Reject the entire batch on invalid input and report the first bad row."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "CSV syntax and field errors identify the first failing CSV row where applicable, with the header numbered 1.",
+   "missing": "Only the first failing row is identified. The response need not list each invalid row or explain the specific cause for each."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Each successful submission, including a repeated file, creates a new batch.",
+   "missing": "The repeated-file rule leaves open how to recognize and handle an individual row matching an existing ticket or another row in the same upload."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "invalid ticket fields, invalid actor",
+   "missing": "The specification requires field and actor validation but leaves open whether each supplied value must be one that this actor could set on a single ticket."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "Key questions, K12",
+   "quote": "Agents are internal help desk operators",
+   "missing": "The specification identifies the intended users but leaves import authorization and its relationship to single-ticket creation permission unspecified."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1 and R-2",
+   "quote": "The required header has `title` and `requester` and optionally `priority`, in any order. Column names are exact, unique and case-sensitive. \u2026 Return 400 `invalid` for \u2026 invalid header"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Accept a leading UTF-8 BOM, LF or CRLF, an optional final newline, quoted commas and doubled quotes. Quoted fields must fit on one line."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Check the whole upload before any write. A save failure returns the standard 500 envelope and leaves ticket IDs, tickets, audits and pending notifications as they were."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements and R-2",
+   "quote": "Reuse `MAX_BODY_BYTES` (default 65536, configurable up to 1 MiB) for raw uploads. Cap the number of data rows at 1,000 \u2026 Return 400 `invalid` for \u2026 an exceeded limit."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2 and R-1",
+   "quote": "Return 400 `invalid` for \u2026 empty/header-only input \u2026 Return 201 with `{ \"items\": [...] }` containing the open ticket objects in CSV order."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Each successful submission, including a repeated file, creates a new batch."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-2 and Key questions, K1",
+   "quote": "Atomic rejection and a synchronous result are product defaults. \u2026 Agents upload to the HTTP service and read created tickets in the response.",
+   "missing": "The HTTP response communicates completion. Even the largest accepted upload runs synchronously, so there is no background import or later completion signal."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-1 and R-2",
+   "quote": "Each ticket gets one normal creation audit entry and one enqueue for its requester. \u2026 The existing worker owns delivery and retries.",
+   "missing": "The specification gives no delivery rate or burst limit for requester notifications from a batch."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Blank or omitted priority uses `normal`. \u2026 containing the open ticket objects in CSV order.",
+   "missing": "The default assignee and the timestamps assigned to each imported ticket are unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Upload bytes live only for request processing. Imported data follows normal ticket retention and visibility."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Each ticket gets one normal creation audit entry \u2026 Read back the tickets, audit actors and pending events through HTTP",
+   "missing": "The audit identifies the actor for each creation, but the specification does not require it to record when the import happened."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1, R-2 and R-3",
+   "quote": "bulk-create tickets. \u2026 Each successful submission, including a repeated file, creates a new batch. \u2026 Preserve the single-ticket JSON endpoint, existing request and actor rules, and ticket reads."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

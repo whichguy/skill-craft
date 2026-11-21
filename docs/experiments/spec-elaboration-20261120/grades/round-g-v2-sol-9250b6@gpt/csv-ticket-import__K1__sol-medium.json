@@ -1,0 +1,147 @@
+{
+ "slot": "csv-ticket-import__K1__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2.b",
+   "quote": "Publish all ticket, ID, audit and outbox changes together after one successful save when persistence is configured. A failed validation or save leaves live changes and sequence counters untouched."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1.b",
+   "quote": "with 400 `invalid`. Identify the first bad CSV record when the error can be located. The header is row 1.",
+   "missing": "Only the first locatable failure is identified. The specification gives no row-specific reason that the response must return."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-2.c",
+   "quote": "A second successful upload is a new create, so existing ticket IDs are never reused.",
+   "missing": "Fresh IDs explain repeat uploads. The builder still has to decide whether matching ticket values affect row acceptance, including when two rows in one file match."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "This adds an HTTP file upload for the internal agents described in README.md.",
+   "missing": "The specification identifies the intended users but leaves import permission and its relationship to single-ticket create permission unspecified."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-1.a, R-1.b",
+   "quote": "The header must contain `title` and `requester`, with optional `priority`, in any order. \u2026 invalid headers, malformed quoting, blank records, wrong column counts and invalid ticket fields with 400 `invalid`.",
+   "missing": "A header containing all required names plus an unexpected column satisfies the stated presence rule. The builder must decide whether to reject that column."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1.a, R-1.b",
+   "quote": "Accept LF and CRLF, optional UTF-8 BOM, quoted fields, commas and doubled quotes within quotes. \u2026 Existing title and requester rules require single-line values."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-1.b, R-2.b, R-2.c",
+   "quote": "verify no tickets, audit events or outbox entries appear. \u2026 Publish all ticket, ID, audit and outbox changes together after one successful save when persistence is configured. \u2026 The worker sends notifications separately under its existing retry rules."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1.c",
+   "quote": "Honor `MAX_BODY_BYTES` and a maximum of 100 data rows. Confirm 100 valid rows succeed and 101 fail."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1.b, R-1.c",
+   "quote": "Reject invalid media type or UTF-8, empty or header-only input, invalid headers, malformed quoting, blank records, wrong column counts and invalid ticket fields with 400 `invalid`. \u2026 a maximum of 100 data rows."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2.c",
+   "quote": "A second successful upload is a new create, so existing ticket IDs are never reused."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1.a",
+   "quote": "Expect 201 and `{ \"items\": [...] }` with tickets in file order.",
+   "missing": "The HTTP response signals completion. There is no provision for a large import to run in the background or for an agent to learn its outcome after the request ends."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-2.a, R-2.c",
+   "quote": "one pending receipt notification. \u2026 The worker sends notifications separately under its existing retry rules.",
+   "missing": "The builder has no pacing rule for sending a batch of newly queued receipts."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1.b, R-2.a",
+   "quote": "An omitted or empty priority defaults to `normal`. \u2026 Every imported ticket receives its sequential ID, open status",
+   "missing": "The default assignee and the timestamps set at creation are unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2.c",
+   "quote": "Keep the upload body request-local. Its accepted ticket data follow existing store, logging and access rules. \u2026 Confirm no extra persisted state or notification job type."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-2.a",
+   "quote": "Every imported ticket receives its sequential ID, open status, creation audit entry with the normal `X-Actor` attribution",
+   "missing": "Each audit entry identifies the ticket and actor. The specification does not require it to record when the import occurred."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Production latency and availability are outside this source-delivery change.",
+   "missing": "The specification gives neither a completion-time bound for a maximum-size file nor a way to see progress during processing."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2.c, R-2.d",
+   "quote": "A second successful upload is a new create, so existing ticket IDs are never reused. \u2026 Preserve the JSON create, list and operator reporting contracts, checked by the existing suite."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

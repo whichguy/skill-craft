@@ -1,0 +1,21 @@
+{
+ "name": "u2-sol-A",
+ "set": "u2-sol",
+ "arm": "A",
+ "driver": "sol",
+ "pid": 6142,
+ "started_at": 1795304014.527552,
+ "limit_minutes": 20.0,
+ "decided_at": 1795304154.646063,
+ "watcher": "saw the acceptance",
+ "stop_written": true,
+ "seen": {
+  "run_dir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-section-users-39d5f8/samples/u2-sol-A/.shiploop-runs/work-20261121-233347-e8c180/run",
+  "spec_action": "nav-6ba816ce38c941e2b8fa7dbce27feaaa",
+  "at": "2026-11-21T23:35:54Z",
+  "ts": 1795304154.206,
+  "spec_sha256": "1db8958bdcae2c00117fbe0073ffc62b53229f53f56974af6e3dd3cd0f5ba82a",
+  "head": "0f472d0c53f64d96738962e1ee6801bab34d91db"
+ },
+ "returncode": 1
+}

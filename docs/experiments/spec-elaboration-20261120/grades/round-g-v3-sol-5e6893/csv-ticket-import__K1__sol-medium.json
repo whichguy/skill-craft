@@ -1,0 +1,147 @@
+{
+ "slot": "csv-ticket-import__K1__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.21205680000000005,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Reject the entire batch on any bad record."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1, R-3",
+   "quote": "Identify the first bad logical CSV record (header is record 1) for record-level errors. ... Error text contains record numbers and validation messages without echoing data rows.",
+   "missing": "Only the first bad record is identified; whether all failing rows are reported in the result is not stated."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Every accepted row receives the next ordinary ID ... A new successful upload always creates new tickets.",
+   "missing": "Never matching existing tickets is implied, but duplicate rows within one file are not explicitly decided."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The required header names are title and requester with optional priority ... missing/duplicate/unknown headers ... or values that fail existing single-ticket validation."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "The API uses existing internal access and X-Actor attribution.",
+   "missing": "Whether importing needs a permission separate from creating a single ticket is not stated."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The required header names are title and requester with optional priority, in any order ... Return 400 invalid ... missing/duplicate/unknown headers, empty input, missing data, incorrect column count"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Allow BOM, LF and CRLF, field quoting, doubled quotes and one optional trailing line ending ... An embedded newline can be parsed in a quoted field"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2, Non-functional requirements",
+   "quote": "Reject the entire batch on any bad record. A pre-commit storage failure keeps ticket, audit, outbox and ID state intact. ... The bounded body and row checks run before store mutation."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "The input is limited by MAX_BODY_BYTES and 100 ticket records. Test 100 and 101 rows and a configured byte cap at and over the boundary.",
+   "missing": "The response (status code, error) for a body or row count over the limit is not stated."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Return 400 invalid ... empty input, missing data",
+   "missing": "Empty and header-only files are rejected, but single-row file behaviour is not explicitly stated."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A new successful upload always creates new tickets."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "yield 201 with JSON `{items}` containing T-0001 and T-0002",
+   "missing": "A synchronous response is implied, but the spec does not explicitly say whether processing is in-request or in the background."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "a ticket.created audit entry with X-Actor or system fallback plus a normal receipt notification",
+   "missing": "Whether up to 100 notifications go out at once, and any pacing, is not stated."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Blank priority defaults to normal ... T-0001 and T-0002, open, high and normal respectively",
+   "missing": "Assignee and creation timestamps for imported tickets are not stated."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2, R-3",
+   "quote": "No file, cache, client session or batch object is retained. ... Ticket fields continue under existing storage and retention rules."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Every accepted row receives the next ordinary ID and a ticket.created audit entry with X-Actor or system fallback"
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1, R-2",
+   "quote": "Preserve single-ticket JSON API and the read-only CLI, report, and existing error contracts. ... A new successful upload always creates new tickets."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "values that fail existing single-ticket validation",
+   "missing": "Spreadsheet formula injection is not addressed, and overlong fields are covered only by reference to existing validation, with no explicit length limit."
+  }
+ ]
+}

@@ -1,0 +1,149 @@
+{
+ "slot": "csv-ticket-import__K2__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Invalid input leaves tickets, next ticket number, audit and outbox as they were."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Identify the first offending CSV record by starting line for errors localized to one record, including header mistakes on line 1.",
+   "missing": "The response must locate the first error. The specification leaves open whether it lists every failing row and explains the cause for each."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "A new successful submission creates new tickets.",
+   "missing": "The builder still has to decide whether a match against an existing ticket or another row in the same file makes the submission invalid, or whether both copies are accepted."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Add an agent-facing POST /tickets/import endpoint accepting a raw UTF-8 text/csv request. Preserve POST /tickets JSON and the existing internal access model",
+   "missing": "It does not say which agents have import permission independently of permission to create a single ticket."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1 and R-2",
+   "quote": "For malformed quoting, wrong field count, invalid ticket value, empty or header-only input, duplicate/unknown/missing column, unsupported content type or invalid UTF-8, return 400 with the existing invalid envelope."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Accept UTF-8 BOM, CRLF or LF, quoted values, doubled quotes and an optional terminal newline."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Invalid input leaves tickets, next ticket number, audit and outbox as they were. Send one valid row followed by an invalid row, check the empty normal listing and outbox"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Count the entire raw request against MAX_BODY_BYTES. Accept a valid body exactly at the limit and return 400 for an oversized body."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "For malformed quoting, wrong field count, invalid ticket value, empty or header-only input, duplicate/unknown/missing column, unsupported content type or invalid UTF-8, return 400 with the existing invalid envelope.",
+   "missing": "It gives the outcome for zero data rows but does not explicitly say that one valid data row suffices for a successful import."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "A new successful submission creates new tickets. New replay token, raw upload retention and access controls are outside this request."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1 and R-3",
+   "quote": "On a fresh instance, the upload returns 201 with items T-0001 and T-0002 in that order",
+   "missing": "The HTTP response signals completion. The specification describes background delivery of notifications but gives no background processing or completion signal for a large import job."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Confirm one ticket.created entry per ticket with the upload actor and one pending creation event per requester. Restart on the saved file and confirm tickets, audit, events and next ID via HTTP. Worker delivery remains asynchronous",
+   "missing": "The worker's delivery rate and whether it may send hundreds of notifications at once are unspecified."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "On a fresh instance, the upload returns 201 with items T-0001 and T-0002 in that order, open, with priorities urgent and normal respectively.",
+   "missing": "The initial assignee and the timestamps used for imported tickets are unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Raw CSV belongs to the HTTP request for its lifetime; the persisted records follow the usual ownership and visibility. A new successful submission creates new tickets. New replay token, raw upload retention and access controls are outside this request."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Confirm one ticket.created entry per ticket with the upload actor",
+   "missing": "The audit ties the actor to each created ticket but does not specify recording the time of the import."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "A data-file save error returns the standard internal error and leaves live and saved state untouched. Retry after repair and verify IDs, one audit and event per ticket.",
+   "missing": "It covers retry after a batch save failure. It gives no behavior for cancelling a running import or retrying only failed rows."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "No separate performance SLA, graphical accessibility work or production verification target is specified.",
+   "missing": "There is no completion-time bound for a maximum-size upload or requirement to show progress during processing."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1 and R-3",
+   "quote": "Keep existing individual create, listing, cursor and CLI contracts."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Reuse the configured byte bound and existing field limits to constrain resource use.",
+   "missing": "It does not say how to handle values that a spreadsheet could execute as formulas when opening the result."
+  }
+ ]
+}

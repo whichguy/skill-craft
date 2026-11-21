@@ -1,0 +1,143 @@
+{
+ "slot": "csv-user-import__K1__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "When any row fails, user records and the next ID are unaffected."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Include a record number starting at 1 for header, row and quoting errors.",
+   "missing": "Whether the response identifies every failed row and gives a specific reason for each failure."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "duplicate emails produce 400. \u2026 Check duplicates case-insensitively against existing users and earlier rows."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "Key questions (K6, K12)",
+   "quote": "an import-specific ADMIN_IMPORT_TOKEN \u2026 Admin means the caller holding the configured token"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1, R-2",
+   "quote": "CSV accepts exactly the lowercase name and email headers in either order \u2026 wrong headers, malformed quoting, inconsistent rows, blank names, malformed emails or duplicate emails produce 400."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "UTF-8 with optional BOM, LF or CRLF, a final newline, quoted commas and newlines, and doubled quote escapes."
+  },
+  {
+   "id": "N-8",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "uploads above 1 MiB yield 413."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2, R-1",
+   "quote": "empty/header-only files \u2026 produce 400. \u2026 respond 201 with `{\"created\":[{\"id\":4,\"name\":\"Lin\",\"email\":\"lin@example.com\"}]}` for the input header `name,email` and data row `Lin,lin@example.com` on a fresh process."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A retry after successful creation fails on the existing email."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "Non-functional requirements, R-1",
+   "quote": "Synchronous validation and commit avoid interleaving with other writes in the same process. \u2026 With a configured matching token and a valid file, respond 201",
+   "missing": "The 201 response signals completion of the upload request. The specification gives no background-processing threshold or way to learn that a background job finished."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "Non-functional requirements, R-1",
+   "quote": "Keep token and raw CSV out of diagnostics \u2026 No UI or separate persistence is in scope.",
+   "missing": "Whether the service retains the uploaded bytes after processing, where and for how long it keeps any copy, and who can retrieve it."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "When any row fails, user records and the next ID are unaffected. \u2026 accept a corrected batch.",
+   "missing": "Whether an admin can cancel an in-progress import and how they can select only failed rows for retry."
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "duplicate emails produce 400. \u2026 Check duplicates case-insensitively against existing users and earlier rows. When any row fails, user records and the next ID are unaffected.",
+   "missing": "Whether there is a manual single-user creation path whose behavior must be preserved."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

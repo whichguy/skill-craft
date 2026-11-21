@@ -1,0 +1,21 @@
+{
+ "name": "v1-sol-S",
+ "set": "v1-sol",
+ "arm": "S",
+ "driver": "sol",
+ "pid": 91853,
+ "started_at": 1795303829.027179,
+ "limit_minutes": 20.0,
+ "decided_at": 1795304027.939069,
+ "watcher": "saw the acceptance",
+ "stop_written": true,
+ "seen": {
+  "run_dir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-section-tickets-39d5f8/samples/v1-sol-S/.shiploop-runs/work-20261121-233046-7659f1/run",
+  "spec_action": "nav-2ed0849ba4d540f6b7c80452ea4e63bb",
+  "at": "2026-11-21T23:33:47Z",
+  "ts": 1795304027.853,
+  "spec_sha256": "948b3383243e9164de23bc8ebb53e60e5a8a66067f08911aed52819558330860",
+  "head": "aa32db67167a92583973c9660a883190dd1fc825"
+ },
+ "returncode": 1
+}

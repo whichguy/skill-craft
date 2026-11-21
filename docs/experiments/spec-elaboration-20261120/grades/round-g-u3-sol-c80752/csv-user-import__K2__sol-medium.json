@@ -1,0 +1,144 @@
+{
+ "slot": "csv-user-import__K2__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.18325999999999998,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1 Failure and recovery",
+   "quote": "Create zero users on any rejection."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1 Failure and recovery",
+   "quote": "Row errors identify the failing record number where applicable.",
+   "missing": "Whether every failing row is reported or only the first, and what per-row reason the error body carries."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1 Failure and recovery",
+   "quote": "duplicate email with 409 (case-insensitive across existing and imported records)"
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1 Authorization",
+   "quote": "`POST /users/import` requires a valid bearer credential configured for the server. A missing or wrong token returns 401. An unset server token disables import."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-1 Format and success",
+   "quote": "The required header contains `name` and `email` exactly once, in either order.",
+   "missing": "Whether unexpected extra columns are accepted, ignored or rejected; a missing header row is only implied to fail."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1 Format and success",
+   "quote": "UTF-8 raw `text/csv` body... Accept a BOM, LF or CRLF, an optional final line break, and standard quoted fields with doubled quotes."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-1 Failure and recovery; R-1 State",
+   "quote": "Create zero users on any rejection. ... No queue, notifications or separate storage are needed."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1 Failure and recovery; Non-functional requirements",
+   "quote": "bodies over 1 MiB with 413 ... Verify rejection at one byte over the limit."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1 Format and success",
+   "quote": "Require at least one data record, a nonblank name and a valid-looking email address."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1 Failure and recovery",
+   "quote": "A repeated successful upload conflicts and does not mutate data."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-1 State",
+   "quote": "Authorized writes run synchronously after validation ... No queue, notifications or separate storage are needed."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-1 State",
+   "quote": "No queue, notifications or separate storage are needed."
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-1 State",
+   "quote": "omit credentials, raw payloads and personal data from import errors. No queue, notifications or separate storage are needed.",
+   "missing": "Whether the uploaded file is retained at all, for how long, and who may retrieve it."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-1 Failure and recovery",
+   "quote": "Corrected uploads can be retried.",
+   "missing": "Cancellation of a running import is not addressed; retry is whole-file only by implication."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "A 1 MiB per-request limit bounds CSV processing and buffering.",
+   "missing": "A time bound for a maximum-size file and any progress visibility."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-1 Basis",
+   "quote": "Preserve public listing and lookup, adding one authorized write path.",
+   "missing": "Whether existing single-user creation is unchanged, and an explicit statement that existing users are never modified (only implied by 409 on duplicates)."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

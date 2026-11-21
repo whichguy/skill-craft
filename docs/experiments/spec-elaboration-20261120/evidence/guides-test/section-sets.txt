@@ -1,0 +1,43 @@
+guides_test.py sets, 2026-11-21 15:50 PST: the third experiment (journal sections 50 and 51), arm S against A, the rule of section 46 over each case's three sets.
+
+== the user service
+set u1-sol  (counted in the rule)
+  A: 678 words; covered 6/7 of 9; instructions [90, 102]; references [8, 56]; block [0, 81]; guide lines it opened {'before the spec packet': {'requirements-definition.md': 21}}; delivered True
+  S: 708 words; covered 8/8 of 9; instructions [110, 122]; references [13, 57]; block [0, 81]; guide lines it opened {'before the spec packet': {'requirements-definition.md': 21}}; delivered True
+  S over A: net 0 (higher [], lower [])
+  on 13 items (the 9 and ['N-8', 'N-14', 'N-15', 'N-19']): S over A net -1
+  capability the reader verified in one arm alone: none
+set u2-sol  (counted in the rule)
+  A: 432 words; covered 8/7 of 9; instructions [102, 102]; references [56, 56]; block [0, 81]; guide lines it opened {'before the spec packet': {'requirements-definition.md': 21}}; delivered True
+  S: 771 words; covered 9/8 of 9; instructions [118, 122]; references [8, 52]; block [22, 81]; guide lines it opened {'while writing the spec': {'requirements-definition.md': 21}}; delivered True
+  S over A: net 0 (higher [], lower [])
+  on 13 items (the 9 and ['N-8', 'N-14', 'N-15', 'N-19']): S over A net 0
+  capability the reader verified in one arm alone: none
+set u3-sol  (counted in the rule)
+  A: 383 words; covered 7/6 of 9; instructions [90, 102]; references [15, 55]; block [0, 81]; guide lines it opened none; delivered True
+  S: 487 words; covered 5/7 of 9; instructions [118, 122]; references [23, 53]; block [0, 81]; guide lines it opened none; delivered True
+  S over A: net -1 (higher [], lower ['N-10'])
+  on 13 items (the 9 and ['N-8', 'N-14', 'N-15', 'N-19']): S over A net -2
+  capability the reader verified in one arm alone: none
+over the sets counted in the rule ['u1-sol', 'u2-sol', 'u3-sol']: {'X over A': 'no sets', 'X over C': 'no sets', 'R over A': 'no sets', 'C over A': 'no sets', 'S over A': 'not shown'}  (nets {'X over A': [], 'X over C': [], 'R over A': [], 'C over A': [], 'S over A': [0, 0, -1]})
+
+== the ticket service
+set v1-sol  (counted in the rule)
+  A: 666 words; covered 10/7 of 15; instructions [98, 102]; references [9, 57]; block [0, 81]; guide lines it opened {'before the spec packet': {'requirements-definition.md': 21}}; delivered True
+  S: 756 words; covered 9/8 of 15; instructions [112, 122]; references [18, 58]; block [0, 81]; guide lines it opened none; delivered True
+  S over A: net 0 (higher ['N-10'], lower ['N-21'])
+  on 19 items (the 15 and ['N-5', 'N-14', 'N-15', 'N-19']): S over A net 0
+  capability the reader verified in one arm alone: none
+set v2-sol  (counted in the rule)
+  A: 530 words; covered 7/7 of 15; instructions [99, 102]; references [8, 60]; block [0, 81]; guide lines it opened {'before the spec packet': {'requirements-definition.md': 21}}; delivered True
+  S: 688 words; covered 11/7 of 15; instructions [101, 122]; references [7, 54]; block [0, 81]; guide lines it opened none; delivered False
+  S over A: net 3 (higher ['N-4', 'N-6', 'N-21'], lower [])
+  on 19 items (the 15 and ['N-5', 'N-14', 'N-15', 'N-19']): S over A net 2
+  capability the reader verified in one arm alone: none
+set v3-sol  (counted in the rule)
+  A: 471 words; covered 8/7 of 15; instructions [87, 102]; references [7, 57]; block [0, 81]; guide lines it opened {'before the spec packet': {'requirements-definition.md': 21}}; delivered True
+  S: 590 words; covered 8/8 of 15; instructions [120, 122]; references [8, 61]; block [0, 81]; guide lines it opened none; delivered True
+  S over A: net 1 (higher ['N-4', 'N-7'], lower ['N-3'])
+  on 19 items (the 15 and ['N-5', 'N-14', 'N-15', 'N-19']): S over A net 1
+  capability the reader verified in one arm alone: none
+over the sets counted in the rule ['v1-sol', 'v2-sol', 'v3-sol']: {'X over A': 'no sets', 'X over C': 'no sets', 'R over A': 'no sets', 'C over A': 'no sets', 'S over A': 'not shown'}  (nets {'X over A': [], 'X over C': [], 'R over A': [], 'C over A': [], 'S over A': [0, None, 1]})

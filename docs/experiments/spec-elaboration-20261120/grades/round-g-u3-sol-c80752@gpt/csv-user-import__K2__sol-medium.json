@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__K2__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Create zero users on any rejection."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Row errors identify the failing record number where applicable.",
+   "missing": "Whether the response lists every failing record and gives the specific reason each failed."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "duplicate email with 409 (case-insensitive across existing and imported records)"
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "`POST /users/import` requires a valid bearer credential configured for the server.",
+   "missing": "Whether permission to create an individual user also grants import permission."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "The required header contains `name` and `email` exactly once, in either order.",
+   "missing": "Whether to reject or ignore unexpected columns."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Accept a BOM, LF or CRLF, an optional final line break, and standard quoted fields with doubled quotes."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Authorized writes run synchronously after validation, preserving IDs, insert order and uniqueness under competing requests."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "bodies over 1 MiB with 413."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Require at least one data record, a nonblank name and a valid-looking email address."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "A repeated successful upload conflicts and does not mutate data."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "No queue, notifications or separate storage are needed.",
+   "missing": "The specified import returns its result synchronously. There is no background path for large files or way to learn that a background job finished."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "No queue, notifications or separate storage are needed."
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "No queue, notifications or separate storage are needed.",
+   "missing": "Whether the server keeps a copy of the CSV itself, where and for how long it keeps that copy, and who can retrieve it."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Create zero users on any rejection. Corrected uploads can be retried.",
+   "missing": "Whether an admin can cancel an in-flight import or select just the failed rows for retry."
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Reject invalid format or data with 400, duplicate email with 409 (case-insensitive across existing and imported records)",
+   "missing": "The duplicate rule protects existing users from being overwritten on a match. The specification gives no requirement to preserve manual single-user creation."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

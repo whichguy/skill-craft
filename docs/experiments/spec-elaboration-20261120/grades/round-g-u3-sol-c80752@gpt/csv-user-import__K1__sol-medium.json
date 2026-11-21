@@ -1,0 +1,143 @@
+{
+ "slot": "csv-user-import__K1__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "A rejected batch creates no users and consumes no IDs."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Bad encoding, CSV syntax, header or record data receives 400 with an error and row number where applicable. A repeated email, including case-only variants within the file or already stored, receives 409 with its row number."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "A repeated email, including case-only variants within the file or already stored, receives 409 with its row number."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Only a configured shared administrator credential grants import access."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "The two headers are required once each and may be reordered.",
+   "missing": "Whether to reject a file with additional columns or accept it and ignore or use those columns."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "UTF-8 BOM, LF and CRLF, quoted delimiters or line breaks, and doubled quotes are accepted."
+  },
+  {
+   "id": "N-8",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "The upload accepts at most 1 MiB and 1,000 data rows as implementation defaults. The service rejects oversized requests with 413 without creating users."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "The two headers are required once each and may be reordered.",
+   "missing": "The header rule excludes an empty file, but the specification gives no minimum data-row count to settle the header-only and single-row cases explicitly."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "A repeated email, including case-only variants within the file or already stored, receives 409 with its row number."
+  },
+  {
+   "id": "N-12",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "The request body is temporary.",
+   "missing": "Where the uploaded CSV is held, when it is discarded, and whether anyone can download it again."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "A rejected batch creates no users and consumes no IDs. Verify failure before a successful retry through HTTP.",
+   "missing": "Whether the admin can cancel an import in progress and whether a retry can select only failed rows."
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Existing public reads, seed users and ID order are preserved",
+   "missing": "Whether the existing manual single-user creation workflow keeps its behavior."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

@@ -1,0 +1,18 @@
+set u3-sol: items that apply here for both sorters (9): ['N-1', 'N-2', 'N-3', 'N-5', 'N-6', 'N-7', 'N-9', 'N-10', 'N-11']
+  A opus: covered 7, partly 2, absent 0
+  A astra: covered 6, partly 3, absent 0
+  S opus: covered 5, partly 3, absent 1
+  S astra: covered 7, partly 2, absent 0
+  S over A: higher under both judges []; of them newly raised []; lower ['N-10']; net -1
+  not in the rule (mixed, unclear or the sorters differ), as states under the two judges:
+    N-4: A 0/0, S 0/0
+    N-8: A 2/2, S 1/0
+    N-14: A 0/0, S 0/0
+    N-15: A 1/1, S 1/1
+    N-16: A 0/0, S 0/0
+    N-17: A 0/0, S 0/0
+    N-19: A 1/0, S 0/0
+    N-20: A 1/1, S 1/1
+    N-21: A 0/0, S 0/0
+  delivered as each arm intends: {'A': True, 'S': True}
+  OUTCOME (S over A): no signal

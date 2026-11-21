@@ -1,0 +1,21 @@
+{
+ "name": "u3-sol-A",
+ "set": "u3-sol",
+ "arm": "A",
+ "driver": "sol",
+ "pid": 10972,
+ "started_at": 1795304176.8141031,
+ "limit_minutes": 20.0,
+ "decided_at": 1795304326.2473989,
+ "watcher": "saw the acceptance",
+ "stop_written": true,
+ "seen": {
+  "run_dir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-section-users-39d5f8/samples/u3-sol-A/.shiploop-runs/work-20261121-233629-3a6840/run",
+  "spec_action": "nav-033841e85dca430ebc7a0829a64e4448",
+  "at": "2026-11-21T23:38:45Z",
+  "ts": 1795304325.406,
+  "spec_sha256": "d0422d1b2b66fb3f61562fa9e4490d594e54ec074554b2693d1f5ba869d66956",
+  "head": "04df7f45adeedfe93f0c9aebfd1d68fd24c75ed5"
+ },
+ "returncode": 1
+}

@@ -1,0 +1,142 @@
+{
+ "slot": "csv-user-import__K1__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.20185899999999998,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1.d",
+   "quote": "Any failed batch leaves state and ID allocation unchanged."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1.b / R-1.d",
+   "quote": "Malformed CSV, headers or data return 400 with a logical record number where applicable. ... with 409 and the offending record number.",
+   "missing": "Whether the response lists every failing row or only the first, and what reason text the error body carries for each."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1.d",
+   "quote": "Reject existing or in-batch email collisions case-insensitively with 409 and the offending record number."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1.b / R-1 body",
+   "quote": "Require exactly `name` and `email` headers in either order",
+   "missing": "The spec never addresses the access level of created users relative to the importer; escalation is only precluded implicitly by the fixed header set."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1.a",
+   "quote": "An operator holding the configured admin token can POST a raw UTF-8 `text/csv` body to `/users/import`. Missing or invalid credentials return 401 before mutation."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1.b",
+   "quote": "Require exactly `name` and `email` headers in either order and at least one data record. ... Malformed CSV, headers or data return 400"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1.b",
+   "quote": "Handle UTF-8 BOM, LF and CRLF, optional final newline, quoted commas, escaped quotes and quoted newlines."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-1.d",
+   "quote": "Any failed batch leaves state and ID allocation unchanged.",
+   "missing": "Whether any external side effects (invitations, notifications) occur at all, and if so how they are held back when a later row fails."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Enforce an initial operational limit of 1 MiB per request and 1,000 data records, with 413 and zero writes on overflow."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1.b",
+   "quote": "Require exactly `name` and `email` headers in either order and at least one data record. ... Malformed CSV, headers or data return 400"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1.d",
+   "quote": "Reject existing or in-batch email collisions case-insensitively with 409 and the offending record number."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-1 body",
+   "quote": "Import completion is synchronous and needs no job or cache."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "Scope / R-1 body",
+   "quote": "The CSV import creates records with generated IDs and the same name and email fields as existing records. ... Editing, deleting, account sign-in and durable storage are outside CSV creation."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-1 body",
+   "quote": "Error bodies omit submitted values and credentials. Upload bytes are request-scoped."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements / R-1 body",
+   "quote": "This is a product default for bounded local processing, checked through HTTP at each limit.",
+   "missing": "A time bound for processing a maximum-size file; progress visibility is only implied away by synchronous completion."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1.d / R-2",
+   "quote": "Reject existing ... email collisions ... with 409 ... Any failed batch leaves state and ID allocation unchanged. ... Preserve the public JSON list in ID order, numeric detail lookup and JSON 404 behavior"
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}
