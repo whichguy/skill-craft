@@ -802,3 +802,53 @@ clauses and a far richer page, and is where this is most likely to break. It run
 Evidence: `evidence/parallel/battleship/` (each run's record, reports and manifest; the build-less adapter and
 packet; the held-out result; `overlay-battleship.json`; `mutate-bs-blind.json` and `mutate-bs-loop.json`;
 `bs-session-activity.md`).
+
+## 14. Grokbot-local, registered 2026-11-21 12:18: the large app with a page, both test passes from the plan and build on file (before any run)
+
+The owner approved Grokbot-local before asking for Battleship first (section 10). Battleship showed the instrument
+works on a new app (section 13), so by that section's rule this runs next. It is the case where "nothing to
+update" is most likely to break: 115 items against 28, a loosely worded request, and a page with chat, tasks,
+records and a workspace.
+
+**What is reused, so only the two test sessions are paid for.** The parent session's `p3R-grokbot-local` run
+(read, not changed): its specification with the reworded text (100 clauses and 15 use cases, 18 open lines), its
+plan, and its first build, which passes both held-out yardsticks (49 of 49; 28 of 28, of which 23 stated and 5
+implied; the parent's grading log). The build is 20 product files and 2,155 lines of code outside its tests.
+
+**Cells** (Codex `gpt-6.2-sol` at high; each in its own repository under the fork's runs folder).
+
+| Cell | Command | What it gives |
+|---|---|---|
+| `gb-blind` | `ratchet.py run --case grokbot-local --enrich reworded --tests-blind-from p3R-grokbot-local --stop-after tests` | the test pass from the specification and plan with no build present; the packet is rung 1's, unchanged. The starting folder holds the case's 8 files (a stand-in provider and records), no app |
+| `gb-beside` | the same with `--plan-from p3R-grokbot-local --build-from <that run's first build, exported>` in place of `--tests-blind-from` | the standing test pass, written beside that build, with its first gate |
+
+**Apparatus in this commit.** `ratchet.py` gains `--plan-from RUN`: the specification and plan as after RUN's plan
+stage with no session, then the given build laid by the script (`--build-from`), then the standing test pass. No
+packet text changes. Checked with no model: the loop's own check passes (`selftest ok: 10 sessions, 6 gates, 14
+snapshots`), and a scripted run with the new option makes the commits base, plan-1, build-1, tests-1, final with
+one session, the test pass, and is refused without `--build-from`.
+
+**Readings**, as for Battleship.
+
+- **G1, first meeting.** Items of `gb-blind`'s suite passing on the build. Each failing item read as execution,
+  assertion or product (a Sonnet subagent first; I check each label).
+- **G2, the execution side.** Its share of the test lines; whether anything outside the adapter starts or
+  configures the product.
+- **G3, assumptions.** Each read as design gap or execution.
+- **G4, with nothing to run on.** What the writer ran its tests against.
+- **G5, beside it.** `gb-beside`'s suite at its first gate; both sessions' minutes, tokens and commands.
+- **G6, strength.** `mutate.py --manifest` with the first 60 fault sites of the build's source, the same faults to
+  both suites. If one pass of a suite takes too long for 60, the sample is cut to 30 for both and that is said.
+- **Tool check first.** `overlay.py` must reproduce `gb-beside`'s own first-gate count.
+
+**Predictions.** Four of mine have been wrong, each time by expecting failures, so this one follows the three
+cells seen: 0 to 5 of the build-less items fail at first meeting, on the page if anywhere; the two suites catch
+seeded faults within 10 points of each other; the build-less execution side is above half its lines; its session
+is the longer one.
+
+**Going on.** After this I say whether there is enough to conclude. Chess is not planned unless what tests assert
+is still in doubt.
+
+**Limits known in advance.** One cell a side, one model family. The build was right the first time. The test
+sessions find their own way to a browser on this machine. A session ends at 45 minutes whatever it has done. The
+machine is shared (the load was 20 a few minutes before launch), so minutes are loose.

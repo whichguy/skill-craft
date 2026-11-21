@@ -699,7 +699,7 @@ class Run:
                        "frozen_from": args.frozen_from, "build_from": args.build_from, "bare": bool(args.bare), "sessions": [], "gates": [], "snapshots": [], "cycles": [],
                        "reverted": [], "spec_violations": [], "local_head": git(REPO, "rev-parse", "HEAD").strip(),
                        "named_checks": True, "enrich": args.enrich, "spec_from": args.spec_from,
-                       "tests_blind_from": args.tests_blind_from}
+                       "tests_blind_from": args.tests_blind_from, "plan_from": args.plan_from}
         self.fake = load_fake(args.fake) if args.host == "fake" else None
         self.host = self.env = None
         if not self.fake:
@@ -932,15 +932,16 @@ class Run:
         return clauses
 
     def given_plan(self):
-        """Specification and plan without a session: as another run had them after its plan stage (--tests-blind-from)."""
-        source = Path(self.args.tests_blind_from)
+        """Specification and plan without a session: as another run had them after its plan stage (--tests-blind-from, --plan-from)."""
+        source = Path(self.args.tests_blind_from or self.args.plan_from)
         snaps = json.loads((source / "run.json").read_text())["snapshots"]
         commit = next(snap["commit"] for snap in snaps if snap["label"] == "plan-1")
         (self.work / "ratchet").mkdir(parents=True, exist_ok=True)
         for name in ("spec.md", "plan.md"):
             (self.work / "ratchet" / name).write_text(git(source / "work", "show", f"{commit}:ratchet/{name}"))
         clauses = read_spec(self.work)
-        self.say(f"specification and plan are those of {source} after its plan stage ({len(clauses)} items); no build is present")
+        self.say(f"specification and plan are those of {source} after its plan stage ({len(clauses)} items)"
+                 + ("; no build is present" if self.args.tests_blind_from else "; the build is the given tree"))
         self.commit("plan-1")
         return clauses
 
@@ -1181,7 +1182,7 @@ class Run:
         self.setup()
         if self.args.frozen_from:
             clauses = read_spec(self.work)
-        elif self.args.tests_blind_from:
+        elif self.args.tests_blind_from or self.args.plan_from:
             clauses = self.given_plan()
         elif self.args.spec_from:
             clauses = self.given_spec()
@@ -1201,6 +1202,9 @@ class Run:
             self.cycle_start_frozen = git(self.work, "rev-parse", "HEAD").strip()
             if self.args.tests_blind_from:
                 self.stage_tests(cycle, clauses, new, blind=True)
+            elif self.args.plan_from:  # another run's plan and its build, laid by the script: only the test pass is a session
+                self.given_build()
+                self.stage_tests(cycle, clauses, new)
             elif not repair_start:
                 added = self.stage_plan(cycle, clauses, new)
                 if added:
@@ -1269,6 +1273,8 @@ def main(argv=None):
     run.add_argument("--spec-from", help="a run whose ratchet/spec.md this run starts with, as written: no spec session")
     run.add_argument("--tests-blind-from", help="a run whose specification and plan (as after its plan stage) this run starts "
                                                 "with; then the test pass is written with no build present, and the run stops")
+    run.add_argument("--plan-from", help="a run whose specification and plan (as after its plan stage) this run starts with: no "
+                                         "spec or plan session; with --build-from and --stop-after tests, only the test pass is run")
     run.add_argument("--stop-after", choices=("spec", "build", "tests"),
                      help="end the run once the specification is written, once cycle 1's build is committed, or once "
                           "cycle 1's acceptance tests are frozen and gated")
@@ -1291,10 +1297,15 @@ def main(argv=None):
         raise SystemExit("--stop-after build ends after the build session: it takes neither --build-from nor --bare")
     if args.tests_blind_from and (args.stop_after != "tests" or args.spec_from or args.build_from or args.frozen_from or args.bare):
         raise SystemExit("--tests-blind-from goes with --stop-after tests and none of --spec-from, --build-from, --frozen-from, --bare")
-    if args.spec_from or args.tests_blind_from:
-        source = json.loads((Path(args.spec_from or args.tests_blind_from) / "run.json").read_text())
+    if args.plan_from and (args.stop_after != "tests" or not args.build_from or args.spec_from or args.tests_blind_from or args.frozen_from
+                           or args.bare):
+        raise SystemExit("--plan-from goes with --build-from and --stop-after tests and none of --spec-from, --tests-blind-from, "
+                         "--frozen-from, --bare")
+    if args.spec_from or args.tests_blind_from or args.plan_from:
+        source = json.loads((Path(args.spec_from or args.tests_blind_from or args.plan_from) / "run.json").read_text())
         if source.get("case") != args.case or source.get("enrich", "single") != args.enrich:
-            raise SystemExit(f"--spec-from or --tests-blind-from {args.spec_from or args.tests_blind_from} is case {source.get('case')!r} with enrich "
+            raise SystemExit(f"--spec-from, --tests-blind-from or --plan-from {args.spec_from or args.tests_blind_from or args.plan_from} is case "
+                             f"{source.get('case')!r} with enrich "
                              f"{source.get('enrich', 'single')!r}; this run is {args.case!r} with {args.enrich!r}")
     return Run(args, load_case(args.case)).run()
 
