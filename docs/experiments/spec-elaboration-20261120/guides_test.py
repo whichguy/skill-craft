@@ -24,6 +24,7 @@ SETID is SET-DRIVER, for example s1-sol.
 from __future__ import annotations
 
 import argparse
+import calendar
 import concurrent.futures
 import difflib
 import functools
@@ -651,6 +652,7 @@ def snapshot(
         accepted_at=accepted.get("at"),
         accepted_ts=accepted["ts"],
     )
+    record["submitted_ts"] = submitted[0]["ts"] if submitted else None
     record["author_submissions"] = len(submitted)
     record["commands_after_acceptance"] = sum(
         1
@@ -730,160 +732,113 @@ def snapshot(
     )
     if packet and (run / str(packet.get("file"))).is_file():
         shutil.copyfile(run / packet["file"], dest / "spec-packet-as-printed.md")
-        record["shiploop_printed_the_whole_packet"] = packet.get("whole")
+        record.update(
+            packet_ts=packet.get("ts"),
+            shiploop_printed_the_whole_packet=packet.get("whole"),
+        )
     return record
 
 
-def calls(out: Path) -> list[dict]:
-    """Every tool call of the session with its result and whether it succeeded, in order, for either host's stream.
+def model_outputs(out: Path) -> list[tuple[float, str]] | None:
+    """Every tool output a Codex session's model was given, with its time, from the host's own session record.
 
-    A call id a resumed Codex session uses again starts a new call: results pair with the latest call of that id.
+    The harness's events hold what each command printed. On this host the model runs commands from a script and
+    chooses what of their output to show itself, so the two differ: only the session record says what the model saw.
+    None for a run with no such record (another host).
     """
-    order, by_id = [], {}
-    for event in qualcheck.rows(out / "events.jsonl"):
-        kind = event.get("type")
-        if kind == "tool_call":
-            by_id[event.get("toolCallId")] = {
-                "input": json.dumps(event.get("rawInput"), ensure_ascii=False),
-                "result": "",
-                "ok": True,
-            }
-            order.append(by_id[event.get("toolCallId")])
-        elif kind == "tool_call_update" and event.get("toolCallId") in by_id:
-            call = by_id[event["toolCallId"]]
-            parts = [c for c in event.get("content") or [] if isinstance(c, dict)]
-            call["result"] += "\n".join(
-                str((part.get("content") or {}).get("text") or "") for part in parts
-            )
-            code = (
-                (event.get("rawOutput") or {}).get("exit_code")
-                if isinstance(event.get("rawOutput"), dict)
-                else None
-            )
-            call["ok"] = (
-                call["ok"]
-                and code in (None, 0)
-                and event.get("status") not in ("failed", "error")
-            )
-        elif kind == "assistant":
-            for block in (event.get("message") or {}).get("content") or []:
-                if isinstance(block, dict) and block.get("type") == "tool_use":
-                    by_id[block.get("id")] = {
-                        "input": json.dumps(block.get("input"), ensure_ascii=False),
-                        "result": "",
-                        "ok": True,
-                    }
-                    order.append(by_id[block.get("id")])
-        elif kind == "user":
-            content = (event.get("message") or {}).get("content")
-            for block in content if isinstance(content, list) else []:
-                if (
-                    isinstance(block, dict)
-                    and block.get("type") == "tool_result"
-                    and block.get("tool_use_id") in by_id
-                ):
-                    call = by_id[block["tool_use_id"]]
-                    inner = block.get("content")
-                    parts = (
-                        [inner]
-                        if isinstance(inner, str)
-                        else [
-                            str(x.get("text") or "")
-                            for x in inner or []
-                            if isinstance(x, dict)
-                        ]
-                    )
-                    call["result"] += "\n".join(parts)
-                    call["ok"] = call["ok"] and not block.get("is_error")
-    return order
-
-
-def exposure(
-    out: Path, dest: Path, spec_action: str | None, acceptance_action: str | None
-) -> dict | None:
-    """What the specification's author was shown: the spec packet as received, and any of arm X's guide text a call returned.
-
-    Counted in every successful call's result, whatever the call was: the lines of the two guide sections that the arm's
-    own spec packet does not print. The calls are placed by the session's own callbacks for the spec action and its review.
-    """
-    order = calls(out)
-    if not order:
+    files = sorted(out.glob("home/.codex/sessions/**/rollout-*.jsonl"))
+    if not files:
         return None
-    results = [squeeze(call["result"]) if call["ok"] else "" for call in order]
-    printed = dest / "spec-packet-as-printed.md"
-    archived = squeeze(printed.read_text()) if printed.is_file() else None
-    packet = next(
-        (n for n, text in enumerate(results) if archived and archived in text), None
-    )
-    whole = packet is not None
-    if (
-        packet is None
-    ):  # no result holds the packet as ShipLoop printed it: its head still places the calls
-        packet = next(
-            (
-                n
-                for n, text in enumerate(results)
-                if "ShipLoop navigator | spec | revision" in text
-            ),
-            None,
-        )
+    shown = []
+    for path in files:
+        for row in qualcheck.rows(path):
+            payload = row.get("payload") if isinstance(row.get("payload"), dict) else {}
+            stamp = re.fullmatch(
+                r"(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)(\.\d+)?Z",
+                str(row.get("timestamp") or ""),
+            )
+            if not (stamp and str(payload.get("type") or "").endswith("_output")):
+                continue
+            given = payload.get("output")
+            parts = given if isinstance(given, list) else [{"text": given}]
+            text = "".join(
+                str(part.get("text") or "") for part in parts if isinstance(part, dict)
+            )
+            at = calendar.timegm(
+                tuple(int(value) for value in stamp.groups()[:6])
+            ) + float(stamp.group(7) or 0)
+            shown.append((at, text))
+    return sorted(shown)
 
-    def callback(action: str | None, after: int | None) -> int | None:
-        if action is None or after is None:
-            return None
-        sent = (
-            n
-            for n, call in enumerate(order)
-            if n > after and call["ok"] and action in call["input"]
-        )
-        return next(
-            (
-                n
-                for n in sent
-                if re.search(r"shiploop\S*\s+complete\b", order[n]["input"])
-            ),
-            None,
-        )
 
-    submitted = callback(spec_action, packet)
-    accepted = (
-        submitted
-        if acceptance_action == spec_action
-        else callback(acceptance_action, submitted)
+def lines_of(text: str) -> list[str]:
+    """A text's lines of 20 characters or more, spaces collapsed, each once: what a check for 'was this shown' looks for."""
+    return list(
+        dict.fromkeys(
+            line for line in map(squeeze, text.splitlines()) if len(line) >= 20
+        )
     )
 
-    def window(n: int) -> str:
-        if packet is None or n <= packet:
+
+def exposure(out: Path, dest: Path, snap: dict) -> dict | None:
+    """What the specification's author was given: how much of the spec packet, and any passage of arm X's guide text.
+
+    Read from what the model was given between the packet's print and the author's submission (the packet), and up to
+    the acceptance (guide text), by the times ShipLoop's trace records. A guide passage is `SHOWN` or more lines of the
+    two sections, of those the arm's own packet does not print, in one output. None when it cannot be read.
+    """
+    given, printed = model_outputs(out), dest / "spec-packet-as-printed.md"
+    times = [snap.get(name) for name in ("packet_ts", "submitted_ts", "accepted_ts")]
+    if not given or not printed.is_file() or None in times:
+        return None
+    packet_at, submitted_at, accepted_at = times
+
+    def window(at: float) -> str:
+        if at < packet_at - 1:
             return WINDOWS[0]
-        if submitted is None or n <= submitted:
+        if at <= submitted_at + 1:
             return WINDOWS[1]
-        return WINDOWS[2] if accepted is None or n <= accepted else WINDOWS[3]
+        return WINDOWS[2] if at <= accepted_at + 1 else WINDOWS[3]
 
+    packet = printed.read_text()
+    writing = squeeze("\n".join(text for at, text in given if window(at) == WINDOWS[1]))
+    head, _, tail = packet.partition(
+        "Result template:"
+    )  # the stage's instructions, then the template and the references
+    parts = {
+        name: [(line, line in writing) for line in lines_of(part)]
+        for name, part in (("instructions", head), ("references", tail))
+    }
+    block = [line in writing for line in lines_of(excerpt())]
     foreign = {
-        file: [line for line in lines if line not in (archived or "")]
+        file: [line for line in lines if line not in squeeze(packet)]
         for file, lines in passages().items()
     }
     returned = {
         name: {} for name in WINDOWS
-    }  # per window and file: the most section lines any one result returned
-    for n, text in enumerate(results):
+    }  # per window and file: the most section lines any one output held
+    for at, text in given:
         for file, lines in foreign.items():
-            count = sum(1 for line in lines if line in text) if text else 0
+            count = sum(1 for line in lines if line in squeeze(text))
             if count:
-                returned[window(n)][file] = max(count, returned[window(n)].get(file, 0))
-    received = results[packet] if packet is not None else ""
+                returned[window(at)][file] = max(
+                    count, returned[window(at)].get(file, 0)
+                )
     return {
-        "tool_calls": len(order),
-        "spec_packet_received": packet is not None,
-        "spec_packet_whole": None if archived is None else whole,
-        "spec_packet_characters": len(order[packet]["result"])
-        if packet is not None
-        else 0,
-        "spec_packet_has_cue": squeeze(CUE) in received,
-        "spec_packet_has_all_guide_text": EXCERPT_MARK in received
-        and squeeze(excerpt()) in received,
-        "submission_call_found": submitted is not None,
-        "acceptance_call_found": accepted is not None,
+        "read_from": "the host's own session record: what the model was given",
+        "outputs_given": len(given),
+        "instructions_lines_shown": [
+            sum(held for _, held in parts["instructions"]),
+            len(parts["instructions"]),
+        ],
+        "references_lines_shown": [
+            sum(held for _, held in parts["references"]),
+            len(parts["references"]),
+        ],
+        "instructions_shown_whole": all(held for _, held in parts["instructions"]),
+        "cue_shown": all(line in writing for line in lines_of(CUE)),
+        "guide_block_lines_shown": [sum(block), len(block)],
+        "guide_block_shown_whole": all(block) and EXCERPT_MARK in writing,
         "guide_lines_returned": returned,
         "guide_passage_before_acceptance": any(
             count >= SHOWN for name in WINDOWS[:3] for count in returned[name].values()
@@ -982,11 +937,7 @@ def read_sample(
         "plugin_wanted": plugin.get("wanted") or invocation.get("plugin_dir"),
         "plugin_check_passed": plugin.get("pass"),
         "loaded_prompts_sha256": sorted({sha256(path) for path in loaded}),
-        "exposure": exposure(
-            out, dest, snap.get("spec_action"), snap.get("acceptance_action")
-        )
-        if (out / "events.jsonl").is_file()
-        else None,
+        "exposure": exposure(out, dest, snap),
         "accepted": measures(accepted.read_text(errors="replace"))
         if accepted.is_file()
         else None,
@@ -1179,7 +1130,11 @@ def cmd_run(root: Path, set_name: str, driver: str, limit: float) -> int:
 
 
 def checks(sample: dict, read: dict, ready: dict) -> dict:
-    """Whether a sample is its arm's accepted specification, and whether its author was shown what the arm intends."""
+    """Whether a sample is its arm's accepted specification, and whether its author was given what the arm intends.
+
+    On this host the model gives itself as much of a packet as its own script prints, so the cue and the block count only
+    when they are in what it was given, and an author given less than half of the stage's instructions is not compared.
+    """
     arm, shown, seen = sample["arm"], read.get("exposure"), sample.get("seen") or {}
     usable = {
         "accepted inside the limit": read.get("accepted_ts") is not None
@@ -1196,14 +1151,15 @@ def checks(sample: dict, read: dict, ready: dict) -> dict:
         and read.get("loaded_prompts_sha256") == [ready["prompts_file_sha256"][arm]],
     }
     delivered = None
-    if shown and shown.get("spec_packet_whole") is not None:
-        guide = shown["spec_packet_has_all_guide_text"]
+    if shown:
+        given, of = shown["instructions_lines_shown"]
         delivered = {
-            "the spec packet arrived whole": shown["spec_packet_whole"],
-            "the cue as the arm has it": shown["spec_packet_has_cue"] == (arm != "A"),
-            "the guide text as the arm has it": guide
+            "at least half of the stage's instructions given to the model": 2 * given
+            >= of,
+            "the cue given, as the arm has it": shown["cue_shown"] == (arm != "A"),
+            "the guide text given, as the arm has it": shown["guide_block_shown_whole"]
             if arm == "X"
-            else not guide and not shown["guide_passage_before_acceptance"],
+            else not shown["guide_passage_before_acceptance"],
         }
     return {
         "usable": all(usable.values()),

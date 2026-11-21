@@ -6,9 +6,10 @@
 TEMPLATE_RUN is the output folder of any real run that was stopped when its specification was accepted (it is only read).
 SCRATCH_ROOT must not exist and must be outside the checkout. The harness is replaced by a stub (this file, started with
 GUIDES_STUB set) that lays the template's records down as a run would write them: first without the acceptance, then with
-it, and then waits for the stop file. Everything guides_test.py would write into the checkout (labels, blind copies,
-grades) is pointed at SCRATCH_ROOT. Judge readings, labels and the reader's file are made up here: what is rehearsed is the
-handling, not any judgement.
+it, and then waits for the stop file; it also lays down the host's own session record, which says what the model was
+given, with the arm's packet text in it. Everything guides_test.py would write into the checkout (labels, blind copies,
+grades, session folders) is pointed at SCRATCH_ROOT. The sorter's and the judges' sessions are replaced by functions that
+write made-up answers, and the reader's file is made up: what is rehearsed is the handling, not any judgement.
 """
 
 from __future__ import annotations
@@ -79,41 +80,43 @@ def stub() -> int:
     )
     loaded.parent.mkdir(parents=True)
     shutil.copyfile(plugin / "skills/shiploop/scripts/shiploop_prompts.py", loaded)
-    if g.ARM_OVERLAY[
-        arm
-    ]:  # give the spec packet, as printed and as received, what this arm's overlay adds
-        edits = g.overlay_docs()[g.ARM_OVERLAY[arm]]["edits"]
-        printed = next(
-            run / row["file"]
-            for row in rows
-            if row.get("kind") == "packet" and row.get("stage") == "spec"
-        )
+    edits = g.overlay_docs()[g.ARM_OVERLAY[arm]]["edits"] if g.ARM_OVERLAY[arm] else []
+    printed = next(
+        run / row["file"]
+        for row in rows
+        if row.get("kind") == "packet" and row.get("stage") == "spec"
+    )
+    assert all(printed.read_text().count(edit["old"]) == 1 for edit in edits), (
+        "the template's spec packet is of another build"
+    )
 
-        def with_edits(text: str) -> str:
-            for edit in edits:
-                text = text.replace(edit["old"], edit["new"])
-            return text
+    def as_given(text: str) -> str:
+        """The arm's packet text in an output the model was given; in mode "skim" only the head of the spec packet."""
+        for edit in edits:
+            text = text.replace(edit["old"], edit["new"])
+        mark = text.find("ShipLoop navigator | spec | revision")
+        return text[: mark + 1500] if mode == "skim" and mark >= 0 else text
 
-        assert all(printed.read_text().count(edit["old"]) == 1 for edit in edits), (
-            "the template's spec packet is of another build"
-        )
-        printed.write_text(with_edits(printed.read_text()))
-        events = [
-            json.loads(line)
-            for line in (out / "events.jsonl").read_text().splitlines()
-            if line.strip()
+    kept = printed.read_text()
+    for edit in edits:
+        kept = kept.replace(edit["old"], edit["new"])
+    printed.write_text(kept)
+    shutil.copytree(
+        Path(plan["template"]) / "home/.codex/sessions", out / "home/.codex/sessions"
+    )
+    for record in (out / "home/.codex/sessions").rglob("rollout-*.jsonl"):
+        told = [
+            json.loads(line) for line in record.read_text().splitlines() if line.strip()
         ]
-        for event in events:
-            for part in (
-                event.get("content") or []
-                if event.get("type") == "tool_call_update"
-                else []
+        for row in told:
+            payload = row.get("payload") if isinstance(row.get("payload"), dict) else {}
+            if str(payload.get("type") or "").endswith("_output") and isinstance(
+                payload.get("output"), list
             ):
-                if isinstance(part.get("content"), dict) and "text" in part["content"]:
-                    part["content"]["text"] = with_edits(part["content"]["text"])
-        (out / "events.jsonl").write_text(
-            "".join(json.dumps(event) + "\n" for event in events)
-        )
+                for part in payload["output"]:
+                    if isinstance(part, dict) and isinstance(part.get("text"), str):
+                        part["text"] = as_given(part["text"])
+        record.write_text("".join(json.dumps(row) + "\n" for row in told))
     result = json.loads((out / "result.json").read_text())
     head = subprocess.run(
         ["git", "-C", str(prior / "work"), "rev-parse", "HEAD"],
@@ -133,7 +136,7 @@ def stub() -> int:
         ) = "exited", "the host ended its turn", "FAILED"
         (out / "result.json").write_text(json.dumps(result))
         return 0
-    if mode == "accept":
+    if mode in ("accept", "skim"):
         time.sleep(2)
         with (run / "trace.jsonl").open("a") as trace:
             trace.write("".join(lines[last - 1 : last + 1]))
@@ -192,6 +195,49 @@ def main() -> int:
         0  # rehearsal only: the checkout may hold uncommitted work
     )
     (root / "prepare.json").write_text(json.dumps(ready))
+
+    print(
+        "== sort: the command's handling, with a made-up sorter in place of the session"
+    )
+    g.grade.WORK, said = scratch / "sessions", {}
+
+    def fake_sorter(prompt, cwd, judge, timeout):
+        said["prompt"], said["files"] = (
+            prompt,
+            sorted(path.name for path in cwd.iterdir()),
+        )
+        (cwd / "verdict.json").write_text(json.dumps({"labels": said["labels"]}))
+        return 0, None
+
+    g.grade.run_session, g.LABELS = fake_sorter, scratch / "sort-labels"
+    g.LABELS.mkdir(parents=True)
+    rows = [
+        {"id": i, "here": "mixed" if n == 3 else "applies", "why": "made up"}
+        for n, i in enumerate(wanted)
+    ]
+    said["labels"] = rows
+    refuses(
+        "a mixed label that does not say which part applies", g.cmd_sort, "opus", 60
+    )
+    rows[3]["applies_part"] = "made up"
+    said["labels"] = rows[:-1]
+    refuses("a sort that leaves an item out", g.cmd_sort, "opus", 60)
+    said["labels"] = rows
+    expect("a complete sort is kept", g.cmd_sort("opus", 60) == 0)
+    kept = json.loads((g.LABELS / "here-opus.json").read_text())
+    expect(
+        "the label file carries the sentence, the base's digest and 21 labels",
+        (kept["request"], kept["fixture_digest"], len(kept["labels"]))
+        == (g.REQUEST, g.brownfield.digest(g.FIXTURE), 21),
+    )
+    expect(
+        "the sorter was given the registered text, the sentence, the base and the items",
+        said["prompt"] == g.SORT_PROMPT
+        and said["files"] == ["base", "items.json", "request.txt"],
+        said["files"],
+    )
+    refuses("a second sort by the same sorter", g.cmd_sort, "opus", 60)
+    g.LABELS = scratch / "labels"
 
     print("== the launch gate")
     refuses("a launch with no label files", g.cmd_run, root, "r1", "sol", 1.0)
@@ -286,12 +332,11 @@ def main() -> int:
         )
     expect(
         "the cue is in C's and X's packet and not in A's",
-        [collected[a]["exposure"]["spec_packet_has_cue"] for a in g.ARMS]
-        == [False, True, True],
+        [collected[a]["exposure"]["cue_shown"] for a in g.ARMS] == [False, True, True],
     )
     expect(
         "the guide text is in X's packet alone",
-        [collected[a]["exposure"]["spec_packet_has_all_guide_text"] for a in g.ARMS]
+        [collected[a]["exposure"]["guide_block_shown_whole"] for a in g.ARMS]
         == [False, False, True],
     )
     manifest = g.manifest_of(root, "r1-sol")
@@ -304,7 +349,9 @@ def main() -> int:
         names,
     )
 
-    print("== readings: made-up verdicts, sealed, then compared")
+    print(
+        "== readings: made-up verdicts through the judging command, sealed, then compared"
+    )
     refuses("a score before any reading", g.cmd_score, root, "r1-sol")
     state = {arm: {i: [0, 0] for i in wanted} for arm in g.ARMS}
     for arm in g.ARMS:
@@ -323,21 +370,24 @@ def main() -> int:
             wanted[19]: [1, 2],
         }
     )
-    word = {value: key for key, value in g.RANK.items()}
-    for arm, code in arm_code.items():
-        for which, (_, tag) in enumerate(g.JUDGE_TAGS):
-            kept = g.grades_file(manifest, tag, code)
-            kept.parent.mkdir(parents=True, exist_ok=True)
-            kept.write_text(
-                json.dumps(
-                    {
-                        "verdicts": [
-                            {"id": i, "state": word[state[arm][i][which]]}
-                            for i in wanted
-                        ]
-                    }
-                )
+    word, prompts = {value: key for key, value in g.RANK.items()}, []
+
+    def fake_judge(prompt, cwd, judge, timeout):
+        prompts.append(prompt)
+        arm = next(arm for arm, code in arm_code.items() if f"__{code}__" in cwd.name)
+        which = 0 if judge["host"] == "claude" else 1
+        (cwd / "verdict.json").write_text(
+            json.dumps(
+                {
+                    "verdicts": [
+                        {"id": i, "state": word[state[arm][i][which]]} for i in wanted
+                    ]
+                }
             )
+        )
+        return 0, None
+
+    g.grade.run_session = fake_judge
     rubric = g.live_rubric()
     expect(
         "the live rubric is the bench judge's text with four phrases changed",
@@ -346,8 +396,17 @@ def main() -> int:
         and "C-n" not in rubric
         and "U-n" not in rubric,
     )
+    expect(
+        "judge takes six readings and seals them",
+        g.cmd_judge(root, "r1-sol", 60) == 0 and len(prompts) == 6,
+        len(prompts),
+    )
+    expect("every judge was given the live rubric", set(prompts) == {rubric})
+    sealed = root / "judged-r1-sol.json"
+    held = sealed.read_text()
+    sealed.unlink()
     refuses("a score before the readings are sealed", g.cmd_score, root, "r1-sol")
-    expect("all six readings sealed", g.seal(root, manifest, rubric) == [])
+    sealed.write_text(held)
     refuses("a score before the reader's audit", g.cmd_score, root, "r1-sol")
     expect(
         "the reader's folder is made",
@@ -481,6 +540,37 @@ def main() -> int:
             fine, {"higher": ["a"], "newly_raised": [], "lower": ["b"], "net": 0}, []
         )
         == "no signal",
+    )
+
+    print("== set r3: X's author gives itself only the head of its packet")
+    os.environ["GUIDES_STUB"] = json.dumps(
+        {
+            "template": str(template),
+            "modes": {"A": "accept", "C": "accept", "X": "skim"},
+        }
+    )
+    expect("run returns cleanly", g.cmd_run(root, "r3", "sol", 1.0) == 0)
+    expect("collect finds the set complete", g.cmd_collect(root, "r3-sol") == 0)
+    skimmed = {
+        row["arm"]: row
+        for row in json.loads((root / "collect-r3-sol.json").read_text())
+    }
+    expect(
+        "X is usable and not delivered: little of the instructions, no cue, no block",
+        skimmed["X"]["usable"]
+        and skimmed["X"]["delivered"] is False
+        and not any(skimmed["X"]["delivery_checks"].values()),
+        skimmed["X"]["delivery_checks"],
+    )
+    expect(
+        "A and C are delivered",
+        skimmed["A"]["delivered"] is True and skimmed["C"]["delivered"] is True,
+    )
+    expect(
+        "the set reads as delivery failed",
+        g.outcome(
+            json.loads((root / "set-r3-sol.json").read_text())["delivered"], gain, []
+        ).startswith("delivery failed"),
     )
 
     print("== tampering is caught")

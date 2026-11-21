@@ -709,3 +709,11 @@ delivery, one manifest for a set with sealed readings, a registered audit for ad
 driver end to end with no model, a stub in place of the harness and made-up labels and readings; its transcript is
 `evidence/guides-test/rehearsal.txt`, and `evidence/guides-test/replay-of-two-existing-runs-2.txt` is the final
 reader on two runs that exist (the earlier replay file is of the driver before the second review).
+
+Section 43 corrects how delivery is read. On the Codex host the model gives itself only the part of a command's
+output that its own script prints, so what an author was given is read from the host's session record
+(`model_outputs`), not from the harness's events; `evidence/guides-test/replay-of-two-existing-runs-3.txt` is that
+reader on the two runs. `packet_shown.py RUNS_ROOT...` is the free reading that goes with it: for every Codex run
+under the roots, how many lines of each stage's packet the model was given before it submitted the stage
+(`evidence/readings/packet-shown.txt`: 50 Sol runs; the spec stage's instructions were given at four fifths or more
+in 41, and the lines that say where the spec guides are in 9).
