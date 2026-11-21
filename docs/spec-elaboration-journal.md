@@ -1500,8 +1500,15 @@ read; no model ran for it, and it marks all of it as read after its result, not 
 48 sessions (arms M, K and P on both drivers, four cases, two rounds), all exit 0 after a passing pre-flight each
 round. The leak check found no session in either round that read outside its own directory and profile or named
 the held-out material. Both judges read all 48 specifications; none of the four sets of 24 verdict files has a
-missing or unknown item. Ran 04:22 to 05:31. `evidence/round-7/`, `evidence/round-8/`; the tables and tests are in
-the README, "Result of rounds 7 and 8".
+missing or unknown item.
+
+> **Reworded 2026-11-21, 06:01** (the review; section 24): what the leak check does is scan each session's tool
+> calls for named paths and held-out names, and it flagged none. That is narrower than "read nothing outside".
+> The Sol sessions also searched the web (seven searches in each released-stage session on the bot), so these
+> sessions lacked the stage's usual upstream evidence, not all research.
+
+Ran 04:22 to 05:31. `evidence/round-7/`, `evidence/round-8/`; the tables and tests are in the README, "Result of
+rounds 7 and 8".
 
 ### The registered readings
 
@@ -1514,15 +1521,29 @@ the mean of the two differences.
 | K, a limit left to choice is a recorded default | +4, +2: **+3.0** | +4, +2: **+3.0** | +7, +4: **+5.5** | +8, +5: **+6.5** | **shown on both drivers** |
 
 - R17, nothing lost: holds for both arms. K is above the released stage on the other 53 needed items in every cell.
+  > **Qualified 2026-11-21, 06:01** (the review, checked; section 24): the guard reads the net count. Item by
+  > item, K fails to cover 8 item-cells there that the released stage of its round covered, and 13 under the
+  > second judge, against 23 and 25 the other way.
 - R18, no capability added: holds for both arms. On the four items both sorters call beyond, K's means are 0.0
   and 0.0 on Sonnet and +0.5 and -0.5 on Sol, and each movement, read in the specification, is a stated exclusion
   scored one way or the other, not a control.
+  > **Superseded 2026-11-21, 06:01** (the review, checked; section 24): the guard did not fire, and that is all
+  > it shows. One K specification (reminders, Sonnet, round 7) has a requirement "Pause and resume reminders for
+  > one invoice", where the released stage of the same round excludes "per-customer or per-invoice switches (the
+  > request does not ask for them)". The item that would hold it is a bundle and was scored partial by both judges,
+  > so the count never saw it. And the target set itself rewarded three waitlist caps nobody asked for, and in one
+  > of those specifications a waitlist cutoff "60 minutes before the class start" recorded as an assumption.
 - R19: of the items the released stage covered in neither earlier draw, K covers 7 and 5 of Sonnet's 24 (a fresh
   released stage 1 and 1) and 14 and 14 of Sol's 42 (4 and 8).
 - Size, K against the released stage: words 1.03 and 1.17, requirements 1.05 and 1.03, output tokens 1.26 and
   1.19 (Sonnet, Sol).
 - The four non-functional bounds, read as registered: no performance target without a stated basis. Details in
   the README.
+  > **Superseded 2026-11-21, 06:01** (the review, checked; section 24): too generous. "At most 60 minutes late"
+  > is a promise about when work reaches the mail provider, derived from an assumed hourly run with the provider's
+  > limits recorded as unknown in the same specification: it is unsupported. The other round's "maximum reminders
+  > ... = number of offsets" does not hold if the schedule is edited, which that specification allows. The bot's
+  > 30 seconds is when the app stops waiting, not when an answer arrives. The waitlist passage has no number.
 
 **By the decision rule: no change is proposed for M. K goes forward**, to the review at maximum effort and then to
 the owner. Nothing under `skills/` has changed.
@@ -1543,6 +1564,9 @@ passages are in `evidence/round-8/K-target-items-round-7.md`, `-round-8.md` and 
 2. **All of K's effect is its second sentence.** On the 13 limits: the released stage 7, 6 and 3, 4; M 7, 6 and
    3, 3; K 11, 8 and 9, 7. M and K differ in that sentence only, and in one thing in it: where the request leaves
    a limit to choice, M records an open gap and K takes a default and records it as an assumption.
+   > **Qualified 2026-11-21, 06:01** (section 24): M and K share the first sentence and differ in several words
+   > of the second, and no arm ran either sentence alone. What the comparison supports is that K's wording of the
+   > second sentence outscored M's with the first shared, and that nothing shows the first adds anything.
 3. **What K decided, in the 20 times it covered a target item the released stage of its round did not** (3 went
    the other way): 12 are a default for a limit the released stage also says exists and leaves without a value;
    3 are a cap on the waitlist the request never mentioned; 2 are platform limits given their numbers; 1 is a
@@ -1550,6 +1574,16 @@ passages are in `evidence/round-8/K-target-items-round-7.md`, `-round-8.md` and 
    Limits: file at most 1,048,576 bytes (1 MiB); at most 1,000 data rows ... These are product defaults chosen
    for an admin-sized batch, not platform limits; platform limits are gap G-3", beside the released stage's
    "size and row-count limits are configured values ... (G-1: default values unresolved)".
+   > **Superseded 2026-11-21, 06:01** (the review's item-by-item reading, which I checked against the same
+   > passages; section 24): my five bins were too kind. Of the 20: **9** are a value given to a parameter both
+   > arms already name (the import's limits four times, the prompt's maximum twice, the reply deadline twice, the
+   > reminder schedule once); **3** are waitlist caps; **1** is platform numbers; **1** is a platform figure whose
+   > bearing on the design is doubtful; **2** are a set's members (I had called one of them no difference: K's
+   > import names line breaks inside quoted fields and the released stage's did not); and **4** are a change of
+   > behaviour, not a default: evicting the oldest turns where the released stage refused, promoting in the same
+   > commit as the cancellation where the released stage kept a recoverable pending allocation, and two
+   > different rules for reminder timing or volume. The nine are candidate defaults, no more: whether each is
+   > needed, and right, is not shown.
 4. **The three are the cue over-reaching.** Every K specification of the waitlist request but one gives the
    waitlist a cap (10, 10 and 20), each recorded as an assumption with its reason ("Bounds work per event and a
    member's wait; small gyms rarely queue deeper"). The released stage said "G-3 — waitlist length cap. Assumed
@@ -1569,6 +1603,14 @@ settled) and Sonnet more often the second (6 or 7). K's sentence points both at 
 about where Sonnet's released stage is, and Sonnet 8 to 11. That is the stage's existing rule applied where one
 host was not applying it, not a new policy.
 
+> **Superseded 2026-11-21, 06:01** (the review, checked; section 24): "Sol follows the first and Sonnet the
+> second" is my story and the specifications do not establish it. Both drivers' released-stage specifications
+> choose some defaults and leave others open: Sonnet gives the bot 4,000 characters and a 60-second timeout in
+> both draws and leaves the import's values unset; Sol in round 7 sets reminders at days 1, 7 and 14 and in round
+> 8 defers them. What is shown is narrower: Sonnet's released stage names more of this checklist's bounds in this
+> frame, and K's wording raises both. Which instruction, which evidence and which part of the driver's set-up
+> accounts for the difference is untested.
+
 **It is not evidence that the defaults are right, or that a product built from them is better.** The count credits
 deciding (section 14). Section 21 holds the only built-product evidence there is: in the pilot's three cases a
 clause the writer marked as its own choice failed on a correct product two times in five. A default for a limit
@@ -1582,6 +1624,15 @@ size limit to read. How much of the gap on Sol remains then is not known.
 Limits: two rounds, so two draws an arm; X1's band is the floor of 2 and not a measured maximum; two cue arms were
 two chances to pass (K passes on both drivers under both judges in both rounds, which chance does not easily do);
 the checklist is the author's, though the sets are not.
+
+> **Corrected 2026-11-21, 06:01** (the review, checked; section 24): "which chance does not easily do" is
+> withdrawn. The two contrasts share one control, both judges read the same specifications and round 8 repeats
+> round 7's cases, so the agreements are not independent. K's own count on the target moved by 3 between the
+> rounds on Sonnet under both judges. With the waitlist cap's item left out, K against the released stage is +3
+> and +1 on Sonnet under both judges, a mean of exactly the floor, and K against M there is +3 and 0, +4 and 0;
+> on Sol it is still +6, +4 and +7, +5 against the released stage. And the whole checklist: the registration
+> gave it a band of 12 for context; `label.py pair` printed its status against 6. Against 12 it is not shown on
+> either driver.
 
 ### Where it goes
 
@@ -1636,3 +1687,97 @@ the default is missing. Between M (leave it open) and K (decide it and test the 
 behaviour at the limit, give the default as a named, changeable setting recorded as an assumption, and test the
 behaviour at the configured value and not the number. That is not measured here and is put to the owner as a
 question, not a proposal.
+
+## 24. The review says: ask for a trial of a narrower wording in duty 4, and it finds my reading of round 7 and 8 too kind in eight places (2026-11-21, 06:01)
+
+The registered review ran: the latest Sol at maximum effort, read-only over this repository, on the brief in
+`review/cue-K-prompt.md`; its report is `review/cue-K-review.md` (18 findings; 05:36 to 05:57). It read sections
+19 to 23, the arms, the labels, all four verdict sets and the 48 specifications, ShipLoop's prompts and later
+stages, and the pilot's record at 0f044772fc0b8664ade3ef25eef86255e6fe7f41. It ran its own counts and wrote
+nothing.
+
+**Its verdict:** "put it to the owner after these changes: correct the evidence claims and qualify the duty 4
+replacement in the paired built-product trial. The request to the owner now is for trial authorization." Not arm
+K's two sentences in duty 2, and not a change to ship.
+
+### What I checked of it, and found as it says
+
+Each against the saved verdicts or the specification named:
+
+- K fails to cover 8 item-cells on the other needed items that the released stage of its round covered (13 under
+  the second judge), against 23 and 25 the other way. The registered guard reads only the net.
+- One K specification (reminders, Sonnet, round 7) has "R-9 Pause and resume reminders for one invoice"; the
+  released stage of that round excludes "per-customer or per-invoice switches (the request does not ask for
+  them)". And one K waitlist specification assumes a cutoff "60 minutes before the class start instant".
+- All 20 of K's gains under the registered judge, and all 21 under the second, are a partial become covered: none
+  is an item the released stage had not reached.
+- Without the waitlist cap's item, K against the released stage is +3 and +1 on Sonnet under both judges; K
+  against M on Sonnet is +3, 0 and +4, 0. On Sol K stays +6, +4 and +7, +5.
+- K's own count on the target moved by 3 between rounds on Sonnet under both judges; M's by 4 on Sol under the
+  second judge. The four repeat pairs behind the band had moved by at most 1.
+- The whole checklist's status was printed against a band of 6 where the registration said 12.
+- Both drivers' released-stage specifications choose some defaults and leave others open (the bot's 4,000
+  characters and 60 seconds on Sonnet in both draws; reminders at days 1, 7 and 14 on Sol in round 7).
+- The Sol sessions searched the web: 7 searches in each released-stage session on the bot.
+- The target set holds one item the sorters split on (needed and mixed), and 10 items are in none of the three
+  sets.
+
+Its reclassification of K's 20 gains (9 values for a parameter already named; 3 waitlist caps; 2 platform
+figures, one of doubtful bearing; 2 sets; 4 changes of behaviour) I checked passage by passage for the ones I had
+binned differently and accept. Each of these is marked in place in section 22.
+
+Not checked by me: its in-memory render of the proposed text through the packet and guidance suites (it reports
+the spec packets growing from 16,999 to 17,695 characters and the existing assertions holding), and its reading
+of every later stage's duty.
+
+### What it says about the text
+
+1. **K's phrase is the fault.** "A limit the request leaves to choice" treats silence about whether a limit
+   should exist as leave to choose its value. A file's size limit, an input's maximum and a timeout can be
+   necessary; a cap on a waitlist needs a basis of its own.
+2. **A value in an acceptance line becomes a build and test obligation even when it is labelled an assumption**
+   (it names the duties of `test-strategy`, `plan`, `step-plan`, `test-spec` and `implement` that carry it).
+   A passing check then shows the product implements the chosen value and says nothing about the choice. For a
+   delegated default: test the behaviour below, at and above a limit supplied to the test, and verify the shipped
+   default separately. It points at the released stage's own round-7 import specification on Sonnet, which uses
+   fixture values of 1,024 bytes and five rows and leaves the shipped defaults unresolved. That is the third form
+   section 23 arrived at from the pilot's count.
+3. **Not duty 2.** The rule belongs where the open-gap decision is made, in duty 4. Both of K's sentences go; the
+   first overlaps what duty 2 and the behaviour guide already ask.
+4. **Its text**, to replace duty 4's "Mark each unresolved prerequisite or user decision as an open gap under its
+   R-<n> in KNOWLEDGE/spec.md.":
+
+   > Mark unresolved prerequisites and decisions that require the user as open gaps under their R-<n> in
+   > KNOWLEDGE/spec.md. Use applicable bounds from the request or preserved contract. Introduce a functional limit
+   > the request leaves unstated only where the requested behaviour cannot work correctly or safely without it.
+   > When only its value is open, take the best reversible default supported by the available evidence and
+   > applicable runtime limits (item 10). If the basis for such a default is missing, keep the bound open under
+   > its R-<n>. State the observable behaviour at and beyond the effective bound and label any chosen value as a
+   > default in its acceptance line. Record that value, its basis, alternatives and revalidation condition as an
+   > assumption for that R-<n> in `summary`.
+
+5. **What a trial would have to be:** full unattended runs from intake to handoff with real discovery and
+   research, three matched pairs a case on Sol and the same on Sonnet as a regression check, external oracles
+   frozen beforehand, a case with a limit the behaviour needs, a case with an established limit to preserve, and a
+   waitlist that must still admit people past 10 and 20. Withdraw the wording "if real context erases the gain, if
+   the gain exists only in generated tests or checklist scores, or if it introduces an unjustified refusal".
+   Three cases, three pairs, two arms, two hosts: 36 deliveries.
+
+### Where that leaves it
+
+- **Established** (the review's word, and mine): M clears nothing. K is above the released stage in every cell on
+  the target under both judges. K makes several open values concrete and adds three waitlist caps nobody asked
+  for.
+- **Interim:** a default-oriented wording makes these specifications more decided, most usefully on the import's
+  limits and on the bot's bounds on Sol. Whether a narrower wording keeps that, whether any of it survives real
+  discovery, and what it does to a built product are untested.
+- **Unsupported, and withdrawn above:** that K adds no scope and loses nothing; my five bins; that the first
+  sentence has no effect; that duty 4 against the RULES explains the difference between the drivers; that the
+  result is unlikely by chance.
+
+**One thing the review's text does that I expect to matter, written before any run of it.** Its fifth sentence,
+"If the basis for such a default is missing, keep the bound open", is the way out that arm M and the earlier
+block both offered, and on Sol both moved nothing. With no repository and no research result the basis is missing
+nearly every time. Prediction: on this instrument the review's text behaves like M on Sol (under 2 of the target)
+and does not add a waitlist cap on either driver. If so, a 36-delivery trial of it would be testing a sentence
+that changes little.

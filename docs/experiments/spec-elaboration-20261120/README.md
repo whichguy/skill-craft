@@ -548,3 +548,32 @@ mine; `K-target-items-round-*.md`, `K-stable-target-items.md`):
 
 **Predictions held against it** (journal section 20): M moves Sol's X1 by less than 2: held (+0.5, +1.0). M moves
 Sonnet's by 1 to 3: not held (+0.5, 0.0). K moves Sol's by 4 or more: held (+5.5, +6.5). Neither moves X3: held.
+
+### Corrected after the review (2026-11-21)
+
+The review registered above ran (`review/cue-K-review.md`; journal section 24). The registered readings stand as
+counted. Eight things in "Result of rounds 7 and 8" do not stand as written; each was checked against the saved
+verdicts or the specification before being accepted:
+
+- **R17 reads the net.** Item by item K fails to cover 8 item-cells on the other needed items that the released
+  stage of its round covered (13 under the second judge), against 23 and 25 the other way.
+- **R18 did not fire, and that is all it shows.** One K specification adds "Pause and resume reminders for one
+  invoice" where the released stage of its round excludes per-invoice switches; the item that would hold it is a
+  bundle scored partial. The target set itself rewarded three waitlist caps and, in one specification, an assumed
+  cutoff 60 minutes before class.
+- **The 20 gains** are 9 values for a parameter both arms already name, 3 waitlist caps, 2 platform figures (one
+  of doubtful bearing), 2 sets and 4 changes of behaviour, not the "12, 3, 2, 1, 2" written above. All 20 are a
+  partial become covered.
+- **"Only the second sentence did anything"** should read: K's wording of the second sentence outscored M's with
+  the first sentence shared; no arm ran either sentence alone.
+- **The non-functional bounds** are not all sound: "at most 60 minutes late" is unsupported by the assumption it
+  rests on, and the count bound does not hold if the schedule is edited.
+- **Without the waitlist cap's item** K against the released stage is +3 and +1 on Sonnet under both judges, a mean
+  of exactly the floor, and K against M there is +3, 0 and +4, 0. On Sol it is +6, +4 and +7, +5.
+- **The whole checklist** was given a context band of 12 when registered; `label.py pair` printed its status
+  against 6. Against 12 it is not shown on either driver.
+- **The leak check** scans tool calls for named paths and held-out names and flagged none; the Sol sessions also
+  searched the web.
+
+**The review's verdict** is not for arm K's sentences: it is to ask the owner to authorize a trial, on built
+products, of a narrower rule in duty 4 (its text is in journal section 24). Nothing under `skills/` has changed.
