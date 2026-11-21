@@ -1590,3 +1590,49 @@ the checklist is the author's, though the sets are not.
    a limit the requested behaviour cannot work without and not a limit that need not exist.
 2. Then the owner, with the review. A change to duty 2 is a ShipLoop product change: the owner's word, the packet
    and guidance suites, a change note, and an E2E round after it.
+
+## 23. Received after the result: an added refusal is where two correct products part ways (2026-11-21, 05:44)
+
+Recorded as received. The count is the Ratchet session's, on its six graded runs; its record is "Received: the
+other session's rounds 7 and 8" in section 20 of its journal, commit 1ef1ee5b30d173bf349a882149bf7643404cc2aa on
+its branch, which I read. No model ran for it. It had read section 22 here and re-ran nothing of mine.
+
+Its count (its F28; a fixed word list marks a clause whose statement makes the product refuse, fail or require
+something; "failing" means the clause's test fails on the correct reference; both of its texts pooled):
+
+| where the clause comes from | it refuses or requires: written, failing | the rest of that kind: written, failing |
+| --- | --- | --- |
+| the writer's own choice | 27, 18 (67%) | 74, 20 (27%) |
+| implied by the request | 19, 10 (53%) | 137, 25 (18%) |
+| the request itself | 20, 2 (10%) | 125, 20 (16%) |
+| existing behaviour | 85, 1 (1%) | 438, 10 (2%) |
+
+In its words: "A refusal the writer added on its own ... rejects a correct product 28 times in 46; its other
+additions 45 times in 211; a refusal the request states or the product already has, 3 times in 105." And on the
+question section 22 put to the review: "A cap on a waitlist and a maximum size for a file are both refusals the
+request did not state, so this mark does not separate its two kinds. What it supports is narrower: an added
+refusal is where two correct products most often part ways, whatever its reason; and a default that must exist ...
+is still decided differently by different writers, as its own three draws of the file limits show." Where a writer
+there chose no further limit, the clause passed on the reference 5 times in 5.
+
+Its limits, as it states them: one run a cell, three cases, Sol the only writer, a word list as the mark, one
+correct reference a case.
+
+**What it means for arm K.** Every one of K's 15 defaults and caps (section 22, the 12 and the 3) is a refusal the
+request did not state: a file above the limit is rejected, a prompt past the maximum is refused, the twenty-first
+person is told the waitlist is full. On the only built products anyone has graded, that is the kind of clause two
+correct builds disagree on two times in three, and "Assumed none", which the released stage wrote for the
+waitlist, is the kind that passed every time. It does not say K's limits are wrong: a ShipLoop run builds to its
+own specification, and a file must be refused at some size. It says the value is arbitrary between correct
+products, which K's own four draws of the import's limits already showed, and that pinning it in a test pins
+something the owner never chose.
+
+**A third form that neither arm tested.** The same record notes that in its pilot an `Open:` point is "the default
+cue's rule without the test: the build takes a reasonable answer and reports it, and no test pins it". The
+released stage on Sonnet already writes something close for the import: "size and row-count limits are configured
+values (`max_bytes`, `max_rows` ...); exceeding either rejects the whole file before any user is created (G-1:
+default values unresolved)". The behaviour at the limit is specified and testable at whatever value is set; only
+the default is missing. Between M (leave it open) and K (decide it and test the number) there is: state the
+behaviour at the limit, give the default as a named, changeable setting recorded as an assumption, and test the
+behaviour at the configured value and not the number. That is not measured here and is put to the owner as a
+question, not a proposal.
