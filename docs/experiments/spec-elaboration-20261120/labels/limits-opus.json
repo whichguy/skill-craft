@@ -1,0 +1,100 @@
+{
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "cost_usd": 0.16102740000000001,
+ "prompt_sha256": "24b1419d9d6a08412ad21821373f2d73d0a1ac193ed50311cc7fa97e3d2551b5",
+ "missing": [],
+ "unknown_labels": [],
+ "labels": [
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-8",
+   "need": "necessary",
+   "why": "Salesforce governor limits (callout timeout, callouts, heap, CPU) bind any implementation that calls an external model."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-13",
+   "need": "necessary",
+   "why": "Async callouts run on platform job queues with hard enqueue/concurrency limits, so some requests can fail to enqueue."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-20",
+   "need": "necessary",
+   "why": "The model's context window is finite, so a long conversation must be trimmed or summarised at some size."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-21",
+   "need": "necessary",
+   "why": "Input length is bounded by the model context and Salesforce field/payload sizes, so a maximum must exist."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-25",
+   "need": "optional",
+   "why": "Beyond the platform timeout, a latency target is a product choice; the bot answers correctly without one."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-10",
+   "need": "optional",
+   "why": "An unbounded waitlist works correctly; capping it is a product decision."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-11",
+   "need": "necessary",
+   "why": "Promotion cannot sensibly happen after the class starts, so some cut-off (at latest the start time) must be defined."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-19",
+   "need": "optional",
+   "why": "Promotion is correct as long as it happens before the cut-off; a tighter latency bound is a product choice."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-1",
+   "need": "necessary",
+   "why": "Automatic reminders need a defined count and timing; without it they never send or repeat endlessly."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-8",
+   "need": "necessary",
+   "why": "Any email/SMS provider enforces a send rate, so large batches must be paced within it."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-10",
+   "need": "optional",
+   "why": "Reminders sent at any hour still work; restricting sending hours is a product preference."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-19",
+   "need": "optional",
+   "why": "Reminders function without a volume cap or lateness bound; imposing one is a product decision."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-9",
+   "need": "necessary",
+   "why": "Uploads and in-memory parsing are bounded by request size and server resources, so a maximum must be stated."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-13",
+   "need": "unclear",
+   "why": "The request does not say whether creating users sends mail at all; if it does, provider limits would apply."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-19",
+   "need": "optional",
+   "why": "The import is correct however long it takes; a duration bound and progress display are product choices."
+  }
+ ]
+}
