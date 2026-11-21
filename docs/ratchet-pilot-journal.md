@@ -2080,3 +2080,49 @@ test written somewhere else, has to share is those answers and the names the pla
 the specification alone and not the build. The fork, asked whether this states its finding, agreed and added that
 narrowing, and that it is shown for two sessions on one request with one model, whose blind sessions took every
 name that starts or configures the product from the plan, the specification or the starting documents.
+
+### Amendment 11, 2026-11-21 10:52: Sonnet at medium against Sonnet at high, the small step first, then one test-strength cell at each (registered before any run)
+
+Owner, 10:49, after the test-strength cell on Sonnet had been described at their request: "Can we run this at Sonnet
+medium to see if we get different behavior than we would if we ran this at high?" My reading: run that cell at
+both efforts and say whether what Sonnet does differs between them. Medium is also what this account's Sonnet
+sessions use when no effort is given, so it is the setting a day-to-day run would have.
+
+**How the effort reaches a session.** The harness's Claude host puts `--effort <level>` on the command line
+(`test/shiploop_e2e/hosts.py`), and the installed `claude` accepts low, medium, high, xhigh and max there. Amendment
+10's ten runs went out with `--effort high`. A correction to a limit stated there: I wrote that a Claude session
+started by the pilot "runs in the real home and is shown the account's own instructions". The launcher also passes
+`--setting-sources project,local`, which leaves the user-level settings out; what else that leaves out I have not
+checked by a run. The limit was stated more broadly than I knew.
+
+**Rungs.**
+
+| Rung | What runs | About |
+|---|---|---|
+| 1, small | the spec stage alone with the reworded text at `--effort medium`: `sm-orders`, `sm-ticket-assignment`, `sm-due-times-1`, `-2`, `-3`; compared with amendment 10's five at high | 3 minutes |
+| 2 | the test-strength cell on ticket assignment at each effort, each from that effort's own specification (`--spec-from`), the correct reference laid in as the build, plan and heavy test pass at that effort, `--stop-after tests`, then `grade.py strength`: `p1S-ticket-assignment-high` (from `s1-ticket-assignment`) and `p1S-ticket-assignment-medium` (from `sm-ticket-assignment`) | 20 minutes and the grading |
+
+Rung 2 runs whatever rung 1 shows, unless the medium ticket-assignment specification is not accepted by the script.
+Each session of rung 2 is capped at 6 dollars, each of rung 1 at 3.
+
+**Readings.**
+
+- **R12.1, what medium writes.** *Different* if any of the five medium specifications writes more than 2 choice
+  clauses or no `Open:` line (R11.1's bar, which all five at high met), or if any of the three due-times ones
+  requires that an enabled start refuse a data file without due times (none at high did). Otherwise the same on
+  this reading. Reported beside it: clauses, `existing` clauses, minutes and cost.
+- **R12.2, strength at each effort.** Calibrated defects caught of 27: *kept* at 25 or more (Sol with this text:
+  26). Reported: clauses failing on the correct reference, items the second correct delivery fails beyond it, which
+  defects are missed and of what kind, minutes and cost.
+- **R12.3, medium against high.** *Different* if the two caught counts differ by 2 or more, or if one is kept and
+  the other is not. Otherwise no difference shown.
+
+**What it cannot show.** One run a cell at each effort, and no measure of Sonnet's run-to-run spread, so one defect
+either way is nothing. Whole cells are compared (specification, plan and tests all at one effort), so a difference
+would not say which stage made it. Nothing is built on Sonnet. If a cell is not kept, it does not say whether the
+short specification or Sonnet's way of writing tests is the cause: the lens text on Sonnet in the same cell would,
+and it is not registered here.
+
+**Predictions.** The medium specifications meet R11.1's bar and are a little shorter than the high ones. Both cells
+are kept, and medium catches as many as high or one fewer. I hold these loosely: this pilot has no record of
+Sonnet writing a plan or tests.
