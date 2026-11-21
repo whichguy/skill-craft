@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__K4__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.21532399999999996,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Failed files create no users and consume no IDs."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "T-2 rejects a malformed file or invalid row with 400 and a useful error, including its CSV record number when applicable.",
+   "missing": "Whether every failing row is reported or only the first, and the structure/content of the per-row reason."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Reject duplicate emails case-insensitively within a file or against current users with 409 and a record number."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "The operator configures ADMIN_TOKEN when starting the server. A matching Authorization Bearer credential is required."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "accepts a raw UTF-8 text/csv body with name and email headers (either order, each once)",
+   "missing": "How unexpected/extra columns are treated and what error a missing header row produces."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "optional BOM, LF or CRLF, quoted fields, comma escaping by quoting, and doubled quotes",
+   "missing": "Whether quoted fields may contain embedded newlines and how they are handled."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Failed files create no users and consume no IDs.",
+   "missing": "Whether any other side effects (e.g. notifications) exist and are withheld until the whole file succeeds."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "Accept at most 1 MiB of body bytes and 1,000 data rows. T-6 checks the byte and row limits return 413 and leave the list untouched."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Ignore blank records. Require at least one user row."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Reject duplicate emails case-insensitively within a file or against current users with 409 ... retry a completed batch"
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1 / R-3",
+   "quote": "Expect 201 and {\"created\":2}. ... A synchronous validation and insertion boundary resolves concurrent requests.",
+   "missing": "An explicit decision that imports are processed within the request (no background job) and how completion is signalled for large files."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "Non-functional requirements / R-3",
+   "quote": "CSV payloads are held only for request processing. ... No data is written to disk."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Existing unauthenticated GET routes preserve their response shapes and 404 behavior.",
+   "missing": "Whether single-user creation continues unchanged and an explicit statement that existing users are never modified by an import."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Responses report errors without echoing raw input.",
+   "missing": "Handling of spreadsheet formula-prefixed values and a per-field maximum length."
+  }
+ ]
+}

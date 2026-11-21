@@ -1,0 +1,506 @@
+[
+ {
+  "name": "s2-sol-A",
+  "set": "s2-sol",
+  "arm": "A",
+  "driver": "sol",
+  "pid": 61703,
+  "started_at": 1795300532.274581,
+  "limit_minutes": 20.0,
+  "decided_at": 1795300694.619903,
+  "watcher": "saw the acceptance",
+  "stop_written": true,
+  "seen": {
+   "run_dir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-c7147b/samples/s2-sol-A/.shiploop-runs/work-20261121-223547-6334f5/run",
+   "spec_action": "nav-5aee6ce069c64ecaba0df069a3ffa21c",
+   "at": "2026-11-21T22:38:14Z",
+   "ts": 1795300694.373,
+   "spec_sha256": "1c241f970b7881bf3ac52363bf45e187802c9221404541a8a8ac599c22b60a24",
+   "head": "9ee0a2ec340bf260a225e56cc86fe0a2c44cca36"
+  },
+  "returncode": -9,
+  "host_ending": "the stop file",
+  "process_status": "stopped",
+  "host_stop": null,
+  "resume_stop": "stopped by /Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-c7147b/samples/s2-sol-A/stop",
+  "outcome_class": "STOPPED",
+  "host_sessions": 1,
+  "harness_last_accepted": {
+   "stage": "spec",
+   "action": "nav-5aee6ce069c64ecaba0df069a3ffa21c"
+  },
+  "run_dir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-c7147b/samples/s2-sol-A/.shiploop-runs/work-20261121-223547-6334f5/run",
+  "spec_action": "nav-5aee6ce069c64ecaba0df069a3ffa21c",
+  "snapshot": "pinned",
+  "acceptance_action": "nav-8f730c53b6e14e80b58d151eef999ba8",
+  "accepted_at": "2026-11-21T22:38:14Z",
+  "accepted_ts": 1795300694.373,
+  "submitted_ts": 1795300659.563,
+  "author_submissions": 1,
+  "commands_after_acceptance": 0,
+  "spec_commits_after_acceptance": 0,
+  "spec_commit": "9ee0a2ec340bf260a225e56cc86fe0a2c44cca36",
+  "spec_commit_subject": "docs(shiploop): record skill-craft-shiploop-let-admins-upload-056354 knowledge after spec",
+  "witness": "the accepting command's own knowledge commit",
+  "spec_sha256": "1c241f970b7881bf3ac52363bf45e187802c9221404541a8a8ac599c22b60a24",
+  "reviewed": true,
+  "bind_read_from": "the copy kept when the bind first appeared",
+  "as_bound_for_review": {
+   "words": 429,
+   "requirement_ids": 2
+  },
+  "packet_ts": 1795300638.134,
+  "shiploop_printed_the_whole_packet": true,
+  "prompt_is_the_request": true,
+  "case_recorded": "custom",
+  "start_head": "3558d4cee5ee8b75086a02507b8ed0a07bcfef20",
+  "start_route": "workspace",
+  "planning_review": "stage",
+  "plugin_wanted": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-c7147b/arm-A/build/plugins/skill-craft",
+  "plugin_check_passed": true,
+  "loaded_sha256": {
+   "shiploop_prompts.py": [
+    "39ea13ebce9e4a39aa7b3e3415af7371f286fcef3772f7228875830c18913b33"
+   ],
+   "shiploop_stage_spec.py": [
+    "470d2bc8f93d7452120e29b40f5f7a5afaf8c48dde0c0d6c1ad90388e2c82429"
+   ]
+  },
+  "exposure": {
+   "read_from": "the host's own session record: what the model was given",
+   "outputs_given": 16,
+   "instructions_lines_shown": [
+    102,
+    102
+   ],
+   "references_lines_shown": [
+    19,
+    58
+   ],
+   "instructions_shown_whole": true,
+   "cue_shown": false,
+   "read_all_shown": false,
+   "guide_block_lines_shown": [
+    0,
+    81
+   ],
+   "guide_block_shown_whole": false,
+   "guide_lines_returned": {
+    "before the spec packet": {
+     "requirements-definition.md": 21
+    },
+    "while writing the spec": {},
+    "during its review": {},
+    "after the acceptance": {}
+   },
+   "guide_passage_before_acceptance": true
+  },
+  "accepted": {
+   "words": 429,
+   "requirement_ids": 2
+  },
+  "spec_seconds": 56.0,
+  "spec_review_seconds": 34.4,
+  "spec_author_seconds": 21.6,
+  "turns": null,
+  "tokens": {
+   "input_peak": 81819,
+   "processed": null,
+   "output": null
+  },
+  "cost_usd": null,
+  "refusals": 0,
+  "usable": true,
+  "usable_checks": {
+   "accepted inside the limit": true,
+   "the specification pinned to its commit": true,
+   "the acceptance the watcher saw": true,
+   "the registered sentence": true,
+   "the prepared base": true,
+   "the arm's build": true
+  },
+  "delivered": false,
+  "delivery_checks": {
+   "at least half of the stage's instructions given to the model": true,
+   "the arm's own sentence given, and no other arm's": true,
+   "the guide text given, as the arm has it": false
+  }
+ },
+ {
+  "name": "s2-sol-C",
+  "set": "s2-sol",
+  "arm": "C",
+  "driver": "sol",
+  "pid": 61701,
+  "started_at": 1795300532.269255,
+  "limit_minutes": 20.0,
+  "decided_at": 1795300657.112892,
+  "watcher": "saw the acceptance",
+  "stop_written": true,
+  "seen": {
+   "run_dir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-c7147b/samples/s2-sol-C/.shiploop-runs/work-20261121-223546-ed3d24/run",
+   "spec_action": "nav-3f1a7e00b89a4e5d9f21d6f71f7e5978",
+   "at": "2026-11-21T22:37:36Z",
+   "ts": 1795300656.58,
+   "spec_sha256": "51a287a24dfe7fc323b0981e4ae1baedb91055adb62204b484f5be8b2382f7fc",
+   "head": "eae47f881eee86850715da4dee311502cbc73ae9"
+  },
+  "returncode": -9,
+  "host_ending": "the stop file",
+  "process_status": "stopped",
+  "host_stop": null,
+  "resume_stop": "stopped by /Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-c7147b/samples/s2-sol-C/stop",
+  "outcome_class": "STOPPED",
+  "host_sessions": 1,
+  "harness_last_accepted": {
+   "stage": "spec",
+   "action": "nav-3f1a7e00b89a4e5d9f21d6f71f7e5978"
+  },
+  "run_dir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-c7147b/samples/s2-sol-C/.shiploop-runs/work-20261121-223546-ed3d24/run",
+  "spec_action": "nav-3f1a7e00b89a4e5d9f21d6f71f7e5978",
+  "snapshot": "pinned",
+  "acceptance_action": "nav-10b8e95269144231ac395f55111bdde1",
+  "accepted_at": "2026-11-21T22:37:36Z",
+  "accepted_ts": 1795300656.58,
+  "submitted_ts": 1795300631.204,
+  "author_submissions": 1,
+  "commands_after_acceptance": 0,
+  "spec_commits_after_acceptance": 0,
+  "spec_commit": "eae47f881eee86850715da4dee311502cbc73ae9",
+  "spec_commit_subject": "docs(shiploop): record let-admins-upload-a-csv-to-8c09d4 knowledge after spec",
+  "witness": "the accepting command's own knowledge commit",
+  "spec_sha256": "51a287a24dfe7fc323b0981e4ae1baedb91055adb62204b484f5be8b2382f7fc",
+  "reviewed": true,
+  "bind_read_from": "the copy kept when the bind first appeared",
+  "as_bound_for_review": {
+   "words": 405,
+   "requirement_ids": 2
+  },
+  "packet_ts": 1795300611.483,
+  "shiploop_printed_the_whole_packet": true,
+  "prompt_is_the_request": true,
+  "case_recorded": "custom",
+  "start_head": "3558d4cee5ee8b75086a02507b8ed0a07bcfef20",
+  "start_route": "workspace",
+  "planning_review": "stage",
+  "plugin_wanted": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-c7147b/arm-C/build/plugins/skill-craft",
+  "plugin_check_passed": true,
+  "loaded_sha256": {
+   "shiploop_prompts.py": [
+    "00dbfe2bf565b8280523ca16f493f28df9b3837ee5f42eceb332dda3ae6f050f"
+   ],
+   "shiploop_stage_spec.py": [
+    "470d2bc8f93d7452120e29b40f5f7a5afaf8c48dde0c0d6c1ad90388e2c82429"
+   ]
+  },
+  "exposure": {
+   "read_from": "the host's own session record: what the model was given",
+   "outputs_given": 11,
+   "instructions_lines_shown": [
+    103,
+    104
+   ],
+   "references_lines_shown": [
+    35,
+    55
+   ],
+   "instructions_shown_whole": false,
+   "cue_shown": true,
+   "read_all_shown": false,
+   "guide_block_lines_shown": [
+    0,
+    81
+   ],
+   "guide_block_shown_whole": false,
+   "guide_lines_returned": {
+    "before the spec packet": {},
+    "while writing the spec": {},
+    "during its review": {},
+    "after the acceptance": {}
+   },
+   "guide_passage_before_acceptance": false
+  },
+  "accepted": {
+   "words": 405,
+   "requirement_ids": 2
+  },
+  "spec_seconds": 45.0,
+  "spec_review_seconds": 24.8,
+  "spec_author_seconds": 20.2,
+  "turns": null,
+  "tokens": {
+   "input_peak": 72621,
+   "processed": null,
+   "output": null
+  },
+  "cost_usd": null,
+  "refusals": 0,
+  "usable": true,
+  "usable_checks": {
+   "accepted inside the limit": true,
+   "the specification pinned to its commit": true,
+   "the acceptance the watcher saw": true,
+   "the registered sentence": true,
+   "the prepared base": true,
+   "the arm's build": true
+  },
+  "delivered": true,
+  "delivery_checks": {
+   "at least half of the stage's instructions given to the model": true,
+   "the arm's own sentence given, and no other arm's": true,
+   "the guide text given, as the arm has it": true
+  }
+ },
+ {
+  "name": "s2-sol-R",
+  "set": "s2-sol",
+  "arm": "R",
+  "driver": "sol",
+  "pid": 61704,
+  "started_at": 1795300532.277676,
+  "limit_minutes": 20.0,
+  "decided_at": 1795300707.0257869,
+  "watcher": "saw the acceptance",
+  "stop_written": true,
+  "seen": {
+   "run_dir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-c7147b/samples/s2-sol-R/.shiploop-runs/work-20261121-223548-47f1f5/run",
+   "spec_action": "nav-d1989edfc47149f38dfdb530a317c14c",
+   "at": "2026-11-21T22:38:26Z",
+   "ts": 1795300706.185,
+   "spec_sha256": "5b95d222f8f11bae7eab3fe1362c518dc6397963463dc3459e514d5c83321591",
+   "head": "ed8793c5ef5972c797cb9d3f6bf542302db71371"
+  },
+  "returncode": -9,
+  "host_ending": "the stop file",
+  "process_status": "stopped",
+  "host_stop": null,
+  "resume_stop": "stopped by /Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-c7147b/samples/s2-sol-R/stop",
+  "outcome_class": "STOPPED",
+  "host_sessions": 1,
+  "harness_last_accepted": {
+   "stage": "spec",
+   "action": "nav-d1989edfc47149f38dfdb530a317c14c"
+  },
+  "run_dir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-c7147b/samples/s2-sol-R/.shiploop-runs/work-20261121-223548-47f1f5/run",
+  "spec_action": "nav-d1989edfc47149f38dfdb530a317c14c",
+  "snapshot": "pinned",
+  "acceptance_action": "nav-505ad4be478d4c41a274d361bd4b2558",
+  "accepted_at": "2026-11-21T22:38:26Z",
+  "accepted_ts": 1795300706.185,
+  "submitted_ts": 1795300671.072,
+  "author_submissions": 1,
+  "commands_after_acceptance": 0,
+  "spec_commits_after_acceptance": 0,
+  "spec_commit": "ed8793c5ef5972c797cb9d3f6bf542302db71371",
+  "spec_commit_subject": "docs(shiploop): record skill-craft-shiploop-let-admins-upload-3cd71d knowledge after spec",
+  "witness": "the accepting command's own knowledge commit",
+  "spec_sha256": "5b95d222f8f11bae7eab3fe1362c518dc6397963463dc3459e514d5c83321591",
+  "reviewed": true,
+  "bind_read_from": "the copy kept when the bind first appeared",
+  "as_bound_for_review": {
+   "words": 508,
+   "requirement_ids": 3
+  },
+  "packet_ts": 1795300642.619,
+  "shiploop_printed_the_whole_packet": true,
+  "prompt_is_the_request": true,
+  "case_recorded": "custom",
+  "start_head": "3558d4cee5ee8b75086a02507b8ed0a07bcfef20",
+  "start_route": "workspace",
+  "planning_review": "stage",
+  "plugin_wanted": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-c7147b/arm-R/build/plugins/skill-craft",
+  "plugin_check_passed": true,
+  "loaded_sha256": {
+   "shiploop_prompts.py": [
+    "39ea13ebce9e4a39aa7b3e3415af7371f286fcef3772f7228875830c18913b33"
+   ],
+   "shiploop_stage_spec.py": [
+    "06895ebcfbc0db0a934320f9761286206b571b27a15559086dee2bb3386e074a"
+   ]
+  },
+  "exposure": {
+   "read_from": "the host's own session record: what the model was given",
+   "outputs_given": 15,
+   "instructions_lines_shown": [
+    99,
+    102
+   ],
+   "references_lines_shown": [
+    51,
+    54
+   ],
+   "instructions_shown_whole": false,
+   "cue_shown": false,
+   "read_all_shown": true,
+   "guide_block_lines_shown": [
+    22,
+    81
+   ],
+   "guide_block_shown_whole": false,
+   "guide_lines_returned": {
+    "before the spec packet": {},
+    "while writing the spec": {
+     "requirements-definition.md": 21
+    },
+    "during its review": {},
+    "after the acceptance": {}
+   },
+   "guide_passage_before_acceptance": true
+  },
+  "accepted": {
+   "words": 508,
+   "requirement_ids": 3
+  },
+  "spec_seconds": 63.0,
+  "spec_review_seconds": 33.9,
+  "spec_author_seconds": 29.1,
+  "turns": null,
+  "tokens": {
+   "input_peak": 79658,
+   "processed": null,
+   "output": null
+  },
+  "cost_usd": null,
+  "refusals": 0,
+  "usable": true,
+  "usable_checks": {
+   "accepted inside the limit": true,
+   "the specification pinned to its commit": true,
+   "the acceptance the watcher saw": true,
+   "the registered sentence": true,
+   "the prepared base": true,
+   "the arm's build": true
+  },
+  "delivered": true,
+  "delivery_checks": {
+   "at least half of the stage's instructions given to the model": true,
+   "the arm's own sentence given, and no other arm's": true,
+   "the guide text given, as the arm has it": true
+  }
+ },
+ {
+  "name": "s2-sol-X",
+  "set": "s2-sol",
+  "arm": "X",
+  "driver": "sol",
+  "pid": 61702,
+  "started_at": 1795300532.271799,
+  "limit_minutes": 20.0,
+  "decided_at": 1795300712.1324968,
+  "watcher": "saw the acceptance",
+  "stop_written": true,
+  "seen": {
+   "run_dir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-c7147b/samples/s2-sol-X/.shiploop-runs/work-20261121-223550-1f0284/run",
+   "spec_action": "nav-bb7eb8eb8af044319e3681b41bea5abf",
+   "at": "2026-11-21T22:38:31Z",
+   "ts": 1795300711.112,
+   "spec_sha256": "0e956ede477c4bb807e4639d659e7f5e1c16573b3c4d0eab75b245d5df9da486",
+   "head": "a69e455ba3cec9fa33d4d4e7218f75ad9b63c56c"
+  },
+  "returncode": -9,
+  "host_ending": "the stop file",
+  "process_status": "stopped",
+  "host_stop": null,
+  "resume_stop": "stopped by /Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-c7147b/samples/s2-sol-X/stop",
+  "outcome_class": "STOPPED",
+  "host_sessions": 1,
+  "harness_last_accepted": {
+   "stage": "spec",
+   "action": "nav-bb7eb8eb8af044319e3681b41bea5abf"
+  },
+  "run_dir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-c7147b/samples/s2-sol-X/.shiploop-runs/work-20261121-223550-1f0284/run",
+  "spec_action": "nav-bb7eb8eb8af044319e3681b41bea5abf",
+  "snapshot": "pinned",
+  "acceptance_action": "nav-6790d8962f334080954ca7d8d0ca7763",
+  "accepted_at": "2026-11-21T22:38:31Z",
+  "accepted_ts": 1795300711.112,
+  "submitted_ts": 1795300679.701,
+  "author_submissions": 1,
+  "commands_after_acceptance": 0,
+  "spec_commits_after_acceptance": 0,
+  "spec_commit": "a69e455ba3cec9fa33d4d4e7218f75ad9b63c56c",
+  "spec_commit_subject": "docs(shiploop): record skill-craft-shiploop-let-admins-upload-189f5c knowledge after spec",
+  "witness": "the accepting command's own knowledge commit",
+  "spec_sha256": "0e956ede477c4bb807e4639d659e7f5e1c16573b3c4d0eab75b245d5df9da486",
+  "reviewed": true,
+  "bind_read_from": "the copy kept when the bind first appeared",
+  "as_bound_for_review": {
+   "words": 835,
+   "requirement_ids": 2
+  },
+  "packet_ts": 1795300641.29,
+  "shiploop_printed_the_whole_packet": true,
+  "prompt_is_the_request": true,
+  "case_recorded": "custom",
+  "start_head": "3558d4cee5ee8b75086a02507b8ed0a07bcfef20",
+  "start_route": "workspace",
+  "planning_review": "stage",
+  "plugin_wanted": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-c7147b/arm-X/build/plugins/skill-craft",
+  "plugin_check_passed": true,
+  "loaded_sha256": {
+   "shiploop_prompts.py": [
+    "05f24bd59dad9865896394a67cea1a39f9c9d52655b4c2d64caa3d2fe352be87"
+   ],
+   "shiploop_stage_spec.py": [
+    "470d2bc8f93d7452120e29b40f5f7a5afaf8c48dde0c0d6c1ad90388e2c82429"
+   ]
+  },
+  "exposure": {
+   "read_from": "the host's own session record: what the model was given",
+   "outputs_given": 15,
+   "instructions_lines_shown": [
+    168,
+    187
+   ],
+   "references_lines_shown": [
+    9,
+    56
+   ],
+   "instructions_shown_whole": false,
+   "cue_shown": true,
+   "read_all_shown": false,
+   "guide_block_lines_shown": [
+    71,
+    81
+   ],
+   "guide_block_shown_whole": false,
+   "guide_lines_returned": {
+    "before the spec packet": {},
+    "while writing the spec": {},
+    "during its review": {},
+    "after the acceptance": {}
+   },
+   "guide_passage_before_acceptance": false
+  },
+  "accepted": {
+   "words": 835,
+   "requirement_ids": 2
+  },
+  "spec_seconds": 69.0,
+  "spec_review_seconds": 30.3,
+  "spec_author_seconds": 38.7,
+  "turns": null,
+  "tokens": {
+   "input_peak": 87187,
+   "processed": null,
+   "output": null
+  },
+  "cost_usd": null,
+  "refusals": 0,
+  "usable": true,
+  "usable_checks": {
+   "accepted inside the limit": true,
+   "the specification pinned to its commit": true,
+   "the acceptance the watcher saw": true,
+   "the registered sentence": true,
+   "the prepared base": true,
+   "the arm's build": true
+  },
+  "delivered": false,
+  "delivery_checks": {
+   "at least half of the stage's instructions given to the model": true,
+   "the arm's own sentence given, and no other arm's": true,
+   "the guide text given, as the arm has it": false
+  }
+ }
+]

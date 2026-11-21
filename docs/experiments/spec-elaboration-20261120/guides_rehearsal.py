@@ -598,6 +598,29 @@ def main() -> int:
         ).startswith("delivery failed"),
     )
 
+    print("== the reading over several sets")
+    expect(
+        "every new set at its net is shown",
+        g.several(
+            {
+                "X over A": [2, 3, 2],
+                "X over C": [1, 1, 2],
+                "R over A": [1, 0, 1],
+                "C over A": [-1, -1, 0],
+            }
+        )
+        == {
+            "X over A": "shown",
+            "X over C": "shown",
+            "R over A": "not shown",
+            "C over A": "the opposite",
+        },
+    )
+    expect(
+        "sets side by side are printed, with the rule over the ones named",
+        g.cmd_sets(["r1-sol"], [str(root), "r1-sol", str(root), "r3-sol"]) == 0,
+    )
+
     print("== tampering is caught")
     kept = g.grades_file(manifest, None, arm_code["A"])
     original = kept.read_text()

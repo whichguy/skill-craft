@@ -18,6 +18,7 @@ commit that held it at acceptance, with a witness that the commit's text is the 
   audit-check ROOT SETID FILE       no model: verify the reader's quotes against the blind copies
   score ROOT SETID                  no model: item-by-item differences between the arms, and the registered outcome
   replay DEST OUT [OUT ...]         no model: read existing run folders as collect would, writing only under DEST
+  sets [--rule IDS] ROOT SETID ...  no model: scored sets side by side, and the several-sets rule over the ids named
 
 SETID is SET-DRIVER, for example s1-sol.
 """
@@ -1181,7 +1182,8 @@ def checks(sample: dict, read: dict, ready: dict) -> dict:
 
     On this host the model gives itself as much of a packet as its own script prints, so an arm's sentence or block counts
     only when it is in what the model was given. An author given less than half of the stage's instructions is not
-    compared, except in arm R, where how much the author gives itself is what the arm is for.
+    compared, except in arm R, where how much the author gives itself is what the arm is for. From section 46 a guide
+    passage that an author of A, C or R opened by itself is a recorded fact and not a failed delivery.
     """
     arm, shown, seen = sample["arm"], read.get("exposure"), sample.get("seen") or {}
     usable = {
@@ -1210,9 +1212,11 @@ def checks(sample: dict, read: dict, ready: dict) -> dict:
                 shown["read_all_shown"],
             )
             == (arm in ("C", "X"), arm == "R"),
-            "the guide text given, as the arm has it": shown["guide_block_shown_whole"]
-            if arm == "X"
-            else arm == "R" or not shown["guide_passage_before_acceptance"],
+            # Section 46: four fifths of the block's lines, since the model slices its packet; and a guide passage an
+            # author opened by itself is recorded in `guide_lines_returned`, no longer a condition.
+            "four fifths or more of the guide block given": arm != "X"
+            or 5 * shown["guide_block_lines_shown"][0]
+            >= 4 * shown["guide_block_lines_shown"][1],
         }
     return {
         "usable": all(usable.values()),
@@ -1608,6 +1612,87 @@ def cmd_score(root: Path, set_id: str) -> int:
     return 0
 
 
+SEVERAL = {
+    "X over A": 2,
+    "X over C": 1,
+    "R over A": 1,
+    "C over A": 1,
+}  # the net each new set must reach (section 46)
+
+
+def several(nets: dict[str, list[int]]) -> dict[str, str]:
+    """The registered reading over the new sets: shown when every set reaches the pair's net, the opposite when two or more
+    sets are at -1 or lower, and not shown otherwise."""
+    said = {}
+    for pair, least in SEVERAL.items():
+        row = nets.get(pair) or []
+        said[pair] = (
+            "no sets"
+            if not row
+            else "shown"
+            if all(net >= least for net in row)
+            else "the opposite"
+            if sum(net <= -1 for net in row) >= 2
+            else "not shown"
+        )
+    return said
+
+
+def cmd_sets(rule: list[str], pairs: list[str]) -> int:
+    """Sets side by side, each given as ROOT SETID: words, items covered, the nets of the four pairs, and what each author read."""
+    nets = {pair: [] for pair in SEVERAL}
+    for root, set_id in zip(map(Path, pairs[0::2]), pairs[1::2], strict=True):
+        score, collected = (
+            load(root / f"score-{set_id}.json"),
+            json.loads((root / f"collect-{set_id}.json").read_text()),
+        )
+        by_arm = {row["arm"]: row for row in collected}
+        print(f"set {set_id}{'  (counted in the rule)' if set_id in rule else ''}")
+        for arm in ARMS:
+            row, shown = by_arm[arm], by_arm[arm].get("exposure") or {}
+            covered = (
+                "/".join(
+                    str(
+                        sum(
+                            1
+                            for i in score["items"]["applies"]
+                            if score["states"][arm][name][i] == 2
+                        )
+                    )
+                    for name, _ in JUDGE_TAGS
+                )
+                if score
+                else "not judged"
+            )
+            opened = {
+                window: files
+                for window, files in (shown.get("guide_lines_returned") or {}).items()
+                if files
+            }
+            print(
+                f"  {arm}: {(row.get('accepted') or {}).get('words')} words; covered {covered} of {len(score['items']['applies']) if score else '?'}; instructions {shown.get('instructions_lines_shown')}; references {shown.get('references_lines_shown')}; block {shown.get('guide_block_lines_shown')}; guide lines it opened {opened or 'none'}; delivered {row.get('delivered')}"
+            )
+        for pair in SEVERAL:
+            found = (score.get("pairs") or {}).get(pair)
+            if found:
+                print(
+                    f"  {pair}: net {found['net']} (higher {found['higher']}, lower {found['lower']})"
+                )
+                if set_id in rule:
+                    nets[pair].append(found["net"])
+        alone = {
+            arm: names
+            for arm, names in (score.get("capability_in_one_arm_alone") or {}).items()
+            if names
+        }
+        print(f"  capability the reader verified in one arm alone: {alone or 'none'}")
+    if rule:
+        print(
+            f"over the sets counted in the rule {rule}: {several(nets)}  (nets {nets})"
+        )
+    return 0
+
+
 def cmd_replay(dest: Path, outs: list[Path]) -> int:
     if dest.exists() or any(
         dest == out or dest in out.parents or out in dest.parents for out in outs
@@ -1642,6 +1727,7 @@ def main() -> int:
         "audit-check",
         "score",
         "replay",
+        "sets",
     )
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -1651,10 +1737,17 @@ def main() -> int:
     parser.add_argument("--allow-dirty", action="store_true")
     parser.add_argument("--limit", type=float, default=20.0)
     parser.add_argument("--timeout", type=int, default=1800)
+    parser.add_argument(
+        "--rule",
+        default="",
+        help="for `sets`: the set ids the several-sets rule counts, comma separated",
+    )
     args = parser.parse_args()
     rest, command = args.rest, args.command
     if command == "overlays":
         return cmd_overlays()
+    if command == "sets":
+        return cmd_sets([name for name in args.rule.split(",") if name], rest)
     if command == "sort":
         return cmd_sort(rest[0], args.timeout)
     root = Path(rest[0]).resolve()

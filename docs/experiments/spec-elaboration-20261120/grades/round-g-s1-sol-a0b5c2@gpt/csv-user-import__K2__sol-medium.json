@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__K2__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2 (CSV-4)",
+   "quote": "No failed upload creates any user."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2 (CSV-3)",
+   "quote": "A failed record response includes its starting line when identifiable.",
+   "missing": "The specification leaves open whether the response lists every failing row and gives the specific reason for each failure."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2 (CSV-4)",
+   "quote": "Return HTTP 409 for an email already present or repeated within the file, compared case-insensitively."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1 (CSV-2)",
+   "quote": "Require an admin bearer credential.",
+   "missing": "The specification does not distinguish import authority from permission to create an individual user."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1 (CSV-1)",
+   "quote": "It has one header record containing exactly name and email in either order."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1 (CSV-1)",
+   "quote": "Accept LF and CRLF, an optional UTF-8 BOM and final newline, double-quoted fields, escaped double quotes and quoted line breaks."
+  },
+  {
+   "id": "N-8",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2 (CSV-5)",
+   "quote": "Return HTTP 413 above 1 MiB or 1,000 data records, leaving the directory unchanged."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-2 (CSV-3) and Verification",
+   "quote": "Return HTTP 400 for invalid UTF-8, a missing or invalid header",
+   "missing": "An empty file lacks the required header, and Verification exercises a one-row success. The outcome for a valid header followed by zero data rows is unspecified."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "Verification",
+   "quote": "Repeat the same file and expect HTTP 409 and four directory records."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-3 (CSV-6)",
+   "quote": "There is no secondary store, index to invalidate, or background processor.",
+   "missing": "Supporting the requested background behavior would require a rule for which files run asynchronously and a way for the admin to learn the final outcome."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "The service does not log uploaded content.",
+   "missing": "The specification leaves open whether the service retains the uploaded file, where and for how long it keeps any copy, and who can retrieve it."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "CSV-5 bounds resource use for the small in-memory service using implementation defaults, with no timing SLA.",
+   "missing": "The specification gives no maximum processing time for an at-limit file and leaves progress reporting unspecified."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-2 (CSV-3 and CSV-4) and R-3 (CSV-6)",
+   "quote": "Compare full directory contents before and after rejection.",
+   "missing": "Rejection checks protect existing records, including on a duplicate email. The compatibility requirement covers reads only. It gives no guarantee for manual creation or for preserving every pre-existing record after a successful import."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

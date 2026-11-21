@@ -1,0 +1,143 @@
+{
+ "slot": "csv-user-import__K3__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.2065364,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1 Creation and conflicts",
+   "quote": "Every rejected batch leaves the store unchanged, and simultaneous imports obey the same uniqueness rule."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1 CSV contract",
+   "quote": "For row errors, include the one-based CSV line where the record starts, including the header in the count.",
+   "missing": "Whether every failing row is reported or only the first, and the form of the reason given for each failure in the response body."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1 Creation and conflicts",
+   "quote": "An email matching an existing or same-file email case-insensitively returns 409 with the conflicting row line."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1 Data lifetime",
+   "quote": "There are no account invitations or role changes in CSV."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1 Authorized upload",
+   "quote": "An HTTP client with the configured admin bearer token can post a UTF-8 file to POST /users/import",
+   "missing": "Whether import permission is separate from, and not implied by, the ability to create a single user."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1 CSV contract",
+   "quote": "Require a header containing exactly name and email in either order. ... Wrong field counts, malformed quoting, invalid UTF-8 and invalid fields return 400."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1 CSV contract",
+   "quote": "Accept UTF-8 with an optional BOM, LF or CRLF, and double-quoted fields with doubled quotes."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-1 Data lifetime / Creation and conflicts",
+   "quote": "There are no account invitations or role changes in CSV. ... Every rejected batch leaves the store unchanged"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Bound buffering to 1 MiB and accept at most 1,000 data records per upload. Over either limit return 413 and write zero users."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1 CSV contract",
+   "quote": "Require a header containing exactly name and email ... Require at least one record"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1 Creation and conflicts",
+   "quote": "An email matching an existing or same-file email case-insensitively returns 409 with the conflicting row line."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-1 Creation and conflicts",
+   "quote": "For a valid batch, append users in CSV order, assign fresh numeric IDs, and respond 201 with the number created in a created field."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-1 Data lifetime",
+   "quote": "There are no account invitations or role changes in CSV."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1 Data lifetime",
+   "quote": "The service keeps created users with the existing process-local user records. ... There are no account invitations",
+   "missing": "Whether created users are active or pending, whether they have a password, and how they first sign in."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-1 Data lifetime",
+   "quote": "Upload bodies are request-scoped and diagnostics omit raw user values and credentials."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "No rendered interface, hosted verification, new retention system or distributed latency target applies.",
+   "missing": "A time bound for a maximum-size file and whether any progress is visible while it runs."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Preserve the GET /users list and GET /users/:id lookup, with 404 for an unknown ID.",
+   "missing": "That single-user creation still works unchanged and that an import never modifies existing users is not stated explicitly."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

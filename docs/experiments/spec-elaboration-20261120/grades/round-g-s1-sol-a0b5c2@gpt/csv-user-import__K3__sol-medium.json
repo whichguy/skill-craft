@@ -1,0 +1,143 @@
+{
+ "slot": "csv-user-import__K3__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1, Creation and conflicts",
+   "quote": "Every rejected batch leaves the store unchanged"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1, CSV contract",
+   "quote": "Wrong field counts, malformed quoting, invalid UTF-8 and invalid fields return 400. For row errors, include the one-based CSV line where the record starts, including the header in the count.",
+   "missing": "Several errors share status 400. The builder must decide whether to identify the specific cause for each failed row and whether to report failures beyond the first."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1, Creation and conflicts",
+   "quote": "An email matching an existing or same-file email case-insensitively returns 409 with the conflicting row line."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1, CSV contract and Data lifetime",
+   "quote": "There are no account invitations or role changes in CSV.",
+   "missing": "The name-and-email-only header excludes supplied roles. The specification leaves the new user's initial privileges and their upper bound relative to the importer unspecified."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1, Authorized upload",
+   "quote": "An HTTP client with the configured admin bearer token can post a UTF-8 file to POST /users/import with Content-Type text/csv. A missing or incorrect credential, or absent token configuration, returns 401 and writes zero users."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1, CSV contract",
+   "quote": "Require a header containing exactly name and email in either order."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-1, CSV contract",
+   "quote": "Accept UTF-8 with an optional BOM, LF or CRLF, and double-quoted fields with doubled quotes.",
+   "missing": "The builder must decide whether a quoted field can span physical lines."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-1, Creation and conflicts and Data lifetime",
+   "quote": "Every rejected batch leaves the store unchanged \u2026 There are no account invitations or role changes in CSV."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Bound buffering to 1 MiB and accept at most 1,000 data records per upload. Over either limit return 413 and write zero users."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1, CSV contract",
+   "quote": "Require a header containing exactly name and email in either order. \u2026 Require at least one record, a nonempty name, and a plausible, non-whitespace email with a domain containing a dot."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1, Creation and conflicts",
+   "quote": "An email matching an existing or same-file email case-insensitively returns 409 with the conflicting row line. Every rejected batch leaves the store unchanged"
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1, Creation and conflicts",
+   "quote": "For a valid batch, append users in CSV order, assign fresh numeric IDs, and respond 201 with the number created in a created field.",
+   "missing": "The HTTP response tells the admin when creation succeeds. The specification gives no background-processing behavior for large accepted files or way to learn of completion after the upload request ends."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-1, Data lifetime",
+   "quote": "There are no account invitations or role changes in CSV."
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-1, Data lifetime",
+   "quote": "Upload bodies are request-scoped and diagnostics omit raw user values and credentials."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-1, Creation and conflicts",
+   "quote": "For a valid batch, append users in CSV order, assign fresh numeric IDs, and respond 201 with the number created in a created field.",
+   "missing": "Appending users with fresh IDs preserves existing users. The specification gives no requirement to preserve manual single-user creation."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

@@ -1,0 +1,21 @@
+{
+ "name": "s2-sol-X",
+ "set": "s2-sol",
+ "arm": "X",
+ "driver": "sol",
+ "pid": 61702,
+ "started_at": 1795300532.271799,
+ "limit_minutes": 20.0,
+ "decided_at": 1795300712.1324968,
+ "watcher": "saw the acceptance",
+ "stop_written": true,
+ "seen": {
+  "run_dir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-c7147b/samples/s2-sol-X/.shiploop-runs/work-20261121-223550-1f0284/run",
+  "spec_action": "nav-bb7eb8eb8af044319e3681b41bea5abf",
+  "at": "2026-11-21T22:38:31Z",
+  "ts": 1795300711.112,
+  "spec_sha256": "0e956ede477c4bb807e4639d659e7f5e1c16573b3c4d0eab75b245d5df9da486",
+  "head": "a69e455ba3cec9fa33d4d4e7218f75ad9b63c56c"
+ },
+ "returncode": 1
+}

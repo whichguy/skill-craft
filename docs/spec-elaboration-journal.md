@@ -3382,3 +3382,119 @@ is that run's transcript) and was not sent for a third review.
 commit; `prepare`, `run` set s1 on Sol with a 20-minute limit, `collect`; if the set is complete, `judge`, the
 blind reader, `score`. If the delivery of A, C or X fails, one replacement set. A set incomplete twice, or the same
 fault twice, ends the step and is reported.
+
+## 45. Sets s1 and s2: eight real runs from one sentence, and what they did that the design did not expect (14:43, 2026-11-21)
+
+**The runs.** Two sets of four runs on Codex with GPT 6.2 Sol at medium, from a clean checkout at the commit that
+holds section 44 and the label files: s1 launched at 14:30, s2, the one replacement the design allows, at 14:35.
+The sentence, the base and the arms are section 44's. All eight reached the spec's acceptance in 2.1 to 3.0
+minutes, were stopped by the watcher through the harness's stop file, and are usable by the six checks. The machine
+was busy with other sessions' runs (load 16 to 17), and a push's test tier overlapped s1.
+
+**What each author was given and wrote** (`evidence/guides-test/s1/`, `evidence/guides-test/s2/`):
+
+| Set | Arm | Words accepted | Instruction lines given | Reference lines given | Block lines given | Author, review (s) |
+|---|---|---|---|---|---|---|
+| s1 | A | 501 (483 as submitted) | 94 of 102 | 35 of 53 | 0 of 81 | 20.5, 53.5 |
+| s1 | R | 571 | 100 of 102 | 54 of 54 | 0 of 81 | 24.5, 34.5 |
+| s1 | C | 458 | 104 of 104 | 10 of 57 | 0 of 81 | 22.3, 31.7 |
+| s1 | X | 844 | 182 of 187 | 8 of 55 | 81 of 81 | 35.5, 32.5 |
+| s2 | A | 429 | 102 of 102 | 19 of 58 | 0 of 81 | 21.6, 34.4 |
+| s2 | R | 508 | 99 of 102 | 51 of 54 | 22 of 81 | 29.1, 33.9 |
+| s2 | C | 405 | 103 of 104 | 35 of 55 | 0 of 81 | 20.2, 24.8 |
+| s2 | X | 835 | 168 of 187 | 9 of 56 | 71 of 81 | 38.7, 30.3 |
+
+Every author was given its own arm's sentence and no other arm's. Guide files the authors opened by themselves,
+from the host's session records: in s1, R read `requirements-definition.md` whole and C its lines 1 to 108, both at
+discovery; in s2, A read 92 lines of it at discovery, and R read it whole at the spec stage, right after printing
+the references (the 22 block lines in R's row are that file's section). Each of the four reads holds the whole
+"State and data change assessment" section, one of the block's two. Nobody opened `behavioral-requirements.md`.
+
+**Delivery by the registered checks.** s1: C fails, because it was given a passage of the block's sections before
+its acceptance (its own read at discovery). s2: A fails the same way, and X fails because its author's own slice
+left out the block's last ten lines. So the contrast X over C cannot be read in either set by the rule, and the
+stop rule of section 44 (the same fault twice) ends the step as it was registered.
+
+**Set s1 as judged** (two judges, nine items; `evidence/guides-test/s1/score.txt`). Items covered, Opus and Astra:
+A 6 and 5, R 6 and 6, C 7 and 7, X 9 and 9. Higher under both judges: X over A on three items (N-2 what the admin
+gets back, N-6 validation of the file, N-7 encoding and shape) with none lower; X over C on one (N-2); C over A on
+one (N-6); R over A on two (N-6, N-7) with one lower (N-10). No item is absent in any arm, so none can be newly
+raised and the bar for "worth repeating" cannot be met on this list: the released stage, from one sentence, touches
+all nine, and the arms differ between partly and covered. By the rule: X over C, delivery failed; R over A,
+described only. Of the nine items kept out of the rule, four rise from absent under at least one judge in an arm
+with the cue or the block: N-4 (A absent for both; C covered and partly; X covered for one), N-8 (A partly for
+one; C and X covered for both), N-14 (A absent; X partly for both), N-19 (A absent; R and X partly for both).
+
+**The blind reader** (a Sonnet session given the sentence, the base and the specifications under codes) listed no
+added capability in any of the four specifications of s1, and none in s2's. I saw the copies' lengths when I made
+s1's folder and so knew which code was which arm before the reader finished; the reader did not, and its file is
+checked mechanically.
+
+**The predictions, on s1.** 1 held (all usable). 2 failed (C not delivered). 3 held (A wrote 501 words). 4 held (C
+over A: one higher, none lower). 5 failed (X over C: one higher, and unreadable by the rule). 6 held. 7 held (X's
+author took 35.5 seconds against C's 22.3). 8 held (R gave itself 54 of 54 reference lines). 9 failed (R opened
+the requirements guide, at discovery, before its own sentence was ever printed). 10 failed by its letter (R over A:
+two higher, one lower).
+
+**What the two sets show that the design did not expect.**
+
+1. From this one sentence, authors open the requirements guide by themselves: four of the six authors without the
+   block. In the 50 earlier runs, whose requests ran from 76 to 322 words, 2 of 50 did. Discovery's own duty names
+   that guide, and with little in the request the model goes to it. So section 38's "real builders do not open the
+   spec guides" holds for detailed requests and not for this vague one; it still holds for the behaviour guide.
+2. The read-all sentence did what it says: R's authors gave themselves 54 of 54 and 51 of 54 reference lines, where
+   the six others gave themselves 8 to 35 of about 55.
+3. The model slices even a packet it reads: X's author was given the block whole once and 71 of its 81 lines once.
+4. The strict delivery conditions fail on ordinary behaviour, so the rule read nothing. That is a fault of the
+   design, and section 46 amends it before any further run.
+
+## 46. An amendment before any further run: delivery as runs really behave, and three more sets read by a rule fixed now (14:43, 2026-11-21)
+
+Written after s1 was scored and s2 was collected, and before s2's judged readings were opened (its judging and
+scoring had finished; their output had not been read).
+
+**Why.** Two of the delivery conditions failed on behaviour that is ordinary for this request and this host, and so
+the registered rule read neither set. A control that opened the requirements guide by itself is how the released
+flow behaves from a vague sentence (four of six authors). A model that prints most but not all of a block is how
+Sol reads (section 43).
+
+**What changes.**
+
+- A guide passage that an author of A, C or R opened by itself is recorded, with when, and is no longer a
+  condition. The contrast is then read as assigned: what happens when the block is put in the spec packet, against
+  the flow as it is, in which about half the authors read the state and data section by themselves and none the
+  behaviour section.
+- X is delivered when its author was given four fifths or more of the block's lines (it was every line).
+- The other checks stand: the six for a usable sample; each arm's own sentence given and no other's; at least half
+  of the instruction lines given, except in R.
+
+**What is run.** Three more sets, s3, s4 and s5, four runs each, from a fresh clean checkout at this commit, one set
+after another. Judged and read for added capability as before.
+
+**How they are read, fixed now** (`several` in `guides_test.py`). For each new set and each pair, the net on the
+nine items: items higher under both judges less items lower under both. Over the three new sets a pair is *shown*
+when every set reaches its net: X over A at least 2, X over C at least 1, R over A at least 1, C over A at least 1.
+It is *the opposite* when two or more sets are at minus 1 or lower, and *not shown* otherwise. A set that is not
+complete, or whose arms in the pair were not delivered by the amended checks, counts as not reaching the net. s1 and
+s2 are shown beside the three and are not counted: they are the sets that led to this amendment. A capability the
+reader verifies in X alone, in any set, is reported as harm whatever the nets say.
+
+**Predictions for s3 to s5, before any of them runs.**
+
+11. X over A reaches a net of 2 in at least two of the three sets. (So I do not predict that it is shown.)
+12. X over C reaches a net of 1 in at least two of the three.
+13. R over A stays between minus 1 and plus 1 in at least two of the three.
+14. X's specification is the longest of its set in all three.
+15. The reader verifies no capability in X alone in any of the three.
+
+**What it costs.** Twelve Sol runs of about three minutes, on subscription; 24 judge readings, about four dollars
+for the registered judge's twelve; three Sonnet readers. About half an hour.
+
+**Where it stops.** After s5 the result is reported as it is. No further set without a new entry here.
+
+**Checked, no model called.** The rehearsal with the amended checks and the new reading: 86 checks held and none
+failed (`evidence/guides-test/rehearsal.txt` is that run's transcript).
+
+**Limits.** One sentence, one base, one driver at one effort. Nine items, on all of which the released stage already
+says something, so what can be seen is a move from partly to covered, which the second review warned can be firmer
+wording and not new breadth. The judges do not know the arms; this session does.

@@ -1,0 +1,143 @@
+{
+ "slot": "csv-user-import__K4__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Failed files create no users and consume no IDs."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "T-2 rejects a malformed file or invalid row with 400 and a useful error, including its CSV record number when applicable.",
+   "missing": "For a file with several invalid rows, the builder must decide whether to report every failing record with its reason or stop at the first error."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Reject duplicate emails case-insensitively within a file or against current users with 409 and a record number."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "The operator configures ADMIN_TOKEN when starting the server. A matching Authorization Bearer credential is required.",
+   "missing": "The import credential is specified, but its relationship to permission to create a single user is unstated."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "with name and email headers (either order, each once)",
+   "missing": "Both headers are mandatory, but the builder must decide whether to reject or ignore an additional column."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "optional BOM, LF or CRLF, quoted fields, comma escaping by quoting, and doubled quotes.",
+   "missing": "The builder must decide whether a newline inside a quoted field is accepted as part of the value."
+  },
+  {
+   "id": "N-8",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "Accept at most 1 MiB of body bytes and 1,000 data rows. T-6 checks the byte and row limits return 413 and leave the list untouched."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Ignore blank records. Require at least one user row."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Reject duplicate emails case-insensitively within a file or against current users with 409 and a record number. Failed files create no users and consume no IDs."
+  },
+  {
+   "id": "N-12",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "CSV payloads are held only for request processing."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Reject duplicate emails case-insensitively within a file or against current users with 409 and a record number.",
+   "missing": "The conflict rule protects existing users from being overwritten. The specification leaves compatibility with manual single-user creation unstated."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

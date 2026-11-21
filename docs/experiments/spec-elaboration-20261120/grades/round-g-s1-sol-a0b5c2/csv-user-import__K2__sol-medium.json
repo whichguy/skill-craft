@@ -1,0 +1,146 @@
+{
+ "slot": "csv-user-import__K2__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.20197820000000002,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2 CSV-4",
+   "quote": "No failed upload creates any user."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2 CSV-3",
+   "quote": "A failed record response includes its starting line when identifiable.",
+   "missing": "Whether every failing row is reported or only the first, and that the response states the reason for each failure."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2 CSV-4",
+   "quote": "Return HTTP 409 for an email already present or repeated within the file, compared case-insensitively."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1 CSV-1",
+   "quote": "It has one header record containing exactly name and email in either order.",
+   "missing": "No statement of what access or role imported users receive, or that it cannot exceed the importer's authority."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1 CSV-2",
+   "quote": "Require an admin bearer credential. Missing or invalid credentials, including a server with no credential configured, receive HTTP 401 and cause no store write.",
+   "missing": "Whether the import permission is separate from, and not implied by, permission to create a single user."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1 CSV-1; R-2 CSV-3",
+   "quote": "one header record containing exactly name and email in either order ... Return HTTP 400 for ... a missing or invalid header, malformed quoting, missing data, extra columns"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1 CSV-1",
+   "quote": "Accept LF and CRLF, an optional UTF-8 BOM and final newline, double-quoted fields, escaped double quotes and quoted line breaks."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-2 CSV-4",
+   "quote": "No failed upload creates any user.",
+   "missing": "Whether any other side effects (such as invitations or notifications) occur for earlier rows and how they are handled when a later row fails."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2 CSV-5",
+   "quote": "Return HTTP 413 above 1 MiB or 1,000 data records, leaving the directory unchanged."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-2 CSV-3; Verification",
+   "quote": "Return HTTP 400 for invalid UTF-8, a missing or invalid header, malformed quoting, missing data",
+   "missing": "Whether a header-only file counts as 'missing data' (400) or a successful zero-user import is not explicit."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "Verification",
+   "quote": "Repeat the same file and expect HTTP 409 and four directory records."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-3 CSV-6",
+   "quote": "There is no secondary store, index to invalidate, or background processor."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "The service does not log uploaded content.",
+   "missing": "Whether the uploaded file is stored at all, for how long, and who may download it again."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "CSV-5 bounds resource use for the small in-memory service using implementation defaults, with no timing SLA.",
+   "missing": "Any time bound for a maximum-size file and any progress indication while it runs."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-3 CSV-6",
+   "quote": "Preserve public GET /users and GET /users/:id behavior, ordered numeric IDs, JSON records and missing-ID 404.",
+   "missing": "That single-user creation stays unchanged and that existing users are never modified by an import."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

@@ -1,0 +1,143 @@
+{
+ "slot": "csv-user-import__K1__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "State and transitions, T-1",
+   "quote": "One atomic in-process append."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Invalid or duplicate rows return 400 with the one-based starting line of the offending record when available, plus a brief reason."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Email uniqueness is case-insensitive against existing and incoming rows. \u2026 Invalid or duplicate rows return 400"
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "The operator configures a nonempty `USER_IMPORT_ADMIN_TOKEN`. The upload endpoint accepts its bearer credential. Missing or incorrect credentials, and requests to an unconfigured importer, return 401 without parsing or changing user state."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "the header `name,email` in that order. \u2026 Empty, header-only, malformed CSV, invalid UTF-8, incorrect headers, and rows with other column counts return 400."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A UTF-8 BOM, LF or CRLF line endings, doubled quotes, quoted commas and quoted newlines are supported."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "a failed batch with a valid prefix leaves the list and the next ID unchanged. \u2026 Account invitations, persistent storage, revocation lists, and browser UI fall outside the existing service scope."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "An upload can contain at most 1,048,576 body bytes and 1,000 data records. Excess returns 413 with no user changes."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Empty, header-only, malformed CSV, invalid UTF-8, incorrect headers, and rows with other column counts return 400. \u2026 A valid upload has at least one data record."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "After a successful upload, resubmission is rejected as duplicate."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "The service adds a synchronous file upload flow to the existing process-local user store.",
+   "missing": "The admin receives the result in the upload response. A background job for large files and a way to learn when that job finishes would need to be specified."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Account invitations, persistent storage, revocation lists, and browser UI fall outside the existing service scope."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "the records' `id`, `name`, and `email` shape carry forward.",
+   "missing": "The record shape is specified, but account activation, initial credentials and first sign-in are unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "State and transitions; R-2",
+   "quote": "The HTTP request owns temporary bytes and parsed rows until response or disconnect. \u2026 The original file and bearer credential are absent from responses and user records."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "The entire batch may be corrected and retried. \u2026 An interrupted upload before a complete body has no effect.",
+   "missing": "Cancellation after the body is complete is unspecified. Only the whole-batch retry is described, with no procedure for retrying just the failed rows."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "The native HTTP service has no rendered interface, background processing, database, or hosted performance criterion.",
+   "missing": "The specification gives neither a completion-time bound for a maximum-size upload nor progress information for the admin."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "State and transitions, T-1",
+   "quote": "check existing and batch emails synchronously and append once.",
+   "missing": "Appending preserves existing users. The specification gives no behavior or compatibility requirement for creating one user by hand."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}
