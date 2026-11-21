@@ -2603,9 +2603,70 @@ documents. Whether such a suite catches the planted defects is not measured.
   that pilot's `ratchet.py`: "A plan says how each open point is handled ... No stage adds a clause that settles an
   open point"). The same note says a test "must pass whichever reasonable answer a build took"; the fork's overlays
   show the suites did not, through how they drive the product.)
+  (Checked 2026-11-21, 11:24: the three appended clauses are now readable in each cell's `spec-final.md` on `main`:
+  orders C-27, ticket assignment C-44 and due times C-31. Each is the last clause of its specification, states a
+  behaviour (recovery after a limit error, a failed save, a failed creation), and carries no `Open:` line.)
 - For ShipLoop nothing is proposed, and this experiment's conclusion stands: no template was changed. If the owner
   ever takes up leaving a point open in the specification, this adds a condition to that design: the answer taken
   at an open point has to be written where the tests are written from, before the build. It is untested on
   ShipLoop, where one session writes the plan, the tests and the product in turn.
 - The evidence is thin, as its limits say: two sessions, one request, one model, and no measure of whether a suite
   written that way catches a planted defect.
+
+## 37. Received: with the reworded text, Sonnet at medium writes the specification as well as Sonnet at high, and a shorter specification leans on the product's own tests (11:23, 2026-11-21)
+
+Recorded as received. The runs and findings are the Ratchet session's. Its record is the subsection "Amendment 11,
+result (2026-11-21 11:12; Sonnet at medium against Sonnet at high)" in `docs/ratchet-pilot-journal.md` on `main` at
+7588f5503f5e480b9fbe3556240501e6e26a6a95; the registration is in 586f6f4756655c510ace22c4ed3479d47eb04f49 and the
+result in 6481a81a683c0991e24d69da4c507c24ac2c4a91. A Sonnet worker of this session checked the figures below against
+that record, and none differed or was missing. Nothing was re-run here. I read the result subsection myself and
+checked its two tables, the medium reading and the suite-only catches against the figures below.
+
+What ran: on the Claude host with `claude-sonnet-5-5`, five specification-only runs at medium effort with the reworded
+text (orders, ticket assignment, due times three times), beside amendment 10's five at high; then one test-strength
+cell on ticket assignment at each effort. A test-strength cell builds nothing with a model: the correct reference is
+laid in as the build, a plan and a test pass are run at the effort under test, and the tests are then graded against
+27 calibrated planted defects (how many of the 27 the tests catch). One run a cell. Every specification was accepted
+on its first try.
+
+| Cell | Clauses in the specification | Clauses tested | Choice clauses | `Open:` lines | Defects caught of 27 | Clauses failing on the correct reference | Minutes | Dollars |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Sonnet medium | 22 | 22 | 1 | 8 | 26 | 0 | 5.8 | 1.37 |
+| Sonnet high | 32 | 34 | 0 | 7 | 26 | 2 | 14.2 | 2.45 |
+| Sol high, reworded | | 44 | | | 26 | 3 | 26.9 | |
+
+The specification, choice and `Open:` columns are ticket assignment's specification; across all five medium
+specifications the record gives one choice clause each, 6 to 8 `Open:` lines, 16 to 22 clauses against 21 to 32 at
+high, under a minute to write each, and none of the three due-times ones requires the refusal. The blank cells are
+not stated in the record for that pairing; Sol's cost is recorded as not priced. The record gives the high cell 32
+clauses written and 34 tested and does not say why they differ. All three cells missed the same one defect,
+`update-rejects-resolved` (existing behaviour). At high, the two failures on the correct reference were the request's
+own "has tests" clause and an implied refusal the reference does not make. Its reading, as registered: what medium
+writes is the same, strength is kept at both efforts, and medium against high shows no difference (R12.1 to R12.3);
+its three predictions held.
+
+**The cost of brevity.** Some clauses, taken from the request ("the existing tests must still pass"; "npm test runs
+the new tests"), are tested by running the product's own test suite. Defects caught only through such clauses:
+none with the lens text on Sol (153 clauses), 1 of 26 with the reworded text on Sol (44 clauses), 3 of 26 with it on
+Sonnet at high (34) and 5 of 26 on Sonnet at medium (22). The session's reading, not a figure: the shorter the
+specification, the more of the existing behaviour is covered by the product's own tests and not by tests the session
+wrote; it calls this the risk amendment 10 named, "visible and small", and says it follows the specification's length
+across the four cells.
+
+**Limits, as its record states them.** One run a cell and no measure of spread, so one defect either way would have
+been nothing; whole cells are compared, so a difference would not say which stage made it; the calibrated defects are
+partly caught through the product's own tests, for every text. Not established: Sonnet's run-to-run spread, any case
+but ticket assignment, anything built by Sonnet, and which stage would be sensitive to effort if one were.
+
+**What it means here** (this session's reading).
+
+- The reworded text's result is not tied to Sol at high. On Sonnet the specification it writes is the same at medium
+  as at high, and the tests built from it catch the same 26 of 27 defects, at about two fifths of the minutes and a
+  little over half the dollars.
+- Its cost now has two measured parts, and they are the same part: existing behaviour that a short specification no
+  longer restates. Section 30 recorded one defect in existing behaviour that R's cells missed; here the same defect,
+  `update-rejects-resolved`, is missed in all three cells, and catches that come only from the product's own test
+  suite rise from none to 5 of 26 as the specification falls from 153 clauses to 22. Read beside section 36: a short
+  specification leaves the open answers to the plan and the existing behaviour to the product's own tests. A trial
+  of this in ShipLoop would have to say where existing behaviour is pinned once the specification stops restating it.
+- Nothing is proposed, and this experiment's conclusion stands: no ShipLoop template was changed.
