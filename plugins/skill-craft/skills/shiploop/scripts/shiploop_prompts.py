@@ -1318,11 +1318,12 @@ Change no product file in this stage.
    - Where a criterion names an exact value, a count or a prefix match proves nothing.
 """ + _PLAN_UI_CRITERIA + """\
 4. **`steps`**: every implementation step in order (one is fine); ShipLoop issues one implement packet per step.
-   - Size each as one behaviour-level change its proof shows: at most 4 criteria and 3 product files (a file that
-     only describes another changed file counts with it; tests, docs and its proof script do not). A second module
-     or layer (interface first, then each side), two separately confirmable behaviours or two outcomes joined with
-     "and" make another step. Fold a step no proof confirms alone (half a rename, scaffolding) into the
-     first step that uses it. A single bug fix or mechanical rename is one step.
+   - Use the fewest steps the item allows; one step is the default. Every step pays its own test, document, review
+     and commit round, so separately confirmable behaviours share a step and its proof shows each of them. Size: at
+     most 12 criteria and 6 product files a step (a file that only describes another changed file counts with it;
+     tests, docs and its proof script do not). Cut a larger item at a module or layer boundary (interface first,
+     then each side) into the fewest steps of that size. Fold a step no proof confirms alone (half a rename,
+     scaffolding) into the first step that uses it. A single bug fix or mechanical rename is one step.
    - Tests are not a step (the test stage writes them) unless the item is all tests.
    - Each step declares `deps` (earlier step IDs it truly needs, else []; list order is no dependency), the
      `criteria` it satisfies and its `proof`; its `task` cites IDs, not their text. Every criterion is satisfied by

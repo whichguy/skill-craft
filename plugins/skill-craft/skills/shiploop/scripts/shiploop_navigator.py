@@ -3096,7 +3096,9 @@ def _check_fix_forward(state: Mapping[str, Any], stage: str, result: Any) -> Non
 
 
 def _check_step_sizing(result: Mapping[str, Any]) -> None:
-    """Refuse a done step plan whose steps are not sized as behaviour-level changes (owner, 2026-10-10).
+    """Refuse a done step plan whose steps do not each name the criteria they satisfy and their proof (owner, 2026-10-10).
+
+    How large a step may be is the step-plan duty's prose (``shiploop_prompts.DUTIES``); nothing here counts it.
 
     Every step names the criteria it satisfies and its ``proof``, the command that proves them (implement-step fix
     plan section 4.1); every criterion is satisfied by some step; a step's optional paths are a subset of the item's;
