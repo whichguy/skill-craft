@@ -1,0 +1,2236 @@
+{
+ "case": "ticket-assignment",
+ "graded_with": "5e4fe0fb919d374b22d338a8849a2a7d1943a8d2",
+ "reference": {
+  "failing": [],
+  "unstable": [],
+  "did_not_end": [],
+  "ids": [
+   "C-1",
+   "C-10",
+   "C-11",
+   "C-12",
+   "C-13",
+   "C-14",
+   "C-15",
+   "C-16",
+   "C-17",
+   "C-18",
+   "C-19",
+   "C-2",
+   "C-20",
+   "C-21",
+   "C-22",
+   "C-23",
+   "C-24",
+   "C-3",
+   "C-4",
+   "C-5",
+   "C-6",
+   "C-7",
+   "C-8",
+   "C-9",
+   "U-1",
+   "U-2",
+   "U-3",
+   "U-4",
+   "U-5"
+  ],
+  "seconds": 18.7,
+  "tails": {}
+ },
+ "controls": {
+  "alternative": {
+   "failing": [
+    "C-10",
+    "C-14",
+    "C-22",
+    "C-7"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 21.0,
+   "tails": {
+    "C-7": [
+     "    expected: '2026-11-21T20:31:37.110Z',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-10": [
+     "    expected: /assign/i,",
+     "    operator: 'match',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-14": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-22": [
+     "    expected: '2026-11-21T20:31:48.179Z',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  }
+ },
+ "raw": {
+  "filter-or": {
+   "failing": [
+    "C-17",
+    "C-23",
+    "C-24",
+    "U-3",
+    "U-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 20.9,
+   "tails": {
+    "C-17": [
+     "    expected: [ 'T-0001', 'T-0002' ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-23": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-24": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-3": [
+     "    expected: [ 'T-0001' ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-5": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "filter-after-page": {
+   "failing": [
+    "C-15",
+    "U-3"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 20.0,
+   "tails": {
+    "C-15": [
+     "    expected: null,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-3": [
+     "    expected: [ 'T-0003' ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "no-envelope": {
+   "failing": [
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-8",
+    "U-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 27.7,
+   "tails": {
+    "C-3": [
+     "    expected: 'invalid',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-4": [
+     "    expected: 'invalid',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-5": [
+     "    expected: 'conflict',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-8": [
+     "    expected: 'not_found',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-23": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-24": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-5": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "conflict-as-invalid": {
+   "failing": [
+    "C-23",
+    "C-24",
+    "C-5",
+    "U-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 26.3,
+   "tails": {
+    "C-5": [
+     "    expected: 409,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-23": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-24": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-5": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "closed-assignable": {
+   "failing": [
+    "C-11",
+    "C-23",
+    "C-24",
+    "C-5",
+    "U-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 26.5,
+   "tails": {
+    "C-5": [
+     "    expected: 409,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-11": [
+     "    expected: 4,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-23": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-24": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-5": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "notify-inline": {
+   "failing": [
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-22",
+    "C-23",
+    "C-24",
+    "U-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 56.7,
+   "tails": {
+    "C-10": [
+     "    expected: 2,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-11": [
+     "    expected: 1,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-12": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-22": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-23": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-24": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-5": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "notify-no-template": {
+   "failing": [
+    "C-10",
+    "C-12",
+    "C-22",
+    "U-1"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 87.5,
+   "tails": {
+    "C-10": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-12": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-22": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-1": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "notify-key-per-ticket": {
+   "failing": [
+    "C-12",
+    "C-23",
+    "C-24",
+    "U-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 38.6,
+   "tails": {
+    "C-12": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-23": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-24": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-5": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "notify-requester": {
+   "failing": [
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-22",
+    "C-23",
+    "C-24",
+    "U-1",
+    "U-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 90.9,
+   "tails": {
+    "C-10": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-11": [
+     "    expected: 1,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-12": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-22": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-23": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-24": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-1": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-5": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "audit-bypassed": {
+   "failing": [
+    "C-13",
+    "C-22",
+    "C-23",
+    "C-24",
+    "U-1",
+    "U-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 23.3,
+   "tails": {
+    "C-13": [
+     "    expected: 2,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-22": [
+     "      at async withService (/Users/dadleet/e2e-runs/ratchet-reworded-20261121-08805f/q-base-2/strength-work/ratchet-audit-bypassed-j2yed510/acceptance/lib.js:68:16)",
+     "      at async TestContext.<anonymous> (/Users/dadleet/e2e-runs/ratchet-reworded-20261121-08805f/q-base-2/strength-work/ratchet-audit-bypassed-j2yed510/acceptance/api.accept.js:382:3)",
+     "      at async Test.run (node:internal/test_runner/test:1409:7)",
+     "      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)"
+    ],
+    "C-23": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-24": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-1": [
+     "    expected: 'dispatcher',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-5": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "actor-ignored": {
+   "failing": [
+    "C-13",
+    "C-23",
+    "C-24",
+    "U-1",
+    "U-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 22.3,
+   "tails": {
+    "C-13": [
+     "    expected: 'sam',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-23": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-24": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-1": [
+     "    expected: 'dispatcher',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-5": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "same-agent-not-noop": {
+   "failing": [
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-6",
+    "C-7",
+    "U-2",
+    "U-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 24.8,
+   "tails": {
+    "C-6": [
+     "    expected: '2026-11-21T20:33:18.748Z',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-7": [
+     "    expected: '2026-11-21T20:33:19.626Z',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-22": [
+     "    expected: '2026-11-21T20:33:30.818Z',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-23": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-24": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-2": [
+     "    expected: '2026-11-21T20:33:36.911Z',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-5": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "memory-only-assignee": {
+   "failing": [
+    "C-19",
+    "C-22",
+    "C-9",
+    "U-4"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 22.5,
+   "tails": {
+    "C-9": [
+     "    expected: null,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-19": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-22": [
+     "    expected: 'dana',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-4": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "old-data-refused": {
+   "failing": [
+    "C-21",
+    "C-9"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 19.4,
+   "tails": {
+    "C-9": [
+     "      at async withService (/Users/dadleet/e2e-runs/ratchet-reworded-20261121-08805f/q-base-2/strength-work/ratchet-old-data-refused-q72ito4a/acceptance/lib.js:67:15)",
+     "      at async /Users/dadleet/e2e-runs/ratchet-reworded-20261121-08805f/q-base-2/strength-work/ratchet-old-data-refused-q72ito4a/acceptance/api.accept.js:179:5",
+     "      at async Test.run (node:internal/test_runner/test:1409:7)",
+     "      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)"
+    ],
+    "C-21": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "old-assignee-undefined": {
+   "failing": [
+    "C-9"
+   ],
+   "unstable": [
+    "C-10"
+   ],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 19.8,
+   "tails": {
+    "C-9": [
+     "    expected: null,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "raw-column-inserted": {
+   "failing": [
+    "C-20",
+    "U-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 17.1,
+   "tails": {
+    "C-20": [
+     "    expected: [ 'T-0001', 'open', 'high', 'Alpha one' ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-5": [
+     "    expected: 'in_progress|high|legacy 2',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "cli-no-assignee": {
+   "failing": [
+    "C-19",
+    "U-4"
+   ],
+   "unstable": [
+    "C-22",
+    "U-5"
+   ],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 19.4,
+   "tails": {
+    "C-19": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-4": [
+     "    expected: /ASSIGNEE/i,",
+     "    operator: 'match',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "no-unassign": {
+   "failing": [
+    "C-13",
+    "C-14",
+    "C-16",
+    "C-2",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-5",
+    "C-7",
+    "C-8",
+    "U-2",
+    "U-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 22.8,
+   "tails": {
+    "C-2": [
+     "    expected: 200,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-5": [
+     "    expected: 409,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-7": [
+     "    expected: 200,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-8": [
+     "    expected: 404,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-13": [
+     "    expected: { from: 'lee', to: null },",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-14": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-16": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-22": [
+     "    expected: null,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-23": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-24": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-2": [
+     "    expected: 200,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-5": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "empty-filter-ignored": {
+   "failing": [
+    "C-16",
+    "C-17",
+    "C-23",
+    "C-24",
+    "U-2",
+    "U-3",
+    "U-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 20.2,
+   "tails": {
+    "C-16": [
+     "    expected: [ 'T-0005', 'T-0006' ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-17": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-23": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-24": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-2": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-3": [
+     "    expected: [ 'T-0004' ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-5": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "name-limit-off-by-one": {
+   "failing": [
+    "C-3"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 16.9,
+   "tails": {
+    "C-3": [
+     "    expected: 200,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "listing-hides-assignee": {
+   "failing": [
+    "C-16",
+    "C-19",
+    "C-9",
+    "U-4"
+   ],
+   "unstable": [
+    "C-24"
+   ],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 72.3,
+   "tails": {
+    "C-9": [
+     "    expected: null,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-16": [
+     "    expected: null,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-19": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-4": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "update-rejects-resolved": {
+   "failing": [],
+   "unstable": [
+    "C-24"
+   ],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 16.4,
+   "tails": {}
+  },
+  "default-limit-changed": {
+   "failing": [
+    "C-23",
+    "C-24",
+    "U-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 17.6,
+   "tails": {
+    "C-23": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-24": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-5": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "resolved-template-replaced": {
+   "failing": [
+    "C-23",
+    "C-24",
+    "U-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 17.8,
+   "tails": {
+    "C-23": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-24": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-5": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "audit-not-saved": {
+   "failing": [
+    "C-22",
+    "C-23",
+    "C-24",
+    "U-5"
+   ],
+   "unstable": [
+    "C-15"
+   ],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 17.3,
+   "tails": {
+    "C-22": [
+     "      at async withService (/Users/dadleet/e2e-runs/ratchet-reworded-20261121-08805f/q-base-2/strength-work/ratchet-audit-not-saved-8b73z27j/acceptance/lib.js:68:16)",
+     "      at async TestContext.<anonymous> (/Users/dadleet/e2e-runs/ratchet-reworded-20261121-08805f/q-base-2/strength-work/ratchet-audit-not-saved-8b73z27j/acceptance/api.accept.js:382:3)",
+     "      at async Test.run (node:internal/test_runner/test:1409:7)",
+     "      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)"
+    ],
+    "C-23": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-24": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-5": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "backoff-linear": {
+   "failing": [
+    "C-23"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 14.2,
+   "tails": {
+    "C-23": [
+     "    expected: '',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "validate-renamed": {
+   "failing": [
+    "C-23"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5"
+   ],
+   "seconds": 14.1,
+   "tails": {
+    "C-23": [
+     "    expected: '',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  }
+ },
+ "items": 29,
+ "clauses": 24,
+ "use_cases": 5,
+ "fails_on_reference": [],
+ "clauses_failing_on_reference": [],
+ "use_cases_failing_on_reference": [],
+ "defects": {
+  "filter-or": {
+   "caught": true,
+   "by": [
+    "C-17",
+    "C-23",
+    "C-24",
+    "U-3",
+    "U-5"
+   ]
+  },
+  "filter-after-page": {
+   "caught": true,
+   "by": [
+    "C-15",
+    "U-3"
+   ]
+  },
+  "no-envelope": {
+   "caught": true,
+   "by": [
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-8",
+    "U-5"
+   ]
+  },
+  "conflict-as-invalid": {
+   "caught": true,
+   "by": [
+    "C-23",
+    "C-24",
+    "C-5",
+    "U-5"
+   ]
+  },
+  "closed-assignable": {
+   "caught": true,
+   "by": [
+    "C-11",
+    "C-23",
+    "C-24",
+    "C-5",
+    "U-5"
+   ]
+  },
+  "notify-inline": {
+   "caught": true,
+   "by": [
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-22",
+    "C-23",
+    "C-24",
+    "U-5"
+   ]
+  },
+  "notify-no-template": {
+   "caught": true,
+   "by": [
+    "C-10",
+    "C-12",
+    "C-22",
+    "U-1"
+   ]
+  },
+  "notify-key-per-ticket": {
+   "caught": true,
+   "by": [
+    "C-12",
+    "C-23",
+    "C-24",
+    "U-5"
+   ]
+  },
+  "notify-requester": {
+   "caught": true,
+   "by": [
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-22",
+    "C-23",
+    "C-24",
+    "U-1",
+    "U-5"
+   ]
+  },
+  "audit-bypassed": {
+   "caught": true,
+   "by": [
+    "C-13",
+    "C-22",
+    "C-23",
+    "C-24",
+    "U-1",
+    "U-5"
+   ]
+  },
+  "actor-ignored": {
+   "caught": true,
+   "by": [
+    "C-13",
+    "C-23",
+    "C-24",
+    "U-1",
+    "U-5"
+   ]
+  },
+  "same-agent-not-noop": {
+   "caught": true,
+   "by": [
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-6",
+    "C-7",
+    "U-2",
+    "U-5"
+   ]
+  },
+  "memory-only-assignee": {
+   "caught": true,
+   "by": [
+    "C-19",
+    "C-22",
+    "C-9",
+    "U-4"
+   ]
+  },
+  "old-data-refused": {
+   "caught": true,
+   "by": [
+    "C-21",
+    "C-9"
+   ]
+  },
+  "old-assignee-undefined": {
+   "caught": true,
+   "by": [
+    "C-9"
+   ]
+  },
+  "raw-column-inserted": {
+   "caught": true,
+   "by": [
+    "C-20",
+    "U-5"
+   ]
+  },
+  "cli-no-assignee": {
+   "caught": true,
+   "by": [
+    "C-19",
+    "U-4"
+   ]
+  },
+  "no-unassign": {
+   "caught": true,
+   "by": [
+    "C-13",
+    "C-14",
+    "C-16",
+    "C-2",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-5",
+    "C-7",
+    "C-8",
+    "U-2",
+    "U-5"
+   ]
+  },
+  "empty-filter-ignored": {
+   "caught": true,
+   "by": [
+    "C-16",
+    "C-17",
+    "C-23",
+    "C-24",
+    "U-2",
+    "U-3",
+    "U-5"
+   ]
+  },
+  "name-limit-off-by-one": {
+   "caught": true,
+   "by": [
+    "C-3"
+   ]
+  },
+  "listing-hides-assignee": {
+   "caught": true,
+   "by": [
+    "C-16",
+    "C-19",
+    "C-9",
+    "U-4"
+   ]
+  },
+  "update-rejects-resolved": {
+   "caught": false,
+   "by": []
+  },
+  "default-limit-changed": {
+   "caught": true,
+   "by": [
+    "C-23",
+    "C-24",
+    "U-5"
+   ]
+  },
+  "resolved-template-replaced": {
+   "caught": true,
+   "by": [
+    "C-23",
+    "C-24",
+    "U-5"
+   ]
+  },
+  "audit-not-saved": {
+   "caught": true,
+   "by": [
+    "C-22",
+    "C-23",
+    "C-24",
+    "U-5"
+   ]
+  },
+  "backoff-linear": {
+   "caught": true,
+   "by": [
+    "C-23"
+   ]
+  },
+  "validate-renamed": {
+   "caught": true,
+   "by": [
+    "C-23"
+   ]
+  }
+ },
+ "caught": 26,
+ "pool": 27,
+ "not_judged": []
+}

@@ -1,0 +1,213 @@
+{
+ "case": "ticket-assignment",
+ "host": "claude",
+ "model": "claude-sonnet-5-5",
+ "effort": "medium",
+ "started": "2026-11-21T12:02:41-0800",
+ "start_tree": null,
+ "frozen_from": null,
+ "build_from": "/Users/dadleet/e2e-runs/ratchet-pilot-20261120-b6eab2/refs/ticket-assignment/reference",
+ "bare": false,
+ "sessions": [
+  {
+   "number": 1,
+   "role": "spec",
+   "label": "spec-1",
+   "seconds": 51.2,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 51.2,
+   "held_out_marks": [],
+   "cost_usd": 0.23861089999999996
+  },
+  {
+   "number": 2,
+   "role": "plan",
+   "label": "plan-1",
+   "seconds": 93.3,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 93.3,
+   "held_out_marks": [],
+   "cost_usd": 0.41097710000000004
+  },
+  {
+   "number": 3,
+   "role": "tests",
+   "label": "tests-1-1",
+   "seconds": 495.0,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 495.0,
+   "held_out_marks": [],
+   "cost_usd": 0.7880647000000001
+  }
+ ],
+ "gates": [
+  {
+   "number": 1,
+   "label": "after-given-build",
+   "pass": true,
+   "failing": [],
+   "passing": [],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [],
+   "clauses": 0,
+   "at": 146.6
+  },
+  {
+   "number": 2,
+   "label": "cycle-1-first",
+   "pass": true,
+   "failing": [],
+   "passing": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [],
+   "clauses": 27,
+   "at": 916.6
+  },
+  {
+   "number": 3,
+   "label": "final",
+   "pass": true,
+   "failing": [],
+   "passing": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [],
+   "clauses": 27,
+   "at": 1190.6
+  }
+ ],
+ "snapshots": [
+  {
+   "label": "base",
+   "commit": "78ae658306fb323cce3177b75aa9c0196558935b",
+   "tree": "99d92357c06060cc6c277e7115a92b32c1852140",
+   "at": 0.2
+  },
+  {
+   "label": "spec",
+   "commit": "b745984838d3523af8c97bcad445f7606f7781de",
+   "tree": "6d5fa2b0342b561c1f7843dd3914d68e45ec8e1e",
+   "at": 51.6
+  },
+  {
+   "label": "plan-1",
+   "commit": "86f24e4d7a65b607dc94dd9123178c8f8086a850",
+   "tree": "4f267d1bd4e773f15449dbb5974556201daaea56",
+   "at": 145.0
+  },
+  {
+   "label": "build-1",
+   "commit": "e5c38c69b22bcb82040631d9430d7f95bbca7484",
+   "tree": "f618e97eda2cce806f04bbe1a894f13c31104580",
+   "at": 146.7
+  },
+  {
+   "label": "tests-1",
+   "commit": "51952b96dd3b40a0d95791662d757507318e926c",
+   "tree": "9ee9b5a361220d26412707d90d7ba955f54446d2",
+   "at": 641.8
+  },
+  {
+   "label": "final",
+   "commit": "e27faf9201399428b1f739716e4a47f2ddae7c19",
+   "tree": "9ee9b5a361220d26412707d90d7ba955f54446d2",
+   "at": 1190.6
+  }
+ ],
+ "cycles": [
+  {
+   "cycle": 1,
+   "clauses_at_start": 27,
+   "new_clauses": [],
+   "plan_loops": [
+    {
+     "name": "plan-1",
+     "session": "exited",
+     "loop": "complete",
+     "iterations": 2,
+     "trivial_streak": 1
+    }
+   ],
+   "plan_added": [],
+   "first_gate_failing": []
+  }
+ ],
+ "reverted": [],
+ "spec_violations": [],
+ "local_head": "5e4fe0fb919d374b22d338a8849a2a7d1943a8d2",
+ "named_checks": true,
+ "enrich": "reworded",
+ "spec_from": null,
+ "preserve": "spec",
+ "stop": "stop-after-tests",
+ "final_pass": true,
+ "seconds": 1190.6,
+ "clauses": 21,
+ "use_cases": 6,
+ "tamper": [],
+ "finished": "2026-11-21T12:22:32-0800"
+}

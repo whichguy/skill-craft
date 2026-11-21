@@ -1,0 +1,387 @@
+====================================================================================================
+RUN earlier  (p1S-ticket-assignment-medium)
+spec commit (subject exactly 'spec'): 5abbf067cedf6cdcb11db2308ded5568e056c8e6  [run.json snapshot agrees: True]
+1. at the spec commit: clauses 22, use cases 5, first word of Source {'request': 13, 'implied': 6, 'existing': 2, 'choice': 1}, other first words none, 'existing' anywhere in Source 8, Open: lines 8 (in use cases 0)
+2. final specification: clauses 22, use cases 5, first word {'request': 13, 'implied': 6, 'existing': 2, 'choice': 1}, other first words none, 'existing' anywhere 8, Open: lines 8 (in use cases 0)
+   ids in final but not at the spec commit (plan-added): none; with first word of source: none
+   ids at the spec commit missing from final: none; ids whose heading text changed: none
+   (run.json cycles' plan_added, for cross-check only: none)
+3. strength.json: items 27, clauses 22, use_cases 5 (final spec parsed: items 27, clauses 22, use cases 5)
+   fails_on_reference none; controls.alternative.failing ['C-1', 'C-14', 'C-22', 'C-7', 'C-8']; of those not in fails_on_reference: 5 ['C-1', 'C-14', 'C-22', 'C-7', 'C-8']
+   caught 26 pool 27 (defects entries 27, caught=true entries 26); not caught: ['update-rejects-resolved']
+   six: update-rejects-resolved      caught=False by []
+   six: default-limit-changed        caught=True  by ['C-22']
+   six: resolved-template-replaced   caught=True  by ['C-22']
+   six: audit-not-saved              caught=True  by ['C-22']
+   six: backoff-linear               caught=True  by ['C-21']
+   six: validate-renamed             caught=True  by ['C-21']
+   other defects: 21 listed, 21 caught
+4. run.json: preserve=(key absent), model=claude-sonnet-5-5, effort=medium, final_pass=True, seconds=298.8 = 5.0 min
+   session plan-1     role=plan   seconds=  111.1 cost_usd=0.4999652
+   session tests-1-1  role=tests  seconds=  153.7 cost_usd=0.5526434
+   sum of costs 1.0526 (all sessions priced); union of held_out_marks none; spec_violations none; tamper none; reverted none
+   spec-stage seconds: from role=spec sessions 0; spec_from=/Users/dadleet/e2e-runs/ratchet-reworded-20261121-08805f/sm-ticket-assignment; spec_from_seconds=46.5
+6. clauses saying the existing tests pass or that npm test runs: ['C-21', 'C-22']
+      C-21: The existing behaviour and the existing tests are unchanged
+      C-22: New node:test tests cover the new behaviour and run under `npm test`
+7. plan.md has no '## Preserved behaviour' section (headings containing 'preserved': none)
+8. reference: unstable [], did_not_end []; controls.alternative: unstable [], did_not_end []; raw.same-agent-not-noop: unstable ['C-19'], did_not_end []
+====================================================================================================
+RUN q-base-1  (q-base-1)
+spec commit (subject exactly 'spec'): 9ed29eea9c775575d0bff8cf5a3efd2aefba1ffa  [run.json snapshot agrees: True]
+1. at the spec commit: clauses 21, use cases 5, first word of Source {'request': 13, 'implied': 7, 'existing': 1, 'choice': 0}, other first words none, 'existing' anywhere in Source 10, Open: lines 9 (in use cases 0)
+2. final specification: clauses 21, use cases 5, first word {'request': 13, 'implied': 7, 'existing': 1, 'choice': 0}, other first words none, 'existing' anywhere 10, Open: lines 9 (in use cases 0)
+   ids in final but not at the spec commit (plan-added): none; with first word of source: none
+   ids at the spec commit missing from final: none; ids whose heading text changed: none
+   (run.json cycles' plan_added, for cross-check only: none)
+3. strength.json: items 26, clauses 21, use_cases 5 (final spec parsed: items 26, clauses 21, use cases 5)
+   fails_on_reference none; controls.alternative.failing ['C-11', 'C-21', 'C-6', 'C-7', 'U-1']; of those not in fails_on_reference: 5 ['C-11', 'C-21', 'C-6', 'C-7', 'U-1']
+   caught 24 pool 27 (defects entries 27, caught=true entries 24); not caught: ['backoff-linear', 'update-rejects-resolved', 'validate-renamed']
+   six: update-rejects-resolved      caught=False by []
+   six: default-limit-changed        caught=True  by ['C-21']
+   six: resolved-template-replaced   caught=True  by ['C-21']
+   six: audit-not-saved              caught=True  by ['C-21']
+   six: backoff-linear               caught=False by []
+   six: validate-renamed             caught=False by []
+   other defects: 21 listed, 21 caught
+4. run.json: preserve=none, model=claude-sonnet-5-5, effort=medium, final_pass=True, seconds=592.4 = 9.9 min
+   session spec-1     role=spec   seconds=   53.7 cost_usd=0.25618909999999995
+   session plan-1     role=plan   seconds=   95.1 cost_usd=0.4369491
+   session tests-1-1  role=tests  seconds=  357.8 cost_usd=0.48772509999999997
+   sum of costs 1.1809 (all sessions priced); union of held_out_marks none; spec_violations none; tamper none; reverted none
+   spec-stage seconds: from role=spec sessions 53.7; spec_from=None; spec_from_seconds=None
+6. clauses saying the existing tests pass or that npm test runs: ['C-20', 'C-21']
+      C-20: Existing API behaviour is unchanged by the change
+      C-21: New tests under `test/` cover the new behaviour and run with `npm test`
+7. plan.md has no '## Preserved behaviour' section (headings containing 'preserved': none)
+8. reference: unstable [], did_not_end []; controls.alternative: unstable [], did_not_end []
+====================================================================================================
+RUN q-base-2  (q-base-2)
+spec commit (subject exactly 'spec'): e68beb19c89586e937d434ea574c949e28e15dbc  [run.json snapshot agrees: True]
+1. at the spec commit: clauses 24, use cases 5, first word of Source {'request': 13, 'implied': 5, 'existing': 5, 'choice': 1}, other first words none, 'existing' anywhere in Source 10, Open: lines 10 (in use cases 0)
+2. final specification: clauses 24, use cases 5, first word {'request': 13, 'implied': 5, 'existing': 5, 'choice': 1}, other first words none, 'existing' anywhere 10, Open: lines 10 (in use cases 0)
+   ids in final but not at the spec commit (plan-added): none; with first word of source: none
+   ids at the spec commit missing from final: none; ids whose heading text changed: none
+   (run.json cycles' plan_added, for cross-check only: none)
+3. strength.json: items 29, clauses 24, use_cases 5 (final spec parsed: items 29, clauses 24, use cases 5)
+   fails_on_reference none; controls.alternative.failing ['C-10', 'C-14', 'C-22', 'C-7']; of those not in fails_on_reference: 4 ['C-10', 'C-14', 'C-22', 'C-7']
+   caught 26 pool 27 (defects entries 27, caught=true entries 26); not caught: ['update-rejects-resolved']
+   six: update-rejects-resolved      caught=False by []
+   six: default-limit-changed        caught=True  by ['C-23', 'C-24', 'U-5']
+   six: resolved-template-replaced   caught=True  by ['C-23', 'C-24', 'U-5']
+   six: audit-not-saved              caught=True  by ['C-22', 'C-23', 'C-24', 'U-5']
+   six: backoff-linear               caught=True  by ['C-23']
+   six: validate-renamed             caught=True  by ['C-23']
+   other defects: 21 listed, 21 caught
+4. run.json: preserve=none, model=claude-sonnet-5-5, effort=medium, final_pass=True, seconds=338.7 = 5.6 min
+   session spec-1     role=spec   seconds=   47.1 cost_usd=0.2220769
+   session plan-1     role=plan   seconds=   92.8 cost_usd=0.4112808
+   session tests-1-1  role=tests  seconds=  159.9 cost_usd=0.5499848
+   sum of costs 1.1833 (all sessions priced); union of held_out_marks none; spec_violations none; tamper none; reverted none
+   spec-stage seconds: from role=spec sessions 47.1; spec_from=None; spec_from_seconds=None
+6. clauses saying the existing tests pass or that npm test runs: ['C-23', 'C-24']
+      C-23: Existing behaviour and tests are preserved
+      C-24: New behaviour has node:test tests under test/, run by `npm test`
+7. plan.md has no '## Preserved behaviour' section (headings containing 'preserved': none)
+8. reference: unstable [], did_not_end []; controls.alternative: unstable [], did_not_end []; raw.old-assignee-undefined: unstable ['C-10'], did_not_end []; raw.cli-no-assignee: unstable ['C-22', 'U-5'], did_not_end []; raw.listing-hides-assignee: unstable ['C-24'], did_not_end []; raw.update-rejects-resolved: unstable ['C-24'], did_not_end []; raw.audit-not-saved: unstable ['C-15'], did_not_end []
+====================================================================================================
+RUN q-spec-1  (q-spec-1)
+spec commit (subject exactly 'spec'): b745984838d3523af8c97bcad445f7606f7781de  [run.json snapshot agrees: True]
+1. at the spec commit: clauses 21, use cases 6, first word of Source {'request': 12, 'implied': 5, 'existing': 4, 'choice': 0}, other first words none, 'existing' anywhere in Source 9, Open: lines 9 (in use cases 0)
+2. final specification: clauses 21, use cases 6, first word {'request': 12, 'implied': 5, 'existing': 4, 'choice': 0}, other first words none, 'existing' anywhere 9, Open: lines 9 (in use cases 0)
+   ids in final but not at the spec commit (plan-added): none; with first word of source: none
+   ids at the spec commit missing from final: none; ids whose heading text changed: none
+   (run.json cycles' plan_added, for cross-check only: none)
+3. strength.json: items 27, clauses 21, use_cases 6 (final spec parsed: items 27, clauses 21, use cases 6)
+   fails_on_reference none; controls.alternative.failing ['C-1', 'C-2', 'C-7', 'U-1']; of those not in fails_on_reference: 4 ['C-1', 'C-2', 'C-7', 'U-1']
+   caught 25 pool 27 (defects entries 27, caught=true entries 25); not caught: ['filter-after-page', 'update-rejects-resolved']
+   six: update-rejects-resolved      caught=False by []
+   six: default-limit-changed        caught=True  by ['C-21']
+   six: resolved-template-replaced   caught=True  by ['C-20', 'C-21', 'U-6']
+   six: audit-not-saved              caught=True  by ['C-21']
+   six: backoff-linear               caught=True  by ['C-20']
+   six: validate-renamed             caught=True  by ['C-20']
+   other defects: 21 listed, 20 caught
+4. run.json: preserve=spec, model=claude-sonnet-5-5, effort=medium, final_pass=True, seconds=1190.6 = 19.8 min
+   session spec-1     role=spec   seconds=   51.2 cost_usd=0.23861089999999996
+   session plan-1     role=plan   seconds=   93.3 cost_usd=0.41097710000000004
+   session tests-1-1  role=tests  seconds=  495.0 cost_usd=0.7880647000000001
+   sum of costs 1.4377 (all sessions priced); union of held_out_marks none; spec_violations none; tamper none; reverted none
+   spec-stage seconds: from role=spec sessions 51.2; spec_from=None; spec_from_seconds=None
+6. clauses saying the existing tests pass or that npm test runs: ['C-20', 'C-21']
+      C-20: Existing behaviour is unchanged
+      C-21: New tests cover the new behaviour and run with `npm test`
+7. plan.md has no '## Preserved behaviour' section (headings containing 'preserved': none)
+8. reference: unstable [], did_not_end []; controls.alternative: unstable [], did_not_end []; raw.old-assignee-undefined: unstable ['C-21'], did_not_end []
+====================================================================================================
+RUN q-spec-2  (q-spec-2)
+spec commit (subject exactly 'spec'): 3906d5fa33d9464cfaaaafa7f52f29562404b682  [run.json snapshot agrees: True]
+1. at the spec commit: clauses 22, use cases 6, first word of Source {'request': 14, 'implied': 3, 'existing': 5, 'choice': 0}, other first words none, 'existing' anywhere in Source 15, Open: lines 8 (in use cases 0)
+2. final specification: clauses 22, use cases 6, first word {'request': 14, 'implied': 3, 'existing': 5, 'choice': 0}, other first words none, 'existing' anywhere 15, Open: lines 8 (in use cases 0)
+   ids in final but not at the spec commit (plan-added): none; with first word of source: none
+   ids at the spec commit missing from final: none; ids whose heading text changed: none
+   (run.json cycles' plan_added, for cross-check only: none)
+3. strength.json: items 28, clauses 22, use_cases 6 (final spec parsed: items 28, clauses 22, use cases 6)
+   fails_on_reference none; controls.alternative.failing ['C-1', 'C-14', 'C-3', 'C-7', 'C-8']; of those not in fails_on_reference: 5 ['C-1', 'C-14', 'C-3', 'C-7', 'C-8']
+   caught 25 pool 27 (defects entries 27, caught=true entries 25); not caught: ['filter-after-page', 'update-rejects-resolved']
+   six: update-rejects-resolved      caught=False by []
+   six: default-limit-changed        caught=True  by ['C-18', 'C-22']
+   six: resolved-template-replaced   caught=True  by ['C-22', 'U-6']
+   six: audit-not-saved              caught=True  by ['C-14', 'C-22']
+   six: backoff-linear               caught=True  by ['C-21']
+   six: validate-renamed             caught=True  by ['C-21']
+   other defects: 21 listed, 20 caught
+4. run.json: preserve=spec, model=claude-sonnet-5-5, effort=medium, final_pass=True, seconds=875.6 = 14.6 min
+   session spec-1     role=spec   seconds=   57.9 cost_usd=0.278852
+   session plan-1     role=plan   seconds=   97.4 cost_usd=0.45579949999999997
+   session tests-1-1  role=tests  seconds=  410.6 cost_usd=1.1965765
+   sum of costs 1.9312 (all sessions priced); union of held_out_marks none; spec_violations none; tamper none; reverted none
+   spec-stage seconds: from role=spec sessions 57.9; spec_from=None; spec_from_seconds=None
+6. clauses saying the existing tests pass or that npm test runs: ['C-21', 'C-22']
+      C-21: What the service already does keeps working
+      C-22: New tests for the new behaviour run with `npm test`
+7. plan.md has no '## Preserved behaviour' section (headings containing 'preserved': none)
+8. reference: unstable ['C-13'], did_not_end []; controls.alternative: unstable [], did_not_end []; raw.validate-renamed: unstable ['C-22'], did_not_end []
+====================================================================================================
+RUN q-plan-1  (q-plan-1)
+spec commit (subject exactly 'spec'): abc963298f472025d47e400e803475e78a76a7b6  [run.json snapshot agrees: True]
+1. at the spec commit: clauses 20, use cases 6, first word of Source {'request': 14, 'implied': 4, 'existing': 2, 'choice': 0}, other first words none, 'existing' anywhere in Source 8, Open: lines 6 (in use cases 0)
+2. final specification: clauses 25, use cases 6, first word {'request': 14, 'implied': 4, 'existing': 7, 'choice': 0}, other first words none, 'existing' anywhere 13, Open: lines 6 (in use cases 0)
+   ids in final but not at the spec commit (plan-added): ['C-21', 'C-22', 'C-23', 'C-24', 'C-25']; with first word of source: {'C-21': 'existing', 'C-22': 'existing', 'C-23': 'existing', 'C-24': 'existing', 'C-25': 'existing'}
+   ids at the spec commit missing from final: none; ids whose heading text changed: none
+   (run.json cycles' plan_added, for cross-check only: ['C-21', 'C-22', 'C-23', 'C-24', 'C-25'])
+3. strength.json: items 31, clauses 25, use_cases 6 (final spec parsed: items 31, clauses 25, use cases 6)
+   fails_on_reference ['C-20']; controls.alternative.failing ['C-1', 'C-20', 'C-24', 'C-7']; of those not in fails_on_reference: 3 ['C-1', 'C-24', 'C-7']
+   caught 23 pool 27 (defects entries 27, caught=true entries 23); not caught: ['backoff-linear', 'default-limit-changed', 'resolved-template-replaced', 'validate-renamed']
+   six: update-rejects-resolved      caught=True  by ['C-23']
+   six: default-limit-changed        caught=False by []
+   six: resolved-template-replaced   caught=False by []
+   six: audit-not-saved              caught=True  by ['C-25']
+   six: backoff-linear               caught=False by []
+   six: validate-renamed             caught=False by []
+   other defects: 21 listed, 21 caught
+4. run.json: preserve=plan, model=claude-sonnet-5-5, effort=medium, final_pass=False, seconds=426.4 = 7.1 min
+   session spec-1     role=spec   seconds=   63.2 cost_usd=0.298914
+   session plan-1     role=plan   seconds=  125.5 cost_usd=0.5167964
+   session tests-1-1  role=tests  seconds=  176.3 cost_usd=0.5470444
+   sum of costs 1.3628 (all sessions priced); union of held_out_marks none; spec_violations none; tamper none; reverted none
+   spec-stage seconds: from role=spec sessions 63.2; spec_from=None; spec_from_seconds=None
+5. plan cell: caught only by plan-added clauses: [('update-rejects-resolved', ['C-23']), ('audit-not-saved', ['C-25'])]
+   caught by a plan-added clause among others: [('no-envelope', ['C-21', 'C-3', 'C-4', 'C-5', 'C-6', 'U-3'], ['C-21']), ('audit-bypassed', ['C-21', 'C-25', 'C-3', 'C-4', 'C-9', 'U-1'], ['C-21', 'C-25']), ('actor-ignored', ['C-21', 'C-9', 'U-1'], ['C-21']), ('memory-only-assignee', ['C-13', 'C-17', 'C-24', 'U-5'], ['C-24']), ('old-data-refused', ['C-13', 'C-24'], ['C-24']), ('old-assignee-undefined', ['C-13', 'C-24'], ['C-24'])]
+   plan-added clauses in fails_on_reference: none; in the alternative's failing list: ['C-24']
+6. clauses saying the existing tests pass or that npm test runs: ['C-19', 'C-20']
+      C-19: Existing behaviour is preserved
+      C-20: New behaviour has node:test tests under `test/`
+7. plan.md '## Preserved behaviour': entries 14, naming a file or folder 13, entries beginning 'Not settled': 1
+      [path] - Error envelope and 400/404/409 split, no hand-written error responses: `src/errors.js`, `docs/api.
+      [path] - Changes only through the store; a change that changes nothing makes no audit entry, no notificatio
+      [path] - Creation audit entry lists exactly title, priority, requester, status: `src/store.js` `CREATED_FIE
+      [path] - Notifications only through the outbox, with templates; created and resolved notifications and thei
+      [path] - Unknown body fields refused; PATCH takes only title and priority (so `assignee` there stays 400): 
+      [path] - `PATCH` allowed on a resolved ticket, refused only on closed; lifecycle transitions; reopen: `src/
+      [path] - Listing: id order, cursor paging, `status`/`priority` values validated (empty `status=` is 400), u
+      [path] - The one existing divergence: `matchesFilters` uses `some` while `docs/api.md` says a ticket must m
+      [path] - Data file: version 1, atomic write, strict load checks, old files still load: `src/persistence.js`
+      [path] - `X-Actor` rules: `src/http.js`. (C-21, added)
+      [path] - Command line: read-only, usage, exit codes 0/1/2, `list --raw` columns 1–4 id/status/priority/titl
+      [path] - Existing tests under `test/` pass unmodified; new tests go in new files: `package.json` `npm test`
+      [path] - No dependencies, CommonJS with named exports: CONTRIBUTING.md.
+      [----] - Not settled by what is here: whether `list --raw` may gain a trailing assignee column (README only
+8. reference: unstable [], did_not_end []; controls.alternative: unstable [], did_not_end []; raw.actor-ignored: unstable ['C-1'], did_not_end []
+====================================================================================================
+RUN q-plan-2  (q-plan-2)
+spec commit (subject exactly 'spec'): f3004190c98d11a0ca74ca9148e0520ae177aa77  [run.json snapshot agrees: True]
+1. at the spec commit: clauses 22, use cases 6, first word of Source {'request': 13, 'implied': 2, 'existing': 5, 'choice': 2}, other first words none, 'existing' anywhere in Source 12, Open: lines 8 (in use cases 0)
+2. final specification: clauses 26, use cases 6, first word {'request': 13, 'implied': 3, 'existing': 8, 'choice': 2}, other first words none, 'existing' anywhere 15, Open: lines 8 (in use cases 0)
+   ids in final but not at the spec commit (plan-added): ['C-23', 'C-24', 'C-25', 'C-26']; with first word of source: {'C-23': 'existing', 'C-24': 'existing', 'C-25': 'existing', 'C-26': 'implied'}
+   ids at the spec commit missing from final: none; ids whose heading text changed: none
+   (run.json cycles' plan_added, for cross-check only: ['C-23', 'C-24', 'C-25', 'C-26'])
+3. strength.json: items 32, clauses 26, use_cases 6 (final spec parsed: items 32, clauses 26, use cases 6)
+   fails_on_reference none; controls.alternative.failing ['C-14', 'C-21', 'C-7']; of those not in fails_on_reference: 3 ['C-14', 'C-21', 'C-7']
+   caught 26 pool 27 (defects entries 27, caught=true entries 26); not caught: ['update-rejects-resolved']
+   six: update-rejects-resolved      caught=False by []
+   six: default-limit-changed        caught=True  by ['C-21', 'C-22']
+   six: resolved-template-replaced   caught=True  by ['C-21', 'C-22', 'U-6']
+   six: audit-not-saved              caught=True  by ['C-21', 'C-22', 'C-25', 'U-6']
+   six: backoff-linear               caught=True  by ['C-21']
+   six: validate-renamed             caught=True  by ['C-21']
+   other defects: 21 listed, 21 caught
+4. run.json: preserve=plan, model=claude-sonnet-5-5, effort=medium, final_pass=True, seconds=1056.1 = 17.6 min
+   session spec-1     role=spec   seconds=   48.7 cost_usd=0.2423874
+   session plan-1     role=plan   seconds=  118.5 cost_usd=0.4967868
+   session tests-1-1  role=tests  seconds=  852.6 cost_usd=0.7430311
+   sum of costs 1.4822 (all sessions priced); union of held_out_marks none; spec_violations none; tamper none; reverted none
+   spec-stage seconds: from role=spec sessions 48.7; spec_from=None; spec_from_seconds=None
+5. plan cell: caught only by plan-added clauses: none
+   caught by a plan-added clause among others: [('filter-or', ['C-17', 'C-22', 'C-25', 'U-4'], ['C-25']), ('audit-bypassed', ['C-13', 'C-22', 'C-26', 'U-1', 'U-2'], ['C-26']), ('audit-not-saved', ['C-21', 'C-22', 'C-25', 'U-6'], ['C-25'])]
+   plan-added clauses in fails_on_reference: none; in the alternative's failing list: none
+6. clauses saying the existing tests pass or that npm test runs: ['C-21', 'C-22']
+      C-21: Existing behaviour and tests are preserved
+      C-22: New tests cover the new behaviour and run under `npm test`
+7. plan.md '## Preserved behaviour': entries 10, naming a file or folder 9, entries beginning 'Not settled': 1
+      [path] - Error envelope `{error:{code,message}}`, 400/404/409 mapping, unknown fields refused — `src/errors
+      [path] - Create/PATCH/transition semantics, no-op = no audit/notification/`updated` change, closed tickets 
+      [path] - Creation and resolved notifications to the requester, outbox keys and dedupe, templates, dead-lett
+      [path] - `ticket.created` audit entry fields — `src/store.js` `CREATED_FIELDS` (C-23).
+      [path] - Cursor-paged listing in id order, `status`/`priority` validation, `limit` 1–100, ignored unknown p
+      [path] - Router: method-not-allowed reported as 404 with allowed methods — `src/router.js`, `src/app.js` (C
+      [path] - Data file: version 1, atomic write, strict load validation, older files still load — `src/persiste
+      [path] - Command line: read-only, `--raw` positions 1–4 (id, status, priority, title), weekly report by pos
+      [path] - No dependencies, CommonJS with named exports, worker interval 0 turns off background work — `CONTR
+      [----] - Not settled by what is here: whether the filter `matchesFilters` using `some` is relied on by anyt
+8. reference: unstable [], did_not_end []; controls.alternative: unstable [], did_not_end []; raw.filter-after-page: unstable ['C-24'], did_not_end []; raw.no-unassign: unstable ['U-3'], did_not_end []; raw.listing-hides-assignee: unstable ['C-21'], did_not_end []
+
+====================================================================================================
+COMPARISON with by-source.json and specs.json (every difference listed)
+   earlier   specs: clauses at spec commit                  mine=22                                 script=22                                 same
+   earlier   specs: use cases at spec commit                mine=5                                  script=5                                  same
+   earlier   specs: Source first word request               mine=13                                 script=13                                 same
+   earlier   specs: Source first word implied               mine=6                                  script=6                                  same
+   earlier   specs: Source first word existing              mine=2                                  script=2                                  same
+   earlier   specs: Source first word choice                mine=1                                  script=1                                  same
+   earlier   specs: other first words                       mine=0                                  script=0                                  same
+   earlier   specs: Open: lines                             mine=8                                  script=8                                  same
+   earlier   specs: spec minutes (spec sessions or spec_from) mine=0.8                                script=0.0                                DIFFERENT
+   earlier   by-source: final clauses                       mine=22                                 script=22                                 same
+   earlier   by-source: final use cases                     mine=5                                  script=5                                  same
+   earlier   by-source: final first word request            mine=13                                 script=13                                 same
+   earlier   by-source: final first word implied            mine=6                                  script=6                                  same
+   earlier   by-source: final first word existing           mine=2                                  script=2                                  same
+   earlier   by-source: final first word choice             mine=1                                  script=1                                  same
+   earlier   by-source: plan-added ids                      mine=[]                                 script=[]                                 same
+   earlier   by-source: failing on reference (all)          mine=[]                                 script=[]                                 same
+   earlier   by-source: defects caught                      mine=26                                 script=26                                 same
+   earlier   by-source: defects missed                      mine=['update-rejects-resolved']        script=['update-rejects-resolved']        same
+   earlier   by-source: tests-clauses list                  mine=['C-21', 'C-22']                   script=['C-21', 'C-22']                   same
+   earlier   by-source: plan-added failing                  mine=[]                                 script=[]                                 same
+   q-base-1  specs: clauses at spec commit                  mine=21                                 script=21                                 same
+   q-base-1  specs: use cases at spec commit                mine=5                                  script=5                                  same
+   q-base-1  specs: Source first word request               mine=13                                 script=13                                 same
+   q-base-1  specs: Source first word implied               mine=7                                  script=7                                  same
+   q-base-1  specs: Source first word existing              mine=1                                  script=1                                  same
+   q-base-1  specs: Source first word choice                mine=0                                  script=0                                  same
+   q-base-1  specs: other first words                       mine=0                                  script=0                                  same
+   q-base-1  specs: Open: lines                             mine=9                                  script=9                                  same
+   q-base-1  specs: spec minutes (spec sessions or spec_from) mine=0.9                                script=0.9                                same
+   q-base-1  by-source: final clauses                       mine=21                                 script=21                                 same
+   q-base-1  by-source: final use cases                     mine=5                                  script=5                                  same
+   q-base-1  by-source: final first word request            mine=13                                 script=13                                 same
+   q-base-1  by-source: final first word implied            mine=7                                  script=7                                  same
+   q-base-1  by-source: final first word existing           mine=1                                  script=1                                  same
+   q-base-1  by-source: final first word choice             mine=0                                  script=0                                  same
+   q-base-1  by-source: plan-added ids                      mine=[]                                 script=[]                                 same
+   q-base-1  by-source: failing on reference (all)          mine=[]                                 script=[]                                 same
+   q-base-1  by-source: defects caught                      mine=24                                 script=24                                 same
+   q-base-1  by-source: defects missed                      mine=['backoff-linear', 'update-rejects script=['backoff-linear', 'update-rejects same
+   q-base-1  by-source: tests-clauses list                  mine=['C-20', 'C-21']                   script=['C-20', 'C-21']                   same
+   q-base-1  by-source: plan-added failing                  mine=[]                                 script=[]                                 same
+   q-base-2  specs: clauses at spec commit                  mine=24                                 script=24                                 same
+   q-base-2  specs: use cases at spec commit                mine=5                                  script=5                                  same
+   q-base-2  specs: Source first word request               mine=13                                 script=13                                 same
+   q-base-2  specs: Source first word implied               mine=5                                  script=5                                  same
+   q-base-2  specs: Source first word existing              mine=5                                  script=5                                  same
+   q-base-2  specs: Source first word choice                mine=1                                  script=1                                  same
+   q-base-2  specs: other first words                       mine=0                                  script=0                                  same
+   q-base-2  specs: Open: lines                             mine=10                                 script=10                                 same
+   q-base-2  specs: spec minutes (spec sessions or spec_from) mine=0.8                                script=0.8                                same
+   q-base-2  by-source: final clauses                       mine=24                                 script=24                                 same
+   q-base-2  by-source: final use cases                     mine=5                                  script=5                                  same
+   q-base-2  by-source: final first word request            mine=13                                 script=13                                 same
+   q-base-2  by-source: final first word implied            mine=5                                  script=5                                  same
+   q-base-2  by-source: final first word existing           mine=5                                  script=5                                  same
+   q-base-2  by-source: final first word choice             mine=1                                  script=1                                  same
+   q-base-2  by-source: plan-added ids                      mine=[]                                 script=[]                                 same
+   q-base-2  by-source: failing on reference (all)          mine=[]                                 script=[]                                 same
+   q-base-2  by-source: defects caught                      mine=26                                 script=26                                 same
+   q-base-2  by-source: defects missed                      mine=['update-rejects-resolved']        script=['update-rejects-resolved']        same
+   q-base-2  by-source: tests-clauses list                  mine=['C-23', 'C-24']                   script=['C-24']                           DIFFERENT
+   q-base-2  by-source: plan-added failing                  mine=[]                                 script=[]                                 same
+   q-spec-1  specs: clauses at spec commit                  mine=21                                 script=21                                 same
+   q-spec-1  specs: use cases at spec commit                mine=6                                  script=6                                  same
+   q-spec-1  specs: Source first word request               mine=12                                 script=12                                 same
+   q-spec-1  specs: Source first word implied               mine=5                                  script=5                                  same
+   q-spec-1  specs: Source first word existing              mine=4                                  script=4                                  same
+   q-spec-1  specs: Source first word choice                mine=0                                  script=0                                  same
+   q-spec-1  specs: other first words                       mine=0                                  script=0                                  same
+   q-spec-1  specs: Open: lines                             mine=9                                  script=9                                  same
+   q-spec-1  specs: spec minutes (spec sessions or spec_from) mine=0.9                                script=0.9                                same
+   q-spec-1  by-source: final clauses                       mine=21                                 script=21                                 same
+   q-spec-1  by-source: final use cases                     mine=6                                  script=6                                  same
+   q-spec-1  by-source: final first word request            mine=12                                 script=12                                 same
+   q-spec-1  by-source: final first word implied            mine=5                                  script=5                                  same
+   q-spec-1  by-source: final first word existing           mine=4                                  script=4                                  same
+   q-spec-1  by-source: final first word choice             mine=0                                  script=0                                  same
+   q-spec-1  by-source: plan-added ids                      mine=[]                                 script=[]                                 same
+   q-spec-1  by-source: failing on reference (all)          mine=[]                                 script=[]                                 same
+   q-spec-1  by-source: defects caught                      mine=25                                 script=25                                 same
+   q-spec-1  by-source: defects missed                      mine=['filter-after-page', 'update-reje script=['filter-after-page', 'update-reje same
+   q-spec-1  by-source: tests-clauses list                  mine=['C-20', 'C-21']                   script=['C-20', 'C-21']                   same
+   q-spec-1  by-source: plan-added failing                  mine=[]                                 script=[]                                 same
+   q-spec-2  specs: clauses at spec commit                  mine=22                                 script=22                                 same
+   q-spec-2  specs: use cases at spec commit                mine=6                                  script=6                                  same
+   q-spec-2  specs: Source first word request               mine=14                                 script=14                                 same
+   q-spec-2  specs: Source first word implied               mine=3                                  script=3                                  same
+   q-spec-2  specs: Source first word existing              mine=5                                  script=5                                  same
+   q-spec-2  specs: Source first word choice                mine=0                                  script=0                                  same
+   q-spec-2  specs: other first words                       mine=0                                  script=0                                  same
+   q-spec-2  specs: Open: lines                             mine=8                                  script=8                                  same
+   q-spec-2  specs: spec minutes (spec sessions or spec_from) mine=1.0                                script=1.0                                same
+   q-spec-2  by-source: final clauses                       mine=22                                 script=22                                 same
+   q-spec-2  by-source: final use cases                     mine=6                                  script=6                                  same
+   q-spec-2  by-source: final first word request            mine=14                                 script=14                                 same
+   q-spec-2  by-source: final first word implied            mine=3                                  script=3                                  same
+   q-spec-2  by-source: final first word existing           mine=5                                  script=5                                  same
+   q-spec-2  by-source: final first word choice             mine=0                                  script=0                                  same
+   q-spec-2  by-source: plan-added ids                      mine=[]                                 script=[]                                 same
+   q-spec-2  by-source: failing on reference (all)          mine=[]                                 script=[]                                 same
+   q-spec-2  by-source: defects caught                      mine=25                                 script=25                                 same
+   q-spec-2  by-source: defects missed                      mine=['filter-after-page', 'update-reje script=['filter-after-page', 'update-reje same
+   q-spec-2  by-source: tests-clauses list                  mine=['C-21', 'C-22']                   script=['C-21', 'C-22']                   same
+   q-spec-2  by-source: plan-added failing                  mine=[]                                 script=[]                                 same
+   q-plan-1  specs: clauses at spec commit                  mine=20                                 script=20                                 same
+   q-plan-1  specs: use cases at spec commit                mine=6                                  script=6                                  same
+   q-plan-1  specs: Source first word request               mine=14                                 script=14                                 same
+   q-plan-1  specs: Source first word implied               mine=4                                  script=4                                  same
+   q-plan-1  specs: Source first word existing              mine=2                                  script=2                                  same
+   q-plan-1  specs: Source first word choice                mine=0                                  script=0                                  same
+   q-plan-1  specs: other first words                       mine=0                                  script=0                                  same
+   q-plan-1  specs: Open: lines                             mine=6                                  script=6                                  same
+   q-plan-1  specs: spec minutes (spec sessions or spec_from) mine=1.1                                script=1.1                                same
+   q-plan-1  by-source: final clauses                       mine=25                                 script=25                                 same
+   q-plan-1  by-source: final use cases                     mine=6                                  script=6                                  same
+   q-plan-1  by-source: final first word request            mine=14                                 script=14                                 same
+   q-plan-1  by-source: final first word implied            mine=4                                  script=4                                  same
+   q-plan-1  by-source: final first word existing           mine=7                                  script=7                                  same
+   q-plan-1  by-source: final first word choice             mine=0                                  script=0                                  same
+   q-plan-1  by-source: plan-added ids                      mine=['C-21', 'C-22', 'C-23', 'C-24', ' script=['C-21', 'C-22', 'C-23', 'C-24', ' same
+   q-plan-1  by-source: failing on reference (all)          mine=['C-20']                           script=['C-20']                           same
+   q-plan-1  by-source: defects caught                      mine=23                                 script=23                                 same
+   q-plan-1  by-source: defects missed                      mine=['backoff-linear', 'default-limit- script=['backoff-linear', 'default-limit- same
+   q-plan-1  by-source: tests-clauses list                  mine=['C-19', 'C-20']                   script=['C-19', 'C-20']                   same
+   q-plan-1  by-source: plan-added failing                  mine=[]                                 script=[]                                 same
+   q-plan-2  specs: clauses at spec commit                  mine=22                                 script=22                                 same
+   q-plan-2  specs: use cases at spec commit                mine=6                                  script=6                                  same
+   q-plan-2  specs: Source first word request               mine=13                                 script=13                                 same
+   q-plan-2  specs: Source first word implied               mine=2                                  script=2                                  same
+   q-plan-2  specs: Source first word existing              mine=5                                  script=5                                  same
+   q-plan-2  specs: Source first word choice                mine=2                                  script=2                                  same
+   q-plan-2  specs: other first words                       mine=0                                  script=0                                  same
+   q-plan-2  specs: Open: lines                             mine=8                                  script=8                                  same
+   q-plan-2  specs: spec minutes (spec sessions or spec_from) mine=0.8                                script=0.8                                same
+   q-plan-2  by-source: final clauses                       mine=26                                 script=26                                 same
+   q-plan-2  by-source: final use cases                     mine=6                                  script=6                                  same
+   q-plan-2  by-source: final first word request            mine=13                                 script=13                                 same
+   q-plan-2  by-source: final first word implied            mine=3                                  script=3                                  same
+   q-plan-2  by-source: final first word existing           mine=8                                  script=8                                  same
+   q-plan-2  by-source: final first word choice             mine=2                                  script=2                                  same
+   q-plan-2  by-source: plan-added ids                      mine=['C-23', 'C-24', 'C-25', 'C-26']   script=['C-23', 'C-24', 'C-25', 'C-26']   same
+   q-plan-2  by-source: failing on reference (all)          mine=[]                                 script=[]                                 same
+   q-plan-2  by-source: defects caught                      mine=26                                 script=26                                 same
+   q-plan-2  by-source: defects missed                      mine=['update-rejects-resolved']        script=['update-rejects-resolved']        same
+   q-plan-2  by-source: tests-clauses list                  mine=['C-21', 'C-22']                   script=['C-22']                           DIFFERENT
+   q-plan-2  by-source: plan-added failing                  mine=[]                                 script=[]                                 same
+
+NUMBER OF DIFFERENCES: 3
+  - earlier: specs: spec minutes (spec sessions or spec_from): mine 0.8 / script 0.0
+  - q-base-2: by-source: tests-clauses list: mine ['C-23', 'C-24'] / script ['C-24']
+  - q-plan-2: by-source: tests-clauses list: mine ['C-21', 'C-22'] / script ['C-22']

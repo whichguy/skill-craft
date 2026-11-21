@@ -2164,7 +2164,9 @@ and the one its plan appended (C-44).
 - **R12.1, what medium writes: the same on this reading.** Every medium specification writes one choice clause and 6
   to 8 open lines; none of the three due-times ones requires the refusal. What differs is size and time: 16 to 22
   clauses against 21 to 32, under a minute each, and still less existing behaviour restated (0 to 3 `existing`
-  clauses against 1 to 6).
+  clauses against 1 to 6). *Qualified 2026-11-21 13:11 (amendment 12, F38):* on ticket assignment five medium
+  specifications written from this text hold 1 to 5 `existing` clauses, so 2 against 6 on that case is not shown
+  to be a difference.
 - **R12.2, strength at each effort: kept at both.** 26 of 27 at each; the bar was 25.
 - **R12.3, medium against high: no difference shown.** The same count and the same defect missed.
 
@@ -2182,6 +2184,10 @@ text (44), none for Sol with the lens text (153). So the shorter the specificati
 behaviour is covered by the product's tests and not by tests the session wrote. That is the risk amendment 10
 named, visible and small, and it follows the specification's length across four cells.
 
+*Qualified 2026-11-21 13:11 (amendment 12: F38 and "The first reading's instrument").* Three runs of the shortest of
+these four cells give 5, 3 and 0 on this count, the whole range of the four, and the count leaves out clauses it
+should take in. Four single runs therefore do not show that it follows the specification's length.
+
 **Predictions scored.** All three held: the medium specifications meet the bar and are a little shorter; both cells
 are kept; medium catches as many as high.
 
@@ -2191,11 +2197,13 @@ are kept; medium catches as many as high.
   one defect each time. Sol at high, Sonnet at high and Sonnet at medium all catch 26 of 27 and all miss
   `update-rejects-resolved`, a defect in existing behaviour that none of the three specifications pins and that the
   product's own tests do not catch. The lens text on Sol, with about a hundred `existing` clauses, caught it and
-  missed another.
+  missed another. *Extended 2026-11-21 13:11 (amendment 12):* three runs of the medium cell caught 26, 24 and 26,
+  so 26 is not a constant of the text; the defect is missed by eight of nine cells under it.
 - **F37 (one run a cell; no measure of spread).** On Sonnet the effort changed length, time and cost, not the
   registered outcomes. Medium wrote the shortest specification of any cell (22 clauses), caught as many defects,
   rejected the correct reference on nothing, and did it in 5.8 minutes for 1.37 dollars, against 14.2 minutes and
-  2.45 dollars at high and 26.9 minutes for Sol at high.
+  2.45 dollars at high and 26.9 minutes for Sol at high. *Spread measured 2026-11-21 13:11 (amendment 12, F38):*
+  three runs at medium caught 24 to 26.
 
 **Received with this round.** The session "Spec elaboration" pointed out that the stage frame already told the test
 session that a test "must pass whichever reasonable answer a build took" at an open point, and that the fork's
@@ -2307,3 +2315,232 @@ word match. Only the question is ShipLoop's; the sentences around it are mine an
 defect the short specifications miss, which is why the question was taken unchanged and the sentences name no
 behaviour. Every request in this pilot is precise (180 to 280 words); nothing here reads the vague request the owner
 has in mind, for which this pilot has no instrument yet.
+
+### Amendment 12, result (2026-11-21 13:11; the question on preserved behaviour, in the specification or in the plan)
+
+Status: firm for what was run: six cells on ticket assignment, one run each, read beside amendment 11's medium cell
+as the third baseline run ("earlier" below); Claude host, `claude-sonnet-5-5` at medium; every specification accepted
+on its first try; no held-out mark in any session; nothing put back by the script; 8.58 dollars for the eighteen
+sessions. The six cells ran at the same time (12:02 to 12:22) and their gradings overlapped (12:22 to 13:01), so
+minutes are not compared between cells.
+
+**Table 1. The specifications as the spec stage left them.** The plan cells get the question in the plan stage
+only, so their specifications are written from the baseline text: five specifications without the question, two
+with it. "`existing` first" counts clauses whose source begins with that word, which is how `by_source.py` sorts
+them; "`existing` anywhere" counts clauses whose source cites an existing file at all.
+
+| Run | The question | Clauses | Use cases | `existing` first | `existing` anywhere | choice | `Open:` | Seconds |
+|---|---|---|---|---|---|---|---|---|
+| earlier | none | 22 | 5 | 2 | 8 | 1 | 8 | 47 |
+| `q-base-1` | none | 21 | 5 | 1 | 10 | 0 | 9 | 54 |
+| `q-base-2` | none | 24 | 5 | 5 | 10 | 1 | 10 | 47 |
+| `q-plan-1` | none yet (it comes in the plan) | 20 | 6 | 2 | 8 | 0 | 6 | 63 |
+| `q-plan-2` | none yet (it comes in the plan) | 22 | 6 | 5 | 12 | 2 | 8 | 49 |
+| `q-spec-1` | in the specification | 21 | 6 | 4 | 9 | 0 | 9 | 51 |
+| `q-spec-2` | in the specification | 22 | 6 | 5 | 15 | 0 | 8 | 58 |
+
+**Table 2. The graded cells.** "Plan added" is the number of clauses the plan stage added; "Fails on reference" the
+clauses failing on the correct reference; "Second delivery" the items the second correct delivery fails beyond
+those; "Caught" is of the 27 planted defects; "First reading" is R13.1 as the script counts it.
+
+| Cell | Clauses / use cases | Plan added | Fails on reference | Second delivery | Caught | First reading | Dollars |
+|---|---|---|---|---|---|---|---|
+| earlier | 22 / 5 | 0 | 0 | 5 | 26 | 5 | 1.37 |
+| `q-base-1` | 21 / 5 | 0 | 0 | 5 | 24 | 3 | 1.18 |
+| `q-base-2` | 24 / 5 | 0 | 0 | 4 | 26 | 0 | 1.18 |
+| `q-spec-1` | 21 / 6 | 0 | 0 | 4 | 25 | 4 | 1.44 |
+| `q-spec-2` | 22 / 6 | 0 | 0 | 5 | 25 | 2 | 1.93 |
+| `q-plan-1` | 25 / 6 | 5 | 1 (C-20) | 3 | 23 | 0 | 1.36 |
+| `q-plan-2` | 26 / 6 | 4 | 0 | 3 | 26 | 0 | 1.48 |
+
+| Cell | Defects missed |
+|---|---|
+| earlier | `update-rejects-resolved` |
+| `q-base-1` | `update-rejects-resolved`, `backoff-linear`, `validate-renamed` |
+| `q-base-2` | `update-rejects-resolved` |
+| `q-spec-1` | `update-rejects-resolved`, `filter-after-page` |
+| `q-spec-2` | `update-rejects-resolved`, `filter-after-page` |
+| `q-plan-1` | `default-limit-changed`, `resolved-template-replaced`, `backoff-linear`, `validate-renamed` |
+| `q-plan-2` | `update-rejects-resolved` |
+
+**Table 3. The six defects planted in what the product already did, and the items that caught each.** `+` marks a
+clause the plan stage added. The other 21 defects are in the new feature.
+
+| Defect | earlier | `q-base-1` | `q-base-2` | `q-spec-1` |
+|---|---|---|---|---|
+| `update-rejects-resolved` | missed | missed | missed | missed |
+| `default-limit-changed` | C-22 | C-21 | C-23, C-24, U-5 | C-21 |
+| `resolved-template-replaced` | C-22 | C-21 | C-23, C-24, U-5 | C-20, C-21, U-6 |
+| `audit-not-saved` | C-22 | C-21 | C-22, C-23, C-24, U-5 | C-21 |
+| `backoff-linear` | C-21 | missed | C-23 | C-20 |
+| `validate-renamed` | C-21 | missed | C-23 | C-20 |
+
+| Defect | `q-spec-2` | `q-plan-1` | `q-plan-2` |
+|---|---|---|---|
+| `update-rejects-resolved` | missed | C-23+ | missed |
+| `default-limit-changed` | C-18, C-22 | missed | C-21, C-22 |
+| `resolved-template-replaced` | C-22, U-6 | missed | C-21, C-22, U-6 |
+| `audit-not-saved` | C-14, C-22 | C-25+ | C-21, C-22, C-25+, U-6 |
+| `backoff-linear` | C-21 | missed | C-21 |
+| `validate-renamed` | C-21 | missed | C-21 |
+
+**The readings of amendment 12.**
+
+- **R13.1, the first reading: not shown for either placement, and the count did not hold up as an instrument.** By
+  the script, defects caught only through clauses it takes as running the product's own tests: baseline 5, 3 and 0;
+  with the question in the specification 4 and 2; in the plan 0 and 0. The rule asked for both runs of a placement
+  to be below the lowest baseline run. The lowest is 0, so no placement could meet it; none is at or above the
+  highest, 5. Not shown. The registered count stands as counted and no other count replaces it here; what is wrong
+  with it is under "The first reading's instrument".
+- **R13.2, strength: not shown.** Caught of 27: baseline 26, 24 and 26; in the specification 25 and 25; in the plan
+  23 and 26. The bar of 25 is missed by one baseline run and one plan run, so it separates nothing.
+  `update-rejects-resolved` is caught once, in the first plan run, by a clause the plan stage added; the rule counts
+  one catch in one run as nothing.
+- **R13.3, harm: none shown by the rule.** Clauses failing on the correct reference: 0 in every run but the first
+  plan run, which has 1, inside the allowance of 2 over the worst baseline run. That one is the request's own "has
+  tests" clause (C-20), not a clause the plan added. Choice clauses: 0 to 2 in each specification.
+- **R13.4, the spread of three baseline runs** (one text, case, model and effort): 24 to 26 defects caught; 0 to 5
+  on the first reading; no clause failing on the reference in any; 4 to 5 items the second correct delivery fails;
+  21 to 24 clauses, 1 to 5 of them `existing`; 1.18 to 1.37 dollars.
+
+**The first reading's instrument.** Three things are wrong with the count, found by reading the graded runs.
+
+- *It matches words, and the wording varies.* Every run has the same two clauses from the request: the existing
+  tests still pass as they are, and the new tests run under `npm test`. The script takes a clause as one of the two
+  when its text holds "npm test", "node:test", "existing tests" or "tests in `test/`". Two runs word the first of
+  them "Every test in `test/` that exists now passes" (`q-base-2` C-23, `q-plan-2` C-21), which matches none of
+  those, so the script reads 0 for both. With those two clauses taken in, the helper's recount gives 2 and 3.
+- *It counts a clause whole.* The test of "existing behaviour is unchanged" runs the product's tests in some runs
+  and in others also makes requests of its own (`q-base-2` C-23 creates, changes, pages and resolves tickets
+  itself). The grading records which clause failed, not which of its tests, so "caught through the product's own
+  tests" cannot be told from "caught by a test the session wrote" inside such a clause.
+- *Across three runs of one text it ranges from 0 to 5*, the whole range of the four cells (0, 1, 3 and 5) from
+  which amendment 11 read that it follows the specification's length. That sentence is qualified in place.
+
+**What moves the count of 27 on this case** (reported). Twenty-one defects are in the new feature and six in what
+the product already did. Five runs catch all 21; the two specification runs both miss `filter-after-page`. Of the
+six, `update-rejects-resolved` is caught only by a clause that says a resolved ticket can still be changed, which
+the product's own tests do not check. The other five are caught through the request's two clauses where their
+tests work, and Table 3 shows where they do not:
+
+- `q-base-1` (24) and `q-plan-1`: nothing in their suites compares `test/` with the base commit, as the suites of
+  the five other runs do, so the two defects that edit a base test along with the code (`backoff-linear`,
+  `validate-renamed`) pass.
+- `q-plan-1` (23), besides: **its runs of the product's tests run nothing.** Both are started from inside the
+  acceptance run (`node --test test/` and `npm test`) with the environment as it is. Node's test runner marks its
+  children with `NODE_TEST_CONTEXT`, and a `node --test` started with that mark set exits 0 without running a test.
+  Checked on a scratch copy of one defect tree (`default-limit-changed`, Node 26.12.1): started plainly,
+  `node --test test/` exits 1 with 3 of 121 tests failing; with the mark set it exits 0 having printed only a
+  warning that it skipped the files; `npm test` likewise. That loses `default-limit-changed` and
+  `resolved-template-replaced`, and would have lost `audit-not-saved` but for a clause the plan added. The other
+  six runs drop the mark in at least one nested run and catch all three there; in two of them (the earlier
+  baseline's C-21, `q-spec-1`'s C-20) one nested run keeps the mark and runs nothing, and the other clause runs the
+  tests for real. A heavy test pass against a correct build cannot notice: a run of nothing and a run of 121
+  passing tests both exit 0. This run's "has tests"
+  clause also fails on the reference (its test looks in the new test files for words about the command line that
+  the reference's file does not use), so it counts for nothing either way.
+- The two specification runs (25 and 25): `filter-after-page` cuts the page before it filters, so a filtered page
+  can come back short while the pages together still hold the right tickets. Both specifications say of the new
+  filter "paged as before", as the other five do. One suite never pages the filtered listing with a limit; the
+  other asks for a page of two where the agent's tickets are the first two, which the defect also returns in full.
+  The question was in the specification's prompt only and the clause is worded as elsewhere, so no path from the
+  question to the miss is visible, and two runs cannot tell chance from an effect. It is recorded because it is
+  both runs of one placement and none of the other five.
+
+So on this case the count moves with how the test session treats two clauses of the request, and by at most one
+defect with what the specification says of existing behaviour.
+
+**What the question produced** (reported).
+
+- *In the plan.* Both plans hold the section asked for, `## Preserved behaviour`, with 14 and 10 entries. All but
+  the last of each name the file that shows the behaviour (13 and 9); the last lists what the repository does not
+  settle (whether `list --raw` may gain a column, whether `show` prints the assignee) with the answer the plan
+  takes. No other plan has such a section. The plan stage then added 5 and 4 clauses, 8 of the 9 sourced
+  `existing`; none fails on the reference. In `q-plan-1`, whose runs of the product's tests run nothing, two added
+  clauses are the only catch of a defect: C-23, "A resolved ticket can still be patched; only assignment is refused
+  for resolved", catches `update-rejects-resolved`, which the other eight ticket-assignment cells graded under the
+  reworded text miss (five of these six, amendment 11's two on Sonnet, and Sol's at high); C-25 (`show` and the audit
+  entries print as before) catches `audit-not-saved`. In `q-plan-2` no added clause is a sole catch.
+  One of the nine decides something new under an `existing` source. C-24 of `q-plan-1`, "A data file whose ticket
+  carries an unusable assignee is refused at load", cites the loader's strictness for a field that did not exist.
+  The reference does refuse; the second correct delivery starts, and fails the clause.
+  The plan session took 126 and 118 seconds and 52 and 50 cents, against 93 to 111 seconds and 41 to 50 cents for
+  the five plans written without the question.
+- *In the specification.* No countable trace: 21 and 22 clauses, 4 and 5 `existing` by first word and 9 and 8 open
+  lines, against 20 to 24, 1 to 5 and 6 to 10 for the five specifications written without the question. Both
+  answer inside the one clause every specification has (C-20 "Existing behaviour is unchanged", C-21 "What the
+  service already does keeps working": a list of what stays), not with a clause for each thing. One of the two
+  cites an existing file in 15 clauses, against 8 to 12 elsewhere, and writes one clause on what stays (C-18: the
+  limits and the default page size) that catches `default-limit-changed` by a test of its own.
+
+**Predictions scored.** Baseline, "25 to 27 caught, 3 to 6 on the first reading": one of the two new runs is outside
+each (24 caught; 0 by the script). In the specification, "`existing` clauses rise to between 8 and 20": wrong, 4
+and 5; "the first reading falls to between 2 and 4": 4 and 2, with the baseline at 5, 3 and 0, so no fall; "the
+missed defect caught in at most one run": held, in neither; "failing clauses 0 to 2": held, none. In the plan, "3
+to 8 clauses added": held, 5 and 4; "a smaller effect, most likely not shown": held.
+
+**Findings.**
+
+- **F38 (firm for what was run; this pilot's first measure of run-to-run spread).** Three runs of one text on one
+  case, model and effort differ by two defects caught (24, 26, 26), by five on the first reading and by four
+  `existing` clauses. At one run a cell a difference of that size between two texts is not a difference. Two
+  sentences of amendment 11 that rested on single runs of that size are qualified in place.
+- **F39 (firm for what was run: two runs a placement).** A question taken from ShipLoop's catalog is answered when
+  the stage is given a place to put the answer, and leaves no trace when it is one more instruction in the text.
+  In the plan, with a section to fill, both runs list what must not change with the file that shows it and add 4
+  to 5 sourced clauses. In the specification, with no section, both write what the five specifications without
+  the question write. The placements differ in stage and in form together; which of the two decides is not
+  separated. It agrees with what the session "Spec elaboration" read in real deliveries (the guides are not opened;
+  on Sol the intake's routed questions leave no open gap on record). ShipLoop's fifteen plan concerns already have
+  the form that was answered here: a row, or "applies: no" with a reason.
+- **F40 (not shown, and why this case cannot show it).** Neither placement moved a registered reading. On this
+  case none could have by more than one defect: of the 27, one is caught only by a clause on existing behaviour,
+  and the rest of the count turns on the test session's handling of two request clauses. That one defect was
+  caught once, by a clause the question produced. By the registered rule that is nothing; it is recorded as the
+  intended mechanism seen once in two runs.
+- **F41 (one clause of nine; the harm F26 and F28 describe).** Asking what must not change let one decision in
+  under an `existing` source: an existing rule carried over to a new field. The reference agrees with it and
+  another correct delivery does not.
+- **F42 (firm; a hazard of the apparatus and of any check written this way).** A check that runs the product's
+  tests from inside a test run passes without running them unless it drops the runner's mark from the child's
+  environment. One of seven sessions did not, in either of its checks, and lost two defects by that alone (a third
+  was saved by a clause the plan's question added); two more did not in one check and were covered by the other.
+  A check that also requires some test to have run is safe from it; three of the seven sessions wrote one, reading
+  a count of tests from the output. No packet of this pilot asks for it, and the gate applies that rule only to its
+  own commands.
+- **F36, extended.** `update-rejects-resolved` is now missed by eight of the nine ticket-assignment cells graded
+  under the reworded text, on two models; the ninth catches it by a clause the plan's question added. "26 of 27"
+  is not a constant of the text (F38); the missed defect is.
+
+**Is there enough to conclude?** For this rung, yes, and it ends here: the question is answered where there is a
+section to fill and not where there is none; neither placement moved a reading; on this case no placement could
+move one by more than a defect. Not established: whether pinning existing behaviour catches more defects (the pool
+holds one that can show it); whether the section or the stage is what gets the question answered; anything on Sol,
+on another case, or for a vague request. More runs of this cell would not settle the first of these. Proposed,
+not registered, for the owner to choose from:
+
+1. *Form or stage.* The same question in the specification text with a section to fill, spec stage only: about a
+   minute and 25 cents a run, and no grading is needed to see whether the list appears.
+2. *An instrument that can see what a question is for.* Either more planted defects in existing behaviour that the
+   product's own tests do not catch, or, for the vague request the owner has in mind, a request with its stated
+   details taken out one at a time, read for whether the specification raises the missing detail as an open
+   point, decides it, or passes over it. Neither exists yet.
+3. Rungs 2 and 3 of the ladder would be read on the present instrument and could show no more than this rung did;
+   they wait for 1 and 2.
+
+**Checked twice, and who decided what.** The readings against the registered rules, the reading of the tests and
+the findings were made in the main session. A Sonnet subagent copied the evidence, ran the registered script,
+recounted every figure with a script of its own and drafted the tables. Its recount matches the script on every
+count but three: the two clauses the word match misses, which it found independently, and the earlier baseline's
+specification time, which that run's record holds under another key (the table uses it).
+
+**Limits.** One case, one model at one effort, two runs a placement and three of the baseline. The six cells ran
+together and the gradings overlapped: fourteen results across the seven gradings failed once and passed when run again
+(counted as passing, as the grader does; no catch rests on one), and minutes are not compared. Only the question is
+ShipLoop's; the sentences around it are mine. The two placements differ in form as well as in stage. The reading of
+why each defect was missed is mine, from the test code; the nested-run check was made on one defect tree. Every
+request here is precise.
+
+Evidence: `evidence/preserve-question/` (a folder for each of the six cells with the run record, the grading, the
+specification as the spec stage left it and as it ended, the plan and the grading log; `by-source-log.txt` and
+`.json`, `specs-log.txt` and `.json`, `recount.txt`, `nested-test-run-check.txt`).

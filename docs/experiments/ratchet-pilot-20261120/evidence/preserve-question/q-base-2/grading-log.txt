@@ -1,0 +1,33 @@
+== strength grading q-base-2 12:31:33
+q-base-2: 24 clauses and 5 use cases tested; on the correct reference 0 clauses and 0 use cases fail: none
+  control alternative: fails C-10, C-14, C-22, C-7
+  filter-or                   caught     C-17, C-23, C-24, U-3, U-5
+  filter-after-page           caught     C-15, U-3
+  no-envelope                 caught     C-23, C-24, C-3, C-4, C-5, C-8, U-5
+  conflict-as-invalid         caught     C-23, C-24, C-5, U-5
+  closed-assignable           caught     C-11, C-23, C-24, C-5, U-5
+  notify-inline               caught     C-10, C-11, C-12, C-22, C-23, C-24, U-5
+  notify-no-template          caught     C-10, C-12, C-22, U-1
+  notify-key-per-ticket       caught     C-12, C-23, C-24, U-5
+  notify-requester            caught     C-10, C-11, C-12, C-22, C-23, C-24, U-1, U-5
+  audit-bypassed              caught     C-13, C-22, C-23, C-24, U-1, U-5
+  actor-ignored               caught     C-13, C-23, C-24, U-1, U-5
+  same-agent-not-noop         caught     C-22, C-23, C-24, C-6, C-7, U-2, U-5
+  memory-only-assignee        caught     C-19, C-22, C-9, U-4
+  old-data-refused            caught     C-21, C-9
+  old-assignee-undefined      caught     C-9
+  raw-column-inserted         caught     C-20, U-5
+  cli-no-assignee             caught     C-19, U-4
+  no-unassign                 caught     C-13, C-14, C-16, C-2, C-22, C-23, C-24, C-5, C-7, C-8, U-2, U-5
+  empty-filter-ignored        caught     C-16, C-17, C-23, C-24, U-2, U-3, U-5
+  name-limit-off-by-one       caught     C-3
+  listing-hides-assignee      caught     C-16, C-19, C-9, U-4
+  update-rejects-resolved     MISSED     
+  default-limit-changed       caught     C-23, C-24, U-5
+  resolved-template-replaced  caught     C-23, C-24, U-5
+  audit-not-saved             caught     C-22, C-23, C-24, U-5
+  backoff-linear              caught     C-23
+  validate-renamed            caught     C-23
+  caught 26 of 27 calibrated defects
+strength exit: 0
+== done 12:35:24
