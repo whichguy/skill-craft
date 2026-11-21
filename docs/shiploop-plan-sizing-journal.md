@@ -470,3 +470,40 @@ need a second subject (Grok 4.7 after its reset) to show the effect is not DeepS
 
 **Owner decision, 2026-10-28:** "No, keep as is." No firming round: the step bound stays as shipped on this
 evidence, and E-SIZE1 (E6) is closed. F43 to F45 stay interim; a later round on another subject would reopen them.
+
+## 13. 2026-11-20: the bound's numbers change and one step becomes the default (owner: "Adopt the wording")
+
+**What changed.** The step-plan duty's sizing bullet now reads: "Use the fewest steps the item allows; one step is
+the default. Every step pays its own test, document, review and commit round, so separately confirmable behaviours
+share a step and its proof shows each of them. Size: at most 12 criteria and 6 product files a step (a file that only
+describes another changed file counts with it; tests, docs and its proof script do not). Cut a larger item at a
+module or layer boundary (interface first, then each side) into the fewest steps of that size." The fold rule and the
+one-step rule for a bug fix or rename are unchanged. A countable bound stays, which is this journal's own finding
+(entries 3 to 6: a number in the text moves the planner, a refusal never fired); its numbers go from 4 criteria and 3
+product files to 12 and 6.
+
+**Why.** Rounds 4 to 6 of `docs/shiploop-sdlc-structure-journal.md`, the rounds on other subjects that entry 12
+said would reopen F43 to F45. Each step pays its own `test`, `document`, review and commit round (91 to 838 seconds
+after `implement`, by driver). With the text above applied to build copies, the same item planned as one step instead
+of two to four finished 19 to 44% sooner on Claude Sonnet 5.5 high and 30% sooner on Grok 4.6 xhigh, and passed the
+same held-out checks; on GPT-6.2 Sol medium the gain depended on the item. On the largest recorded item
+(`ticket-due-times`) no held-out check was lost on Sol 6.2 medium or Sonnet; Sonnet and Grok still cut it in two.
+Owner, 2026-11-20: "Adopt the wording".
+
+**Effect on earlier entries.**
+
+| Earlier claim | Now |
+| --- | --- |
+| F43 to F45 (the bound against no bound, DeepSeek flash; interim) | Not contradicted: they compare a bound with none, and the new text keeps one. Superseded only as a description of the shipped text, whose numbers are now 12 and 6. |
+| F29 (the bound caps the criteria count, not its text) | Confirmed on Sol 6.2 medium and Sonnet: planners fit their criteria to the number (structure journal F34 and F38). The numbers are a budget, not a guard. |
+| F30 (the bound can swing to many one-criterion steps) | No longer expected: one step is the default and separately confirmable behaviours share a step. |
+| F8 (no evidence that big steps produce worse results) | Still true, now measured: 14 one-step slices and the guard round's eight passed every applicable held-out check at their first implementation. |
+| Owner decision, 2026-10-28 ("No, keep as is") | Superseded by the owner on 2026-11-20 for the numbers and the default. |
+
+**What stays reproducible.** The E6 and E6D2 experiments run at their pinned refs, where their overlays still apply;
+`overlays/e6-no-size-bound.json` no longer matches the shipped bullet, and
+`test/shiploop-e2e-experiments.test.py` now checks it against the pinned ref. The `shape` bands of the E6 cases in
+`step_cases.json` (three or more steps for the engine) are what E6 scored plans against, not what ShipLoop now plans.
+
+**Open.** DeepSeek flash, this journal's downstream subject, has not run the new text. A full Grok build of a large
+item under it is unmeasured.

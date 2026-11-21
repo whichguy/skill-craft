@@ -355,13 +355,23 @@ class ObservedHarmPacketTests(unittest.TestCase):
 
     # E6 plan sizing (2026-10-25, branch exp/plan-sizing-1b1e33, journal F15-F33): Grok 4.7 planned an engine as one or
     # two steps under the prose bound; a countable bound in generic words split it in 6 of 8 plans against 3 of 8 and
-    # kept every small change at its size. The step-plan packet the producer reads carries that bound.
+    # kept every small change at its size. The step-plan packet the producer reads carries a countable bound.
+    # Fewest steps (2026-11-20, docs/shiploop-sdlc-structure-journal.md round 6 and its guard round; owner: "Adopt the
+    # wording"): every step pays its own test, document, review and commit round, and the same item planned as one step
+    # instead of two to four finished 19 to 44% sooner on Sonnet 5.5 high and 30% on Grok 4.6 xhigh with the same
+    # held-out results. One step is the default; the bound is 12 criteria and 6 product files a step, and separately
+    # confirmable behaviours no longer make another step.
     def test_the_step_plan_packet_bounds_each_step_by_criteria_and_product_files(self) -> None:
         text = flat(self.found[("step-plan", "producer")])
-        self.assertIn("Size each as one behaviour-level change its proof shows: at most 4 criteria and 3 product files "
-                      "(a file that only describes another changed file counts with it; tests, docs and its proof "
-                      "script do not).", text)
-        self.assertIn("two separately confirmable behaviours or two outcomes joined with \"and\" make another step.", text)
+        self.assertIn("Use the fewest steps the item allows; one step is the default.", text)
+        self.assertIn("Every step pays its own test, document, review and commit round, so separately confirmable "
+                      "behaviours share a step and its proof shows each of them.", text)
+        self.assertIn("Size: at most 12 criteria and 6 product files a step (a file that only describes another changed "
+                      "file counts with it; tests, docs and its proof script do not).", text)
+        self.assertIn("Cut a larger item at a module or layer boundary (interface first, then each side) into the fewest "
+                      "steps of that size.", text)
+        self.assertNotIn("at most 4 criteria", text)
+        self.assertNotIn("make another step", text)
         self.assertIn("Its `paths` (inside the item's) name every file it changes.", text)
         self.assertIn("Remote-only target: the recorded test route only; steps share one proof script.", text)
         self.assertNotIn("too large for one review", text)

@@ -1599,6 +1599,19 @@ resets and wrong answers) and the rerun applied to graded snapshots.
 - Three graded checks were run again after a harness timeout; the first grading is kept beside the reruns.
 - Grok is read by two plans, one an arm. A slice ends at `carry-forward`.
 
+### Owner decision, 2026-11-20: adopt the wording
+
+Asked "Should I make the fewest-steps wording ShipLoop's step-plan rule?", the owner answered "Adopt the
+wording". The step-plan duty's sizing bullet (`shiploop_prompts.DUTIES["step-plan"]`, item 4) is now arm F1's
+text, byte for byte, so `overlays/f1-fewest-steps.json` applies only to commits before the adoption.
+Recommendation 1 of round 6 and of its guard round is closed.
+
+What it changes for later evidence: step counts and inner-loop times of runs from this version on do not compare
+directly with earlier ones. The E-SIZE1 journal carries the matching entry
+(`docs/shiploop-plan-sizing-journal.md`, entry 13), and the whole delivery that vouches for the release is in
+`test/shiploop_e2e/LEARNINGS.md`. Still open from the guard round: a full Grok build of a large item under the
+new text (F41), and the owner's standing choice on the ticket fixture's lost verdicts (F40).
+
 ## Evidence (all rounds)
 
 | File | Holds |

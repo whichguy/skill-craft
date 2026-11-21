@@ -1088,7 +1088,7 @@ class RoundSpeedups(unittest.TestCase):
 
     def test_r3_on_todays_shiploop_differs_only_in_the_bound_and_runs_on_the_default_host(self):
         """R3 keeps its original arm shape; new dispatches use the owner-selected Codex GPT-6.2 Sol xhigh default.
-        Cg is ShipLoop as shipped, T the same commit with the sizing bullet before the bound."""
+        Cg is ShipLoop as shipped at the arms' pinned ref, T the same commit with the sizing bullet before the bound."""
         source = overlay.SCRIPTS / "shiploop_prompts.py"
         for exp_id, case in (("E6D2-K2", "node-chess-engine"), ("E6D2-K4", "node-battleship-server")):
             exp = experiment.load(exp_id)
@@ -1102,7 +1102,15 @@ class RoundSpeedups(unittest.TestCase):
         self.assertEqual(len(edits), 1)
         self.assertIn("at most 4 criteria and 3 product files", edits[0]["old"])
         self.assertNotIn("at most 4 criteria", edits[0]["new"])
-        self.assertIn(edits[0]["old"], source.read_text())  # a later edit of the bullet makes this round's arms stale
+        # The bullet this overlay replaces was the shipped text until 2026-11-20, when the owner adopted the fewest-steps
+        # wording (docs/shiploop-sdlc-structure-journal.md, round 6 and its guard round). The round's arms stay
+        # reproducible at their pinned ref, where the overlay still applies; they no longer describe ShipLoop as shipped.
+        ref = experiment.load("E6D2-K2")["arms"]["T"]["ref"]
+        pinned = subprocess.run(["git", "-C", str(ROOT), "show", ref + ":skills/shiploop/scripts/shiploop_prompts.py"],
+                                capture_output=True, text=True, check=False)
+        if pinned.returncode == 0:  # a clone without the ref (CI's) cannot read its source
+            self.assertIn(edits[0]["old"], pinned.stdout)
+        self.assertNotIn(edits[0]["old"], source.read_text())
         launched = []
         with mock.patch.object(experiment, "queue", side_effect=lambda *a, **k: launched.append(a) or 0):
             experiment.main(["queue", "E6D2-K2", "E6D2-K4", "--arms", "T,Cg", "--out", str(self.tmp)])
