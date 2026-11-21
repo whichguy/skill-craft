@@ -1623,3 +1623,51 @@ By the registered rule: go on to rung 2, with these specifications and this word
 
 Evidence: `evidence/reworded-enrichment/` (`rung-1-specs.json`, `rung-1-specs-log.txt`,
 `rung-1-due-times-reading.txt`, and each run's `run.json` and `spec.md` under `r1-*/`).
+
+### Amendment 9, 2026-11-21 07:08: two larger cases join the ladder, as a guard against saying too little (registered before any run of them)
+
+Owner, 07:05, while rung 2 ran: "Do we need to raise the complexity of the test cases to provide more depth of
+insight? I was suggesting doing a scenario of using board games in node, another more complex would be Grokbot in
+node".
+
+**What the records say.** Both scenarios exist here and have been run: `node-chess-engine` (a chess rules engine
+in Node.js; 10 held-out checks) and `grokbot-local` (amendments 4 to 6; two browser yardsticks of 49 and 28 checks,
+calibrated on five builds). On both, every arm's first build passed everything: the pilot's whole loop on chess (10
+of 10, at 20.5 minutes), and on Grokbot the pilot's first build, ShipLoop's delivery and one session at low effort
+in 6.8 minutes (49, and 23 stated with 5 implied). So neither could separate the arms (F19), and size was not what
+gave insight. The one case that taught something is the small due-times change: a change to an existing product
+that leaves one consequential thing unsaid.
+
+**What they can do now.** Rung 1 changed the question. The reworded text writes a third to a sixth of what the
+other texts write. A case that every arm passes cannot show a gain, but it can show a loss, and a loss from saying
+too little is this text's risk. A rule-dense case (chess) and a large, loosely worded one (Grokbot, whose second
+yardstick has five checks on things the request implies without stating) are where a short specification is most
+likely to cost. So both join as a guard, the small rung first.
+
+**Cells.** `r1-chess` and `r1-grokbot`: the spec stage alone. Then, if each specification is accepted,
+`p3R-node-chess-engine` and `p3R-grokbot-local` from those specifications: plan and build, stopped at the first
+build (`--stop-after build`, new; self-tested with the scripted stand-in: two sessions, gates `after-build-1` and
+`final`, `stop-after-build`, and the standing check still passes), graded on the held-out yardsticks.
+
+**Readings.**
+
+- **R10.1, chess.** Held-out checks at the first build: *no loss* at 10 of 10 (the pilot's text: 10 of 10). A
+  failing check is read against the specification: was the rule stated, left open, or missing.
+- **R10.2, Grokbot.** Both yardsticks at the first build: *no loss* at 49, and 23 stated with 5 implied (the pilot's
+  text's first build and one bare session: 49, 23, 5; Sonnet's bare build: 48, 23, 4). A failing check is read by
+  hand with a probe before it counts, under amendment 4's rule: the yardstick is corrected only where it assumes
+  what the request does not say (F18).
+- Reported: clauses, open lines, minutes to the first build (the pilot's text: 20.5 on chess, 37.5 on Grokbot;
+  these run beside up to five other runs, so minutes are read loosely).
+
+Prediction: no loss on chess (the rules are public and the request says "every legal move"); on Grokbot at most
+one check lost, among the five implied ones.
+
+**Limits.** One run a case. They can only show a loss. The Grokbot yardsticks have met five builds, and a sixth
+design may meet an assumption they still hold.
+
+**Not done, and the owner's to decide:** a new or harder scenario (another game, a larger Grokbot). The records
+give no reason to expect more insight from size alone, and a browser yardstick written new took six rounds and five
+builds before it could be trusted (F18). What would add depth on the other side of the question, deciding too
+much, is more cases like due times: a change to an existing product with one thing left unsaid, which the text's
+author has not seen. There is one such case today.

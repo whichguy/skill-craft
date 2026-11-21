@@ -1145,6 +1145,9 @@ class Run:
                     self.given_build()
                 else:
                     self.stage_build(cycle, new)
+                if self.args.stop_after == "build":
+                    self.record["stop"] = "stop-after-build"
+                    break
                 self.stage_tests(cycle, clauses, new)
             record = self.gate(f"cycle-{cycle}-first")
             entry["first_gate_failing"] = record["failing"]
@@ -1200,8 +1203,9 @@ def main(argv=None):
     run.add_argument("--frozen-from", help="a finished run whose spec and acceptance tests this run starts with, frozen")
     run.add_argument("--build-from", help="cycle 1's build is this product tree, laid over the work folder by the script: no build session")
     run.add_argument("--spec-from", help="a run whose ratchet/spec.md this run starts with, as written: no spec session")
-    run.add_argument("--stop-after", choices=("spec", "tests"),
-                     help="end the run once the specification is written, or once cycle 1's acceptance tests are frozen and gated")
+    run.add_argument("--stop-after", choices=("spec", "build", "tests"),
+                     help="end the run once the specification is written, once cycle 1's build is committed, or once "
+                          "cycle 1's acceptance tests are frozen and gated")
     run.add_argument("--bare", action="store_true", help="no loop: one session is given the request and builds; a comparison arm")
     run.add_argument("--enrich", choices=("single", "lenses", "reworded"), default="single",
                      help="the enrichment text of the spec stage: the pilot's own, the one-pass lens form, or its reworded form")
@@ -1217,6 +1221,8 @@ def main(argv=None):
         raise SystemExit("a repair start (--start-tree, --frozen-from) takes none of --build-from, --stop-after, --spec-from")
     if args.stop_after == "spec" and (args.spec_from or args.build_from or args.bare):
         raise SystemExit("--stop-after spec runs the spec stage alone: it takes none of --spec-from, --build-from, --bare")
+    if args.stop_after == "build" and (args.build_from or args.bare):
+        raise SystemExit("--stop-after build ends after the build session: it takes neither --build-from nor --bare")
     if args.spec_from:
         source = json.loads((Path(args.spec_from) / "run.json").read_text())
         if source.get("case") != args.case or source.get("enrich", "single") != args.enrich:
