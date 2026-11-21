@@ -13,7 +13,8 @@ each choice clause so they can be read. It reads and never writes inside a run f
 `specs` needs no grading: it reads each run's specification as its spec stage left it (the run's `spec` commit, so
 clauses a later stage added are not counted) and counts what was written: clauses by Source, the refusals the
 writer added on its own (choice or implied clauses the word match marks), `Open:` lines, and the entries of a
-"## Preserved behaviour" section where the specification has one (`ratchet.py run --preserve spec-section`).
+"## Preserved behaviour" or a "## Rules and edge cases" section where the specification has one (`ratchet.py run
+--preserve spec-section`, `--rules spec-section`).
 """
 import json
 import re
@@ -129,6 +130,7 @@ def specs(out_path, entries):
         label, _, folder = entry.partition("=")
         run, items, text = spec_as_written(folder)
         preserved = ratchet.items(ratchet.section(text, "Preserved behaviour"))  # the section --preserve spec-section asks for
+        rules = ratchet.items(ratchet.section(text, "Rules and edge cases"))  # the section --rules spec-section asks for
         kinds, added_refusals, opens = Counter(), [], []
         use_cases = sum(1 for ident in items if ident.startswith("U-"))
         for ident, item in items.items():
@@ -147,7 +149,9 @@ def specs(out_path, entries):
                          "use_cases": use_cases, "by_source": dict(kinds), "added_refusals": added_refusals,
                          "open_lines": opens, "spec_minutes": round(seconds / 60, 1),
                          "preserved_section": {"entries": preserved,
-                                               "naming_a_file": sum(1 for entry in preserved if NAMES_A_FILE.search(entry))}}
+                                               "naming_a_file": sum(1 for entry in preserved if NAMES_A_FILE.search(entry))},
+                         "rules_section": {"entries": rules,
+                                           "naming_a_clause": sum(1 for entry in rules if re.search(r"\bC-\d+", entry))}}
         rows.append((label, run.get("case"), total, use_cases, kinds, len(added_refusals), len(opens), seconds / 60))
     print(f"{'run':34s} {'clauses':>7s} {'use c.':>6s} {'request':>7s} {'implied':>7s} {'existing':>8s} {'choice':>6s} "
           f"{'added refusals':>14s} {'Open: lines':>11s} {'minutes':>7s}")
@@ -161,6 +165,9 @@ def specs(out_path, entries):
         if section["entries"]:
             print(f"\n== {label}: a section 'Preserved behaviour' of {len(section['entries'])} entries, "
                   f"{section['naming_a_file']} naming a file")
+        if row["rules_section"]["entries"]:
+            print(f"\n== {label}: a section 'Rules and edge cases' of {len(row['rules_section']['entries'])} entries, "
+                  f"{row['rules_section']['naming_a_clause']} naming a clause")
     for label, row in result.items():
         if row["open_lines"]:
             print(f"\n== {label}: Open: lines")

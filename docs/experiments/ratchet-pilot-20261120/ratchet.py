@@ -349,6 +349,17 @@ PRESERVE_SPEC_SECTION = ("**One question the specification answers in writing.**
                          "that shows it>`. Where what is here does not settle whether something stays\nas it is, say so in that "
                          "section. Where there is no existing product, write `none` in it.\n\n")
 SPEC_STAGE_QUESTION = {"spec": PRESERVE_SPEC, "spec-section": PRESERVE_SPEC_SECTION}
+# Another question of the same catalog, K4 word for word, put to the specification stage in the form amendment 13
+# found answered (a section to fill), with F45's lesson written in: the section points at clauses and replaces none.
+RULES_K4 = "Rules and edge cases: the domain rules, limits, invalid inputs, boundaries and end conditions."
+RULES_SPEC_SECTION = ("**One question the specification answers in writing.** It is a key question ShipLoop asks of every "
+                      "request: \"" + RULES_K4 +
+                      "\" Answer it\nfrom the request and from what is here (the code, its tests and its documents), not from "
+                      "memory, in a third section\nof `ratchet/spec.md`, `## Rules and edge cases`, after the clauses: each rule, "
+                      "limit, invalid input, boundary and end\ncondition the requested change depends on, with the clause that "
+                      "states it. The section adds no requirement and\nreplaces no clause: where the specification has no clause "
+                      "for one of them, add it as a clause with the next number.\nWhere neither the request nor what is here "
+                      "settles one of them, say so in that section. Where none applies, write\n`none` in it.\n\n")
 
 # What every later stage is told about an `Open:` line, in runs whose enrichment text can write one.
 OPEN_NOTE = (" In this run a clause of the specification may carry an `Open:` line. It marks a point the request does not "
@@ -726,7 +737,7 @@ class Run:
                        "frozen_from": args.frozen_from, "build_from": args.build_from, "bare": bool(args.bare), "sessions": [], "gates": [], "snapshots": [], "cycles": [],
                        "reverted": [], "spec_violations": [], "local_head": git(REPO, "rev-parse", "HEAD").strip(),
                        "named_checks": True, "enrich": args.enrich, "spec_from": args.spec_from, "preserve": args.preserve,
-                       "tests_blind_from": args.tests_blind_from, "plan_from": args.plan_from}
+                       "tests_blind_from": args.tests_blind_from, "plan_from": args.plan_from, "rules": args.rules}
         self.fake = load_fake(args.fake) if args.host == "fake" else None
         self.host = self.env = None
         if not self.fake:
@@ -932,7 +943,8 @@ class Run:
         for attempt in range(1, 4):
             before = git(self.work, "rev-parse", "HEAD").strip()
             self.session("spec", ENRICH[self.args.enrich].format(frame=self.frame, request=self.request, problems=problems, conduct=self.conduct(),
-                                                                 preserve=SPEC_STAGE_QUESTION.get(self.args.preserve, "")),
+                                                                 preserve=SPEC_STAGE_QUESTION.get(self.args.preserve, "")
+                                                                 + (RULES_SPEC_SECTION if self.args.rules == "spec-section" else "")),
                          f"spec-{attempt}")
             self.enforce(before, ["ratchet/spec.md"], "spec")
             try:
@@ -1238,6 +1250,9 @@ class Run:
                 added = self.stage_plan(cycle, clauses, new)
                 if added:
                     clauses, new = read_spec(self.work), {**new, **added}
+                if self.args.stop_after == "plan":
+                    self.record["stop"] = "stop-after-plan"
+                    return self.finish(None)
                 if cycle == 1 and self.args.build_from:
                     self.given_build()
                 else:
@@ -1304,15 +1319,18 @@ def main(argv=None):
                                                 "with; then the test pass is written with no build present, and the run stops")
     run.add_argument("--plan-from", help="a run whose specification and plan (as after its plan stage) this run starts with: no "
                                          "spec or plan session; with --build-from and --stop-after tests, only the test pass is run")
-    run.add_argument("--stop-after", choices=("spec", "build", "tests"),
-                     help="end the run once the specification is written, once cycle 1's build is committed, or once "
-                          "cycle 1's acceptance tests are frozen and gated")
+    run.add_argument("--stop-after", choices=("spec", "plan", "build", "tests"),
+                     help="end the run once the specification is written, once cycle 1's plan is written, once cycle 1's "
+                          "build is committed, or once cycle 1's acceptance tests are frozen and gated")
     run.add_argument("--bare", action="store_true", help="no loop: one session is given the request and builds; a comparison arm")
     run.add_argument("--enrich", choices=("single", "lenses", "reworded"), default="single",
                      help="the enrichment text of the spec stage: the pilot's own, the one-pass lens form, or its reworded form")
     run.add_argument("--preserve", choices=("none", "spec", "spec-section", "plan"), default="none",
                      help="with --enrich reworded: ShipLoop's key question on preserved behaviour is answered in writing by the "
                           "spec stage (as clauses, or in a section of the specification), by the plan stage, or not asked")
+    run.add_argument("--rules", choices=("none", "spec-section"), default="none",
+                     help="with --enrich reworded: ShipLoop's key question on rules and edge cases is answered in a section "
+                          "of the specification, or not asked")
     run.add_argument("--max-cycles", type=int, default=3, help="apparatus limit: cycles before the run is stopped (reported)")
     run.add_argument("--max-fixes", type=int, default=4, help="apparatus limit: fix sessions per cycle (reported)")
     run.add_argument("--max-budget-usd", type=float, default=None, help="per session, on hosts that price a session")
@@ -1335,6 +1353,10 @@ def main(argv=None):
                          "--frozen-from, --bare")
     if args.preserve != "none" and args.enrich != "reworded":
         raise SystemExit("--preserve goes with --enrich reworded")
+    if args.rules != "none" and (args.enrich != "reworded" or args.preserve != "none"):
+        raise SystemExit("--rules goes with --enrich reworded and without --preserve")
+    if args.stop_after == "plan" and (args.build_from or args.bare):
+        raise SystemExit("--stop-after plan ends after the plan session: it takes neither --build-from nor --bare")
     if args.spec_from or args.tests_blind_from or args.plan_from:
         source = json.loads((Path(args.spec_from or args.tests_blind_from or args.plan_from) / "run.json").read_text())
         if source.get("case") != args.case or source.get("enrich", "single") != args.enrich:

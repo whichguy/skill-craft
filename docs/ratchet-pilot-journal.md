@@ -2760,3 +2760,95 @@ carries a sentence or does not) and was made twice.
 
 Evidence: `evidence/section-question/` (a folder for each of the three runs with its record, specification and
 log; `specs-log.txt` and `.json`; `recount.txt`).
+
+## 24. Amendment 14, 2026-11-21 14:41: a request with one stated detail left out, first rung (registered before any run)
+
+Owner: his "Yes" of section 23 covers this rung ("B's first rung: one removed detail, six runs, about 4 dollars,
+after I register its design"). His interest, from section 22: whether known questions give "better breadth and
+coverage" when "we elaborate the incoming prompt", for a request that does not say everything.
+
+**What it asks.** Every request in this pilot is precise, so nothing so far reads what a specification does about
+something the request needs and does not say. Here one detail the request states is taken out, and the reading is
+what the specification and the plan do about it: raise it, decide it, or pass over it; and whether one catalog
+question, asked as a section, changes that. This rung is also the first trial of the instrument itself.
+
+**The design is the session "Spec elaboration"'s five points, taken whole** (received about 13:20, before anything
+was built): sort each candidate detail against the starting product first; read the plan as well as the
+specification and never score "decided" as success; four classes, not three; few details with repeats and a
+difference registered beforehand; a request that reads whole, checked by a reader who has not seen the original.
+
+**The detail.** The original request says "an agent is a non-empty name of at most 64 characters". The case
+`ticket-assignment-name-limit-unsaid` says "an agent is a non-empty name" and is otherwise word for word (176 words
+for 181).
+
+- *Sorted against the starting product, before any run.* It has no assignment and says nothing of an agent. It
+  states a limit for every other name it takes: the requester, at most 64 characters, and the actor in `X-Actor`,
+  at most 64 (`docs/api.md`); and for the title, at most 200. So nothing settles an agent's limit, and the product
+  holds two like limits of 64 and one of 200. The request's other stated details, sorted the same way, are why this
+  one was taken: that only open and in-progress tickets can be assigned (the product partly settles it the other
+  way: "a closed ticket can no longer change", and a resolved one can); that assigning the same agent changes
+  nothing (the product settles it: `CONTRIBUTING.md`); that an empty `assignee=` keeps the unassigned (the product
+  settles it the other way: an empty `status=` is 400); that a ticket must match every filter (its document settles
+  it, its code disagrees); that the agent is notified and that the command line shows the assignee (capabilities:
+  left out of a request, passing them over is right under this text); that `null` unassigns (nothing settles it,
+  but taking it out changes two sentences).
+- *Reads whole.* A Sonnet subagent given only the shortened request, and asked whether any sentence reads as cut or
+  refers to something never stated, answered "reads whole" and "nothing stands out".
+- *The right behaviour under the text itself.* "Invent no bound: one that none of those supplies is an `Open:`
+  line."
+
+**Arms.** Three runs each, the spec stage and then the plan stage (`--stop-after plan`, new), Claude host,
+`claude-sonnet-5-5` at medium, 6 dollars a session at most.
+
+- `b-base-1` to `b-base-3`: the reworded text as it is.
+- `b-rules-1` to `b-rules-3`: `--rules spec-section` (new). ShipLoop's key question K4, word for word ("Rules and
+  edge cases: the domain rules, limits, invalid inputs, boundaries and end conditions."), in the form amendment 13
+  found answered: a third section of the specification, `## Rules and edge cases`, each entry "with the clause that
+  states it"; "The section adds no requirement and replaces no clause" (F45); what neither the request nor the
+  product settles is said in the section.
+
+The question is the one of the twelve that matches the detail, and it was chosen knowing the detail. This rung asks
+whether a matching question can change the outcome at all. It says nothing about twelve questions asked together.
+
+Checked before this registration: the 23 text constants of the script are unchanged and two are added; with the
+question off the specification packet renders byte for byte as before for every `--preserve` setting, and with it
+on it is the baseline packet plus the one paragraph; the plan packet is unchanged; the new case's request is the
+old one less those five words; the standing self-test passes; on the stand-in host a run with the question and
+`--stop-after plan` ends with two sessions and three snapshots and holds the paragraph in the spec prompt only;
+three wrong combinations of options are refused. `by_source.py specs` counts the new section's entries and how many
+name a clause, and still reproduces amendment 13's table.
+
+**What is read**, a run at a time, in the specification as the spec stage left it and in the plan. The point is
+the longest name an agent may have.
+
+- **O+**: marked open (an `Open:` line, or an entry saying it is not settled) and the answer taken is named.
+- **O**: marked open and no answer taken.
+- **D**: decided. A longest length is stated as a requirement, in a clause or as a decision of the plan, with no
+  mark that it is open. The source it is given (choice, existing, implied) is recorded.
+- **P**: passed over. Neither the specification nor the plan speaks of a longest length for an agent's name.
+
+**Readings.**
+
+- **R15.1, the first reading: noticed or passed over.** O+, O and D count as noticed. *The question makes it
+  noticed* if all three runs with the question notice and at most one baseline run does. *The baseline already
+  notices* if at least two baseline runs do: this detail then leaves no room, and the instrument needs another.
+  Otherwise not shown.
+- **R15.2, open or decided**, among the runs that notice: counts, with each decision's source. No bar at three
+  runs. "Decided" is never a success.
+- **R15.3, the question arm did what was asked.** The section is there with at least 5 entries, and how many name a
+  clause (by the script). By reading: how many clauses carry the request's two sentences about tests, which F45
+  found lost with a section; 2 in each is kept.
+- **R15.4, harm** (my reading, the clauses listed): clauses in the question arm that the request does not call for;
+  choice clauses; the number of clauses in each arm.
+- **Two readers.** The classes are read by me and, from the same definitions, by a Sonnet subagent given the six
+  pairs under neutral names. It cannot be blind to the arm (the section shows it). The reading of record is mine;
+  where the two differ, both are given.
+
+**Predictions.** Baseline: one of three notices (most write "a non-empty name" and stop). With the question: three
+of three notice, two of them marking it open and one deciding 64 "as the requester's". The section holds 8 to 15
+entries, most naming a clause, and at least two of the three keep both test clauses.
+
+**Limits known before the runs.** One detail, chosen by me who knows the case, where the product holds like limits
+that make the gap easier to see than most. One question, the matching one. One model at one effort, three runs an
+arm: only a stark difference can show. The specification and the plan only: "passed over" means neither says it,
+and what a build would then do is not seen. The paragraph's sentences around the question are mine.
