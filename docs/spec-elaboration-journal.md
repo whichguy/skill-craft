@@ -2257,3 +2257,83 @@ nothing here is about a built product or a test.
   knows how to square the two. It is recorded as an open observation and no claim is made from it.
 - This experiment's conclusion (section 28) is unchanged. No ShipLoop template was changed and none is proposed
   here.
+
+## 32. Registered: a qualification evaluation of the ShipLoop fix beneath these entries, on the round the SDLC session is running (08:24, 2026-11-21)
+
+**Why this is in this journal.** Sections 30 and 31 are committed above
+`c138c061c9e7eb236a374198645362450e6f94aa`, a ShipLoop skill fix of the SDLC session's that is not published, so
+they cannot be pushed without it. The owner asked for "a qualification evaluation in this session" and, offered
+three readings, chose the first: treat the round that session is already running for the fix as the qualification,
+and push these entries together with the fix once the round has finished and been journaled. This section fixes what "qualified" means before any result of that round is read. It
+is not part of this experiment's question, and the conclusion in section 28 does not depend on it.
+
+**What the term means here.** The harness specification says "a qualification claim states the task families and
+conditions actually observed" and that a change records "their qualifying E2E round in LEARNINGS.md"; I found no
+stated minimum for such a round (a Sonnet worker read the specification, the journal, the release script and the
+launch rules for this earlier today). The two precedents in `test/shiploop_e2e/LEARNINGS.md` are the entry of
+2026-11-16 ("checkout qualification": one whole delivery from unpublished source passes every harness verdict and
+every independent case check) and the entry of 2026-11-20 (two whole deliveries, one a host, for the fewest-steps
+text: every verdict and every case check). The release preflight asks only that a journal entry there comes after
+the change.
+
+**What is under evaluation.** Three text corrections in one commit. The skill card and the options reference say a
+run option is the user's to set and that planning reviews default to on. Every producer packet's RULES gain a rule
+to record the PID of a background process and stop it by that PID, never by name or pattern. One sentence of the
+requirements guide now sends the spec to `KNOWLEDGE/spec.md`. The commit's own message says the card wording's
+effect is not shown (0 of 12 starts passed `none` against 2 of 12 as shipped) and that nothing measures whether a
+session will stop by PID.
+
+**What I had seen when this was written:** the round's folder names (`ticket-assignment-sol-high` and
+`shared-expenses-sonnet-high` under `/Users/dadleet/e2e-runs-sdlc11/20261121/`), that the first has a `result.json`
+and the second does not, and that one harness process is alive for the second with its command line up to
+`--source checkout --output`. No result, metric, event or product file had been opened.
+
+**The checks.**
+
+A. The round tested the change.
+   - A1. Each run was built with `--source checkout` from a checkout whose HEAD is the fix's commit, with a clean
+     tree.
+   - A2. The text the builder was shown is the changed text: the installed card has "Run options are the user's to
+     set", and a producer packet in the run's events has the PID rule.
+   - A3. The subject as launched: Codex `gpt-6.2-sol` at high for `ticket-assignment`, Claude `claude-sonnet-5-5`
+     at high for `shared-expenses`; the catalog request, with no coaching.
+
+B. The delivery passes, by the harness's own recorded verdicts. Nothing is regraded here.
+   - B1. Every harness verdict passes and the engine ended done with its report.
+   - B2. Every case check the case declares passes, and its held-out acceptance where it declares one.
+   - B3. The returned source is a clean committed product.
+
+C. What a delivery can show about each correction. One run a host cannot establish an effect, so each line is read
+   against its recorded base rate and is an observation, not a pass mark.
+   - C1. The planning-review option the run recorded. Expected `stage` in both. As shipped, Sol passed `none`
+     unasked in 7 of 27 starts, so one `stage` start shows little; a `none` start that nobody asked for would be
+     contrary evidence about the card text.
+   - C2. Every command in the session that stops a process, sorted: by a recorded PID; by name or pattern (`pkill`,
+     `killall`, a name search piped to `kill`); by port or another way. Expected none by name or pattern. As
+     shipped, 7 of 25 Sonnet runs and none of 57 Sol runs had one, so the Sol run can show nothing here and a clean
+     Sonnet run shows little; a stop by name in either would be contrary evidence about the rule. Also whether the
+     run left a listener or process behind, where the harness records it.
+   - C3. The spec stage wrote the proposed behaviour to the knowledge home's `spec.md`. Expected yes in both, as
+     before the change; this line can only show a regression.
+   - C4. Any refusal, error or recovery in the run that names a run option, the PID rule or the requirements guide.
+     Expected none.
+
+**The verdict rule.**
+
+- Qualified: A and B hold for both runs and C4 finds nothing.
+- Not qualified: A fails for a run (the round did not test the change), or a B line fails with a cause in the
+  changed text or with no cause found.
+- Inconclusive for that run: a B line fails with a cause outside the change that the records show (the ticket
+  fixture losing a verdict to another project's server, a port collision, another run's stop by pattern). The
+  round's owner decides a rerun; the first result is kept and both are reported.
+- C1 to C3 do not move the verdict. They are reported with their base rates, to the owner and to the SDLC session,
+  whichever way they fall.
+
+**What this evaluation cannot show:** that the card text changes what a session does, or that the rule changes how
+a session stops a process. One run a host, two small cases, no Grok run, no comparison with the previous release,
+no marketplace result. The round, its runs and its journal entry are the SDLC session's; this is a second reading
+of its evidence, made from the run folders, and it stops, changes and reruns nothing.
+
+**How it is done:** a Sonnet worker reads each finished run's folder and reports the raw values for each line above
+(numbers, the recorded option, command lines verbatim), not a verdict; I check a sample of them in the files myself
+and apply the rule.
