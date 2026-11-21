@@ -1,0 +1,577 @@
+{
+ "U-1": {
+  "pass": false,
+  "seconds": 8.8,
+  "why": "AssertionError [ERR_ASSERTION]: A new assistant reply appears in the transcript (last observation: [{\"focusVisible\":false,\"kind\":\"article\",\"lineHeight\":\"26.4px\",\"focused\":false,\"current\":false,\"clientWidth\":201,\"disabled\":false,\"box\":{\"x\":840.75,\"bottom\":222.15625,\"height\":70.96875,\"y\":151.1875,\"width\":200.859375,\"left\":840.75,\"top\":151.1875,\"right\":1041.609375},\"value\":null,\")"
+ },
+ "U-2": {
+  "pass": false,
+  "seconds": 8.6,
+  "why": "AssertionError [ERR_ASSERTION]: Find I use the original workspace in {\"kind\":\"article\",\"name\":\"Message from Maya\",\"within\":{\"kind\":\"region\",\"name\":\"Conversation\"}} (last observation: \"Maya\\n\\nMaya before reload\")"
+ },
+ "U-3": {
+  "pass": true,
+  "seconds": 2.4,
+  "why": ""
+ },
+ "U-4": {
+  "pass": false,
+  "seconds": 12.3,
+  "why": "AssertionError [ERR_ASSERTION]: Find original discussion in {\"kind\":\"article\",\"name\":\"Message from Assistant\",\"within\":{\"kind\":\"region\",\"name\":\"Conversation\"}} (last observation: \"\")"
+ },
+ "U-5": {
+  "pass": false,
+  "seconds": 8.6,
+  "why": "AssertionError [ERR_ASSERTION]: A new assistant reply appears in the transcript (last observation: [{\"payload\":\"what did I ask first\",\"boxShadow\":\"none\",\"lineHeight\":\"26.4px\",\"focused\":false,\"current\":false,\"clientWidth\":162,\"disabled\":false,\"box\":{\"x\":879.890625,\"bottom\":222.15625,\"height\":70.96875,\"y\":151.1875,\"width\":161.71875,\"left\":879.890625,\"right\":1041.609375,\"top\":151)"
+ },
+ "U-6": {
+  "pass": false,
+  "seconds": 8.4,
+  "why": "AssertionError [ERR_ASSERTION]: A new assistant reply appears in the transcript (last observation: [])"
+ },
+ "U-7": {
+  "pass": false,
+  "seconds": 8.4,
+  "why": "AssertionError [ERR_ASSERTION]: A new assistant reply appears in the transcript (last observation: [{\"payload\":\"Summarize my notes\",\"scrollWidth\":183,\"lineHeight\":\"26.4px\",\"current\":false,\"focused\":false,\"clientWidth\":183,\"disabled\":false,\"box\":{\"height\":70.96875,\"x\":858.15625,\"bottom\":222.15625,\"y\":151.1875,\"width\":183.453125,\"left\":858.15625,\"top\":151.1875,\"right\":1041.60937)"
+ },
+ "U-8": {
+  "pass": false,
+  "seconds": 8.6,
+  "why": "AssertionError [ERR_ASSERTION]: A new assistant reply appears in the transcript (last observation: [{\"scrollWidth\":203,\"focusVisible\":false,\"lineHeight\":\"26.4px\",\"focused\":false,\"current\":false,\"clientWidth\":203,\"disabled\":false,\"box\":{\"x\":838.890625,\"height\":70.96875,\"bottom\":222.15625,\"y\":151.1875,\"width\":202.71875,\"left\":838.890625,\"top\":151.1875,\"right\":1041.609375},\"value)"
+ },
+ "U-9": {
+  "pass": true,
+  "seconds": 2.3,
+  "why": ""
+ },
+ "U-10": {
+  "pass": false,
+  "seconds": 5.0,
+  "why": "AssertionError [ERR_ASSERTION]: Hold a view response from before approval (last observation: {\"claimed\":false,\"received\":false})"
+ },
+ "U-11": {
+  "pass": true,
+  "seconds": 2.0,
+  "why": ""
+ },
+ "U-12": {
+  "pass": true,
+  "seconds": 7.9,
+  "why": ""
+ },
+ "U-13": {
+  "pass": false,
+  "seconds": 11.1,
+  "why": "AssertionError [ERR_ASSERTION]: supplier options shows 1 finished step(s) (last observation: \"supplier options\\nRunning\\n\\n0 of 8 steps finished \u00b7 Next unfinished: Collect what is known about supplier options\\n\\nCancel task\\nOpen Assistant / long task: supplier options [long]\")"
+ },
+ "U-14": {
+  "pass": false,
+  "seconds": 12.1,
+  "why": "AssertionError [ERR_ASSERTION]: supplier options reaches Failed (last observation: \"Running\")"
+ },
+ "U-15": {
+  "pass": false,
+  "seconds": 8.7,
+  "why": "AssertionError [ERR_ASSERTION]: Background progress refreshed the view while the draft was focused (last observation: [])"
+ },
+ "C-1": {
+  "pass": true,
+  "seconds": 0.2,
+  "why": ""
+ },
+ "C-2": {
+  "pass": true,
+  "seconds": 0.2,
+  "why": ""
+ },
+ "C-3": {
+  "pass": true,
+  "seconds": 0.4,
+  "why": ""
+ },
+ "C-4": {
+  "pass": true,
+  "seconds": 0.9,
+  "why": ""
+ },
+ "C-5": {
+  "pass": false,
+  "seconds": 12.3,
+  "why": "AssertionError [ERR_ASSERTION]: storage check reaches Completed (last observation: \"Running\")"
+ },
+ "C-6": {
+  "pass": false,
+  "seconds": 12.6,
+  "why": "AssertionError [ERR_ASSERTION]: durable job reaches Completed (last observation: \"Running\")"
+ },
+ "C-7": {
+  "pass": true,
+  "seconds": 3.1,
+  "why": ""
+ },
+ "C-8": {
+  "pass": true,
+  "seconds": 1.1,
+  "why": ""
+ },
+ "C-9": {
+  "pass": true,
+  "seconds": 0.9,
+  "why": ""
+ },
+ "C-10": {
+  "pass": true,
+  "seconds": 1.0,
+  "why": ""
+ },
+ "C-11": {
+  "pass": true,
+  "seconds": 1.0,
+  "why": ""
+ },
+ "C-12": {
+  "pass": true,
+  "seconds": 1.0,
+  "why": ""
+ },
+ "C-13": {
+  "pass": true,
+  "seconds": 2.2,
+  "why": ""
+ },
+ "C-14": {
+  "pass": true,
+  "seconds": 3.9,
+  "why": ""
+ },
+ "C-15": {
+  "pass": true,
+  "seconds": 1.0,
+  "why": ""
+ },
+ "C-16": {
+  "pass": true,
+  "seconds": 1.7,
+  "why": ""
+ },
+ "C-17": {
+  "pass": true,
+  "seconds": 1.3,
+  "why": ""
+ },
+ "C-18": {
+  "pass": true,
+  "seconds": 1.3,
+  "why": ""
+ },
+ "C-19": {
+  "pass": true,
+  "seconds": 1.0,
+  "why": ""
+ },
+ "C-20": {
+  "pass": true,
+  "seconds": 2.3,
+  "why": ""
+ },
+ "C-21": {
+  "pass": true,
+  "seconds": 1.2,
+  "why": ""
+ },
+ "C-22": {
+  "pass": false,
+  "seconds": 1.1,
+  "why": "AssertionError [ERR_ASSERTION]: Serving the reply executes respond in the original provider file"
+ },
+ "C-23": {
+  "pass": true,
+  "seconds": 1.5,
+  "why": ""
+ },
+ "C-24": {
+  "pass": false,
+  "seconds": 8.5,
+  "why": "AssertionError [ERR_ASSERTION]: A new assistant reply appears in the transcript (last observation: [])"
+ },
+ "C-25": {
+  "pass": true,
+  "seconds": 1.2,
+  "why": ""
+ },
+ "C-26": {
+  "pass": true,
+  "seconds": 1.1,
+  "why": ""
+ },
+ "C-27": {
+  "pass": true,
+  "seconds": 1.1,
+  "why": ""
+ },
+ "C-28": {
+  "pass": true,
+  "seconds": 1.2,
+  "why": ""
+ },
+ "C-29": {
+  "pass": false,
+  "seconds": 8.6,
+  "why": "AssertionError [ERR_ASSERTION]: A new assistant reply appears in the transcript (last observation: [])"
+ },
+ "C-30": {
+  "pass": true,
+  "seconds": 2.4,
+  "why": ""
+ },
+ "C-31": {
+  "pass": true,
+  "seconds": 1.2,
+  "why": ""
+ },
+ "C-32": {
+  "pass": false,
+  "seconds": 8.4,
+  "why": "AssertionError [ERR_ASSERTION]: A new assistant reply appears in the transcript (last observation: [])"
+ },
+ "C-33": {
+  "pass": true,
+  "seconds": 1.0,
+  "why": ""
+ },
+ "C-34": {
+  "pass": true,
+  "seconds": 1.0,
+  "why": ""
+ },
+ "C-35": {
+  "pass": true,
+  "seconds": 1.0,
+  "why": ""
+ },
+ "C-36": {
+  "pass": false,
+  "seconds": 8.4,
+  "why": "AssertionError [ERR_ASSERTION]: A new assistant reply appears in the transcript (last observation: [{\"focusVisible\":false,\"kind\":\"article\",\"lineHeight\":\"26.4px\",\"focused\":false,\"current\":false,\"clientWidth\":178,\"disabled\":false,\"box\":{\"x\":863.484375,\"height\":70.96875,\"bottom\":222.15625,\"y\":151.1875,\"width\":178.125,\"left\":863.484375,\"top\":151.1875,\"right\":1041.609375},\"value\":n)"
+ },
+ "C-37": {
+  "pass": true,
+  "seconds": 1.1,
+  "why": ""
+ },
+ "C-38": {
+  "pass": true,
+  "seconds": 1.1,
+  "why": ""
+ },
+ "C-39": {
+  "pass": false,
+  "seconds": 8.5,
+  "why": "AssertionError [ERR_ASSERTION]: A new assistant reply appears in the transcript (last observation: [{\"focusVisible\":false,\"payload\":\"recover my slow turn [slow]\",\"lineHeight\":\"26.4px\",\"current\":false,\"focused\":false,\"clientWidth\":230,\"disabled\":false,\"box\":{\"height\":70.96875,\"bottom\":222.15625,\"x\":811.828125,\"y\":151.1875,\"width\":229.78125,\"left\":811.828125,\"top\":151.1875,\"righ)"
+ },
+ "C-40": {
+  "pass": false,
+  "seconds": 6.1,
+  "why": "AssertionError [ERR_ASSERTION]: No conversation contains alternate discussion"
+ },
+ "C-41": {
+  "pass": true,
+  "seconds": 1.3,
+  "why": ""
+ },
+ "C-42": {
+  "pass": false,
+  "seconds": 8.5,
+  "why": "AssertionError [ERR_ASSERTION]: Find accessible {\"kind\":\"button\",\"name\":\"Renamed research partner\",\"within\":{\"kind\":\"navigation\",\"name\":\"Bots\"}} (last observation: [])"
+ },
+ "C-43": {
+  "pass": true,
+  "seconds": 1.0,
+  "why": ""
+ },
+ "C-44": {
+  "pass": true,
+  "seconds": 1.1,
+  "why": ""
+ },
+ "C-45": {
+  "pass": true,
+  "seconds": 1.1,
+  "why": ""
+ },
+ "C-46": {
+  "pass": false,
+  "seconds": 8.4,
+  "why": "AssertionError [ERR_ASSERTION]: Find accessible {\"kind\":\"button\",\"name\":\"Use Reply guide\",\"within\":{\"kind\":\"region\",\"name\":\"Saved instructions\"}} (last observation: [])"
+ },
+ "C-47": {
+  "pass": true,
+  "seconds": 1.1,
+  "why": ""
+ },
+ "C-48": {
+  "pass": false,
+  "seconds": 8.3,
+  "why": "AssertionError [ERR_ASSERTION]: A new assistant reply appears in the transcript (last observation: [])"
+ },
+ "C-49": {
+  "pass": true,
+  "seconds": 1.2,
+  "why": ""
+ },
+ "C-50": {
+  "pass": true,
+  "seconds": 1.1,
+  "why": ""
+ },
+ "C-51": {
+  "pass": true,
+  "seconds": 1.3,
+  "why": ""
+ },
+ "C-52": {
+  "pass": true,
+  "seconds": 1.0,
+  "why": ""
+ },
+ "C-53": {
+  "pass": false,
+  "seconds": 8.5,
+  "why": "AssertionError [ERR_ASSERTION]: A new assistant reply appears in the transcript (last observation: [{\"scrollWidth\":183,\"focusVisible\":false,\"lineHeight\":\"26.4px\",\"current\":false,\"focused\":false,\"clientWidth\":183,\"disabled\":false,\"box\":{\"bottom\":222.15625,\"x\":858.15625,\"height\":70.96875,\"y\":151.1875,\"width\":183.453125,\"left\":858.15625,\"right\":1041.609375,\"top\":151.1875},\"value\")"
+ },
+ "C-54": {
+  "pass": true,
+  "seconds": 1.2,
+  "why": ""
+ },
+ "C-55": {
+  "pass": true,
+  "seconds": 1.4,
+  "why": ""
+ },
+ "C-56": {
+  "pass": true,
+  "seconds": 1.3,
+  "why": ""
+ },
+ "C-57": {
+  "pass": true,
+  "seconds": 1.1,
+  "why": ""
+ },
+ "C-58": {
+  "pass": true,
+  "seconds": 1.2,
+  "why": ""
+ },
+ "C-59": {
+  "pass": true,
+  "seconds": 1.3,
+  "why": ""
+ },
+ "C-60": {
+  "pass": true,
+  "seconds": 1.4,
+  "why": ""
+ },
+ "C-61": {
+  "pass": true,
+  "seconds": 1.6,
+  "why": ""
+ },
+ "C-62": {
+  "pass": true,
+  "seconds": 1.5,
+  "why": ""
+ },
+ "C-63": {
+  "pass": true,
+  "seconds": 1.1,
+  "why": ""
+ },
+ "C-64": {
+  "pass": true,
+  "seconds": 1.3,
+  "why": ""
+ },
+ "C-65": {
+  "pass": true,
+  "seconds": 1.2,
+  "why": ""
+ },
+ "C-66": {
+  "pass": true,
+  "seconds": 1.1,
+  "why": ""
+ },
+ "C-67": {
+  "pass": true,
+  "seconds": 1.1,
+  "why": ""
+ },
+ "C-68": {
+  "pass": false,
+  "seconds": 8.6,
+  "why": "AssertionError [ERR_ASSERTION]: A new assistant reply appears in the transcript (last observation: [{\"payload\":\"set the status of ORD-1001 to closed\",\"scrollWidth\":298,\"lineHeight\":\"26.4px\",\"focused\":false,\"current\":false,\"clientWidth\":298,\"disabled\":false,\"box\":{\"x\":743.171875,\"bottom\":222.15625,\"height\":70.96875,\"y\":151.1875,\"width\":298.4375,\"left\":743.171875,\"right\":1041.60)"
+ },
+ "C-69": {
+  "pass": true,
+  "seconds": 2.5,
+  "why": ""
+ },
+ "C-70": {
+  "pass": true,
+  "seconds": 2.8,
+  "why": ""
+ },
+ "C-71": {
+  "pass": true,
+  "seconds": 1.2,
+  "why": ""
+ },
+ "C-72": {
+  "pass": true,
+  "seconds": 1.6,
+  "why": ""
+ },
+ "C-73": {
+  "pass": true,
+  "seconds": 1.6,
+  "why": ""
+ },
+ "C-74": {
+  "pass": true,
+  "seconds": 1.8,
+  "why": ""
+ },
+ "C-75": {
+  "pass": false,
+  "seconds": 9.2,
+  "why": "AssertionError [ERR_ASSERTION]: A new assistant reply appears in the transcript (last observation: [])"
+ },
+ "C-76": {
+  "pass": true,
+  "seconds": 1.5,
+  "why": ""
+ },
+ "C-77": {
+  "pass": false,
+  "seconds": 8.7,
+  "why": "AssertionError [ERR_ASSERTION]: A new assistant reply appears in the transcript (last observation: [{\"boxShadow\":\"none\",\"focusVisible\":false,\"lineHeight\":\"26.4px\",\"current\":false,\"focused\":false,\"clientWidth\":298,\"disabled\":false,\"box\":{\"height\":70.96875,\"bottom\":222.15625,\"x\":743.171875,\"y\":151.1875,\"width\":298.4375,\"left\":743.171875,\"right\":1041.609375,\"top\":151.1875},\"value)"
+ },
+ "C-78": {
+  "pass": false,
+  "seconds": 12.2,
+  "why": "AssertionError [ERR_ASSERTION]: extended planning reaches Completed (last observation: \"Running\")"
+ },
+ "C-79": {
+  "pass": true,
+  "seconds": 1.0,
+  "why": ""
+ },
+ "C-80": {
+  "pass": false,
+  "seconds": 12.1,
+  "why": "AssertionError [ERR_ASSERTION]: successful work reaches Completed (last observation: \"Running\")"
+ },
+ "C-81": {
+  "pass": false,
+  "seconds": 11.0,
+  "why": "AssertionError [ERR_ASSERTION]: supplier options shows 1 finished step(s) (last observation: \"supplier options\\nRunning\\n\\n0 of 3 steps finished \u00b7 Next unfinished: Collect what is known about supplier options\\n\\nCancel task\\nOpen Assistant / long task: supplier options\")"
+ },
+ "C-82": {
+  "pass": true,
+  "seconds": 6.7,
+  "why": ""
+ },
+ "C-83": {
+  "pass": false,
+  "seconds": 12.2,
+  "why": "AssertionError [ERR_ASSERTION]: supplier options reaches Completed (last observation: \"Running\")"
+ },
+ "C-84": {
+  "pass": false,
+  "seconds": 11.6,
+  "why": "AssertionError [ERR_ASSERTION]: finish during steering shows 2 finished step(s) (last observation: \"finish during steering\\nRunning\\n\\n0 of 3 steps finished \u00b7 Next unfinished: Collect what is known about finish during steering\\n\\nCancel task\\nOpen Assistant / long task: finish during steering\")"
+ },
+ "C-85": {
+  "pass": true,
+  "seconds": 1.1,
+  "why": ""
+ },
+ "C-86": {
+  "pass": false,
+  "seconds": 11.1,
+  "why": "AssertionError [ERR_ASSERTION]: stop remaining work shows 1 finished step(s) (last observation: \"stop remaining work\\nRunning\\n\\n0 of 8 steps finished \u00b7 Next unfinished: Collect what is known about stop remaining work\\n\\nCancel task\\nOpen Assistant / long task: stop remaining work [long]\")"
+ },
+ "C-87": {
+  "pass": false,
+  "seconds": 11.1,
+  "why": "AssertionError [ERR_ASSERTION]: keep earlier results shows 1 finished step(s) (last observation: \"keep earlier results\\nRunning\\n\\n0 of 8 steps finished \u00b7 Next unfinished: Collect what is known about keep earlier results\\n\\nCancel task\\nOpen Assistant / long task: keep earlier results [long]\")"
+ },
+ "C-88": {
+  "pass": false,
+  "seconds": 12.1,
+  "why": "AssertionError [ERR_ASSERTION]: supplier options reaches Failed (last observation: \"Running\")"
+ },
+ "C-89": {
+  "pass": false,
+  "seconds": 11.1,
+  "why": "AssertionError [ERR_ASSERTION]: interrupt provider execution shows 1 finished step(s) (last observation: \"interrupt provider execution\\nRunning\\n\\n0 of 8 steps finished \u00b7 Next unfinished: Collect what is known about interrupt provider execution\\n\\nCancel task\\nOpen Assistant / long task: interrupt provider execution [long]\")"
+ },
+ "C-90": {
+  "pass": false,
+  "seconds": 12.1,
+  "why": "AssertionError [ERR_ASSERTION]: failed work reaches Failed (last observation: \"Running\")"
+ },
+ "C-91": {
+  "pass": false,
+  "seconds": 12.1,
+  "why": "AssertionError [ERR_ASSERTION]: retry after failure reaches Failed (last observation: \"Running\")"
+ },
+ "C-92": {
+  "pass": false,
+  "seconds": 11.2,
+  "why": "AssertionError [ERR_ASSERTION]: recover in the original discussion shows 1 finished step(s) (last observation: \"recover in the original discussion\\nRunning\\n\\n0 of 8 steps finished \u00b7 Next unfinished: Collect what is known about recover in the original discussion\\n\\nCancel task\\nOpen Assistant / the context before task recovery\")"
+ },
+ "C-93": {
+  "pass": false,
+  "seconds": 12.6,
+  "why": "AssertionError [ERR_ASSERTION]: Maya delivery audit reaches Failed (last observation: \"Running\")"
+ },
+ "C-94": {
+  "pass": false,
+  "seconds": 8.4,
+  "why": "AssertionError [ERR_ASSERTION]: Find accessible {\"kind\":\"button\",\"name\":\"Layout bot\",\"within\":{\"kind\":\"navigation\",\"name\":\"Bots\"}} (last observation: [])"
+ },
+ "C-95": {
+  "pass": true,
+  "seconds": 1.2,
+  "why": ""
+ },
+ "C-96": {
+  "pass": true,
+  "seconds": 1.1,
+  "why": ""
+ },
+ "C-97": {
+  "pass": true,
+  "seconds": 1.1,
+  "why": ""
+ },
+ "C-98": {
+  "pass": true,
+  "seconds": 1.0,
+  "why": ""
+ },
+ "C-99": {
+  "pass": false,
+  "seconds": 0.9,
+  "why": "AssertionError [ERR_ASSERTION]: Keyboard focus is visible on the credential control"
+ },
+ "C-100": {
+  "pass": true,
+  "seconds": 7.3,
+  "why": ""
+ }
+}

@@ -1,0 +1,497 @@
+{
+ "label": "bs-blind",
+ "tree": "/Users/dadleet/e2e-runs/ratchet-parallel-20261121-6f54fb/strength/blind-tree",
+ "sites_on_changed_lines": 51,
+ "files": {
+  "game.js": 24,
+  "server.js": 27
+ },
+ "sampled": 51,
+ "invalid": 0,
+ "commands_failing_on_the_untouched_copy": [
+  "npm test"
+ ],
+ "untouched_failures": {
+  "npm test": "exit 254\nnpm error code ENOENT\nnpm error syscall open\nnpm error path /Users/dadleet/e2e-runs/ratchet-parallel-20261121-6f54fb/strength/tmp/ratchet-mutate-cv97yvfh/mutate-clean-zs6w3gne/package.json\nnpm error errno -2\nnpm error enoent Could not read package.json: Error: ENOENT: no such file or directory, open '/Users/dadleet/e2e-runs/ratchet-parallel-20261121-6f54fb/strength/tmp/ratchet-mutate-cv97yvfh/mutate-clean-zs6w3gne/package.json'\nnpm error enoent This is related to npm not being able to find a file.\nnpm error enoent\nnpm error A complete log of this run can be found in: /Users/dadleet/.npm/_logs/2026-11-21T19_57_47_804Z-debug-0.log\n"
+ },
+ "faults": [
+  {
+   "file": "game.js",
+   "line": 11,
+   "op": "arith-flip",
+   "old": "-",
+   "new": "+",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "server.js",
+   "line": 8,
+   "op": "bool-flip",
+   "old": "true",
+   "new": "false",
+   "own": "not measured",
+   "acceptance": false
+  },
+  {
+   "file": "game.js",
+   "line": 11,
+   "op": "arith-flip",
+   "old": "-",
+   "new": "+",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "server.js",
+   "line": 29,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "game.js",
+   "line": 11,
+   "op": "arith-flip",
+   "old": "-",
+   "new": "+",
+   "own": "not measured",
+   "acceptance": false
+  },
+  {
+   "file": "server.js",
+   "line": 29,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "game.js",
+   "line": 12,
+   "op": "arith-flip",
+   "old": "-",
+   "new": "+",
+   "own": "not measured",
+   "acceptance": false
+  },
+  {
+   "file": "server.js",
+   "line": 29,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": "not measured",
+   "acceptance": false
+  },
+  {
+   "file": "game.js",
+   "line": 12,
+   "op": "arith-flip",
+   "old": "-",
+   "new": "+",
+   "own": "not measured",
+   "acceptance": false
+  },
+  {
+   "file": "server.js",
+   "line": 29,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": "not measured",
+   "acceptance": false
+  },
+  {
+   "file": "game.js",
+   "line": 12,
+   "op": "arith-flip",
+   "old": "-",
+   "new": "+",
+   "own": "not measured",
+   "acceptance": false
+  },
+  {
+   "file": "server.js",
+   "line": 29,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "game.js",
+   "line": 14,
+   "op": "rel-bound",
+   "old": "<=",
+   "new": "<",
+   "own": "not measured",
+   "acceptance": false
+  },
+  {
+   "file": "server.js",
+   "line": 40,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "game.js",
+   "line": 15,
+   "op": "rel-bound",
+   "old": "<=",
+   "new": "<",
+   "own": "not measured",
+   "acceptance": false
+  },
+  {
+   "file": "server.js",
+   "line": 42,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "game.js",
+   "line": 17,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "server.js",
+   "line": 52,
+   "op": "bool-flip",
+   "old": "false",
+   "new": "true",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "game.js",
+   "line": 18,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": "not measured",
+   "acceptance": false
+  },
+  {
+   "file": "server.js",
+   "line": 58,
+   "op": "rel-bound",
+   "old": ">",
+   "new": ">=",
+   "own": "not measured",
+   "acceptance": false
+  },
+  {
+   "file": "game.js",
+   "line": 21,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "server.js",
+   "line": 59,
+   "op": "bool-flip",
+   "old": "true",
+   "new": "false",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "game.js",
+   "line": 44,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "server.js",
+   "line": 68,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "game.js",
+   "line": 44,
+   "op": "rel-bound",
+   "old": ">=",
+   "new": ">",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "server.js",
+   "line": 70,
+   "op": "bool-flip",
+   "old": "true",
+   "new": "false",
+   "own": "not measured",
+   "acceptance": false
+  },
+  {
+   "file": "game.js",
+   "line": 44,
+   "op": "bound-literal",
+   "old": "0",
+   "new": "1",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "server.js",
+   "line": 75,
+   "op": "bool-flip",
+   "old": "true",
+   "new": "false",
+   "own": "not measured",
+   "acceptance": false
+  },
+  {
+   "file": "game.js",
+   "line": 44,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "server.js",
+   "line": 83,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "game.js",
+   "line": 44,
+   "op": "rel-bound",
+   "old": "<",
+   "new": "<=",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "server.js",
+   "line": 83,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "game.js",
+   "line": 48,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "server.js",
+   "line": 83,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "game.js",
+   "line": 52,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "own": "not measured",
+   "acceptance": false
+  },
+  {
+   "file": "server.js",
+   "line": 86,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "game.js",
+   "line": 54,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "server.js",
+   "line": 86,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "own": "not measured",
+   "acceptance": false
+  },
+  {
+   "file": "game.js",
+   "line": 55,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "server.js",
+   "line": 86,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "game.js",
+   "line": 57,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "server.js",
+   "line": 90,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "game.js",
+   "line": 63,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "server.js",
+   "line": 90,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "own": "not measured",
+   "acceptance": false
+  },
+  {
+   "file": "game.js",
+   "line": 66,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "server.js",
+   "line": 90,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "game.js",
+   "line": 73,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "server.js",
+   "line": 99,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": "not measured",
+   "acceptance": false
+  },
+  {
+   "file": "server.js",
+   "line": 99,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "own": "not measured",
+   "acceptance": false
+  },
+  {
+   "file": "server.js",
+   "line": 99,
+   "op": "rel-bound",
+   "old": ">",
+   "new": ">=",
+   "own": "not measured",
+   "acceptance": true
+  },
+  {
+   "file": "server.js",
+   "line": 99,
+   "op": "bound-literal",
+   "old": "65535",
+   "new": "65536",
+   "own": "not measured",
+   "acceptance": false
+  }
+ ],
+ "own": {
+  "caught": 0,
+  "survived": 0,
+  "did_not_end": 0,
+  "not_measured": 51,
+  "share": null
+ },
+ "acceptance": {
+  "caught": 32,
+  "survived": 19,
+  "did_not_end": 0,
+  "not_measured": 0,
+  "share": 0.627
+ },
+ "either": {
+  "caught": 32,
+  "survived": 19,
+  "share": 0.627
+ }
+}

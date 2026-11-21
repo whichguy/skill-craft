@@ -2767,6 +2767,53 @@ Offered a larger round or an immediate switch of Sonnet to medium, the owner cho
   more. If the reading is "holds", the recommendation to the owner will be to make medium the Sonnet profile and
   keep watching the checks on real runs; the default itself is the owner's.
 
+### Owner decision, 2026-11-21, 14:27: Sonnet goes to medium and the round is stopped early
+
+With five of the twelve runs finished, the owner asked "Do we really need to finish or can we conclude? Is there any
+chance we would change our minds?" Told that the chance was small, that most of the cost was spent and that an early
+stop on a favourable look weakens the record, the owner answered: "Yes, switch to medium and stop remaining runs".
+
+- **Sonnet 5.5 runs at medium from this entry on** (`--effort medium`), with Sol 6.2 at medium (above). It is a
+  command-line value; nothing in the harness changes. Results at high stay a separate cell.
+- **The round registered in 2b349c22bb8fed6ffc6726111b6b5bdf517ce7b0 was not completed**, so its registered reading
+  ("holds", "not settled", "a drop seen" over eight pairs) cannot be given and is not claimed.
+
+### Results: what ran before the stop
+
+**R93.** Five runs finished; five were ended on purpose through their stop files at 14:28 (the harness records them
+STOPPED: high `ticket-assignment` at 47 minutes in `system-test-author`, and the four runs of the second wave at 15
+to 16 minutes); two were never started. Stopped runs are not counted. Run folders:
+`/Users/dadleet/e2e-runs-sdlc13/20261121/`.
+
+| Case | Effort | Result | Case checks | Held-out | Minutes | Cost |
+|---|---|---|---|---|---|---|
+| `shared-expenses` | medium | pass | 6 of 6 | none | 12 | $4.21 |
+| `shared-expenses` | high | pass | 6 of 6 | none | 42 | $15.10 |
+| `ticket-due-times` | medium | pass | 8 of 8 | none | 27 | $9.32 |
+| `ticket-due-times` | high | pass | 8 of 8 | none | 46 | $15.03 |
+| `ticket-assignment` | medium | pass | 3 of 3 | 18 of 18 | 15 | $4.55 |
+| `ticket-assignment` | high | stopped at 47 minutes | not graded | not graded | | |
+
+**R94. Pooled with R91: four complete pairs and one medium run alone.** All five medium runs pass every check. Of
+the four high partners, three pass every check and one fails one (R92). Medium's cost is 28% to 62% of its
+partner's and its time 29% to 59%, in pairs started together.
+
+### Findings
+
+- **F67 (interim; the registered round was cut short).** In four pairs on two cases, and one more medium run on a
+  third case with a held-out set, Sonnet 5.5 at medium passed everything, at a third to three fifths of the cost.
+  No drop was seen. This is less than the registered eight pairs, and the stop came after a look at the results.
+- **F68 (decision record).** The switch to medium is the owner's, taken on F67 with the limits stated. The check on
+  it is the checks of real runs from here on; a medium run that fails where high would not is the signal to revisit.
+
+### Limits
+
+- Four pairs and a single; three small cases; case checks and one held-out set as the yardstick; code quality unread.
+- The high `ticket-assignment` partner never finished, so that case has no pair.
+- Stopping: my first command to end the launcher did nothing (a shell variable that zsh does not split into words,
+  the second such slip today); the second ended it a minute later. Stray child shells of one stopped run were then
+  ended by process id. `lifecycle.py cleanup` found nothing left in any folder.
+
 ## Evidence (all rounds)
 
 | File | Holds |

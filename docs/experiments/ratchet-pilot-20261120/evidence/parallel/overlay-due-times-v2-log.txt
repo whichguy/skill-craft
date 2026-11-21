@@ -1,0 +1,12 @@
+overlay.py --scratch <a plain folder>, 2026-11-21 08:59 to 09:07; `product` history where the product comes from a run, unless marked; one line per suite and product
+S1-on-reference (suite history): suite p1R-ticket-due-times on the case's reference: 35 of 39 pass; failing C-19, C-29, C-3, U-8; did not end none
+Sa-on-reference (suite history): suite p3R-ticket-due-times-a on the case's reference: 30 of 42 pass; failing C-10, C-17, C-18, C-21, C-22, C-31, C-34, C-6, C-7, U-2, U-4, U-8; did not end none
+Sb-on-reference (suite history): suite p3R-ticket-due-times-b on the case's reference: 31 of 41 pass; failing C-10, C-19, C-20, C-21, C-26, C-34, C-4, C-5, U-2, U-7; did not end none
+Sa-on-B (product history): suite p3R-ticket-due-times-a on p3R-ticket-due-times-b at build-1 (fde553154dd7): 39 of 42 pass; failing C-31, C-34, U-8; did not end none
+Sb-on-A (product history): suite p3R-ticket-due-times-b on p3R-ticket-due-times-a at build-1 (3f1e98405b15): 41 of 41 pass; failing none; did not end none
+S1-on-A (product history): suite p1R-ticket-due-times on p3R-ticket-due-times-a at build-1 (3f1e98405b15): 26 of 39 pass; failing C-17, C-18, C-20, C-25, C-29, C-3, C-30, C-5, C-6, U-3, U-4, U-5, U-8; did not end none
+S1-on-B (product history): suite p1R-ticket-due-times on p3R-ticket-due-times-b at build-1 (fde553154dd7): 26 of 39 pass; failing C-17, C-18, C-20, C-25, C-29, C-3, C-30, C-5, C-6, U-3, U-4, U-5, U-8; did not end none
+blind-a-on-reference (suite history): suite b1-due-times-a on the case's reference: 31 of 42 pass; failing C-10, C-17, C-18, C-21, C-22, C-34, C-6, C-7, U-2, U-4, U-8; did not end none
+blind-b-on-reference (suite history): suite b1-due-times-b on the case's reference: 31 of 41 pass; failing C-19, C-20, C-26, C-34, C-4, C-5, C-6, U-2, U-4, U-7; did not end none
+S1-on-A (suite history): suite p1R-ticket-due-times on p3R-ticket-due-times-a at build-1 (3f1e98405b15): 32 of 39 pass; failing C-17, C-18, C-20, C-5, C-6, U-3, U-4; did not end none
+S1-on-B (suite history): suite p1R-ticket-due-times on p3R-ticket-due-times-b at build-1 (fde553154dd7): 32 of 39 pass; failing C-17, C-18, C-20, C-5, C-6, U-3, U-4; did not end none

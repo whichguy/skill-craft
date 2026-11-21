@@ -1,0 +1,97 @@
+--- gb-blind-fixed/acceptance/adapter.cjs	2026-11-21 13:14:54
++++ gb-blind-catchup/acceptance/adapter.cjs	2026-11-21 13:34:06
+@@ -458,6 +458,9 @@
+   let watcher;
+   let sequence = 0;
+   const sameOrigin = url => new URL(url, location.href).origin === location.origin;
++  // Requests the page has sent and not yet received an answer to. A response the test holds is not counted:
++  // the page is waiting on the test then, not the other way round.
++  let pending = 0;
+   window.fetch = async function (input, init) {
+     const request = new Request(input, init);
+     if (!sameOrigin(request.url)) return fetchOriginal(request);
+@@ -465,22 +468,46 @@
+     traffic.push(log);
+     const hold = gate?.method === request.method ? gate : null;
+     if (hold) { gate = null; hold.claimed = true; }
+-    if (request.method !== 'GET' && request.method !== 'HEAD') log.body = await request.clone().text();
+-    if (hold?.mode === 'abort') {
+-      log.status = 0;
+-      throw new TypeError('acceptance: request stopped before transmission');
+-    }
+-    const response = await fetchOriginal(request);
+-    log.status = response.status;
+-    log.responseHeaders = [...response.headers];
+-    log.response = await response.clone().text();
+-    if (hold) {
+-      hold.received = true;
+-      if (hold.mode === 'drop') throw new TypeError('acceptance: response lost after service acknowledged it');
+-      await hold.promise;
+-    }
+-    return response;
++    let counted = true;
++    pending += 1;
++    const answered = () => { if (counted) { counted = false; pending -= 1; } };
++    try {
++      if (request.method !== 'GET' && request.method !== 'HEAD') log.body = await request.clone().text();
++      if (hold?.mode === 'abort') {
++        log.status = 0;
++        throw new TypeError('acceptance: request stopped before transmission');
++      }
++      const response = await fetchOriginal(request);
++      log.status = response.status;
++      log.responseHeaders = [...response.headers];
++      log.response = await response.clone().text();
++      if (hold) {
++        hold.received = true;
++        answered();
++        if (hold.mode === 'drop') throw new TypeError('acceptance: response lost after service acknowledged it');
++        await hold.promise;
++      }
++      return response;
++    } finally {
++      answered();
++    }
+   };
++  const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
++  // A person acts, then looks at the screen: wait until the page has answered what the action started
++  // (requests answered, then no change to the document for a moment) before the next action.
++  async function settle(start) {
++    let changed = Date.now();
++    const observer = new MutationObserver(() => { changed = Date.now(); });
++    observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true, characterData: true });
++    try {
++      await start();
++      const begun = Date.now();
++      await pause(70);
++      while (Date.now() - begun < 1600 && (pending > 0 || Date.now() - changed < 90)) await pause(25);
++    } finally {
++      observer.disconnect();
++    }
++  }
+   window.__acceptance = {
+     find: query => matches(query).map(measure),
+     viewport: () => ({ width: innerWidth, height: innerHeight, scrollWidth: document.documentElement.scrollWidth }),
+@@ -494,7 +521,8 @@
+       }));
+     },
+     visibleText: () => document.body.innerText,
+-    click(query, index) { matches(query)[index]?.click(); },
++    click: (query, index) => settle(() => matches(query)[index]?.click()),
++    quiet: () => settle(async () => {}),
+     focus(query, index) { matches(query)[index]?.focus(); },
+     fill(query, index, value) {
+       const node = matches(query)[index];
+@@ -577,7 +605,11 @@
+   close() { return this.call('close'); }
+   reopen() { return this.call('return', { url: this.url }); }
+   size(width, height = 900) { return this.call('size', { width, height }); }
+-  key(key) { return this.call('key', { key }); }
++  async key(key) {
++    await this.call('key', { key });
++    // Activating keys start the same work a click does; moving focus with Tab does not.
++    if (!key.endsWith('Tab')) await this.inspect('quiet');
++  }
+   async dispose() {
+     this.proc.child.stdin.end();
+     let timer;

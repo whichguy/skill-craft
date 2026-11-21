@@ -1,0 +1,86 @@
+{
+  "U-1": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^U-1 ' acceptance/checks.cjs"
+  },
+  "U-2": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^U-2 ' acceptance/checks.cjs"
+  },
+  "U-3": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^U-3 ' acceptance/checks.cjs"
+  },
+  "U-4": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^U-4 ' acceptance/checks.cjs"
+  },
+  "C-1": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-1 ' acceptance/checks.cjs"
+  },
+  "C-2": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-2 ' acceptance/checks.cjs"
+  },
+  "C-3": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-3 ' acceptance/checks.cjs"
+  },
+  "C-4": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-4 ' acceptance/checks.cjs"
+  },
+  "C-5": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-5 ' acceptance/checks.cjs"
+  },
+  "C-6": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-6 ' acceptance/checks.cjs"
+  },
+  "C-7": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-7 ' acceptance/checks.cjs"
+  },
+  "C-8": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-8 ' acceptance/checks.cjs"
+  },
+  "C-9": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-9 ' acceptance/checks.cjs"
+  },
+  "C-10": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-10 ' acceptance/checks.cjs"
+  },
+  "C-11": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-11 ' acceptance/checks.cjs"
+  },
+  "C-12": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-12 ' acceptance/checks.cjs"
+  },
+  "C-13": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-13 ' acceptance/checks.cjs"
+  },
+  "C-14": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-14 ' acceptance/checks.cjs"
+  },
+  "C-15": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-15 ' acceptance/checks.cjs"
+  },
+  "C-16": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-16 ' acceptance/checks.cjs"
+  },
+  "C-17": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-17 ' acceptance/checks.cjs"
+  },
+  "C-18": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-18 ' acceptance/checks.cjs"
+  },
+  "C-19": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-19 ' acceptance/checks.cjs"
+  },
+  "C-20": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-20 ' acceptance/checks.cjs"
+  },
+  "C-21": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-21 ' acceptance/checks.cjs"
+  },
+  "C-22": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-22 ' acceptance/checks.cjs"
+  },
+  "C-23": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-23 ' acceptance/checks.cjs"
+  },
+  "C-24": {
+    "command": "node --test --test-reporter=tap --test-name-pattern='^C-24 ' acceptance/checks.cjs"
+  }
+}
