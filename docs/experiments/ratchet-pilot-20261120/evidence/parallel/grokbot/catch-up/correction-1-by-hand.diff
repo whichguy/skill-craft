@@ -1,0 +1,23 @@
+--- gb-blind-tree/acceptance/adapter.cjs	2026-11-21 12:41:26
++++ gb-blind-fixed/acceptance/adapter.cjs	2026-11-21 13:14:54
+@@ -366,6 +366,11 @@
+ function browserTools() {
+   const clean = text => String(text ?? '').replace(/\s+/g, ' ').trim();
+   const aria = (node, key) => node.getAttribute('aria-' + key);
++  // Correction by hand (journal section 15, G7): an element's own text, leaving out aria-hidden descendants.
++  function spoken(node) {
++    return [...node.childNodes].map(child => child.nodeType === Node.TEXT_NODE ? child.textContent
++      : child.nodeType === Node.ELEMENT_NODE && child.getAttribute('aria-hidden') !== 'true' ? spoken(child) : '').join('');
++  }
+   function name(node, seen = new Set()) {
+     if (seen.has(node)) return '';
+     seen.add(node);
+@@ -378,7 +383,7 @@
+     if (['region', 'navigation', 'article', 'status', 'listitem', 'textbox', 'alert'].includes(kind(node))) {
+       return clean(node.title);
+     }
+-    return clean(node.textContent || node.title);
++    return clean(spoken(node) || node.title);
+   }
+   function kind(node) {
+     const explicit = node.getAttribute('role')?.trim().split(/\s+/)[0];

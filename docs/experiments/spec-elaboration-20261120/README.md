@@ -717,3 +717,6 @@ reader on the two runs. `packet_shown.py RUNS_ROOT...` is the free reading that 
 under the roots, how many lines of each stage's packet the model was given before it submitted the stage
 (`evidence/readings/packet-shown.txt`: 50 Sol runs; the spec stage's instructions were given at four fifths or more
 in 41, and the lines that say where the spec guides are in 9).
+`spec_by_reading.py RUNS_ROOT...` sets that share beside each run's accepted specification, by case and effort
+(`evidence/readings/spec-by-reading.txt`: where both kinds of run exist, the runs given under a third of the
+instructions wrote specifications a quarter to a third shorter).

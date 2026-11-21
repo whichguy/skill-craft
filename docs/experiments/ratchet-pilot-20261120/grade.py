@@ -81,6 +81,23 @@ def hidden(kind, copy, folder):
         return {"observed": bool(result.get("observed")), "reason": result.get("reason"),
                 "passed": [row["id"] for row in rows if row.get("pass")],
                 "failed": {row["id"]: row.get("note") for row in rows if not row.get("pass")}}
+    if kind == "battleship":  # the E2E case's own four checks, each run as the harness runs a check (run.py: shell, E2E_CHECKS)
+        spec = json.loads((E2E / "cases.json").read_text())["battleship"]
+        names = ("own-tests", "page", "fire", "whole-game")
+        passed, failed = [], {}
+        for index, command in enumerate(spec["checks"]):
+            name = names[index] if len(spec["checks"]) == len(names) else f"check-{index + 1}"
+            try:
+                done = subprocess.run(command, shell=True, cwd=copy, capture_output=True, stdin=subprocess.DEVNULL, text=True,
+                                      timeout=300, env=dict(os.environ, E2E_CHECKS=str(E2E / "checks")), check=False)
+                ok, note = done.returncode == 0, (done.stdout + done.stderr).strip()[-240:]
+            except subprocess.TimeoutExpired:
+                ok, note = False, "timed out after 300 s"
+            if ok:
+                passed.append(name)
+            else:
+                failed[name] = note
+        return {"observed": True, "reason": None, "passed": passed, "failed": failed}
     if kind in ("grokbot", "grokbot2"):  # a browser yardstick beside the scenario; it starts and stops the product itself
         scenario = HERE / "scenarios" / "grokbot-local"
         driver = scenario / ("grokbot_accept.cjs" if kind == "grokbot" else "grokbot_accept2.cjs")

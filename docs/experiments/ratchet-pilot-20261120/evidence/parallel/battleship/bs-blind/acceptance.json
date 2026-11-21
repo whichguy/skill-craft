@@ -1,0 +1,86 @@
+{
+  "U-1": {
+    "command": "node acceptance/checks.cjs U-1"
+  },
+  "U-2": {
+    "command": "node acceptance/checks.cjs U-2"
+  },
+  "U-3": {
+    "command": "node acceptance/checks.cjs U-3"
+  },
+  "U-4": {
+    "command": "node acceptance/checks.cjs U-4"
+  },
+  "C-1": {
+    "command": "node acceptance/checks.cjs C-1"
+  },
+  "C-2": {
+    "command": "node acceptance/checks.cjs C-2"
+  },
+  "C-3": {
+    "command": "node acceptance/checks.cjs C-3"
+  },
+  "C-4": {
+    "command": "node acceptance/checks.cjs C-4"
+  },
+  "C-5": {
+    "command": "node acceptance/checks.cjs C-5"
+  },
+  "C-6": {
+    "command": "node acceptance/checks.cjs C-6"
+  },
+  "C-7": {
+    "command": "node acceptance/checks.cjs C-7"
+  },
+  "C-8": {
+    "command": "node acceptance/checks.cjs C-8"
+  },
+  "C-9": {
+    "command": "node acceptance/checks.cjs C-9"
+  },
+  "C-10": {
+    "command": "node acceptance/checks.cjs C-10"
+  },
+  "C-11": {
+    "command": "node acceptance/checks.cjs C-11"
+  },
+  "C-12": {
+    "command": "node acceptance/checks.cjs C-12"
+  },
+  "C-13": {
+    "command": "node acceptance/checks.cjs C-13"
+  },
+  "C-14": {
+    "command": "node acceptance/checks.cjs C-14"
+  },
+  "C-15": {
+    "command": "node acceptance/checks.cjs C-15"
+  },
+  "C-16": {
+    "command": "node acceptance/checks.cjs C-16"
+  },
+  "C-17": {
+    "command": "node acceptance/checks.cjs C-17"
+  },
+  "C-18": {
+    "command": "node acceptance/checks.cjs C-18"
+  },
+  "C-19": {
+    "command": "node acceptance/checks.cjs C-19"
+  },
+  "C-20": {
+    "command": "node acceptance/checks.cjs C-20"
+  },
+  "C-21": {
+    "command": "node acceptance/checks.cjs C-21"
+  },
+  "C-22": {
+    "command": "node acceptance/checks.cjs C-22"
+  },
+  "C-23": {
+    "command": "node acceptance/checks.cjs C-23"
+  },
+  "C-24": {
+    "command": "node acceptance/checks.cjs C-24"
+  }
+}

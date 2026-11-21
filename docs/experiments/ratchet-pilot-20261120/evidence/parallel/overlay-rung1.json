@@ -1,0 +1,292 @@
+[
+ {
+  "label": "check:blind-a-on-its-starting-project",
+  "suite": "b1-due-times-a",
+  "product": "b1-due-times-a at plan-1 (a258541cb01c)",
+  "history": "product",
+  "items": 42,
+  "failing": [
+   "C-10",
+   "C-11",
+   "C-12",
+   "C-14",
+   "C-17",
+   "C-18",
+   "C-19",
+   "C-20",
+   "C-21",
+   "C-22",
+   "C-34",
+   "C-4",
+   "C-6",
+   "C-7",
+   "C-8",
+   "U-1",
+   "U-2",
+   "U-3",
+   "U-4",
+   "U-6",
+   "U-8"
+  ],
+  "unstable": [
+   "C-33"
+  ],
+  "did_not_end": [],
+  "seconds": 57.5,
+  "tails": {
+   "C-10": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 320.701416"
+   ],
+   "C-11": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 324.940333"
+   ],
+   "C-12": [
+    "# pass 0",
+    "# fail 2",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 532.866917"
+   ],
+   "C-14": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 320.553667"
+   ],
+   "C-17": [
+    "# pass 0",
+    "# fail 2",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 533.774334"
+   ],
+   "C-18": [
+    "# pass 0",
+    "# fail 2",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 535.295958"
+   ],
+   "C-19": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 321.994958"
+   ],
+   "C-20": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 325.14425"
+   ],
+   "C-21": [
+    "# pass 0",
+    "# fail 4",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 1020.841417"
+   ],
+   "C-22": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 303.148"
+   ],
+   "C-34": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 1219.276875"
+   ],
+   "C-4": [
+    "# pass 0",
+    "# fail 2",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 546.77575"
+   ],
+   "C-6": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 356.492208"
+   ],
+   "C-7": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 314.088417"
+   ],
+   "C-8": [
+    "# pass 0",
+    "# fail 2",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 548.067833"
+   ],
+   "U-1": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 325.792042"
+   ],
+   "U-2": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 324.978584"
+   ],
+   "U-3": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 330.656417"
+   ],
+   "U-4": [
+    "# pass 0",
+    "# fail 2",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 548.908125"
+   ],
+   "U-6": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 1304.595541"
+   ],
+   "U-8": [
+    "# pass 0",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# todo 0",
+    "# duration_ms 1210.574875"
+   ]
+  }
+ },
+ {
+  "label": "check:Sa-on-A",
+  "suite": "p3R-ticket-due-times-a",
+  "product": "p3R-ticket-due-times-a at build-1 (3f1e98405b15)",
+  "history": "product",
+  "items": 42,
+  "failing": [
+   "C-31"
+  ],
+  "unstable": [],
+  "did_not_end": [],
+  "seconds": 46.1,
+  "tails": {
+   "C-31": [
+    "    code: 'ERR_ASSERTION',",
+    "    actual: 5,",
+    "    expected: 4,",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ]
+  }
+ },
+ {
+  "label": "check:Sb-on-B",
+  "suite": "p3R-ticket-due-times-b",
+  "product": "p3R-ticket-due-times-b at build-1 (fde553154dd7)",
+  "history": "product",
+  "items": 41,
+  "failing": [],
+  "unstable": [],
+  "did_not_end": [],
+  "seconds": 29.0,
+  "tails": {}
+ },
+ {
+  "label": "blind-a-on-A",
+  "suite": "b1-due-times-a",
+  "product": "p3R-ticket-due-times-a at build-1 (3f1e98405b15)",
+  "history": "product",
+  "items": 42,
+  "failing": [],
+  "unstable": [],
+  "did_not_end": [],
+  "seconds": 45.2,
+  "tails": {}
+ },
+ {
+  "label": "blind-b-on-B",
+  "suite": "b1-due-times-b",
+  "product": "p3R-ticket-due-times-b at build-1 (fde553154dd7)",
+  "history": "product",
+  "items": 41,
+  "failing": [],
+  "unstable": [],
+  "did_not_end": [],
+  "seconds": 44.4,
+  "tails": {}
+ },
+ {
+  "label": "blind-a-on-B",
+  "suite": "b1-due-times-a",
+  "product": "p3R-ticket-due-times-b at build-1 (fde553154dd7)",
+  "history": "product",
+  "items": 42,
+  "failing": [],
+  "unstable": [
+   "C-34"
+  ],
+  "did_not_end": [],
+  "seconds": 53.4,
+  "tails": {}
+ },
+ {
+  "label": "blind-b-on-A",
+  "suite": "b1-due-times-b",
+  "product": "p3R-ticket-due-times-a at build-1 (3f1e98405b15)",
+  "history": "product",
+  "items": 41,
+  "failing": [],
+  "unstable": [],
+  "did_not_end": [],
+  "seconds": 44.8,
+  "tails": {}
+ }
+]
