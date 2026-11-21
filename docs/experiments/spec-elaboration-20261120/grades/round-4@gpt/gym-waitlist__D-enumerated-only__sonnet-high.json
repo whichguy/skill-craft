@@ -1,0 +1,144 @@
+{
+ "slot": "gym-waitlist__D-enumerated-only__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-5",
+   "quote": "the first person in line who is eligible (C-37) is booked into the class with no action on their part."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-53, C-15",
+   "quote": "the one the app accepted first is ahead. \u2026 a freed spot is never taken by a person who is not first in line (apart from people skipped for ineligibility, C-17)"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-63",
+   "quote": "Being promoted into one occurrence, or leaving one waitlist, changes no other waitlist entry the member has, including entries for other occurrences at overlapping times."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-44",
+   "quote": "A promoted booking can be cancelled without penalty for 2 hours \u2026 After the 2 hours the app's normal rules apply.",
+   "missing": "Whether a member who misses the class after automatic promotion incurs the usual no-show penalty."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "U-3, C-70",
+   "quote": "A booked member cancels (or a spot is otherwise freed). The member at position 1 is booked into the class automatically \u2026 A bulk change completes all its promotions within 60 seconds",
+   "missing": "How soon the automatic booking must complete after an individual cancellation. The 60-second deadline applies to bulk changes."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-8, C-40, C-69",
+   "quote": "now booked, and names the class and its start date and time \u2026 every channel the app already uses to confirm bookings \u2026 it goes by email \u2026 is retried \u2026 the staff history shows \"notice failed to send\""
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-54, C-79",
+   "quote": "the people at positions 1 and 2 (if both eligible) are promoted, each into one spot; no spot is given to two people \u2026 active bookings are at most its capacity."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-62, C-83",
+   "quote": "comes to hold an active booking in it by any other means (for example staff add them directly), their entry for that occurrence is removed \u2026 A promotion happens completely or not at all",
+   "missing": "How simultaneous direct booking and promotion for the same member are coordinated so that only one booking and charge can succeed."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-38",
+   "quote": "promotion takes the same amount at the moment of promotion (not at joining) \u2026 If it cannot be taken, the member is skipped under C-17 b and no booking exists."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-18, C-52, C-14",
+   "quote": "A waitlist has a default size limit of 20 \u2026 Otherwise the occurrence shows as full and offers no join control \u2026 with a message naming at least one condition that holds"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-20",
+   "quote": "A waitlist is open until 60 minutes before the class starts \u2026 When it is not open no one can join and no one is promoted."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-27, C-28",
+   "quote": "raise an occurrence's capacity by k, up to k people are promoted, in order \u2026 no booking is cancelled, the class shows as full, and nobody is promoted until the active bookings fall below the capacity."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-23",
+   "quote": "When staff cancel an occurrence, all its waitlist entries are removed and each member receives the notice in C-22. Nobody is promoted."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-24, C-45",
+   "quote": "each entry's position, member name and the date and time they joined \u2026 joined; left; promoted; skipped",
+   "missing": "How the entry represents its current state and whether its position is stored or calculated from queue order."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-20, C-46",
+   "quote": "Within 60 seconds after it closes (C-70), every remaining entry is removed \u2026 remains visible to staff for 90 days after the occurrence's start time, and is then deleted."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-10, C-30",
+   "quote": "show a waitlisted member as waitlisted for that class together with their current position as a number \u2026 A member never sees another member's name or any identifying detail of anyone on a waitlist"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-24, C-25, C-45",
+   "quote": "sees its waitlist ordered by position \u2026 Staff can remove someone from a waitlist \u2026 each with the time, the member's name and exactly one event type from: joined; left; promoted",
+   "missing": "Whether staff can manually promote a waiting member and, if so, whom they can promote."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-29, C-26",
+   "quote": "The operator can switch the waitlist off \u2026 For each occurrence staff can mark joining closed or open (default open)."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-6, C-70",
+   "quote": "a booking stops being active (C-33): the member cancels it \u2026 A bulk change completes all its promotions within 60 seconds",
+   "missing": "The maximum time from a single booking cancellation to the resulting promotion."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-76, C-31",
+   "quote": "For an occurrence with a free spot (and no one waiting), booking works exactly as before the feature: the same steps, the same checks, the same confirmation. \u2026 no booking is changed, added or removed."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-31, C-1",
+   "quote": "When the feature first goes live, every occurrence has an empty waitlist \u2026 For a member who could join (C-52), an occurrence that has no free spots shows a control to join the waitlist"
+  }
+ ]
+}

@@ -1,0 +1,177 @@
+{
+ "slot": "grokbot-salesforce__CAL-thin__hand",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "C-2",
+   "quote": "The bot is available in the Salesforce org",
+   "missing": "Which Salesforce surface opens the bot and what context it passes on launch."
+  },
+  {
+   "id": "N-2",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-6",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-7",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-8",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-9",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-10",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-22",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "C-4",
+   "quote": "The bot responds quickly.",
+   "missing": "How long an answer may take and what the interface shows while the request is pending."
+  },
+  {
+   "id": "N-26",
+   "state": "partial",
+   "where": "C-3",
+   "quote": "The user sees a helpful message when something goes wrong.",
+   "missing": "How to present the empty, loading and refused states, and how to distinguish a refusal from an error."
+  },
+  {
+   "id": "N-27",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

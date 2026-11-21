@@ -1,0 +1,184 @@
+{
+ "slot": "grokbot-salesforce__CAL-rich__hand",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "U-1",
+   "quote": "They open the record, type a question, and the answer appears beside the record.",
+   "missing": "The record page is implied, but the Salesforce component and the record context it receives are unspecified."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-1",
+   "quote": "The bot answers only from records the asking user can already see"
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-2",
+   "quote": "Apex forbids a callout after DML in one transaction and caps a callout at 120 seconds, so the call is enqueued rather than made in line."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-3",
+   "quote": "The API credential is held in a Named Credential and never appears in code, metadata or a log"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-2",
+   "quote": "caps a callout at 120 seconds",
+   "missing": "The per-transaction callout count, heap limit and CPU time limit are unspecified."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-7",
+   "quote": "The test suite passes with no network access, because the HTTP callout is supplied by a mock implementation."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "C-8",
+   "quote": "each resolve their own endpoint and credential without a code change",
+   "missing": "The spec leaves open how to register the endpoint as an allowed host and whether a callout to an unregistered host is refused."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-2",
+   "quote": "Submitting a question returns at once with the question in a pending state; the answer arrives afterwards.",
+   "missing": "The interface needs a way to detect completion and fetch or receive the answer."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-4",
+   "quote": "Forcing the job to run twice for one question leaves exactly one answer record on the conversation."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-5",
+   "quote": "4xx refusal shows that the question could not be accepted; a 5xx failure shows that the service is unavailable and the question will be retried; a timeout shows that the answer did not arrive in time"
+  },
+  {
+   "id": "N-15",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-5",
+   "quote": "a timeout shows that the answer did not arrive in time and offers to ask again.",
+   "missing": "The spec leaves open how to handle a partial or truncated answer and what the user sees in that case."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-6",
+   "quote": "Each conversation holds its turns in order, each turn carrying its role, its text, its status, its timestamp and the model identifier that produced it.",
+   "missing": "The spec does not say which token or usage counts to store."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-1",
+   "quote": "The bot answers only from records the asking user can already see",
+   "missing": "The spec leaves open which records and fields enter the prompt, how visibility is enforced before the callout and how personal data is handled."
+  },
+  {
+   "id": "N-20",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-22",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "C-6",
+   "quote": "Each conversation holds its turns in order, each turn carrying its role, its text, its status, its timestamp and the model identifier that produced it.",
+   "missing": "The stored turns capture the exchange, but the spec does not link it to an identified asker or set an audit retention period."
+  },
+  {
+   "id": "N-24",
+   "state": "covered",
+   "where": "U-2, C-8",
+   "quote": "build in a scratch org, run the tests, and deploy the metadata to a sandbox and then production \u2026 each resolve their own endpoint and credential \u2026 the deployment to production meets the platform's code-coverage requirement."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "C-2",
+   "quote": "Submitting a question returns at once with the question in a pending state; the answer arrives afterwards.",
+   "missing": "There is no end-to-end answer latency target or bound that includes time spent in the queue."
+  },
+  {
+   "id": "N-26",
+   "state": "partial",
+   "where": "C-2, C-5",
+   "quote": "the question in a pending state \u2026 A 4xx refusal shows that the question could not be accepted; a 5xx failure shows that the service is unavailable and the question will be retried",
+   "missing": "The empty conversation state and its presentation are unspecified."
+  },
+  {
+   "id": "N-27",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

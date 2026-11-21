@@ -1,0 +1,211 @@
+{
+ "slot": "gym-waitlist__L-lenses-once__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "cost_usd": 0.2686438,
+ "missing_ids": [],
+ "clauses": [
+  {
+   "id": "C-1",
+   "class": "request"
+  },
+  {
+   "id": "C-2",
+   "class": "request"
+  },
+  {
+   "id": "C-3",
+   "class": "request"
+  },
+  {
+   "id": "C-4",
+   "class": "request"
+  },
+  {
+   "id": "C-5",
+   "class": "decision"
+  },
+  {
+   "id": "C-6",
+   "class": "decision"
+  },
+  {
+   "id": "C-7",
+   "class": "needed"
+  },
+  {
+   "id": "C-8",
+   "class": "needed"
+  },
+  {
+   "id": "C-9",
+   "class": "decision"
+  },
+  {
+   "id": "C-10",
+   "class": "extra",
+   "why": "A hard cap turns people away from full classes, the opposite of the request's purpose; the waitlist works without any bound."
+  },
+  {
+   "id": "C-11",
+   "class": "decision"
+  },
+  {
+   "id": "C-12",
+   "class": "empty",
+   "why": "Refusing actions on nonexistent records is generic behaviour true of any product; it settles nothing specific to the waitlist."
+  },
+  {
+   "id": "C-13",
+   "class": "needed"
+  },
+  {
+   "id": "C-14",
+   "class": "needed"
+  },
+  {
+   "id": "C-15",
+   "class": "decision"
+  },
+  {
+   "id": "C-16",
+   "class": "decision"
+  },
+  {
+   "id": "C-17",
+   "class": "decision"
+  },
+  {
+   "id": "C-18",
+   "class": "decision"
+  },
+  {
+   "id": "C-19",
+   "class": "needed"
+  },
+  {
+   "id": "C-20",
+   "class": "needed"
+  },
+  {
+   "id": "C-21",
+   "class": "needed"
+  },
+  {
+   "id": "C-22",
+   "class": "decision"
+  },
+  {
+   "id": "C-23",
+   "class": "needed"
+  },
+  {
+   "id": "C-24",
+   "class": "request"
+  },
+  {
+   "id": "C-25",
+   "class": "request"
+  },
+  {
+   "id": "C-26",
+   "class": "decision"
+  },
+  {
+   "id": "C-27",
+   "class": "decision"
+  },
+  {
+   "id": "C-28",
+   "class": "decision"
+  },
+  {
+   "id": "C-29",
+   "class": "decision"
+  },
+  {
+   "id": "C-30",
+   "class": "needed"
+  },
+  {
+   "id": "C-31",
+   "class": "needed"
+  },
+  {
+   "id": "C-32",
+   "class": "decision"
+  },
+  {
+   "id": "C-33",
+   "class": "needed"
+  },
+  {
+   "id": "C-34",
+   "class": "needed"
+  },
+  {
+   "id": "C-35",
+   "class": "needed"
+  },
+  {
+   "id": "C-36",
+   "class": "needed"
+  },
+  {
+   "id": "C-37",
+   "class": "decision"
+  },
+  {
+   "id": "C-38",
+   "class": "decision"
+  },
+  {
+   "id": "C-39",
+   "class": "decision"
+  },
+  {
+   "id": "C-40",
+   "class": "needed"
+  },
+  {
+   "id": "C-41",
+   "class": "decision"
+  },
+  {
+   "id": "C-42",
+   "class": "extra",
+   "why": "A staff-facing waitlist view is a new operator capability the request never asks for; the member waitlist works fully without it."
+  },
+  {
+   "id": "C-43",
+   "class": "extra",
+   "why": "Restricts a staff view the specification itself introduced; the question arises only because of C-42."
+  },
+  {
+   "id": "C-44",
+   "class": "extra",
+   "why": "Access control for the staff view introduced by C-42; without that extra view there is nothing to restrict."
+  },
+  {
+   "id": "C-45",
+   "class": "needed"
+  },
+  {
+   "id": "C-46",
+   "class": "needed"
+  },
+  {
+   "id": "C-47",
+   "class": "decision"
+  },
+  {
+   "id": "C-48",
+   "class": "needed"
+  },
+  {
+   "id": "C-49",
+   "class": "needed"
+  }
+ ]
+}

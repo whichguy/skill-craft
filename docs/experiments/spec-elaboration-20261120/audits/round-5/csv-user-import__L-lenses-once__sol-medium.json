@@ -1,0 +1,369 @@
+{
+ "slot": "csv-user-import__L-lenses-once__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "cost_usd": 0.4290272,
+ "missing_ids": [],
+ "clauses": [
+  {
+   "id": "C-1",
+   "class": "request"
+  },
+  {
+   "id": "C-2",
+   "class": "decision"
+  },
+  {
+   "id": "C-3",
+   "class": "extra",
+   "why": "Showing the destination even in single-destination hosts adds a UI duty the request does not need."
+  },
+  {
+   "id": "C-4",
+   "class": "needed"
+  },
+  {
+   "id": "C-5",
+   "class": "request"
+  },
+  {
+   "id": "C-6",
+   "class": "request"
+  },
+  {
+   "id": "C-7",
+   "class": "needed"
+  },
+  {
+   "id": "C-8",
+   "class": "extra",
+   "why": "Hiding the interface from unauthorized callers is extra work; server-side refusal (C-5 to C-7) already protects the import."
+  },
+  {
+   "id": "C-9",
+   "class": "needed"
+  },
+  {
+   "id": "C-10",
+   "class": "extra",
+   "why": "Rechecking authority at commit time for permission changes mid-upload goes beyond the request's purpose."
+  },
+  {
+   "id": "C-11",
+   "class": "extra",
+   "why": "Rechecking destination state for deletions mid-upload adds race handling the request does not call for."
+  },
+  {
+   "id": "C-12",
+   "class": "decision"
+  },
+  {
+   "id": "C-13",
+   "class": "decision"
+  },
+  {
+   "id": "C-14",
+   "class": "needed"
+  },
+  {
+   "id": "C-15",
+   "class": "needed"
+  },
+  {
+   "id": "C-16",
+   "class": "decision"
+  },
+  {
+   "id": "C-17",
+   "class": "needed"
+  },
+  {
+   "id": "C-18",
+   "class": "decision"
+  },
+  {
+   "id": "C-19",
+   "class": "decision"
+  },
+  {
+   "id": "C-20",
+   "class": "decision"
+  },
+  {
+   "id": "C-21",
+   "class": "request"
+  },
+  {
+   "id": "C-22",
+   "class": "decision"
+  },
+  {
+   "id": "C-23",
+   "class": "decision"
+  },
+  {
+   "id": "C-24",
+   "class": "decision"
+  },
+  {
+   "id": "C-25",
+   "class": "decision"
+  },
+  {
+   "id": "C-26",
+   "class": "decision"
+  },
+  {
+   "id": "C-27",
+   "class": "decision"
+  },
+  {
+   "id": "C-28",
+   "class": "decision"
+  },
+  {
+   "id": "C-29",
+   "class": "decision"
+  },
+  {
+   "id": "C-30",
+   "class": "decision"
+  },
+  {
+   "id": "C-31",
+   "class": "decision"
+  },
+  {
+   "id": "C-32",
+   "class": "decision"
+  },
+  {
+   "id": "C-33",
+   "class": "decision"
+  },
+  {
+   "id": "C-34",
+   "class": "decision"
+  },
+  {
+   "id": "C-35",
+   "class": "decision"
+  },
+  {
+   "id": "C-36",
+   "class": "decision"
+  },
+  {
+   "id": "C-37",
+   "class": "decision"
+  },
+  {
+   "id": "C-38",
+   "class": "needed"
+  },
+  {
+   "id": "C-39",
+   "class": "needed"
+  },
+  {
+   "id": "C-40",
+   "class": "needed"
+  },
+  {
+   "id": "C-41",
+   "class": "decision"
+  },
+  {
+   "id": "C-42",
+   "class": "needed"
+  },
+  {
+   "id": "C-43",
+   "class": "request"
+  },
+  {
+   "id": "C-44",
+   "class": "decision"
+  },
+  {
+   "id": "C-45",
+   "class": "needed"
+  },
+  {
+   "id": "C-46",
+   "class": "decision"
+  },
+  {
+   "id": "C-47",
+   "class": "decision"
+  },
+  {
+   "id": "C-48",
+   "class": "needed"
+  },
+  {
+   "id": "C-49",
+   "class": "needed"
+  },
+  {
+   "id": "C-50",
+   "class": "decision"
+  },
+  {
+   "id": "C-51",
+   "class": "decision"
+  },
+  {
+   "id": "C-52",
+   "class": "decision"
+  },
+  {
+   "id": "C-53",
+   "class": "decision"
+  },
+  {
+   "id": "C-54",
+   "class": "needed"
+  },
+  {
+   "id": "C-55",
+   "class": "needed"
+  },
+  {
+   "id": "C-56",
+   "class": "decision"
+  },
+  {
+   "id": "C-57",
+   "class": "decision"
+  },
+  {
+   "id": "C-58",
+   "class": "needed"
+  },
+  {
+   "id": "C-59",
+   "class": "needed"
+  },
+  {
+   "id": "C-60",
+   "class": "decision"
+  },
+  {
+   "id": "C-61",
+   "class": "extra",
+   "why": "Constraining import-specific operational records presupposes an import logging facility the request never asks for."
+  },
+  {
+   "id": "C-62",
+   "class": "extra",
+   "why": "Operator-facing outcome observability with three distinguished states is an operational capability beyond admin bulk creation."
+  },
+  {
+   "id": "C-63",
+   "class": "needed"
+  },
+  {
+   "id": "C-64",
+   "class": "needed"
+  },
+  {
+   "id": "C-65",
+   "class": "extra",
+   "why": "Race handling against concurrent removal and identity-reuse rules is beyond what bulk creation needs."
+  },
+  {
+   "id": "C-66",
+   "class": "empty",
+   "why": "Two disjoint valid imports both succeeding separately is true of any working product and settles nothing."
+  },
+  {
+   "id": "C-67",
+   "class": "extra",
+   "why": "Quota enforcement under racing arrivals introduces a host quota concept the request never mentions."
+  },
+  {
+   "id": "C-68",
+   "class": "decision"
+  },
+  {
+   "id": "C-69",
+   "class": "needed"
+  },
+  {
+   "id": "C-70",
+   "class": "needed"
+  },
+  {
+   "id": "C-71",
+   "class": "decision"
+  },
+  {
+   "id": "C-72",
+   "class": "needed"
+  },
+  {
+   "id": "C-73",
+   "class": "needed"
+  },
+  {
+   "id": "C-74",
+   "class": "needed"
+  },
+  {
+   "id": "C-75",
+   "class": "extra",
+   "why": "Guaranteeing termination of abandoned processing and operator distinction of outcomes adds operational duties beyond the request."
+  },
+  {
+   "id": "C-76",
+   "class": "extra",
+   "why": "A pre-release compatibility verification procedure is a release-process duty the request does not call for."
+  },
+  {
+   "id": "C-77",
+   "class": "empty",
+   "why": "Releasing through the host's ordinary procedure, with controls unnamed, is true of any feature and decides nothing."
+  },
+  {
+   "id": "C-78",
+   "class": "extra",
+   "why": "A withdrawal/kill-switch capability for the import is an operational feature beyond the request."
+  },
+  {
+   "id": "C-79",
+   "class": "extra",
+   "why": "Defining in-flight batch behaviour during feature withdrawal arises only from the spec's own withdrawal mechanism."
+  },
+  {
+   "id": "C-80",
+   "class": "extra",
+   "why": "Rollback-compatibility guarantees for committed users are release-engineering duties outside the request's purpose."
+  },
+  {
+   "id": "C-81",
+   "class": "needed"
+  },
+  {
+   "id": "C-82",
+   "class": "needed"
+  },
+  {
+   "id": "C-83",
+   "class": "needed"
+  },
+  {
+   "id": "C-84",
+   "class": "needed"
+  },
+  {
+   "id": "C-85",
+   "class": "needed"
+  },
+  {
+   "id": "C-86",
+   "class": "request"
+  }
+ ]
+}

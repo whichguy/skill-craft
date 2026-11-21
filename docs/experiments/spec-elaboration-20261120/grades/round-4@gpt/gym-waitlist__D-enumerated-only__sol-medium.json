@@ -1,0 +1,149 @@
+{
+ "slot": "gym-waitlist__D-enumerated-only__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-5",
+   "quote": "A waiting member receives a confirmed booking when they become next for an available seat. No claim or response is required."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-6, C-73, C-56",
+   "quote": "the member whose join was accepted first gets it. \u2026 the operator sees a definite order that is retained for later allocation. \u2026 Operators can inspect order but cannot use the waitlist to move an entry ahead of another.",
+   "missing": "Acceptance order governs eligible members and staff cannot reorder them. The rule for choosing who goes first when acceptance is simultaneous is unspecified."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-5, C-143",
+   "quote": "No claim or response is required. \u2026 The member gets the same cancellation effects as for an equivalent ordinary booking, including any applicable refunds, charges, and entitlement restoration.",
+   "missing": "Automatic assignment eliminates the offer to decline, and ordinary cancellation consequences apply. The specification leaves unstated whether missing the automatically booked class counts as a no-show."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "U-5, C-112",
+   "quote": "A cancellation or capacity increase makes a seat available while booking is open. \u2026 After the waiting member closes the app, an eligible release can still result in a confirmed booking.",
+   "missing": "The trigger and background behavior are specified, but there is no deadline for processing the release."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-121",
+   "quote": "If an equivalent ordinary confirmation would send a booking message, a promotion triggers the same confirmation policy. Existing channels, recipients, contents, and delivery rules are unconfirmed.",
+   "missing": "The actual channel, message contents, and handling of a failed send are unspecified."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-69, C-85, C-129",
+   "quote": "Several released seats go to successive eligible waiting members \u2026 the same entry is shown as booked through the waitlist and is no longer eligible for allocation. \u2026 Allocation never adds a seat beyond current sellable capacity"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-130, C-138",
+   "quote": "If an ordinary booking and a promotion for the same member race, no second live confirmed booking is added for the member on that occurrence. \u2026 the entry ends with the already-booked reason"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C-141, C-146",
+   "quote": "Applicable charges, credits, amounts, currency, and payment timing are unconfirmed. \u2026 If an attempt ends without a seat after payment processing began, the member has no net charge for the failed attempt once recovery is complete.",
+   "missing": "The specification settles the net charge after failure but leaves the point at which payment is taken to the existing booking system."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-14",
+   "quote": "An eligible join is accepted even with many members already waiting, subject to service availability. There is no configured maximum number of waiting members per occurrence."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-89, C-32",
+   "quote": "If ordinary booking closes before an allocation takes effect, the requester cannot receive a booking from that allocation. \u2026 The opening and closing offsets are unconfirmed and follow the existing booking window for that occurrence.",
+   "missing": "The cutoff is ordinary booking closure. Its timing relative to class start, including whether it falls before the start, is unspecified."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "U-9, C-67",
+   "quote": "Added seats can go to waiting members while booking remains open. Reducing capacity does not itself cancel confirmed bookings. \u2026 Once a lower capacity takes effect, outstanding allocations cannot create a new confirmed booking beyond it."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-88",
+   "quote": "When the occurrence is canceled, every still-waiting entry ends with occurrence canceled as the reason."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-7, C-6",
+   "quote": "waiting, booked through the waitlist, withdrawn, or ended without booking \u2026 the member whose join was accepted first gets it.",
+   "missing": "The states and priority are defined, but the specification does not say whether each entry records its join time or whether queue position is stored or derived."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-87, C-60",
+   "quote": "When ordinary booking closes, every still-waiting entry for the occurrence ends with booking closed as the reason. \u2026 Exact retention duration is unconfirmed and follows the existing occurrence record lifecycle.",
+   "missing": "Resolved entries follow the occurrence record lifecycle, whose retention period after the class is unspecified."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-44, C-126",
+   "quote": "A member can tell whether their entry is waiting from its status alone. \u2026 A member cannot see other entries, identities, order, or outcomes through member-facing views or requests.",
+   "missing": "The specification protects other members\u2019 identities but does not settle whether a member can also see their own rank."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "U-11, C-58, C-151",
+   "quote": "who is waiting, their order, and outcomes of earlier joins. \u2026 Operators cannot force a promotion through the waitlist view. \u2026 An operator cannot use the waitlist view to withdraw one member's entry.",
+   "missing": "Staff can inspect outcomes, and the specification explicitly rules out manual promotion and withdrawal. It does not say whether staff can see when a promotion occurred."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "U-14, C-11",
+   "quote": "Pause intake and close outstanding waiting entries before withdrawing waitlist access. \u2026 An authorized operator can pause new waitlist joins across all occurrences with one control."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-112",
+   "quote": "No fixed waitlist-specific turnaround time is promised for this background work.",
+   "missing": "No maximum elapsed time from cancellation to promotion is specified."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-10, C-117",
+   "quote": "Ordinary booking remains available when a seat is free for direct booking \u2026 previously confirmed seats still appear in the member's bookings with the same active status unless an ordinary change also took effect."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "U-13",
+   "quote": "An existing eligible full occurrence can accept its first waitlist join once intake is enabled."
+  }
+ ]
+}

@@ -1,0 +1,144 @@
+{
+ "slot": "csv-user-import__A-single__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-48",
+   "quote": "A CSV containing one otherwise valid new record and one invalid record creates neither account."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "U-8, C-33",
+   "quote": "The admin uses the reported reason and location to repair the entry and tries again. \u2026 If a reported data-record error concerns a record starting on physical line 5, the error contains the number 5."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-45, C-46",
+   "quote": "A data record whose identity already belongs to a user is a conflict \u2026 A repeated identity within a single file is a conflict"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-37",
+   "quote": "An admin cannot assign rights through import that ordinary user creation would prohibit that admin from assigning."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-1, C-9",
+   "quote": "An admin with user-creation authority submits a CSV file through the product. \u2026 Import requires admin authority at submission",
+   "missing": "Whether an admin who can create individual users also needs a separate grant to import users in bulk."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-19, C-22, C-23, C-34",
+   "quote": "A file with user values as its first nonempty record and no header is rejected. \u2026 A header containing an unrecognized field is rejected. \u2026 the import requires an email column \u2026 Import uses the ordinary required-field rules"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-15, C-16, C-18",
+   "quote": "A UTF-8 byte order mark at the beginning of a file is optional \u2026 Import accepts both LF and CRLF record endings \u2026 Double-quoted CSV fields can contain embedded commas, escaped quotes, or line breaks"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-50",
+   "quote": "If a submission fails in a product that sends onboarding notifications on user creation, its proposed users receive no such notifications from that submission."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-29, C-32",
+   "quote": "A valid file of exactly 1,048,576 bytes passes the byte-size check. A file of 1,048,577 bytes fails it. \u2026 A limit rejection tells the admin the maximum for the exceeded measurement."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-28, C-3",
+   "quote": "A zero-byte file, a file containing only empty lines, and a header-only file each fail with an outcome indicating the absence of user records. \u2026 A valid one-record submission creates its user."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-52",
+   "quote": "The admin resubmits a file whose accounts are all still present. No second account is created for any of those identities."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-6",
+   "quote": "A completed submission has an outcome available to the admin that distinguishes success from failure.",
+   "missing": "Whether large imports run in the background and how the admin finds out when a background import finishes."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-41",
+   "quote": "If ordinary creation requires an onboarding notification for an account in the same state, the imported user receives the corresponding notification after the account is created.",
+   "missing": "Whether a large batch sends all welcome messages at once and, if delivery is paced, what rate or schedule applies."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-38, U-4",
+   "quote": "A newly imported user starts in the same initial account state as a comparable ordinarily created user \u2026 The imported user follows the product's ordinary account activation or sign-in flow, where one exists.",
+   "missing": "Whether an imported account starts with a password and how the user obtains initial access if the product has no established activation or sign-in flow."
+  },
+  {
+   "id": "N-15",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-42",
+   "quote": "If ordinary user creation is required to produce an audit record, a reviewer can find the required audit information for a user created by import.",
+   "missing": "Whether each import must record the importing admin, the affected batch or accounts, and the time of import."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-48",
+   "quote": "rejecting the whole batch lets the admin correct and resubmit the same file",
+   "missing": "Whether the admin can cancel an import in progress and whether the importer offers a retry limited to the rows that reported errors."
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-55, C-47",
+   "quote": "an admin can still use it after import is introduced with the same permissions, inputs, and outcomes. \u2026 After any import outcome, accounts that existed before the submission retain their user data."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

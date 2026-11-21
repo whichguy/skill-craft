@@ -1,0 +1,179 @@
+{
+ "slot": "grokbot-salesforce__D-enumerated-only__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": "r2",
+ "cost_usd": 0.38693259999999996,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-3",
+   "quote": "The surfaces are Lightning Experience in a desktop browser. It is deliberately not offered in Salesforce Classic, the Salesforce mobile app, Experience Cloud sites, ... Flow, or Apex triggers and batch jobs."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-23",
+   "quote": "The request body holds none of that page's record fields. The bot reads no Salesforce business record to build a request."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-23",
+   "quote": "The bot reads no Salesforce business record to build a request."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-6",
+   "quote": "\"Grok Bot User\" grants: the app and tab, the chat component's actions... \"Grok Bot Admin\" grants: edit of the Grok Bot settings, read and delete of Log records"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-7",
+   "quote": "A user's Conversation and Message records are returned to that user and to no one else... The one exception is a user whose profile or permission set holds the platform's View All Data or Modify All Data permission"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-38",
+   "quote": "Salesforce forbids a callout after uncommitted database changes in the same transaction, so the user's message is saved in one step and the request to xAI made in the next.",
+   "missing": "Whether the callout runs asynchronously (Queueable/future) or as a synchronous second server call from the page; the spec implies synchronous (C-41) and never states an async design."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-69",
+   "quote": "After the key is saved, no screen, report, API response or log shows it again... It is not in the browser's traffic, in any Salesforce record the bot owns, or in the project's source files."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-40",
+   "quote": "The upper bound is Salesforce's maximum of 120 seconds for one callout",
+   "missing": "CPU time limit is never named; callouts (100, C-15) and heap (6 MB, C-66) are named but CPU time is not."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-77",
+   "quote": "no test makes a real request to xAI. Reason: Salesforce does not allow real callouts in tests, so responses are simulated."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-35",
+   "quote": "\"Configuration\" (the key is missing, the xAI endpoint is not authorised for the org, or HTTP 404"
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-12",
+   "quote": "Grok's reply appears in the transcript in one piece once complete. Reason: Apex cannot stream a response from a callout to the browser.",
+   "missing": "The mechanism by which the page learns the reply arrived (inline return vs event/polling) is not stated; the spec implicitly assumes the server call returns inline."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-15",
+   "quote": "causes exactly one HTTP request to xAI, with no automatic retry on failure... A second request is made only when the user presses Send or the retry control again."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-41",
+   "quote": "When Salesforce refuses a send because the org already has its permitted number of requests running longer than 5 seconds at once... the page shows the \"Platform busy\" message"
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-36",
+   "quote": "For \"Rate limit\", \"Provider error\", \"Timeout\" and \"Platform busy\" the user sees a message that... trying again later may work. For \"Configuration\", \"Authentication\", \"Rejected request\"... contact their administrator."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-35",
+   "quote": "\"Rate limit\" (HTTP 429)"
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-33",
+   "quote": "When xAI reports that the reply stopped because it reached the token limit (finish reason \"length\"), the reply is saved and shown with a note that it was cut off at the limit."
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "C-49",
+   "quote": "Conversation, Role (\"User\" or \"Assistant\"), Content..., Status (\"Pending\", \"Sent\" or \"Failed\"), Failure Category..., Model, Prompt Tokens, Completion Tokens, Finish Reason, and Salesforce's own created stamp."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-62",
+   "quote": "deletes every Conversation (with its Messages) whose Last Activity is older than the retention period... The retention period is the \"Retention days\" setting, default 30."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-18",
+   "quote": "Nothing else about the user, the org or any Salesforce record is in it."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-19",
+   "quote": "The prior messages supplied are the most recent N messages of the conversation that have status \"Sent\" (N is the \"History messages\" setting, default 20)"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-29",
+   "quote": "A message of 10,000 characters is accepted. One of 10,001 is refused with an error that states the limit; nothing is saved and no request is made."
+  },
+  {
+   "id": "N-22",
+   "state": "covered",
+   "where": "U-8",
+   "quote": "In Setup the administrator changes the model, system prompt and limits, replaces the API key, or switches the bot off, without deploying code."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "C-45",
+   "quote": "No Log record, and no debug-log line written by the bot's own code, contains any user message text, any reply text",
+   "missing": "No audit record of who asked what and what was answered exists apart from user-deletable conversations unreadable by admins; whether an audit trail is wanted is not decided."
+  },
+  {
+   "id": "N-24",
+   "state": "covered",
+   "where": "C-80",
+   "quote": "After deploying to a sandbox or production org, the bot works once the administrator enters the key... No secret is carried by the deployment itself."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "C-40",
+   "quote": "the user sees the \"Timeout\" failure within the timeout plus 15 seconds of pressing Send."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "C-54",
+   "quote": "A user with no conversations sees a message saying they have none yet, an empty transcript, and a working message box."
+  },
+  {
+   "id": "N-27",
+   "state": "partial",
+   "where": "C-26",
+   "quote": "Nothing in a reply creates, changes or deletes any Salesforce record other than the conversation's own Message records",
+   "missing": "No general statement that the deployment adds no sharing rules, triggers or changes to existing objects and records; C-26 covers only reply-caused actions."
+  }
+ ]
+}

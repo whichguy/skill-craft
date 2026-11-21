@@ -1,0 +1,50 @@
+ROUND round-4c: every clause put in one class by claude-opus-5-5 high; 8 specifications
+
+case                 arm                driver        request   needed decision    extra    empty    wrong  missing
+csv-user-import      A-single           sol-medium          5       29        9        5        0        0        0
+csv-user-import      D-enumerated-only  sol-medium          4       13       33       49        2        0        0
+grokbot-salesforce   A-single           sol-medium          5       23        9       22        1        0        0
+grokbot-salesforce   D-enumerated-only  sol-medium          6       34       43       22        9        0        0
+gym-waitlist         A-single           sol-medium          4       41       17        4        0        0        0
+gym-waitlist         D-enumerated-only  sol-medium          4       63       56       19        3        0        0
+invoice-reminders    A-single           sol-medium          4       25       15        7        0        0        0
+invoice-reminders    D-enumerated-only  sol-medium          4       34       41       37        2        0        0
+
+POOLED BY ARM AND DRIVER: clauses, then the share of them in each class
+  A-single           sol-medium    225 clauses  request 8%  needed 52%  decision 22%  extra 17%  empty 0%  wrong 0%   | extra+empty+wrong 39 (17%)
+  D-enumerated-only  sol-medium    478 clauses  request 4%  needed 30%  decision 36%  extra 27%  empty 3%  wrong 0%   | extra+empty+wrong 143 (30%)
+
+CLAUSES CALLED EXTRA (up to 8 per arm and driver)
+  A-single sol-medium: 38
+      csv-user-import C-27: Rejection feedback already names the exceeded limit; advertising limits before submission is an added duty the request does not need.
+      csv-user-import C-39: Rollback support is an operational duty beyond bulk user creation; the request never asks for reversible releases.
+      csv-user-import C-40: Sign-in after a version rollback is a rollback-compatibility guarantee the request does not call for.
+      csv-user-import C-41: Keeping imported accounts manageable in the previous release is rollback-compatibility work beyond the request.
+      csv-user-import C-42: Imported users signing in after rollback is a rollback guarantee the request does not ask for.
+      grokbot-salesforce C-10: Double-submit deduplication is a refinement; a bot that sends a second request on a double click still delivers what was asked.
+      grokbot-salesforce C-13: Detecting and giving feedback on non-text input to a text field adds handling the request's bot does not need.
+      grokbot-salesforce C-14: Publishing an exact bot-side prompt length limit with its unit is a documentation duty the request does not call for.
+  D-enumerated-only sol-medium: 127
+      csv-user-import C-11: Durable, re-openable import activity for lost responses is a recovery subsystem beyond uploading a CSV to create users.
+      csv-user-import C-12: An operator admission switch is a deployment feature flag the request never asks for.
+      csv-user-import C-13: Enabling admission only exists because the spec introduced an operator admission switch.
+      csv-user-import C-14: Rollback procedure guarantees concern release management introduced by the spec, not bulk creation itself.
+      csv-user-import C-32: Attempt references exist only for the spec's asynchronous activity and recovery feature.
+      csv-user-import C-33: A Pending/Succeeded/Failed state model arises from the spec's queued-attempt design, not the request.
+      csv-user-import C-34: Access rules for an import activity history only matter because the spec added that history.
+      csv-user-import C-35: Seven-day result retention governs an activity log the request does not call for.
+
+CLAUSES CALLED EMPTY (up to 8 per arm and driver)
+  A-single sol-medium: 1
+      grokbot-salesforce C-50: Forbids a data migration nothing in a prompt-and-reply bot would require; it decides nothing a builder would otherwise do.
+  D-enumerated-only sol-medium: 16
+      csv-user-import C-61: Adding an import does not remove single-user creation; this constrains nothing a builder would otherwise do.
+      csv-user-import C-85: Restates that ordinary creation rules govern identity availability, already said by C-44; decides nothing new.
+      grokbot-salesforce C-65: Last-write-wins for settings is true of any configuration store and decides nothing a builder can act on.
+      grokbot-salesforce C-71: A single-callout bot cannot exhaust 100 callouts per transaction; the clause requires nothing actionable.
+      grokbot-salesforce C-72: A single callout under a 30-second deadline cannot reach the 120-second cumulative limit; nothing to build.
+      grokbot-salesforce C-73: Says only that a platform refusal is not success, which holds for any product; no builder action follows.
+      grokbot-salesforce C-74: Restates that a Salesforce concurrency refusal is not a successful reply; true of any product, nothing to build.
+      grokbot-salesforce C-75: Payloads bounded by 4,000 code points and 2,048 tokens cannot approach 6 MB; nothing to act on.
+
+CLAUSES CALLED WRONG (up to 8 per arm and driver)

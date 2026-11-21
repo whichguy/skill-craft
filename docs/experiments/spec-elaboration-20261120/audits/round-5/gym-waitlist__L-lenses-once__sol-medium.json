@@ -1,0 +1,377 @@
+{
+ "slot": "gym-waitlist__L-lenses-once__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "cost_usd": 0.4377668,
+ "missing_ids": [],
+ "clauses": [
+  {
+   "id": "C-1",
+   "class": "request"
+  },
+  {
+   "id": "C-2",
+   "class": "decision"
+  },
+  {
+   "id": "C-3",
+   "class": "needed"
+  },
+  {
+   "id": "C-4",
+   "class": "needed"
+  },
+  {
+   "id": "C-5",
+   "class": "needed"
+  },
+  {
+   "id": "C-6",
+   "class": "decision"
+  },
+  {
+   "id": "C-7",
+   "class": "decision"
+  },
+  {
+   "id": "C-8",
+   "class": "needed"
+  },
+  {
+   "id": "C-9",
+   "class": "decision"
+  },
+  {
+   "id": "C-10",
+   "class": "needed"
+  },
+  {
+   "id": "C-11",
+   "class": "needed"
+  },
+  {
+   "id": "C-12",
+   "class": "decision"
+  },
+  {
+   "id": "C-13",
+   "class": "request"
+  },
+  {
+   "id": "C-14",
+   "class": "needed"
+  },
+  {
+   "id": "C-15",
+   "class": "needed"
+  },
+  {
+   "id": "C-16",
+   "class": "decision"
+  },
+  {
+   "id": "C-17",
+   "class": "needed"
+  },
+  {
+   "id": "C-18",
+   "class": "needed"
+  },
+  {
+   "id": "C-19",
+   "class": "decision"
+  },
+  {
+   "id": "C-20",
+   "class": "decision"
+  },
+  {
+   "id": "C-21",
+   "class": "request"
+  },
+  {
+   "id": "C-22",
+   "class": "needed"
+  },
+  {
+   "id": "C-23",
+   "class": "decision"
+  },
+  {
+   "id": "C-24",
+   "class": "needed"
+  },
+  {
+   "id": "C-25",
+   "class": "needed"
+  },
+  {
+   "id": "C-26",
+   "class": "needed"
+  },
+  {
+   "id": "C-27",
+   "class": "decision"
+  },
+  {
+   "id": "C-28",
+   "class": "needed"
+  },
+  {
+   "id": "C-29",
+   "class": "decision"
+  },
+  {
+   "id": "C-30",
+   "class": "needed"
+  },
+  {
+   "id": "C-31",
+   "class": "decision"
+  },
+  {
+   "id": "C-32",
+   "class": "decision"
+  },
+  {
+   "id": "C-33",
+   "class": "decision"
+  },
+  {
+   "id": "C-34",
+   "class": "decision"
+  },
+  {
+   "id": "C-35",
+   "class": "needed"
+  },
+  {
+   "id": "C-36",
+   "class": "needed"
+  },
+  {
+   "id": "C-37",
+   "class": "needed"
+  },
+  {
+   "id": "C-38",
+   "class": "needed"
+  },
+  {
+   "id": "C-39",
+   "class": "needed"
+  },
+  {
+   "id": "C-40",
+   "class": "needed"
+  },
+  {
+   "id": "C-41",
+   "class": "decision"
+  },
+  {
+   "id": "C-42",
+   "class": "decision"
+  },
+  {
+   "id": "C-43",
+   "class": "needed"
+  },
+  {
+   "id": "C-44",
+   "class": "needed"
+  },
+  {
+   "id": "C-45",
+   "class": "needed"
+  },
+  {
+   "id": "C-46",
+   "class": "needed"
+  },
+  {
+   "id": "C-47",
+   "class": "decision"
+  },
+  {
+   "id": "C-48",
+   "class": "needed"
+  },
+  {
+   "id": "C-49",
+   "class": "needed"
+  },
+  {
+   "id": "C-50",
+   "class": "needed"
+  },
+  {
+   "id": "C-51",
+   "class": "needed"
+  },
+  {
+   "id": "C-52",
+   "class": "needed"
+  },
+  {
+   "id": "C-53",
+   "class": "needed"
+  },
+  {
+   "id": "C-54",
+   "class": "decision"
+  },
+  {
+   "id": "C-55",
+   "class": "needed"
+  },
+  {
+   "id": "C-56",
+   "class": "decision"
+  },
+  {
+   "id": "C-57",
+   "class": "needed"
+  },
+  {
+   "id": "C-58",
+   "class": "needed"
+  },
+  {
+   "id": "C-59",
+   "class": "needed"
+  },
+  {
+   "id": "C-60",
+   "class": "needed"
+  },
+  {
+   "id": "C-61",
+   "class": "needed"
+  },
+  {
+   "id": "C-62",
+   "class": "decision"
+  },
+  {
+   "id": "C-63",
+   "class": "needed"
+  },
+  {
+   "id": "C-64",
+   "class": "needed"
+  },
+  {
+   "id": "C-65",
+   "class": "needed"
+  },
+  {
+   "id": "C-66",
+   "class": "extra",
+   "why": "Operator inspection of waitlist data is a new admin capability; the request only needs members to wait and be booked."
+  },
+  {
+   "id": "C-67",
+   "class": "extra",
+   "why": "An operator diagnostic surface for interrupted allocation is support tooling the request does not call for."
+  },
+  {
+   "id": "C-68",
+   "class": "decision"
+  },
+  {
+   "id": "C-69",
+   "class": "needed"
+  },
+  {
+   "id": "C-70",
+   "class": "needed"
+  },
+  {
+   "id": "C-71",
+   "class": "needed"
+  },
+  {
+   "id": "C-72",
+   "class": "extra",
+   "why": "A verified rollback/retirement procedure is a deployment duty beyond adding a waitlist."
+  },
+  {
+   "id": "C-73",
+   "class": "extra",
+   "why": "Rollback verification of promoted bookings is an operational duty the request does not call for."
+  },
+  {
+   "id": "C-74",
+   "class": "extra",
+   "why": "Member messaging about feature retirement exists only because the spec introduced a rollback procedure."
+  },
+  {
+   "id": "C-75",
+   "class": "extra",
+   "why": "Re-activation after rollback is a question raised only by the spec's own retirement procedure."
+  },
+  {
+   "id": "C-76",
+   "class": "needed"
+  },
+  {
+   "id": "C-77",
+   "class": "needed"
+  },
+  {
+   "id": "C-78",
+   "class": "needed"
+  },
+  {
+   "id": "C-79",
+   "class": "needed"
+  },
+  {
+   "id": "C-80",
+   "class": "needed"
+  },
+  {
+   "id": "C-81",
+   "class": "decision"
+  },
+  {
+   "id": "C-82",
+   "class": "needed"
+  },
+  {
+   "id": "C-83",
+   "class": "needed"
+  },
+  {
+   "id": "C-84",
+   "class": "needed"
+  },
+  {
+   "id": "C-85",
+   "class": "needed"
+  },
+  {
+   "id": "C-86",
+   "class": "needed"
+  },
+  {
+   "id": "C-87",
+   "class": "needed"
+  },
+  {
+   "id": "C-88",
+   "class": "needed"
+  },
+  {
+   "id": "C-89",
+   "class": "decision"
+  },
+  {
+   "id": "C-90",
+   "class": "empty",
+   "why": "Says the feature may launch only where it actually works and leaves every dependency unconfirmed; true of any product, decides nothing."
+  }
+ ]
+}

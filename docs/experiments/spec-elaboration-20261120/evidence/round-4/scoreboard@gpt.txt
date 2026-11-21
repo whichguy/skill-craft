@@ -1,0 +1,38 @@
+ROUND round-4@gpt   judge gpt-6.2-astra high   16 graded specs
+
+case                 arm                driver         covered  part   of   U    C  words   min
+csv-user-import      A-single           sol-medium          11     6   21  14   62   3510   2.9
+csv-user-import      A-single           sonnet-high         10     8   21  15   42   3162   1.8
+csv-user-import      D-enumerated-only  sol-medium          13     7   21  18  110   7049   6.6
+csv-user-import      D-enumerated-only  sonnet-high         15     5   21  11   86   6495   6.4
+grokbot-salesforce   A-single           sol-medium           8    14   27  14   54   3440   3.0
+grokbot-salesforce   A-single           sonnet-high          8    17   27  17   49   3669   1.7
+grokbot-salesforce   D-enumerated-only  sol-medium          13    11   27   8  139   8242   7.3
+grokbot-salesforce   D-enumerated-only  sonnet-high         15    12   27  14   89   7237   6.8
+gym-waitlist         A-single           sol-medium           9     8   21  13   83   4626   3.0
+gym-waitlist         A-single           sonnet-high          7    13   21  13   44   3625   2.2
+gym-waitlist         D-enumerated-only  sol-medium           9    11   21  15  174   8498   6.4
+gym-waitlist         D-enumerated-only  sonnet-high         15     6   21  12   93   6901   8.8
+invoice-reminders    A-single           sol-medium           9    11   20  16   58   3233   2.9
+invoice-reminders    A-single           sonnet-high          8    11   20  16   46   3576   2.6
+invoice-reminders    D-enumerated-only  sol-medium          12     8   20  17  118   7368   6.5
+invoice-reminders    D-enumerated-only  sonnet-high         14     6   20  15   98   6634   7.1
+
+BY ARM AND DRIVER (pooled over cases)
+  A-single           sol-medium   covered  37/ 89 ( 42%)  partial  39  over 4 cases
+  A-single           sonnet-high  covered  33/ 89 ( 37%)  partial  49  over 4 cases
+  D-enumerated-only  sol-medium   covered  47/ 89 ( 53%)  partial  37  over 4 cases
+  D-enumerated-only  sonnet-high  covered  59/ 89 ( 66%)  partial  29  over 4 cases
+
+BY NUANCE CATEGORY (covered / of)
+  category            A-single sol-me      A-single sonnet  D-enumerated sol-me  D-enumerated sonnet
+  async                          3/11                 2/11                 4/11                 4/11
+  data                           0/10                 3/10                 1/10                 5/10
+  edge                          10/12                 7/12                10/12                12/12
+  interaction                    6/12                 6/12                 5/12                 9/12
+  nonfunctional                   2/5                  3/5                  3/5                  4/5
+  operator                        0/9                  0/9                  3/9                  5/9
+  permission                      2/8                  1/8                  4/8                  5/8
+  platform                        0/5                  1/5                  2/5                  2/5
+  preserve                        4/5                  5/5                  5/5                  3/5
+  unhappy                       10/12                 5/12                10/12                10/12

@@ -1,0 +1,207 @@
+{
+ "slot": "csv-user-import__A-single__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "cost_usd": 0.2466814,
+ "missing_ids": [],
+ "clauses": [
+  {
+   "id": "C-1",
+   "class": "request"
+  },
+  {
+   "id": "C-2",
+   "class": "request"
+  },
+  {
+   "id": "C-3",
+   "class": "needed"
+  },
+  {
+   "id": "C-4",
+   "class": "needed"
+  },
+  {
+   "id": "C-5",
+   "class": "needed"
+  },
+  {
+   "id": "C-6",
+   "class": "needed"
+  },
+  {
+   "id": "C-7",
+   "class": "request"
+  },
+  {
+   "id": "C-8",
+   "class": "request"
+  },
+  {
+   "id": "C-9",
+   "class": "needed"
+  },
+  {
+   "id": "C-10",
+   "class": "needed"
+  },
+  {
+   "id": "C-11",
+   "class": "needed"
+  },
+  {
+   "id": "C-12",
+   "class": "needed"
+  },
+  {
+   "id": "C-13",
+   "class": "needed"
+  },
+  {
+   "id": "C-14",
+   "class": "needed"
+  },
+  {
+   "id": "C-15",
+   "class": "needed"
+  },
+  {
+   "id": "C-16",
+   "class": "needed"
+  },
+  {
+   "id": "C-17",
+   "class": "request"
+  },
+  {
+   "id": "C-18",
+   "class": "decision"
+  },
+  {
+   "id": "C-19",
+   "class": "needed"
+  },
+  {
+   "id": "C-20",
+   "class": "needed"
+  },
+  {
+   "id": "C-21",
+   "class": "decision"
+  },
+  {
+   "id": "C-22",
+   "class": "needed"
+  },
+  {
+   "id": "C-23",
+   "class": "needed"
+  },
+  {
+   "id": "C-24",
+   "class": "decision"
+  },
+  {
+   "id": "C-25",
+   "class": "decision"
+  },
+  {
+   "id": "C-26",
+   "class": "decision"
+  },
+  {
+   "id": "C-27",
+   "class": "extra",
+   "why": "Rejection feedback already names the exceeded limit; advertising limits before submission is an added duty the request does not need."
+  },
+  {
+   "id": "C-28",
+   "class": "needed"
+  },
+  {
+   "id": "C-29",
+   "class": "needed"
+  },
+  {
+   "id": "C-30",
+   "class": "decision"
+  },
+  {
+   "id": "C-31",
+   "class": "needed"
+  },
+  {
+   "id": "C-32",
+   "class": "needed"
+  },
+  {
+   "id": "C-33",
+   "class": "decision"
+  },
+  {
+   "id": "C-34",
+   "class": "needed"
+  },
+  {
+   "id": "C-35",
+   "class": "needed"
+  },
+  {
+   "id": "C-36",
+   "class": "needed"
+  },
+  {
+   "id": "C-37",
+   "class": "needed"
+  },
+  {
+   "id": "C-38",
+   "class": "decision"
+  },
+  {
+   "id": "C-39",
+   "class": "extra",
+   "why": "Rollback support is an operational duty beyond bulk user creation; the request never asks for reversible releases."
+  },
+  {
+   "id": "C-40",
+   "class": "extra",
+   "why": "Sign-in after a version rollback is a rollback-compatibility guarantee the request does not call for."
+  },
+  {
+   "id": "C-41",
+   "class": "extra",
+   "why": "Keeping imported accounts manageable in the previous release is rollback-compatibility work beyond the request."
+  },
+  {
+   "id": "C-42",
+   "class": "extra",
+   "why": "Imported users signing in after rollback is a rollback guarantee the request does not ask for."
+  },
+  {
+   "id": "C-43",
+   "class": "needed"
+  },
+  {
+   "id": "C-44",
+   "class": "decision"
+  },
+  {
+   "id": "C-45",
+   "class": "needed"
+  },
+  {
+   "id": "C-46",
+   "class": "needed"
+  },
+  {
+   "id": "C-47",
+   "class": "needed"
+  },
+  {
+   "id": "C-48",
+   "class": "needed"
+  }
+ ]
+}

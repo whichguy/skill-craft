@@ -1,0 +1,178 @@
+{
+ "slot": "csv-user-import__A-single__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "cost_usd": 0.2345948,
+ "missing_ids": [],
+ "clauses": [
+  {
+   "id": "C-1",
+   "class": "request"
+  },
+  {
+   "id": "C-2",
+   "class": "request"
+  },
+  {
+   "id": "C-3",
+   "class": "decision"
+  },
+  {
+   "id": "C-4",
+   "class": "needed"
+  },
+  {
+   "id": "C-5",
+   "class": "needed"
+  },
+  {
+   "id": "C-6",
+   "class": "decision"
+  },
+  {
+   "id": "C-7",
+   "class": "needed"
+  },
+  {
+   "id": "C-8",
+   "class": "decision"
+  },
+  {
+   "id": "C-9",
+   "class": "needed"
+  },
+  {
+   "id": "C-10",
+   "class": "decision"
+  },
+  {
+   "id": "C-11",
+   "class": "decision"
+  },
+  {
+   "id": "C-12",
+   "class": "request"
+  },
+  {
+   "id": "C-13",
+   "class": "needed"
+  },
+  {
+   "id": "C-14",
+   "class": "decision"
+  },
+  {
+   "id": "C-15",
+   "class": "decision"
+  },
+  {
+   "id": "C-16",
+   "class": "decision"
+  },
+  {
+   "id": "C-17",
+   "class": "decision"
+  },
+  {
+   "id": "C-18",
+   "class": "decision"
+  },
+  {
+   "id": "C-19",
+   "class": "decision"
+  },
+  {
+   "id": "C-20",
+   "class": "decision"
+  },
+  {
+   "id": "C-21",
+   "class": "decision"
+  },
+  {
+   "id": "C-22",
+   "class": "needed"
+  },
+  {
+   "id": "C-23",
+   "class": "needed"
+  },
+  {
+   "id": "C-24",
+   "class": "decision"
+  },
+  {
+   "id": "C-25",
+   "class": "decision"
+  },
+  {
+   "id": "C-26",
+   "class": "decision"
+  },
+  {
+   "id": "C-27",
+   "class": "decision"
+  },
+  {
+   "id": "C-28",
+   "class": "decision"
+  },
+  {
+   "id": "C-29",
+   "class": "decision"
+  },
+  {
+   "id": "C-30",
+   "class": "decision"
+  },
+  {
+   "id": "C-31",
+   "class": "decision"
+  },
+  {
+   "id": "C-32",
+   "class": "decision"
+  },
+  {
+   "id": "C-33",
+   "class": "decision"
+  },
+  {
+   "id": "C-34",
+   "class": "request"
+  },
+  {
+   "id": "C-35",
+   "class": "needed"
+  },
+  {
+   "id": "C-36",
+   "class": "needed"
+  },
+  {
+   "id": "C-37",
+   "class": "needed"
+  },
+  {
+   "id": "C-38",
+   "class": "decision"
+  },
+  {
+   "id": "C-39",
+   "class": "needed"
+  },
+  {
+   "id": "C-40",
+   "class": "needed"
+  },
+  {
+   "id": "C-41",
+   "class": "needed"
+  },
+  {
+   "id": "C-42",
+   "class": "needed"
+  }
+ ]
+}

@@ -607,3 +607,86 @@ So the outcome the plan to conclude called "fold in the lenses as one pass" is t
 its size stated honestly: a large gain for a weaker driver, a small or no gain for a stronger one, at no cost in
 coverage either way. And one thing the plan did not foresee: L and P are alternatives here, and the fold-back is
 neither. It is P with the lenses added, a text no round has run.
+
+## 12. The judge, checked twice; and the fourth answer: iterating is what adds scope, the one-pass form adds none (2026-11-20)
+
+### The coverage judge (R12, R13), on round 4's 16 specifications
+
+`evidence/round-4/agreement.txt`; the second sets sit beside the registered verdicts in `grades/round-4@r2/` and
+`grades/round-4@gpt/` and replace nothing.
+
+- **The other judge is calibrated the same way first.** Codex gpt-6.2-astra at high, with the same prompt, on the
+  calibration pair: 0 of 27 on the vacuous specification (Opus 0) and 7 of 27 on the aimed one (Opus 7).
+- **R12, the same judge again:** the same covered-or-not on 94% of 356 nuance verdicts, the same state on 92%; per
+  specification a mean move of 1.0 and a largest of 5; pooled by cell -1, +2, +5 and 0. So the judge alone moves a
+  pooled cell by up to 5, which is most of the floor of 6 measured in section 8: at this size the judge's draw
+  matters about as much as the subject's.
+- **R13, a judge of another family:** stricter everywhere (39 verdicts go from covered to partial; the pooled
+  cells fall by 3 to 12) and agreeing on covered-or-not for 87%. What the registered reading asked:
+  - D over A on Sonnet: +31 under Opus, **+26 under astra**. Holds.
+  - D over A on Sol: +18 under Opus, +10 under astra. These are round 4's Sol sessions, the ones with the
+    user-level skills shown, where section 9 found the single pass inflated; the clean pair of round 4c has not
+    been read by astra.
+  - Sonnet over Sol on the recursive arm: +13 under Opus, +12 under astra. It does not shrink, so that gap is not
+    the judge's family favouring its own.
+- Status: the main effect and the ordering of the drivers do not depend on which family judges. The deciding
+  round, round 5, has been read by one judge only; that is queued below.
+
+### The clause audit (R10): the fourth answer
+
+One Opus session a specification put every clause in one class. Clean specifications only (round 4 Sonnet,
+round 4c Sol, round 5 F and L); no clause left unclassed in any of the 32. `evidence/round-{4,4c,5}/audit.txt`.
+
+| arm | Sonnet: clauses | called extra | Sol: clauses | called extra |
+| --- | --- | --- | --- | --- |
+| A-single | 181 | 17% | 225 | 17% |
+| **L-lenses-once** | **220** | **13%** | **372** | **13%** |
+| F-guarded (iterating, guard restored) | 308 | 23% | 527 | 20% |
+| D-enumerated-only (iterating, no guard) | 366 | 26% | 478 | 27% |
+
+- **The iterating form adds scope: shown.** D's share of clauses beyond the request is 9 and 10 points above the
+  single pass (threshold 5), and in count about three times as many (94 against 30 on Sonnet, 127 against 38 on
+  Sol).
+- **The guard helps on Sol and is not shown to on Sonnet.** F against D: -7 points on Sol, -3 on Sonnet.
+- **The one-pass form does not add scope at all.** L is at 13% on both drivers, below the single pass. Whatever
+  makes a specification grow things nobody asked for, it is going round again, not the lenses.
+- `empty` is 0 to 1% on Sonnet and 3 to 5% on Sol; `wrong` is 1% or less everywhere. Section 3's "Sol adds clauses
+  that carry no decision" was a reading of a handful of clauses under an arm that has not been audited; under the
+  arms that have, the share is small. That sentence is not supported at the size it was stated.
+
+### The two instruments pull against each other in one place, and it is the owner's place
+
+The audit reads "beyond the request" strictly: it calls an import audit log, a per-user rate limit, an
+administrator's history page extra, because the request works without them. The checklist counts several of those
+as things a well-elaborated specification states. `evidence/round-5/coverage-vs-audit.txt` measures the overlap:
+a covered nuance "rests on an extra clause" when the clause the coverage judge cites for it is one the audit calls
+extra.
+
+| arm | Sonnet: covered | resting on an extra clause | Sol: covered | resting on an extra clause |
+| --- | --- | --- | --- | --- |
+| A-single | 40 | 2 | 29 | 2 |
+| L-lenses-once | 64 | 5 | 62 | 4 |
+| F-guarded | 68 | 14 | 60 | 6 |
+| D-enumerated-only | 71 | 11 | 64 | 10 |
+
+- **Counting only coverage a strict reader would also accept, the one-pass form is ahead of the iterating one**:
+  L 59 and 58, F 54 and 54, D 60 and 54. F minus L goes from +4 and -2 to -5 and -4. Iterating buys nothing a
+  strict reader accepts; what it buys is the scope.
+- The one-pass form's lead over the single pass is untouched by the strict reading: +21 and +31 (against round
+  4's draw of A on Sonnet, 40; the +21 of section 11 was against the mean of its two draws, 43).
+- **Seventy percent of the operator nuances the lens arms cover rest on clauses the audit calls extra** (19 of
+  27); no other category is above 19%. The operator's work is where the lenses beat the released stage most on
+  Sonnet, and it is exactly where "rigour" and "unrequested scope" are the same clause read two ways. Which
+  reading ShipLoop wants there is a product judgement, the owner's own rule being that rigour is standard and only
+  unrequested scope is overbuilding.
+
+### The four answers
+
+1. **Real beyond noise?** Yes, for the lens content: +21 on Sonnet and +33 on Sol in one pass, holding under a
+   strict reading and, on Sonnet, under a judge of another family.
+2. **Which form?** One pass. Iterating shows no coverage gain, loses on strictly accepted coverage, takes twice
+   the time and is where the unrequested scope comes from.
+3. **Does it overbuild?** The one-pass form does not (13% of clauses beyond the request, under the single pass's
+   17%). The iterating forms do (20 to 27%).
+4. **Does it add to the stage ShipLoop ships?** On Sol at medium, clearly (+19). On Sonnet at high, not shown
+   (+6), and what it adds there is mostly the operator's work, which a strict reader calls scope.

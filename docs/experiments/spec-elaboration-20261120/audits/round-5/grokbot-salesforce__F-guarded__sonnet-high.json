@@ -1,0 +1,396 @@
+{
+ "slot": "grokbot-salesforce__F-guarded__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "cost_usd": 0.6125354,
+ "missing_ids": [],
+ "clauses": [
+  {
+   "id": "C-1",
+   "class": "request"
+  },
+  {
+   "id": "C-2",
+   "class": "decision"
+  },
+  {
+   "id": "C-3",
+   "class": "request"
+  },
+  {
+   "id": "C-4",
+   "class": "needed"
+  },
+  {
+   "id": "C-5",
+   "class": "decision"
+  },
+  {
+   "id": "C-6",
+   "class": "needed"
+  },
+  {
+   "id": "C-7",
+   "class": "decision"
+  },
+  {
+   "id": "C-8",
+   "class": "needed"
+  },
+  {
+   "id": "C-9",
+   "class": "needed"
+  },
+  {
+   "id": "C-10",
+   "class": "decision"
+  },
+  {
+   "id": "C-11",
+   "class": "needed"
+  },
+  {
+   "id": "C-12",
+   "class": "decision"
+  },
+  {
+   "id": "C-13",
+   "class": "extra",
+   "why": "Server-side re-check of a chosen length cap protects nothing the bot's purpose needs; the page check already delivers the limit."
+  },
+  {
+   "id": "C-14",
+   "class": "needed"
+  },
+  {
+   "id": "C-15",
+   "class": "extra",
+   "why": "Exists only because the spec chose to persist conversations across sessions, which the request does not call for."
+  },
+  {
+   "id": "C-16",
+   "class": "extra",
+   "why": "A labelled conversation list exists only because the spec added stored, multiple conversations."
+  },
+  {
+   "id": "C-17",
+   "class": "decision"
+  },
+  {
+   "id": "C-18",
+   "class": "extra",
+   "why": "Persisting conversations across sessions and logins is a capability beyond a working Grok chat bot."
+  },
+  {
+   "id": "C-19",
+   "class": "extra",
+   "why": "Exists only because the spec chose to persist conversations across sessions, which the request does not call for."
+  },
+  {
+   "id": "C-20",
+   "class": "extra",
+   "why": "A per-conversation storage cap only arises from the spec's own persistence feature."
+  },
+  {
+   "id": "C-21",
+   "class": "extra",
+   "why": "A per-user conversation cap only arises from the spec's own persistence feature."
+  },
+  {
+   "id": "C-22",
+   "class": "extra",
+   "why": "Conversation deletion with confirmation is a management feature of the added persistence."
+  },
+  {
+   "id": "C-23",
+   "class": "extra",
+   "why": "Concerns the interaction of two added features, conversation deletion and the call log."
+  },
+  {
+   "id": "C-24",
+   "class": "extra",
+   "why": "Exists only because the spec chose to persist conversations across sessions, which the request does not call for."
+  },
+  {
+   "id": "C-25",
+   "class": "decision"
+  },
+  {
+   "id": "C-26",
+   "class": "decision"
+  },
+  {
+   "id": "C-27",
+   "class": "decision"
+  },
+  {
+   "id": "C-28",
+   "class": "needed"
+  },
+  {
+   "id": "C-29",
+   "class": "decision"
+  },
+  {
+   "id": "C-30",
+   "class": "decision"
+  },
+  {
+   "id": "C-31",
+   "class": "needed"
+  },
+  {
+   "id": "C-32",
+   "class": "extra",
+   "why": "A truncation note is a refinement the request's purpose does not require; showing the returned text suffices."
+  },
+  {
+   "id": "C-33",
+   "class": "extra",
+   "why": "An admin-editable settings store with an on/off switch is an operator feature the request does not ask for."
+  },
+  {
+   "id": "C-34",
+   "class": "decision"
+  },
+  {
+   "id": "C-35",
+   "class": "extra",
+   "why": "Validation of the added admin settings arises only from that extra feature."
+  },
+  {
+   "id": "C-36",
+   "class": "extra",
+   "why": "Live settings changes arise only from the added configurable settings."
+  },
+  {
+   "id": "C-37",
+   "class": "extra",
+   "why": "Access control for the added settings arises only from that extra feature."
+  },
+  {
+   "id": "C-38",
+   "class": "needed"
+  },
+  {
+   "id": "C-39",
+   "class": "extra",
+   "why": "The on/off switch and its behaviour are an operator feature not requested."
+  },
+  {
+   "id": "C-40",
+   "class": "extra",
+   "why": "Server enforcement of the added on/off switch arises only from that extra feature."
+  },
+  {
+   "id": "C-41",
+   "class": "extra",
+   "why": "In-flight behaviour of the added on/off switch arises only from that extra feature."
+  },
+  {
+   "id": "C-42",
+   "class": "decision"
+  },
+  {
+   "id": "C-43",
+   "class": "decision"
+  },
+  {
+   "id": "C-44",
+   "class": "needed"
+  },
+  {
+   "id": "C-45",
+   "class": "extra",
+   "why": "A call-log object with detailed fields is an audit feature the request does not call for."
+  },
+  {
+   "id": "C-46",
+   "class": "extra",
+   "why": "Rules about the added call log arise only from that extra feature."
+  },
+  {
+   "id": "C-47",
+   "class": "extra",
+   "why": "Content restrictions on the added call log arise only from that extra feature."
+  },
+  {
+   "id": "C-48",
+   "class": "extra",
+   "why": "Access control for the added call log arises only from that extra feature."
+  },
+  {
+   "id": "C-49",
+   "class": "extra",
+   "why": "Owner-only visibility of stored conversations arises only from the added persistence."
+  },
+  {
+   "id": "C-50",
+   "class": "decision"
+  },
+  {
+   "id": "C-51",
+   "class": "extra",
+   "why": "A permanent data-processing notice is a disclosure duty the request does not ask for."
+  },
+  {
+   "id": "C-52",
+   "class": "needed"
+  },
+  {
+   "id": "C-53",
+   "class": "decision"
+  },
+  {
+   "id": "C-54",
+   "class": "extra",
+   "why": "Scheduled purging of logs and conversations exists only to manage the spec's added storage features."
+  },
+  {
+   "id": "C-55",
+   "class": "extra",
+   "why": "The scheduling step for the added clean-up job arises only from that extra feature."
+  },
+  {
+   "id": "C-56",
+   "class": "decision"
+  },
+  {
+   "id": "C-57",
+   "class": "decision"
+  },
+  {
+   "id": "C-58",
+   "class": "request"
+  },
+  {
+   "id": "C-59",
+   "class": "extra",
+   "why": "Preserving data and settings across redeployments is an operator lifecycle duty beyond creating the bot."
+  },
+  {
+   "id": "C-60",
+   "class": "extra",
+   "why": "Rollback to earlier versions is a lifecycle capability the request does not call for."
+  },
+  {
+   "id": "C-61",
+   "class": "decision"
+  },
+  {
+   "id": "C-62",
+   "class": "extra",
+   "why": "Most listed README steps document added features: clean-up, key rotation, switch-off, rollback and storage limits."
+  },
+  {
+   "id": "C-63",
+   "class": "decision"
+  },
+  {
+   "id": "C-64",
+   "class": "decision"
+  },
+  {
+   "id": "C-65",
+   "class": "decision"
+  },
+  {
+   "id": "C-66",
+   "class": "extra",
+   "why": "Load-failure handling for the conversation list arises only from the added persistence."
+  },
+  {
+   "id": "C-67",
+   "class": "extra",
+   "why": "The empty-list hint concerns the added conversation list."
+  },
+  {
+   "id": "C-68",
+   "class": "extra",
+   "why": "Cross-tab consistency of a shared stored conversation arises only from the added persistence."
+  },
+  {
+   "id": "C-69",
+   "class": "extra",
+   "why": "Race-safe re-checking of the added storage caps arises only from those extra limits."
+  },
+  {
+   "id": "C-70",
+   "class": "extra",
+   "why": "Sending to a deleted conversation arises only from the added persistence and deletion."
+  },
+  {
+   "id": "C-71",
+   "class": "extra",
+   "why": "Storage-failure handling of turns arises only from the added persistence."
+  },
+  {
+   "id": "C-72",
+   "class": "needed"
+  },
+  {
+   "id": "C-73",
+   "class": "needed"
+  },
+  {
+   "id": "C-74",
+   "class": "decision"
+  },
+  {
+   "id": "C-75",
+   "class": "needed"
+  },
+  {
+   "id": "C-76",
+   "class": "needed"
+  },
+  {
+   "id": "C-77",
+   "class": "extra",
+   "why": "Production-grade tests and coverage are not required to build a bot in a development org."
+  },
+  {
+   "id": "C-78",
+   "class": "decision"
+  },
+  {
+   "id": "C-79",
+   "class": "extra",
+   "why": "Duplicates server enforcement for refusals mostly tied to added features; access control is already covered by other clauses."
+  },
+  {
+   "id": "C-80",
+   "class": "decision"
+  },
+  {
+   "id": "C-81",
+   "class": "needed"
+  },
+  {
+   "id": "C-82",
+   "class": "extra",
+   "why": "Portability to other orgs goes beyond the single development org requested."
+  },
+  {
+   "id": "C-83",
+   "class": "extra",
+   "why": "In-flight isolation from settings and key changes arises from the added live settings and rotation features."
+  },
+  {
+   "id": "C-84",
+   "class": "extra",
+   "why": "A separate administrator permission set exists only to govern the added settings and call log."
+  },
+  {
+   "id": "C-85",
+   "class": "extra",
+   "why": "A notice about the added 90-day purge arises only from that extra feature."
+  },
+  {
+   "id": "C-86",
+   "class": "empty",
+   "why": "Requiring that some applicable refusal appears adds nothing beyond the individual refusal clauses; which outcome appears is left unspecified."
+  }
+ ]
+}

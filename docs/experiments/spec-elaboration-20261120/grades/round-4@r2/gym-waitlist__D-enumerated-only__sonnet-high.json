@@ -1,0 +1,141 @@
+{
+ "slot": "gym-waitlist__D-enumerated-only__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": "r2",
+ "cost_usd": 0.336157,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-5",
+   "quote": "the first person in line who is eligible (C-37) is booked into the class with no action on their part"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-4, C-53, C-15",
+   "quote": "the one whose join the app accepted earliest is the first to be offered a freed spot ... the one the app accepted first is ahead ... a freed spot is never taken by a person who is not first in line"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-63",
+   "quote": "Being promoted into one occurrence, or leaving one waitlist, changes no other waitlist entry the member has, including entries for other occurrences at overlapping times."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-44, C-78",
+   "quote": "a member who cancels a booking they received by promotion within 2 hours after being promoted pays none of it ... After the 2 hours the app's normal rules apply."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-6, C-57, C-70",
+   "quote": "A spot counts as freed, and C-5 applies, in exactly these cases: (a) a booking stops being active ... every promotion and every entry removal it causes is complete within 60 seconds"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-40, C-8, C-42, C-69",
+   "quote": "goes through every channel the app already uses to confirm bookings ... If a promoted member's notice cannot be delivered, they still hold the booking ... a notice that fails to deliver is retried"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-54, C-79",
+   "quote": "no spot is given to two people and none is left free while eligible people are waiting ... After any promotion, an occurrence's active bookings are at most its capacity."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-62, C-15",
+   "quote": "If a member on an occurrence's waitlist comes to hold an active booking in it by any other means ... their entry for that occurrence is removed",
+   "missing": "The race where the first-in-line member themself tries to book directly at the moment they are promoted is not stated: C-15 only refuses 'someone else', so the outcome for that member (refused, or already booked with no second booking) is left open."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-38",
+   "quote": "promotion takes the same amount at the moment of promotion (not at joining) ... If it cannot be taken, the member is skipped under C-17 b and no booking exists."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-18, C-14, C-52",
+   "quote": "an occurrence's waitlist holds at most 20 members; the 21st person trying to join is refused ... Otherwise the occurrence shows as full and offers no join control"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-20",
+   "quote": "A waitlist is open until 60 minutes before the class starts ... When it is not open no one can join and no one is promoted."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-27, C-28",
+   "quote": "When staff raise an occurrence's capacity by k, up to k people are promoted, in order ... When staff lower capacity ... no booking is cancelled ... nobody is promoted until the active bookings fall below the capacity."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-23",
+   "quote": "When staff cancel an occurrence, all its waitlist entries are removed and each member receives the notice in C-22. Nobody is promoted."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-24, C-9",
+   "quote": "each entry's position, member name and the date and time they joined ... At all times positions on a waitlist are the whole numbers 1 to N with no gaps and no repeats.",
+   "missing": "Whether position is stored on the entry or derived from join order, and the entry's set of states, are not stated as a record definition."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-20, C-46",
+   "quote": "Within 60 seconds after it closes (C-70), every remaining entry is removed ... remains visible to staff for 90 days after the occurrence's start time, and is then deleted."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-10, C-30",
+   "quote": "show a waitlisted member as waitlisted for that class together with their current position ... A member never sees another member's name or any identifying detail of anyone on a waitlist"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-24, C-25, C-45",
+   "quote": "sees its waitlist ordered by position ... A staff member removing an entry makes it disappear ... a history of its waitlist events, each with the time, the member's name and exactly one event type",
+   "missing": "Whether staff can promote someone by hand is not stated; no manual-promote action is given or excluded."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-29, C-26",
+   "quote": "With the waitlist switched off: no member is shown a join control, every join is refused (C-14 j), no promotion happens ... For each occurrence staff can mark joining closed or open"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-70, C-57",
+   "quote": "every promotion and every entry removal it causes is complete within 60 seconds ... no one looking at the occurrence at any moment sees a free spot"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-76, C-31",
+   "quote": "For an occurrence with a free spot (and no one waiting), booking works exactly as before the feature ... no booking is changed, added or removed."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-31, U-10",
+   "quote": "When the feature first goes live, every occurrence has an empty waitlist and no booking is changed, added or removed."
+  }
+ ]
+}

@@ -1,0 +1,185 @@
+{
+ "slot": "grokbot-salesforce__D-enumerated-only__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "C-21, C-98",
+   "quote": "open Grok through signed-in Salesforce Lightning navigation \u2026 It does not include Salesforce record fields, IDs, page context, user identity, permission data or Salesforce session material drawn from the org.",
+   "missing": "Which Lightning surface hosts the bot and what context that surface passes to it on launch. C-98 describes what reaches xAI."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-41, C-98",
+   "quote": "Requests for CRM reads or writes, web search, code execution, messaging, or scheduled work can receive a text answer without carrying out those actions. \u2026 The bot does not automatically include Salesforce data in an inference request.",
+   "missing": "The pilot excludes CRM retrieval. It specifies no execution in the asking user\u2019s sharing context for record-based answers."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "C-98",
+   "quote": "It does not include Salesforce record fields, IDs, page context, user identity, permission data or Salesforce session material drawn from the org.",
+   "missing": "The blanket exclusion covers the inference payload. There is no field-level permission or encrypted-field handling rule for reading or displaying record values."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-24, C-26",
+   "quote": "Grant bot use to one active Salesforce user. That user can send if the bot is otherwise ready, while another otherwise equivalent unassigned user is refused. \u2026 Bot administration requires a separate administrative grant."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-102, C-99",
+   "quote": "with no access to another view\u2019s content. \u2026 After a view ends, there is no bot-provided way for a user or administrator to retrieve its draft, prompts, answers or pending outcomes."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-77, C-78",
+   "quote": "If a proposed Apex callout encounters uncommitted DML \u2026 the callout cannot go ahead in that state. \u2026 A synchronous record-trigger transaction cannot obtain a Grok answer by making an Apex callout inline.",
+   "missing": "Whether the bot dispatches inference asynchronously in a separate transaction, and what performs that work."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-97, C-69",
+   "quote": "operator diagnostics, app logs and deployment artifacts. None receives the configured key from the bot. \u2026 If the bot uses an external credential principal",
+   "missing": "Which protected credential store must hold the key. External Credentials are conditional, and the exposure restrictions do not select a storage mechanism."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-71, C-73, C-75, C-76",
+   "quote": "exceed 100 callouts \u2026 accepts 1\u2013120,000 milliseconds for a custom timeout \u2026 6 MB in synchronous Apex or 12 MB in asynchronous Apex heap \u2026 10,000 ms for synchronous Apex or 60,000 ms for asynchronous Apex."
+  },
+  {
+   "id": "N-9",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-67",
+   "quote": "If Apex supplies the Salesforce-to-xAI connection, omit its outbound authorization. The smoke attempt fails before reaching xAI. Salesforce requires an approved remote site or an applicable Named Credential for the destination."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-4, C-111",
+   "quote": "the user sees that a reply is pending until the turn succeeds, fails, or the conversation view is lost. \u2026 Complete a turn, then deliver the same answer again.",
+   "missing": "How the view learns of completion and obtains the answer after submission."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-111",
+   "quote": "Complete a turn, then deliver the same answer again. The transcript has one entry for that turn, containing its submitted prompt and one answer."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-52, C-58, C-129",
+   "quote": "the open, responsive view exits pending and shows a timeout. \u2026 For a timeout, transport, Salesforce runtime or other provider failure the user can explicitly resend or seek help. \u2026 Provider HTTP outcomes support the operator\u2019s smoke classification.",
+   "missing": "What distinct outcome an ordinary user sees for a rejected request versus an upstream service error. The detailed HTTP mapping applies to operator smoke tests."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-81, C-56, C-58",
+   "quote": "HTTP 429, which appears as a capacity failure. \u2026 Observe no second provider inference call unless the user explicitly submits again. \u2026 For a capacity or account refusal the user can retry later or seek administrator help."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-132, C-52",
+   "quote": "the turn fails without exposing a fragment as an answer. \u2026 If no terminal outcome is available within 30 seconds of submission, the open, responsive view exits pending and shows a timeout."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-34, C-36",
+   "quote": "The transcript contains successful turns 2\u20136 in order, each consisting of the submitted user text followed by the answer text. \u2026 The bot has no saved transcripts or cross-device history.",
+   "missing": "Only the view\u2019s turn structure is specified. There is no conversation or turn record schema storing status, timestamps, model identifier or usage counts."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-36, C-6, C-84",
+   "quote": "A conversation is available only during the lifetime of its open view. \u2026 The draft and visible turns clear \u2026 After clearing the view, content already submitted remains subject to the xAI team\u2019s policy.",
+   "missing": "What deletion of the Salesforce user does to an open conversation and to content already submitted to xAI."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-98, C-109",
+   "quote": "does not automatically include Salesforce data \u2026 The conversation content consists of the submitted text and the bounded prior user and assistant text. \u2026 A fresh view advises users to use non-sensitive development text."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-5, C-82",
+   "quote": "up to the 5 most recent successful prompt-and-answer pairs in their original order, followed by the new prompt. \u2026 If the combined input exceeds the selected model\u2019s token window, the turn fails on that request."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-31, C-7, C-8, C-43",
+   "quote": "an empty transcript and empty text composer. \u2026 The bot refuses empty prompts. \u2026 A nonblank prompt of 1\u20134,000 Unicode code points, inclusive, passes the length check. \u2026 An otherwise usable response at 12,000 code points is displayed intact."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "C-12, C-29, C-59",
+   "quote": "The administrator can pause admission of new sends. \u2026 The administrator can select a different identifier to replace the current selection. \u2026 Operator diagnostics classify the latest smoke outcome.",
+   "missing": "How an administrator can see failed requests from ordinary users. Diagnostics cover only the administrator\u2019s latest smoke attempt."
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "C-20, C-70, C-86",
+   "quote": "A Developer Edition org, development sandbox, or scratch org qualifies if designated for this work. \u2026 The target org requires separate credential provisioning. \u2026 Salesforce requires at least 75% aggregate Apex coverage.",
+   "missing": "How to deploy the bot\u2019s metadata and how production settings and credentials are provisioned separately from development."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "C-4, C-52",
+   "quote": "the user sees that a reply is pending until the turn succeeds, fails, or the conversation view is lost. \u2026 A send has a 30-second user-facing deadline."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "C-31, C-4, C-11, C-58",
+   "quote": "an empty transcript and empty text composer. \u2026 The bot shows when a send is pending. \u2026 A failed turn ends with a visible failure outcome. \u2026 An unassigned user is refused and can seek access."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-17, C-90, C-91",
+   "quote": "Their data stays unchanged as a result of those bot actions. \u2026 metadata, permissions and external connections unrelated to the bot \u2026 Their definitions and assignments stay unchanged \u2026 It does not invoke Grok or require a Grok response."
+  }
+ ]
+}

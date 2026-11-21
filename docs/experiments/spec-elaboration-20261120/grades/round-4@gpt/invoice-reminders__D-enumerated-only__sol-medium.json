@@ -1,0 +1,140 @@
+{
+ "slot": "invoice-reminders__D-enumerated-only__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-22",
+   "quote": "Reminders have three scheduled offsets from the due date. \u2026 The offsets are 1, 7, and 14 calendar days after the due date, including weekends and holidays."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-18, C-19, C-20",
+   "quote": "Zero balances, credit balances, and unavailable or indeterminate balances fail this check. \u2026 Paid or otherwise fully settled, voided or canceled, written-off, deleted, and superseded invoices produce zero new submissions \u2026 an unresolved dispute produces zero submissions",
+   "missing": "Whether an active payment plan suspends reminders when a positive balance remains and no separate collection hold is recorded."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-38",
+   "quote": "If a partial payment reduces the outstanding amount from 100 USD to 40 USD before initiation, the attempted message states 40 USD."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-27",
+   "quote": "Missing, malformed, ambiguous, suppressed following a known permanent delivery failure, and explicitly opted-out destinations each produce zero new submissions.",
+   "missing": "Whether a customer-wide do-not-contact or pause applies across billing addresses, and whether a marketing unsubscribe also suppresses billing reminders."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-45",
+   "quote": "Overlapping runs, repeated triggers, redeployment, account toggles, due-date edits, retries, and recipient changes cannot produce a second accepted submission for the same billing account, invoice, and offset."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-37",
+   "quote": "For each attempt, a payment, state change, account pause, due-date edit, suppression or opt-out change, or recipient correction effective before submission initiation is reflected in the eligibility check."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-11, C-52, C-53, C-117",
+   "quote": "A temporary delivery outage permits automatic retry. \u2026 The earliest automatic retry starts 15 minutes after temporary nonacceptance. \u2026 A scheduled window permits a maximum of three submission attempts. \u2026 the window shows retry exhausted.",
+   "missing": "Whether repeated failures trigger an alert or handoff to a person, and who receives it."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-65",
+   "quote": "A provider-specified retry time is honored. The selected service and its per-second limit, rolling or daily quota, and submission concurrency limit are unconfirmed.",
+   "missing": "Which provider limits apply and how to pace a large batch within them before throttling occurs."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-34",
+   "quote": "When enablement or resumption takes effect at instant T, only windows whose opening is at or after T qualify during that enabled interval."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-22, C-23, C-24",
+   "quote": "including weekends and holidays. \u2026 the first window opens at 09:00 UTC on 2026-11-21 regardless of daylight saving changes or viewer location. \u2026 Each reminder window is open for 24 hours."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-28",
+   "quote": "the amount still collectible, and its currency. Presentation can vary.",
+   "missing": "How to display the amount and currency for the recipient, including decimal precision, separators, and currency symbol or code."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-27, C-57",
+   "quote": "Missing, malformed, ambiguous, suppressed following a known permanent delivery failure, and explicitly opted-out destinations each produce zero new submissions. \u2026 When definitive bounce evidence for an accepted attempt arrives, the operator sees bounced for that window."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-26, C-27",
+   "quote": "A submission has exactly one recipient, the address currently designated by the billing record for this invoice. \u2026 An address is ambiguous when the billing record designates more than one mailbox for the invoice and establishes no priority."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-32, C-33",
+   "quote": "For an invoice, the operator can identify each window \u2026 Each visible window shows the invoice reference, scheduled instant, offset, current outcome, time of that outcome, and submission attempt count.",
+   "missing": "Whether the invoice itself shows the actual message details sent at each step, such as the recipient and balance quoted at send time."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-28, C-79",
+   "quote": "The email provides the issuing business identity, the displayed invoice reference, the current due date, the amount still collectible, and its currency. \u2026 If a reminder includes a link",
+   "missing": "Whether the reminder must provide a way to pay and whether or when a payment link expires."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-5, C-31, C-102",
+   "quote": "An authorized billing operator can pause reminders for their billing account. \u2026 Reminders have no operator-adjustable cadence \u2026 A user cannot use the reminder feature to dispatch an extra message, force a retry, or reopen an expired window."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-31, C-102",
+   "quote": "The operator can change only whether automatic reminders are enabled at the account boundary. \u2026 A user cannot use the reminder feature to dispatch an extra message, force a retry, or reopen an expired window.",
+   "missing": "Whether an operator can preview a reminder or dry-run sending against current invoices."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-33, C-96",
+   "quote": "Each visible window shows the invoice reference, scheduled instant, offset, current outcome, time of that outcome, and submission attempt count. \u2026 Before an eligible upcoming window opens, its pending outcome has an attempt count of zero."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-24",
+   "quote": "Each reminder window is open for 24 hours. \u2026 permits submission starting at 09:00 UTC on 2026-11-21 up to but excluding 09:00 UTC on 2026-11-22."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-71, C-73, C-75",
+   "quote": "Automatic reminders leave invoice issuance independent. \u2026 Automatic reminders leave settlement independent. \u2026 Submitting, skipping, failing, or retrying a reminder leaves the invoice\u2019s identity, lifecycle state, issue date, due date, customer, currency, collectible balance, and payment records unchanged."
+  }
+ ]
+}

@@ -1,0 +1,227 @@
+{
+ "slot": "csv-user-import__L-lenses-once__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "cost_usd": 0.2654112,
+ "missing_ids": [],
+ "clauses": [
+  {
+   "id": "C-1",
+   "class": "request"
+  },
+  {
+   "id": "C-2",
+   "class": "needed"
+  },
+  {
+   "id": "C-3",
+   "class": "needed"
+  },
+  {
+   "id": "C-4",
+   "class": "needed"
+  },
+  {
+   "id": "C-5",
+   "class": "needed"
+  },
+  {
+   "id": "C-6",
+   "class": "needed"
+  },
+  {
+   "id": "C-7",
+   "class": "needed"
+  },
+  {
+   "id": "C-8",
+   "class": "decision"
+  },
+  {
+   "id": "C-9",
+   "class": "decision"
+  },
+  {
+   "id": "C-10",
+   "class": "decision"
+  },
+  {
+   "id": "C-11",
+   "class": "decision"
+  },
+  {
+   "id": "C-12",
+   "class": "decision"
+  },
+  {
+   "id": "C-13",
+   "class": "request"
+  },
+  {
+   "id": "C-14",
+   "class": "decision"
+  },
+  {
+   "id": "C-15",
+   "class": "decision"
+  },
+  {
+   "id": "C-16",
+   "class": "decision"
+  },
+  {
+   "id": "C-17",
+   "class": "decision"
+  },
+  {
+   "id": "C-18",
+   "class": "decision"
+  },
+  {
+   "id": "C-19",
+   "class": "decision"
+  },
+  {
+   "id": "C-20",
+   "class": "decision"
+  },
+  {
+   "id": "C-21",
+   "class": "decision"
+  },
+  {
+   "id": "C-22",
+   "class": "decision"
+  },
+  {
+   "id": "C-23",
+   "class": "decision"
+  },
+  {
+   "id": "C-24",
+   "class": "decision"
+  },
+  {
+   "id": "C-25",
+   "class": "decision"
+  },
+  {
+   "id": "C-26",
+   "class": "decision"
+  },
+  {
+   "id": "C-27",
+   "class": "decision"
+  },
+  {
+   "id": "C-28",
+   "class": "decision"
+  },
+  {
+   "id": "C-29",
+   "class": "decision"
+  },
+  {
+   "id": "C-30",
+   "class": "decision"
+  },
+  {
+   "id": "C-31",
+   "class": "decision"
+  },
+  {
+   "id": "C-32",
+   "class": "decision"
+  },
+  {
+   "id": "C-33",
+   "class": "decision"
+  },
+  {
+   "id": "C-34",
+   "class": "decision"
+  },
+  {
+   "id": "C-35",
+   "class": "request"
+  },
+  {
+   "id": "C-36",
+   "class": "decision"
+  },
+  {
+   "id": "C-37",
+   "class": "needed"
+  },
+  {
+   "id": "C-38",
+   "class": "needed"
+  },
+  {
+   "id": "C-39",
+   "class": "request"
+  },
+  {
+   "id": "C-40",
+   "class": "decision"
+  },
+  {
+   "id": "C-41",
+   "class": "decision"
+  },
+  {
+   "id": "C-42",
+   "class": "decision"
+  },
+  {
+   "id": "C-43",
+   "class": "decision"
+  },
+  {
+   "id": "C-44",
+   "class": "decision"
+  },
+  {
+   "id": "C-45",
+   "class": "needed"
+  },
+  {
+   "id": "C-46",
+   "class": "extra",
+   "why": "Depends on the import-record audit trail (C-49/C-50), which the request never asks for; the import works without it."
+  },
+  {
+   "id": "C-47",
+   "class": "needed"
+  },
+  {
+   "id": "C-48",
+   "class": "needed"
+  },
+  {
+   "id": "C-49",
+   "class": "extra",
+   "why": "An audit log of import attempts is a new capability; bulk-creating users works fully without recording each attempt."
+  },
+  {
+   "id": "C-50",
+   "class": "extra",
+   "why": "Import detail pages and user-to-import traceability extend the unrequested audit trail of C-49."
+  },
+  {
+   "id": "C-51",
+   "class": "extra",
+   "why": "Listing and access-controlling import records only arises because the spec introduced the audit log of C-49."
+  },
+  {
+   "id": "C-52",
+   "class": "extra",
+   "why": "A retention rule for import records exists only because the spec introduced the unrequested audit trail."
+  },
+  {
+   "id": "C-53",
+   "class": "needed"
+  }
+ ]
+}

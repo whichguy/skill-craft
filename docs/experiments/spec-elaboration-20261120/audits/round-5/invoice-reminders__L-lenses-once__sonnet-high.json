@@ -1,0 +1,223 @@
+{
+ "slot": "invoice-reminders__L-lenses-once__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "cost_usd": 0.3443196,
+ "missing_ids": [],
+ "clauses": [
+  {
+   "id": "C-1",
+   "class": "decision"
+  },
+  {
+   "id": "C-2",
+   "class": "needed"
+  },
+  {
+   "id": "C-3",
+   "class": "decision"
+  },
+  {
+   "id": "C-4",
+   "class": "decision"
+  },
+  {
+   "id": "C-5",
+   "class": "decision"
+  },
+  {
+   "id": "C-6",
+   "class": "decision"
+  },
+  {
+   "id": "C-7",
+   "class": "decision"
+  },
+  {
+   "id": "C-8",
+   "class": "needed"
+  },
+  {
+   "id": "C-9",
+   "class": "needed"
+  },
+  {
+   "id": "C-10",
+   "class": "extra",
+   "why": "An audit trail of settings changes with old and new values is not needed for reminders to work or be safe."
+  },
+  {
+   "id": "C-11",
+   "class": "extra",
+   "why": "Reminders can be sent from the service's own authenticated domain; requiring each account to verify its own sending domain adds an unrequested gate."
+  },
+  {
+   "id": "C-12",
+   "class": "decision"
+  },
+  {
+   "id": "C-13",
+   "class": "decision"
+  },
+  {
+   "id": "C-14",
+   "class": "decision"
+  },
+  {
+   "id": "C-15",
+   "class": "decision"
+  },
+  {
+   "id": "C-16",
+   "class": "decision"
+  },
+  {
+   "id": "C-17",
+   "class": "request"
+  },
+  {
+   "id": "C-18",
+   "class": "decision"
+  },
+  {
+   "id": "C-19",
+   "class": "decision"
+  },
+  {
+   "id": "C-20",
+   "class": "decision"
+  },
+  {
+   "id": "C-21",
+   "class": "needed"
+  },
+  {
+   "id": "C-22",
+   "class": "request"
+  },
+  {
+   "id": "C-23",
+   "class": "decision"
+  },
+  {
+   "id": "C-24",
+   "class": "needed"
+  },
+  {
+   "id": "C-25",
+   "class": "decision"
+  },
+  {
+   "id": "C-26",
+   "class": "decision"
+  },
+  {
+   "id": "C-27",
+   "class": "decision"
+  },
+  {
+   "id": "C-28",
+   "class": "decision"
+  },
+  {
+   "id": "C-29",
+   "class": "decision"
+  },
+  {
+   "id": "C-30",
+   "class": "decision"
+  },
+  {
+   "id": "C-31",
+   "class": "needed"
+  },
+  {
+   "id": "C-32",
+   "class": "decision"
+  },
+  {
+   "id": "C-33",
+   "class": "extra",
+   "why": "Per-invoice pause and resume is an added capability; account-level reminders work without it."
+  },
+  {
+   "id": "C-34",
+   "class": "needed"
+  },
+  {
+   "id": "C-35",
+   "class": "needed"
+  },
+  {
+   "id": "C-36",
+   "class": "needed"
+  },
+  {
+   "id": "C-37",
+   "class": "extra",
+   "why": "Processing provider bounce reports and suppressing later steps is added work; with a few bounded reminders per invoice, delivery works without it."
+  },
+  {
+   "id": "C-38",
+   "class": "decision"
+  },
+  {
+   "id": "C-39",
+   "class": "needed"
+  },
+  {
+   "id": "C-40",
+   "class": "decision"
+  },
+  {
+   "id": "C-41",
+   "class": "needed"
+  },
+  {
+   "id": "C-42",
+   "class": "decision"
+  },
+  {
+   "id": "C-43",
+   "class": "decision"
+  },
+  {
+   "id": "C-44",
+   "class": "extra",
+   "why": "A per-invoice reminder history UI with outcomes and reasons is an added feature; reminders get sent and stop correctly without it."
+  },
+  {
+   "id": "C-45",
+   "class": "extra",
+   "why": "Visual highlighting of failed steps exists only because the spec added a reminder history view."
+  },
+  {
+   "id": "C-46",
+   "class": "extra",
+   "why": "Access rules for the reminder history come up only because the spec introduced that history view."
+  },
+  {
+   "id": "C-47",
+   "class": "extra",
+   "why": "Retention of reminder history arises only from the spec's added history feature."
+  },
+  {
+   "id": "C-48",
+   "class": "needed"
+  },
+  {
+   "id": "C-49",
+   "class": "needed"
+  },
+  {
+   "id": "C-50",
+   "class": "needed"
+  },
+  {
+   "id": "C-51",
+   "class": "wrong",
+   "why": "Says steps past due during rollback are never sent, but C-28 sends steps 24 hours late or less, and C-30 lists no re-release trigger."
+  }
+ ]
+}

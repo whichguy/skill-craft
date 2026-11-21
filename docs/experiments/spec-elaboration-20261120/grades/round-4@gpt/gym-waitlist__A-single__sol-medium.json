@@ -1,0 +1,146 @@
+{
+ "slot": "gym-waitlist__A-single__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-20",
+   "quote": "the member receives a confirmed booking without submitting another request."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-22",
+   "quote": "If two otherwise eligible members join one after the other for the same class and only one spot opens, the earlier entrant receives it.",
+   "missing": "How to break a tie in join time and whether membership tier or staff intervention can override arrival order."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-55",
+   "quote": "Cancelling a confirmed booking obtained from the waitlist has the same applicable credit return, refund or penalty as cancelling a comparable direct booking.",
+   "missing": "Cancellation after automatic promotion is covered. The specification does not say how the existing no-show policy applies if the member misses the promoted class."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "U-4, C-20",
+   "quote": "A booked member cancels through the normal booking flow. An eligible waiting member receives the freed spot \u2026 the member receives a confirmed booking without submitting another request.",
+   "missing": "How soon the app must process the vacancy after the cancellation takes effect."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-30",
+   "quote": "If an ordinary confirmed booking for this member and class gives a receipt or confirmation through the app's existing channels, a confirmed booking from the waitlist does too.",
+   "missing": "Whether the confirmation must identify the booking as a promotion and what the app does if delivery fails."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-25, C-34",
+   "quote": "each can be allocated to a different eligible waiting member until the available spots or eligible members run out. \u2026 cannot cause a new booking to take confirmed attendance beyond the configured capacity, including when requests arrive together."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-32, C-33",
+   "quote": "If a waiting member acquires a confirmed booking for the same class through an existing booking path, the waitlist does not allocate another spot to that member. \u2026 A confirmed booking for the same class ends a pending entry"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C-8, C-52",
+   "quote": "A member who joins is not charged for the class at the time of joining. \u2026 For the same member, class and time of confirmation, any price charged follows the rules for an ordinary booking.",
+   "missing": "The collection time for a promoted booking and what happens to the booking, entry and spot if payment fails."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-67",
+   "quote": "An otherwise valid join is not refused solely because of the number of members already waiting."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-63, C-64",
+   "quote": "Waitlist allocations stop at the existing booking cutoff \u2026 For a class without an existing booking cutoff, waitlist access closes at the scheduled start time."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-57, C-58",
+   "quote": "A capacity increase makes newly bookable spots available for allocation \u2026 After a supported capacity decrease leaves no spots available, no waiting member gets a spot unless capacity becomes available again."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-59",
+   "quote": "Once the operator cancels or removes a class using a supported action, its entries cease to be active."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-72, C-73",
+   "quote": "Restart preserves a recorded active waiting entry \u2026 If the same entries remain active after a restart, their priority relative to each other remains the same.",
+   "missing": "Whether the entry records its join time and whether its queue position is stored or calculated."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-65",
+   "quote": "Entries still waiting when the waitlist closes cease to be active",
+   "missing": "Whether inactive entries are retained after the class and, if so, for how long."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-9, C-41",
+   "quote": "A member with an active entry can see that status on a later visit. \u2026 A caller who cannot see another member's booking status cannot obtain their individual waitlist status through the waitlist feature.",
+   "missing": "Whether members see their own queue position and whether other waiting members' identities are always hidden from them."
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-35, C-69",
+   "quote": "An eligible member viewing an available class can still use the existing booking flow. \u2026 A member can see and use a booking made before the waitlist release in the same way after startup."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "U-11, C-70",
+   "quote": "Members keep their existing bookings and can join the waitlist of an already-full class. \u2026 A pre-existing class starts with zero waiting entries until a member joins it."
+  }
+ ]
+}

@@ -1,0 +1,45 @@
+ROUND round-4: every clause put in one class by claude-opus-5-5 high; 8 specifications
+
+case                 arm                driver        request   needed decision    extra    empty    wrong  missing
+csv-user-import      A-single           sonnet-high         4       14       24        0        0        0        0
+csv-user-import      D-enumerated-only  sonnet-high         7       15       50       14        0        0        0
+grokbot-salesforce   A-single           sonnet-high         4       16       14       13        1        1        0
+grokbot-salesforce   D-enumerated-only  sonnet-high         2       13       46       28        0        0        0
+gym-waitlist         A-single           sonnet-high         3       25       13        3        0        0        0
+gym-waitlist         D-enumerated-only  sonnet-high         4       45       20       23        1        0        0
+invoice-reminders    A-single           sonnet-high         3       12       17       14        0        0        0
+invoice-reminders    D-enumerated-only  sonnet-high         2       26       41       29        0        0        0
+
+POOLED BY ARM AND DRIVER: clauses, then the share of them in each class
+  A-single           sonnet-high   181 clauses  request 8%  needed 37%  decision 38%  extra 17%  empty 1%  wrong 1%   | extra+empty+wrong 32 (18%)
+  D-enumerated-only  sonnet-high   366 clauses  request 4%  needed 27%  decision 43%  extra 26%  empty 0%  wrong 0%   | extra+empty+wrong 95 (26%)
+
+CLAUSES CALLED EXTRA (up to 8 per arm and driver)
+  A-single sonnet-high: 30
+      grokbot-salesforce C-5: Only arises from the spec's multiple-conversation model; the request asks for a bot, not managed separate conversations.
+      grokbot-salesforce C-6: Persisting conversation history across sessions is not called for; an ephemeral chat bot fully delivers what was asked.
+      grokbot-salesforce C-8: A browsable, reopenable conversation history list is a capability beyond a Grok bot.
+      grokbot-salesforce C-9: Multiple stored conversations with a new-conversation action go beyond the request; a single chat suffices.
+      grokbot-salesforce C-25: A per-conversation message cap only matters because the spec introduced persisted conversations; context is already bounded by C-4.
+      grokbot-salesforce C-28: Per-user privacy of stored conversations arises only from the spec's added persistence of history.
+      grokbot-salesforce C-31: A third-party processing disclosure is a duty the request does not call for in a development org bot.
+      grokbot-salesforce C-40: Making the model admin-configurable is added work; a builder can simply pick one model and deliver a working bot.
+  D-enumerated-only sonnet-high: 94
+      csv-user-import C-5: Re-checking admin rights at processing time guards a seconds-long window the request never raises; uploads by admins work without it.
+      csv-user-import C-6: A downloadable template is a separate capability; the columns can be documented and bulk-create still works.
+      csv-user-import C-45: Self-refreshing status is a convenience; the admin can reload to see the outcome, and nothing is broken without it.
+      csv-user-import C-46: An unconfirmed 60-second performance target is not called for by the request; a correct import works without it.
+      csv-user-import C-51: A per-admin single-active-import restriction is unnecessary; uniqueness rules already prevent duplicate users from repeated submissions.
+      csv-user-import C-57: A paged, cross-admin import history with counts is a reporting feature beyond uploading a CSV to create users.
+      csv-user-import C-59: 90-day expiry of import records exists only because the spec introduced a persistent import history.
+      csv-user-import C-64: Tracking and showing per-user invitation delivery states to admins is monitoring beyond what bulk creation requires.
+
+CLAUSES CALLED EMPTY (up to 8 per arm and driver)
+  A-single sonnet-high: 1
+      grokbot-salesforce C-7: An initial screen with an input and no error is true of any chat product; it settles nothing a builder must act on.
+  D-enumerated-only sonnet-high: 1
+      gym-waitlist C-72: Encrypted transport is true of any hosted product, including the existing app; it decides nothing specific to the waitlist.
+
+CLAUSES CALLED WRONG (up to 8 per arm and driver)
+  A-single sonnet-high: 1
+      grokbot-salesforce C-17: Since Winter '20, callout time is excluded from the concurrent long-running Apex limit, so bot callouts are not long-running requests by virtue of wai

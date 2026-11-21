@@ -1,0 +1,151 @@
+{
+ "slot": "gym-waitlist__A-single__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "U-3",
+   "quote": "A booked member cancels. Without anyone doing anything, the member who has waited longest for that class is booked into the freed place, and finds out about it."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-6, C-33",
+   "quote": "Nobody is moved ahead of an earlier joiner for any reason \u2026 with none repeated and none missing, including when several members join or leave at the same moment.",
+   "missing": "Which of two simultaneous joiners receives the earlier position."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "C-22",
+   "quote": "joining, leaving or being booked from one does not change their position on another.",
+   "missing": "C-22 keeps the other entry in place. It gives no rule for resolving that entry when the class times overlap."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-24",
+   "quote": "can cancel the booking under the same rules that apply to any other booking.",
+   "missing": "Whether missing an automatic promotion counts as a no-show, and whether declining it counts as a late cancellation."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "U-3",
+   "quote": "A booked member cancels. Without anyone doing anything, the member who has waited longest for that class is booked into the freed place",
+   "missing": "How soon the automatic booking must follow the cancellation."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-25",
+   "quote": "the next time they open their classes the new booking is there \u2026 a member booked from the waitlist receives that same kind of confirmation.",
+   "missing": "What happens if sending the usual booking confirmation fails."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-31, C-32",
+   "quote": "When k places are freed, no more than k members are booked from the waitlist, no member is booked into the same class twice \u2026 the number of booked members of a class is never greater than its capacity."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-26, C-31",
+   "quote": "A different member who tries to book that class directly at the same moment \u2026 no member is booked into the same class twice",
+   "missing": "What result the direct booking request returns when the requester is the same member being promoted."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C-13",
+   "quote": "Whatever a booking uses up is used up at the moment the member is booked from the waitlist, and not before.",
+   "missing": "What happens to the booking, the member\u2019s entry, and the freed place if the payment fails."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "C-7",
+   "quote": "There is no fixed limit on how many members can wait for a class",
+   "missing": "The specified queue is unlimited. A capped queue would need a maximum length and a member-facing response at that limit."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-34",
+   "quote": "From the moment a class has started (or earlier, at the time after which the app already refuses new bookings, if it has such a time), a place that frees up is not given to a waiting member"
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-29",
+   "quote": "When staff raise the capacity of a class by k places and at least k members are eligible and waiting, the first k eligible waiting members, in order, are booked.",
+   "missing": "How lowering capacity affects existing bookings and the queue, including whether staff may lower capacity below the booked count."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-35",
+   "quote": "After staff cancel a class, no member appears as waiting for it and no one is booked into it from the waitlist; the waiting members see the class as cancelled, as booked members do."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-6, C-40",
+   "quote": "the one who joined earliest is the first to receive a free place \u2026 every waitlist has the same members in the same order and each member's displayed position is unchanged.",
+   "missing": "Whether each entry records a join timestamp and a lifecycle state, and whether its position is stored or calculated."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-34",
+   "quote": "members still waiting are not booked, and no longer appear as waiting.",
+   "missing": "Whether the entries are deleted or retained after class and, if retained, for how long."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-37",
+   "quote": "A member's view of a waitlist shows their own position and no other member's name or contact details."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-36, C-12",
+   "quote": "they can also see the members waiting for it, in position order \u2026 cannot add or remove another member's waitlist entry",
+   "missing": "Staff removal is barred. The specification gives staff no manual promotion procedure or history showing who was promoted when."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-43",
+   "quote": "The new version starts and offers the waitlist with no new setting",
+   "missing": "Whether the operator can disable the feature or enable it selectively for a class or class type."
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-38, C-42",
+   "quote": "is booked as they are today, with the same result and the same rules applied \u2026 every existing class, booking and member is present and unchanged"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-42",
+   "quote": "the booked members of every class are the same, and every class has an empty waitlist."
+  }
+ ]
+}

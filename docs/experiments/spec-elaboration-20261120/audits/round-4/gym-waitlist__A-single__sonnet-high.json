@@ -1,0 +1,189 @@
+{
+ "slot": "gym-waitlist__A-single__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "cost_usd": 0.2540034,
+ "missing_ids": [],
+ "clauses": [
+  {
+   "id": "C-1",
+   "class": "needed"
+  },
+  {
+   "id": "C-2",
+   "class": "request"
+  },
+  {
+   "id": "C-3",
+   "class": "decision"
+  },
+  {
+   "id": "C-4",
+   "class": "request"
+  },
+  {
+   "id": "C-5",
+   "class": "decision"
+  },
+  {
+   "id": "C-6",
+   "class": "decision"
+  },
+  {
+   "id": "C-7",
+   "class": "decision"
+  },
+  {
+   "id": "C-8",
+   "class": "decision"
+  },
+  {
+   "id": "C-9",
+   "class": "needed"
+  },
+  {
+   "id": "C-10",
+   "class": "needed"
+  },
+  {
+   "id": "C-11",
+   "class": "decision"
+  },
+  {
+   "id": "C-12",
+   "class": "needed"
+  },
+  {
+   "id": "C-13",
+   "class": "decision"
+  },
+  {
+   "id": "C-14",
+   "class": "needed"
+  },
+  {
+   "id": "C-15",
+   "class": "needed"
+  },
+  {
+   "id": "C-16",
+   "class": "decision"
+  },
+  {
+   "id": "C-17",
+   "class": "needed"
+  },
+  {
+   "id": "C-18",
+   "class": "needed"
+  },
+  {
+   "id": "C-19",
+   "class": "needed"
+  },
+  {
+   "id": "C-20",
+   "class": "needed"
+  },
+  {
+   "id": "C-21",
+   "class": "decision"
+  },
+  {
+   "id": "C-22",
+   "class": "decision"
+  },
+  {
+   "id": "C-23",
+   "class": "request"
+  },
+  {
+   "id": "C-24",
+   "class": "needed"
+  },
+  {
+   "id": "C-25",
+   "class": "needed"
+  },
+  {
+   "id": "C-26",
+   "class": "needed"
+  },
+  {
+   "id": "C-27",
+   "class": "needed"
+  },
+  {
+   "id": "C-28",
+   "class": "decision"
+  },
+  {
+   "id": "C-29",
+   "class": "needed"
+  },
+  {
+   "id": "C-30",
+   "class": "needed"
+  },
+  {
+   "id": "C-31",
+   "class": "needed"
+  },
+  {
+   "id": "C-32",
+   "class": "needed"
+  },
+  {
+   "id": "C-33",
+   "class": "needed"
+  },
+  {
+   "id": "C-34",
+   "class": "needed"
+  },
+  {
+   "id": "C-35",
+   "class": "needed"
+  },
+  {
+   "id": "C-36",
+   "class": "extra",
+   "why": "A staff-facing waitlist roster view is a new capability; the member-facing waitlist works fully without it."
+  },
+  {
+   "id": "C-37",
+   "class": "decision"
+  },
+  {
+   "id": "C-38",
+   "class": "needed"
+  },
+  {
+   "id": "C-39",
+   "class": "needed"
+  },
+  {
+   "id": "C-40",
+   "class": "needed"
+  },
+  {
+   "id": "C-41",
+   "class": "extra",
+   "why": "A startup sweep reconciling missed promotions is recovery machinery; promoting within the cancellation itself already fills places."
+  },
+  {
+   "id": "C-42",
+   "class": "needed"
+  },
+  {
+   "id": "C-43",
+   "class": "decision"
+  },
+  {
+   "id": "C-44",
+   "class": "extra",
+   "why": "Rollback compatibility with the previous version is an operational duty the request never raises; the waitlist works without it."
+  }
+ ]
+}

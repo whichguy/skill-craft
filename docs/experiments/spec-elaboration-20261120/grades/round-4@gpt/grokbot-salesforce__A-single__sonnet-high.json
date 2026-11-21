@@ -1,0 +1,191 @@
+{
+ "slot": "grokbot-salesforce__A-single__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "C-49",
+   "quote": "A user with access finds the bot by name in the Salesforce Lightning navigation and opens it in one click.",
+   "missing": "The builder must choose the Lightning surface and specify which user, record, or page context it supplies on launch."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-28, C-30",
+   "quote": "A user can see only their own conversations \u2026 Only the conversation's own messages are sent to xAI",
+   "missing": "The data scope is explicit, but the specification does not require record reads to run under the asking user's Salesforce sharing rules."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-27",
+   "quote": "The administrator assigns the bot's permission set to a user: the user can then use the bot.",
+   "missing": "The grant for using the bot is defined. The privilege required to administer the bot is unspecified."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-28",
+   "quote": "User A's conversations are not in user B's list, are not readable by B by opening a link, and are not returned to B by any bot query.",
+   "missing": "The builder must decide whether administrators have any access to another user's conversations."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-14",
+   "quote": "the number is the platform's maximum wait for a callout from Salesforce",
+   "missing": "The external callout is identified. Its asynchronous execution, its separation from prior DML, and how a trigger hands off the work are unspecified."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-36, C-37, C-38",
+   "quote": "The deployment package contains no API key \u2026 The administrator enters the key in the org's configuration. \u2026 The API key is never shown to users or written to records or logs",
+   "missing": "The builder must choose a protected Salesforce credential store for the configured key."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-14",
+   "quote": "A reply that has not arrived within 120 seconds is reported as a timeout \u2026 the number is the platform's maximum wait for a callout from Salesforce",
+   "missing": "There are no numeric limits for callouts per transaction, heap size, or CPU time."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C-47",
+   "quote": "Salesforce requires 75% coverage to deploy Apex to production and forbids real callouts in tests",
+   "missing": "The tests must avoid real calls, but the builder is not required to exercise the callout with a mock implementation."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-32",
+   "quote": "The bot contacts only xAI's API \u2026 Salesforce requires each outbound endpoint to be authorized"
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "U-1",
+   "quote": "A waiting indicator shows while the request is in progress. Grok's answer then appears under the question in the same conversation.",
+   "missing": "The builder must decide how the interface detects completion of an asynchronous request."
+  },
+  {
+   "id": "N-12",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-17",
+   "quote": "When the org has too many long-running requests in progress (Salesforce allows 10 at a time), a user whose send is refused for that reason sees a message that the bot is busy and to try again shortly.",
+   "missing": "The stated limit concerns long-running requests. Async job capacity and the disposition of a request that fails to enqueue are unspecified."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-21, C-15, C-14",
+   "quote": "The user sees a message that the request could not be completed. \u2026 Grok is unavailable and to try again. \u2026 the user sees an error stating the request timed out."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-16",
+   "quote": "The user sees an error that mentions that a rate limit was reached and to try again later. The conversation is unchanged and a later send can succeed.",
+   "missing": "The builder must decide whether to retry automatically, how long to back off, when to stop, and how exhausted quota affects retries."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-24, C-14",
+   "quote": "the first 100,000 are shown and a notice says the reply was shortened. \u2026 If Grok has not answered 120 seconds after the send, the user sees an error stating the request timed out."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-6",
+   "quote": "Both the user's message and Grok's reply are saved in the conversation, in order",
+   "missing": "The record structure for conversations and turns and the storage of status, timestamps, model identifier, and usage counts are unspecified."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-27",
+   "quote": "The administrator removes it: the user can no longer use the bot, and their past conversations are not deleted.",
+   "missing": "Retention after access removal is addressed. The retention period, deletion process, and handling of conversations when a user is deleted are unspecified."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-30",
+   "quote": "the user's messages, Grok's earlier replies in that conversation, and nothing read from other Salesforce records (no contacts, accounts, cases, users' names or emails)"
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "C-4",
+   "quote": "the 20 most recent messages (user and Grok together) taken into account. Older ones may be left out.",
+   "missing": "Twenty messages is a minimum history guarantee. The builder must decide when to trim history and how to fit it if even those messages exceed the model's context window."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-7, C-10, C-11, C-23",
+   "quote": "sees no conversations and an input ready for typing. \u2026 An empty or whitespace-only message is not sent \u2026 exactly 10,000 characters is sent and answered normally. \u2026 A reply of 100,000 characters is saved and displayed completely."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "C-40",
+   "quote": "The Grok model is a setting the administrator can change without code",
+   "missing": "An org-wide off switch and administrator access to failed requests are unspecified."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "C-28, C-6",
+   "quote": "A user can see only their own conversations \u2026 Both the user's message and Grok's reply are saved in the conversation, in order",
+   "missing": "The owned transcript preserves exchanges, but the specification gives no retention period for this history as an audit record."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "C-48, C-37, C-47",
+   "quote": "On a freshly created Developer Edition org, deployment succeeds \u2026 The administrator enters the key in the org's configuration. \u2026 Salesforce requires 75% coverage to deploy Apex to production",
+   "missing": "The builder must decide how to stage and promote the metadata to production and how to provision distinct configuration and credentials for each environment."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "C-13, C-14",
+   "quote": "a visible waiting indicator appears and send is unavailable until the reply or an error arrives. \u2026 A reply that has not arrived within 120 seconds is reported as a timeout"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "C-7, C-13, U-8, C-20",
+   "quote": "they see an empty state \u2026 a visible waiting indicator appears \u2026 an error that says which kind of problem it was in plain words \u2026 A refusal written by Grok is shown as an ordinary reply"
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "U-17, C-46",
+   "quote": "After the bot is deployed, all of that behaves as before \u2026 existing objects, fields, flows, triggers, permission sets, user assignments, and page layouts are unchanged; no existing user's access changes."
+  }
+ ]
+}

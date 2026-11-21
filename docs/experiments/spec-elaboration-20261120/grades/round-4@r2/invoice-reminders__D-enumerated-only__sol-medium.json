@@ -1,0 +1,139 @@
+{
+ "slot": "invoice-reminders__D-enumerated-only__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": "r2",
+ "cost_usd": 0.40029800000000004,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-22",
+   "quote": "For an invoice due 2026-11-20, its scheduled offsets fall on 2026-11-21, 2026-11-27, and 2026-12-04. The offsets are 1, 7, and 14 calendar days after the due date"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-19",
+   "quote": "Paid or otherwise fully settled, voided or canceled, written-off, deleted, and superseded invoices produce zero new submissions",
+   "missing": "Whether an invoice on a payment plan stops the sequence is not stated (only a generic 'collection hold' in C-20 and disputes); paid, voided, credit balance (C-18), disputed (C-20) and part-paid (U-3/C-38) are handled."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-38",
+   "quote": "If a partial payment reduces the outstanding amount from 100 USD to 40 USD before initiation, the attempted message states 40 USD."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-27",
+   "quote": "suppressed following a known permanent delivery failure, and explicitly opted-out destinations each produce zero new submissions",
+   "missing": "Whether a customer-level do-not-contact or paused state applies, and whether a billing reminder is exempt from a marketing opt-out, is not decided."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-45",
+   "quote": "Overlapping runs, repeated triggers, redeployment, account toggles, due-date edits, retries, and recipient changes cannot produce a second accepted submission for the same billing account, invoice, and offset."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-37",
+   "quote": "For each attempt, a payment, state change, account pause, due-date edit, suppression or opt-out change, or recipient correction effective before submission initiation is reflected in the eligibility check."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-51",
+   "quote": "After explicit temporary nonacceptance, the service retries automatically when the window is open and otherwise eligible, the retry delay has elapsed, and an attempt remains.",
+   "missing": "Retry policy and outage handling are defined (C-52, C-53, C-11), but no escalation or notification to a person when sending keeps failing; failures are only visible in history/status."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-65",
+   "quote": "When the external service reports throttling, the operator sees delayed or expired work under the normal window policy. A provider-specified retry time is honored.",
+   "missing": "The provider's rate limit is unconfirmed and no pacing of a large batch within it is specified, only reactive throttling handling and earliest-first priority (C-48)."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-34",
+   "quote": "only windows whose opening is at or after T qualify during that enabled interval. A window that opened before T is skipped even if its 24 hours have yet to elapse."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-23",
+   "quote": "the first window opens at 09:00 UTC on 2026-11-21 regardless of daylight saving changes or viewer location."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-28",
+   "quote": "the amount still collectible, and its currency. Presentation can vary.",
+   "missing": "How the amount and currency are formatted for the recipient (locale, symbol, decimals) is explicitly left open."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-27",
+   "quote": "Missing, malformed, ambiguous, suppressed following a known permanent delivery failure, and explicitly opted-out destinations each produce zero new submissions."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-26",
+   "quote": "A submission has exactly one recipient, the address currently designated by the billing record for this invoice. There are zero CC or BCC recipients and zero fallback recipients."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-33",
+   "quote": "Each visible window shows the invoice reference, scheduled instant, offset, current outcome, time of that outcome, and submission attempt count."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-28",
+   "quote": "The email provides the issuing business identity, the displayed invoice reference, the current due date, the amount still collectible, and its currency.",
+   "missing": "A way to pay is not required (C-79 only says 'If a reminder includes a link'), and whether any link expires is not stated."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-14",
+   "quote": "A caller with permission to manage reminders for account A can read or alter A\u2019s reminder setting. The same permission confers no access to B\u2019s setting."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-110",
+   "quote": "After a deliberate deployment stop takes effect, open pending, blocked, and retry-scheduled windows show canceled.",
+   "missing": "Global stop, per-billing-account pause and no manual resend (C-102) are stated, but per-customer opt-out control and any preview or dry-run are not addressed."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-96",
+   "quote": "Before an eligible upcoming window opens, its pending outcome has an attempt count of zero. After it opens, the status reflects blocked, submitting, retry scheduled, or its eventual outcome"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-24",
+   "quote": "permits submission starting at 09:00 UTC on 2026-11-21 up to but excluding 09:00 UTC on 2026-11-22."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-75",
+   "quote": "Submitting, skipping, failing, or retrying a reminder leaves the invoice\u2019s identity, lifecycle state, issue date, due date, customer, currency, collectible balance, and payment records unchanged."
+  }
+ ]
+}

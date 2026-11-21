@@ -1,0 +1,188 @@
+{
+ "slot": "grokbot-salesforce__A-single__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "C-3, C-41",
+   "quote": "The user can submit a prompt from inside Salesforce. \u2026 The record, its fields, and other business data are absent from the outbound request unless the user supplied them in the prompt.",
+   "missing": "Which Salesforce surface launches the bot and which context values that surface passes to it."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-40, C-46",
+   "quote": "A bot request does not retrieve Salesforce business records. \u2026 Bot deployment preserves pre-existing access to unrelated Salesforce features and data.",
+   "missing": "The specification rules out record lookup but leaves the Salesforce execution and sharing context unspecified."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "C-41, C-46",
+   "quote": "The record, its fields, and other business data are absent from the outbound request unless the user supplied them in the prompt. \u2026 Salesforce object, field, and record access rules",
+   "missing": "Whether field permissions, encryption or restrictions affect what the bot can display, including field values supplied in a prompt."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-15, C-18, C-19",
+   "quote": "The org administrator can grant bot access to a Salesforce user. \u2026 An authenticated user without bot access is denied inference. \u2026 An ordinary bot user cannot change the bot's integration settings."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-44",
+   "quote": "One Salesforce user cannot read another user's prompts or replies through the bot.",
+   "missing": "Whether administrators have any separate means or authority to inspect exchanges."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "U-10, C-12",
+   "quote": "U-2 depends on an external service that can fail or return an incomplete result \u2026 The bot indicates when a request is pending.",
+   "missing": "Whether an asynchronous Apex job performs the callout and how its transaction is separated from triggers and preceding DML."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-20, C-24",
+   "quote": "The administrator can configure the bot's xAI credential for the development org. \u2026 The bot keeps the xAI credential out of user-visible output.",
+   "missing": "Where the secret is stored and how it is kept out of source code, unprotected metadata and server logs."
+  },
+  {
+   "id": "N-8",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-9",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-10",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-12, C-4",
+   "quote": "Delay the Grok reply and observe a pending state before the result is available. \u2026 After a successful request, read the corresponding reply in the bot.",
+   "missing": "How the open interface detects completion and obtains the reply."
+  },
+  {
+   "id": "N-12",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-13, C-31",
+   "quote": "Each open bot view allows at most 1 pending submission at a time. \u2026 The bot identifies a reported capacity or spending restriction that prevents a reply.",
+   "missing": "What queue or concurrent-job limit applies across views and what happens when Salesforce cannot enqueue a submission."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-32, C-33, C-34",
+   "quote": "The bot indicates that the prompt was rejected. \u2026 return an HTTP 5xx error \u2026 The user sees a failure instead of a purported Grok answer. \u2026 The bot reports a timeout by that boundary."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-29, C-31, C-38",
+   "quote": "the user sees that a usage limit was reached and can try again later. \u2026 The bot reports the restriction as the reason the request could not complete. \u2026 A failed submission is not automatically resubmitted by the bot."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-36, C-34",
+   "quote": "Return partial text accompanied by a provider truncation indication. The bot identifies the reply as incomplete. \u2026 Leave a request unresolved through the 120-second boundary. The bot reports a timeout by that boundary."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-7",
+   "quote": "Close the bot after a completed exchange, then reopen it. The previous exchange is not available to resume in the bot.",
+   "missing": "Whether the backend stores conversation and turn records and which fields capture role, text, status, times, model and usage."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-7",
+   "quote": "The bot does not provide saved conversations. \u2026 The previous exchange is not available to resume in the bot.",
+   "missing": "Whether exchange data persists behind the interface, for how long, and how it is purged on expiry or user deletion."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-39, C-41",
+   "quote": "The bot communicates the transfer of submitted text to xAI before the user submits. \u2026 The record, its fields, and other business data are absent from the outbound request unless the user supplied them in the prompt.",
+   "missing": "How to handle personal data or record values a user types, including whether to check visibility or redact them before transfer."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-6, C-53, C-54",
+   "quote": "the current prompt independently of other prompts. \u2026 published context limit in tokens. \u2026 the bot identifies the input as too large for the model. \u2026 The bot does not silently shorten the prompt submitted for inference."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "U-2, C-7, U-4, U-5",
+   "quote": "sees a place to enter a prompt. \u2026 The bot does not provide saved conversations. \u2026 prompt text is required. \u2026 an otherwise valid prompt of 4,000 Unicode code points and the bot accepts it."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "U-11, C-21, C-50",
+   "quote": "The administrator learns whether a failed request needs setup attention \u2026 The administrator can select an available Grok text model. \u2026 For a first release, the bot no longer accepts prompts.",
+   "missing": "How an administrator disables an installed bot across the org and which failed requests the administrator can inspect."
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "C-20, C-52",
+   "quote": "The administrator can configure the bot's xAI credential for the development org. \u2026 No production org receives bot-related changes.",
+   "missing": "How settings and credentials are isolated per environment, how metadata is deployed through a scratch org or sandbox, and what code coverage a production deployment requires."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "C-12, C-34",
+   "quote": "Delay the Grok reply and observe a pending state before the result is available. \u2026 The bot resolves a request as timed out if no completed outcome is available within 120 seconds of submission."
+  },
+  {
+   "id": "N-26",
+   "state": "partial",
+   "where": "U-2, C-12, C-33, C-28",
+   "quote": "sees a place to enter a prompt. \u2026 observe a pending state before the result is available. \u2026 The user sees a failure \u2026 The bot displays a refusal that Grok returns as a valid reply.",
+   "missing": "How these states are presented visually. The specified messages and transitions could all be delivered by an unstyled form."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-42, C-45, C-46, C-47",
+   "quote": "Bot use does not change Salesforce business records. \u2026 Bot deployment leaves pre-existing Salesforce business data intact. \u2026 Their effective access is unchanged. \u2026 Its configured triggers and outcomes stay the same."
+  }
+ ]
+}

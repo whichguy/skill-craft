@@ -1,0 +1,372 @@
+{
+ "slot": "invoice-reminders__L-lenses-once__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "cost_usd": 0.4873966,
+ "missing_ids": [],
+ "clauses": [
+  {
+   "id": "C-1",
+   "class": "request"
+  },
+  {
+   "id": "C-2",
+   "class": "decision"
+  },
+  {
+   "id": "C-3",
+   "class": "decision"
+  },
+  {
+   "id": "C-4",
+   "class": "needed"
+  },
+  {
+   "id": "C-5",
+   "class": "needed"
+  },
+  {
+   "id": "C-6",
+   "class": "needed"
+  },
+  {
+   "id": "C-7",
+   "class": "needed"
+  },
+  {
+   "id": "C-8",
+   "class": "decision"
+  },
+  {
+   "id": "C-9",
+   "class": "needed"
+  },
+  {
+   "id": "C-10",
+   "class": "request"
+  },
+  {
+   "id": "C-11",
+   "class": "decision"
+  },
+  {
+   "id": "C-12",
+   "class": "needed"
+  },
+  {
+   "id": "C-13",
+   "class": "needed"
+  },
+  {
+   "id": "C-14",
+   "class": "needed"
+  },
+  {
+   "id": "C-15",
+   "class": "decision"
+  },
+  {
+   "id": "C-16",
+   "class": "decision"
+  },
+  {
+   "id": "C-17",
+   "class": "decision"
+  },
+  {
+   "id": "C-18",
+   "class": "decision"
+  },
+  {
+   "id": "C-19",
+   "class": "decision"
+  },
+  {
+   "id": "C-20",
+   "class": "decision"
+  },
+  {
+   "id": "C-21",
+   "class": "decision"
+  },
+  {
+   "id": "C-22",
+   "class": "decision"
+  },
+  {
+   "id": "C-23",
+   "class": "decision"
+  },
+  {
+   "id": "C-24",
+   "class": "extra",
+   "why": "A 24-hour minimum gap between different opportunities is an added throttling restriction; the schedule and latest-only rule already deliver working reminders."
+  },
+  {
+   "id": "C-25",
+   "class": "needed"
+  },
+  {
+   "id": "C-26",
+   "class": "decision"
+  },
+  {
+   "id": "C-27",
+   "class": "decision"
+  },
+  {
+   "id": "C-28",
+   "class": "request"
+  },
+  {
+   "id": "C-29",
+   "class": "decision"
+  },
+  {
+   "id": "C-30",
+   "class": "needed"
+  },
+  {
+   "id": "C-31",
+   "class": "decision"
+  },
+  {
+   "id": "C-32",
+   "class": "needed"
+  },
+  {
+   "id": "C-33",
+   "class": "needed"
+  },
+  {
+   "id": "C-34",
+   "class": "needed"
+  },
+  {
+   "id": "C-35",
+   "class": "decision"
+  },
+  {
+   "id": "C-36",
+   "class": "needed"
+  },
+  {
+   "id": "C-37",
+   "class": "decision"
+  },
+  {
+   "id": "C-38",
+   "class": "decision"
+  },
+  {
+   "id": "C-39",
+   "class": "needed"
+  },
+  {
+   "id": "C-40",
+   "class": "request"
+  },
+  {
+   "id": "C-41",
+   "class": "needed"
+  },
+  {
+   "id": "C-42",
+   "class": "needed"
+  },
+  {
+   "id": "C-43",
+   "class": "needed"
+  },
+  {
+   "id": "C-44",
+   "class": "decision"
+  },
+  {
+   "id": "C-45",
+   "class": "needed"
+  },
+  {
+   "id": "C-46",
+   "class": "needed"
+  },
+  {
+   "id": "C-47",
+   "class": "decision"
+  },
+  {
+   "id": "C-48",
+   "class": "decision"
+  },
+  {
+   "id": "C-49",
+   "class": "needed"
+  },
+  {
+   "id": "C-50",
+   "class": "needed"
+  },
+  {
+   "id": "C-51",
+   "class": "decision"
+  },
+  {
+   "id": "C-52",
+   "class": "decision"
+  },
+  {
+   "id": "C-53",
+   "class": "extra",
+   "why": "Ingesting late sender evidence to resolve uncertain outcomes is reconciliation machinery the request does not call for; reminders work without it."
+  },
+  {
+   "id": "C-54",
+   "class": "decision"
+  },
+  {
+   "id": "C-55",
+   "class": "decision"
+  },
+  {
+   "id": "C-56",
+   "class": "decision"
+  },
+  {
+   "id": "C-57",
+   "class": "decision"
+  },
+  {
+   "id": "C-58",
+   "class": "needed"
+  },
+  {
+   "id": "C-59",
+   "class": "decision"
+  },
+  {
+   "id": "C-60",
+   "class": "needed"
+  },
+  {
+   "id": "C-61",
+   "class": "decision"
+  },
+  {
+   "id": "C-62",
+   "class": "extra",
+   "why": "Matching, deduplicating and ordering incoming delivery reports exists only because the spec adds delivery-report ingestion beyond sending reminders."
+  },
+  {
+   "id": "C-63",
+   "class": "extra",
+   "why": "Tracking delivered versus bounced status from sender callbacks is delivery analytics beyond sending reminders for unpaid invoices."
+  },
+  {
+   "id": "C-64",
+   "class": "needed"
+  },
+  {
+   "id": "C-65",
+   "class": "extra",
+   "why": "A ten-state per-invoice status view with next-attempt times is substantial operator tooling beyond the visible blockers reminders need."
+  },
+  {
+   "id": "C-66",
+   "class": "extra",
+   "why": "A per-attempt operator-facing delivery history log with attempt numbers and timestamps is diagnostic tooling the request does not call for."
+  },
+  {
+   "id": "C-67",
+   "class": "needed"
+  },
+  {
+   "id": "C-68",
+   "class": "extra",
+   "why": "A service-wide monitoring view of evaluation times and backlog-versus-interruption diagnosis is operational tooling beyond automatic reminders."
+  },
+  {
+   "id": "C-69",
+   "class": "needed"
+  },
+  {
+   "id": "C-70",
+   "class": "needed"
+  },
+  {
+   "id": "C-71",
+   "class": "needed"
+  },
+  {
+   "id": "C-72",
+   "class": "needed"
+  },
+  {
+   "id": "C-73",
+   "class": "needed"
+  },
+  {
+   "id": "C-74",
+   "class": "needed"
+  },
+  {
+   "id": "C-75",
+   "class": "needed"
+  },
+  {
+   "id": "C-76",
+   "class": "needed"
+  },
+  {
+   "id": "C-77",
+   "class": "needed"
+  },
+  {
+   "id": "C-78",
+   "class": "needed"
+  },
+  {
+   "id": "C-79",
+   "class": "needed"
+  },
+  {
+   "id": "C-80",
+   "class": "decision"
+  },
+  {
+   "id": "C-81",
+   "class": "extra",
+   "why": "A rollout-level kill switch that cancels pending work beyond per-account disable is release tooling the request's purpose does not require."
+  },
+  {
+   "id": "C-82",
+   "class": "needed"
+  },
+  {
+   "id": "C-83",
+   "class": "needed"
+  },
+  {
+   "id": "C-84",
+   "class": "empty",
+   "why": "Saying automatic sends require background execution to be running is true of any automated product and leaves every host limit unstated."
+  },
+  {
+   "id": "C-85",
+   "class": "needed"
+  },
+  {
+   "id": "C-86",
+   "class": "needed"
+  },
+  {
+   "id": "C-87",
+   "class": "needed"
+  },
+  {
+   "id": "C-88",
+   "class": "extra",
+   "why": "Gating nonproduction environments from emailing live contacts is a development safeguard; the requested reminders work and are safe for users without it."
+  }
+ ]
+}

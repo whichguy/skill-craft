@@ -1,0 +1,56 @@
+ROUND round-4: agreement of tagged verdict sets with the registered one (16 specifications)
+
+@r2  (claude-opus-5-5 high), 16 specifications in both sets
+  specification                                            registered      @r2  diff
+  csv-user-import__A-single__sol-medium                            11       11    +0
+  csv-user-import__A-single__sonnet-high                           10       11    +1
+  csv-user-import__D-enumerated-only__sol-medium                   16       16    +0
+  csv-user-import__D-enumerated-only__sonnet-high                  17       16    -1
+  grokbot-salesforce__A-single__sol-medium                         12       11    -1
+  grokbot-salesforce__A-single__sonnet-high                        12       12    +0
+  grokbot-salesforce__D-enumerated-only__sol-medium                18       23    +5
+  grokbot-salesforce__D-enumerated-only__sonnet-high               24       22    -2
+  gym-waitlist__A-single__sol-medium                               10        9    -1
+  gym-waitlist__A-single__sonnet-high                              10       11    +1
+  gym-waitlist__D-enumerated-only__sol-medium                      11       11    +0
+  gym-waitlist__D-enumerated-only__sonnet-high                     15       18    +3
+  invoice-reminders__A-single__sol-medium                           7        8    +1
+  invoice-reminders__A-single__sonnet-high                          8        8    +0
+  invoice-reminders__D-enumerated-only__sol-medium                 13       13    +0
+  invoice-reminders__D-enumerated-only__sonnet-high                15       15    +0
+  per specification: mean |diff| 1.00, largest 5, sum of diffs +6
+  nuance by nuance (356): same state 92%, same covered-or-not 94%
+  changes: partial -> covered x14, covered -> partial x8, partial -> absent x5, absent -> partial x3
+  pooled by arm and driver, registered -> @r2:
+    A-single           sol-medium    40 ->  39  (-1)
+    A-single           sonnet-high   40 ->  42  (+2)
+    D-enumerated-only  sol-medium    58 ->  63  (+5)
+    D-enumerated-only  sonnet-high   71 ->  71  (+0)
+
+@gpt  (gpt-6.2-astra high), 16 specifications in both sets
+  specification                                            registered     @gpt  diff
+  csv-user-import__A-single__sol-medium                            11       11    +0
+  csv-user-import__A-single__sonnet-high                           10       10    +0
+  csv-user-import__D-enumerated-only__sol-medium                   16       13    -3
+  csv-user-import__D-enumerated-only__sonnet-high                  17       15    -2
+  grokbot-salesforce__A-single__sol-medium                         12        8    -4
+  grokbot-salesforce__A-single__sonnet-high                        12        8    -4
+  grokbot-salesforce__D-enumerated-only__sol-medium                18       13    -5
+  grokbot-salesforce__D-enumerated-only__sonnet-high               24       15    -9
+  gym-waitlist__A-single__sol-medium                               10        9    -1
+  gym-waitlist__A-single__sonnet-high                              10        7    -3
+  gym-waitlist__D-enumerated-only__sol-medium                      11        9    -2
+  gym-waitlist__D-enumerated-only__sonnet-high                     15       15    +0
+  invoice-reminders__A-single__sol-medium                           7        9    +2
+  invoice-reminders__A-single__sonnet-high                          8        8    +0
+  invoice-reminders__D-enumerated-only__sol-medium                 13       12    -1
+  invoice-reminders__D-enumerated-only__sonnet-high                15       14    -1
+  per specification: mean |diff| 2.31, largest 9, sum of diffs -33
+  nuance by nuance (356): same state 82%, same covered-or-not 87%
+  changes: covered -> partial x39, absent -> partial x8, partial -> absent x8, partial -> covered x7, covered -> absent x1
+  pooled by arm and driver, registered -> @gpt:
+    A-single           sol-medium    40 ->  37  (-3)
+    A-single           sonnet-high   40 ->  33  (-7)
+    D-enumerated-only  sol-medium    58 ->  47  (-11)
+    D-enumerated-only  sonnet-high   71 ->  59  (-12)
+

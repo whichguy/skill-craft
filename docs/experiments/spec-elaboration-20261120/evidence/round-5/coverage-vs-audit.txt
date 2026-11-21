@@ -1,0 +1,28 @@
+HOW MUCH OF EACH ARM'S COVERAGE RESTS ON CLAUSES THE AUDIT CALLS EXTRA
+(a covered nuance counts as resting on an extra clause when the first clause the coverage judge cites for it is one the audit judge classed extra)
+
+arm                driver        covered  on an extra clause  covered without them  extra clauses    of
+A-single           sonnet-high        40             2 ( 5%)                    38             30   181
+A-single           sol-medium         29             2 ( 7%)                    27             38   225
+L-lenses-once      sonnet-high        64             5 ( 8%)                    59             29   220
+L-lenses-once      sol-medium         62             4 ( 6%)                    58             48   372
+F-guarded          sonnet-high        68            14 (21%)                    54             70   308
+F-guarded          sol-medium         60             6 (10%)                    54            106   527
+D-enumerated-only  sonnet-high        71            11 (15%)                    60             94   366
+D-enumerated-only  sol-medium         64            10 (16%)                    54            127   478
+
+THE SAME COMPARISONS WITH THOSE NUANCES TAKEN OUT (coverage a strict reader would also accept)
+  sonnet-high  L - A: +24 -> +21    F - L: +4 -> -5    D - A: +31 -> +22
+  sol-medium   L - A: +33 -> +31    F - L: -2 -> -4    D - A: +35 -> +27
+
+BY CATEGORY, the lens arms pooled (L, F, D on both drivers): covered nuances resting on a clause the audit calls extra
+  operator        19 of  27  (70%)
+  data             7 of  37  (19%)
+  platform         3 of  18  (17%)
+  nonfunctional    3 of  22  (14%)
+  async            4 of  41  (10%)
+  unhappy          6 of  64  (9%)
+  edge             4 of  65  (6%)
+  permission       2 of  39  (5%)
+  interaction      2 of  48  (4%)
+  preserve         0 of  28  (0%)

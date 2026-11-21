@@ -1,0 +1,143 @@
+{
+ "slot": "csv-user-import__D-enumerated-only__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": "r2",
+ "cost_usd": 0.3541882,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-36",
+   "quote": "An import creates every listed user or zero users. If any record is invalid or conflicts, or the directory cannot complete the entire creation, no user from the attempt becomes visible"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-92",
+   "quote": "its rejection identifies at least one violation that applies to that submission. Which to show first and whether to show additional errors are left open",
+   "missing": "Whether the result lists every failing row or only one; C-33/C-91 give line number and reason for a reported row, but completeness of the failing-row list is left undecided."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-31, C-32, C-69",
+   "quote": "refused as an existing-user conflict ... two data records referring to the same identity is refused with a duplicate-in-file reason ... the import leaves that user's attributes, roles, credentials, and account state as they were"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-71",
+   "quote": "The created user has the permissions of an ordinary newly provisioned standard user in the target directory. CSV input cannot grant administrative permission or extra group membership."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-17",
+   "quote": "A signed-in administrator who can create users in the target directory can submit imports when available. A signed-in administrator who lacks that authority in the target is refused.",
+   "missing": "Who may import is tied to ordinary creation authority; whether import needs a distinct permission beyond being able to create one user is not stated (the spec makes it follow from creation authority)."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-24, C-25",
+   "quote": "the first such record must parse to exactly one field whose value is `email` ... Any other first nonempty record is a header error. ... A data record with other than one parsed field is refused"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-18, C-20, C-21",
+   "quote": "A UTF-8 byte-order mark at the beginning is allowed. ... LF, CRLF, and CR each end one record. ... Inside a quoted field, commas and line breaks are field content"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-73",
+   "quote": "If ordinary standard-user provisioning sends an invitation or activation notice, a committed imported user is eligible for the same notice. A rejected or failed attempt sends zero notices from the account creation."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-7, C-8",
+   "quote": "A file of 1,048,577 bytes or more is refused for size and creates zero users. ... A file with 1,001 is refused for record count and creates zero users."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-6, C-3",
+   "quote": "Submitting a zero-byte file or a recognized header with no data records creates zero users and reports that the file contains no users. ... A valid CSV containing one new user creates one user."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-42, C-101",
+   "quote": "any repeat submission for that attempt returns the current processing state or original outcome ... a new file that is refused for an already reserved identity does not initiate a second invitation"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-50, C-38",
+   "quote": "processing can reach its ordinary outcome. Returning while it is processing shows that work is in progress ... can find all their unexpired ready, processing, and completed attempts ... with each state visible"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-73",
+   "quote": "If ordinary standard-user provisioning sends an invitation or activation notice, a committed imported user is eligible for the same notice. ... No import-specific outbound notice is required.",
+   "missing": "Whether up to 1,000 notices go out at once on commit and any pacing or throttling of them."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-72",
+   "quote": "Starting from the ordinary initial state for a newly provisioned standard user ... Existing activation states and sign-in prerequisites are host-specific and unconfirmed.",
+   "missing": "Whether the created user is active or pending, has a password or not, and the concrete first sign-in path."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-99, C-77",
+   "quote": "Raw file bytes and filenames are absent from live import storage after the attempt reaches an outcome or a ready attempt expires. ... It does not return the raw file, filename, submitted email values"
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-24, C-70",
+   "quote": "The imported email is the only account field provided by the CSV."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-108",
+   "quote": "If the directory already exposes an audit record for creating a user, a committed imported user is visible through its ordinary user-creation audit activity ... The host's audit fields and retention are unconfirmed.",
+   "missing": "Whether an audit record of the import itself (who imported which file/attempt and when) exists; only per-user ordinary creation audit, if the host has one."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-57, C-36, C-47",
+   "quote": "An accepted attempt offers no cancellation control. ... An import creates every listed user or zero users. ... an administrator can open a new attempt to submit a corrected file."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-49, C-50",
+   "quote": "If the attempt is still processing at 120 seconds after complete file acceptance, it ends as failed for the deadline with zero users created. ... Returning while it is processing shows that work is in progress"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-68, C-69",
+   "quote": "An authorized administrator can use the ordinary single-user creation path where it already exists under its existing conditions ... An import also leaves users whose identities are absent from the file alone."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-77, C-78, C-28",
+   "quote": "It does not return the raw file, filename, submitted email values ... cannot trigger script execution or navigation via a filename or cell value ... The entire value is at most 254 ASCII characters."
+  }
+ ]
+}

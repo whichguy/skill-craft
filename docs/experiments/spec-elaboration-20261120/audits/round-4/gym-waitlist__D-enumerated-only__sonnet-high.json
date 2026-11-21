@@ -1,0 +1,406 @@
+{
+ "slot": "gym-waitlist__D-enumerated-only__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "cost_usd": 0.4625646,
+ "missing_ids": [],
+ "clauses": [
+  {
+   "id": "C-1",
+   "class": "request"
+  },
+  {
+   "id": "C-2",
+   "class": "request"
+  },
+  {
+   "id": "C-3",
+   "class": "decision"
+  },
+  {
+   "id": "C-4",
+   "class": "request"
+  },
+  {
+   "id": "C-5",
+   "class": "decision"
+  },
+  {
+   "id": "C-6",
+   "class": "needed"
+  },
+  {
+   "id": "C-7",
+   "class": "needed"
+  },
+  {
+   "id": "C-8",
+   "class": "needed"
+  },
+  {
+   "id": "C-9",
+   "class": "needed"
+  },
+  {
+   "id": "C-10",
+   "class": "decision"
+  },
+  {
+   "id": "C-11",
+   "class": "needed"
+  },
+  {
+   "id": "C-12",
+   "class": "needed"
+  },
+  {
+   "id": "C-13",
+   "class": "needed"
+  },
+  {
+   "id": "C-14",
+   "class": "needed"
+  },
+  {
+   "id": "C-15",
+   "class": "needed"
+  },
+  {
+   "id": "C-16",
+   "class": "needed"
+  },
+  {
+   "id": "C-17",
+   "class": "needed"
+  },
+  {
+   "id": "C-18",
+   "class": "extra",
+   "why": "A size limit turns people away, against the request's purpose; an unbounded waitlist delivers what was asked."
+  },
+  {
+   "id": "C-19",
+   "class": "extra",
+   "why": "A per-member cap on concurrent waitlists is an added restriction the request's purpose does not need."
+  },
+  {
+   "id": "C-20",
+   "class": "decision"
+  },
+  {
+   "id": "C-21",
+   "class": "decision"
+  },
+  {
+   "id": "C-22",
+   "class": "needed"
+  },
+  {
+   "id": "C-23",
+   "class": "needed"
+  },
+  {
+   "id": "C-24",
+   "class": "needed"
+  },
+  {
+   "id": "C-25",
+   "class": "extra",
+   "why": "Staff removal of waitlist entries is an added management capability; the waitlist works without it."
+  },
+  {
+   "id": "C-26",
+   "class": "extra",
+   "why": "Staff closing and reopening joining per class is an added control the request does not call for."
+  },
+  {
+   "id": "C-27",
+   "class": "needed"
+  },
+  {
+   "id": "C-28",
+   "class": "decision"
+  },
+  {
+   "id": "C-29",
+   "class": "extra",
+   "why": "An operator kill switch for the feature is added operational capability beyond the waitlist asked for."
+  },
+  {
+   "id": "C-30",
+   "class": "needed"
+  },
+  {
+   "id": "C-31",
+   "class": "needed"
+  },
+  {
+   "id": "C-32",
+   "class": "extra",
+   "why": "Guaranteeing behaviour after reverting to an older version is a deployment duty the request does not call for."
+  },
+  {
+   "id": "C-33",
+   "class": "needed"
+  },
+  {
+   "id": "C-34",
+   "class": "request"
+  },
+  {
+   "id": "C-35",
+   "class": "decision"
+  },
+  {
+   "id": "C-36",
+   "class": "decision"
+  },
+  {
+   "id": "C-37",
+   "class": "needed"
+  },
+  {
+   "id": "C-38",
+   "class": "decision"
+  },
+  {
+   "id": "C-39",
+   "class": "decision"
+  },
+  {
+   "id": "C-40",
+   "class": "decision"
+  },
+  {
+   "id": "C-41",
+   "class": "decision"
+  },
+  {
+   "id": "C-42",
+   "class": "needed"
+  },
+  {
+   "id": "C-43",
+   "class": "decision"
+  },
+  {
+   "id": "C-44",
+   "class": "extra",
+   "why": "A penalty-free cancellation window is a new pricing policy beyond adding a waitlist."
+  },
+  {
+   "id": "C-45",
+   "class": "extra",
+   "why": "A per-entry event history for staff is an added audit capability not needed for the waitlist to work."
+  },
+  {
+   "id": "C-46",
+   "class": "extra",
+   "why": "Retention rule exists only because the spec introduced the staff history of C-45."
+  },
+  {
+   "id": "C-47",
+   "class": "decision"
+  },
+  {
+   "id": "C-48",
+   "class": "extra",
+   "why": "Validation of a staff-set size limit arises only from the spec's own added limit setting (C-87)."
+  },
+  {
+   "id": "C-49",
+   "class": "decision"
+  },
+  {
+   "id": "C-50",
+   "class": "extra",
+   "why": "Notifying waitlisted members of start-time changes is an added duty beyond the requested waitlist."
+  },
+  {
+   "id": "C-51",
+   "class": "needed"
+  },
+  {
+   "id": "C-52",
+   "class": "decision"
+  },
+  {
+   "id": "C-53",
+   "class": "needed"
+  },
+  {
+   "id": "C-54",
+   "class": "needed"
+  },
+  {
+   "id": "C-55",
+   "class": "needed"
+  },
+  {
+   "id": "C-56",
+   "class": "needed"
+  },
+  {
+   "id": "C-57",
+   "class": "needed"
+  },
+  {
+   "id": "C-58",
+   "class": "needed"
+  },
+  {
+   "id": "C-59",
+   "class": "extra",
+   "why": "This race arises only from the spec's added staff-removal capability (C-25)."
+  },
+  {
+   "id": "C-60",
+   "class": "needed"
+  },
+  {
+   "id": "C-61",
+   "class": "needed"
+  },
+  {
+   "id": "C-62",
+   "class": "needed"
+  },
+  {
+   "id": "C-63",
+   "class": "decision"
+  },
+  {
+   "id": "C-64",
+   "class": "extra",
+   "why": "Behaviour while the feature is switched off arises only from the spec's added kill switch (C-29)."
+  },
+  {
+   "id": "C-65",
+   "class": "extra",
+   "why": "Display while switched off arises only from the spec's added kill switch (C-29)."
+  },
+  {
+   "id": "C-66",
+   "class": "extra",
+   "why": "Arises only from the spec's added staff-removal capability (C-25)."
+  },
+  {
+   "id": "C-67",
+   "class": "needed"
+  },
+  {
+   "id": "C-68",
+   "class": "needed"
+  },
+  {
+   "id": "C-69",
+   "class": "decision"
+  },
+  {
+   "id": "C-70",
+   "class": "decision"
+  },
+  {
+   "id": "C-71",
+   "class": "needed"
+  },
+  {
+   "id": "C-72",
+   "class": "empty",
+   "why": "Encrypted transport is true of any hosted product, including the existing app; it decides nothing specific to the waitlist."
+  },
+  {
+   "id": "C-73",
+   "class": "extra",
+   "why": "Anonymising history arises only from the spec's added staff history (C-45)."
+  },
+  {
+   "id": "C-74",
+   "class": "needed"
+  },
+  {
+   "id": "C-75",
+   "class": "extra",
+   "why": "An hourly join-rate limit is an added restriction the request's purpose does not need."
+  },
+  {
+   "id": "C-76",
+   "class": "needed"
+  },
+  {
+   "id": "C-77",
+   "class": "needed"
+  },
+  {
+   "id": "C-78",
+   "class": "needed"
+  },
+  {
+   "id": "C-79",
+   "class": "needed"
+  },
+  {
+   "id": "C-80",
+   "class": "needed"
+  },
+  {
+   "id": "C-81",
+   "class": "needed"
+  },
+  {
+   "id": "C-82",
+   "class": "needed"
+  },
+  {
+   "id": "C-83",
+   "class": "needed"
+  },
+  {
+   "id": "C-84",
+   "class": "needed"
+  },
+  {
+   "id": "C-85",
+   "class": "needed"
+  },
+  {
+   "id": "C-86",
+   "class": "needed"
+  },
+  {
+   "id": "C-87",
+   "class": "extra",
+   "why": "Per-class staff-set size limits are an added management capability; the waitlist works without them."
+  },
+  {
+   "id": "C-88",
+   "class": "extra",
+   "why": "Behaviour of freed spots while switched off arises only from the spec's added kill switch (C-29)."
+  },
+  {
+   "id": "C-89",
+   "class": "extra",
+   "why": "Resuming promotions after switch-on arises only from the spec's added kill switch (C-29)."
+  },
+  {
+   "id": "C-90",
+   "class": "extra",
+   "why": "Re-introduction after a revert arises only from the spec's added rollback duty (C-32)."
+  },
+  {
+   "id": "C-91",
+   "class": "extra",
+   "why": "Mirroring every notice in the app is an added capability beyond notifying members."
+  },
+  {
+   "id": "C-92",
+   "class": "decision"
+  },
+  {
+   "id": "C-93",
+   "class": "extra",
+   "why": "Retention of in-app notice information arises only from the spec's added in-app mirror (C-91)."
+  }
+ ]
+}

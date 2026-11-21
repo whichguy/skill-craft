@@ -1,0 +1,221 @@
+{
+ "slot": "grokbot-salesforce__A-single__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "cost_usd": 0.359072,
+ "missing_ids": [],
+ "clauses": [
+  {
+   "id": "C-1",
+   "class": "request"
+  },
+  {
+   "id": "C-2",
+   "class": "request"
+  },
+  {
+   "id": "C-3",
+   "class": "needed"
+  },
+  {
+   "id": "C-4",
+   "class": "decision"
+  },
+  {
+   "id": "C-5",
+   "class": "extra",
+   "why": "Only arises from the spec's multiple-conversation model; the request asks for a bot, not managed separate conversations."
+  },
+  {
+   "id": "C-6",
+   "class": "extra",
+   "why": "Persisting conversation history across sessions is not called for; an ephemeral chat bot fully delivers what was asked."
+  },
+  {
+   "id": "C-7",
+   "class": "empty",
+   "why": "An initial screen with an input and no error is true of any chat product; it settles nothing a builder must act on."
+  },
+  {
+   "id": "C-8",
+   "class": "extra",
+   "why": "A browsable, reopenable conversation history list is a capability beyond a Grok bot."
+  },
+  {
+   "id": "C-9",
+   "class": "extra",
+   "why": "Multiple stored conversations with a new-conversation action go beyond the request; a single chat suffices."
+  },
+  {
+   "id": "C-10",
+   "class": "decision"
+  },
+  {
+   "id": "C-11",
+   "class": "decision"
+  },
+  {
+   "id": "C-12",
+   "class": "decision"
+  },
+  {
+   "id": "C-13",
+   "class": "needed"
+  },
+  {
+   "id": "C-14",
+   "class": "decision"
+  },
+  {
+   "id": "C-15",
+   "class": "needed"
+  },
+  {
+   "id": "C-16",
+   "class": "decision"
+  },
+  {
+   "id": "C-17",
+   "class": "wrong",
+   "why": "Since Winter '20, callout time is excluded from the concurrent long-running Apex limit, so bot callouts are not long-running requests by virtue of waiting."
+  },
+  {
+   "id": "C-18",
+   "class": "needed"
+  },
+  {
+   "id": "C-19",
+   "class": "decision"
+  },
+  {
+   "id": "C-20",
+   "class": "request"
+  },
+  {
+   "id": "C-21",
+   "class": "needed"
+  },
+  {
+   "id": "C-22",
+   "class": "decision"
+  },
+  {
+   "id": "C-23",
+   "class": "decision"
+  },
+  {
+   "id": "C-24",
+   "class": "decision"
+  },
+  {
+   "id": "C-25",
+   "class": "extra",
+   "why": "A per-conversation message cap only matters because the spec introduced persisted conversations; context is already bounded by C-4."
+  },
+  {
+   "id": "C-26",
+   "class": "needed"
+  },
+  {
+   "id": "C-27",
+   "class": "decision"
+  },
+  {
+   "id": "C-28",
+   "class": "extra",
+   "why": "Per-user privacy of stored conversations arises only from the spec's added persistence of history."
+  },
+  {
+   "id": "C-29",
+   "class": "needed"
+  },
+  {
+   "id": "C-30",
+   "class": "decision"
+  },
+  {
+   "id": "C-31",
+   "class": "extra",
+   "why": "A third-party processing disclosure is a duty the request does not call for in a development org bot."
+  },
+  {
+   "id": "C-32",
+   "class": "needed"
+  },
+  {
+   "id": "C-33",
+   "class": "needed"
+  },
+  {
+   "id": "C-34",
+   "class": "needed"
+  },
+  {
+   "id": "C-35",
+   "class": "needed"
+  },
+  {
+   "id": "C-36",
+   "class": "needed"
+  },
+  {
+   "id": "C-37",
+   "class": "needed"
+  },
+  {
+   "id": "C-38",
+   "class": "needed"
+  },
+  {
+   "id": "C-39",
+   "class": "needed"
+  },
+  {
+   "id": "C-40",
+   "class": "extra",
+   "why": "Making the model admin-configurable is added work; a builder can simply pick one model and deliver a working bot."
+  },
+  {
+   "id": "C-41",
+   "class": "decision"
+  },
+  {
+   "id": "C-42",
+   "class": "extra",
+   "why": "Diagnosing an invalid model setting only arises from the extra configurable-model capability."
+  },
+  {
+   "id": "C-43",
+   "class": "extra",
+   "why": "Idempotent redeployment preserving data and settings is an operational duty beyond creating the bot."
+  },
+  {
+   "id": "C-44",
+   "class": "extra",
+   "why": "Cross-version data compatibility assumes versioned releases and persisted history, neither of which the request calls for."
+  },
+  {
+   "id": "C-45",
+   "class": "extra",
+   "why": "Rollback with data preservation is an operational capability beyond the request; ordinary deploys don't delete fields anyway."
+  },
+  {
+   "id": "C-46",
+   "class": "needed"
+  },
+  {
+   "id": "C-47",
+   "class": "extra",
+   "why": "75% coverage is a production deployment rule; deploying to a development org does not require it."
+  },
+  {
+   "id": "C-48",
+   "class": "request"
+  },
+  {
+   "id": "C-49",
+   "class": "decision"
+  }
+ ]
+}

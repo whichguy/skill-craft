@@ -1,0 +1,138 @@
+{
+ "slot": "invoice-reminders__D-enumerated-only__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-3",
+   "quote": "A new account's schedule shows five steps at -3, 0, +7, +14 and +30 days relative to the due date."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-8, C-9, U-7",
+   "quote": "Open or Partially paid whose balance is above zero receives reminders. \u2026 After a payment, credit note, void or write-off brings an invoice to any of those, no further reminder is sent \u2026 while a dispute is settled",
+   "missing": "Whether a dispute or an active payment plan itself suspends reminders. U-7 describes pausing a disputed invoice by hand."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-11",
+   "quote": "An invoice of 1,000.00 USD with 400.00 USD paid shows 600.00 USD in the reminder."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-67, C-48",
+   "quote": "A suppressed address receives no reminders from any invoice in the account, automatic or manual \u2026 the invoice is paused; the invoice is stopped by the recipient",
+   "missing": "How an existing customer-wide do-not-contact, pause or unsubscribe affects billing reminders, including whether a marketing opt-out applies."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-49, C-81",
+   "quote": "When two sending runs overlap or the same step is processed twice, the customer still receives it once \u2026 A sending run cut short by a platform time limit, crash or restart loses no due reminder and duplicates none"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-48",
+   "quote": "Immediately before every attempt, including retries and manual sends, the system re-checks these conditions and sends nothing if any holds: the invoice is settled"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-17",
+   "quote": "A transient delivery failure is retried up to 3 times, at least 15 minutes apart, and only on the same calendar day \u2026 the entry shows Failed and no further attempt is made for that step.",
+   "missing": "Whether a person is alerted when retries are exhausted, who receives the alert, and when. U-9 provides a list an Admin can check."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-73",
+   "quote": "When more than 1,000 reminders are due for one account at one send time, all are handed to the mail provider as fast as the provider's rate allows \u2026 The provider's rate limit figure is unconfirmed.",
+   "missing": "The provider quota, including how many messages may be sent per time interval."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "U-14",
+   "quote": "Nothing goes out to customers on the day for steps dated that day or earlier; overdue invoices receive their next step that is dated after the day of enabling."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-5, C-6",
+   "quote": "without shifting for weekends or holidays \u2026 The send time is a whole hour of the day in the account's time zone, defaulting to 09:00 \u2026 The send time can be set to any of 00:00, 01:00 ... 23:00"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-34",
+   "quote": "Amounts are shown in the invoice's own currency with that currency's standard number of decimal places"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-29, C-64",
+   "quote": "zero billing addresses, or an address that is not a syntactically valid email address, no email is sent to that address \u2026 A permanent delivery failure for an address is recorded as Bounced and not retried"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-98",
+   "quote": "Reminders go to at most the first 5 billing addresses of an invoice, in the order the invoice lists them"
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-16, C-70",
+   "quote": "recorded in that invoice's history \u2026 one row per attempted step and billing address \u2026 Each row shows origin (the step's offset or manual), the date it was scheduled for, the time of each attempt and its status."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-10",
+   "quote": "invoice number; outstanding balance with its currency; due date \u2026 the account's payment instructions; the customer-facing link to view the invoice when the invoice has one",
+   "missing": "Whether the customer-facing invoice link expires and, if so, when."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-25",
+   "quote": "Only an Owner or Admin of the account can use these controls: turn reminders On or Off, edit the schedule \u2026 pause or resume an invoice, send a reminder now"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-21, C-25",
+   "quote": "The operator can stop all reminder sending system-wide \u2026 turn reminders On or Off \u2026 send a test, pause or resume an invoice, send a reminder now",
+   "missing": "How to disable reminders for one customer across all of that customer's invoices."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-22, U-9",
+   "quote": "Scheduled with the date of the next reminder \u2026 a list of invoices whose reminders failed, bounced, had no recipient address, had an unknown outcome or were held back by a suppressed address"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-47",
+   "quote": "A due step that is more than 3 calendar days past its date in the account's time zone is not sent"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-87, C-91",
+   "quote": "Reminder activity never changes an invoice's state, balance, due date, addresses or any other invoice data \u2026 An invoice can be created, issued and paid with reminders Off exactly as before the feature existed."
+  }
+ ]
+}

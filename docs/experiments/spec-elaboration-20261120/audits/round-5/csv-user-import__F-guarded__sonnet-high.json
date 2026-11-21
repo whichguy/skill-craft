@@ -1,0 +1,297 @@
+{
+ "slot": "csv-user-import__F-guarded__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "cost_usd": 0.39167499999999994,
+ "missing_ids": [],
+ "clauses": [
+  {
+   "id": "C-1",
+   "class": "request"
+  },
+  {
+   "id": "C-2",
+   "class": "needed"
+  },
+  {
+   "id": "C-3",
+   "class": "request"
+  },
+  {
+   "id": "C-4",
+   "class": "request"
+  },
+  {
+   "id": "C-5",
+   "class": "extra",
+   "why": "Re-checking admin status mid-request guards a sub-second revocation race the request never raises; a plain authorization check delivers the feature."
+  },
+  {
+   "id": "C-6",
+   "class": "needed"
+  },
+  {
+   "id": "C-7",
+   "class": "needed"
+  },
+  {
+   "id": "C-8",
+   "class": "decision"
+  },
+  {
+   "id": "C-9",
+   "class": "request"
+  },
+  {
+   "id": "C-10",
+   "class": "decision"
+  },
+  {
+   "id": "C-11",
+   "class": "needed"
+  },
+  {
+   "id": "C-12",
+   "class": "decision"
+  },
+  {
+   "id": "C-13",
+   "class": "decision"
+  },
+  {
+   "id": "C-14",
+   "class": "needed"
+  },
+  {
+   "id": "C-15",
+   "class": "decision"
+  },
+  {
+   "id": "C-16",
+   "class": "decision"
+  },
+  {
+   "id": "C-17",
+   "class": "decision"
+  },
+  {
+   "id": "C-18",
+   "class": "decision"
+  },
+  {
+   "id": "C-19",
+   "class": "decision"
+  },
+  {
+   "id": "C-20",
+   "class": "decision"
+  },
+  {
+   "id": "C-21",
+   "class": "decision"
+  },
+  {
+   "id": "C-22",
+   "class": "decision"
+  },
+  {
+   "id": "C-23",
+   "class": "decision"
+  },
+  {
+   "id": "C-24",
+   "class": "decision"
+  },
+  {
+   "id": "C-25",
+   "class": "extra",
+   "why": "A 30-second target measured against a 100,000-user store is a performance commitment the request does not call for."
+  },
+  {
+   "id": "C-26",
+   "class": "needed"
+  },
+  {
+   "id": "C-27",
+   "class": "decision"
+  },
+  {
+   "id": "C-28",
+   "class": "decision"
+  },
+  {
+   "id": "C-29",
+   "class": "needed"
+  },
+  {
+   "id": "C-30",
+   "class": "decision"
+  },
+  {
+   "id": "C-31",
+   "class": "decision"
+  },
+  {
+   "id": "C-32",
+   "class": "decision"
+  },
+  {
+   "id": "C-33",
+   "class": "decision"
+  },
+  {
+   "id": "C-34",
+   "class": "decision"
+  },
+  {
+   "id": "C-35",
+   "class": "needed"
+  },
+  {
+   "id": "C-36",
+   "class": "needed"
+  },
+  {
+   "id": "C-37",
+   "class": "decision"
+  },
+  {
+   "id": "C-38",
+   "class": "decision"
+  },
+  {
+   "id": "C-39",
+   "class": "decision"
+  },
+  {
+   "id": "C-40",
+   "class": "needed"
+  },
+  {
+   "id": "C-41",
+   "class": "needed"
+  },
+  {
+   "id": "C-42",
+   "class": "decision"
+  },
+  {
+   "id": "C-43",
+   "class": "request"
+  },
+  {
+   "id": "C-44",
+   "class": "needed"
+  },
+  {
+   "id": "C-45",
+   "class": "request"
+  },
+  {
+   "id": "C-46",
+   "class": "decision"
+  },
+  {
+   "id": "C-47",
+   "class": "decision"
+  },
+  {
+   "id": "C-48",
+   "class": "needed"
+  },
+  {
+   "id": "C-49",
+   "class": "decision"
+  },
+  {
+   "id": "C-50",
+   "class": "decision"
+  },
+  {
+   "id": "C-51",
+   "class": "decision"
+  },
+  {
+   "id": "C-52",
+   "class": "needed"
+  },
+  {
+   "id": "C-53",
+   "class": "decision"
+  },
+  {
+   "id": "C-54",
+   "class": "needed"
+  },
+  {
+   "id": "C-55",
+   "class": "needed"
+  },
+  {
+   "id": "C-56",
+   "class": "extra",
+   "why": "Client-side double-submit prevention is optional polish; the clause itself notes the server stays safe without it."
+  },
+  {
+   "id": "C-57",
+   "class": "decision"
+  },
+  {
+   "id": "C-58",
+   "class": "extra",
+   "why": "A fixed status-code contract for scripted non-browser clients serves an API use case the request, about admins uploading, does not include."
+  },
+  {
+   "id": "C-59",
+   "class": "decision"
+  },
+  {
+   "id": "C-60",
+   "class": "needed"
+  },
+  {
+   "id": "C-61",
+   "class": "extra",
+   "why": "A per-attempt audit log with specified fields is an operator duty the request's purpose of bulk-creating users does not require."
+  },
+  {
+   "id": "C-62",
+   "class": "extra",
+   "why": "Log-injection protection only arises because C-61 introduced the audit log, itself beyond the request."
+  },
+  {
+   "id": "C-63",
+   "class": "needed"
+  },
+  {
+   "id": "C-64",
+   "class": "needed"
+  },
+  {
+   "id": "C-65",
+   "class": "needed"
+  },
+  {
+   "id": "C-66",
+   "class": "extra",
+   "why": "A rollback-survival guarantee for imported users is an operational duty beyond what uploading a CSV to create users requires."
+  },
+  {
+   "id": "C-67",
+   "class": "needed"
+  },
+  {
+   "id": "C-68",
+   "class": "decision"
+  },
+  {
+   "id": "C-69",
+   "class": "needed"
+  },
+  {
+   "id": "C-70",
+   "class": "needed"
+  }
+ ]
+}

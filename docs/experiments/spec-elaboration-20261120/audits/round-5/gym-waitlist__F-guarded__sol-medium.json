@@ -1,0 +1,590 @@
+{
+ "slot": "gym-waitlist__F-guarded__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "cost_usd": 0.7007943999999999,
+ "missing_ids": [],
+ "clauses": [
+  {
+   "id": "C-1",
+   "class": "request"
+  },
+  {
+   "id": "C-2",
+   "class": "request"
+  },
+  {
+   "id": "C-3",
+   "class": "needed"
+  },
+  {
+   "id": "C-4",
+   "class": "needed"
+  },
+  {
+   "id": "C-5",
+   "class": "request"
+  },
+  {
+   "id": "C-6",
+   "class": "needed"
+  },
+  {
+   "id": "C-7",
+   "class": "needed"
+  },
+  {
+   "id": "C-8",
+   "class": "needed"
+  },
+  {
+   "id": "C-9",
+   "class": "needed"
+  },
+  {
+   "id": "C-10",
+   "class": "decision"
+  },
+  {
+   "id": "C-11",
+   "class": "needed"
+  },
+  {
+   "id": "C-12",
+   "class": "extra",
+   "why": "Rollback support is not in the request; this arises only from the spec's own planned-rollback procedure and costs real compatibility work."
+  },
+  {
+   "id": "C-13",
+   "class": "decision"
+  },
+  {
+   "id": "C-14",
+   "class": "decision"
+  },
+  {
+   "id": "C-15",
+   "class": "needed"
+  },
+  {
+   "id": "C-16",
+   "class": "needed"
+  },
+  {
+   "id": "C-17",
+   "class": "decision"
+  },
+  {
+   "id": "C-18",
+   "class": "decision"
+  },
+  {
+   "id": "C-19",
+   "class": "needed"
+  },
+  {
+   "id": "C-20",
+   "class": "needed"
+  },
+  {
+   "id": "C-21",
+   "class": "decision"
+  },
+  {
+   "id": "C-22",
+   "class": "needed"
+  },
+  {
+   "id": "C-23",
+   "class": "needed"
+  },
+  {
+   "id": "C-24",
+   "class": "decision"
+  },
+  {
+   "id": "C-25",
+   "class": "decision"
+  },
+  {
+   "id": "C-26",
+   "class": "needed"
+  },
+  {
+   "id": "C-27",
+   "class": "needed"
+  },
+  {
+   "id": "C-28",
+   "class": "decision"
+  },
+  {
+   "id": "C-29",
+   "class": "needed"
+  },
+  {
+   "id": "C-30",
+   "class": "decision"
+  },
+  {
+   "id": "C-31",
+   "class": "decision"
+  },
+  {
+   "id": "C-32",
+   "class": "needed"
+  },
+  {
+   "id": "C-33",
+   "class": "needed"
+  },
+  {
+   "id": "C-34",
+   "class": "decision"
+  },
+  {
+   "id": "C-35",
+   "class": "decision"
+  },
+  {
+   "id": "C-36",
+   "class": "needed"
+  },
+  {
+   "id": "C-37",
+   "class": "decision"
+  },
+  {
+   "id": "C-38",
+   "class": "needed"
+  },
+  {
+   "id": "C-39",
+   "class": "needed"
+  },
+  {
+   "id": "C-40",
+   "class": "decision"
+  },
+  {
+   "id": "C-41",
+   "class": "needed"
+  },
+  {
+   "id": "C-42",
+   "class": "needed"
+  },
+  {
+   "id": "C-43",
+   "class": "needed"
+  },
+  {
+   "id": "C-44",
+   "class": "decision"
+  },
+  {
+   "id": "C-45",
+   "class": "needed"
+  },
+  {
+   "id": "C-46",
+   "class": "extra",
+   "why": "Distinguishing stale withdrawals by entry identity needs per-entry action references; a plain member-and-occurrence withdrawal delivers the waitlist fine."
+  },
+  {
+   "id": "C-47",
+   "class": "needed"
+  },
+  {
+   "id": "C-48",
+   "class": "decision"
+  },
+  {
+   "id": "C-49",
+   "class": "needed"
+  },
+  {
+   "id": "C-50",
+   "class": "decision"
+  },
+  {
+   "id": "C-51",
+   "class": "decision"
+  },
+  {
+   "id": "C-52",
+   "class": "needed"
+  },
+  {
+   "id": "C-53",
+   "class": "needed"
+  },
+  {
+   "id": "C-54",
+   "class": "decision"
+  },
+  {
+   "id": "C-55",
+   "class": "needed"
+  },
+  {
+   "id": "C-56",
+   "class": "needed"
+  },
+  {
+   "id": "C-57",
+   "class": "needed"
+  },
+  {
+   "id": "C-58",
+   "class": "needed"
+  },
+  {
+   "id": "C-59",
+   "class": "decision"
+  },
+  {
+   "id": "C-60",
+   "class": "needed"
+  },
+  {
+   "id": "C-61",
+   "class": "needed"
+  },
+  {
+   "id": "C-62",
+   "class": "needed"
+  },
+  {
+   "id": "C-63",
+   "class": "needed"
+  },
+  {
+   "id": "C-64",
+   "class": "needed"
+  },
+  {
+   "id": "C-65",
+   "class": "needed"
+  },
+  {
+   "id": "C-66",
+   "class": "needed"
+  },
+  {
+   "id": "C-67",
+   "class": "needed"
+  },
+  {
+   "id": "C-68",
+   "class": "needed"
+  },
+  {
+   "id": "C-69",
+   "class": "empty",
+   "why": "Restates a general production prerequisite of the existing app (authentication) and decides nothing a builder can act on for the waitlist."
+  },
+  {
+   "id": "C-70",
+   "class": "empty",
+   "why": "Restates a generic prerequisite that production storage is durable; true of any product and decides nothing specific to the waitlist."
+  },
+  {
+   "id": "C-71",
+   "class": "decision"
+  },
+  {
+   "id": "C-72",
+   "class": "needed"
+  },
+  {
+   "id": "C-73",
+   "class": "needed"
+  },
+  {
+   "id": "C-74",
+   "class": "decision"
+  },
+  {
+   "id": "C-75",
+   "class": "needed"
+  },
+  {
+   "id": "C-76",
+   "class": "needed"
+  },
+  {
+   "id": "C-77",
+   "class": "decision"
+  },
+  {
+   "id": "C-78",
+   "class": "decision"
+  },
+  {
+   "id": "C-79",
+   "class": "needed"
+  },
+  {
+   "id": "C-80",
+   "class": "needed"
+  },
+  {
+   "id": "C-81",
+   "class": "needed"
+  },
+  {
+   "id": "C-82",
+   "class": "needed"
+  },
+  {
+   "id": "C-83",
+   "class": "needed"
+  },
+  {
+   "id": "C-84",
+   "class": "needed"
+  },
+  {
+   "id": "C-85",
+   "class": "needed"
+  },
+  {
+   "id": "C-86",
+   "class": "needed"
+  },
+  {
+   "id": "C-87",
+   "class": "needed"
+  },
+  {
+   "id": "C-88",
+   "class": "extra",
+   "why": "Operator diagnostic visibility into individual outcomes is not called for by the request; recording and exposing these distinctions is added work."
+  },
+  {
+   "id": "C-89",
+   "class": "extra",
+   "why": "Operator ability to diagnose pending versus settled vacancies is support tooling the request does not call for."
+  },
+  {
+   "id": "C-90",
+   "class": "extra",
+   "why": "Arises only from the operator inspection capability the spec itself added in C-88; the request calls for no operator access."
+  },
+  {
+   "id": "C-91",
+   "class": "decision"
+  },
+  {
+   "id": "C-92",
+   "class": "extra",
+   "why": "An admissions-drain mode for planned rollback is deployment machinery the request does not call for."
+  },
+  {
+   "id": "C-93",
+   "class": "extra",
+   "why": "Only arises from the spec's own rollback-drain mode in C-92, which the request does not call for."
+  },
+  {
+   "id": "C-94",
+   "class": "extra",
+   "why": "Only arises from the spec's own rollback-drain mode in C-92, which the request does not call for."
+  },
+  {
+   "id": "C-95",
+   "class": "extra",
+   "why": "A rollback-readiness gate on zero active entries is release machinery beyond the request."
+  },
+  {
+   "id": "C-96",
+   "class": "extra",
+   "why": "Re-rollout after rollback is a deployment scenario the spec introduced; the request does not call for it."
+  },
+  {
+   "id": "C-97",
+   "class": "decision"
+  },
+  {
+   "id": "C-98",
+   "class": "request"
+  },
+  {
+   "id": "C-99",
+   "class": "decision"
+  },
+  {
+   "id": "C-100",
+   "class": "decision"
+  },
+  {
+   "id": "C-101",
+   "class": "needed"
+  },
+  {
+   "id": "C-102",
+   "class": "needed"
+  },
+  {
+   "id": "C-103",
+   "class": "needed"
+  },
+  {
+   "id": "C-104",
+   "class": "decision"
+  },
+  {
+   "id": "C-105",
+   "class": "decision"
+  },
+  {
+   "id": "C-106",
+   "class": "decision"
+  },
+  {
+   "id": "C-107",
+   "class": "needed"
+  },
+  {
+   "id": "C-108",
+   "class": "extra",
+   "why": "Telling delayed replays from new joins requires request-identity tracking beyond what a working waitlist needs; C-24 already permits deliberate rejoining."
+  },
+  {
+   "id": "C-109",
+   "class": "decision"
+  },
+  {
+   "id": "C-110",
+   "class": "needed"
+  },
+  {
+   "id": "C-111",
+   "class": "needed"
+  },
+  {
+   "id": "C-112",
+   "class": "needed"
+  },
+  {
+   "id": "C-113",
+   "class": "decision"
+  },
+  {
+   "id": "C-114",
+   "class": "extra",
+   "why": "Rollback readiness waiting on unsettled assignments arises only from the spec's own rollback procedure, not the request."
+  },
+  {
+   "id": "C-115",
+   "class": "needed"
+  },
+  {
+   "id": "C-116",
+   "class": "needed"
+  },
+  {
+   "id": "C-117",
+   "class": "decision"
+  },
+  {
+   "id": "C-118",
+   "class": "decision"
+  },
+  {
+   "id": "C-119",
+   "class": "needed"
+  },
+  {
+   "id": "C-120",
+   "class": "needed"
+  },
+  {
+   "id": "C-121",
+   "class": "needed"
+  },
+  {
+   "id": "C-122",
+   "class": "decision"
+  },
+  {
+   "id": "C-123",
+   "class": "needed"
+  },
+  {
+   "id": "C-124",
+   "class": "needed"
+  },
+  {
+   "id": "C-125",
+   "class": "needed"
+  },
+  {
+   "id": "C-126",
+   "class": "needed"
+  },
+  {
+   "id": "C-127",
+   "class": "extra",
+   "why": "Abandoning a planned rollback only matters because the spec added a rollback-drain mode the request never asked for."
+  },
+  {
+   "id": "C-128",
+   "class": "extra",
+   "why": "Making the earlier release handle waitlist-originated bookings is rollback compatibility work beyond the request."
+  },
+  {
+   "id": "C-129",
+   "class": "decision"
+  },
+  {
+   "id": "C-130",
+   "class": "decision"
+  },
+  {
+   "id": "C-131",
+   "class": "decision"
+  },
+  {
+   "id": "C-132",
+   "class": "needed"
+  },
+  {
+   "id": "C-133",
+   "class": "decision"
+  },
+  {
+   "id": "C-134",
+   "class": "decision"
+  },
+  {
+   "id": "C-135",
+   "class": "needed"
+  },
+  {
+   "id": "C-136",
+   "class": "needed"
+  },
+  {
+   "id": "C-137",
+   "class": "needed"
+  },
+  {
+   "id": "C-138",
+   "class": "needed"
+  },
+  {
+   "id": "C-139",
+   "class": "needed"
+  },
+  {
+   "id": "C-140",
+   "class": "decision"
+  },
+  {
+   "id": "C-141",
+   "class": "needed"
+  }
+ ]
+}

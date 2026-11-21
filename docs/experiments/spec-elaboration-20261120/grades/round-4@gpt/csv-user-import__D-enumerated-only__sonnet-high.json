@@ -1,0 +1,143 @@
+{
+ "slot": "csv-user-import__D-enumerated-only__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-36",
+   "quote": "If the import ends `rejected` for any file-level or row-level error, no user from that file exists, including the rows that were valid"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-58",
+   "quote": "for `rejected`, the total number of errors and every error entry (row, column, reason code, message)"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-30, C-31",
+   "quote": "every later row with the same address gets an error for column `email` with reason `duplicate_in_file` \u2026 equals that of any existing user, in state `invited`, `active` or `deactivated`, gets an error for column `email` with reason `already_exists`"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-5, C-29",
+   "quote": "Admin rights are checked again when the users are about to be created \u2026 Roles are `member` or `admin`; empty means `member` \u2026 These are the only two roles an import can assign."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-1, C-2",
+   "quote": "Active admins can use the import page and submit a CSV \u2026 Everyone else is refused with HTTP 403 on every import-related request",
+   "missing": "The spec identifies eligible importers but leaves the relationship between permission to create one user and permission to bulk-import unstated."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-10, C-11, C-13",
+   "quote": "The first record that is not blank is the header. \u2026 the header lacks `email` or lacks `name` (or lacks both), the import ends `rejected` \u2026 Unrecognised columns are ignored and reported"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-78, C-8",
+   "quote": "A leading byte-order mark is ignored \u2026 a field wrapped in double quotes may contain commas, doubled double quotes (`\"\"` for one `\"`) and line breaks. Records end with LF or CRLF"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-60",
+   "quote": "When an import becomes `succeeded`, each of its users is sent one email at the address in the file, not before the users exist and never for `rejected` or `failed` imports."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-21",
+   "quote": "A file with 5,000 data rows is accepted for validation; a file with 5,001 or more data rows ends `rejected` with file-level reason `too_many_rows`"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-18, C-19, C-37",
+   "quote": "An empty file is refused \u2026 A header without data is refused \u2026 When no error exists, the number of users created equals the number of data rows read, each row producing exactly one user"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-51, C-55",
+   "quote": "a further upload by the same admin is refused with reason `import_in_progress` \u2026 Uploading a file whose users were created by an earlier import ends `rejected` with `already_exists` on every row, \"0 users created\""
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-42, U-5",
+   "quote": "the upload must not depend on a single web request lasting as long as processing. \u2026 watches the status change without reloading, or closes the page and later opens the import history."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-60, C-85",
+   "quote": "One invitation email per created user, sent only after success \u2026 Under normal operation each invitation of an import reaches delivery `sent` or `failed` within 1 hour",
+   "missing": "A builder must decide whether to send all invitations at once or spread them out, and at what rate."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-38, C-39, U-6",
+   "quote": "starts as `invited` \u2026 No passwords are taken from the file \u2026 They open the link within 7 days, choose a password, and their status becomes `active`; they can then sign in with that email address and password."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-56",
+   "quote": "The uploaded file is not kept after processing \u2026 Once an import reaches a final status, no page or address offers the original uploaded file for download.",
+   "missing": "The spec leaves the storage location and who, if anyone, can download the original while the import is queued or processing undecided."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "C-42, C-58",
+   "quote": "the file name, the uploading admin and the upload time \u2026 for `succeeded`, the list of the users created (email, name, role, and each one's invitation delivery)"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "U-3, C-36",
+   "quote": "The admin fixes rows 17 and 42 in the file, uploads it again \u2026 all-or-nothing makes re-uploading a corrected file safe",
+   "missing": "The spec describes a whole-file retry. It leaves cancellation during processing and any separate retry action for just the failed rows unspecified."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-46, C-45",
+   "quote": "Under normal load, an import of 5,000 valid rows goes from upload to `succeeded` within 60 seconds. \u2026 the shown status is refreshed without the admin reloading, at intervals of 5 seconds or less"
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "C-54, C-73",
+   "quote": "by hand in user management \u2026 No import changes, deactivates, re-roles, renames, re-invites or deletes any user who existed when it was accepted",
+   "missing": "The spec recognizes manual creation and protects existing users, but leaves open whether adding import may change the existing manual creation flow or its validation behavior."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-80, C-27",
+   "quote": "a value that starts with `=`, `+`, `-` or `@` is written so that spreadsheet programs treat it as text \u2026 a name of 101 or more gets an error for column `name` with reason `name_too_long`"
+  }
+ ]
+}

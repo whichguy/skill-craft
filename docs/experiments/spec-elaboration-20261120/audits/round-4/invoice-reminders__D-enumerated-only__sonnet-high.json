@@ -1,0 +1,431 @@
+{
+ "slot": "invoice-reminders__D-enumerated-only__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "cost_usd": 0.5127856,
+ "missing_ids": [],
+ "clauses": [
+  {
+   "id": "C-1",
+   "class": "decision"
+  },
+  {
+   "id": "C-2",
+   "class": "decision"
+  },
+  {
+   "id": "C-3",
+   "class": "decision"
+  },
+  {
+   "id": "C-4",
+   "class": "decision"
+  },
+  {
+   "id": "C-5",
+   "class": "decision"
+  },
+  {
+   "id": "C-6",
+   "class": "decision"
+  },
+  {
+   "id": "C-7",
+   "class": "decision"
+  },
+  {
+   "id": "C-8",
+   "class": "request"
+  },
+  {
+   "id": "C-9",
+   "class": "request"
+  },
+  {
+   "id": "C-10",
+   "class": "needed"
+  },
+  {
+   "id": "C-11",
+   "class": "needed"
+  },
+  {
+   "id": "C-12",
+   "class": "decision"
+  },
+  {
+   "id": "C-13",
+   "class": "extra",
+   "why": "A test-send feature is not needed for automatic reminders to work."
+  },
+  {
+   "id": "C-14",
+   "class": "extra",
+   "why": "Per-invoice pause and resume is an added capability beyond automatic reminders."
+  },
+  {
+   "id": "C-15",
+   "class": "extra",
+   "why": "Manual send-now is a separate capability; automatic reminders work without it."
+  },
+  {
+   "id": "C-16",
+   "class": "needed"
+  },
+  {
+   "id": "C-17",
+   "class": "decision"
+  },
+  {
+   "id": "C-18",
+   "class": "needed"
+  },
+  {
+   "id": "C-19",
+   "class": "extra",
+   "why": "A recipient opt-out link for transactional invoice reminders is an added capability, not functionally required."
+  },
+  {
+   "id": "C-20",
+   "class": "decision"
+  },
+  {
+   "id": "C-21",
+   "class": "extra",
+   "why": "A system-wide operator kill switch is added operational tooling beyond the request."
+  },
+  {
+   "id": "C-22",
+   "class": "extra",
+   "why": "Per-invoice reminder-state display with precedence rules is added UI the reminders do not need to work."
+  },
+  {
+   "id": "C-23",
+   "class": "decision"
+  },
+  {
+   "id": "C-24",
+   "class": "decision"
+  },
+  {
+   "id": "C-25",
+   "class": "needed"
+  },
+  {
+   "id": "C-26",
+   "class": "decision"
+  },
+  {
+   "id": "C-27",
+   "class": "extra",
+   "why": "A settings change audit log is an accountability feature the request does not call for."
+  },
+  {
+   "id": "C-28",
+   "class": "decision"
+  },
+  {
+   "id": "C-29",
+   "class": "needed"
+  },
+  {
+   "id": "C-30",
+   "class": "needed"
+  },
+  {
+   "id": "C-31",
+   "class": "decision"
+  },
+  {
+   "id": "C-32",
+   "class": "decision"
+  },
+  {
+   "id": "C-33",
+   "class": "decision"
+  },
+  {
+   "id": "C-34",
+   "class": "needed"
+  },
+  {
+   "id": "C-35",
+   "class": "needed"
+  },
+  {
+   "id": "C-36",
+   "class": "decision"
+  },
+  {
+   "id": "C-37",
+   "class": "decision"
+  },
+  {
+   "id": "C-38",
+   "class": "decision"
+  },
+  {
+   "id": "C-39",
+   "class": "decision"
+  },
+  {
+   "id": "C-40",
+   "class": "decision"
+  },
+  {
+   "id": "C-41",
+   "class": "decision"
+  },
+  {
+   "id": "C-42",
+   "class": "needed"
+  },
+  {
+   "id": "C-43",
+   "class": "decision"
+  },
+  {
+   "id": "C-44",
+   "class": "decision"
+  },
+  {
+   "id": "C-45",
+   "class": "decision"
+  },
+  {
+   "id": "C-46",
+   "class": "decision"
+  },
+  {
+   "id": "C-47",
+   "class": "decision"
+  },
+  {
+   "id": "C-48",
+   "class": "needed"
+  },
+  {
+   "id": "C-49",
+   "class": "needed"
+  },
+  {
+   "id": "C-50",
+   "class": "decision"
+  },
+  {
+   "id": "C-51",
+   "class": "extra",
+   "why": "Rules for manual sending exist only because the spec added manual send (C-15)."
+  },
+  {
+   "id": "C-52",
+   "class": "extra",
+   "why": "A cooldown for manual sending arises only from the added manual-send feature."
+  },
+  {
+   "id": "C-53",
+   "class": "extra",
+   "why": "Refusal rules for manual sending arise only from the added manual-send feature."
+  },
+  {
+   "id": "C-54",
+   "class": "extra",
+   "why": "Concerns the added manual-send feature, not the requested automatic reminders."
+  },
+  {
+   "id": "C-55",
+   "class": "extra",
+   "why": "Concerns the added per-invoice pause feature."
+  },
+  {
+   "id": "C-56",
+   "class": "extra",
+   "why": "Concerns the added per-invoice pause feature."
+  },
+  {
+   "id": "C-57",
+   "class": "extra",
+   "why": "Concerns the added recipient stop link, which the request does not call for."
+  },
+  {
+   "id": "C-58",
+   "class": "extra",
+   "why": "Concerns the added recipient stop link."
+  },
+  {
+   "id": "C-59",
+   "class": "extra",
+   "why": "Token handling arises only from the added recipient stop link."
+  },
+  {
+   "id": "C-60",
+   "class": "extra",
+   "why": "Token security arises only from the added recipient stop link."
+  },
+  {
+   "id": "C-61",
+   "class": "extra",
+   "why": "Recovery rules for the added operator system-wide switch."
+  },
+  {
+   "id": "C-62",
+   "class": "needed"
+  },
+  {
+   "id": "C-63",
+   "class": "needed"
+  },
+  {
+   "id": "C-64",
+   "class": "needed"
+  },
+  {
+   "id": "C-65",
+   "class": "extra",
+   "why": "A per-account suppression list is added machinery; not retrying bounces (C-64) suffices."
+  },
+  {
+   "id": "C-66",
+   "class": "extra",
+   "why": "Complaint-driven suppression is added machinery beyond sending reminders."
+  },
+  {
+   "id": "C-67",
+   "class": "extra",
+   "why": "Enforcement of the added suppression list."
+  },
+  {
+   "id": "C-68",
+   "class": "extra",
+   "why": "Clearing suppressions exists only because the spec added a suppression list."
+  },
+  {
+   "id": "C-69",
+   "class": "extra",
+   "why": "Rewriting history rows from late bounce reports is added delivery-tracking work."
+  },
+  {
+   "id": "C-70",
+   "class": "decision"
+  },
+  {
+   "id": "C-71",
+   "class": "decision"
+  },
+  {
+   "id": "C-72",
+   "class": "decision"
+  },
+  {
+   "id": "C-73",
+   "class": "decision"
+  },
+  {
+   "id": "C-74",
+   "class": "needed"
+  },
+  {
+   "id": "C-75",
+   "class": "needed"
+  },
+  {
+   "id": "C-76",
+   "class": "needed"
+  },
+  {
+   "id": "C-77",
+   "class": "extra",
+   "why": "Timing for processing bounce and complaint reports, which serve the added suppression and tracking features."
+  },
+  {
+   "id": "C-78",
+   "class": "decision"
+  },
+  {
+   "id": "C-79",
+   "class": "decision"
+  },
+  {
+   "id": "C-80",
+   "class": "needed"
+  },
+  {
+   "id": "C-81",
+   "class": "needed"
+  },
+  {
+   "id": "C-82",
+   "class": "decision"
+  },
+  {
+   "id": "C-83",
+   "class": "needed"
+  },
+  {
+   "id": "C-84",
+   "class": "decision"
+  },
+  {
+   "id": "C-85",
+   "class": "decision"
+  },
+  {
+   "id": "C-86",
+   "class": "decision"
+  },
+  {
+   "id": "C-87",
+   "class": "needed"
+  },
+  {
+   "id": "C-88",
+   "class": "needed"
+  },
+  {
+   "id": "C-89",
+   "class": "needed"
+  },
+  {
+   "id": "C-90",
+   "class": "extra",
+   "why": "Mostly restates C-48 for pause, stop and suppression, all conditions introduced by extra features."
+  },
+  {
+   "id": "C-91",
+   "class": "needed"
+  },
+  {
+   "id": "C-92",
+   "class": "decision"
+  },
+  {
+   "id": "C-93",
+   "class": "extra",
+   "why": "An operator metrics dashboard is added tooling the request does not call for."
+  },
+  {
+   "id": "C-94",
+   "class": "extra",
+   "why": "Per-account operator disabling is added operator tooling beyond the request."
+  },
+  {
+   "id": "C-95",
+   "class": "extra",
+   "why": "A failed-reminders list is an added reporting view beyond the request."
+  },
+  {
+   "id": "C-96",
+   "class": "needed"
+  },
+  {
+   "id": "C-97",
+   "class": "extra",
+   "why": "Rate-limits the added test-reminder feature."
+  },
+  {
+   "id": "C-98",
+   "class": "decision"
+  }
+ ]
+}

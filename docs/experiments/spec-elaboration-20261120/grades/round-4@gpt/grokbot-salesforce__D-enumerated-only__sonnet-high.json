@@ -1,0 +1,186 @@
+{
+ "slot": "grokbot-salesforce__D-enumerated-only__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-2, C-23",
+   "quote": "App pages, Home pages and Record pages and for the utility bar. \u2026 the same chat as the tab. \u2026 The request body holds none of that page's record fields."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-6, C-7, C-23",
+   "quote": "Neither set grants access to anyone else's Conversation or Message. \u2026 View All Data or Modify All Data permission, who sees them by that platform rule. \u2026 The bot reads no Salesforce business record to build a request.",
+   "missing": "The spec limits the records available to chat, but leaves open whether server-side history retrieval must run in the asking user's sharing context."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "C-23",
+   "quote": "The request body holds none of that page's record fields. The bot reads no Salesforce business record to build a request.",
+   "missing": "Business-record fields are excluded. The spec gives no field-level access rule for fields the bot does read or display, including encrypted or restricted fields."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-6",
+   "quote": "\"Grok Bot User\" grants: the app and tab, the chat component's actions \u2026 \"Grok Bot Admin\" grants: edit of the Grok Bot settings, read and delete of Log records \u2026 an administrator who also chats holds both sets."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-6, C-7",
+   "quote": "Neither set grants access to anyone else's Conversation or Message. \u2026 The one exception is a user whose profile or permission set holds the platform's View All Data or Modify All Data permission"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-38",
+   "quote": "Salesforce forbids a callout after uncommitted database changes in the same transaction, so the user's message is saved in one step and the request to xAI made in the next.",
+   "missing": "Separate transactions are specified, but the callout step has no required asynchronous Apex job or dispatch mechanism."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-69",
+   "quote": "no screen, report, API response or log shows it again \u2026 It is not in the browser's traffic, in any Salesforce record the bot owns, or in the project's source files.",
+   "missing": "The builder must choose the protected Salesforce credential store that holds the key."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-40, C-15, C-66",
+   "quote": "Salesforce's maximum of 120 seconds for one callout \u2026 100 callouts per transaction \u2026 6 MB synchronous heap",
+   "missing": "The spec gives no numeric Apex CPU-time limit."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-77",
+   "quote": "Salesforce does not allow real callouts in tests, so responses are simulated."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-17, C-35",
+   "quote": "every request the bot makes goes to api.x.ai over HTTPS \u2026 Salesforce permits callouts only to endpoints an administrator has authorised \u2026 \"Configuration\" (the key is missing, the xAI endpoint is not authorised for the org"
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-12, C-82",
+   "quote": "Grok's reply appears in the transcript in one piece once complete. \u2026 When Grok's reply has been saved, the user's message and the reply both have status \"Sent\".",
+   "missing": "The spec defines the completion state but gives the open chat no mechanism to detect that an asynchronous reply is ready."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-31, C-15",
+   "quote": "double-clicking it produces one message, one record and one request. \u2026 with no automatic retry on failure",
+   "missing": "There is no server-side rule to recognize a repeated execution for the same request and suppress a second reply."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-41",
+   "quote": "10 for the org; the exact figure for a Developer Edition org is unconfirmed \u2026 the page shows the \"Platform busy\" message from C-36 and shows the user's message as failed with the retry control",
+   "missing": "This limit applies to long-running requests. The spec gives no async job capacity or outcome for a failed enqueue."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-35, C-37",
+   "quote": "\"Rejected request\" (HTTP 400, 413 or 422) \u2026 \"Provider error\" (any HTTP 5xx \u2026 \"Timeout\" (no response within the timeout setting) \u2026 marked \"Failed\" with the reason's category"
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-35, C-15, C-36",
+   "quote": "\"Rate limit\" (HTTP 429) \u2026 with no automatic retry on failure \u2026 trying again later may work.",
+   "missing": "Retries are manual and the user is told to try later. The spec gives no backoff interval or rule for honoring a provider-supplied retry delay."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-33, C-39",
+   "quote": "shown with a note that it was cut off at the limit \u2026 A message with no outcome after 5 minutes is shown as failed \u2026 the category \"Internal error\" when the conversation is opened"
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "C-48, C-49",
+   "quote": "A Conversation record holds these fields \u2026 A Message record holds these fields \u2026 Conversation, Role (\"User\" or \"Assistant\"), Content \u2026 Status (\"Pending\", \"Sent\" or \"Failed\") \u2026 Model, Prompt Tokens, Completion Tokens, Finish Reason, and Salesforce's own created stamp."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-62, C-57",
+   "quote": "deletes every Conversation (with its Messages) whose Last Activity is older than the retention period \u2026 \"Retention days\" setting, default 30 \u2026 deletes its Conversation record and all of its Message records",
+   "missing": "The spec covers expiry and a user's deletion of a conversation. It leaves the fate of conversations when their owner's account is removed or deactivated unspecified."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-18, C-19, C-23, C-22",
+   "quote": "the system prompt from settings \u2026 the most recent N messages of the conversation \u2026 The bot reads no Salesforce business record to build a request. \u2026 No Salesforce identity is sent to xAI"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-19",
+   "quote": "the most recent N messages of the conversation that have status \"Sent\" (N is the \"History messages\" setting, default 20), oldest first, not counting the new message or the system prompt."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-54, C-28, C-29",
+   "quote": "a message saying they have none yet, an empty transcript, and a working message box. \u2026 An empty or whitespace-only message cannot be sent \u2026 A message of 10,000 characters is accepted."
+  },
+  {
+   "id": "N-22",
+   "state": "covered",
+   "where": "U-8, U-9",
+   "quote": "the administrator changes the model, system prompt and limits, replaces the API key, or switches the bot off \u2026 sees recent failures newest first with their category and HTTP status"
+  },
+  {
+   "id": "N-23",
+   "state": "covered",
+   "where": "C-48, C-49, C-62",
+   "quote": "Owner (the user who created it) \u2026 Conversation, Role (\"User\" or \"Assistant\"), Content (long text \u2026 deletes every Conversation (with its Messages) whose Last Activity is older than the retention period \u2026 \"Retention days\" setting, default 30"
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "C-72, C-80, C-79",
+   "quote": "`sf project deploy start` against a newly created Developer Edition org \u2026 After deploying to a sandbox or production org, the bot works once the administrator enters the key \u2026 at least 75%",
+   "missing": "Deployment, per-org key entry and production coverage are specified. Which settings or provider credentials should differ between development and production is left open."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "C-40, C-11",
+   "quote": "The timeout setting is whole seconds from 5 to 120 and defaults to 100. \u2026 the user sees the \"Timeout\" failure within the timeout plus 15 seconds \u2026 a progress indicator shows until the reply or an error appears."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "C-54, C-11, C-37, C-29",
+   "quote": "an empty transcript, and a working message box. \u2026 a progress indicator shows until the reply or an error appears. \u2026 marked \"Failed\" with the reason's category \u2026 refused with an error that states the limit"
+  },
+  {
+   "id": "N-27",
+   "state": "partial",
+   "where": "C-26, C-3",
+   "quote": "Nothing in a reply creates, changes or deletes any Salesforce record other than the conversation's own Message records \u2026 Flow, or Apex triggers and batch jobs. \u2026 no Grok Bot component, action or entry point",
+   "missing": "These clauses constrain model output and bot entry points. There is no org-wide requirement to preserve existing sharing rules, business records and automation across installation and all bot operations."
+  }
+ ]
+}

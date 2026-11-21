@@ -1,0 +1,137 @@
+{
+ "slot": "invoice-reminders__D-enumerated-only__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": "r2",
+ "cost_usd": 0.29550960000000004,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-3",
+   "quote": "A new account's schedule shows five steps at -3, 0, +7, +14 and +30 days relative to the due date."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-9",
+   "quote": "An invoice is settled when its state is Paid, Void or Written off, or when its outstanding balance is zero or less",
+   "missing": "Disputed invoices are only handled by a manual pause (U-7), and payment plans are not mentioned. A builder would still have to decide whether a dispute or payment-plan state stops reminders automatically."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-11",
+   "quote": "The amount in a reminder is the outstanding balance at the moment of sending, not the invoice's original total"
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-67",
+   "quote": "A suppressed address receives no reminders from any invoice in the account, automatic or manual",
+   "missing": "The spec does not say how an existing customer-level do-not-contact, paused or unsubscribed state is treated, or whether billing reminders are exempt from a marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-49",
+   "quote": "When two sending runs overlap or the same step is processed twice, the customer still receives it once"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-48",
+   "quote": "Immediately before every attempt, including retries and manual sends, the system re-checks these conditions and sends nothing if any holds: the invoice is settled"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-17",
+   "quote": "A transient delivery failure is retried up to 3 times, at least 15 minutes apart, and only on the same calendar day",
+   "missing": "Failures only appear in a passive failed-reminders list (C-95). Nobody is actively notified when sending keeps failing for an account or an invoice, so a builder would still have to decide on escalation."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-73",
+   "quote": "all are handed to the mail provider as fast as the provider's rate allows"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-44",
+   "quote": "Turning reminders On on 20 November for an invoice due 1 November sends nothing for steps dated 20 November or earlier"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-5",
+   "quote": "A step's date is a calendar date in the account's time zone, without shifting for weekends or holidays"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-34",
+   "quote": "Amounts are shown in the invoice's own currency with that currency's standard number of decimal places"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-29",
+   "quote": "When an invoice has zero billing addresses, or an address that is not a syntactically valid email address, no email is sent to that address and the history shows Skipped"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-12",
+   "quote": "A reminder goes to every billing address on the invoice, as a separate message to each address"
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-70",
+   "quote": "The history has one row per attempted step and billing address, with its own status"
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-10",
+   "quote": "invoice number; outstanding balance with its currency; due date; ... the account's payment instructions; the customer-facing link to view the invoice when the invoice has one",
+   "missing": "The spec does not say whether the invoice or payment link expires, or what happens if it has expired."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-25",
+   "quote": "Only an Owner or Admin of the account can use these controls: turn reminders On or Off, edit the schedule, ... pause or resume an invoice, send a reminder now"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-21",
+   "quote": "The operator can stop all reminder sending system-wide",
+   "missing": "Global off (C-21), test reminders (C-13) and manual sends (C-15) are specified. Turning reminders off per customer is not: only per-invoice pause and stop exist, and C-24 rules out per-customer variation."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-22",
+   "quote": "Scheduled with the date of the next reminder"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-47",
+   "quote": "A due step that is more than 3 calendar days past its date in the account's time zone is not sent"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-87",
+   "quote": "Reminder activity never changes an invoice's state, balance, due date, addresses or any other invoice data"
+  }
+ ]
+}

@@ -1,0 +1,278 @@
+{
+ "slot": "gym-waitlist__A-single__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "cost_usd": 0.3599626000000001,
+ "missing_ids": [],
+ "clauses": [
+  {
+   "id": "C-1",
+   "class": "request"
+  },
+  {
+   "id": "C-2",
+   "class": "request"
+  },
+  {
+   "id": "C-3",
+   "class": "needed"
+  },
+  {
+   "id": "C-4",
+   "class": "needed"
+  },
+  {
+   "id": "C-5",
+   "class": "request"
+  },
+  {
+   "id": "C-6",
+   "class": "decision"
+  },
+  {
+   "id": "C-7",
+   "class": "needed"
+  },
+  {
+   "id": "C-8",
+   "class": "decision"
+  },
+  {
+   "id": "C-9",
+   "class": "needed"
+  },
+  {
+   "id": "C-10",
+   "class": "needed"
+  },
+  {
+   "id": "C-11",
+   "class": "needed"
+  },
+  {
+   "id": "C-12",
+   "class": "decision"
+  },
+  {
+   "id": "C-13",
+   "class": "decision"
+  },
+  {
+   "id": "C-14",
+   "class": "decision"
+  },
+  {
+   "id": "C-15",
+   "class": "needed"
+  },
+  {
+   "id": "C-16",
+   "class": "decision"
+  },
+  {
+   "id": "C-17",
+   "class": "needed"
+  },
+  {
+   "id": "C-18",
+   "class": "decision"
+  },
+  {
+   "id": "C-19",
+   "class": "decision"
+  },
+  {
+   "id": "C-20",
+   "class": "needed"
+  },
+  {
+   "id": "C-21",
+   "class": "decision"
+  },
+  {
+   "id": "C-22",
+   "class": "request"
+  },
+  {
+   "id": "C-23",
+   "class": "decision"
+  },
+  {
+   "id": "C-24",
+   "class": "decision"
+  },
+  {
+   "id": "C-25",
+   "class": "needed"
+  },
+  {
+   "id": "C-26",
+   "class": "decision"
+  },
+  {
+   "id": "C-27",
+   "class": "needed"
+  },
+  {
+   "id": "C-28",
+   "class": "needed"
+  },
+  {
+   "id": "C-29",
+   "class": "decision"
+  },
+  {
+   "id": "C-30",
+   "class": "decision"
+  },
+  {
+   "id": "C-31",
+   "class": "decision"
+  },
+  {
+   "id": "C-32",
+   "class": "needed"
+  },
+  {
+   "id": "C-33",
+   "class": "needed"
+  },
+  {
+   "id": "C-34",
+   "class": "needed"
+  },
+  {
+   "id": "C-35",
+   "class": "needed"
+  },
+  {
+   "id": "C-36",
+   "class": "needed"
+  },
+  {
+   "id": "C-37",
+   "class": "needed"
+  },
+  {
+   "id": "C-38",
+   "class": "decision"
+  },
+  {
+   "id": "C-39",
+   "class": "needed"
+  },
+  {
+   "id": "C-40",
+   "class": "needed"
+  },
+  {
+   "id": "C-41",
+   "class": "needed"
+  },
+  {
+   "id": "C-42",
+   "class": "needed"
+  },
+  {
+   "id": "C-43",
+   "class": "needed"
+  },
+  {
+   "id": "C-44",
+   "class": "needed"
+  },
+  {
+   "id": "C-45",
+   "class": "needed"
+  },
+  {
+   "id": "C-46",
+   "class": "needed"
+  },
+  {
+   "id": "C-47",
+   "class": "needed"
+  },
+  {
+   "id": "C-48",
+   "class": "needed"
+  },
+  {
+   "id": "C-49",
+   "class": "needed"
+  },
+  {
+   "id": "C-50",
+   "class": "needed"
+  },
+  {
+   "id": "C-51",
+   "class": "needed"
+  },
+  {
+   "id": "C-52",
+   "class": "needed"
+  },
+  {
+   "id": "C-53",
+   "class": "needed"
+  },
+  {
+   "id": "C-54",
+   "class": "needed"
+  },
+  {
+   "id": "C-55",
+   "class": "decision"
+  },
+  {
+   "id": "C-56",
+   "class": "needed"
+  },
+  {
+   "id": "C-57",
+   "class": "needed"
+  },
+  {
+   "id": "C-58",
+   "class": "needed"
+  },
+  {
+   "id": "C-59",
+   "class": "needed"
+  },
+  {
+   "id": "C-60",
+   "class": "needed"
+  },
+  {
+   "id": "C-61",
+   "class": "needed"
+  },
+  {
+   "id": "C-62",
+   "class": "needed"
+  },
+  {
+   "id": "C-63",
+   "class": "extra",
+   "why": "The request never asks for rollback; keeping the previous version runnable on waitlist-era data is real compatibility work beyond adding a waitlist."
+  },
+  {
+   "id": "C-64",
+   "class": "extra",
+   "why": "Preserving bookings across a downgrade is a deployment duty the request does not call for; the waitlist works fully without rollback support."
+  },
+  {
+   "id": "C-65",
+   "class": "extra",
+   "why": "Waitlist behaviour under a rolled-back previous version arises only from the spec's own rollback requirement, not from the request."
+  },
+  {
+   "id": "C-66",
+   "class": "extra",
+   "why": "Guaranteeing ordinary booking despite leftover entries after rollback stems from the spec-introduced rollback scenario, not the request's purpose."
+  }
+ ]
+}

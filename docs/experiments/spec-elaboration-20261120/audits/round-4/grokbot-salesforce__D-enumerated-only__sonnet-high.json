@@ -1,0 +1,394 @@
+{
+ "slot": "grokbot-salesforce__D-enumerated-only__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "cost_usd": 0.6337916,
+ "missing_ids": [],
+ "clauses": [
+  {
+   "id": "C-1",
+   "class": "decision"
+  },
+  {
+   "id": "C-2",
+   "class": "extra",
+   "why": "Placing the component on App, Home, Record pages and the utility bar goes beyond one working chat surface."
+  },
+  {
+   "id": "C-3",
+   "class": "decision"
+  },
+  {
+   "id": "C-4",
+   "class": "decision"
+  },
+  {
+   "id": "C-5",
+   "class": "needed"
+  },
+  {
+   "id": "C-6",
+   "class": "decision"
+  },
+  {
+   "id": "C-7",
+   "class": "needed"
+  },
+  {
+   "id": "C-8",
+   "class": "decision"
+  },
+  {
+   "id": "C-9",
+   "class": "decision"
+  },
+  {
+   "id": "C-10",
+   "class": "extra",
+   "why": "Titles exist only to serve a multi-conversation list, which the request does not call for."
+  },
+  {
+   "id": "C-11",
+   "class": "decision"
+  },
+  {
+   "id": "C-12",
+   "class": "decision"
+  },
+  {
+   "id": "C-13",
+   "class": "decision"
+  },
+  {
+   "id": "C-14",
+   "class": "extra",
+   "why": "Per-message timestamps are a convenience; the bot works without them."
+  },
+  {
+   "id": "C-15",
+   "class": "decision"
+  },
+  {
+   "id": "C-16",
+   "class": "request"
+  },
+  {
+   "id": "C-17",
+   "class": "needed"
+  },
+  {
+   "id": "C-18",
+   "class": "decision"
+  },
+  {
+   "id": "C-19",
+   "class": "decision"
+  },
+  {
+   "id": "C-20",
+   "class": "decision"
+  },
+  {
+   "id": "C-21",
+   "class": "extra",
+   "why": "A notice about context truncation is an added feature; the chat works without it."
+  },
+  {
+   "id": "C-22",
+   "class": "decision"
+  },
+  {
+   "id": "C-23",
+   "class": "decision"
+  },
+  {
+   "id": "C-24",
+   "class": "needed"
+  },
+  {
+   "id": "C-25",
+   "class": "needed"
+  },
+  {
+   "id": "C-26",
+   "class": "needed"
+  },
+  {
+   "id": "C-27",
+   "class": "needed"
+  },
+  {
+   "id": "C-28",
+   "class": "decision"
+  },
+  {
+   "id": "C-29",
+   "class": "decision"
+  },
+  {
+   "id": "C-30",
+   "class": "needed"
+  },
+  {
+   "id": "C-31",
+   "class": "needed"
+  },
+  {
+   "id": "C-32",
+   "class": "decision"
+  },
+  {
+   "id": "C-33",
+   "class": "extra",
+   "why": "Marking truncated replies is an added display feature not required for a working bot."
+  },
+  {
+   "id": "C-34",
+   "class": "decision"
+  },
+  {
+   "id": "C-35",
+   "class": "decision"
+  },
+  {
+   "id": "C-36",
+   "class": "decision"
+  },
+  {
+   "id": "C-37",
+   "class": "decision"
+  },
+  {
+   "id": "C-38",
+   "class": "decision"
+  },
+  {
+   "id": "C-39",
+   "class": "decision"
+  },
+  {
+   "id": "C-40",
+   "class": "decision"
+  },
+  {
+   "id": "C-41",
+   "class": "decision"
+  },
+  {
+   "id": "C-42",
+   "class": "decision"
+  },
+  {
+   "id": "C-43",
+   "class": "extra",
+   "why": "A custom Log object written on failures is an operator observability feature the request does not ask for."
+  },
+  {
+   "id": "C-44",
+   "class": "extra",
+   "why": "Defines fields of the Log object, which is itself beyond the request."
+  },
+  {
+   "id": "C-45",
+   "class": "needed"
+  },
+  {
+   "id": "C-46",
+   "class": "extra",
+   "why": "An admin Logs tab with filtering is an observability feature beyond a Grok bot."
+  },
+  {
+   "id": "C-47",
+   "class": "extra",
+   "why": "Recording token usage per reply for spend reports is not needed for the bot to work."
+  },
+  {
+   "id": "C-48",
+   "class": "decision"
+  },
+  {
+   "id": "C-49",
+   "class": "decision"
+  },
+  {
+   "id": "C-50",
+   "class": "extra",
+   "why": "Forbidding edit or delete of single messages is a restriction the request's purpose does not call for."
+  },
+  {
+   "id": "C-51",
+   "class": "extra",
+   "why": "A browsable list of past conversations is history management beyond a working chat bot."
+  },
+  {
+   "id": "C-52",
+   "class": "extra",
+   "why": "List ordering by activity arises only from the conversation list the spec added."
+  },
+  {
+   "id": "C-53",
+   "class": "extra",
+   "why": "Paging a conversation list arises only from the list the spec introduced."
+  },
+  {
+   "id": "C-54",
+   "class": "decision"
+  },
+  {
+   "id": "C-55",
+   "class": "decision"
+  },
+  {
+   "id": "C-56",
+   "class": "decision"
+  },
+  {
+   "id": "C-57",
+   "class": "extra",
+   "why": "User deletion of stored conversations, with confirmation and hard delete, is an added capability."
+  },
+  {
+   "id": "C-58",
+   "class": "extra",
+   "why": "Arises only from the conversation-deletion feature the spec introduced."
+  },
+  {
+   "id": "C-59",
+   "class": "decision"
+  },
+  {
+   "id": "C-60",
+   "class": "extra",
+   "why": "An administrator on/off switch is an added control; permission sets already stop use."
+  },
+  {
+   "id": "C-61",
+   "class": "decision"
+  },
+  {
+   "id": "C-62",
+   "class": "extra",
+   "why": "A scheduled nightly retention purge is an added maintenance capability the request does not call for."
+  },
+  {
+   "id": "C-63",
+   "class": "extra",
+   "why": "Batching the purge arises only from the purge job the spec introduced."
+  },
+  {
+   "id": "C-64",
+   "class": "decision"
+  },
+  {
+   "id": "C-65",
+   "class": "decision"
+  },
+  {
+   "id": "C-66",
+   "class": "decision"
+  },
+  {
+   "id": "C-67",
+   "class": "decision"
+  },
+  {
+   "id": "C-68",
+   "class": "decision"
+  },
+  {
+   "id": "C-69",
+   "class": "needed"
+  },
+  {
+   "id": "C-70",
+   "class": "decision"
+  },
+  {
+   "id": "C-71",
+   "class": "needed"
+  },
+  {
+   "id": "C-72",
+   "class": "request"
+  },
+  {
+   "id": "C-73",
+   "class": "needed"
+  },
+  {
+   "id": "C-74",
+   "class": "decision"
+  },
+  {
+   "id": "C-75",
+   "class": "extra",
+   "why": "Constrains all future versions to additive schema changes; not needed to deliver the bot."
+  },
+  {
+   "id": "C-76",
+   "class": "extra",
+   "why": "Rollback to earlier commits is a release-management duty beyond the request."
+  },
+  {
+   "id": "C-77",
+   "class": "extra",
+   "why": "A test suite is not required in a development org; it serves shipping beyond the request."
+  },
+  {
+   "id": "C-78",
+   "class": "extra",
+   "why": "Per-category test coverage is a testing duty the request does not call for."
+  },
+  {
+   "id": "C-79",
+   "class": "extra",
+   "why": "75% coverage is required only for production; the clause itself says a development org does not enforce it."
+  },
+  {
+   "id": "C-80",
+   "class": "extra",
+   "why": "Moving to sandbox or production orgs is beyond a bot in a development org."
+  },
+  {
+   "id": "C-81",
+   "class": "extra",
+   "why": "Keyboard operation and screen-reader announcements are added accessibility work the request does not ask for."
+  },
+  {
+   "id": "C-82",
+   "class": "decision"
+  },
+  {
+   "id": "C-83",
+   "class": "decision"
+  },
+  {
+   "id": "C-84",
+   "class": "extra",
+   "why": "Arises only from conversation deletion and purge, both of which the spec introduced."
+  },
+  {
+   "id": "C-85",
+   "class": "decision"
+  },
+  {
+   "id": "C-86",
+   "class": "extra",
+   "why": "Arises only from the scheduled purge job the spec introduced."
+  },
+  {
+   "id": "C-87",
+   "class": "extra",
+   "why": "Purge-failure recovery arises only from the purge job the spec introduced."
+  },
+  {
+   "id": "C-88",
+   "class": "decision"
+  },
+  {
+   "id": "C-89",
+   "class": "decision"
+  }
+ ]
+}

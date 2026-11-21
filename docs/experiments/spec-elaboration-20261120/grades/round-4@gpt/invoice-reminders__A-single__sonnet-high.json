@@ -1,0 +1,143 @@
+{
+ "slot": "invoice-reminders__A-single__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-2, C-3",
+   "quote": "The default schedule has three steps, at 1, 7 and 14 days after the due date \u2026 No reminder is sent before the first step date"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "U-10, C-13, C-12, U-8",
+   "quote": "with nothing owing (zero or credit balance), or paid get no reminders. \u2026 A void or cancelled invoice gets no reminder \u2026 A part-paid invoice keeps being reminded \u2026 for example one in dispute",
+   "missing": "Whether a recorded dispute itself stops reminders without the owner marking the invoice, and whether a payment plan stops them."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-12",
+   "quote": "An invoice of 1,000.00 USD with 400.00 USD paid, once overdue, gets reminders showing 600.00 USD and not 1,000.00 USD."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-5, C-43, C-46",
+   "quote": "Each step is sent at most once per invoice \u2026 Two copies of the system running at once send each reminder once \u2026 Installing the feature again after a revert does not send reminders already sent"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-11",
+   "quote": "A fully paid invoice gets no reminder from the moment the payment is recorded"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "U-11, C-38",
+   "quote": "The mail service refuses or is unreachable \u2026 If every attempt fails the history shows \"failed\" and the owner can see it. \u2026 3 attempts in all, at least 1 hour apart, within the step date",
+   "missing": "Who is actively notified after retries are exhausted and how that notification reaches them."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-44",
+   "quote": "A day with 10,000 invoices due for a step is handled in full, each exactly once",
+   "missing": "What provider sending limit applies and how to pace the batch within it."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "U-13",
+   "quote": "Once on, each overdue unpaid invoice that has a step date already behind it gets exactly one reminder at the first send time, and invoices not yet overdue get none."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "C-21, C-23",
+   "quote": "Reminders are sent at a configured send time of day, 09:00 by default \u2026 Step dates and the send time are counted in a configured time zone, UTC by default",
+   "missing": "How to handle customers in other time zones, whether sends must stay within their local business hours, and what happens on weekends and holidays."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-6",
+   "quote": "contains the text INV-1042, 600.00, USD and 2026-03-01",
+   "missing": "How to format the amount and currency for the recipient\u2019s locale and for currencies with different numbers of decimal places."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-17",
+   "quote": "The reminder history for the invoice shows a skipped entry for that step with a reason that the address is missing or invalid.",
+   "missing": "How to handle a bounce reported after the mail service has accepted a message, including whether to use that address for later steps."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-9",
+   "quote": "A reminder is sent only to the contact address of the invoice's own customer",
+   "missing": "Which addresses receive the reminder when that customer has multiple billing contacts."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-37",
+   "quote": "The owner can see a reminder history per invoice \u2026 For each reminder handled, the history shows the time, the address used, the step and the outcome (sent, failed or skipped)"
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-6, C-8",
+   "quote": "A reminder shows the invoice number, the outstanding amount with its currency, and the due date \u2026 A reminder carries the payment instructions or payment link the invoice has, when it has one",
+   "missing": "Whether the payment link expires and, if so, when."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-24, C-35",
+   "quote": "The owner can set the schedule \u2026 The owner can mark one invoice \"no reminders\", and it gets none while the mark stands",
+   "missing": "Who may send a reminder manually and whether anyone besides the owner may configure or stop reminders."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-34, C-35",
+   "quote": "Turning reminders off stops all sending from that moment \u2026 Other invoices of the same customer are still reminded.",
+   "missing": "Whether the owner can disable reminders for an entire customer, preview or dry-run a send, and manually resend a reminder."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-37",
+   "quote": "For each reminder handled, the history shows the time, the address used, the step and the outcome (sent, failed or skipped), and for a failure or skip the reason.",
+   "missing": "How the owner can see which invoice reminders are scheduled next and when they will be sent."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-22",
+   "quote": "A reminder that is due is sent within 1 hour of its send time, if the system is running"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-40, C-41",
+   "quote": "creating and editing invoices and recording payments all work and give the same results as they would with the service up. \u2026 Reminders never change an invoice's data"
+  }
+ ]
+}

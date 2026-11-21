@@ -1,0 +1,372 @@
+{
+ "slot": "invoice-reminders__F-guarded__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "cost_usd": 0.5353248,
+ "missing_ids": [],
+ "clauses": [
+  {
+   "id": "C-1",
+   "class": "request"
+  },
+  {
+   "id": "C-2",
+   "class": "decision"
+  },
+  {
+   "id": "C-3",
+   "class": "request"
+  },
+  {
+   "id": "C-4",
+   "class": "needed"
+  },
+  {
+   "id": "C-5",
+   "class": "decision"
+  },
+  {
+   "id": "C-6",
+   "class": "decision"
+  },
+  {
+   "id": "C-7",
+   "class": "decision"
+  },
+  {
+   "id": "C-8",
+   "class": "decision"
+  },
+  {
+   "id": "C-9",
+   "class": "decision"
+  },
+  {
+   "id": "C-10",
+   "class": "decision"
+  },
+  {
+   "id": "C-11",
+   "class": "decision"
+  },
+  {
+   "id": "C-12",
+   "class": "decision"
+  },
+  {
+   "id": "C-13",
+   "class": "decision"
+  },
+  {
+   "id": "C-14",
+   "class": "decision"
+  },
+  {
+   "id": "C-15",
+   "class": "decision"
+  },
+  {
+   "id": "C-16",
+   "class": "needed"
+  },
+  {
+   "id": "C-17",
+   "class": "decision"
+  },
+  {
+   "id": "C-18",
+   "class": "decision"
+  },
+  {
+   "id": "C-19",
+   "class": "decision"
+  },
+  {
+   "id": "C-20",
+   "class": "extra",
+   "why": "A settings audit log with old/new values and 24-month retention is an audit feature the reminders themselves do not need."
+  },
+  {
+   "id": "C-21",
+   "class": "needed"
+  },
+  {
+   "id": "C-22",
+   "class": "extra",
+   "why": "Per-invoice pause is a new operator control; reminders for unpaid invoices work without it."
+  },
+  {
+   "id": "C-23",
+   "class": "extra",
+   "why": "Resume behaviour exists only because the spec introduced per-invoice pausing."
+  },
+  {
+   "id": "C-24",
+   "class": "decision"
+  },
+  {
+   "id": "C-25",
+   "class": "decision"
+  },
+  {
+   "id": "C-26",
+   "class": "decision"
+  },
+  {
+   "id": "C-27",
+   "class": "decision"
+  },
+  {
+   "id": "C-28",
+   "class": "decision"
+  },
+  {
+   "id": "C-29",
+   "class": "decision"
+  },
+  {
+   "id": "C-30",
+   "class": "decision"
+  },
+  {
+   "id": "C-31",
+   "class": "extra",
+   "why": "A detailed per-step, per-recipient operator history view is observability beyond sending reminders."
+  },
+  {
+   "id": "C-32",
+   "class": "needed"
+  },
+  {
+   "id": "C-33",
+   "class": "decision"
+  },
+  {
+   "id": "C-34",
+   "class": "decision"
+  },
+  {
+   "id": "C-35",
+   "class": "decision"
+  },
+  {
+   "id": "C-36",
+   "class": "needed"
+  },
+  {
+   "id": "C-37",
+   "class": "decision"
+  },
+  {
+   "id": "C-38",
+   "class": "decision"
+  },
+  {
+   "id": "C-39",
+   "class": "decision"
+  },
+  {
+   "id": "C-40",
+   "class": "extra",
+   "why": "A 50,000-emails-in-2-hours throughput target is an arbitrary performance commitment the request does not call for."
+  },
+  {
+   "id": "C-41",
+   "class": "needed"
+  },
+  {
+   "id": "C-42",
+   "class": "needed"
+  },
+  {
+   "id": "C-43",
+   "class": "needed"
+  },
+  {
+   "id": "C-44",
+   "class": "extra",
+   "why": "A 24-month retention duty for reminder history goes beyond what sending reminders requires."
+  },
+  {
+   "id": "C-45",
+   "class": "request"
+  },
+  {
+   "id": "C-46",
+   "class": "decision"
+  },
+  {
+   "id": "C-47",
+   "class": "needed"
+  },
+  {
+   "id": "C-48",
+   "class": "decision"
+  },
+  {
+   "id": "C-49",
+   "class": "decision"
+  },
+  {
+   "id": "C-50",
+   "class": "decision"
+  },
+  {
+   "id": "C-51",
+   "class": "extra",
+   "why": "Defines how pending steps display in the history view, which is itself beyond the request."
+  },
+  {
+   "id": "C-52",
+   "class": "extra",
+   "why": "Tracking later bounces reported by the provider is delivery analytics the request does not ask for."
+  },
+  {
+   "id": "C-53",
+   "class": "extra",
+   "why": "Per-invoice address suppression after bounces is a deliverability feature; reminders work without it."
+  },
+  {
+   "id": "C-54",
+   "class": "decision"
+  },
+  {
+   "id": "C-55",
+   "class": "decision"
+  },
+  {
+   "id": "C-56",
+   "class": "decision"
+  },
+  {
+   "id": "C-57",
+   "class": "needed"
+  },
+  {
+   "id": "C-58",
+   "class": "decision"
+  },
+  {
+   "id": "C-59",
+   "class": "extra",
+   "why": "An evaluation log with counts and 24-month retention is operator monitoring beyond the request."
+  },
+  {
+   "id": "C-60",
+   "class": "extra",
+   "why": "A cross-invoice filterable list of problem steps is an additional operator tool."
+  },
+  {
+   "id": "C-61",
+   "class": "extra",
+   "why": "Access rules for history and logs arise only because the spec introduced those views."
+  },
+  {
+   "id": "C-62",
+   "class": "decision"
+  },
+  {
+   "id": "C-63",
+   "class": "decision"
+  },
+  {
+   "id": "C-64",
+   "class": "needed"
+  },
+  {
+   "id": "C-65",
+   "class": "needed"
+  },
+  {
+   "id": "C-66",
+   "class": "decision"
+  },
+  {
+   "id": "C-67",
+   "class": "extra",
+   "why": "A 1-minute freshness target applies to history and log views that are beyond the request."
+  },
+  {
+   "id": "C-68",
+   "class": "decision"
+  },
+  {
+   "id": "C-69",
+   "class": "decision"
+  },
+  {
+   "id": "C-70",
+   "class": "extra",
+   "why": "Pause/resume audit history builds on the extra pause feature."
+  },
+  {
+   "id": "C-71",
+   "class": "extra",
+   "why": "Enumerates reason labels for the operator history view, which the request does not call for."
+  },
+  {
+   "id": "C-72",
+   "class": "decision"
+  },
+  {
+   "id": "C-73",
+   "class": "extra",
+   "why": "Atomic settings-log writes matter only because the spec added a settings audit log."
+  },
+  {
+   "id": "C-74",
+   "class": "decision"
+  },
+  {
+   "id": "C-75",
+   "class": "decision"
+  },
+  {
+   "id": "C-76",
+   "class": "decision"
+  },
+  {
+   "id": "C-77",
+   "class": "decision"
+  },
+  {
+   "id": "C-78",
+   "class": "decision"
+  },
+  {
+   "id": "C-79",
+   "class": "decision"
+  },
+  {
+   "id": "C-80",
+   "class": "needed"
+  },
+  {
+   "id": "C-81",
+   "class": "needed"
+  },
+  {
+   "id": "C-82",
+   "class": "decision"
+  },
+  {
+   "id": "C-83",
+   "class": "decision"
+  },
+  {
+   "id": "C-84",
+   "class": "extra",
+   "why": "Explanatory 'no next step' messages in the invoice view are display features beyond the request."
+  },
+  {
+   "id": "C-85",
+   "class": "extra",
+   "why": "Protection against two operators editing settings at once is extra work the request's purpose does not need."
+  },
+  {
+   "id": "C-86",
+   "class": "needed"
+  }
+ ]
+}

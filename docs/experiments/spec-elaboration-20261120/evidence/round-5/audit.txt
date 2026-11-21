@@ -1,0 +1,97 @@
+ROUND round-5: every clause put in one class by claude-opus-5-5 high; 16 specifications
+
+case                 arm                driver        request   needed decision    extra    empty    wrong  missing
+csv-user-import      F-guarded          sol-medium          4       46       49       11        8        0        0
+csv-user-import      F-guarded          sonnet-high         6       23       34        7        0        0        0
+csv-user-import      L-lenses-once      sol-medium          6       29       36       13        2        0        0
+csv-user-import      L-lenses-once      sonnet-high         4       12       32        5        0        0        0
+grokbot-salesforce   F-guarded          sol-medium          8       33       48       43        1        1        0
+grokbot-salesforce   F-guarded          sonnet-high         3       16       25       41        1        0        0
+grokbot-salesforce   L-lenses-once      sol-medium          5       26       42       20       14        1        0
+grokbot-salesforce   L-lenses-once      sonnet-high         2       17       34       12        0        2        0
+gym-waitlist         F-guarded          sol-medium          4       78       43       14        2        0        0
+gym-waitlist         F-guarded          sonnet-high         2       43       17        4        0        0        0
+gym-waitlist         L-lenses-once      sol-medium          3       56       24        6        1        0        0
+gym-waitlist         L-lenses-once      sonnet-high         6       19       19        4        1        0        0
+invoice-reminders    F-guarded          sol-medium          5       49       37       38        5        0        0
+invoice-reminders    F-guarded          sonnet-high         3       15       50       18        0        0        0
+invoice-reminders    L-lenses-once      sol-medium          4       42       32        9        1        0        0
+invoice-reminders    L-lenses-once      sonnet-high         2       14       26        8        0        1        0
+
+POOLED BY ARM AND DRIVER: clauses, then the share of them in each class
+  F-guarded          sol-medium    527 clauses  request 4%  needed 39%  decision 34%  extra 20%  empty 3%  wrong 0%   | extra+empty+wrong 123 (23%)
+  F-guarded          sonnet-high   308 clauses  request 5%  needed 31%  decision 41%  extra 23%  empty 0%  wrong 0%   | extra+empty+wrong 71 (23%)
+  L-lenses-once      sol-medium    372 clauses  request 5%  needed 41%  decision 36%  extra 13%  empty 5%  wrong 0%   | extra+empty+wrong 67 (18%)
+  L-lenses-once      sonnet-high   220 clauses  request 6%  needed 28%  decision 50%  extra 13%  empty 0%  wrong 1%   | extra+empty+wrong 33 (15%)
+
+CLAUSES CALLED EXTRA (up to 8 per arm and driver)
+  F-guarded sol-medium: 106
+      csv-user-import C-11: Feature withdrawal is a release mechanism the spec introduced; the request does not call for it.
+      csv-user-import C-16: A separate control for clearing the selected file is extra UI work that the upload does not need.
+      csv-user-import C-49: Checking authority again at commit time, beyond ordinary request authorization, adds TOCTOU machinery the request does not need.
+      csv-user-import C-67: A kill switch that also blocks submissions from screens already open is a release control the request does not need.
+      csv-user-import C-68: Keeping batches whole when the feature is withdrawn mid-import serves the spec's own withdrawal mechanism.
+      csv-user-import C-69: Operator monitoring that separates four outcome categories is a capability beyond letting admins upload a CSV.
+      csv-user-import C-85: Hiding partial batches from viewers needs transactional isolation beyond C-40's zero-accounts-on-failure rule.
+      csv-user-import C-87: Redacting diagnostics by viewer visibility assumes scoped visibility the request never introduces.
+  F-guarded sonnet-high: 70
+      csv-user-import C-5: Re-checking admin status mid-request guards a sub-second revocation race the request never raises; a plain authorization check delivers the feature.
+      csv-user-import C-25: A 30-second target measured against a 100,000-user store is a performance commitment the request does not call for.
+      csv-user-import C-56: Client-side double-submit prevention is optional polish; the clause itself notes the server stays safe without it.
+      csv-user-import C-58: A fixed status-code contract for scripted non-browser clients serves an API use case the request, about admins uploading, does not include.
+      csv-user-import C-61: A per-attempt audit log with specified fields is an operator duty the request's purpose of bulk-creating users does not require.
+      csv-user-import C-62: Log-injection protection only arises because C-61 introduced the audit log, itself beyond the request.
+      csv-user-import C-66: A rollback-survival guarantee for imported users is an operational duty beyond what uploading a CSV to create users requires.
+      grokbot-salesforce C-13: Server-side re-check of a chosen length cap protects nothing the bot's purpose needs; the page check already delivers the limit.
+  L-lenses-once sol-medium: 48
+      csv-user-import C-3: Showing the destination even in single-destination hosts adds a UI duty the request does not need.
+      csv-user-import C-8: Hiding the interface from unauthorized callers is extra work; server-side refusal (C-5 to C-7) already protects the import.
+      csv-user-import C-10: Rechecking authority at commit time for permission changes mid-upload goes beyond the request's purpose.
+      csv-user-import C-11: Rechecking destination state for deletions mid-upload adds race handling the request does not call for.
+      csv-user-import C-61: Constraining import-specific operational records presupposes an import logging facility the request never asks for.
+      csv-user-import C-62: Operator-facing outcome observability with three distinguished states is an operational capability beyond admin bulk creation.
+      csv-user-import C-65: Race handling against concurrent removal and identity-reuse rules is beyond what bulk creation needs.
+      csv-user-import C-67: Quota enforcement under racing arrivals introduces a host quota concept the request never mentions.
+  L-lenses-once sonnet-high: 29
+      csv-user-import C-46: Depends on the import-record audit trail (C-49/C-50), which the request never asks for; the import works without it.
+      csv-user-import C-49: An audit log of import attempts is a new capability; bulk-creating users works fully without recording each attempt.
+      csv-user-import C-50: Import detail pages and user-to-import traceability extend the unrequested audit trail of C-49.
+      csv-user-import C-51: Listing and access-controlling import records only arises because the spec introduced the audit log of C-49.
+      csv-user-import C-52: A retention rule for import records exists only because the spec introduced the unrequested audit trail.
+      grokbot-salesforce C-12: A disclosure banner about xAI is not needed for a working bot in a development org; the request asks for no user notices.
+      grokbot-salesforce C-25: Making the history window an administrator-tunable setting with a validated range goes beyond the request; a fixed window would serve.
+      grokbot-salesforce C-34: A per-user rolling hourly rate limit is cost control the request never asks for; the bot works without it.
+
+CLAUSES CALLED EMPTY (up to 8 per arm and driver)
+  F-guarded sol-medium: 16
+      csv-user-import C-50: Created accounts staying after an authority change would be true of any product; a builder has nothing to act on.
+      csv-user-import C-60: Restates standard browser file-picker behaviour, so it decides nothing for the builder.
+      csv-user-import C-61: Describes what a host may do and gives no limit or required product behaviour.
+      csv-user-import C-65: Repeats failure behaviour defined elsewhere and leaves every dependency unconfirmed, so it decides nothing.
+      csv-user-import C-66: Ordinary accounts surviving a restart would be true of any product with durable storage.
+      csv-user-import C-92: An unrelated import leaving admin sessions alone would be true of any product.
+      csv-user-import C-108: A fresh file input always starts empty, so this decides nothing.
+      csv-user-import C-115: Ordinary user management staying usable for checks would be true of any product.
+  F-guarded sonnet-high: 1
+      grokbot-salesforce C-86: Requiring that some applicable refusal appears adds nothing beyond the individual refusal clauses; which outcome appears is left unspecified.
+  L-lenses-once sol-medium: 18
+      csv-user-import C-66: Two disjoint valid imports both succeeding separately is true of any working product and settles nothing.
+      csv-user-import C-77: Releasing through the host's ordinary procedure, with controls unnamed, is true of any feature and decides nothing.
+      grokbot-salesforce C-59: States a provider-side retention fact; it gives the builder nothing to build or configure.
+      grokbot-salesforce C-70: A rejected save leaving the prior value in place is generic platform behaviour true of any Salesforce configuration.
+      grokbot-salesforce C-72: Forbids a resend-on-config-change behaviour no builder would add; already implied by zero automatic retries, so it decides nothing.
+      grokbot-salesforce C-80: Restates a 100-callout governor a one-callout-per-attempt bot never reaches; it requires nothing beyond showing failure, already covered.
+      grokbot-salesforce C-81: Restates the 120-second cumulative callout governor, which the 45-second deadline already precludes; nothing actionable for the builder.
+      grokbot-salesforce C-82: Describes a Developer Edition concurrency limit and that attempts may fail; it asks the builder to do nothing specific.
+  L-lenses-once sonnet-high: 1
+      gym-waitlist C-12: Refusing actions on nonexistent records is generic behaviour true of any product; it settles nothing specific to the waitlist.
+
+CLAUSES CALLED WRONG (up to 8 per arm and driver)
+  F-guarded sol-medium: 1
+      grokbot-salesforce C-66: Salesforce Apex heap limits are 6 MB synchronous and 12 MB asynchronous, not 10 MB and 25 MB; this also conflicts with C-63.
+  L-lenses-once sol-medium: 1
+      grokbot-salesforce C-84: Salesforce Apex heap limits are 6 MB synchronous and 12 MB asynchronous, not 10 MB and 25 MB.
+  L-lenses-once sonnet-high: 3
+      grokbot-salesforce C-33: Caps a conversation at 200 messages, yet lets a 199-message conversation accept a user message whose Grok answer makes 201.
+      grokbot-salesforce C-66: At the highest Apex log level, variable-assignment logging records string values, so message and answer text will appear; the builder cannot prevent i
+      invoice-reminders C-51: Says steps past due during rollback are never sent, but C-28 sends steps 24 hours late or less, and C-30 lists no re-release trigger.

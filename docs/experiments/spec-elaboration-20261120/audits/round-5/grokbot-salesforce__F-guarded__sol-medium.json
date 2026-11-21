@@ -1,0 +1,591 @@
+{
+ "slot": "grokbot-salesforce__F-guarded__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "cost_usd": 0.8762618,
+ "missing_ids": [],
+ "clauses": [
+  {
+   "id": "C-1",
+   "class": "request"
+  },
+  {
+   "id": "C-2",
+   "class": "request"
+  },
+  {
+   "id": "C-3",
+   "class": "request"
+  },
+  {
+   "id": "C-4",
+   "class": "request"
+  },
+  {
+   "id": "C-5",
+   "class": "decision"
+  },
+  {
+   "id": "C-6",
+   "class": "decision"
+  },
+  {
+   "id": "C-7",
+   "class": "needed"
+  },
+  {
+   "id": "C-8",
+   "class": "needed"
+  },
+  {
+   "id": "C-9",
+   "class": "decision"
+  },
+  {
+   "id": "C-10",
+   "class": "extra",
+   "why": "An org-wide kill switch is an operational control the request does not call for; removing grants or the bot suffices."
+  },
+  {
+   "id": "C-11",
+   "class": "extra",
+   "why": "Restoring an org-wide switch exists only because the spec introduced that switch."
+  },
+  {
+   "id": "C-12",
+   "class": "extra",
+   "why": "A detailed failure taxonomy for administrators goes beyond showing that an attempt failed."
+  },
+  {
+   "id": "C-13",
+   "class": "extra",
+   "why": "Revision rollback is a lifecycle capability beyond creating the bot."
+  },
+  {
+   "id": "C-14",
+   "class": "needed"
+  },
+  {
+   "id": "C-15",
+   "class": "decision"
+  },
+  {
+   "id": "C-16",
+   "class": "request"
+  },
+  {
+   "id": "C-17",
+   "class": "decision"
+  },
+  {
+   "id": "C-18",
+   "class": "request"
+  },
+  {
+   "id": "C-19",
+   "class": "decision"
+  },
+  {
+   "id": "C-20",
+   "class": "decision"
+  },
+  {
+   "id": "C-21",
+   "class": "needed"
+  },
+  {
+   "id": "C-22",
+   "class": "decision"
+  },
+  {
+   "id": "C-23",
+   "class": "needed"
+  },
+  {
+   "id": "C-24",
+   "class": "extra",
+   "why": "Starting disabled depends on the spec-introduced org-wide enable switch."
+  },
+  {
+   "id": "C-25",
+   "class": "extra",
+   "why": "A local readiness view of setup blockers is an administrative feature the request does not need."
+  },
+  {
+   "id": "C-26",
+   "class": "decision"
+  },
+  {
+   "id": "C-27",
+   "class": "decision"
+  },
+  {
+   "id": "C-28",
+   "class": "decision"
+  },
+  {
+   "id": "C-29",
+   "class": "decision"
+  },
+  {
+   "id": "C-30",
+   "class": "decision"
+  },
+  {
+   "id": "C-31",
+   "class": "needed"
+  },
+  {
+   "id": "C-32",
+   "class": "decision"
+  },
+  {
+   "id": "C-33",
+   "class": "decision"
+  },
+  {
+   "id": "C-34",
+   "class": "decision"
+  },
+  {
+   "id": "C-35",
+   "class": "decision"
+  },
+  {
+   "id": "C-36",
+   "class": "extra",
+   "why": "A data-egress disclosure to users is not required for a development-org Grok bot to work."
+  },
+  {
+   "id": "C-37",
+   "class": "decision"
+  },
+  {
+   "id": "C-38",
+   "class": "decision"
+  },
+  {
+   "id": "C-39",
+   "class": "decision"
+  },
+  {
+   "id": "C-40",
+   "class": "decision"
+  },
+  {
+   "id": "C-41",
+   "class": "decision"
+  },
+  {
+   "id": "C-42",
+   "class": "decision"
+  },
+  {
+   "id": "C-43",
+   "class": "request"
+  },
+  {
+   "id": "C-44",
+   "class": "extra",
+   "why": "Late or duplicate outcome suppression arises from the spec's own client deadline and redelivery model."
+  },
+  {
+   "id": "C-45",
+   "class": "decision"
+  },
+  {
+   "id": "C-46",
+   "class": "decision"
+  },
+  {
+   "id": "C-47",
+   "class": "needed"
+  },
+  {
+   "id": "C-48",
+   "class": "extra",
+   "why": "Behaviour of in-flight requests under org-wide disablement exists only because of the spec's kill switch."
+  },
+  {
+   "id": "C-49",
+   "class": "extra",
+   "why": "Withholding an already-fetched reply after mid-flight revocation is extra engineering beyond admission checks."
+  },
+  {
+   "id": "C-50",
+   "class": "needed"
+  },
+  {
+   "id": "C-51",
+   "class": "decision"
+  },
+  {
+   "id": "C-52",
+   "class": "extra",
+   "why": "Atomic lifecycle guarantees for update and rollback go beyond creating the bot."
+  },
+  {
+   "id": "C-53",
+   "class": "extra",
+   "why": "Revision tracking for administrators belongs to the spec-introduced update/rollback lifecycle."
+  },
+  {
+   "id": "C-54",
+   "class": "needed"
+  },
+  {
+   "id": "C-55",
+   "class": "needed"
+  },
+  {
+   "id": "C-56",
+   "class": "needed"
+  },
+  {
+   "id": "C-57",
+   "class": "needed"
+  },
+  {
+   "id": "C-58",
+   "class": "needed"
+  },
+  {
+   "id": "C-59",
+   "class": "needed"
+  },
+  {
+   "id": "C-60",
+   "class": "needed"
+  },
+  {
+   "id": "C-61",
+   "class": "needed"
+  },
+  {
+   "id": "C-62",
+   "class": "needed"
+  },
+  {
+   "id": "C-63",
+   "class": "needed"
+  },
+  {
+   "id": "C-64",
+   "class": "needed"
+  },
+  {
+   "id": "C-65",
+   "class": "needed"
+  },
+  {
+   "id": "C-66",
+   "class": "wrong",
+   "why": "Salesforce Apex heap limits are 6 MB synchronous and 12 MB asynchronous, not 10 MB and 25 MB; this also conflicts with C-63."
+  },
+  {
+   "id": "C-67",
+   "class": "extra",
+   "why": "A distinct size-related failure category belongs to the extra diagnosis taxonomy; bounded context rarely nears Grok's window."
+  },
+  {
+   "id": "C-68",
+   "class": "extra",
+   "why": "Classifying throttling as a named capacity failure is part of the extra diagnosis taxonomy."
+  },
+  {
+   "id": "C-69",
+   "class": "extra",
+   "why": "Administrator identification of xAI billing restrictions is diagnostic tooling beyond the request."
+  },
+  {
+   "id": "C-70",
+   "class": "extra",
+   "why": "Production deployment is outside the request's development-org scope."
+  },
+  {
+   "id": "C-71",
+   "class": "extra",
+   "why": "Production coverage requirements are outside the request's development-org scope."
+  },
+  {
+   "id": "C-72",
+   "class": "extra",
+   "why": "Production trigger coverage requirements are outside the request's development-org scope."
+  },
+  {
+   "id": "C-73",
+   "class": "extra",
+   "why": "Production specified-test coverage is outside the request's development-org scope."
+  },
+  {
+   "id": "C-74",
+   "class": "extra",
+   "why": "Describing xAI audit retention to users is a disclosure duty the request does not call for."
+  },
+  {
+   "id": "C-75",
+   "class": "extra",
+   "why": "Update, rollback and removal are spec-introduced lifecycle operations beyond creating the bot."
+  },
+  {
+   "id": "C-76",
+   "class": "needed"
+  },
+  {
+   "id": "C-77",
+   "class": "needed"
+  },
+  {
+   "id": "C-78",
+   "class": "needed"
+  },
+  {
+   "id": "C-79",
+   "class": "needed"
+  },
+  {
+   "id": "C-80",
+   "class": "needed"
+  },
+  {
+   "id": "C-81",
+   "class": "decision"
+  },
+  {
+   "id": "C-82",
+   "class": "decision"
+  },
+  {
+   "id": "C-83",
+   "class": "decision"
+  },
+  {
+   "id": "C-84",
+   "class": "needed"
+  },
+  {
+   "id": "C-85",
+   "class": "needed"
+  },
+  {
+   "id": "C-86",
+   "class": "needed"
+  },
+  {
+   "id": "C-87",
+   "class": "decision"
+  },
+  {
+   "id": "C-88",
+   "class": "decision"
+  },
+  {
+   "id": "C-89",
+   "class": "decision"
+  },
+  {
+   "id": "C-90",
+   "class": "decision"
+  },
+  {
+   "id": "C-91",
+   "class": "decision"
+  },
+  {
+   "id": "C-92",
+   "class": "needed"
+  },
+  {
+   "id": "C-93",
+   "class": "decision"
+  },
+  {
+   "id": "C-94",
+   "class": "extra",
+   "why": "Capping displayed entries at 20 is unnecessary; follow-up context is already bounded by C-32."
+  },
+  {
+   "id": "C-95",
+   "class": "decision"
+  },
+  {
+   "id": "C-96",
+   "class": "decision"
+  },
+  {
+   "id": "C-97",
+   "class": "needed"
+  },
+  {
+   "id": "C-98",
+   "class": "decision"
+  },
+  {
+   "id": "C-99",
+   "class": "extra",
+   "why": "Distinguishing disabled, setup-needed and outbound failures relies on the extra taxonomy and kill switch."
+  },
+  {
+   "id": "C-100",
+   "class": "extra",
+   "why": "Separating provider credential rejection from Salesforce access failure is part of the extra diagnosis taxonomy."
+  },
+  {
+   "id": "C-101",
+   "class": "extra",
+   "why": "Model-specific setup failure identification is part of the extra diagnosis taxonomy."
+  },
+  {
+   "id": "C-102",
+   "class": "extra",
+   "why": "A named temporary-failure category is part of the extra diagnosis taxonomy."
+  },
+  {
+   "id": "C-103",
+   "class": "extra",
+   "why": "A fallback category exists only because the spec introduced a failure taxonomy."
+  },
+  {
+   "id": "C-104",
+   "class": "needed"
+  },
+  {
+   "id": "C-105",
+   "class": "decision"
+  },
+  {
+   "id": "C-106",
+   "class": "decision"
+  },
+  {
+   "id": "C-107",
+   "class": "needed"
+  },
+  {
+   "id": "C-108",
+   "class": "extra",
+   "why": "Per-category recovery instructions build on the extra diagnosis taxonomy."
+  },
+  {
+   "id": "C-109",
+   "class": "extra",
+   "why": "A supported removal procedure is lifecycle tooling beyond creating the bot."
+  },
+  {
+   "id": "C-110",
+   "class": "extra",
+   "why": "Rollback semantics exist only because the spec introduced revision rollback."
+  },
+  {
+   "id": "C-111",
+   "class": "extra",
+   "why": "Rollback semantics exist only because the spec introduced revision rollback."
+  },
+  {
+   "id": "C-112",
+   "class": "extra",
+   "why": "Removal semantics exist only because the spec introduced bot removal."
+  },
+  {
+   "id": "C-113",
+   "class": "extra",
+   "why": "Invalidating views across revisions arises only from the spec's update/rollback lifecycle."
+  },
+  {
+   "id": "C-114",
+   "class": "extra",
+   "why": "Clearing the visible conversation on detected revocation is extra behaviour beyond refusing new sends."
+  },
+  {
+   "id": "C-115",
+   "class": "decision"
+  },
+  {
+   "id": "C-116",
+   "class": "decision"
+  },
+  {
+   "id": "C-117",
+   "class": "decision"
+  },
+  {
+   "id": "C-118",
+   "class": "decision"
+  },
+  {
+   "id": "C-119",
+   "class": "request"
+  },
+  {
+   "id": "C-120",
+   "class": "decision"
+  },
+  {
+   "id": "C-121",
+   "class": "extra",
+   "why": "Blocking replies to obsolete views arises only from the spec's revision lifecycle."
+  },
+  {
+   "id": "C-122",
+   "class": "decision"
+  },
+  {
+   "id": "C-123",
+   "class": "extra",
+   "why": "Context timing against eviction arises only from the extra 20-entry display cap."
+  },
+  {
+   "id": "C-124",
+   "class": "needed"
+  },
+  {
+   "id": "C-125",
+   "class": "decision"
+  },
+  {
+   "id": "C-126",
+   "class": "extra",
+   "why": "A consolidated settings inspection view, including enabled state, is administrative tooling beyond the request."
+  },
+  {
+   "id": "C-127",
+   "class": "empty",
+   "why": "A rejected settings write leaving the old value in effect is true of any transactional Salesforce settings save."
+  },
+  {
+   "id": "C-128",
+   "class": "extra",
+   "why": "Multi-blocker feedback involves spec-introduced blockers like obsolete views and the disabled state."
+  },
+  {
+   "id": "C-129",
+   "class": "extra",
+   "why": "Production deployment is outside the request's development-org scope."
+  },
+  {
+   "id": "C-130",
+   "class": "decision"
+  },
+  {
+   "id": "C-131",
+   "class": "extra",
+   "why": "Update-retention semantics belong to the spec-introduced revision lifecycle."
+  },
+  {
+   "id": "C-132",
+   "class": "extra",
+   "why": "Update-retention semantics belong to the spec-introduced revision lifecycle."
+  },
+  {
+   "id": "C-133",
+   "class": "extra",
+   "why": "Arises only from the spec's revision replacement and rollback lifecycle."
+  },
+  {
+   "id": "C-134",
+   "class": "extra",
+   "why": "Idempotent handling of redelivered submissions is extra engineering the request does not need."
+  }
+ ]
+}

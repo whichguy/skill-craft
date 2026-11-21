@@ -1,0 +1,146 @@
+{
+ "slot": "csv-user-import__A-single__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-28",
+   "quote": "If any problem is found in the file, no user from the file is created, and the user list is exactly as before. If there is no problem, every row's user is created."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-29",
+   "quote": "the admin sees one entry per problem row (more if a row has several problems), each containing the line number and a description of the problem"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-25, C-26",
+   "quote": "every row after the first is reported as a problem on its line \u2026 A row whose address already belongs to a user is reported as a problem on its line saying the user already exists."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-3",
+   "quote": "Every user created by an import has no admin rights, whatever the file contains; the file has no way to grant them.",
+   "missing": "The fixed ordinary-user role prevents elevation. The spec gives no rule for checking a role named in the file against the importer's own authority."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-34",
+   "quote": "A signed-in user without admin rights who sends an upload is refused with a message that they lack permission, and no user is created.",
+   "missing": "The spec requires admin rights for import but does not say whether permission to create one user can be granted independently of import access."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-8, C-9, C-11",
+   "quote": "The first line of the file names the columns. \u2026 If the header lacks `email` or `name`, the admin sees a message naming each missing column, and nothing is created. \u2026 Columns other than `email` and `name` are ignored"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-14, C-13, C-12",
+   "quote": "UTF-8 text is accepted with or without a byte-order mark \u2026 Both Unix and Windows line endings are accepted \u2026 A value in double quotes may contain commas, line breaks"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-28, C-4",
+   "quote": "If any problem is found in the file, no user from the file is created \u2026 the same notifications or invitations",
+   "missing": "When invitations may be sent and what happens to invitations already sent if a later row fails."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "U-7, C-30",
+   "quote": "The admin submits a file with 1,001 people, or one larger than 1,048,576 bytes. They see a message that names the limit they exceeded. Nothing is created. \u2026 at most 1,000 data rows"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-32, C-28",
+   "quote": "An empty file, or one with only a header line (and blank lines), is refused with a message saying there are no users to import \u2026 If there is no problem, every row's user is created."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "U-4",
+   "quote": "They see that nothing was created and that each row's address already belongs to a user. No user is duplicated or changed."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-38, C-6",
+   "quote": "From submit to seeing the result, a valid 1,000-row file takes at most 60 seconds on an ordinary deployment. \u2026 After success the admin sees a message that contains the number of users created",
+   "missing": "Whether large uploads run in the background and how the admin receives or retrieves the result after leaving the upload page."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-4",
+   "quote": "An imported user gets the same defaults, the same notifications or invitations, and the same way of first signing in as a user an admin creates individually",
+   "missing": "Whether a batch triggers all its messages at once or sends them over time, and at what rate."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-4",
+   "quote": "An imported user is in the same state as a user an admin creates one at a time \u2026 the same defaults \u2026 the same way of first signing in as a user an admin creates individually"
+  },
+  {
+   "id": "N-15",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "U-3",
+   "quote": "They correct the file and submit it again; this time all rows are created and the count is shown.",
+   "missing": "Whether an admin can cancel a running import and whether they can retry just the failed rows. The described retry resubmits the corrected file."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-38",
+   "quote": "From submit to seeing the result, a valid 1,000-row file takes at most 60 seconds on an ordinary deployment.",
+   "missing": "What progress the admin can see between submission and the final result."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "U-14",
+   "quote": "Creating a single user, editing users and viewing the user list work as they did before the import existed; users created before the import are unchanged by it."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "C-19, C-21",
+   "quote": "An email is at most 254 characters \u2026 A name is at most 100 characters \u2026 one with 101 is reported as a problem on its line, naming the name field.",
+   "missing": "How formula-like input is rendered in a result that can be opened in a spreadsheet so it cannot execute as a formula."
+  }
+ ]
+}

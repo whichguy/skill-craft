@@ -1,0 +1,146 @@
+{
+ "slot": "gym-waitlist__A-single__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": "r2",
+ "cost_usd": 0.2818816,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-23",
+   "quote": "without any further action by anyone, the waiting member who is first in line (and still allowed, see C-27) is booked into the class"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-6",
+   "quote": "the one who joined earliest is the first to receive a free place. Nobody is moved ahead of an earlier joiner for any reason (for example membership type or how often they book)."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "C-22",
+   "quote": "A member may be on the waitlists of several classes at once, each with its own position; joining, leaving or being booked from one does not change their position on another.",
+   "missing": "What happens to the waitlist entry (or a later promotion) for a class overlapping in time with one the member was just booked into."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-23",
+   "quote": "After a booked member cancels, or staff remove a booked member, and at least one member is waiting for that class, then without any further action by anyone, the waiting member who is first in line ... is booked",
+   "missing": "How promptly the background promotion must happen after the triggering cancellation."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-25",
+   "quote": "the next time they open their classes the new booking is there ... If the app sends a confirmation to members when they book a class, a member booked from the waitlist receives that same kind of confirmation.",
+   "missing": "A definite channel and message content, and what happens when sending the notification fails."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-31",
+   "quote": "When k places are freed, no more than k members are booked from the waitlist, no member is booked into the same class twice"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-31",
+   "quote": "no member is booked into the same class twice, and each member who is booked is no longer shown as waiting."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-13; C-27",
+   "quote": "used up at the moment the member is booked from the waitlist, and not before. / would be refused a booking for any reason ... they are not booked and the next member in line is considered"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-7",
+   "quote": "There is no fixed limit on how many members can wait for a class ... with 500 waiting, the next member can join and is told position 501."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-34",
+   "quote": "From the moment a class has started (or earlier, at the time after which the app already refuses new bookings, if it has such a time), a place that frees up is not given to a waiting member"
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-29",
+   "quote": "When staff raise the capacity of a class by k places and at least k members are eligible and waiting, the first k eligible waiting members, in order, are booked.",
+   "missing": "What happens when staff lower a class's capacity while a waitlist exists (and to existing bookings above the new capacity)."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-35",
+   "quote": "After staff cancel a class, no member appears as waiting for it and no one is booked into it from the waitlist; the waiting members see the class as cancelled, as booked members do."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-5",
+   "quote": "Positions are whole numbers counting from 1 in order of joining",
+   "missing": "The waitlist entry as a record (join time, state such as waiting/promoted/removed/skipped) and whether position is stored or derived from join order."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-34",
+   "quote": "members still waiting are not booked, and no longer appear as waiting.",
+   "missing": "What becomes of the entries once the class has run (deleted, archived, marked expired) and how long they are retained."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-37",
+   "quote": "A member's view of a waitlist shows their own position and no other member's name or contact details."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-36",
+   "quote": "Wherever staff can see who is booked into a class, they can also see the members waiting for it, in position order, marked as waiting and not as booked.",
+   "missing": "Whether staff can manually promote or remove a waiting member, and a record of who was promoted when."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-43",
+   "quote": "The new version starts and offers the waitlist with no new setting",
+   "missing": "No way to turn the feature off or enable it per class or class type is provided; only reverting to the previous version."
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-38",
+   "quote": "A member who is allowed to book a class with at least one free place is booked as they are today, with the same result and the same rules applied."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-42",
+   "quote": "every existing class, booking and member is present and unchanged, the booked members of every class are the same, and every class has an empty waitlist."
+  }
+ ]
+}

@@ -1,0 +1,292 @@
+{
+ "slot": "grokbot-salesforce__L-lenses-once__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "cost_usd": 0.498024,
+ "missing_ids": [],
+ "clauses": [
+  {
+   "id": "C-1",
+   "class": "decision"
+  },
+  {
+   "id": "C-2",
+   "class": "decision"
+  },
+  {
+   "id": "C-3",
+   "class": "needed"
+  },
+  {
+   "id": "C-4",
+   "class": "needed"
+  },
+  {
+   "id": "C-5",
+   "class": "needed"
+  },
+  {
+   "id": "C-6",
+   "class": "needed"
+  },
+  {
+   "id": "C-7",
+   "class": "needed"
+  },
+  {
+   "id": "C-8",
+   "class": "request"
+  },
+  {
+   "id": "C-9",
+   "class": "needed"
+  },
+  {
+   "id": "C-10",
+   "class": "decision"
+  },
+  {
+   "id": "C-11",
+   "class": "decision"
+  },
+  {
+   "id": "C-12",
+   "class": "extra",
+   "why": "A disclosure banner about xAI is not needed for a working bot in a development org; the request asks for no user notices."
+  },
+  {
+   "id": "C-13",
+   "class": "decision"
+  },
+  {
+   "id": "C-14",
+   "class": "decision"
+  },
+  {
+   "id": "C-15",
+   "class": "needed"
+  },
+  {
+   "id": "C-16",
+   "class": "decision"
+  },
+  {
+   "id": "C-17",
+   "class": "needed"
+  },
+  {
+   "id": "C-18",
+   "class": "decision"
+  },
+  {
+   "id": "C-19",
+   "class": "decision"
+  },
+  {
+   "id": "C-20",
+   "class": "decision"
+  },
+  {
+   "id": "C-21",
+   "class": "needed"
+  },
+  {
+   "id": "C-22",
+   "class": "decision"
+  },
+  {
+   "id": "C-23",
+   "class": "decision"
+  },
+  {
+   "id": "C-24",
+   "class": "decision"
+  },
+  {
+   "id": "C-25",
+   "class": "extra",
+   "why": "Making the history window an administrator-tunable setting with a validated range goes beyond the request; a fixed window would serve."
+  },
+  {
+   "id": "C-26",
+   "class": "decision"
+  },
+  {
+   "id": "C-27",
+   "class": "decision"
+  },
+  {
+   "id": "C-28",
+   "class": "decision"
+  },
+  {
+   "id": "C-29",
+   "class": "decision"
+  },
+  {
+   "id": "C-30",
+   "class": "decision"
+  },
+  {
+   "id": "C-31",
+   "class": "decision"
+  },
+  {
+   "id": "C-32",
+   "class": "decision"
+  },
+  {
+   "id": "C-33",
+   "class": "wrong",
+   "why": "Caps a conversation at 200 messages, yet lets a 199-message conversation accept a user message whose Grok answer makes 201."
+  },
+  {
+   "id": "C-34",
+   "class": "extra",
+   "why": "A per-user rolling hourly rate limit is cost control the request never asks for; the bot works without it."
+  },
+  {
+   "id": "C-35",
+   "class": "extra",
+   "why": "A server-side lock across tabs and devices with stale-marker expiry costs real work; disabling the panel already covers ordinary use."
+  },
+  {
+   "id": "C-36",
+   "class": "decision"
+  },
+  {
+   "id": "C-37",
+   "class": "decision"
+  },
+  {
+   "id": "C-38",
+   "class": "needed"
+  },
+  {
+   "id": "C-39",
+   "class": "extra",
+   "why": "An administrator on/off kill switch with its own notice is an operator feature the request does not call for."
+  },
+  {
+   "id": "C-40",
+   "class": "decision"
+  },
+  {
+   "id": "C-41",
+   "class": "decision"
+  },
+  {
+   "id": "C-42",
+   "class": "needed"
+  },
+  {
+   "id": "C-43",
+   "class": "decision"
+  },
+  {
+   "id": "C-44",
+   "class": "needed"
+  },
+  {
+   "id": "C-45",
+   "class": "decision"
+  },
+  {
+   "id": "C-46",
+   "class": "decision"
+  },
+  {
+   "id": "C-47",
+   "class": "decision"
+  },
+  {
+   "id": "C-48",
+   "class": "decision"
+  },
+  {
+   "id": "C-49",
+   "class": "decision"
+  },
+  {
+   "id": "C-50",
+   "class": "extra",
+   "why": "A scheduled daily retention purge with a configurable period is housekeeping beyond the request; history can be kept or deleted manually."
+  },
+  {
+   "id": "C-51",
+   "class": "decision"
+  },
+  {
+   "id": "C-52",
+   "class": "extra",
+   "why": "Fixes a seven-setting admin surface, including enabled, hourly cap and retention, that the request does not call for."
+  },
+  {
+   "id": "C-53",
+   "class": "decision"
+  },
+  {
+   "id": "C-54",
+   "class": "decision"
+  },
+  {
+   "id": "C-55",
+   "class": "needed"
+  },
+  {
+   "id": "C-56",
+   "class": "needed"
+  },
+  {
+   "id": "C-57",
+   "class": "decision"
+  },
+  {
+   "id": "C-58",
+   "class": "needed"
+  },
+  {
+   "id": "C-59",
+   "class": "extra",
+   "why": "A dedicated failed-message list view for administrators is an observability feature the request does not ask for."
+  },
+  {
+   "id": "C-60",
+   "class": "extra",
+   "why": "Storing per-answer token usage is cost monitoring the request does not call for; the bot works without it."
+  },
+  {
+   "id": "C-61",
+   "class": "request"
+  },
+  {
+   "id": "C-62",
+   "class": "needed"
+  },
+  {
+   "id": "C-63",
+   "class": "needed"
+  },
+  {
+   "id": "C-64",
+   "class": "extra",
+   "why": "Written removal steps that leave the org clean are not part of creating the bot in a development org."
+  },
+  {
+   "id": "C-65",
+   "class": "extra",
+   "why": "The request names a development org, which has no coverage gate; 75% per-class coverage for production deployment goes beyond it."
+  },
+  {
+   "id": "C-66",
+   "class": "wrong",
+   "why": "At the highest Apex log level, variable-assignment logging records string values, so message and answer text will appear; the builder cannot prevent it."
+  },
+  {
+   "id": "C-67",
+   "class": "extra",
+   "why": "Keyboard operation and screen-reader live-region announcements are accessibility work the request's purpose does not call for."
+  }
+ ]
+}

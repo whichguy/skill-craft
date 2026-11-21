@@ -1,0 +1,368 @@
+{
+ "slot": "csv-user-import__D-enumerated-only__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "cost_usd": 0.45789860000000004,
+ "missing_ids": [],
+ "clauses": [
+  {
+   "id": "C-1",
+   "class": "request"
+  },
+  {
+   "id": "C-2",
+   "class": "request"
+  },
+  {
+   "id": "C-3",
+   "class": "request"
+  },
+  {
+   "id": "C-4",
+   "class": "needed"
+  },
+  {
+   "id": "C-5",
+   "class": "extra",
+   "why": "Re-checking admin rights at processing time guards a seconds-long window the request never raises; uploads by admins work without it."
+  },
+  {
+   "id": "C-6",
+   "class": "extra",
+   "why": "A downloadable template is a separate capability; the columns can be documented and bulk-create still works."
+  },
+  {
+   "id": "C-7",
+   "class": "decision"
+  },
+  {
+   "id": "C-8",
+   "class": "request"
+  },
+  {
+   "id": "C-9",
+   "class": "decision"
+  },
+  {
+   "id": "C-10",
+   "class": "decision"
+  },
+  {
+   "id": "C-11",
+   "class": "decision"
+  },
+  {
+   "id": "C-12",
+   "class": "decision"
+  },
+  {
+   "id": "C-13",
+   "class": "decision"
+  },
+  {
+   "id": "C-14",
+   "class": "decision"
+  },
+  {
+   "id": "C-15",
+   "class": "decision"
+  },
+  {
+   "id": "C-16",
+   "class": "decision"
+  },
+  {
+   "id": "C-17",
+   "class": "decision"
+  },
+  {
+   "id": "C-18",
+   "class": "decision"
+  },
+  {
+   "id": "C-19",
+   "class": "decision"
+  },
+  {
+   "id": "C-20",
+   "class": "decision"
+  },
+  {
+   "id": "C-21",
+   "class": "decision"
+  },
+  {
+   "id": "C-22",
+   "class": "decision"
+  },
+  {
+   "id": "C-23",
+   "class": "decision"
+  },
+  {
+   "id": "C-24",
+   "class": "decision"
+  },
+  {
+   "id": "C-25",
+   "class": "decision"
+  },
+  {
+   "id": "C-26",
+   "class": "decision"
+  },
+  {
+   "id": "C-27",
+   "class": "decision"
+  },
+  {
+   "id": "C-28",
+   "class": "decision"
+  },
+  {
+   "id": "C-29",
+   "class": "decision"
+  },
+  {
+   "id": "C-30",
+   "class": "decision"
+  },
+  {
+   "id": "C-31",
+   "class": "decision"
+  },
+  {
+   "id": "C-32",
+   "class": "decision"
+  },
+  {
+   "id": "C-33",
+   "class": "decision"
+  },
+  {
+   "id": "C-34",
+   "class": "decision"
+  },
+  {
+   "id": "C-35",
+   "class": "decision"
+  },
+  {
+   "id": "C-36",
+   "class": "decision"
+  },
+  {
+   "id": "C-37",
+   "class": "request"
+  },
+  {
+   "id": "C-38",
+   "class": "decision"
+  },
+  {
+   "id": "C-39",
+   "class": "decision"
+  },
+  {
+   "id": "C-40",
+   "class": "decision"
+  },
+  {
+   "id": "C-41",
+   "class": "needed"
+  },
+  {
+   "id": "C-42",
+   "class": "decision"
+  },
+  {
+   "id": "C-43",
+   "class": "decision"
+  },
+  {
+   "id": "C-44",
+   "class": "decision"
+  },
+  {
+   "id": "C-45",
+   "class": "extra",
+   "why": "Self-refreshing status is a convenience; the admin can reload to see the outcome, and nothing is broken without it."
+  },
+  {
+   "id": "C-46",
+   "class": "extra",
+   "why": "An unconfirmed 60-second performance target is not called for by the request; a correct import works without it."
+  },
+  {
+   "id": "C-47",
+   "class": "decision"
+  },
+  {
+   "id": "C-48",
+   "class": "decision"
+  },
+  {
+   "id": "C-49",
+   "class": "needed"
+  },
+  {
+   "id": "C-50",
+   "class": "needed"
+  },
+  {
+   "id": "C-51",
+   "class": "extra",
+   "why": "A per-admin single-active-import restriction is unnecessary; uniqueness rules already prevent duplicate users from repeated submissions."
+  },
+  {
+   "id": "C-52",
+   "class": "decision"
+  },
+  {
+   "id": "C-53",
+   "class": "needed"
+  },
+  {
+   "id": "C-54",
+   "class": "needed"
+  },
+  {
+   "id": "C-55",
+   "class": "decision"
+  },
+  {
+   "id": "C-56",
+   "class": "decision"
+  },
+  {
+   "id": "C-57",
+   "class": "extra",
+   "why": "A paged, cross-admin import history with counts is a reporting feature beyond uploading a CSV to create users."
+  },
+  {
+   "id": "C-58",
+   "class": "decision"
+  },
+  {
+   "id": "C-59",
+   "class": "extra",
+   "why": "90-day expiry of import records exists only because the spec introduced a persistent import history."
+  },
+  {
+   "id": "C-60",
+   "class": "decision"
+  },
+  {
+   "id": "C-61",
+   "class": "needed"
+  },
+  {
+   "id": "C-62",
+   "class": "decision"
+  },
+  {
+   "id": "C-63",
+   "class": "decision"
+  },
+  {
+   "id": "C-64",
+   "class": "extra",
+   "why": "Tracking and showing per-user invitation delivery states to admins is monitoring beyond what bulk creation requires."
+  },
+  {
+   "id": "C-65",
+   "class": "extra",
+   "why": "Automatic email retry with attempt counting is added reliability machinery the request does not call for."
+  },
+  {
+   "id": "C-66",
+   "class": "decision"
+  },
+  {
+   "id": "C-67",
+   "class": "extra",
+   "why": "An invitation-resend action is a new admin capability beyond bulk-creating users."
+  },
+  {
+   "id": "C-68",
+   "class": "decision"
+  },
+  {
+   "id": "C-69",
+   "class": "needed"
+  },
+  {
+   "id": "C-70",
+   "class": "needed"
+  },
+  {
+   "id": "C-71",
+   "class": "extra",
+   "why": "Canary-tested scrubbing of personal data from all logs and error reports is an added duty beyond the requested feature."
+  },
+  {
+   "id": "C-72",
+   "class": "needed"
+  },
+  {
+   "id": "C-73",
+   "class": "request"
+  },
+  {
+   "id": "C-74",
+   "class": "extra",
+   "why": "Imposes the import's validation rules on every other user-creation route, changing parts of the product outside this feature."
+  },
+  {
+   "id": "C-75",
+   "class": "request"
+  },
+  {
+   "id": "C-76",
+   "class": "decision"
+  },
+  {
+   "id": "C-77",
+   "class": "needed"
+  },
+  {
+   "id": "C-78",
+   "class": "needed"
+  },
+  {
+   "id": "C-79",
+   "class": "needed"
+  },
+  {
+   "id": "C-80",
+   "class": "extra",
+   "why": "Imposes formula neutralising on CSV exports elsewhere in the product; this feature adds no export."
+  },
+  {
+   "id": "C-81",
+   "class": "decision"
+  },
+  {
+   "id": "C-82",
+   "class": "decision"
+  },
+  {
+   "id": "C-83",
+   "class": "needed"
+  },
+  {
+   "id": "C-84",
+   "class": "needed"
+  },
+  {
+   "id": "C-85",
+   "class": "extra",
+   "why": "An unconfirmed 1-hour target for invitations to settle is not needed for the import to work."
+  },
+  {
+   "id": "C-86",
+   "class": "decision"
+  }
+ ]
+}

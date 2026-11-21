@@ -1,0 +1,142 @@
+{
+ "slot": "csv-user-import__D-enumerated-only__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": "r2",
+ "cost_usd": 0.3199124,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-36",
+   "quote": "If the import ends `rejected` for any file-level or row-level error, no user from that file exists, including the rows that were valid"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-35",
+   "quote": "Each entry shows the row number, the column (`email`, `name` or `role`; empty for whole-row errors), the reason code, and a human-readable message."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-31, C-30",
+   "quote": "A row whose email, compared ignoring letter case, equals that of any existing user ... gets an error for column `email` with reason `already_exists`. / every later row with the same address gets an error ... `duplicate_in_file`"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-29, C-5",
+   "quote": "any other value (for example `owner`) gets an error for column `role` with reason `invalid_role`. These are the only two roles an import can assign."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-1, C-2",
+   "quote": "A signed-in user with role `admin` and status `active` can open the import page ... A signed-in user whose role is `member`, or whose status is `deactivated`, receives HTTP 403",
+   "missing": "Whether the import ability is a distinct permission from creating a single user, or simply follows from whatever permits one-user creation, is not stated."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-11, C-13, C-10",
+   "quote": "If, after matching, the header lacks `email` or lacks `name` ... the import ends `rejected` with file-level reason `missing_required_column`"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-78, C-8",
+   "quote": "a field wrapped in double quotes may contain commas, doubled double quotes ... and line breaks. Records end with LF or CRLF"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-60, C-36",
+   "quote": "each of its users is sent one email at the address in the file, not before the users exist and never for `rejected` or `failed` imports."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-20, C-21",
+   "quote": "a file of 5,242,881 bytes or more is refused with file-level reason `file_too_large` ... a file with 5,001 or more data rows ends `rejected` with file-level reason `too_many_rows`"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-18, C-19, C-37",
+   "quote": "A file of zero bytes, or one containing only blank lines, ends `rejected` with file-level reason `empty_file`. / A file that has a header and no data rows ends `rejected` with ... `no_data_rows`"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-55",
+   "quote": "Uploading a file whose users were created by an earlier import ends `rejected` with `already_exists` on every row, \"0 users created\", and no invitation email is sent."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-42, C-45",
+   "quote": "While the import page or an import's detail is open on an import whose status is not final, the shown status is refreshed without the admin reloading, at intervals of 5 seconds or less"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-85",
+   "quote": "each invitation of an import reaches delivery `sent` or `failed` within 1 hour of the import becoming `succeeded`. The figure is a target and is unconfirmed against the email provider's sending limits.",
+   "missing": "Whether up to 5,000 emails are sent at once or throttled, and at what sending rate."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-38, C-61, C-63",
+   "quote": "the status `invited` ... The email contains a link to a page where the recipient sets their own password; it contains no password"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-56",
+   "quote": "Once an import reaches a final status, no page or address offers the original uploaded file for download."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "C-57, C-38",
+   "quote": "Each entry shows the file name, the uploading admin ... the upload time, the status, the number of rows read ... the number of users created and the number of errors."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-36, U-3",
+   "quote": "all-or-nothing makes re-uploading a corrected file safe, since it can never meet rows created by an earlier attempt.",
+   "missing": "Whether an admin can cancel a queued or processing import; retrying is only by re-uploading the whole corrected file."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-46, C-45",
+   "quote": "Under normal load, an import of 5,000 valid rows goes from upload to `succeeded` within 60 seconds."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "C-73, C-74",
+   "quote": "No import changes, deactivates, re-roles, renames, re-invites or deletes any user who existed when it was accepted",
+   "missing": "The spec never says that creating one user by hand keeps working unchanged. C-74 even makes the manual route follow the import's validation rules, which may change it."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-41, C-80, C-27",
+   "quote": "A name such as `=HYPERLINK(\"http://x\")` ... is stored exactly as given and shown literally ... a value that starts with `=`, `+`, `-` or `@` is written so that spreadsheet programs treat it as text"
+  }
+ ]
+}
