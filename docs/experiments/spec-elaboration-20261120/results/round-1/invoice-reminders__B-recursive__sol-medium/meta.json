@@ -1,0 +1,26 @@
+{
+ "round": "round-1",
+ "case": "invoice-reminders",
+ "arm": "B-recursive",
+ "arm_sha256_12": "de5e8e900dd3",
+ "driver": "sol-medium",
+ "host": "codex",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "rc": 0,
+ "seconds": 361.6,
+ "ok": true,
+ "wrote": [
+  "spec.md",
+  "passes.md"
+ ],
+ "stray_files": [],
+ "workdir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/round-1/invoice-reminders__B-recursive__sol-medium-9cf20c",
+ "usage": {
+  "input_tokens": 748227,
+  "cached_input_tokens": 679808,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 15830,
+  "reasoning_output_tokens": 2147
+ }
+}

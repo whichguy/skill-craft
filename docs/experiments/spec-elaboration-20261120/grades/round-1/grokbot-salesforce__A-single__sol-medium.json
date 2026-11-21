@@ -1,0 +1,179 @@
+{
+ "slot": "grokbot-salesforce__A-single__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "C-1",
+   "quote": "The Grok bot is available from inside the intended Salesforce development org.",
+   "missing": "Which surface hosts the bot (record page component, utility bar, app page, Flow action) and what context, if any, that surface passes; U-15 only says no record context is required."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-47",
+   "quote": "The bot sends no Salesforce business-record data beyond what the user explicitly includes in the prompt."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-47",
+   "quote": "Inspection of the outbound request shows that it contains no data drawn from the record."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-54",
+   "quote": "Only a user with bot administration access can change the Grok connection. ... A user who can submit prompts but lacks administration access attempts to replace the credential or change the selected model. The configuration stays the same."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-28",
+   "quote": "A user can see only outcomes belonging to their own submissions. ... neither user sees the other user's reply or failure."
+  },
+  {
+   "id": "N-6",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-42",
+   "quote": "A user inspecting the bot page, its browser traffic, replies and error details cannot recover the credential used by the bot.",
+   "missing": "Where the credential is stored (Named/External Credential or protected setting) and that it is kept out of code, metadata and logs."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-23",
+   "quote": "fits within Salesforce's published cumulative timeout ceiling where an Apex callout is used.",
+   "missing": "The actual governor-limit numbers for callout timeout, callouts per transaction, heap and CPU time that bind the design."
+  },
+  {
+   "id": "N-9",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-10",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-5",
+   "quote": "With the provider reply delayed, the user can tell that the submission is awaiting an outcome.",
+   "missing": "The mechanism by which the interface learns the reply arrived (platform event, polled status, LMS, etc.) versus an inline return."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-27",
+   "quote": "Repeated submit gestures for the same pending submission create only one inference request."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-21",
+   "quote": "If the connection fails or Grok returns an HTTP 500\u2013599 response, the user sees that Grok could not be reached or could not complete the request."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-18",
+   "quote": "On a Grok HTTP 429 rate-limit rejection, the user sees that the service is rate limited and can try again when capacity is available."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-17",
+   "quote": "When the service returns answer text with a confirmed output-limit truncation, the user can tell that the visible answer is incomplete."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-8",
+   "quote": "The bot provides no saved transcript.",
+   "missing": "Whether any request record exists (e.g. for pending status, attribution or de-duplication) and, if so, its fields: role, text, status, timestamps, model identifier, usage counts."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-8",
+   "quote": "The bot provides no saved transcript. ... A saved transcript adds a data-retention feature beyond the requested interaction."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-47",
+   "quote": "A standalone question needs only the submitted prompt, so access to the bot does not become a route for automatic CRM disclosure."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-7",
+   "quote": "An inspection of the Grok request for a follow-up finds zero earlier prompts or replies included as conversational context."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-13",
+   "quote": "An otherwise valid prompt exactly at the published maximum is accepted for submission."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "C-39",
+   "quote": "An administrator with access to two eligible Grok text models can change the selection and confirm that a new inference uses the newly selected model.",
+   "missing": "A switch to turn the bot off (other than revoking access or rollback) and a place where the administrator can see failed requests."
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "C-34",
+   "quote": "Bot setup is scoped to the designated development org.",
+   "missing": "How configuration and credential differ per environment, the deployment method (scratch org/sandbox, metadata deploy) and the production code-coverage requirement."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "C-23",
+   "quote": "With no final response from Grok, the bot leaves the pending state no later than 120 seconds after accepting the submission."
+  },
+  {
+   "id": "N-26",
+   "state": "partial",
+   "where": "C-5",
+   "quote": "A pending submission has a visible pending state.",
+   "missing": "That the empty, loading, error and refused states are deliberately designed rather than unstyled scaffolding; the states are named but no design standard is set."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-48",
+   "quote": "Before and after use, the org's business records have the same values and membership, even when a prompt asks the bot to create, update or delete a record."
+  }
+ ]
+}

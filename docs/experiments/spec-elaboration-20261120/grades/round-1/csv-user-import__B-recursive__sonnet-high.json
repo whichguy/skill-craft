@@ -1,0 +1,137 @@
+{
+ "slot": "csv-user-import__B-recursive__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-6",
+   "quote": "If any row is invalid, no user is created from that file"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-7",
+   "quote": "Every invalid row is reported with its row number, its column and its reason"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-10, C-9",
+   "quote": "A row whose email already belongs to an existing user is invalid ... the existing user is unchanged. / A row whose email repeats an earlier row in the same file is invalid"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-79, C-72",
+   "quote": "Any admin may assign any existing role, including `admin`, in a row ... only admins reach the import and admins can already create admins one at a time"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-83, C-14",
+   "quote": "An upload request from a signed-in non-admin is refused ... receives HTTP 403; 0 users are created and no invitation is sent."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-25, C-26, U-4",
+   "quote": "A file with no `email` column is rejected whole / A file with a column that is not `email`, `name` or `role` is rejected whole / a file with an unrecognised or missing header"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-19, C-20, C-35",
+   "quote": "comma-separated, double-quote quoting, line breaks CRLF or LF ... A leading UTF-8 byte-order mark is ignored ... A quoted name containing a line break is reported"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-50, C-75",
+   "quote": "The invitation emails are sent after the result is shown ... A rejected or failed import sends no email and creates no password link"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-12, C-13",
+   "quote": "A file with 1,001 data rows is rejected whole with a message that states the limit of 1,000 ... A file larger than 1 MiB (1,048,576 bytes) is rejected"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-11, U-1",
+   "quote": "A 0-byte file, a file with only the header row, and a file with a header and only blank lines are each rejected ... (for that file with 1 data row: 1)"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-52",
+   "quote": "Submitting the same 3-row file a second time after it succeeded reports each of the 3 rows as already existing ... no second invitation is sent"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-60, C-50",
+   "quote": "the import is done inside one web request ... The result of a 1,000-row valid file is shown within 30 seconds"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-64, C-50",
+   "quote": "Every invitation of a successful import is delivered or recorded as failed within 1 hour ... mail providers limit sending rates (exact figure unconfirmed)",
+   "missing": "The actual sending rate or pacing of the invitations (whether all go at once or are throttled, and at what rate)."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-45, C-80, U-6",
+   "quote": "A user created by import cannot sign in until the person has chosen a password ... Users created by import are active ... They open the link, choose a password, and sign in."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-67",
+   "quote": "The uploaded file is not kept after the request, and its contents are not written to logs"
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "C-68",
+   "quote": "the operator can read a record with the admin's identity, the time, the number of data rows, the number of users created ... and the outcome"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-59, C-6",
+   "quote": "The admin closes the browser tab 1 second after pressing submit ... all-or-nothing makes a corrected re-upload safe",
+   "missing": "Whether there is any deliberate way to cancel a running import; retry is only by re-uploading the whole corrected file, with no retry-failed-rows behaviour stated."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-60, C-53",
+   "quote": "from pressing submit with 1,000 valid rows to seeing the result takes no more than 30 seconds ... a progress indication appears"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-73, C-71",
+   "quote": "The single-user form creates a user with the same fields, the same checks and the same result as before ... An import never changes any user who existed before it"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-85, C-81, C-33",
+   "quote": "A name is stored as given after trimming, even when it begins with `=`, `+`, `-` or `@` ... A name longer than 200 characters is invalid"
+  }
+ ]
+}

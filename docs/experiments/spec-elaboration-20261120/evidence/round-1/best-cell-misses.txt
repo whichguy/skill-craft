@@ -1,0 +1,38 @@
+What B-recursive + sonnet-high (the best cell, 72/89) still did not state
+
+== csv-user-import ==
+  partial  [async        ] N-13: The new users' invitation or welcome mail: whether hundreds go out at once, and the pacing if so.
+  absent   [data         ] N-16: Date, number and locale handling of the file's values.
+  partial  [operator     ] N-18: Cancelling an import that is running, and retrying only the rows that failed.
+
+== grokbot-salesforce ==
+  partial  [platform     ] N-6: The model call is an external callout, so it cannot run synchronously from a trigger and cannot follow DM
+  partial  [platform     ] N-8: Governor limits that bind this design are named with their numbers: callout timeout ceiling, callouts per
+  partial  [async        ] N-11: How the interface learns the answer arrived: a platform event, change data capture, a polled status field
+  partial  [data         ] N-17: The stored shape: a conversation and its turns as records, with role, text, status, timestamps, the model
+  partial  [operator     ] N-23: An audit record of who asked what and what was answered, with its retention.
+
+== gym-waitlist ==
+  partial  [interaction  ] N-2: The order the waitlist is served in (join time), how ties resolve, and whether any membership tier or sta
+  partial  [data         ] N-14: The waitlist entry as a record with its join time and state, and whether a position is stored or derived.
+  partial  [operator     ] N-17: Staff can see the waitlist, promote or remove someone by hand, and see who was promoted when.
+
+== invoice-reminders ==
+  partial  [interaction  ] N-2: Every condition that stops the sequence: paid, part-paid, voided, credited, disputed, or on a payment pla
+  partial  [interaction  ] N-4: An existing do-not-contact, paused or unsubscribed state on the customer, and whether a billing notice is
+  partial  [edge         ] N-10: Time zone and sending hours: the customer's local time, business hours, weekends and holidays.
+  partial  [edge         ] N-11: Currency and amount formatting for the recipient.
+  partial  [data         ] N-15: What the reminder contains: invoice reference, amount, due date and a way to pay, and whether that link e
+  partial  [operator     ] N-17: Turning it off globally and per customer, previewing or dry-running it, and resending by hand.
+
+absent-or-partial by category across all four cases, best cell:
+  operator       5/9
+  data           6/10
+  platform       3/5
+  interaction    9/12
+  async          9/11
+  edge           10/12
+  permission     8/8
+  unhappy        12/12
+  nonfunctional  5/5
+  preserve       5/5

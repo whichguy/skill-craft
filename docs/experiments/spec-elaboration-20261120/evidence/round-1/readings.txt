@@ -1,0 +1,21 @@
+REGISTERED READINGS, round-1 (one call a cell, so every number is interim)
+
+R1  primary: B-recursive minus A-single, pooled over the 89 held-out nuances
+    threshold: >=8 shows a difference, within 4 shows none, 4-8 interim
+    sonnet-high  A 46/89 (52%) -> B 72/89 (81%)   gain +26   DIFFERENCE SHOWN
+    sol-medium   A 38/89 (43%) -> B 50/89 (56%)   gain +12   DIFFERENCE SHOWN
+
+R3  cost: minutes, and whether the gain earns them
+    sonnet-high  A 2.0 min a case -> B 8.0 min a case  (4.0x)   earned (gain over R1 threshold)
+    sol-medium   A 3.3 min a case -> B 8.4 min a case  (2.6x)   earned (gain over R1 threshold)
+
+R4  padding guard: does B convert length into coverage, or only into clauses?
+    cell                        covered/100 words  covered/clause  clauses
+    A-single sonnet-high                     0.31            0.25      184
+    B-recursive sonnet-high                  0.25            0.17      412
+    A-single sol-medium                      0.25            0.15      246
+    B-recursive sol-medium                   0.15            0.08      609
+
+R5  procedure guard: passes each B call actually recorded
+    sonnet-high  passes per case [8, 9, 7, 9]   carried out
+    sol-medium   passes per case [9, 10, 10, 9]   carried out

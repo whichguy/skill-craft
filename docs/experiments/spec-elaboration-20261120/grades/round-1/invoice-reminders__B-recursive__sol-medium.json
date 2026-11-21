@@ -1,0 +1,140 @@
+{
+ "slot": "invoice-reminders__B-recursive__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-12, C-9, C-41",
+   "quote": "C-12: Automatic reminders are limited to one accepted reminder per invoice. C-9: An invoice due June 10 fails the timing check through the end of June 10 and passes it starting June 11"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-2, C-29, C-31, C-30",
+   "quote": "A voided, canceled or fully written-off invoice generates zero automatic submissions; A posted credit reduces an invoice's recorded outstanding balance to zero. The invoice generates no automatic reminder.",
+   "missing": "Whether a disputed invoice or one on a payment plan stops the reminder; neither condition is mentioned."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-11",
+   "quote": "An invoice originally for 100 USD with 25 USD paid yields a reminder stating 75 USD outstanding when the remainder is still owed at submission."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-54, C-26, C-60",
+   "quote": "Two evaluations find the same eligible invoice before either submits. At most one submission to the delivery service is in progress for that invoice at a time."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-45, C-94",
+   "quote": "An invoice qualifies when evaluated. Billing records full payment before submission to the delivery service begins. The service receives zero submissions for that invoice."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-20, C-113, C-133, C-97",
+   "quote": "The email service definitively refuses a submission for a temporary reason. A later attempt occurs automatically if the invoice still qualifies.",
+   "missing": "Any cap on repeated temporary retries and any alert or escalation to a person when sending keeps failing; failures are only visible if an operator looks."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-74, C-115",
+   "quote": "The unaccepted reminder remains eligible for reconsideration when there is capacity. The service's exact rate and quota are unconfirmed.",
+   "missing": "How a large batch is paced or throttled to stay within the provider's rate limit, as opposed to reacting after the quota is exhausted."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C-14, U-5",
+   "quote": "An invoice issued before activation that satisfies the current eligibility rules can receive its automatic reminder after activation.",
+   "missing": "Whether the backlog of already-overdue invoices is spread out or limited at activation rather than all sent at once."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "C-33, C-34, C-35",
+   "quote": "Reminder timing uses the workspace's existing billing time zone when available ... Daily evaluation follows the date-based due policy without fixing an hour.",
+   "missing": "The customer's local time, sending hours, and whether weekends or holidays are avoided."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-40",
+   "quote": "A reminder for 75 CAD outstanding identifies the amount as Canadian dollars unambiguously.",
+   "missing": "How the amount is formatted for the recipient (locale, symbol, decimal conventions)."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-17, C-43, C-104",
+   "quote": "An invoice without a usable billing recipient generates zero automatic submissions. ... The service definitively rejects a mailbox as nonexistent. Later evaluations ... make zero submissions to that unchanged mailbox."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-37, C-38",
+   "quote": "The invoice reminder is addressed to the designated billing recipient. ... Billing data offers competing recipients without a designated destination. No automatic reminder is submitted for the invoice."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-24",
+   "quote": "An operator opens an accessible invoice's reminder history and can identify the outcome and time of recorded attempts."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-10, C-11, C-123",
+   "quote": "A customer can discover where to view or deal with the invoice from the reminder. The route can be an existing invoice link or an existing billing contact or access instruction.",
+   "missing": "Whether the due date appears in the reminder, and whether a payment or invoice link expires."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-5, C-82, C-101",
+   "quote": "A user without that permission attempts to enable or disable reminders and receives a refusal.",
+   "missing": "Who may stop an individual invoice's reminder by hand; manual sending is only deferred to existing permissions, and the schedule itself is not configurable."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-22, C-41, C-77, C-82",
+   "quote": "The operator disables the feature and sees the disabled state.",
+   "missing": "A per-customer off switch, a preview or dry run of the actual reminders, and a new manual resend action (only existing manual sends are preserved)."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-24, C-132, C-137",
+   "quote": "A provider-wide limit is reached before an otherwise ready invoice can be attempted. The operator can tell that the invoice is awaiting capacity.",
+   "missing": "A view of upcoming reminders, i.e. what the system will send next, and a workspace-wide list of failed sends rather than per-invoice history."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-36, C-12, C-53",
+   "quote": "The first reminder is submitted before June 12 in the billing time zone.",
+   "missing": "A maximum lateness after which a missed reminder is dropped (C-53 lets it go out at any time after recovery) and any overall cap on sending volume."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-78, C-81, C-83",
+   "quote": "Compare the invoice's amount, balance, currency, due date and payment history immediately before and after an accepted reminder with no other billing activity. All financial values are identical."
+  }
+ ]
+}

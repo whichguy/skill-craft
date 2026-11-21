@@ -1,0 +1,35 @@
+# Passes
+
+The working directory held no product, no code and no existing behaviour (only run scaffolding). Every "existing feature" below (user list, sign-in, forgot-password, single-user creation, roles, audit) is therefore assumed to exist as an ordinary admin-managed account system, and the clauses say what the import needs of each.
+
+## Pass 1 — the ground
+Added U-1 to U-8 (ordinary use, how to learn the format, bad rows, unusable file, repeat/overlap, the new user getting in, non-admins, the operator) and C-1 to C-18, the clause each plainly needs: page, columns, create-per-row, count, list, all-or-nothing, error reporting, email required/repeated/existing, empty, size and row limits, access refusal, invitation, role default and unknown role.
+Found nothing on: scheduled or recurring imports, updates of existing users (the request says create).
+
+## Pass 2 — what each sentence takes for granted
+"Upload a CSV": the format is unstated (columns, header, delimiter, quoting, encoding, BOM, case, column order, spacing, blank lines, row numbering, file name and type, one file or many, no file) → C-19 to C-30, C-40 to C-44. "Bulk-create users": a user needs an identity and what it must look like (C-31 to C-37), that identity must be unique ignoring case and against inactive users (C-37, C-38), a role (C-17, C-18, C-36), and a way to sign in with no password in the file (C-45 to C-50). Displayed values are untrusted (C-39). The result must be readable (C-51).
+Recursed: C-45 took for granted a way to get a password → C-46 to C-49; C-48 took for granted a lifetime → 7 days (choice); C-32 took for granted what a valid address is → shape rule (choice).
+Found nothing on: any other column the request implies (phone, team, etc. are not implied).
+
+## Pass 3 — where the parts meet
+Parts walked: the upload, the existing-user set, the file's own rows, the user list, the single-user form, other imports, the admin's session and rights, the connection, the mail system. Pairs: upload×upload with the same file (C-52), double click (C-53), overlapping files (C-54), disjoint files (C-56); upload×single creation (C-55); upload×admin demotion or sign-out (C-57); upload×user-list viewer (C-58); upload×dropped connection (C-59); upload×mail (C-63, C-75).
+Found nothing on: import×user deletion (deletion of a row's user mid-import only matters for the email-exists check, already C-54/C-55); import×password reset by the person before the invitation (the reset path is C-49).
+
+## Pass 4 — the runtime's own rules
+Runtime: a web application answering HTTP requests, with a relational store and an outside mail service. Rules: request timeout (C-60, figure unconfirmed), body-size cap at the server (C-61, unconfirmed), no passwords to hash so the work fits one request (C-45), mail rate limits and asynchronous sending (C-50, C-63, C-64, unconfirmed figure), database failure (C-62), HTTPS and cross-site request protection before it ships beyond development (C-65, C-66), no retention of personal data (C-67).
+Found nothing on: browser-side limits (a client check is only a convenience; the server's checks are the clauses).
+
+## Pass 5 — what must not change, what must never happen
+Must not change: existing users (C-71), single creation (C-73), sign-in and forgot-password (used by C-49, unchanged), rollback safety (C-74). Must never happen: someone not an admin creating users (C-14, C-15, C-57, C-66, C-70), partial creation (C-6, C-58, C-59), a user twice (C-37, C-52, C-54, C-55), invitation for a user that does not exist (C-75), a rule enforced in import and not single creation (C-72), data stored where it should not be (C-67, C-68). Also added C-76 (display cap), C-77 (no omitted invalid row), C-78 (accessibility), C-79 (who may grant `admin`), C-80 (created users active).
+Found nothing on: spreadsheet formula injection in a later export (no export is in this request; C-85 keeps the stored value unchanged so any future export must neutralise it).
+
+## Pass 6 — grind (first read from the top as the builder)
+Found and fixed: U-7 promised a refusal of the upload request itself but only the page was a clause → C-83, C-84; C-34 was two clauses (optional, length) → split, length is C-81; C-39 was two clauses → split, C-85; the 1,000-row and 1 MiB boundaries were not stated exactly and blank lines had no definition (C-12, C-13, C-28); C-76 counted "problems" but C-77 lists rows, so it now counts invalid rows; C-77 contradicted itself and was rewritten; C-72 would have forced the single form's rules to equal this spec's, now "also refused there"; C-82 added because a file with several whole-file problems had no stated outcome; C-57 gained what the admin sees; C-2 trimmed to one behaviour; stale cross-references to the timeout clause corrected to C-60.
+Assumed, since there is no product to read: roles `admin` and `member` exist (C-17, C-36, C-79), a forgot-password path exists (C-49), a single-user form exists (C-55, C-72, C-73), deactivation exists (C-38), an operator can read logs and audit records by some means the spec does not fix.
+
+## Pass 7 — grind (second full read)
+Found and fixed: C-39 still held two behaviours (literal display, and storing a leading `=` unchanged) → split, the second is C-85, with its reason as a choice.
+Looked for: a clause whose Observable cannot be observed (C-50, C-57, C-58, C-59, C-64, C-67 each name an externally visible check: the result text, the page or refusal shown, repeated reloads, a later re-upload, a mailbox or failure record after 1 hour, a search of storage and logs); words two readers would read differently ("blank", "data row", "row number", "admin" — each pinned in C-28, C-12, C-29, C-79/C-17); a number nobody wrote (limits, 7 days, 1 hour, 30 seconds, 100 listed, 200 and 254 characters are all written); a use case with no unhappy path (U-1 has C-6 to C-13, U-2 has C-41/C-43, U-6 has C-47 to C-49, U-8 has C-62, C-63); a piece of state with no end (invitation link: C-47, C-48; audit record and import attribution: kept for as long as the user exists, not bounded by this request; uploaded file: C-67); a silent decision (every unstated rule is a `choice:` with its reason); a clause that is two (which is where C-39 was found).
+
+## Pass 8 — grind (third full read; this is the stopping pass)
+Looked for, clause by clause from C-1 to C-85 and use case by use case: contradictions between clauses (C-6 and C-82; C-10, C-54 and C-55; C-16, C-63 and C-75; C-67, C-68 and C-63 on what may be recorded); a use case step with no clause (every step of U-1 to U-8 maps to one); a Source: choice that fixes a spelling, wording, format or order the request leaves open (none: message texts, email storage case, record format, order of the audit fields and the means of reading them are all left open); a clause that is two; a number left unwritten; an Observable with no exact value where one exists; an interaction of two clauses with no outcome (whole-file problem plus row problem: C-82; rejected file plus mail: C-75; demotion plus upload: C-57). Found nothing a builder would otherwise have got wrong; no change was made in this pass.

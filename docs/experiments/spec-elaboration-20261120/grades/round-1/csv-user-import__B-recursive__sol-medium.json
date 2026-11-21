@@ -1,0 +1,141 @@
+{
+ "slot": "csv-user-import__B-recursive__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-45",
+   "quote": "The import rejects the entire batch when any user record is invalid"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-39, C-40",
+   "quote": "A reported record error identifies its location in the source file ... The outcome identifies the invalid field when a rejection can be attributed to one field"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-43, C-44",
+   "quote": "The import reports an existing identity as a conflict ... The import reports a repeated identity within one file as a conflict"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-98",
+   "quote": "CSV values cannot grant privileged access. Supply an admin role or equivalent privilege as CSV data and verify that the submission cannot produce a privileged account."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-18, C-10",
+   "quote": "An admin with user-creation authority can discover CSV import from user management",
+   "missing": "Whether import is a distinct permission; the spec ties it to user-creation authority rather than stating it is not implied by it"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-22, C-24, C-117",
+   "quote": "rejects a CSV with user records when its header omits a required column ... rejects an unrecognized header ... The first CSV record remaining after empty-line handling is the header"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-27, C-29, C-31, C-32, C-33",
+   "quote": "A leading UTF-8 byte-order mark does not change the first header ... A quoted field can contain a comma ... A line break inside a quoted field belongs to that field ... CRLF record endings is supported"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-80",
+   "quote": "Import never starts user-facing account setup for an uncommitted account"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-6, C-49, C-51",
+   "quote": "An upload over an effective import limit is refused ... An over-limit refusal identifies the applicable ceiling ... Set the deployment's import limits"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-3, C-5",
+   "quote": "Submit a valid CSV with exactly one user record and confirm that one account is created ... Submit a zero-byte file or a file with just a valid header and see that no user records were supplied."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-58, C-60",
+   "quote": "Resubmit the same file as a new attempt while its accounts still occupy those identities and see an existing-identity conflict."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-77, C-64, C-157",
+   "quote": "Closing the import view after acceptance does not cancel the attempt ... Find the earlier attempt through the supported recovery path while it is unresolved"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-79",
+   "quote": "Imported users follow ordinary account activation rules",
+   "missing": "Whether setup/invitation mail for hundreds of users goes out at once and any pacing or throttling"
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-79, C-99",
+   "quote": "Compare the initial activation state and setup requirements of an imported user with those for an equivalent account ordinarily created ... The CSV cannot supply sign-in secrets"
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-110, C-111",
+   "quote": "A terminal attempt does not offer a source file for download ... Temporary upload data expires under a bounded retention policy",
+   "missing": "Where the uploaded file is stored and the actual retention duration"
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-42",
+   "quote": "Imported values follow ordinary account normalization",
+   "missing": "How dates, numbers and locale-dependent formats in cells are parsed"
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "C-106, C-150",
+   "quote": "Operators can inspect an attempt's creation outcome ... An operational summary identifies the submitting actor"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-77, C-123",
+   "quote": "Closing the import view after acceptance does not cancel the attempt",
+   "missing": "Whether an admin can explicitly cancel a running import; retry of failed rows only is not addressed beyond resubmitting a corrected file"
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-92, C-11",
+   "quote": "Ordinary user creation remains available under its existing policy ... An import never changes the attributes of an account already occupying the submitted identity"
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "C-104, C-105",
+   "quote": "Uploaded content stays inert in any import feedback ... Import results omit uploaded field values",
+   "missing": "Explicit handling of spreadsheet formula-injection values and of fields exceeding column length limits"
+  }
+ ]
+}

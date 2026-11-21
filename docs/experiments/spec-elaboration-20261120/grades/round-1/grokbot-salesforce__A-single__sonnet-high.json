@@ -1,0 +1,179 @@
+{
+ "slot": "grokbot-salesforce__A-single__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-1",
+   "quote": "A user with the permission set (C-34) opens a Lightning Experience app navigation and finds a tab whose label contains \"Grok\". Opening it shows the chat."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-6",
+   "quote": "The request body contains the conversation's messages and the model and generation settings. It contains no other Salesforce record"
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "C-6",
+   "quote": "It contains no other Salesforce record, and no name, email address or username of the user.",
+   "missing": "Whether the bot's server code enforces field-level security / CRUD (user mode) on its own conversation and message fields; FLS is never mentioned."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-34",
+   "quote": "A permission set whose name contains \"Grok\" exists after deployment. Assigning it to a user is all that is needed ... It does not let the user see or change the API key."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-32",
+   "quote": "User B, who is not an administrator with the \"View All Data\" permission, sees none of user A's conversations or messages in the Grok tab, and cannot read them through reports, list views or the API."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-16",
+   "quote": "the platform does not allow an outbound call after unsaved database changes in the same transaction, so the message is saved first and the call is made after",
+   "missing": "Whether the callout runs asynchronously (Queueable/future) or as a separate synchronous client-invoked call; the execution model is not decided."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-39, C-40",
+   "quote": "Searching every file in the project directory for a real key finds none ... The key does not appear in the page ... in any record the bot creates, in the debug logs of a send"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-15",
+   "quote": "the platform allows a single callout at most 120 seconds",
+   "missing": "Numbers for callouts per transaction, heap and CPU time limits; heap and callout limits are mentioned only by name."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-48",
+   "quote": "every test passing, with no outbound request actually made to Grok and no API key configured. Source: ... the platform does not make real callouts during tests"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-5",
+   "quote": "Every outbound request the bot makes goes to the host api.x.ai ... the platform requires outbound endpoints to be explicitly allowed"
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-17",
+   "quote": "Using it makes one new request to Grok for that message; on success the reply appears below that message ... and the message appears in the conversation once, not twice.",
+   "missing": "Guarding against a duplicate reply when a late original response and a retry (or a re-run job) both complete; idempotency on the reply is not stated."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-20, C-22, C-23",
+   "quote": "HTTP status 401 or 403, the user sees an error saying access to Grok was refused ... the request timed out ... 500 or above ... Grok is unavailable and to try again later"
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-21",
+   "quote": "When Grok answers with HTTP status 429, the user sees an error saying Grok is busy or the limit has been reached and to try again later.",
+   "missing": "Any backoff or automatic retry policy; only a manual user retry is described."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-37, C-18",
+   "quote": "A longer reply is stored and shown as its first 100,000 characters followed by an indication that it was cut. / a message that has no reply shows as failed with the Retry action"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-7, C-16",
+   "quote": "each marked as from the user or from Grok ... is marked as failed, and is still there (still marked failed) after the page is reloaded",
+   "missing": "The record structure: whether the model identifier and token/usage counts are stored, and the timestamp fields."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-6",
+   "quote": "The request body contains the conversation's messages and the model and generation settings. It contains no other Salesforce record, and no name, email address or username of the user."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-7",
+   "quote": "In a conversation of 10 or fewer messages, the request carries all of them in the order sent ... In a longer conversation it carries at least the 10 most recent"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-9, C-10, C-11, C-12",
+   "quote": "A user with no conversations opens the tab and sees ... no error. / Pressing Send with an empty box ... sends nothing / A message of exactly 4,000 characters is sent"
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "C-42",
+   "quote": "The administrator can change the model name in Setup without redeploying; the next message is sent with the new name.",
+   "missing": "A way for the administrator to turn the bot off and to see failed requests."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "C-32",
+   "quote": "User B, who is not an administrator with the \"View All Data\" permission, sees none of user A's conversations",
+   "missing": "An explicit audit record of who asked what and what was answered, and its retention period."
+  },
+  {
+   "id": "N-24",
+   "state": "covered",
+   "where": "C-44, C-49, C-39",
+   "quote": "sf project deploy start to a Developer Edition or scratch org ... the platform requires 75% coverage to deploy Apex to production ... deploying them to a new org leaves it unconfigured"
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "C-15, C-13",
+   "quote": "the user sees a timeout error no later than 120 seconds after Send ... From the moment Send is accepted until a reply or an error is shown, a visible waiting indicator is on screen."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "C-9, C-13, C-19, C-12",
+   "quote": "sees an empty list or a \"no conversations yet\" indication ... a visible waiting indicator ... shows the user an error that names the limit 4,000"
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-45",
+   "quote": "Deploying the project changes no standard object, standard field, existing profile, existing custom object or existing record in the org, and contains no destructive changes"
+  }
+ ]
+}

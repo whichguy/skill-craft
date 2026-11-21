@@ -1,0 +1,143 @@
+{
+ "slot": "csv-user-import__A-single__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-44",
+   "quote": "either every proposed user in the batch was created or zero were created by that attempt. A batch containing valid records alongside a record that cannot be created leaves zero new users"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-47",
+   "quote": "reports a line or record number that lets the admin locate at least one offending record in the submitted file.",
+   "missing": "Whether the result lists every failing row with its reason or only one; C-48 gives the reason but the set of reported rows is left open."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-33, C-34, C-35",
+   "quote": "the import reports an identity conflict. ... An admin uploads two records for the same new identity and receives a conflict ... the existing account retains its original value."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-37",
+   "quote": "A requested account privilege that the submitting admin cannot assign through ordinary user creation cannot be granted by CSV."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-1, C-5",
+   "quote": "An admin with user-creation access can upload a CSV file through the product. ... An admin denied ordinary user creation ... receives an access denial",
+   "missing": "The spec makes import follow the single-user creation permission; it does not make bulk import a separate ability that single-create permission does not grant."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-10, C-11, C-12, C-13",
+   "quote": "The first CSV record identifies fields by column heading. ... A missing required column heading causes file rejection. ... Additional uniquely named columns can be present"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-16, C-17, C-18, C-20",
+   "quote": "An optional UTF-8 byte order mark is accepted. ... Import accepts both LF and CRLF record endings. ... A line break inside a quoted CSV field belongs to that field's value."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-44, C-40",
+   "quote": "A batch containing valid records alongside a record that cannot be created leaves zero new users from that batch.",
+   "missing": "Whether onboarding notifications are held until the whole batch commits, so none go out for a batch that is then rolled back."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-27, C-28",
+   "quote": "A file of 1,048,577 bytes is rejected with feedback identifying the file-size limit. ... A file with 1,001 user records is rejected with feedback identifying the record limit."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "C-23",
+   "quote": "A zero-byte file or a file containing only the header is refused with feedback that there are no user records.",
+   "missing": "How a file with exactly one data record is handled."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "U-2",
+   "quote": "If the admin resubmits the earlier file to a directory with unique identities, the already-created identities are identified as conflicts."
+  },
+  {
+   "id": "N-12",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-40",
+   "quote": "Where equivalent ordinary creation sends an onboarding notification, a successfully imported account receives that notification under the same conditions.",
+   "missing": "Whether up to 1,000 notifications go out at once and any pacing or throttling of them."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-41, C-43",
+   "quote": "An imported user uses the same credential setup and authentication rules as an equivalent individually created account."
+  },
+  {
+   "id": "N-15",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-66",
+   "quote": "Where ordinary user creation is auditable, an authorized reviewer can find equivalent audit information for a completed import's account creations.",
+   "missing": "An audit record of the import itself (who uploaded which file, when, its outcome), including refused imports, and what it records when ordinary creation is not audited."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-44, C-49",
+   "quote": "After a file is refused, the admin fixes its input and can submit the otherwise eligible file through the same workflow.",
+   "missing": "Whether a running import can be cancelled, and how."
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-61, C-62, C-35",
+   "quote": "An admin with the existing creation permission can still create one user through the ordinary path ... the existing account retains its original value."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "C-31",
+   "quote": "A value invalid for the equivalent ordinary creation field, including any existing length or allowed-value boundary, is refused in an import.",
+   "missing": "Handling of values that act as spreadsheet formulas (e.g. leading =, +, -, @), both in stored values and in any result shown or exported."
+  }
+ ]
+}

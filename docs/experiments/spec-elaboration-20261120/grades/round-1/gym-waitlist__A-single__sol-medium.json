@@ -1,0 +1,145 @@
+{
+ "slot": "gym-waitlist__A-single__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-12",
+   "quote": "a member who satisfies the requirements for confirmation gets a confirmed booking without taking a further waitlist action. Source: choice: Automatic allocation fills available places without a separate claim window."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-14",
+   "quote": "Allocation selects eligible entries in the order those entries became active",
+   "missing": "How ties between entries with the same join time resolve, and whether any membership tier or staff override can jump the queue."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-43",
+   "quote": "a member can cancel a confirmed booking under the same terms as before, including a booking obtained through the waitlist.",
+   "missing": "Whether a missed or unwanted automatic promotion counts against the existing no-show or late-cancellation policy."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-12",
+   "quote": "The app automatically confirms a booking for the selected eligible waiting member when a place becomes available",
+   "missing": "That promotion runs as background work, and how quickly it must happen after the triggering cancellation or capacity change."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-45",
+   "quote": "If the app normally confirms a successful booking through an existing message or channel, a member booked through the waitlist receives that same type of confirmation.",
+   "missing": "What the promotion notice says, and what happens when sending it fails."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-20",
+   "quote": "allocating a place through the waitlist never causes the confirmed count to exceed 1, even when requests overlap."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-15",
+   "quote": "An ordinary booking request overlaps the release of 1 place while an eligible entry is active. The place goes through the waitlist.",
+   "missing": "What happens when the waiting member themselves books directly while being promoted, e.g. avoiding a duplicate booking for that member."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C-34",
+   "quote": "If the existing flow requires payment authorization, approval, or another prerequisite ... a member has a confirmed booking through the waitlist only after meeting that prerequisite.",
+   "missing": "When payment is taken for a promoted booking, and what happens to the place and the entry when payment fails."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-19",
+   "quote": "The waitlist has no separate per-session enrollment limit ... An otherwise eligible member can join a full bookable session regardless of the number of existing waiting entries."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-36",
+   "quote": "If 1 place opens at or after the point the ordinary booking flow closes, 0 new bookings are confirmed through the waitlist."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-38",
+   "quote": "the scheduler increases a full session from capacity 1 to capacity 2 during booking. The new place can be allocated through the waitlist."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-37",
+   "quote": "After bookings close, including through session cancellation, a previously waiting member can tell that their entry is no longer active."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-14",
+   "quote": "Allocation selects eligible entries in the order those entries became active",
+   "missing": "The entry's record fields and states, and whether queue position is stored or derived from join time."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-37",
+   "quote": "Closing a session to further bookings ends its active waitlist for that booking period",
+   "missing": "How long ended entries are kept after the class has run, and whether they are deleted or archived."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-29",
+   "quote": "A caller who lacks access to another member's booking status cannot retrieve that member's waitlist status.",
+   "missing": "Whether a member can see their own position in the queue, and whether the identities of others waiting are hidden from members."
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-50",
+   "quote": "An existing full session can accept waitlist joins without new operator configuration",
+   "missing": "Whether the feature can be turned off globally, or enabled or disabled per class or class type."
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-41",
+   "quote": "Ordinary booking remains available when a session has an available place with nobody waiting"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-50",
+   "quote": "The operator starts the updated app with the existing class and booking settings. An otherwise eligible member can join the waitlist of a session that was already full."
+  }
+ ]
+}

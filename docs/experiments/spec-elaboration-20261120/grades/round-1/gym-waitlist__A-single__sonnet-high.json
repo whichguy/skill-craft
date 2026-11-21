@@ -1,0 +1,145 @@
+{
+ "slot": "gym-waitlist__A-single__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-7",
+   "quote": "The promoted member is booked without accepting, confirming or claiming anything, and without any time limit running against them."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-3",
+   "quote": "Members A, B and C join the same waitlist in that order. A is at position 1, B at position 2, C at position 3.",
+   "missing": "How simultaneous joins are ordered (C-29 only requires distinct positions), and whether any membership tier or staff override can jump the queue."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "C-23",
+   "quote": "A, B waiting; a spot opens; A would be refused by an existing booking rule. A is not booked and is no longer waiting. B is booked.",
+   "missing": "Whether promotion into one class removes or keeps the member's entry on an overlapping class's waitlist; the clash rule is only an example of rules that may exist today."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-7",
+   "quote": "Their bookings show the class as booked as soon as a spot opens and they next look."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-27",
+   "quote": "If the app sends a member a message when they book a class, a promoted member gets a message of the same kind saying they have been booked in the class.",
+   "missing": "What happens when sending the notification fails."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-30",
+   "quote": "Two booked members cancel at the same moment. A and B are booked, each once, and C is at position 1. The class is 10/10."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-21",
+   "quote": "A member waiting in a class is booked into it in a way that is not promotion (for instance by staff). They are shown as booked, they are not shown as waiting for it",
+   "missing": "The race where a waitlisted member books directly at the same moment they are promoted; only sequential cases and the general one-booking rule (C-40) are stated."
+  },
+  {
+   "id": "N-9",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "C-31",
+   "quote": "a floor of 100 is fixed and no refusal for length is required below it",
+   "missing": "Whether there is any cap above 100 and what a member sees if the waitlist is full."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-24",
+   "quote": "A class started at 18:00 with member A waiting. A booked member cancels at 18:05. A is not booked... the cutoff follows the existing rule for when a class can no longer be booked"
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-19",
+   "quote": "Staff raise a class's capacity from 10 to 13 while 5 members wait: the first 3 in line are booked, and the other 2 are at positions 1 and 2.",
+   "missing": "What happens when staff lower capacity while a waitlist exists."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-26",
+   "quote": "A class with 3 waiting members is cancelled or deleted. None of the 3 is booked into it, and none sees it as a class they are waiting for."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-3",
+   "quote": "Waitlist order is order of joining",
+   "missing": "The waitlist entry's recorded fields (join time, state) and whether position is stored or derived."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-25",
+   "quote": "After a class has started, members who had been waiting for it do not see it listed as one they are still waiting for.",
+   "missing": "Whether the entries are deleted or kept, and for how long."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-9",
+   "quote": "A member waiting at position 3 in a class sees, among their own classes, that they are waiting for it and that their position is 3.",
+   "missing": "Whether members can or cannot see the identities of others on the waitlist."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-18",
+   "quote": "For a class with A, B, C waiting, staff see the waiting members as A, B, C in that order, apart from the booked members.",
+   "missing": "Staff removing someone from the waitlist by hand, and a record of who was promoted and when."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-20",
+   "quote": "A booked member cancels and A is booked, making the class 10/10 again. Member X, who is not waiting, tries to book that class and finds it full"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-42",
+   "quote": "For a class with an empty waitlist, listing, booking, cancelling and the free-spot count behave as before the waitlist existed."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-36",
+   "quote": "Right after the upgrade, every class (including any that is full) has no one waiting. A member can join the waitlist of a full class and gets position 1."
+  }
+ ]
+}

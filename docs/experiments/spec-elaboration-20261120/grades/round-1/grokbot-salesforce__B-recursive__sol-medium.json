@@ -1,0 +1,179 @@
+{
+ "slot": "grokbot-salesforce__B-recursive__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "C-34",
+   "quote": "There is an in-org bot entry point in Salesforce Lightning Experience. ... An authorized user on desktop Lightning Experience can open the bot from the Salesforce workspace.",
+   "missing": "Which Lightning surface hosts the bot (app/tab page, utility bar, record page component) and what context, if any, that surface passes in."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-96",
+   "quote": "The bot does not fetch Salesforce record data to enrich a prompt. ... The provider-bound request contains no content drawn from that record by the bot."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-96",
+   "quote": "The bot does not fetch Salesforce record data to enrich a prompt."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-20",
+   "quote": "Every chat user requires an explicit bot access grant to send prompts. ... including a Salesforce admin who has setup rights only."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-105",
+   "quote": "After one user signs out and another signs in on the same browser, the second user cannot read the first user's messages through the bot."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-82",
+   "quote": "If Apex performs the callout, Grok cannot be reached from an Apex transaction with pending uncommitted writes.",
+   "missing": "Whether the callout runs synchronously or asynchronously (Queueable/future/batch); the design is left conditional."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-100",
+   "quote": "The xAI credential is unavailable to the chat client. Inspection of the bot page, its ordinary client traffic, and its browser storage reveals no xAI credential.",
+   "missing": "Where the credential is stored (Named/External Credential is only conditional in C-77) and that it never appears in code or metadata."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-78",
+   "quote": "If Apex performs the callout, an Apex transaction has at most 120 seconds of cumulative callout timeout.",
+   "missing": "CPU time limit and heap limit as such are not named; only callout timeout, count (100) and payload sizes are given."
+  },
+  {
+   "id": "N-9",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-76",
+   "quote": "If Salesforce has no applicable endpoint authorization for the Apex callout, a send produces a setup failure without reaching xAI."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-58",
+   "quote": "Given two deliveries of the same successful completion, the originating chat shows a single answer for that send.",
+   "missing": "The mechanism by which the page learns a result arrived (platform event, polling, LMS, or inline return)."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-58",
+   "quote": "A repeated notification for one send produces at most one visible answer."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-115",
+   "quote": "When xAI rejects the API authorization, the user sees that administrator intervention is needed for setup."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-73",
+   "quote": "When the configured xAI team or model reaches a rate cap and xAI returns HTTP 429, the user sees a throttling outcome with guidance to try later."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-112",
+   "quote": "If Grok reports an incomplete result, such as reaching its output token limit, the bot reports a failed attempt due to incomplete generation."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-104",
+   "quote": "The bot does not create a persistent chat transcript in Salesforce.",
+   "missing": "The shape of whatever is stored (diagnostic/send records): fields, status, timestamps, model identifier, usage counts."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-104",
+   "quote": "After a successful conversation, an authorized admin inspecting the bot's stored Salesforce data finds no saved prompt or answer transcript."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-99",
+   "quote": "The bot sends no Salesforce user identifiers in inference content unless the user supplies them as chat text."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-67",
+   "quote": "the next provider request uses the longest fitting suffix of complete exchanges in chronological order, with the full latest prompt."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-11",
+   "quote": "In an empty chat with working setup, a nonblank prompt of exactly the displayed maximum length reaches Grok in full."
+  },
+  {
+   "id": "N-22",
+   "state": "covered",
+   "where": "C-23",
+   "quote": "An authorized Salesforce admin can disable new Grok sends for the org."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "C-119",
+   "quote": "Diagnostic availability has a documented lifetime.",
+   "missing": "Whether any record of who asked and when is kept for successful sends, and the retention period value."
+  },
+  {
+   "id": "N-24",
+   "state": "covered",
+   "where": "C-89",
+   "quote": "A future deployment that packages Salesforce external credentials still needs the secret provisioned for the target org."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "C-113",
+   "quote": "Each send has a finite, published wait deadline.",
+   "missing": "The actual latency bound / deadline value."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "C-133",
+   "quote": "A Salesforce user without a bot grant ... can tell that bot access is required."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-91",
+   "quote": "Existing Salesforce records retain their pre-installation values when the bot is introduced."
+  }
+ ]
+}

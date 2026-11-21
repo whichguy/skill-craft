@@ -1,0 +1,143 @@
+{
+ "slot": "gym-waitlist__B-recursive__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-7",
+   "quote": "Free capacity for a waiting member selected under the waitlist rules while booking remains open. The ordinary booking view shows a confirmed booking without the member accepting a later offer."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-32",
+   "quote": "Join as A and then as B, wait for both acknowledgments, then free one seat while both remain eligible. A is selected before B.",
+   "missing": "Concrete tie-break rule for concurrent joins (C-48 only says ties have a 'stable resolution' without a formula), and whether a membership tier or staff override can jump the queue."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "C-135",
+   "quote": "With an ordinary booking rule that permits only one of two reservations, release seats concurrently in the two sessions for which the same member waits. The member ends with at most 1 confirmed booking across those sessions.",
+   "missing": "Whether time-overlapping classes count as conflicting at all absent an existing rule, and what happens to the other waitlist entry once one is promoted."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-98",
+   "quote": "Try to cancel a promoted booking under a timing or fee rule that applies to ordinary bookings. The response follows the same cutoff or fee rule.",
+   "missing": "Whether a no-show or late cancellation on an auto-promoted booking (e.g. promoted close to class start, never seen) counts against the existing no-show policy."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-88",
+   "quote": "End the cancellation or capacity-change request after its change has succeeded but before the eligible waiter can be booked. The waiter is still processed when the required service is available before the deadline.",
+   "missing": "Any stated timeliness for the background promotion after the triggering cancellation."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-34, C-140, C-141",
+   "quote": "the member can find an in-app indication of the promotion tied to the session ... follows the same notification policy and preferences ... interrupt message delivery after the booking is confirmed. Current booking status still shows the confirmed seat."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-41, C-70",
+   "quote": "Release 2 seats in one change with 3 eligible members waiting. Exactly 2 become booked through the waitlist. ... At most 1 net additional confirmed booking fills the vacancy."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-113",
+   "quote": "submit conflicting ordinary booking and promotion actions for the same account and occurrence. The waitlist creates no duplicate booking."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C-26, C-68",
+   "quote": "The join itself produces no booking charge or credit use. ... Interrupt a promotion that ultimately produces no booking. After recovery the member has no net booking charge or consumed credit",
+   "missing": "What happens to the entry and the seat when the payment is definitively declined at promotion (end the entry and move to the next waiter, or retain it)."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-31, C-84",
+   "quote": "The waitlist adds no product-level maximum number of entries per session ... Reach a runtime limit on accepting another active entry ... The attempted join reports that waitlisting is unavailable for that attempt."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-35, C-81",
+   "quote": "The waitlist deadline is the earlier of the session\u2019s ordinary booking cutoff and its scheduled start ... processing would confirm at or after the deadline. The waiting member receives no new booking"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-40, C-74",
+   "quote": "Increase a full session\u2019s capacity by one while an eligible member is waiting during the booking window. The waiter is promoted. ... Reduce capacity before a pending promotion is confirmed ... No waiter is confirmed against the removed seat."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-13, C-123",
+   "quote": "Cancel a future session with a waiting member. The member's current result for that session is no longer waiting. ... it identifies session cancellation as the reason waiting ended."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-32, C-38",
+   "quote": "Promotion order follows acceptance order among eligible active waiters for the same occurrence ... Rejoining after withdrawal is a new entry",
+   "missing": "The entry record's fields and state set, and whether queue position is stored or derived from join time."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-122, C-114",
+   "quote": "While the session remains accessible under the app\u2019s ordinary visibility and account data rules, a current status check can retrieve the ended outcome.",
+   "missing": "A concrete retention period or purge behaviour for entries after the class has run; it is deferred to unspecified existing rules."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-91",
+   "quote": "As a member, inspect all visible waitlist information about a class. No other waiter\u2019s identity or contact details are disclosed.",
+   "missing": "Whether the member sees their own queue position (the spec only shows a 'waiting' status)."
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-11, C-12",
+   "quote": "An authorized operator enables the feature ... An authorized operator disables the feature. A fresh attempt to join any session is refused as unavailable."
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-8, C-10",
+   "quote": "an eligible member can complete the existing booking flow. ... Enable the waitlist while a session has a confirmed booking. Its holder can still find the same confirmed reservation."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-102, C-11",
+   "quote": "Enable the feature for a pre-existing session with bookings but no prior waitlist entries. A waitlist check finds 0 members waiting."
+  }
+ ]
+}

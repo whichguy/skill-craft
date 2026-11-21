@@ -1,0 +1,479 @@
+{
+ "csv-user-import__A-single__sol-medium": {
+  "use_cases": 14,
+  "clauses": 70,
+  "source_mix": {
+   "choice": 17,
+   "implied": 64,
+   "request": 3
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 3854,
+  "bundled_and": 1,
+  "bundled_examples": [
+   "Import accepts both LF and CRLF record endings."
+  ],
+  "seconds": 211.3,
+  "rc": 0,
+  "arm": "A-single",
+  "driver": "sol-medium",
+  "case": "csv-user-import",
+  "cost_usd": null,
+  "turns": null,
+  "tools": {
+   "agent_message": 3,
+   "command_execution": 6,
+   "file_change": 2
+  }
+ },
+ "csv-user-import__A-single__sonnet-high": {
+  "use_cases": 12,
+  "clauses": 35,
+  "source_mix": {
+   "choice": 11,
+   "implied": 33,
+   "request": 3
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 2968,
+  "bundled_and": 4,
+  "bundled_examples": [
+   "A column other than `email` and `name` is refused",
+   "Row problems are reported with the line number of the row and the reas",
+   "At most 100 row problems are listed, and the total is stated"
+  ],
+  "seconds": 83.5,
+  "rc": 0,
+  "arm": "A-single",
+  "driver": "sonnet-high",
+  "case": "csv-user-import",
+  "cost_usd": 0.18854179999999998,
+  "turns": 5,
+  "tools": {
+   "Bash": 1,
+   "Edit": 2,
+   "Write": 1
+  }
+ },
+ "csv-user-import__B-recursive__sol-medium": {
+  "use_cases": 15,
+  "clauses": 161,
+  "source_mix": {
+   "choice": 149,
+   "implied": 24,
+   "request": 3
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 8439,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "seconds": 427.8,
+  "rc": 0,
+  "arm": "B-recursive",
+  "driver": "sol-medium",
+  "case": "csv-user-import",
+  "cost_usd": null,
+  "turns": null,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 17,
+   "web_search": 1
+  },
+  "passes_recorded": 9,
+  "passes_words": 555
+ },
+ "csv-user-import__B-recursive__sonnet-high": {
+  "use_cases": 8,
+  "clauses": 85,
+  "source_mix": {
+   "choice": 26,
+   "implied": 62,
+   "request": 5
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 5437,
+  "bundled_and": 21,
+  "bundled_examples": [
+   "The recognised columns are `email`, `name` and `role`",
+   "Every invalid row is reported with its row number, its column and its ",
+   "Header names are matched ignoring letter case and surrounding spaces, "
+  ],
+  "seconds": 342.0,
+  "rc": 0,
+  "arm": "B-recursive",
+  "driver": "sonnet-high",
+  "case": "csv-user-import",
+  "cost_usd": 0.7627090000000002,
+  "turns": 32,
+  "tools": {
+   "Bash": 7,
+   "Edit": 22,
+   "Write": 2
+  },
+  "passes_recorded": 8,
+  "passes_words": 1175
+ },
+ "grokbot-salesforce__A-single__sol-medium": {
+  "use_cases": 16,
+  "clauses": 59,
+  "source_mix": {
+   "choice": 11,
+   "implied": 61,
+   "request": 3
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 3805,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "seconds": 210.8,
+  "rc": 0,
+  "arm": "A-single",
+  "driver": "sol-medium",
+  "case": "grokbot-salesforce",
+  "cost_usd": null,
+  "turns": null,
+  "tools": {
+   "agent_message": 3,
+   "command_execution": 9,
+   "file_change": 3,
+   "web_search": 2
+  }
+ },
+ "grokbot-salesforce__A-single__sonnet-high": {
+  "use_cases": 19,
+  "clauses": 51,
+  "source_mix": {
+   "choice": 10,
+   "implied": 54,
+   "request": 6
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 4019,
+  "bundled_and": 6,
+  "bundled_examples": [
+   "A message that failed and was not retried is not sent to Grok as conte",
+   "A message of 4,001 or more characters is refused and kept in the box",
+   "Opening a conversation shows all its messages in the order sent, and i"
+  ],
+  "seconds": 145.6,
+  "rc": 0,
+  "arm": "A-single",
+  "driver": "sonnet-high",
+  "case": "grokbot-salesforce",
+  "cost_usd": 0.28864520000000005,
+  "turns": 3,
+  "tools": {
+   "Bash": 1,
+   "Write": 1
+  }
+ },
+ "grokbot-salesforce__B-recursive__sol-medium": {
+  "use_cases": 31,
+  "clauses": 151,
+  "source_mix": {
+   "choice": 74,
+   "implied": 105,
+   "request": 3
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 8426,
+  "bundled_and": 1,
+  "bundled_examples": [
+   "A user can edit and resubmit the text of a rejected prompt."
+  ],
+  "seconds": 798.9,
+  "rc": 0,
+  "arm": "B-recursive",
+  "driver": "sol-medium",
+  "case": "grokbot-salesforce",
+  "cost_usd": null,
+  "turns": null,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 34,
+   "file_change": 12,
+   "web_search": 6
+  },
+  "passes_recorded": 10,
+  "passes_words": 721
+ },
+ "grokbot-salesforce__B-recursive__sonnet-high": {
+  "use_cases": 13,
+  "clauses": 132,
+  "source_mix": {
+   "choice": 28,
+   "implied": 104,
+   "request": 4,
+   "runtime": 9
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 8689,
+  "bundled_and": 36,
+  "bundled_examples": [
+   "Choosing \"new conversation\" shows an empty transcript and an empty mes",
+   "The conversation list shows the 50 most recent and lets the user load ",
+   "Whenever no API key is set, the bot reports that it is not set up and "
+  ],
+  "seconds": 640.5,
+  "rc": 0,
+  "arm": "B-recursive",
+  "driver": "sonnet-high",
+  "case": "grokbot-salesforce",
+  "cost_usd": 1.5206973,
+  "turns": 61,
+  "tools": {
+   "Bash": 9,
+   "Edit": 44,
+   "Read": 4,
+   "Write": 3
+  },
+  "passes_recorded": 9,
+  "passes_words": 1004
+ },
+ "gym-waitlist__A-single__sol-medium": {
+  "use_cases": 20,
+  "clauses": 62,
+  "source_mix": {
+   "choice": 12,
+   "implied": 68,
+   "request": 2
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 4218,
+  "bundled_and": 4,
+  "bundled_examples": [
+   "Waiting entries that receive no place stay active while the session re",
+   "Overlapping join and capacity changes leave each affected member with ",
+   "A refused waitlist action leaves existing bookings and entries as they"
+  ],
+  "seconds": 182.4,
+  "rc": 0,
+  "arm": "A-single",
+  "driver": "sol-medium",
+  "case": "gym-waitlist",
+  "cost_usd": null,
+  "turns": null,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 6,
+   "file_change": 1
+  }
+ },
+ "gym-waitlist__A-single__sonnet-high": {
+  "use_cases": 18,
+  "clauses": 42,
+  "source_mix": {
+   "choice": 9,
+   "implied": 47,
+   "request": 4
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 3781,
+  "bundled_and": 5,
+  "bundled_examples": [
+   "A new entry goes to the end and its position is shown on joining",
+   "Members behind a removed entry each move up by one and keep their rela",
+   "A waiting member can see their own waitlist status and position"
+  ],
+  "seconds": 125.2,
+  "rc": 0,
+  "arm": "A-single",
+  "driver": "sonnet-high",
+  "case": "gym-waitlist",
+  "cost_usd": 0.2596303,
+  "turns": 4,
+  "tools": {
+   "Bash": 1,
+   "Write": 2
+  }
+ },
+ "gym-waitlist__B-recursive__sol-medium": {
+  "use_cases": 10,
+  "clauses": 159,
+  "source_mix": {
+   "choice": 103,
+   "implied": 62,
+   "request": 4
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 8535,
+  "bundled_and": 2,
+  "bundled_examples": [
+   "The waitlist deadline is the earlier of the session\u2019s ordinary booking",
+   "An edit that leaves session timing, venue, and bookability intact pres"
+  ],
+  "seconds": 416.5,
+  "rc": 0,
+  "arm": "B-recursive",
+  "driver": "sol-medium",
+  "case": "gym-waitlist",
+  "cost_usd": null,
+  "turns": null,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 21
+  },
+  "passes_recorded": 10,
+  "passes_words": 731
+ },
+ "gym-waitlist__B-recursive__sonnet-high": {
+  "use_cases": 14,
+  "clauses": 85,
+  "source_mix": {
+   "choice": 40,
+   "implied": 55,
+   "request": 4
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 6070,
+  "bundled_and": 23,
+  "bundled_examples": [
+   "Joining tells the member they will be booked automatically and that no",
+   "A member cannot join the waitlist of a class that has room and nobody ",
+   "A waitlist can hold at least 100 members, and if it cannot take more t"
+  ],
+  "seconds": 358.6,
+  "rc": 0,
+  "arm": "B-recursive",
+  "driver": "sonnet-high",
+  "case": "gym-waitlist",
+  "cost_usd": 0.7802640000000001,
+  "turns": 34,
+  "tools": {
+   "Bash": 7,
+   "Edit": 22,
+   "Write": 4
+  },
+  "passes_recorded": 7,
+  "passes_words": 717
+ },
+ "invoice-reminders__A-single__sol-medium": {
+  "use_cases": 12,
+  "clauses": 55,
+  "source_mix": {
+   "choice": 17,
+   "implied": 48,
+   "request": 2
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 3177,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "seconds": 178.3,
+  "rc": 0,
+  "arm": "A-single",
+  "driver": "sol-medium",
+  "case": "invoice-reminders",
+  "cost_usd": null,
+  "turns": null,
+  "tools": {
+   "agent_message": 3,
+   "command_execution": 6,
+   "file_change": 2
+  }
+ },
+ "invoice-reminders__A-single__sonnet-high": {
+  "use_cases": 13,
+  "clauses": 56,
+  "source_mix": {
+   "choice": 13,
+   "implied": 47,
+   "request": 9
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 3923,
+  "bundled_and": 16,
+  "bundled_examples": [
+   "An owner can turn automatic reminders on and off for the account",
+   "The owner can set three schedule values: first-reminder offset, interv",
+   "The offset is accepted from -30 to 90 days and refused outside that ra"
+  ],
+  "seconds": 132.6,
+  "rc": 0,
+  "arm": "A-single",
+  "driver": "sonnet-high",
+  "case": "invoice-reminders",
+  "cost_usd": 0.2748299,
+  "turns": 5,
+  "tools": {
+   "Bash": 1,
+   "Edit": 2,
+   "Write": 1
+  }
+ },
+ "invoice-reminders__B-recursive__sol-medium": {
+  "use_cases": 12,
+  "clauses": 138,
+  "source_mix": {
+   "choice": 75,
+   "implied": 73,
+   "request": 2
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 7475,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "seconds": 361.6,
+  "rc": 0,
+  "arm": "B-recursive",
+  "driver": "sol-medium",
+  "case": "invoice-reminders",
+  "cost_usd": null,
+  "turns": null,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 14,
+   "web_search": 3
+  },
+  "passes_recorded": 9,
+  "passes_words": 629
+ },
+ "invoice-reminders__B-recursive__sonnet-high": {
+  "use_cases": 14,
+  "clauses": 110,
+  "source_mix": {
+   "choice": 28,
+   "implied": 93,
+   "request": 3
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 8229,
+  "bundled_and": 45,
+  "bundled_examples": [
+   "Reminder emails are only ever sent between 08:00 and 18:00 in the acco",
+   "Each reminder identifies which invoice it is about and who it is from",
+   "Each reminder states the due date so that its day and month cannot be "
+  ],
+  "seconds": 590.4,
+  "rc": 0,
+  "arm": "B-recursive",
+  "driver": "sonnet-high",
+  "case": "invoice-reminders",
+  "cost_usd": 1.3527738000000002,
+  "turns": 45,
+  "tools": {
+   "Bash": 7,
+   "Edit": 31,
+   "Read": 4,
+   "Write": 2
+  },
+  "passes_recorded": 9,
+  "passes_words": 1148
+ }
+}

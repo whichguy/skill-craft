@@ -1,0 +1,176 @@
+{
+ "slot": "grokbot-salesforce__B-recursive__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-1",
+   "quote": "The bot is reached from a Lightning Experience navigation item labelled with the word \"Grok\" ... the request names no channel (Einstein Bot, Messaging, Slack, email and the like are not part of this)"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-92",
+   "quote": "The bot can only converse; it cannot read, create, change or delete other Salesforce records on a user's behalf"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-91",
+   "quote": "A captured request body holds the system instruction, the history, the new message, the model and the maximum token setting, and no Salesforce record data"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-43",
+   "quote": "Two permission sets exist, one for chat users and one for administrators, assignable independently"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-93",
+   "quote": "A conversation and its messages are visible only to the user who created it ... This holds for administrators too unless they hold the platform's \"View All Data\" or \"Modify All Data\"."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-26",
+   "quote": "the platform also forbids writing records before a callout in the same transaction, which makes storing after the call the natural order",
+   "missing": "The design is synchronous (C-79, C-80); no asynchronous Queueable/future/batch execution is chosen for the callout."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-89",
+   "quote": "No API key value exists anywhere in the deployable source"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-79",
+   "quote": "all callouts in one transaction may wait a combined 120 seconds, so a retry after a long wait cannot fit",
+   "missing": "Heap (6 MB, C-55) and DML rows (10,000, C-75) are named, but callouts-per-transaction and CPU time limits are not stated."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-82",
+   "quote": "The bot's automated tests run and pass in the org with no API key set and no network access to xAI ... runtime rule (tests cannot make real callouts)"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-85",
+   "quote": "The deployment includes authorisation to call xAI, so no callout registration is added by hand ... (Apex may only call endpoints registered in the org)"
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-80",
+   "quote": "Apex receives a callout's response only when it is complete; there is no streaming to the page",
+   "missing": "The spec assumes the answer returns inline to the waiting page; no platform event, polling or message-service mechanism is chosen, e.g. for a page reopened while a call is pending (C-120)."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-69",
+   "quote": "A repeated submission of the same send, identified by one identifier generated when Send is pressed, stores at most one pair"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-81",
+   "quote": "If the platform refuses to run the request because too many long requests are already running in the org, the user is told it is busy and to try again"
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-20, C-22, C-23, C-108",
+   "quote": "told it timed out ... told it is temporarily unavailable ... told to contact the administrator ... any other 4xx ... the user is told to contact the administrator"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-21, C-79",
+   "quote": "If Grok says the key's rate or quota limit is reached (HTTP 429), the user is told to try again later ... at most one request to Grok, with no automatic retry"
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-57, C-20",
+   "quote": "the answer is shown in full as returned together with a notice that it stopped at the maximum length ... replaced by a message saying Grok did not answer in time"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-38",
+   "quote": "each showing time, the user, whether it was an administrator test, the model named in the request, duration in milliseconds, outcome ... prompt, answer and total token counts",
+   "missing": "No explicit record shape for conversations and messages (fields for role, text, status, timestamps); model and usage live only on the call log, not on turns."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-40, C-112",
+   "quote": "Conversations are deleted automatically once their latest message is older than the retention period, default 30 days ... An administrator can delete all the stored conversations and call log entries of one chosen user"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-91",
+   "quote": "The data sent to Grok is only the instruction, the conversation messages, the model name and the maximum length ... no Salesforce record data, no user name, email or Id, and no org Id"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-7, C-111",
+   "quote": "At most the 20 most recent stored messages of a conversation are sent to Grok as history ... too long for the model's context, the user is told to start a new conversation"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-54, C-16, C-17",
+   "quote": "A user with no stored conversations sees an indication that there are none ... empty or only whitespace cannot be sent ... 4,000 characters are accepted"
+  },
+  {
+   "id": "N-22",
+   "state": "covered",
+   "where": "C-37, C-32, C-116",
+   "quote": "The administrator can turn the bot on and off ... can choose which Grok model is used ... can narrow the call log to one outcome and to one user"
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "C-39",
+   "quote": "A call log entry never contains the API key, the instruction text, or any message text",
+   "missing": "The log records who and when (C-38) with retention (C-128), but no audit record of what was asked and answered survives the user's deletion or cleanup."
+  },
+  {
+   "id": "N-24",
+   "state": "covered",
+   "where": "C-83, C-84, C-42",
+   "quote": "production deployment requires at least 75% coverage and all tests passing ... validation-only deploy ... (sandbox or production) ... the only manual steps are assigning permission sets and entering the key"
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "C-114, C-3",
+   "quote": "Apart from Grok's own time, a send adds no more than 3 seconds ... a visible indicator shows Grok's answer is pending"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "C-2, C-3, C-27, C-19",
+   "quote": "the transcript area contains no messages ... a visible indicator shows Grok's answer is pending ... each shown message is one of three kinds ... shows a notice that it is turned off"
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-88",
+   "quote": "existing profiles, permission sets, sharing settings, standard objects and other apps are unchanged"
+  }
+ ]
+}

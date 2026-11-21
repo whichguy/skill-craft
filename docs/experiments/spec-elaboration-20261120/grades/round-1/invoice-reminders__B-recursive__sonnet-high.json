@@ -1,0 +1,135 @@
+{
+ "slot": "invoice-reminders__B-recursive__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-5",
+   "quote": "The settings of an account that never changed its schedule list exactly four steps: -3, 0, +7, +14 days relative to the due date."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "U-4",
+   "quote": "The user records a full payment, voids the invoice, or applies a credit that brings the balance to zero; the invoice's upcoming-reminders list becomes empty ... A partial payment keeps reminders going, now for the smaller balance.",
+   "missing": "What happens to an invoice on a payment plan; disputed invoices only stop if a user manually pauses them (U-5), so no automatic stop on dispute is decided."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-18",
+   "quote": "An invoice of 1,000.00 with 400.00 recorded paid has reminders that state 600.00 outstanding."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-37",
+   "quote": "After a customer confirms, no reminder is sent to that address for any invoice of that business",
+   "missing": "How an existing do-not-contact, paused or unsubscribed state already on the customer record is honoured, and whether reminders are exempt from a marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-60",
+   "quote": "Two copies of the sending process running at the same time over the same due reminders, or a restart in the middle of a run, result in each address having exactly one message per reminder."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-59",
+   "quote": "Immediately before a message is handed to the email provider the invoice and address are checked again, and nothing is sent if the invoice is paid, void, at zero balance, paused"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-62",
+   "quote": "A temporary failure to send is retried, up to 3 attempts in all, at least 1 hour apart ... if all fail the reminder is recorded as \"failed\""
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-81",
+   "quote": "100,000 due reminders at 08:00 are handed to the provider no faster than N per second ... Whatever is still unsent at 18:00 waits for the next window"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-45",
+   "quote": "A reminder whose target date is earlier than the date reminders were last turned on for the account is never sent"
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "C-12",
+   "quote": "Reminder emails are only ever sent between 08:00 and 18:00 in the account's time zone",
+   "missing": "Whether reminders go out on weekends and public holidays; and the time zone is the account's, not the customer's local time."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-20",
+   "quote": "For a EUR invoice with 600.00 outstanding at send time, the email states 600.00 and EUR (or the \u20ac symbol)",
+   "missing": "How the amount is formatted for the recipient's locale (decimal and thousands separators, symbol placement)."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-28",
+   "quote": "An invoice with no billing email address gets its due reminders skipped and recorded as \"no email address\""
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-26",
+   "quote": "Each billing email address on the invoice receives its own separate message"
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-29",
+   "quote": "The invoice's history shows one entry per address per reminder with: step (for example +7), target date, address, the time, and an outcome"
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-23",
+   "quote": "Each reminder contains a link that opens that invoice in a browser without logging in",
+   "missing": "Whether the invoice link ever expires: C-24 only shows it working a week after payment; reference, amount and due date are covered by C-19 to C-21."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-41",
+   "quote": "Only an account admin can change the reminder settings"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-4",
+   "quote": "Turning reminders off stops every reminder that has not yet been handed to the email provider",
+   "missing": "Turning reminders off for one customer (only per-invoice pause exists), a dry run of what would be sent, and resending a reminder by hand; a sample exists (C-40)."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-30",
+   "quote": "An invoice shows its upcoming reminders with their dates"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-57",
+   "quote": "A reminder that could not be sent on its target date can still be sent up to the end of the third calendar day after its target date, and never later"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-93",
+   "quote": "Reminders never change an invoice's status, amounts, due date, customer, billing addresses or payments"
+  }
+ ]
+}

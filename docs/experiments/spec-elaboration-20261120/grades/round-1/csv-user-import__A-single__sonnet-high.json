@@ -1,0 +1,142 @@
+{
+ "slot": "csv-user-import__A-single__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-18",
+   "quote": "If any problem is found in the file (file-level or any row), no user from that file exists afterwards; if no problem is found, every row's user exists afterwards."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-19",
+   "quote": "Each reported row problem shows the line number of the file where that row begins (the header is line 1) and a description of what is wrong, including which column"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-16, C-17",
+   "quote": "A row whose email equals the email of a user who already exists is reported as an error ... The existing user is not changed ... every occurrence after the first is reported as an error"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-9, C-30",
+   "quote": "A file whose header contains any other column name is refused ... they receive the same default role and the same account setup steps"
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-4",
+   "quote": "A signed-in user who is not an admin who tries to use the import function (by any means of reaching it) is refused, and no user is created.",
+   "missing": "Whether a non-admin who is allowed to create a single user may import; the spec does not say import is a separate permission from single-user creation."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-6, C-7, C-9",
+   "quote": "The first non-empty line is read as column names ... A file whose header has no `email` column is refused ... A file whose header contains any other column name is refused"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-10",
+   "quote": "a field may be wrapped in double quotes and then may contain commas, line breaks, and doubled quotes ... lines end with LF or CRLF; a leading UTF-8 byte-order mark is ignored"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-18, C-30",
+   "quote": "they receive the same default role and the same account setup steps (for example any invitation or first-sign-in step)",
+   "missing": "When invitations are sent relative to the all-or-nothing commit, and what happens to invitations already sent if the import is rolled back or interrupted."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-23, C-24",
+   "quote": "a file with 1,001 data rows is refused with a message stating the limit of 1,000 ... a larger file is refused with a message stating the size limit"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-21, C-2",
+   "quote": "A zero-byte file, a file with only blank lines, or a file with only a header row is refused with a message saying there are no users to import"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-27",
+   "quote": "Submitting again a file that was imported successfully is refused with every row reported as an already-existing user (per C-16); the number of users is unchanged."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-25",
+   "quote": "Submitting a valid 1,000-row file shows its success (or its error report) within 30 seconds.",
+   "missing": "An explicit decision on whether processing is synchronous or in the background, and how the admin learns completion if they leave the page."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-30",
+   "quote": "the same account setup steps (for example any invitation or first-sign-in step) as that user would",
+   "missing": "Whether up to 1,000 invitation mails go out at once and any pacing or throttling of them."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-30",
+   "quote": "they receive the same default role and the same account setup steps (for example any invitation or first-sign-in step) as that user would."
+  },
+  {
+   "id": "N-15",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-18",
+   "quote": "all-or-nothing makes fixing and retrying one step",
+   "missing": "Whether a running import can be cancelled, and how."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-25",
+   "quote": "Submitting a valid 1,000-row file shows its success (or its error report) within 30 seconds.",
+   "missing": "Whether any progress is shown while the import runs."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-31, C-32",
+   "quote": "Creating a single user through the existing means behaves exactly as before this feature ... every user who existed before it has the same email, name, role, and status as before"
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "C-15, C-14",
+   "quote": "A row with a name longer than 200 characters (after trimming) is reported as an error ... or is longer than 254 characters is reported as an error",
+   "missing": "Handling of values that begin with formula characters (=, +, -, @) when shown in or exported to a spreadsheet."
+  }
+ ]
+}

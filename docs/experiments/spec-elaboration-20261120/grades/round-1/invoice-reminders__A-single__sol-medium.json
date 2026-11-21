@@ -1,0 +1,141 @@
+{
+ "slot": "invoice-reminders__A-single__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "missing_ids": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-11, C-12",
+   "quote": "a qualifying invoice due June 10 has its first automatic handoff attempt on June 11, with no attempt through June 10. ... While an invoice remains eligible ... the next scheduled attempt is 7 calendar days after"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-6, C-7, C-8",
+   "quote": "An invoice that already has a zero balance when evaluated produces no reminder. ... When the existing invoice rules mark an invoice as no longer payable before handoff, any reminder awaiting handoff is suppressed.",
+   "missing": "Whether credited, disputed, or payment-plan invoices stop the sequence; only paid, part-paid (continues) and nonpayable/closed are decided."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-5",
+   "quote": "For a 100-unit invoice with 40 units of posted payment before handoff, the reminder shows 60 due in the invoice currency."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-47",
+   "quote": "Where an existing billing rule forbids invoice communication to a recipient, an automatic reminder that falls under that rule is suppressed.",
+   "missing": "Whether a marketing opt-out/unsubscribe applies to billing reminders, and how paused or do-not-contact customer states are treated beyond existing billing rules."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-35",
+   "quote": "Repeated or overlapping processing, including after restart or rollback followed by restoration, results in at most 1 accepted handoff for the same invoice in the same opportunity."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-10",
+   "quote": "When full payment is posted before a previously prepared reminder is handed off, no reminder is handed off."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-30, C-31, C-32",
+   "quote": "When the delivery service definitively rejects an attempt as temporary, a later processing run in the same opportunity attempts handoff again if the invoice still qualifies.",
+   "missing": "Retry count/backoff, behaviour during a prolonged provider outage, and escalation to a person when sends keep failing."
+  },
+  {
+   "id": "N-8",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "U-8, C-39",
+   "quote": "an already-overdue eligible invoice can receive one current reminder without being reissued. Previous missed opportunities do not each produce a message.",
+   "missing": "Whether the current reminders for all already-overdue invoices go out together on first processing or are staggered/paced."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "C-14, C-15",
+   "quote": "A billing account with a time zone for invoice dates sees reminder calendar dates evaluated in that zone.",
+   "missing": "The customer's local time, permitted sending hours, and handling of weekends and holidays."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-5",
+   "quote": "the reminder shows 60 due in the invoice currency.",
+   "missing": "How the amount and currency are formatted for the recipient (locale, symbol, decimals)."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-26, C-31",
+   "quote": "An otherwise eligible invoice with a missing or invalid delivery destination produces no handoff. ... After the delivery service permanently rejects a handoff to an address, repeated processing of that opportunity produces zero further attempts"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-3",
+   "quote": "its reminder is addressed to the payer contact designated for that invoice.",
+   "missing": "What happens when a customer has more than one billing contact (all, primary only, cc)."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-33",
+   "quote": "For a given invoice attempt, the operator can tell whether the delivery service accepted it, rejected it temporarily, rejected it permanently, or returned an uncertain result.",
+   "missing": "A persistent per-invoice, per-step record of what was sent and when, visible on the invoice."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-2, C-5",
+   "quote": "The recipient can tell which invoice the reminder concerns from the reminder itself. ... the reminder shows 60 due in the invoice currency.",
+   "missing": "Whether the reminder includes the due date and a payment link, and whether that link expires."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-20, C-48",
+   "quote": "A caller who lacks that access sees their attempted change refused.",
+   "missing": "Who may send or stop an individual reminder by hand; only enable/disable permission and existing manual communication rules are stated."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-18, C-48",
+   "quote": "An administrator who can manage the account's billing settings can save the disabled state.",
+   "missing": "Per-customer opt-out, preview or dry-run, and a manual resend of a reminder."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-29, C-33",
+   "quote": "The operator can identify the prerequisite that prevented a reminder handoff for an invoice that would otherwise qualify.",
+   "missing": "A view of what the system will send next (upcoming reminders)."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-13, C-39",
+   "quote": "When processing resumes after its opening date but before the next scheduled date, an unfulfilled opportunity is still available."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-43, C-44, C-45, C-46, C-54",
+   "quote": "A reminder handoff alone leaves the invoice in its existing billing status. ... The existing payment workflow accepts or refuses a submitted payment under the same rules as before feature introduction."
+  }
+ ]
+}

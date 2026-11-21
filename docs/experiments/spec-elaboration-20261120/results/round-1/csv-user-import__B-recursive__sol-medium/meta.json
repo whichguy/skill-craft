@@ -1,0 +1,26 @@
+{
+ "round": "round-1",
+ "case": "csv-user-import",
+ "arm": "B-recursive",
+ "arm_sha256_12": "de5e8e900dd3",
+ "driver": "sol-medium",
+ "host": "codex",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "rc": 0,
+ "seconds": 427.8,
+ "ok": true,
+ "wrote": [
+  "spec.md",
+  "passes.md"
+ ],
+ "stray_files": [],
+ "workdir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/round-1/csv-user-import__B-recursive__sol-medium-cd7bc0",
+ "usage": {
+  "input_tokens": 772669,
+  "cached_input_tokens": 655616,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 19219,
+  "reasoning_output_tokens": 3738
+ }
+}
