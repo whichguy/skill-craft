@@ -517,3 +517,53 @@ settles the first of the two unknowns above: the texts do ask for it.
 - What a text cannot say is whether deliveries hold the line. The second unknown stands: how often a test is
   changed after its code was written, and whether the recorded reason is about execution or about what the test
   asserts.
+
+## 9. Is the case complex enough? (owner, 2026-11-21 11:24; a reading and a proposal, nothing run)
+
+Status: exploratory. It states a limit of sections 6 to 8 and proposes a ladder; nothing is registered.
+
+The owner: "Are we using a sufficiently complex test in order to evaluate this? We might need to do something
+more, like create an app in Node. Could be a game, could be a Grokbot emulator, in order to really identify more
+complexity in the app, which would indicate more complexity in the test."
+
+**No. Every count this journal holds about tests comes from one request, and it is the easy case in two ways.**
+
+- The request is ticket due times: a change to an existing small service, 41 and 42 test items.
+- A working product already existed. The build-less writers ran their tests on it, 3 and 8 times (section 6). A
+  new app has nothing to run on: `node-chess-engine` starts from 2 files and `grokbot-local` from 8 (a stand-in
+  provider and records).
+- There is no user interface. Driving the product meant a few settings and an HTTP service. The pilot's Grokbot
+  suite drives a page in Chromium (`acceptance/browser.cjs` in the pilot's `g-ratchet-sol-high` run), and there
+  how a test executes is the larger part: the part the owner expects to firm up after the code (section 8).
+
+So sections 6 and 8 are firm for what was run and say nothing yet about a new app, or about one with a page.
+
+**What is on file for the two apps the owner names.** Both are cases of the pilot with held-out checks, run again
+this morning with the reworded text at the owner's earlier suggestion (pilot journal, section 21).
+
+| Case | Reworded specification | Starting files | Plan and first build on file (`p3R-*`) | Test pass with the pilot's text |
+|---|---|---|---|---|
+| `node-chess-engine` | 63 clauses | 2 | plan 4.7 and build 5.8 minutes; 10 of 10 held-out checks | 17.2 minutes for 109 clauses |
+| `grokbot-local` | 115 clauses | 8 | plan 7.0 and build 15.0 minutes; 49 of 49 and 28 of 28 | 29.2 minutes for 289 clauses |
+
+- No test pass exists for either with the reworded text: both runs stopped after the build.
+- What the earlier runs on these cases showed is about builds: every arm builds both correctly, so size gave no
+  headroom there (pilot journal, section 0, R5.1 to R7.1, and section 21). What size does to tests written from
+  the design has not been looked at.
+- The two stress different sides of section 8's line. Chess is dense in rules and simple to drive: it asks whether
+  expected results are right when there is no product to check them against (what tests assert). Grokbot is
+  large, loosely worded and driven through a page: it asks how much of a test can be written before the page
+  exists (how tests execute).
+
+**Proposed, smallest first; not registered, not run.**
+
+1. `grokbot-local`: one test session from the specification and plan of `p3R-grokbot-local` with no build present
+   (`--tests-blind-from`, the packet unchanged from rung 1), then its suite on the build on file. Readings as in
+   rung 1: items passing at first meeting; each failure read as execution or assertion; the adapter's share; the
+   writer's list of assumptions read as design gap or execution. About 30 minutes.
+2. `node-chess-engine` the same way, about 20 minutes, if step 1 leaves the assertion side open.
+3. Beside either, from records: section 8's count over finished ShipLoop deliveries, split by size (ShipLoop's
+   harness has `battleship`, `battleship-scoring` and `checkers` among its 31 cases).
+
+This would test the design-phase reading on a harder app. It does not reopen the parallel schedule, which stays
+stopped (section 0).
