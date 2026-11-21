@@ -595,6 +595,9 @@ class NavigatorV4Tests(unittest.TestCase):
         self.assertIn("Scratch directory (your temporary files, not /tmp): RUN/scratch", producer)
         # The line above defines RUN/scratch; the STAGE_RULES bullet carries the obligation (2026-10-11 dedupe).
         self.assertIn("Temporary files go in RUN/scratch, never /tmp", " ".join(producer.split()))
+        # 2026-11-21: a run stops what it started by its recorded PID (a pattern kill ended five other runs).
+        self.assertIn("stop it by that PID", " ".join(producer.split()))
+        self.assertIn("Never choose processes to stop by name or pattern", " ".join(producer.split()))
 
         waiting, action, _child = self.bound_plan_child(state)
         packet = navigator.render(None, root, waiting)
