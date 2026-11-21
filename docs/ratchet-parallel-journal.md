@@ -493,3 +493,27 @@ ask for harnesses and layers; I have not read whether they ask for the names and
 in finished ShipLoop deliveries, a test is changed after the code it tests was written, and whether such changes
 are execution or assertion. The second can be counted from archived deliveries with no model: each delivery's
 repository has the commits. Offered to the owner, not run.
+
+**Read after writing the above (10:58): what ShipLoop's stages ask for, before and after the code.** From the
+`Stage` entries in `skills/shiploop/scripts/shiploop_stage_spec.py` (their `done_when` and duty lines). This
+settles the first of the two unknowns above: the texts do ask for it.
+
+| The idea's part | ShipLoop stage, and what its text asks |
+|---|---|
+| the plan to implement is known | `plan`: ordered work items; "the assumption list is complete: each assumption evidenced, probed, or open with the item that settles it"; "Plan namespaces, placement, schema and storage up front". `step-plan`: "Name target files, interfaces and conventions" |
+| the tests can be written from the design | `spec`: "each acceptance line is independently verifiable and says how it will be confirmed". `test-strategy`: every acceptance line "maps to a check, its surface and the stage it is due", each needed tool's route probed "against a stand-in while the product does not exist". `test-spec`: each case has "an independent oracle, a RED and a GREEN definition", and "Write no test code" |
+| how tests execute gets specific after the code | `implement`: "Tests are written in the test stage". `test`, which follows it: "Write the tests from the test spec"; "no test ID new at this step passes on the step's base checkout"; "every test change made to pass a run has a recorded independent reason". `system-test-author` follows all items |
+
+- The phase exists in ShipLoop's text, with the line where the owner puts it: what a test asserts is specified
+  before the code, and its code is written after.
+- ShipLoop also has the rule for the owner's earlier question (the addendum to section 7): a test may be changed
+  to make a run pass only with a recorded independent reason. Those records are in each delivery's results, so the
+  count offered above can be taken from them.
+- Two things section 0 lists as worth keeping are already ShipLoop's. The run on the starting product is its check
+  that no new test passes on the step's base checkout, with `validate-existing` running every expectation on the
+  item base. The strength question is its mutation check (the comment on `test-spec` names "RED on the base, the
+  candidate run, the mutation check"). They were new only to the pilot's loop, which wrote all its tests after
+  the build.
+- What a text cannot say is whether deliveries hold the line. The second unknown stands: how often a test is
+  changed after its code was written, and whether the recorded reason is about execution or about what the test
+  asserts.
