@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__M-shiploop-spec-members__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "if any row is invalid, or the commit fails, no user exists afterwards (A-2). Visible effects of an import are never partial."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-8, R-6.F",
+   "quote": "a table of errors (row, column, message) from the response \u2026 errors exactly, in order: `(2,email,invalid_email)`, `(3,name,required)`, `(4,email,duplicate_in_file)`, `(6,email,already_exists)`"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "A row whose email equals an earlier row's in the same file gets `duplicate_in_file` \u2026 A row whose email belongs to an existing user gets `already_exists`. Existing users are never modified."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-2.F2, R-5",
+   "quote": "`email,name,role` header with row `a@example.com,A,admin` gives 422 `unknown_column` (column `role`) \u2026 role `member` (the product's non-admin default; OG-3)"
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "the endpoint and the page run only for an authenticated user who is an admin at the time of the request",
+   "missing": "The import requires a current admin role. The relationship between that role and permission to create a single user is unspecified."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Header: first record; names are trimmed and matched case-insensitively; order is free; exactly the columns `email` and `name` are required and no other column is allowed."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Accepted form: UTF-8 (a leading BOM is ignored), comma-separated, RFC 4180 quoting (double quote doubles to escape, quoted fields may contain commas), CRLF or LF line ends."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-5.F, A-4",
+   "quote": "a commit failure injected after the second of three inserts gives 500 and the store has 3 users (the fixtures only). \u2026 Nothing is emailed by this feature."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "S bytes and L rows are accepted; S+1 bytes gives 413; L+1 rows gives 422. \u2026 In both, the whole file is rejected and nothing is created.",
+   "missing": "The maximum file size in bytes and maximum number of data rows still need numeric values."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2.F1, R-2.F2, R-5.B",
+   "quote": "a 0-byte file gives 400 `empty_file` \u2026 `email,name` alone gives 422 `no_rows` \u2026 a file with one row (`solo@example.com,Solo Sam`) gives `total: 1`, `created: 1`"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "Repeating a successful upload yields 422 with `already_exists` on every row and creates nothing new."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "AD-1",
+   "quote": "answering with the result report in the same response. \u2026 Revisit when OG-6 shows volumes that cannot finish within one request.",
+   "missing": "For files too large to finish in one request, the spec defers both background processing and the way the admin would learn that the job finished."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "A-4",
+   "quote": "Nothing is emailed by this feature."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "A-4, OG-4",
+   "quote": "Imported users are created in a `pending` state with no password and cannot sign in until activated by a mechanism outside this spec (OG-4).",
+   "missing": "How the user activates the account, obtains credentials and signs in for the first time remains open."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "Uploaded file bytes: held in request memory only; never written to disk or the datastore, deleted when the request ends"
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "`importId`, admin id, UTC timestamp, sanitised original file name (no path, at most 255 characters), `total`, `created`, outcome (`completed`, `rejected`, `failed`)."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "Recovery: nothing to repair after failure; the admin fixes the file and re-uploads.",
+   "missing": "The spec gives a whole-file retry. It leaves cancellation during processing unspecified and provides no way to retry only failed rows."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-8, NFR-2",
+   "quote": "Upload disabled, a progress indicator, a polite live-region message \"Uploading\" \u2026 The bound on response time at L rows **is unresolved** (missing decision: L and an acceptable duration).",
+   "missing": "The maximum completion time at the supported limit is undecided. The indicator is specified for uploading, with no measure of server-side processing progress."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Existing users are never modified.",
+   "missing": "The spec does not require the existing manual single-user creation flow to keep its current behavior."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-3, NFR-1, A-9",
+   "quote": "name of exactly 100 characters passes, 101 fails; email of exactly 254 characters passes, 255 fails \u2026 no error-report download \u2026 Spreadsheet-formula neutralisation matters on any future export and is out of scope here."
+  }
+ ]
+}

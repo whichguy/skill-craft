@@ -1,0 +1,140 @@
+{
+ "slot": "invoice-reminders__K-shiploop-spec-default-bounds__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1, TC-1",
+   "quote": "For an eligible issued invoice, open slots at 09:00 UTC on calendar days 1, 7 and 14 after the UTC due date."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2, TC-3",
+   "quote": "A partial payment qualifies at the current outstanding balance. \u2026 Suppress draft/unissued, paid or zero/negative balance, void/canceled, written-off, deleted, disputed/on hold and payment-pending invoices.",
+   "missing": "Whether a credit that leaves a positive balance or an active payment plan suspends reminders."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "TC-3 (Replay evidence)",
+   "quote": "Post a partial payment at 09:00:01, leaving `USD 20.00`, then decide at 09:00:02. T-3 permits one submission showing `USD 20.00`."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-3, TC-6",
+   "quote": "Overlap, stale completion and restart cannot create another accepted or possibly accepted handoff for the same invoice and slot."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2, TC-3 and F-3",
+   "quote": "A payment finalized before the last authorization/eligibility decision suppresses the attempt if it brings the balance to zero. \u2026 makes or repeats the last F-2 decision immediately before submission"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-3, TC-7",
+   "quote": "retry at the first eligible evaluation at least one hour after that result. Recheck R-1 and R-2. Allow at most three attempts total per slot, including the original attempt.",
+   "missing": "Whether repeated provider failures trigger a human alert, when it fires and who receives it."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Non-functional requirements, Capacity and cost",
+   "quote": "Under expected invoice volume, overlapping evaluations, backlog and provider throttling, verify throttling never creates duplicate or out-of-window handoffs.",
+   "missing": "What sending limit applies and how to pace a large batch within it."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1, TC-1",
+   "quote": "A slot whose opening precedes scope activation is skipped, even if it would otherwise be open."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1, TC-1 and Rules outside scope",
+   "quote": "open slots at 09:00 UTC on calendar days 1, 7 and 14 after the UTC due date. \u2026 Custom cadence, local-time scheduling, holidays, manual sends and historical catch-up are excluded from the default."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "TC-5 (Replay evidence)",
+   "quote": "Each body shows only the respective reference, `2027-01-10`, respective `USD 120.00` or `USD 45.50`, and the request to use the original invoice's payment instructions.",
+   "missing": "How to format amounts beyond the USD examples, including currency-specific decimal precision and whether presentation follows the recipient\u2019s locale."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2, TC-4 and R-3, Rules outside scope",
+   "quote": "Suppress if the recipient is missing, ambiguous or unusable \u2026 Sender replies, bounce handling, tracking pixels, open/read tracking, manual retry, payment links and cross-channel fallback are excluded."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-2, TC-4",
+   "quote": "Use the invoice's current billing-designated recipient \u2026 Suppress if the recipient is missing, ambiguous or unusable"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3, TC-6 and TC-8",
+   "quote": "durable attempt history keyed by billing account, stable invoice identity and slot ordinal. \u2026 scoped operational evidence with timestamp, slot and safe correlation identity.",
+   "missing": "How someone viewing the invoice could see what was sent at each step. The specified history exposes attempt metadata through operations, and logs omit message content."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-3, TC-5",
+   "quote": "The body gives the same invoice reference, its due date and its current outstanding amount with currency, then asks the recipient to pay using the instructions on the original invoice. \u2026 Omit payment links"
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "F-1 and R-1, Rules outside scope",
+   "quote": "An authorized billing owner activates the account scope \u2026 Custom cadence, local-time scheduling, holidays, manual sends and historical catch-up are excluded from the default.",
+   "missing": "Whether anyone can manually stop a pending reminder and, if so, which role has that authority."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1 and R-3, Rules outside scope",
+   "quote": "manual sends and historical catch-up are excluded from the default. \u2026 Sender replies, bounce handling, tracking pixels, open/read tracking, manual retry, payment links and cross-channel fallback are excluded.",
+   "missing": "Whether operators can turn reminders off globally or for one customer, and whether they can preview or dry-run upcoming sends."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-3, TC-8",
+   "quote": "Authorized operators can distinguish accepted handoff, definite failure, unknown result, eligibility deferral/suppression, retry and expiry using scoped operational evidence with timestamp, slot and safe correlation identity.",
+   "missing": "Whether and where an operator can see which invoices are scheduled for the next reminder and when it is due."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-1, TC-1 and R-3, TC-7",
+   "quote": "Each slot closes at the next slot opening, with the final cutoff at 09:00 UTC on day 21. \u2026 A handoff must start within its authorized window."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2, State and data and R-3, Basis and delta",
+   "quote": "Invoice/customer mutations, corrections, deletion and their retention remain with the billing authority. Reminder processing leaves these resources intact. \u2026 Billing records and payment workflows remain with billing."
+  }
+ ]
+}

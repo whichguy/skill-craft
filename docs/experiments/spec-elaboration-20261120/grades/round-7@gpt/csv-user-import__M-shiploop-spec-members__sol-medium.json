@@ -1,0 +1,147 @@
+{
+ "slot": "csv-user-import__M-shiploop-spec-members__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3A (T-4)",
+   "quote": "Either durable batch and successful outcome, or definite rejection with zero changes from the batch."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2C",
+   "quote": "report invalid records by one-based logical record number, with header as record 1, field and corrective reason."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3B",
+   "quote": "any duplicate canonical identity within the file, or any existing identity that conflicts under the ordinary account rules, rejects the entire batch and identifies the conflicting record positions and reason"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-3A",
+   "quote": "apply the same non-elevated default access and account lifecycle as ordinary creation. Submitters cannot use CSV to choose privileges."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1A",
+   "quote": "a signed-in administrator authorized to create users in the selected directory can open the upload action and submit there. Failure \u2014 hide the entry from a signed-out caller, signed-in non-admin, admin lacking create authority in the selected directory"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2B",
+   "quote": "reject undecodable input, missing or malformed header, duplicate or unknown header, missing required header"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2B",
+   "quote": "UTF-8 text with an optional initial UTF-8 BOM, comma-separated columns, LF or CRLF record separators \u2026 double-quoted fields with doubled quotes for literal quotes. A quoted newline stays within one field."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-3A",
+   "quote": "definitive validation, authorization or persistence rejection before commitment leaves zero users from that operation and zero activation or provisioning effects from its rows."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2C and R-2, State and open gaps",
+   "quote": "Exceeding any published input bound rejects the batch with the breached limit and creates zero users. \u2026 Runtime owner must establish inclusive byte, data-record and field-size limits",
+   "missing": "The maximum file size and data-record count are still open."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2B",
+   "quote": "reject undecodable input, missing or malformed header, duplicate or unknown header, missing required header, unmatched quotes, ragged rows, or a document with zero data records. \u2026 A single well-formed data record is eligible."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-4B and R-3B",
+   "quote": "replay of the same reference and unchanged submission yields the accepted attempt's pending or terminal result without extra effects. \u2026 any existing identity that conflicts under the ordinary account rules, rejects the entire batch"
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-4A",
+   "quote": "once submission begins, display understandable pending feedback and suppress a second submission for the same attempt. Display the confirmed created count only after durable commitment",
+   "missing": "The result tells the admin when the import finishes. Whether large files run in the background and what qualifies as large are unspecified."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3, State and open gaps",
+   "quote": "a successful batch adds exactly its eligible identities and their ordinary create effects. \u2026 defining new invitation rules and migrating existing users are outside scope.",
+   "missing": "Whether creation sends invitation or welcome mail, and whether those messages go out together or at a specified rate, remain open."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3A and R-3, State and open gaps",
+   "quote": "apply the same non-elevated default access and account lifecycle as ordinary creation. \u2026 The account owner must confirm uniqueness (including pending, suspended or deleted accounts), default access, create side effects and when a created account becomes usable.",
+   "missing": "The initial account status, whether the account has a password at creation, and the first sign-in procedure are unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-2, State and open gaps",
+   "quote": "Application-side upload/parsed values are scoped to verification and the in-flight attempt and discarded at termination, including rejection or abandoned transfer. Neither the raw file nor parsed rows belong in ordinary logs or persistent import history.",
+   "missing": "Deletion at termination rules out later downloads. The specification leaves open where the raw upload is held during processing and whether anyone may download it while it exists."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-4D",
+   "quote": "record an operation-level outcome for each accepted attempt with reference, initiating admin identifier, authorized scope, outcome, and safe counts or error category.",
+   "missing": "The event identifies the actor and attempt, but no import timestamp is required."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-4C",
+   "quote": "after confirmed rejection, give the admin a way to replace or correct the file and submit a new attempt. \u2026 No post-submit cancel or undo action is offered because completion may already be irrevocable.",
+   "missing": "The retry uses a new file submission. The specification leaves open whether the admin can select just the flagged rows for that attempt. All rows from the rejected batch remain uncreated."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-4A and Non-functional requirements, Workload and runtime fit",
+   "quote": "display understandable pending feedback \u2026 acceptable upload-to-feedback and upload-to-verdict latency at the agreed workload. \u2026 The numeric bounds are open.",
+   "missing": "No maximum completion time is set for a maximum-size file. The running status shows pending, with no requirement to show how much work has finished."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-3A and R-2C",
+   "quote": "Existing records and other directories are unaffected by the import. \u2026 compare valid and invalid single-create and import fixtures for the same values",
+   "missing": "The specification preserves existing user records and compares validation, but does not require the full manual single-user creation flow to keep its existing behavior."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-2, State and open gaps, and R-2C",
+   "quote": "without echoing submitted field values in diagnostics. \u2026 Runtime owner must establish inclusive byte, data-record and field-size limits \u2026 Exceeding any published input bound rejects the batch with the breached limit and creates zero users."
+  }
+ ]
+}

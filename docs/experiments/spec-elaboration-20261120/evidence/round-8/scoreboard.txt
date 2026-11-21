@@ -1,0 +1,48 @@
+ROUND round-8   judge claude-opus-5-5 high   24 graded specs
+
+case                 arm                driver         covered  part   of   U    C  words   min
+csv-user-import      K-shiploop-spec-default-bounds sol-medium          15     5   21   0    0   5981   5.1
+csv-user-import      K-shiploop-spec-default-bounds sonnet-high         14     6   21   0    0   9337  10.1
+csv-user-import      M-shiploop-spec-members sol-medium          12     8   21   0    0   6534   5.7
+csv-user-import      M-shiploop-spec-members sonnet-high         13     7   21   0    0   5180   3.7
+csv-user-import      P-shiploop-spec    sol-medium          10     9   21   0    0   4429   3.6
+csv-user-import      P-shiploop-spec    sonnet-high         13     7   21   0    0   8959   5.7
+grokbot-salesforce   K-shiploop-spec-default-bounds sol-medium          18     8   27   0    0   6184   6.6
+grokbot-salesforce   K-shiploop-spec-default-bounds sonnet-high         16    10   27   0    0   7265   4.6
+grokbot-salesforce   M-shiploop-spec-members sol-medium          15    12   27   0    0   5265   5.1
+grokbot-salesforce   M-shiploop-spec-members sonnet-high         17    10   27   0    0   9768   7.1
+grokbot-salesforce   P-shiploop-spec    sol-medium          19     8   27   0    0   4442   4.5
+grokbot-salesforce   P-shiploop-spec    sonnet-high         16    11   27   0    0   7685   6.4
+gym-waitlist         K-shiploop-spec-default-bounds sol-medium          11     8   21   0    0   5181   3.7
+gym-waitlist         K-shiploop-spec-default-bounds sonnet-high         15     5   21   0    0   7969   5.6
+gym-waitlist         M-shiploop-spec-members sol-medium          10     8   21   0    0   6202   4.5
+gym-waitlist         M-shiploop-spec-members sonnet-high         12     7   21   0    0   5190   3.7
+gym-waitlist         P-shiploop-spec    sol-medium          10    10   21   0    0   5598   4.3
+gym-waitlist         P-shiploop-spec    sonnet-high         12     8   21   0    0   6426   4.7
+invoice-reminders    K-shiploop-spec-default-bounds sol-medium          11     8   20   0    0   6305   6.8
+invoice-reminders    K-shiploop-spec-default-bounds sonnet-high         11     9   20   0    0   6823   5.7
+invoice-reminders    M-shiploop-spec-members sol-medium          10    10   20   0    0   4999   5.0
+invoice-reminders    M-shiploop-spec-members sonnet-high          9    11   20   0    0   8117   7.5
+invoice-reminders    P-shiploop-spec    sol-medium           8    12   20   0    0   4362   4.3
+invoice-reminders    P-shiploop-spec    sonnet-high         12     8   20   0    0   8043   6.3
+
+BY ARM AND DRIVER (pooled over cases)
+  K-shiploop-spec-default-bounds sol-medium   covered  55/ 89 ( 62%)  partial  29  over 4 cases
+  K-shiploop-spec-default-bounds sonnet-high  covered  56/ 89 ( 63%)  partial  30  over 4 cases
+  M-shiploop-spec-members sol-medium   covered  47/ 89 ( 53%)  partial  38  over 4 cases
+  M-shiploop-spec-members sonnet-high  covered  51/ 89 ( 57%)  partial  35  over 4 cases
+  P-shiploop-spec    sol-medium   covered  47/ 89 ( 53%)  partial  39  over 4 cases
+  P-shiploop-spec    sonnet-high  covered  53/ 89 ( 60%)  partial  34  over 4 cases
+
+BY NUANCE CATEGORY (covered / of)
+  category        K-shiploop-s sol-me  K-shiploop-s sonnet  M-shiploop-s sol-me  M-shiploop-s sonnet  P-shiploop-s sol-me  P-shiploop-s sonnet
+  async                          6/11                 5/11                 4/11                 6/11                 5/11                 5/11
+  data                           5/10                 6/10                 4/10                 6/10                 5/10                 6/10
+  edge                           9/12                11/12                 6/12                 9/12                 6/12                 9/12
+  interaction                    8/12                 8/12                 8/12                 8/12                 7/12                 8/12
+  nonfunctional                   3/5                  4/5                  2/5                  3/5                  2/5                  3/5
+  operator                        2/9                  1/9                  1/9                  1/9                  2/9                  3/9
+  permission                      8/8                  6/8                  7/8                  5/8                  7/8                  6/8
+  platform                        2/5                  3/5                  2/5                  3/5                  2/5                  3/5
+  preserve                        4/5                  4/5                  4/5                  3/5                  4/5                  3/5
+  unhappy                        8/12                 8/12                 9/12                 7/12                 7/12                 7/12

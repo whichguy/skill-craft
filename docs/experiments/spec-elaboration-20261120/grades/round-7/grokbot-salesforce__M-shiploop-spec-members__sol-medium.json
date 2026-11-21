@@ -1,0 +1,185 @@
+{
+ "slot": "grokbot-salesforce__M-shiploop-spec-members__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.4101494,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1.a, AD-1",
+   "quote": "An assigned user finds **Grok Bot** in the App Launcher ... Use a Lightning Web Component with the `lightning__Tab` target and a CustomTab metadata entry labelled **Grok Bot**."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-4.a",
+   "quote": "Pass the prompt and necessary inference parameters only. Do not attach org records, user identifiers, session material or another user's content."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-4.a, R-1 State and open gaps",
+   "quote": "Do not attach org records ... Business-record reads, writes, sharing, object CRUD and field access are outside scope."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "AD-1, R-4.b",
+   "quote": "a dedicated bot permission set for tab visibility, Apex invocation and external credential principal access ... Designated operators can rotate or revoke it."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4.c",
+   "quote": "Other users and views cannot retrieve exchanges. App logs and durable storage contain no prompts, replies or raw payloads."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-2, AD-3, NFR Capacity and timing",
+   "quote": "The component calls Apex imperatively on Send. ... no app record writes ... This keeps the workflow to a single request and result with no independent worker lifecycle.",
+   "missing": "The spec chooses a synchronous foreground callout and never states the callout-after-DML or trigger constraint or an asynchronous (Queueable/future) design; it only notes revisiting if timing headroom is insufficient."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-4.b, AD-2",
+   "quote": "Protect the key in org-managed secret storage. ... Key values stay out of page data, responses, checked-in metadata and logs. ... use an enhanced Named Credential ... with a Custom External Credential"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "NFR Capacity and timing",
+   "quote": "Salesforce documents a 120-second cumulative callout timeout per Apex transaction, 6 MB synchronous callout request/response size ... and current 10 MB synchronous Apex heap ... the external callout concurrency ceiling is 20.",
+   "missing": "CPU time limit and callouts-per-transaction limit are not named with numbers."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "Sequence and review evidence",
+   "quote": "A controlled provider can expose exact requests and release held results independently of the bot, without a live account or billed inference.",
+   "missing": "It does not state that Apex tests cannot make real callouts and therefore need an HttpCalloutMock-style mock implementation."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "use an enhanced Named Credential for the outbound endpoint with a Custom External Credential and a shared named principal granted to the bot users."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "Service boundary contracts, AD-3",
+   "quote": "Single terminal invocation result. R-3 covers missing and late delivery. There is no durable job or resumed delivery.",
+   "missing": "The interface relies on the imperative call returning inline; no platform event, polled status or message-service mechanism is specified, only a contingency to revisit if headroom is insufficient."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-3.b, AD-3",
+   "quote": "No automatic retry, queue or poll. ... Apply a result only to its matching live attempt before the UI deadline."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "NFR Capacity and timing",
+   "quote": "In Developer Edition, the external callout concurrency ceiling is 20.",
+   "missing": "What the user sees when the concurrency ceiling is hit or a request cannot be admitted is not stated."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-3.b",
+   "quote": "Missing setup and credential, entitlement or model rejection produce setup/access feedback. HTTP 429 gives rate-limit feedback ... Timeout, transport failure and upstream 5xx give temporary-failure feedback."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-3.b",
+   "quote": "HTTP 429 gives rate-limit feedback and guidance to try later. ... No automatic retry, queue or poll."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-3.b, R-3 Open gap",
+   "quote": "Non-final or incomplete success-status responses ... give reply-unavailable feedback. ... At or after the deadline a still-pending attempt terminates as a temporary failure and a delayed result is ignored."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-4 State and open gaps",
+   "quote": "No browser persistence, shared cache or transcript database is required.",
+   "missing": "The spec deliberately stores nothing, so no conversation/turn shape, model identifier or token/usage counts are recorded anywhere."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-4.c, R-4 State and open gaps",
+   "quote": "Clear or view termination removes the transient exchange. ... xAI documents default audit retention of 30 days followed by deletion ... The team owner must confirm the applicable policy"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-4.a",
+   "quote": "disclose that prompts go to xAI and instruct users to use synthetic, non-sensitive content. Pass the prompt and necessary inference parameters only. Do not attach org records, user identifiers"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2.c",
+   "quote": "The next outbound request excludes the previous prompt, reply and response ID."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-2.a, R-3.c, R-2 State and open gaps",
+   "quote": "At the supported maximum, a nonblank prompt is accepted. Above it, reject without truncation. ... the implementation owner must establish the maximum accepted UTF-8 prompt bytes",
+   "missing": "The actual maximum prompt length and the answer/output budget are left unresolved."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-1.c, R-4.b",
+   "quote": "The org owner can withdraw bot access and remove only feature-owned resources ... New requests use effective configuration.",
+   "missing": "No administrator view of failed requests and no stated way to change the model."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "R-4.c, Service boundary contracts",
+   "quote": "Clear has no effect on provider audit copies. ... No persistent app event sink is needed ... Native audit coverage, provider terms and authorized receipt access require target confirmation.",
+   "missing": "No app-side audit record of which user asked what and what was answered, nor its retention."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-1.a, AD-2",
+   "quote": "Use the selected non-production development org. ... Populate the secret separately from source deployment.",
+   "missing": "Per-environment configuration/credential differences, sandbox vs scratch org, and the production code-coverage requirement are not stated."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "R-3.a, R-3 Open gap",
+   "quote": "After admission, show **Waiting for Grok** and the submitted prompt. ... The implementation owner must select a finite request deadline",
+   "missing": "The latency target/deadline value is not decided."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "NFR Visual direction, R-2.b",
+   "quote": "Inspect the rendered screen in both appearances and in empty, waiting, reply and failure states. ... A refusal expressed as ordinary assistant text is shown."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-1 Basis and delta, Service boundary contracts",
+   "quote": "Preserve unrelated navigation, settings, permissions and records. ... Business-record synchronization is n/a: no record state is touched."
+  }
+ ]
+}

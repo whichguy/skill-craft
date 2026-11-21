@@ -1,0 +1,142 @@
+{
+ "slot": "invoice-reminders__M-shiploop-spec-members__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.4331264,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "PD-2 / R-1",
+   "quote": "Schedule is relative to the invoice due date; default offsets in days are `-3, 0, 7, 14`."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "`paid`, `draft`, `void` (ignored)... Partially paid invoices are eligible... Out of scope (bound the rule): disputes and holds, credit notes, payment plans, late fees",
+   "missing": "Whether a credited, disputed or payment-plan invoice stops the sequence; these are only named as out of scope, with no behaviour."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2 / AC-2.2",
+   "quote": "Partially paid invoices are eligible and are reminded for the outstanding amount only."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-2 / R-5",
+   "quote": "Out of scope (bound the rule): ... customers flagged do-not-contact.  ...  Out of scope domain rules: delivery receipts, opt-out, language.",
+   "missing": "Whether an existing do-not-contact, paused or unsubscribed customer is still reminded, and whether billing notices are exempt from a marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-6 / R-8",
+   "quote": "A consumed milestone is never sent again (T-7). Running the command repeatedly ... sends nothing beyond the first successful send per milestone. ... Only one run may be active"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "Immediately before each send it re-reads that one invoice from the invoice source and sends only if it is still eligible with the freshly read outstanding amount"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-7 / G-5",
+   "quote": "One attempt per milestone per run... After 3 attempts (PD-7) without success the milestone is Exhausted ... Open gap G-5: whether the owner wants ... an alert on Exhausted; excluded for now.",
+   "missing": "Escalation to a person when sends keep failing is left open; only exit code and history are given."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "NFR-4",
+   "quote": "The invoice count per run, run duration limit, and the email provider's rate limit are unknown ... the product processes invoices sequentially and makes no capacity claim",
+   "missing": "The rate limit value and how a large batch is paced or throttled within it."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-3 / PD-5",
+   "quote": "the first run on an installation with overdue invoices, sends one reminder per invoice, never a burst, and never a \"due in 3 days\" message once the due date has passed."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1 / R-3 / G-3",
+   "quote": "`timezone` (IANA name, default `UTC`) ... Offsets and dates use calendar dates only; no time of day is configured (G-3 covers the send time).",
+   "missing": "Customer-local time, sending hours, and handling of weekends and holidays; only one configured timezone for date calculation is defined."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "outstanding amount as `<amount with two decimals> <currency>`"
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-5 / R-7",
+   "quote": "Missing contact: skip `no-recipient`. Invalid contact: skip `invalid-recipient` ... Out of scope: delivery and bounce tracking (G-5)",
+   "missing": "What happens when an address bounces; only missing and syntactically invalid addresses are handled."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "PD-1 / R-5",
+   "quote": "Channel is email to one billing contact per invoice. ... A valid contact is exactly one address"
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "`history` prints ledger entries ... recorded time (UTC, ISO 8601), as-of date, invoice id, offset, outcome ... `--invoice <id>` filters to one invoice."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "invoice number; due date as `YYYY-MM-DD`; outstanding amount as `<amount with two decimals> <currency>`; the payment URL line only when `payment_url` exists",
+   "missing": "Whether the payment link expires and what to do about an expired link."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "NFR-2",
+   "quote": "Access: whoever can run the command and read the ledger file, equal to the operator trust boundary.",
+   "missing": "Distinct roles for configuring the schedule versus sending or stopping a reminder by hand; manual send/stop is not defined."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1 / R-9 / T-4",
+   "quote": "`enabled = false` makes `run` exit 0, print `reminders disabled`, send nothing ... `invoice-reminders run --dry-run` evaluates exactly as a real run ... no automatic resend (G-5)",
+   "missing": "Turning reminders off per customer and resending a reminder by hand."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-9 / R-10",
+   "quote": "prints the same per-invoice lines with outcome `would-send` ... operator runs `history` to see what was sent, skipped or failed."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "NFR-4 / R-3",
+   "quote": "No latency or throughput number is invented. ... A run on an installation with a long-overdue invoice sends its latest due milestone once (AS-2).",
+   "missing": "Any numeric cap on sending volume, and a limit on how late a reminder may still be sent."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "PD-4 / B-1",
+   "quote": "The product never modifies invoices; invoices belong to an external invoice source."
+  }
+ ]
+}

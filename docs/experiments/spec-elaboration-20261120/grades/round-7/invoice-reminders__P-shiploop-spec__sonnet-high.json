@@ -1,0 +1,141 @@
+{
+ "slot": "invoice-reminders__P-shiploop-spec__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.4087732,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "D-2",
+   "quote": "Default schedule `[-3, 0, 7, 14]`, send time `09:00`. Offsets are days from the due date: three days before, on the due date, then 7 and 14 days after."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "once an invoice is paid in full, voided, cancelled or written off, no further reminder is sent for it. ... A partial payment does not stop reminders.",
+   "missing": "Credited invoices and payment plans are not addressed; disputed/hold states are explicitly out of scope and left open (R-3 Boundaries, G-3)."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "AC-3.3",
+   "quote": "The offset 0 mail states an outstanding balance of `850.00 USD`, not 1,250.00."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "N-3",
+   "quote": "Unresolved: legal or consent obligations such as an opt-out footer, and a retention period (G-7). They are not assumed either way.",
+   "missing": "Whether an existing do-not-contact, paused or unsubscribed customer state suppresses reminders, and whether billing notices are exempt from a marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "for one invoice and one step offset at most one reminder is sent, however many evaluations overlap, repeat, restart or retry."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "The invoice's status and balance are read from the host immediately before each send. If it became ineligible after the step was claimed, no mail is sent"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "Transient provider failure or an unreadable host \u2192 record `Retrying`. Later evaluations try again while ... the next step's moment has not arrived. ... Out of scope: alerts, dashboards, e-mail to the operator about failures."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "State and information lifecycle",
+   "quote": "Quotas. The mail provider's rate and daily limits are unknown (G-2). The spec sets none and invents none.",
+   "missing": "How a large batch is paced within the provider's rate limit and what happens when the limit is hit."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "D-4",
+   "quote": "A step is sendable only if its scheduled moment is not before the latest of: (a) the moment the current configuration was saved ... Reason: switching reminders on must not email every long-overdue customer at once."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "There is also a send time of day (24-hour `HH:MM`) and a timezone (IANA name). ... A step's moment is its date at the send time in that timezone.",
+   "missing": "The timezone is a single business setting, not the customer's local time; weekends and holidays are not addressed."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "D-9",
+   "quote": "Dates are ISO `YYYY-MM-DD`. Amounts are `1,250.00 USD`."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "No billing email \u2192 no mail. The record is `Skipped(no_recipient)`. ... Permanent rejection (invalid address, refused recipient) \u2192 `Failed(rejected)`, never retried."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "the mail goes to the invoice's billing email and nowhere else.",
+   "missing": "What happens when the customer has several billing contacts, and which one(s) receive the reminder."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "for each invoice an authorised operator can see, one row per handled step: offset, scheduled moment, outcome ..., time of last change, attempt count, and the address used."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "It states the business name, customer name, invoice number, outstanding balance with currency, the due date ... If the host's invoice already carries payment instructions or a link, they are included (G-4).",
+   "missing": "Whether a way to pay is guaranteed in the reminder (left open in G-4) and whether any payment link expires."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "D-7",
+   "quote": "Operator authority = whoever the host already lets manage billing settings. No new roles."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "an authorised operator can turn automatic reminders On or Off. ... Out of scope: a \"send backlog now\" action, and per-customer or per-invoice switches",
+   "missing": "Previewing or dry-running what would be sent is not stated; manual resend is only excluded by R-4's out-of-scope list."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-8",
+   "quote": "Consumer outcome: the operator can see which customers were not reached and why.",
+   "missing": "No view of upcoming or next scheduled reminders; history shows only steps already handled."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "N-1",
+   "quote": "How late after a step's moment a reminder may be sent is not stated by the request. No number is invented.",
+   "missing": "An actual lateness bound or sending-volume cap; both N-1 and N-4 are left unresolved (G-8)."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "State and information lifecycle",
+   "quote": "Invoice data (status, balance, due date, issue time, billing email) | Host invoice system. This feature never writes it."
+  }
+ ]
+}

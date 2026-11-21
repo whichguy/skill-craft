@@ -1,0 +1,186 @@
+{
+ "slot": "grokbot-salesforce__M-shiploop-spec-members__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "AD-1; Service boundary contracts, Lightning view \u2192 Salesforce runtime",
+   "quote": "Use a Lightning Web Component with the `lightning__Tab` target and a CustomTab metadata entry labelled **Grok Bot**. \u2026 Session and current effective grants govern each new invocation."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1, State and open gaps; R-4.a",
+   "quote": "Business-record reads, writes, sharing, object CRUD and field access are outside scope. \u2026 Do not attach org records, user identifiers, session material or another user's content.",
+   "missing": "The bot excludes records entirely. The specification gives no rule for retrieving records under the asking user's Salesforce sharing permissions."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "AD-1; R-1, State and open gaps",
+   "quote": "a dedicated bot permission set for tab visibility, Apex invocation and external credential principal access \u2026 The org owner controls changes."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4.c",
+   "quote": "Only the initiating view and in-flight processing path hold the prompt, reply and related error. \u2026 Other users and views cannot retrieve exchanges."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-2; AD-3",
+   "quote": "The component calls Apex imperatively on Send. \u2026 The server applies its own outbound callout deadline \u2026 no independent worker lifecycle.",
+   "missing": "The specification gives no trigger or post-DML callout constraints and selects a foreground request. It provides no asynchronous Apex transaction design."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AD-2; R-4.b",
+   "quote": "use an enhanced Named Credential for the outbound endpoint with a Custom External Credential \u2026 Populate the secret separately from source deployment. \u2026 Key values stay out of page data, responses, checked-in metadata and logs."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Non-functional requirements, Capacity and timing",
+   "quote": "120-second cumulative callout timeout per Apex transaction \u2026 current 10 MB synchronous Apex heap in Winter \u201927, with a 6 MB compatibility setting.",
+   "missing": "The per-transaction callout count and CPU-time ceilings are unspecified."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "Sequence and review evidence",
+   "quote": "A controlled provider can expose exact requests and release held results independently of the bot, without a live account or billed inference.",
+   "missing": "The specification does not require a mock callout implementation for Apex tests or state that those tests cannot call the real provider."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-2; AD-3; R-3.b",
+   "quote": "use an enhanced Named Credential for the outbound endpoint \u2026 Use one non-streaming JSON POST to `https://api.x.ai/v1/responses` per admitted send. \u2026 Missing setup and credential, entitlement or model rejection produce setup/access feedback."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "AD-3; Service boundary contracts, Lightning view \u2192 Salesforce runtime",
+   "quote": "Apply a result only to its matching live attempt before the UI deadline. \u2026 Single terminal invocation result. \u2026 There is no durable job or resumed delivery.",
+   "missing": "The view receives the foreground invocation's result. No mechanism delivers a reply from independently running asynchronous work."
+  },
+  {
+   "id": "N-12",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3.b",
+   "quote": "Missing setup and credential, entitlement or model rejection produce setup/access feedback. HTTP 429 gives rate-limit feedback and guidance to try later. Timeout, transport failure and upstream 5xx give temporary-failure feedback.",
+   "missing": "Timeout and upstream 5xx share one user-visible outcome. The remaining 4xx refusals have no general user-visible mapping."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-3.b",
+   "quote": "Another explicit Send permits retry after the condition clears. \u2026 HTTP 429 gives rate-limit feedback and guidance to try later. \u2026 No automatic retry, queue or poll."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-3.b",
+   "quote": "Timeout, transport failure and upstream 5xx give temporary-failure feedback. Non-final or incomplete success-status responses, malformed body, empty reply or other unexpected results give reply-unavailable feedback. Failures show no answer or raw upstream error."
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-4.c; R-4, State and open gaps",
+   "quote": "Clear or view termination removes the transient exchange. \u2026 Clear has no effect on provider audit copies. \u2026 xAI documents default audit retention of 30 days followed by deletion",
+   "missing": "The text specifies local clearing and a provider default. It leaves the applicable provider retention term open and gives no account-deletion rule for outstanding data."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-4.a",
+   "quote": "instruct users to use synthetic, non-sensitive content. Pass the prompt and necessary inference parameters only. \u2026 Do not attach org records, user identifiers, session material or another user's content. \u2026 User-typed prompt content is sent as entered."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-2.c; R-2, State and open gaps",
+   "quote": "The next outbound request excludes the previous prompt, reply and response ID. \u2026 the implementation owner must establish the maximum accepted UTF-8 prompt bytes",
+   "missing": "Each send omits all history. No size threshold or trimming or summarization policy is specified for a growing conversation."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-3.c; R-2.a",
+   "quote": "A new view starts empty. \u2026 Missing, empty, whitespace-only or over-limit input gets input-specific feedback and produces zero outbound requests. \u2026 At the supported maximum, a nonblank prompt is accepted. Above it, reject without truncation.",
+   "missing": "The maximum accepted prompt size and the response/output budget are unresolved, so the concrete length boundaries cannot be implemented from the text alone."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-1.c; AD-3",
+   "quote": "The org owner can withdraw bot access and remove only feature-owned resources to restore prior org configuration and availability. \u2026 Supply the configured Grok model and a single user input.",
+   "missing": "The specification leaves administrator access to change the model and inspect failed requests undefined."
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-1.a; AD-2",
+   "quote": "Use the selected non-production development org. \u2026 Populate the secret separately from source deployment.",
+   "missing": "The specification does not define a scratch-org or sandbox release path, per-environment configuration and credentials, or the production code-coverage requirement."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "R-3.a; R-3, Open gap",
+   "quote": "After admission, show **Waiting for Grok** and the submitted prompt. \u2026 The implementation owner must select a finite request deadline",
+   "missing": "No numerical answer-latency target or end-to-end deadline is set."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "AD-4; R-3.c; R-2.b; R-3.b",
+   "quote": "a separate status area announcing pending and terminal changes. \u2026 rounded tonal surfaces \u2026 A new view starts empty. \u2026 A refusal expressed as ordinary assistant text is shown. \u2026 Failures show no answer"
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-1, Basis and delta; R-1, State and open gaps; AD-2",
+   "quote": "Preserve unrelated navigation, settings, permissions and records. \u2026 Business-record reads, writes, sharing, object CRUD and field access are outside scope. \u2026 The component calls Apex imperatively on Send."
+  }
+ ]
+}

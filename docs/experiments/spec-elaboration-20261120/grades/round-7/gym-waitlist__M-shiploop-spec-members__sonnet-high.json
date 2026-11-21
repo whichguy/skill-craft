@@ -1,0 +1,144 @@
+{
+ "slot": "gym-waitlist__M-shiploop-spec-members__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3827026,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "PD-1",
+   "quote": "Automatic promotion: when a place opens, the first eligible waitlisted member is booked automatically; no claim window or \"confirm within N minutes\" step."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "entries are ordered by the order the service accepted the joins (a service-assigned sequence, not a client or wall-clock time, so two joins in the same millisecond still have a defined order) ... Out of scope: priority tiers, manual reordering, staff override (PD-2)."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "for each head-of-queue member it re-checks the member's current eligibility using the same rules as a direct booking (ASM-4)",
+   "missing": "Whether promotion into one class removes or resolves the member's entry on an overlapping class's waitlist; time conflicts are only an assumed, unknown eligibility rule (ASM-4)."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Spot opening inside any late-cancel/penalty window of the existing app: the promoted booking is subject to whatever the existing rules say; the rule itself is unknown (G-4b).",
+   "missing": "How the existing late-cancel/no-show policy applies to a promoted booking (e.g. a member auto-promoted close to start who then cancels or doesn't attend); left as open gap G-4b."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "whenever a full-open class gains k \u2265 1 free places through any spot-opening trigger (T-a..T-d), the service, as part of the same operation that opened the place and before it returns, promotes up to k waitlisted members"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "the promoted member is told: class name, start time, \"you were promoted from the waitlist\" ... in-app marker ... any existing outbound channel ... delivery failure does not undo the promotion ... interim: one attempt, failure recorded"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-4:A5",
+   "quote": "S6: cap 2 booked {Ana, Ben}, waitlist [Cai]; Ana and Ben cancel, in either order \u2192 bookings {Cai} plus one free place; Cai is promoted exactly once"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-5:A4",
+   "quote": "a waitlisted member cannot book directly (ALREADY_WAITLISTED), so no member is ever both."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Out of scope: payments, credit deduction or fees specific to waitlist (the existing booking rules apply as they do to direct bookings).",
+   "missing": "When payment/credit is taken for an auto-promoted booking and what happens to the promotion if payment or credit deduction fails."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Waitlist length cap: unresolved (G-1a); interim behaviour is no cap. ... WAITLIST_FULL only once a cap exists (G-1a).",
+   "missing": "The cap value, and what the member sees in the UI when the waitlist is full."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "PD-6",
+   "quote": "Waitlist entries end at class start; promotions can occur at any time before start. ... Auto-promotion needs no reaction window, so no pre-start cutoff is needed."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-4, R-5",
+   "quote": "(T-c) capacity +3 with 2 waiting promotes both and leaves 1 place for direct booking ... If staff reduce capacity below confirmed bookings ... the waitlist rule is only that no promotion happens until confirmed < capacity."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-7:A1",
+   "quote": "staff cancel class C-101 with waitlist [Cai, Dee] \u2192 both entries end class_cancelled; no bookings are created; both are notified."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-1, R-10",
+   "quote": "creates one waitlist entry {class, member, join order, status} ... an entry stores the member id, class id, order and timestamps only."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "expired (class started) ... The terminal record keeps {class, member id, reason, ended-at} ... Retention period of terminal records: unresolved (G-7b).",
+   "missing": "How long terminal records are kept (interim 'keep' with no period)."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "PD-5",
+   "quote": "Members see their own position and the total waiting count, never other members' identities."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-10",
+   "quote": "Staff visibility of waitlist contents: not requested, no staff screen is added (G-10).",
+   "missing": "Whether staff can view the waitlist, promote or remove members by hand, and see promotion history; deferred as out of scope / open gap G-10."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "NFR-time",
+   "quote": "promotion has completed by the time the operation that opened the place returns (R-4)"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "these remain exactly as before ... (a) booking a class with space and an empty waitlist ... (f) existing data and screens for members with no waitlist."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

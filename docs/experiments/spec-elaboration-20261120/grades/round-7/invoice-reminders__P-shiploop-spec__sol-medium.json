@@ -1,0 +1,143 @@
+{
+ "slot": "invoice-reminders__P-shiploop-spec__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.33887539999999994,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3.A",
+   "quote": "the processor automatically evaluates positions 1, 2 and 3 at 09:00 billing-account local time on calendar days 1, 7 and 14 after the invoice due date."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2.A",
+   "quote": "drafts, canceled or voided invoices, invoices held from collection, and invoices with zero or negative balance produce zero dispatch initiations.",
+   "missing": "Credit notes, disputes and payment plans are not addressed; the dispute/hold status mapping is left as an open gap for the billing owner."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3.C",
+   "quote": "the intended recipient can identify the approved sender, invoice reference, due date and remaining balance with currency"
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-3.B",
+   "quote": "missing, invalid, ambiguous or suppressed contact data withholds dispatch and exposes a safe reason.",
+   "missing": "Which customer-level do-not-contact/paused/unsubscribed states count as suppression, and whether a billing notice is exempt from a marketing opt-out (left to owners as 'suppression rules')."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4.A",
+   "quote": "one account, invoice and schedule position identifies a logical reminder across overlapping executions and restarts... overlapping or stale workers cannot independently initiate a second handoff for that position"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2.B",
+   "quote": "each new handoff, including a retry known to be safe, is authorized using current eligibility... a payment, void, collection hold... committed before dispatch authorization is effective for that authorization."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-4.B",
+   "quote": "On a confirmed transient failure with proof of no handoff, allow a controlled retry within the same window... a permanent rejection closes the position as failed.",
+   "missing": "Retry intervals and limits are unresolved (NFR), and no escalation to a person after repeated failure is specified beyond billing support owning recovery of unknowns."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "NFR Capacity and cost",
+   "quote": "Throttling must preserve account isolation and replay protection and expose deferred or expired work. Invoice volumes, quotas, throughput and cost ceiling are unresolved.",
+   "missing": "The provider rate limit and how a large batch is paced within it."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-3.A",
+   "quote": "Only positions with start times strictly after the current activation time qualify."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-3.A",
+   "quote": "at 09:00 billing-account local time",
+   "missing": "Weekend and holiday handling; whether customer rather than billing-account time zone applies."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-3.C",
+   "quote": "remaining balance with currency",
+   "missing": "How amounts and currency are formatted for the recipient's locale; wording/localization is left to owners."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-3.B",
+   "quote": "missing, invalid, ambiguous or suppressed contact data withholds dispatch and exposes a safe reason.",
+   "missing": "After a bounce (F-4 records it without resend), whether later positions still go to the bouncing address or the address is suppressed."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-3.B",
+   "quote": "address the notice to the one currently designated, eligible billing email for that invoice's customer and account... missing, invalid, ambiguous or suppressed contact data withholds dispatch"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-4 F-4",
+   "quote": "The reminder runtime owns durable dispatch state scoped by billing account, invoice and position.",
+   "missing": "Whether the record is shown on the invoice itself, and what content-sent detail it holds; the status surface is to be discovered."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-3.C",
+   "quote": "identify the approved sender, invoice reference, due date and remaining balance with currency, and sees a request to pay using their established billing method."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-1.A",
+   "quote": "an actor authorized to manage billing reminders can enable them for one billing account",
+   "missing": "Who may send or stop an individual reminder by hand; no manual send is specified and the roles model is undiscovered."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1.C",
+   "quote": "disabling stops initiations authorized after the disable commits.",
+   "missing": "A global kill switch, per-customer opt-out, preview/dry run and manual resend are not specified."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-4.C",
+   "quote": "authorized billing support can distinguish an active position awaiting a valid attempt, a reserved/in-flight attempt, provider acceptance, a confirmed delivery failure, an expired or closed position without acceptance, and an unknown result.",
+   "missing": "A view of upcoming scheduled reminders (what will be sent next and when)."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-3.A",
+   "quote": "a window starts inclusively at its scheduled local time and ends at the first instant on a later local date, exclusively... expires elapsed positions without sending them."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "Source and scope",
+   "quote": "Preserve the existing invoice, payment, access and contact workflows once discovered... Invoice creation, collections escalation, and changes to payment processing are outside this request."
+  }
+ ]
+}

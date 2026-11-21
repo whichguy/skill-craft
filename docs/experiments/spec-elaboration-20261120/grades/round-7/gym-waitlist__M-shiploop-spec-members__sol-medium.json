@@ -1,0 +1,150 @@
+{
+ "slot": "gym-waitlist__M-shiploop-spec-members__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.33194559999999995,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A confirmed cancellation or effective capacity increase that makes seats free while booking is open triggers allocation... Give each seat to the oldest eligible active entry in authority-accepted join order."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2; Source and scope",
+   "quote": "Accepted joins have one total order per session, including simultaneous joins. ... New membership roles, staff queue administration, priority tiers ... are outside this request."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-2 Open gaps",
+   "quote": "The booking owner must identify ... any exceptions required by existing holds, eligibility rules, payment, attendance conflicts or staff actions.",
+   "missing": "What happens to a member's other waitlist entry for an overlapping class when one is promoted."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "Submission summary; R-1 Open gaps",
+   "quote": "Compatibility of automatic booking with existing charges, credits or penalties remains open and gates enrollment and promotion where those rules apply.",
+   "missing": "Whether an automatic promotion that is then cancelled or missed counts against the existing no-show/late-cancellation policy."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-2; Non-functional requirements",
+   "quote": "triggers allocation, even with all members' screens closed. ... promotion/recovery latency ... are unresolved.",
+   "missing": "The timeliness of the background promotion is left unresolved."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-4; Non-functional requirements",
+   "quote": "A promotion appears in the ordinary booking view. A member can see their own relevant outcome on return ... New contact channels ... are outside scope because confirmation is in-app."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Settle up to the smaller of the number of free seats and eligible waiters ... The same seat cannot be taken twice. ... A duplicate signal creates no extra vacancy."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-1; R-2",
+   "quote": "Keep one active state per member/session ... If a normal booking races for capacity owed to the queue, refuse that booking while the claim is active.",
+   "missing": "The outcome when the waitlisted member themself books directly at the moment their own promotion is being committed."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-1 Open gaps; R-2 Open gaps",
+   "quote": "If fees, credits, waivers or penalties require consent beyond the ordinary booking flow, affected sessions are unready for enrollment until settled.",
+   "missing": "When payment for a promoted booking is taken and what happens if it fails."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1 Open gaps",
+   "quote": "Any maximum queue length and the admission result when it is reached are unresolved.",
+   "missing": "The cap value and what a member sees when the waitlist is full."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2; R-3",
+   "quote": "A vacancy at or after booking closure cannot promote anyone. ... At the booking cutoff itself closure wins."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "An authorized reduction in capacity that takes effect first leaves only the new available capacity for promotions. ... Where preexisting confirmed bookings already meet or exceed reduced capacity, the waitlist adds zero bookings."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "At session cancellation or when booking closes, all remaining entries stop qualifying for any future seat. Show the relevant closed or canceled outcome without a booking confirmation."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1 State and data; R-3 State and data",
+   "quote": "The app keeps the member/session association and a stable ordering fact in authoritative waitlist state.",
+   "missing": "Whether the position is stored or derived, and the concrete record fields (join time) and states."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-3 State and data",
+   "quote": "A private terminal outcome may remain only as needed to explain the result or reconcile old intents, then is removed under the applicable retention policy.",
+   "missing": "How long entries are kept after the class has run; retention is left to the privacy owner."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Other members' entries, names, contact details, order and outcomes stay off the client, including response payloads and errors.",
+   "missing": "Whether a member sees their own position in the queue."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "Source and scope; R-4 Owned event coverage",
+   "quote": "New membership roles, staff queue administration, priority tiers ... are outside this request. ... The booking authority owns retrievable evidence of committed joins, leaves, promotions",
+   "missing": "A staff view of the waitlist and manual promote/remove; staff administration is excluded, and only operational event evidence is retained."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "promotion/recovery latency ... are unresolved. ... No hard limit or SLA is inferred.",
+   "missing": "The actual latency bound between cancellation and promotion."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1; R-2",
+   "quote": "Preserve normal booking when seats are freely bookable ... If no active queue claims the seat, leave ordinary booking available."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-4 Service boundary contracts; Non-functional requirements",
+   "quote": "Existing sessions need no inferred memberships. ... Existing deployment, rollback and migration constraints are open",
+   "missing": "Whether sessions that are already full at launch gain a waitlist, and how."
+  }
+ ]
+}

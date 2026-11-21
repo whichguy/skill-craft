@@ -1,0 +1,27 @@
+{
+ "round": "round-7",
+ "case": "invoice-reminders",
+ "arm": "K-shiploop-spec-default-bounds",
+ "arm_sha256_12": "52459fcbf3d5",
+ "driver": "sol-medium",
+ "host": "codex",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "rc": 0,
+ "seconds": 295.9,
+ "ok": true,
+ "wrote": [
+  "spec.md",
+  "architecture.md"
+ ],
+ "stray_files": [],
+ "workdir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/round-7/invoice-reminders__K-shiploop-spec-default-bounds__sol-medium-3858e6",
+ "user_skills_turned_off": 11,
+ "usage": {
+  "input_tokens": 410639,
+  "cached_input_tokens": 341376,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 12530,
+  "reasoning_output_tokens": 1650
+ }
+}

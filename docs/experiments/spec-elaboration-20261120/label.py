@@ -15,6 +15,7 @@ to every arm and every verdict; only the items both sort the same way are used. 
     python3 -I label.py split ROUND[,ROUND...] [--tag=gpt]     covered per set, per arm and driver
     python3 -I label.py gains ROUND --arm=A --control=P [--control-round=R] [--categories=a,b] [--set=X3]   item by item
     python3 -I label.py pair --rounds=R1,R2 --arm=A --control=P     the registered readings R16 to R19
+    python3 -I label.py stable --rounds=R1,R2 --arm=A --control=P [--set=X1]   items A settles in every round and P in none
 
 Run from anywhere. Needs grade.py beside it.
 """
@@ -318,6 +319,49 @@ def cmd_gains(round_name, flags):
         Path(flags["out"]).write_text(text + "\n")
 
 
+def cmd_stable(flags):
+    """Items `arm` covers in every round and `control` in none (registered judge), with what each specification said,
+    and how the second judge scored the same cells. The reverse list too."""
+    sets, _, _ = build_sets()
+    rounds, arm, control = flags["rounds"].split(","), flags["arm"], flags.get("control", RELEASED)
+    name = flags.get("set", "X1")
+    nu = dict(items())
+    title = (f"# {arm} against {control} over {', '.join(rounds)}, set {name} ({len(sets[name])} items): items settled by one arm"
+             " in every round and by the other in none (registered judge), with the second judge's states beside them")
+    lines = [title, ""]
+    for driver in ("sonnet-high", "sol-medium"):
+        A = {(j, r): verdict_states(r, tag, arm, driver) for j, tag in JUDGE_TAGS.items() for r in rounds}
+        C = {(j, r): verdict_states(r, tag, control, driver) for j, tag in JUDGE_TAGS.items() for r in rounds}
+        if not all(A.values()) or not all(C.values()):
+            lines.append(f"## {driver}: not every round is graded by both judges yet")
+            continue
+        def cov(V, j, k):
+            return [V[(j, r)][k]["state"] == "covered" for r in rounds]
+
+        def show(V, j, k):
+            return "/".join(V[(j, r)][k]["state"][:3] for r in rounds)
+
+        up = [k for k in sets[name] if all(cov(A, "opus", k)) and not any(cov(C, "opus", k))]
+        down = [k for k in sets[name] if all(cov(C, "opus", k)) and not any(cov(A, "opus", k))]
+        both = [k for k in up if all(cov(A, "astra", k)) and not any(cov(C, "astra", k))]
+        lines.append(f"## {driver}: {len(up)} settled by {arm} in every round and by {control} in none; "
+                     f"{len(both)} of them the same under the second judge; {len(down)} the other way")
+        for sign, group in (("+", up), ("-", down)):
+            for k in group:
+                lines.append(f"{sign} {k[0]} {k[1]} [{nu[k]['category']}]  {control}: opus {show(C, 'opus', k)}, astra {show(C, 'astra', k)};"
+                             f"  {arm}: opus {show(A, 'opus', k)}, astra {show(A, 'astra', k)}")
+                lines.append(f"    item: {nu[k]['nuance']}")
+                for r in rounds:
+                    lines.append(f"    {control} {r} ({C[('opus', r)][k].get('where')}): {textwrap.shorten(str(C[('opus', r)][k].get('quote')), 300)}")
+                for r in rounds:
+                    lines.append(f"    {arm} {r} ({A[('opus', r)][k].get('where')}): {textwrap.shorten(str(A[('opus', r)][k].get('quote')), 300)}")
+        lines.append("")
+    text = "\n".join(lines)
+    print(text)
+    if flags.get("out"):
+        Path(flags["out"]).write_text(text + "\n")
+
+
 def spec_size(round_name, arm, driver):
     words = tokens = requirements = n = 0
     for case in grade.cases():
@@ -404,7 +448,8 @@ def main():
     if not args:
         print(__doc__)
         raise SystemExit(2)
-    simple = {"label": cmd_label, "sets": cmd_sets, "bands": cmd_bands, "shortfalls": cmd_shortfalls, "pair": cmd_pair}
+    simple = {"label": cmd_label, "sets": cmd_sets, "bands": cmd_bands, "shortfalls": cmd_shortfalls, "pair": cmd_pair,
+              "stable": cmd_stable}
     if args[0] in simple:
         simple[args[0]](flags)
     elif args[0] in ("split", "gains") and len(args) > 1:

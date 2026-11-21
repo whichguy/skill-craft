@@ -1,0 +1,147 @@
+{
+ "slot": "csv-user-import__K-shiploop-spec-default-bounds__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "A mixed valid and invalid file can create a subset. An admitted file with no eligible rows creates zero. Account creation is atomic at the row boundary, and previously committed rows stay committed."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "On confirmed completion show **Created**, **Skipped** and **Failed** counts and source lines and reasons for skipped and failed records in source order."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "later field-valid rows with that key are marked **Skipped** with \u201cDuplicate in this file,\u201d \u2026 A match in any identity-reserving state is **Skipped** with \u201cEmail unavailable.\u201d"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-2, R-3",
+   "quote": "No header mapping, alternative delimiters, spreadsheet support, or import of permission, password or profile columns. \u2026 with the product\u2019s normal least-privilege role and initial account state. \u2026 CSV cannot grant elevated roles or set credentials."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "A signed-in admin with user-create authority in the selected directory can open **Import users** from user administration. \u2026 A signed-out actor, signed-in non-admin, or admin without user-create authority for the target cannot reach an operable import"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "The first record, after an optional UTF-8 BOM, decodes to the single case-sensitive field `email`. \u2026 Any other header, including a blank record before the header, yields \u201cExpected one column named email.\u201d Both outcomes create zero users."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "optional UTF-8 BOM \u2026 Quoted newlines within a record advance line numbering but are part of that field. \u2026 A comma separates fields. LF and CRLF delimit records outside quoted fields \u2026 Quotes can enclose a full field"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Account creation is atomic at the row boundary, and previously committed rows stay committed. \u2026 Default to the ordinary account-creation side effects, with no extra import-specific invitations or login provisioning.",
+   "missing": "How a later failure affects invitations already queued or sent for committed rows, including whether retry can send them again."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "exceeding a cap rejects the entire file before any user write. \u2026 At most 262,144 file bytes (256 KiB) and 500 data records."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2, R-3",
+   "quote": "Zero bytes, BOM only, header only or only empty physical lines after the header yields \u201cNo data rows\u201d for an empty file or valid header. \u2026 A valid one-row file can create one user."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-3, R-4 (Interruption and retry)",
+   "quote": "A may reselect and explicitly resubmit the same file under T-6. The first key now skips through uniqueness and the second creates, for 1 created, 1 skipped and 0 failed. D then holds both keys exactly once."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Authorized results live only in the active view. Reloading can lose feedback and the directory remains the account authority. There is no persistent import history, resumable job, shared result, cancellation control or promised completion after leaving.",
+   "missing": "The admin receives completion feedback in the current view, but the specification gives no requirement to process large admitted files in the background."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Default to the ordinary account-creation side effects, with no extra import-specific invitations or login provisioning.",
+   "missing": "Whether ordinary creation sends mail for each imported user and, if so, how quickly a batch of invitations may go out."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "with the product\u2019s normal least-privilege role and initial account state. \u2026 CSV cannot grant elevated roles or set credentials.",
+   "missing": "Whether a new account starts active or pending, whether it has a password, and how the user first signs in."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "The admin keeps the original file locally. \u2026 Do not expose raw CSV cells, email values, files or filenames in import results \u2026 release processing data on rejection, completion or abort."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "The product owner must identify any existing mandatory account audit obligations and retention. Preserve those obligations through ordinary user creation",
+   "missing": "Whether an audit record must identify the submitting admin, the scope and outcome of the import, and the time it occurred."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "correct the file if necessary and explicitly resubmit. \u2026 There is no persistent import history, resumable job, shared result, cancellation control or promised completion after leaving.",
+   "missing": "Running imports have no cancellation control. The retry instructions leave open how the admin selects and resubmits only failed rows."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-4; Non-functional requirements, Workload, runtime and cost",
+   "quote": "After submission show **Processing** while the outcome is pending. \u2026 No numeric latency, throughput, availability or cost target is sourced.",
+   "missing": "A completion-time bound at the file caps and any indication of progress beyond the pending status, such as the number of rows processed."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-3 (Existing match and concurrent creation; Concurrent create)",
+   "quote": "An already existing record stays as it was. \u2026 Repeat with the first writer using ordinary creation and the import as second writer. \u2026 the ordinary request receives its existing conflict outcome.",
+   "missing": "The specification preserves existing records and ordinary creation during a collision, but does not require the full manual single-user creation flow to keep its existing behavior while import is enabled."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-4, R-2",
+   "quote": "Do not expose raw CSV cells, email values, files or filenames in import results \u2026 validate each record against the field contract and ordinary account-create rules before trying to create that row.",
+   "missing": "Omitting cell values protects results from spreadsheet formulas. The standalone email contract gives no per-field length limit or outcome for an otherwise valid overlong address within the file cap."
+  }
+ ]
+}

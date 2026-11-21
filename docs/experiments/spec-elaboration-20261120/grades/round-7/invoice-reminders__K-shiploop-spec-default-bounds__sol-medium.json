@@ -1,0 +1,142 @@
+{
+ "slot": "invoice-reminders__K-shiploop-spec-default-bounds__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.34782219999999997,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1 TC-1",
+   "quote": "open slots at 09:00 UTC on calendar days 1, 7 and 14 after the UTC due date. Each slot closes at the next slot opening, with the final cutoff at 09:00 UTC on day 21."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2 TC-3",
+   "quote": "Suppress draft/unissued, paid or zero/negative balance, void/canceled, written-off, deleted, disputed/on hold and payment-pending invoices.",
+   "missing": "Whether an invoice on a payment plan stops the sequence; credit notes are only implied via balance reaching zero."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2 TC-3",
+   "quote": "A partial payment qualifies at the current outstanding balance."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "Non-functional requirements (Security and privacy)",
+   "quote": "Required runtime and provider retention, deletion and applicability of billing communications policies are open for billing/delivery owners before live activation.",
+   "missing": "Whether a customer-level do-not-contact, paused or unsubscribed state suppresses reminders, and whether billing notices are exempt from marketing opt-outs."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-3 TC-6",
+   "quote": "Overlapping runs and restarts share durable attempt history keyed by billing account, stable invoice identity and slot ordinal... Overlap, stale completion and restart cannot create another accepted or possibly accepted handoff for the same invoice and slot."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "F-3",
+   "quote": "The runtime claims an attempt durably (T-5), makes or repeats the last F-2 decision immediately before submission, and hands off only if still permitted."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-3 TC-7",
+   "quote": "retry at the first eligible evaluation at least one hour after that result... Allow at most three attempts total per slot... Permanent rejection ends work for that slot.",
+   "missing": "Any escalation or alert to a person when sends keep failing or the provider is out; failures are only recorded for operators to inspect."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Non-functional requirements (Capacity and cost)",
+   "quote": "verify throttling never creates duplicate or out-of-window handoffs... Expected workload, frequency, throughput, sender quotas and cost envelope are unresolved.",
+   "missing": "The provider rate limit value and how a large batch is paced within it."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1 TC-1; Submission",
+   "quote": "A slot whose opening precedes scope activation is skipped, even if it would otherwise be open. ... Skip openings before activation and elapsed windows to prevent a backlog burst."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1 Rules outside scope; TC-1",
+   "quote": "Custom cadence, local-time scheduling, holidays, manual sends and historical catch-up are excluded from the default.",
+   "missing": "Weekends and a business-hours sending window; slots stay open for days so sends and retries may occur at any hour."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-3 TC-5",
+   "quote": "its current outstanding amount with currency",
+   "missing": "How the amount and currency are formatted for the recipient's locale (only the fixture example `USD 120.00` is shown)."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2 TC-4; R-3 Rules outside scope",
+   "quote": "Suppress if the recipient is missing, ambiguous or unusable... Record a scoped reason without contact details. ... Sender replies, bounce handling ... are excluded."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-2 TC-4; Replay TC-4",
+   "quote": "Use the invoice's current billing-designated recipient... Suppress if the recipient is missing, ambiguous or unusable... ambiguous (both A and B fixture addresses without designation)"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3 TC-6, TC-8",
+   "quote": "durable attempt history keyed by billing account, stable invoice identity and slot ordinal... Authorized operators can distinguish accepted handoff... using scoped operational evidence with timestamp, slot and safe correlation identity.",
+   "missing": "Visibility of the per-step record on the invoice itself; evidence is on an operations surface that excludes invoice references and message content."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-3 TC-5",
+   "quote": "The body gives the same invoice reference, its due date and its current outstanding amount with currency, then asks the recipient to pay using the instructions on the original invoice. ... Omit payment links"
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "F-1; R-1 Rules outside scope",
+   "quote": "An authorized billing owner activates the account scope (T-1). ... Custom cadence, local-time scheduling, holidays, manual sends and historical catch-up are excluded",
+   "missing": "Who may stop or suppress a reminder by hand, and the roles permitted to activate beyond 'authorized billing owner'."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1 State and data; R-3 Rules outside scope",
+   "quote": "Activation is scoped to the authorized billing account and recorded with an effective UTC instant by its activation owner. ... manual retry, payment links and cross-channel fallback are excluded.",
+   "missing": "Turning reminders off globally or per customer, and any preview or dry-run mode."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-3 TC-8",
+   "quote": "Authorized operators can distinguish accepted handoff, definite failure, unknown result, eligibility deferral/suppression, retry and expiry",
+   "missing": "A view of what the system will send next (upcoming slots)."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-1 TC-1; R-3 TC-7",
+   "quote": "At most three slots are available per invoice under a fixed due date. Day 21 and later have no eligible slot. ... A handoff must start within its authorized window."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2 State and data; Service contracts",
+   "quote": "Invoice/customer mutations, corrections, deletion and their retention remain with the billing authority. Reminder processing leaves these resources intact. ... No billing writes, backfill or incremental cursor is required"
+  }
+ ]
+}

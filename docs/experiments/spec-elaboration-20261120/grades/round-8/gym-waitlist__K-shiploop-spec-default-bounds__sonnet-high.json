@@ -1,0 +1,143 @@
+{
+ "slot": "gym-waitlist__K-shiploop-spec-default-bounds__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.4212894,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "A-2",
+   "quote": "Promotion is **automatic**: the head of the queue is booked at once when a spot opens. No accept/decline step and no hold timer."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "A-4; R-2; \u00a79",
+   "quote": "Order is **first-come-first-served** by the server's join time; ties break by entry creation order. ... (not built): priority tiers or paid skip-the-line ... a new staff roster/reordering view ... out of scope"
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "A-9",
+   "quote": "Keeps the rule simple; overlap is handled by the booking rules at promotion.",
+   "missing": "Whether promotion into one overlapping class removes or skips the member's entry for the other; relies on an unconfirmed existing overlap rule (P-4, G-2)."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-11; A-12",
+   "quote": "The existing eligibility, credit and cancellation-window rules stay authoritative and are not redefined.",
+   "missing": "Whether cancelling (or missing) an automatically promoted booking, e.g. one promoted shortly before start, counts against the late-cancel/no-show policy."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-5; \u00a74 F-2",
+   "quote": "triggers: any change that leaves a bookable session with confirmed bookings < capacity ... procedure (inside the triggering change, A-11) ... commits, and answers the canceller (synchronous)."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-6; A-6",
+   "quote": "PROMOTED: \"You're in: {class name}\" ... a notice is recorded in the same change as its state transition and delivered afterwards, so a delivery failure never undoes a promotion"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "confirmed never exceeds capacity; each opened spot goes to exactly one member ... Alice and Bob cancel simultaneously \u2192 W1 and W2 promoted, each once."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "the changes to one session (book, cancel, join, leave, capacity change, close) behave as if executed one at a time. Hence: ... no member holds two entries or an entry plus a booking for the same session"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "A-5; R-2",
+   "quote": "Promotion **re-applies the booking rules** at promotion time. A head entry that fails them is skipped ... (not built): taking payment or a credit at join time.",
+   "missing": "When payment/credit is actually taken for a promoted booking and how a payment failure at promotion is handled; credit rules are an unconfirmed gap (G-2)."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "A-1; R-1",
+   "quote": "Waitlist capacity is **10 waiting entries per session** ... open-full, waitlist = 10 | `Waitlist full` disabled | `Class full \u00b7 10 on waitlist`"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "A-3; R-5",
+   "quote": "join and promotion are allowed only while ... `now < start` ... a spot opened at `now >= start` promotes nobody."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "staff raise the capacity (opens k = new \u2212 old spots). A reduced capacity or a raised one that leaves the session still full opens nothing."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "when a session is cancelled, all its WAITING entries become CLOSED(class_cancelled) with the CLOSED notice (R-6)."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-10; \u00a76",
+   "quote": "a waitlist entry holds member ID, session ID, state, join time, state-change time and reason ... Position, waiting count | **derived**, never stored"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "A-7; R-8",
+   "quote": "Terminal waitlist entries (PROMOTED, LEFT, SKIPPED, CLOSED) are kept **90 days after the session start**, then deleted."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "A-8",
+   "quote": "A member sees **only their own position** and the **count** of waiting entries; never another member's identity."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-10",
+   "quote": "staff access follows the existing staff access to bookings (no new staff view is added, out of scope).",
+   "missing": "Staff viewing the waitlist, manually promoting or removing an entry, and seeing promotion history are excluded rather than specified."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "NFR-2; R-5",
+   "quote": "the cancel response already includes the promotion result, so the promoted booking is visible on the next read after the cancel response"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-11; R-1",
+   "quote": "for sessions with an empty waitlist, booking, cancelling, capacity display and notices behave exactly as before."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1; NFR-6",
+   "quote": "for a full, bookable class the dead end (\"session full\") is replaced by a waitlist action.",
+   "missing": "Not stated explicitly whether sessions already full at release gain a waitlist immediately; rollout/migration only says the change is additive."
+  }
+ ]
+}

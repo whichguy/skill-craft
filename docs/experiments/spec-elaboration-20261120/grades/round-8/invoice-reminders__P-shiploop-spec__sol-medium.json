@@ -1,0 +1,144 @@
+{
+ "slot": "invoice-reminders__P-shiploop-spec__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.30957460000000003,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "A reminder slot is one occurrence in the billing scope's approved recurring policy. Eligibility requires ... a reached due instant",
+   "missing": "How many reminders and at what offsets from the due date; cadence and first/last occurrence are listed as open gaps."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Draft, void, canceled, or fully settled invoices are ineligible. ... Policy for disputed, written-off, reopened and similarly exceptional invoices is unknown.",
+   "missing": "Treatment of credited, disputed and payment-plan invoices is left undecided."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Boundary \u2014 if the invoice is partially paid before dispatch authorization, the message uses the remaining balance."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Confirm channel, sender identity, disclosure and approved wording, applicable contact permissions and the response to opt-outs.",
+   "missing": "How do-not-contact, paused or unsubscribed customers are treated, and whether billing notices are exempt from marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "repeated triggers, overlapping workers and recovery cannot produce additional accepted submissions for the same slot."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "authorize a dispatch only after revalidating current balance, collectibility, destination, scope and automation authority for that invoice and slot."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "a proven temporary rejection can retry the same logical reminder within the open slot after fresh authorization. Failure \u2014 permanent rejection ends that slot with a failure reason.",
+   "missing": "Retry interval and attempt ceiling are open gaps; no escalation to a person on repeated failure; outage tolerance unresolved."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Non-functional requirements (Capacity and timing)",
+   "quote": "Confirm expected accumulated invoices after downtime, peak eligible occurrences, channel limits ... recording timely sends, skipped work and quota behavior. No numeric targets are established.",
+   "missing": "The provider rate limit and how a large batch is paced within it."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Pre-activation slots are excluded, and closed slots are skipped after downtime. Existing unpaid invoices can qualify at their next post-activation slot.",
+   "missing": "Missed slots are not replayed, but every existing overdue invoice could still send at the first slot; treatment of existing overdue invoices is an open gap."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "The billing owner must confirm the due-date interpretation and timezone, cadence, quiet hours, expiry",
+   "missing": "Customer local time, business hours, weekends and holidays are undecided."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "gives the approved outstanding amount, currency and due date from the final authorized invoice snapshot",
+   "missing": "How currency and amounts are formatted for the recipient's locale."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Failure \u2014 missing, invalid or unauthorized destination prevents dispatch and leaves an operator-visible reason.",
+   "missing": "Handling of addresses that bounce after acceptance and whether later reminders continue to a bouncing address."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Recipient identity comes from the invoice authority at final authorization. ... Send the notice to that destination only. ... Payment links, contact creation, group recipients and new recipient accounts are outside scope."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Track only the scope, invoice and occurrence references, outcome, timing, safe reason and evidence correlation needed for recovery and review.",
+   "missing": "A record of what was sent shown on the invoice itself; message content is not retained and read-back is on an operations surface."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "identifies the billing sender and invoice reference, gives the approved outstanding amount, currency and due date ... uses approved wording to prompt payment. ... Payment links ... are outside scope."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The billing owner controls scope activation and policy."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "Non-functional requirements (Compatibility and release)",
+   "quote": "Before activation, demonstrate scoped enable/disable, fresh suppression and honest status for in-flight handoffs.",
+   "missing": "Per-customer off switch, preview or dry-run; manual resend is placed out of scope."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "authorized operators can distinguish pending, blocked, suppressed, skipped, failed, unknown and channel-accepted outcomes as applicable.",
+   "missing": "A view of what the system will send next (upcoming slots) is not stated."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Failure \u2014 early or expired slots produce no outbound request. Boundary \u2014 the due and slot-opening instants are inclusive, and the closing instant is exclusive."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Reminder processing reads these records without changing them. ... Before and after evaluation the invoice records are unchanged"
+  }
+ ]
+}

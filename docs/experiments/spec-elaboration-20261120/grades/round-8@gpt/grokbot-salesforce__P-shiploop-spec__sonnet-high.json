@@ -1,0 +1,182 @@
+{
+ "slot": "grokbot-salesforce__P-shiploop-spec__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1, AD-7, R-9",
+   "quote": "a Lightning tab named **Grok** (route `/lightning/n/Grok_Bot`) \u2026 Each Send passes the transcript's last window to Apex. \u2026 It carries no Salesforce user id, name, email, org id or record data."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-11",
+   "quote": "the bot operation honours the calling user's sharing (it declares sharing), reads only the settings record, creates, changes and deletes no records"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-11",
+   "quote": "It does not read any object that needs object permission or field permission, so there is no CRUD or FLS surface."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "AD-3, F-1",
+   "quote": "Permission set `Grok_Bot_User` carries: access to the Apex class, tab visibility, and the External Credential principal. \u2026 Admin setup (person-only): deploy, enter key, assign grant."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-8 (state and data assessment; out of scope)",
+   "quote": "only that user's browser, never other users \u2026 Saved or shared conversations, admin transcript review, usage analytics, bounding R-8."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-5",
+   "quote": "one synchronous `HttpRequest` per Send \u2026 The method does no DML \u2026 is not reachable from triggers or Flow.",
+   "missing": "The specification avoids triggers and DML but chooses synchronous execution. It gives no async job or transaction boundary for a callout initiated by a trigger or after DML."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AD-3, R-6",
+   "quote": "External Credential `Grok_xAI_Ext` \u2026 It never appears in source files, deployed metadata values, the bot settings, any server-side return value, any browser response, any log line or any error message."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "AD-5",
+   "quote": "the platform limits are 1 to 120,000 ms per callout, 120 s cumulative, and 100 callouts per transaction.",
+   "missing": "The applicable Apex heap and CPU-time ceilings are unspecified."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "NFR-9, AD-8 (test layers)",
+   "quote": "The server tests carry a mock that **captures** the outbound request \u2026 Apex tests in the org with `HttpCalloutMock`"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-3, AD-1",
+   "quote": "Named Credential `Grok_xAI`: URL `https://api.x.ai` \u2026 That method calls `https://api.x.ai` through a Named Credential (`callout:Grok_xAI`)."
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "Any other non-2xx status (400, 404, 3xx, 5xx) | `upstream_error` | \"Grok is temporarily unavailable. Try again.\"",
+   "missing": "Authentication, rate limiting and timeout have distinct messages. Other client refusals such as 400 and 404 share the 5xx message, so users cannot distinguish those refusals from a provider failure."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "HTTP 429 | `rate_limited` | \"Grok is receiving too many requests right now. Wait a moment and try again.\" \u2026 No automatic retry exists (A-9)."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "Grok did not answer within the time limit. Try again. \u2026 HTTP 2xx whose body does not parse, has no assistant text, or has empty text",
+   "missing": "The timeout and malformed-response cases are defined. The spec gives no rule for recognizing a parseable answer cut short by the provider or telling the user it is incomplete."
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-8, R-9",
+   "quote": "Refreshing or navigating away discards everything, and nothing is saved in the org. \u2026 whether xAI keeps any copy despite `store:false` (for example abuse monitoring) was not established.",
+   "missing": "The page lifetime and removal actions are specified. The text gives no user-deletion rule for an open transcript or any copy retained by xAI."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "Don't enter data you aren't allowed to share. \u2026 only the model id, the system prompt, the windowed conversation and the storage-off flag. It carries no Salesforce user id, name, email, org id or record data."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "each send includes the last *E* **completed exchanges** (a user message with its successful reply, *E* = Max history exchanges, default 10) plus the new user message."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-1.A1, R-4",
+   "quote": "an empty transcript with the empty-state text, and a composer. \u2026 If the trimmed text is empty, Send is disabled and the server rejects it with `invalid_input`. \u2026 exactly 4000 characters is accepted, 4001 is rejected"
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "NFR-7",
+   "quote": "An admin can change the model, prompt and limits without code (R-7), can rotate the key in Setup, and can find failures in the debug log by category (R-9).",
+   "missing": "No org-wide enable or disable control or equivalent shutdown procedure is specified."
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "A-10, R-12",
+   "quote": "sandbox or scratch \u2026 a Salesforce DX project builds and deploys to the designated development org with no errors. \u2026 The deploy does not assign the grant or enter the key.",
+   "missing": "The spec does not define separate development and production settings or credentials, or the Apex coverage requirement for production deployment."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "NFR-1",
+   "quote": "The hard bound is the callout timeout (R-7, \u2264 120,000 ms; default 60,000). Observable criterion: the pending indicator is visible from Send until the outcome (R-2)."
+  },
+  {
+   "id": "N-26",
+   "state": "partial",
+   "where": "NFR-5, R-5",
+   "quote": "Designed empty state (greeting plus one hint line), loading state (pending indicator plus \"Grok is thinking\u2026\"), and error state (R-5 alert that persists until the next Send or Clear and is not a transient toast).",
+   "missing": "No distinct presentation is specified for a model refusal, including what the transcript shows when Grok declines to answer."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-11, R-12 (state and data assessment)",
+   "quote": "Resources changed by delivery: new metadata only \u2026 Existing org metadata: observed only, for name-clash checks \u2026 is not reachable from triggers, Flow or batch."
+  }
+ ]
+}

@@ -1,0 +1,140 @@
+{
+ "slot": "gym-waitlist__K-shiploop-spec-default-bounds__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "PD-1",
+   "quote": "A freed spot books the first eligible waitlisted member directly and notifies them; the member may cancel under the existing rules."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "PD-2, AD-3, R-5",
+   "quote": "Order is join order; leaving and rejoining goes to the end; no priority tier. \u2026 each entry gets a per-class, strictly increasing sequence value when it is appended \u2026 staff manual promote or reorder (G-5)."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "PD-1, A-8, R-5",
+   "quote": "Automatic promotion, no claim window. \u2026 the member may cancel under the existing rules. \u2026 The waitlist is free: no fee, penalty or no-show rule \u2026 an ordinary booking, tagged \"Booked from waitlist\""
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-5.1",
+   "quote": "M2 cancels at 09:00 UTC. After the cancel returns: booked set exactly {M1, M3, M4}; waitlist exactly [M5]; M5 is #1"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-6, R-6.2",
+   "quote": "through the existing booking channel \u2026 A spot opened up and you've been booked into Spin on Tue 1 Dec at 18:00. \u2026 the booking and removal still commit \u2026 a `notify_failed` event"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-8.1",
+   "quote": "C7 capacity 2, booked {M1, M2}, waitlist [M3, M4, M5]; M1 and M2 cancel concurrently: exactly M3 and M4 booked (each once); booked {M3, M4}; waitlist [M5] with M5 #1"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "A-2, R-2, R-8",
+   "quote": "One spot per member per class \u2026 A member who becomes booked in a class by any path has that class's entry removed. \u2026 a direct booking cannot take a spot ahead of an open waitlist"
+  },
+  {
+   "id": "N-9",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1 (J8)",
+   "quote": "Class full, open, waitlist already has 10 entries | `WAITLIST_FULL`: \"The waitlist for this class is full (10 of 10).\""
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "A-3, PD-3",
+   "quote": "Cutoff is **60 minutes** before the class start instant; closed at and after that instant \u2026 From the cutoff instant no one can join and no one is promoted."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-5.3, R-7",
+   "quote": "staff raise capacity to 4: M3 and M4 promoted in that order; M5 is #1 \u2026 A capacity decrease below the booked count does not touch entries."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "When a class is cancelled, every entry is removed and each member notified"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-13.1, AD-3, T-10",
+   "quote": "An entry holds only the member ID, class ID and join order. \u2026 position is the count of entries with a lower sequence, plus one. \u2026 None (derived) | Closed",
+   "missing": "The sequence establishes order, but the record omits the time the member joined."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-7, R-13.3",
+   "quote": "When the class start passes, the class has no waitlist label \u2026 Entries are deleted with the class's booking records under the existing retention"
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "No payload, page or message sent to a member includes another member's name, email or ID; the only information about others is the aggregate count and own position."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "G-5, R-5",
+   "quote": "Whether staff need to see or edit waitlists. Left out, not decided \u2026 staff manual promote or reorder (G-5).",
+   "missing": "Staff access to the list and manual promotion or removal are deferred. No staff-facing history identifies who was promoted and when."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-12.1",
+   "quote": "after any join, leave or cancel response returns, the next read by any client reflects it (read-your-write; no delayed promotion)"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-14.1, State and data assessment",
+   "quote": "For a class with a free spot, booking, cancelling and viewing behave exactly as before this change \u2026 Out of scope: staff views, reports, migration of historical data (no entries exist before this change), reset of existing bookings."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-3, State and data assessment",
+   "quote": "Each full class card and detail view shows the viewer one of these states \u2026 Full, open, 0 waiting | \"Full \u00b7 be the first on the waitlist\" | Join waitlist \u2026 no entries exist before this change"
+  }
+ ]
+}

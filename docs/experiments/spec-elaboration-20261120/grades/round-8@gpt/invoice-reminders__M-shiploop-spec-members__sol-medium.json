@@ -1,0 +1,144 @@
+{
+ "slot": "invoice-reminders__M-shiploop-spec-members__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-3 (R-2, Reminder window)",
+   "quote": "for a due date of D, the default opportunity starts at 09:00 UTC on D+1 and ends at 00:00 UTC on D+2. \u2026 This is one reminder per invoice, with no repeat series."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-4",
+   "quote": "fully paid at USD 0.00, credit at USD \u22121.00, draft, void, canceled, deleted, written-off, disputed with collection hold \u2026 For the unchanged partial balance, one submission remains permitted.",
+   "missing": "Whether an active payment plan itself suppresses a reminder while the invoice still has a positive balance."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-5 (R-3, Recipient and content)",
+   "quote": "It identifies the sender, invoice reference, due date, and remaining balance and currency, using the values authorized at release."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-5",
+   "quote": "or a suppressed/revoked address. Each yields zero submissions.",
+   "missing": "Which customer-level pauses, do-not-contact flags, or unsubscribes suppress billing email, and whether a marketing-only opt-out exempts billing notices."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-7, C-8 (R-4, Prevent duplicate effects)",
+   "quote": "for a given account and invoice, overlapping evaluations, rediscovery after restart and duplicated results converge on one logical reminder and at most one accepted handoff."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-6",
+   "quote": "If M commits disable or the billing authority commits full payment before T-4 release, count is zero."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-7, C-8",
+   "quote": "A definite transient refusal at 09:01 lets the December 11 09:02 evaluation send a second attempt. \u2026 A definite second refusal yields two submissions and zero acceptances. \u2026 If the result never arrives, the hold persists past midnight.",
+   "missing": "Who is notified and when repeated definitive failures or a sustained provider outage need human attention. Operational investigation is specified for unresolved handoffs."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-2/R-4, Processing timeliness and capacity (C-3 tests the scheduling window)",
+   "quote": "Map account policy and per-invoice attempt state to storage and read/write quotas, source lookups to billing quotas, submissions and result lookups to delivery quotas, and events to diagnostic quotas.",
+   "missing": "What provider submission limit applies and how to pace a batch that would exceed it."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-3 (R-2, Reminder window)",
+   "quote": "exact activation at opening qualifies, and there is no catch-up if the activation is after opening or an outage spans the whole window."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "C-3 (R-2, Reminder window)",
+   "quote": "for a due date of D, the default opportunity starts at 09:00 UTC on D+1 and ends at 00:00 UTC on D+2.",
+   "missing": "How the customer\u2019s local date and business hours map to the provisional UTC rule, and whether weekends or holidays shift or suppress a send."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-5",
+   "quote": "Message values are INV-42, 2026-12-10, USD 80.00, the fixture sender and billing-help address.",
+   "missing": "How to format other currencies and amounts for display, including currencies with a different number of fractional digits."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-5",
+   "quote": "Replay with no address, `invalid-address`, two equally designated addresses (`ap@example.test` and `other@example.test`), B's address `ap-b@example.test`, or a suppressed/revoked address. Each yields zero submissions.",
+   "missing": "How to record or act on a bounce reported after delivery acceptance for an address that passed validation."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-5 (R-3, Recipient and content)",
+   "quote": "exactly one designated destination qualifies. \u2026 The reminder does not add CC, BCC, alternate recipients, attachments or sensitive payment credentials."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-9 (R-4, Report outcomes)",
+   "quote": "Show the attempt time and a safe invoice/attempt reference where applicable.",
+   "missing": "Whether the operator can see the history on the invoice itself and which details of the message appear there for each reminder."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-5",
+   "quote": "Message values are INV-42, 2026-12-10, USD 80.00, the fixture sender and billing-help address.",
+   "missing": "Whether a payment link, if used as the resolution route, expires and when."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-2, C-6 (R-1 and R-4)",
+   "quote": "current, account-scoped management permission governs policy reads and changes. \u2026 The background actor records the intent before any external submission and is the only authorized release actor.",
+   "missing": "Whether an operator can alter the default schedule or stop a single reminder by hand, and what permission those actions require."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-6",
+   "quote": "If M commits disable or the billing authority commits full payment before T-4 release, count is zero.",
+   "missing": "Whether there are global and individual customer controls beyond account disablement, and whether an operator can preview, dry-run, or request a manual resend."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-9 (R-4, Report outcomes)",
+   "quote": "an authorized operator can distinguish configuration off, ineligible or suppressed (with reason), pending handoff, accepted by delivery, retry pending, failed/expired, and outcome unknown.",
+   "missing": "Whether the operator can see which invoice is scheduled for the next reminder and its planned send time before an attempt begins."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-3 (R-2, Reminder window)",
+   "quote": "for a due date of D, the default opportunity starts at 09:00 UTC on D+1 and ends at 00:00 UTC on D+2. \u2026 evaluations outside the window produce no release."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-4, C-6 (R-2, State and lifecycle, and Scope and basis)",
+   "quote": "Only existing billing and contact authorities mutate their records. \u2026 This specification does not change invoice balances, payment processing, contact maintenance, or collection policy."
+  }
+ ]
+}

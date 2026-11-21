@@ -1,0 +1,188 @@
+{
+ "slot": "grokbot-salesforce__P-shiploop-spec__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-01 (AD-1), C-09",
+   "quote": "Expose a Lightning Web Component (LWC) through a Salesforce custom tab labeled **Grok Bot**. \u2026 The bot does not automatically add Salesforce user identifiers, CRM fields, or secrets to the request."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-02 (AD-1)",
+   "quote": "Set sharing explicitly and perform no business-record queries or writes.",
+   "missing": "The specification excludes record-backed answers. It does not select the asking user's sharing context for record retrieval."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-01/C-02 (R-1, AD-1)",
+   "quote": "the org administrator manages activation/grants, and the designated consumer can use the entry without setup rights. \u2026 Keep the tab access, Apex class permission and external credential principal mapping in a dedicated least-privilege permission set."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-08, C-10 (R-4)",
+   "quote": "Prompt and reply text are displayed only to the current user and held in active view memory plus request processing. The bot neither stores them durably nor writes them to intentional diagnostics."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-03 (AD-2)",
+   "quote": "Use a server-side HTTPS call to the xAI Responses API \u2026 use non-streaming foreground inference without tools",
+   "missing": "The design does not require a separate asynchronous Apex transaction or address callouts from triggers or after DML."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-09 (R-4, AD-2)",
+   "quote": "Named Credential linked to a Custom External Credential with a named principal. \u2026 Store only non-secret routing and model/budget settings in deployable configuration. \u2026 The browser and product source, logs and handoff never contain credential values."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-04/C-05/C-07 (R-2/R-3 latency and capacity)",
+   "quote": "Salesforce documents a 120-second cumulative Apex callout ceiling and a 6 MB synchronous callout request/response ceiling with heap implications.",
+   "missing": "The per-transaction callout count, heap limit and CPU-time limit are unspecified. The 6 MB figure bounds the callout payload."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C-03, C-07",
+   "quote": "Use distinguishable controlled replies in the lower-layer check to prove the adapter renders returned text.",
+   "missing": "The test approach does not state that Apex tests cannot make real callouts or require a mock at the Apex HTTP callout boundary."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "C-09 (AD-2)",
+   "quote": "Use an enhanced Salesforce Named Credential linked to a Custom External Credential with a named principal.",
+   "missing": "The endpoint is named, but the specification does not say to register its host on the Named Credential or that Salesforce refuses an unregistered destination."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-03/C-08 (AD-1, AD-3)",
+   "quote": "The component uses a non-cacheable imperative call to an `@AuraEnabled` Apex operation in the same deployment. \u2026 associate each promise with the active view and attempt so late results cannot rehydrate conversation state."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-07, C-08",
+   "quote": "**Retry** resubmits that prompt once with the same completed context and reuses its visible message. \u2026 Responses that arrive after view exit, identity replacement or a superseding attempt are discarded from the consumer view.",
+   "missing": "The duplicate and stale-result rules apply to the active view. No message or request idempotency rule covers repeated execution of a queued job."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-07 (two-turn replay)",
+   "quote": "For the timeout, HTTP 503, invalid-response and credential-denial variants \u2026 The first three variants expose Retry. The credential variant directs the user to the administrator.",
+   "missing": "Timeout and 5xx share the same recovery cue. The text does not require distinct user-visible outcomes for those cases or specify the outcome for other 4xx refusals beyond the credential and throttle cases."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-07",
+   "quote": "A timeout, network loss, throttle, upstream service failure or unusable response shows a persistent, sanitized error with Retry available. \u2026 No automatic retry and no fabricated reply. \u2026 Manual retry is a new upstream attempt."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-03, C-07",
+   "quote": "A failed, nonterminal, incomplete or empty upstream response produces no assistant message and follows R-3. \u2026 A timeout, network loss, throttle, upstream service failure or unusable response shows a persistent, sanitized error with Retry available."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-04/C-06 (R-2), C-08 (R-3)",
+   "quote": "The view keeps ordered completed pairs, at most one pending or failed turn and its current light/dark choice. \u2026 The service holds no lookup record, resumable job or server transcript.",
+   "missing": "Only the transient turn structure is defined. There is no conversation or turn record schema with timestamps, model identifier and usage counts."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-08, C-09 (R-4)",
+   "quote": "**Clear conversation**, available when settled, removes draft, messages and failure state in that view. Reopening after leaving or reloading starts empty. \u2026 The bot has no provider-side delete promise.",
+   "missing": "The local lifetime is specified, but the effect of deleting a user on an active conversation or provider-retained content is unspecified."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-09",
+   "quote": "chat text is sent to xAI and instructs them to use synthetic, non-sensitive content. \u2026 The bot does not automatically add Salesforce user identifiers, CRM fields, or secrets to the request."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "C-04",
+   "quote": "If the context exceeds the confirmed budget, decline the send before dispatch and offer **Clear conversation** to start fresh. \u2026 No silent truncation.",
+   "missing": "The context budget has no specified unit or threshold."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "C-01, C-05 (invalid-input replay)",
+   "quote": "can reach the empty conversation, labeled message input and Send control. \u2026 Empty or whitespace-only text shows a validation cue and triggers no outbound call. \u2026 the effective size/context limits are unknown.",
+   "missing": "The maximum accepted length and its unit remain open, including the supported output bound for an answer."
+  },
+  {
+   "id": "N-22",
+   "state": "covered",
+   "where": "C-02 (R-1), C-03 (AD-2), C-10",
+   "quote": "the org administrator manages activation/grants \u2026 Store only non-secret routing and model/budget settings in deployable configuration. \u2026 An authorized operator can distinguish a successful completion, local rejection, access/configuration failure, timeout, throttling and upstream failure using outcome-only diagnostics"
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "C-10",
+   "quote": "App-owned diagnostic fields are limited to sanitized outcome, elapsed time and opaque correlation, without prompts, reply bodies, credentials or session values.",
+   "missing": "No retained audit entry ties an asking user to a prompt and answer. The operator must still confirm retention for the outcome diagnostics."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "C-01/C-02 (R-1), C-09 (AD-2)",
+   "quote": "The deployer can apply authorized metadata \u2026 Org creation, production deployment and general staff access are outside this request. \u2026 Store only non-secret routing and model/budget settings in deployable configuration.",
+   "missing": "The dev-org type and configuration and credential differences across environments are unspecified. The specification gives no production deployment or code-coverage requirement."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "C-06/C-07 (R-3)",
+   "quote": "The active send shows a waiting status until settlement. \u2026 Pending feedback ends on an observed terminal outcome or the confirmed deadline.",
+   "missing": "The product deadline and latency target have no stated value."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "C-03/C-06/C-07 (interface requirements)",
+   "quote": "Both themes share consistent type and spacing scales, semantic palettes, one icon set and designed empty, pending, error and reply states. \u2026 An authenticated access denial directs the user to the administrator."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-01/C-02 (R-1)",
+   "quote": "Changes are confined to bot entry/deployment metadata, configuration and designated access assignments in the selected dev org. \u2026 No domain records, object permissions, field permissions or sharing rules are changed."
+  }
+ ]
+}

@@ -1,0 +1,143 @@
+{
+ "slot": "csv-user-import__M-shiploop-spec-members__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.4509754,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "If and only if every row is valid, all rows are created together as one atomic unit ... If anything fails, no user from the file exists afterwards."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "rejection (file errors *or* row errors with row numbers, field and code, and a message the admin can act on). ... All row errors for the file are reported"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "checked case-insensitively ... against (a) all existing user records of any status and (b) earlier rows in the same file. ... every later occurrence is `DUPLICATE_IN_FILE` ... Existing users are never updated (no upsert)."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "Each created user has ... the default non-admin role (A-3) ... the CSV can set nothing else. ... Admin role can never be granted by import (there is no role column, R-3)."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "The import endpoint and page are available to a caller whose *current* role is admin. Everyone else is refused before the file is read.",
+   "missing": "Whether the import ability is a distinct permission from single-user creation, i.e. that being able to create one user does not imply being able to bulk-import."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "The first record is a header. ... Exactly the set {email, name}; any other header, a missing required header, or a repeated header (after normalisation) is a file error."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "a leading UTF-8 byte-order mark is accepted and ignored. Lines may end in LF or CRLF. Fields follow RFC 4180 quoting (quoted fields may contain commas, doubled quotes, line breaks)."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "A-4",
+   "quote": "No email is sent by this feature."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "at most `IMPORT_MAX_ROWS` data records and at most `IMPORT_MAX_BYTES` bytes (R-2). ... Exactly `IMPORT_MAX_ROWS` rows is accepted; one more \u2192 400 `TOO_MANY_ROWS`, nothing created"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "zero bytes or only blank lines \u2192 400 `EMPTY_FILE`. ... [R-3] A header-only file \u2192 400 `NO_DATA_ROWS`. ... [R-2.1] `FX-BOM` ... \u2192 201, user `fred@example.com` / `Fred Ford` created."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-5.4",
+   "quote": "After `FX-OK3` succeeded (Store has 7 users), submitting the identical file again \u2192 422 with `ALREADY_EXISTS` on rows 1, 2, 3; Store still 7."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "\u00a72 Non-goals",
+   "quote": "Background/asynchronous import of very large files | R-9 | Synchronous only, bounded by the limits of R-9. ... [\u00a73.1] the response *is* the completion signal"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "The feature sends no message."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "A-4",
+   "quote": "Imported users are created without a usable credential and reach the product through the existing \"set/reset password\" or invite mechanism.",
+   "missing": "Whether the created account is active or pending, and the concrete first sign-in path (left open as G-2)."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "NFR Privacy / data handling",
+   "quote": "the uploaded file is not persisted (no temp file survives the request)"
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Exactly the set {email, name}; any other header ... is a file error.",
+   "missing": "No explicit statement of locale-dependent value handling (e.g. Unicode normalisation of names or locale-specific case folding); the closed column set only implies no date/number values exist."
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "NFR Operability / observability",
+   "quote": "Each attempt after authorization writes one audit entry (A-8) so an admin action can be traced ... the audit entry holds admin id, timestamp, outcome, counts and error codes only"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-6",
+   "quote": "Imports have no partial-success state (A-5). ... After a fault the admin may resubmit the same file safely.",
+   "missing": "Whether a running import can be cancelled; retrying only failed rows is implicitly moot under atomicity but cancellation is not addressed."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "NFR Performance / capacity",
+   "quote": "a maximum response time for a file at the limit are **unresolved** ... [R-10] *pending* (submit disabled, \"Importing\u2026\" status, file control locked",
+   "missing": "The actual time bound for a maximum-size file, and any progress indication beyond an indeterminate 'Importing\u2026' status."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "**Preserved:** every existing user's data and the existing single-user creation behavior"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "NFR Security \u2014 input handling",
+   "quote": "names that begin with `=`, `+`, `-`, `@` are stored verbatim and any future CSV export must neutralise them ... row messages never reflect raw field values into HTML unescaped."
+  }
+ ]
+}

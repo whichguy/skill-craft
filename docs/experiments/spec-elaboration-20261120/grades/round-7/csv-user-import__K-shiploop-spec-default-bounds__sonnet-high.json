@@ -1,0 +1,144 @@
+{
+ "slot": "csv-user-import__K-shiploop-spec-default-bounds__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.4308826,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "A-5",
+   "quote": "All-or-nothing: if any row is invalid or conflicts, no user is created and the admin gets the complete list of problems."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "Failure: `{import_id, created:0, errors:[{row, column, code, message, first_row?}]}` ... A failed import at G8 reports **every** row error (never only the first)"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "A row whose email matches an existing user is `already_exists`. Among rows whose email is syntactically valid, the first occurrence stands; each later occurrence is `duplicate_in_file` with `first_row`."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "A-10",
+   "quote": "Any admin may create `admin` users through the CSV; there is no separate \"can import\" permission. See G-4.",
+   "missing": "No rule that file roles are checked against the importer's own authority; with an unknown real role set (G-2) or roles above admin, escalation behaviour is undecided."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "the import page and endpoint are available only to an authenticated user whose *current* role is admin (A-1, A-10).",
+   "missing": "Who may import is stated, but not its relationship to the single-user-creation permission (whether being able to create one user implies import)."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "The header is the first non-blank record; names are trimmed and case-insensitive; `email` and `name` required, `role` optional, any order; unknown and duplicate columns rejected."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "comma-delimited, `\"` quoting with `\"\"` escape, quoted fields may hold commas and newlines, LF or CRLF records, optional final newline."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "any failure before or during the commit (validation, conflict, datastore or audit-write error) leaves zero new users. ... The import sends no email and sets no password."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "1,048,576 accepted, 1,048,577 rejected; 1,000 rows accepted, 1,001 rejected ... `file_too_large` 413, ... `too_many_rows` 422."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AC-2.4, AC-3.6, AC-8.4",
+   "quote": "FX-H6 (zero bytes) and FX-H7 (three LF bytes) -> 422 `file_empty` ... FX-H5 -> 422 ... `no_data_rows` ... FX-MIN (one row) -> 201, `created` 1"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "recovery is re-upload, which fails safely with `already_exists` for every row (R-7, AC-8.5)."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "AD-1",
+   "quote": "the import runs inside the one HTTP request that carries the file and answers with the final result ... No queue, worker, operation record or polling endpoint."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "A-7",
+   "quote": "Created users have **no credential** and the product's existing \"not yet activated / invited\" state ... The feature sends **no email**."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-8 / G-1",
+   "quote": "no credential, the product's not-yet-activated state (A-7) ... G-1: How do created users obtain a credential?",
+   "missing": "How a created user first signs in is left open (G-1); only 'existing activation/reset flow' is suggested."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-11",
+   "quote": "The uploaded bytes and parsed rows exist only in request memory; any temporary spool file is deleted before the response completes; error reports are not stored"
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "A-11",
+   "quote": "Input is UTF-8 (optional BOM), comma-delimited. No delimiter or encoding auto-detection; spreadsheet \"CSV (semicolon)\" exports are rejected",
+   "missing": "No statement on date, number or locale-dependent value formats (only implied moot by the email/name/role column set)."
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-11",
+   "quote": "every attempt that reaches G2 yields exactly one audit event: `import_id`, actor id, UTC time, outcome ..., data-row count ..., created count, error count."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "there is no cancel control because cancelling the request could not undo a server effect"
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "NFR-3",
+   "quote": "Unresolved bound (G-5). No latency target was requested ... a valid 1,000-row import (FX-R1) completes inside a single request ... and the UI shows the pending state throughout.",
+   "missing": "A numeric time bound for a maximum-size file, and actual progress (only an indeterminate pending state)."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "resource = user store (insert-only) ... Left out: updating or skipping existing users (upsert).",
+   "missing": "That single-user manual creation continues to work unchanged is not stated."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "Left out: Unicode normalisation; neutralising spreadsheet formula prefixes (`=`, `+`, `-`, `@`). Names are stored verbatim; any future CSV export must neutralise them."
+  }
+ ]
+}

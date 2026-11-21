@@ -1,0 +1,145 @@
+{
+ "slot": "invoice-reminders__M-shiploop-spec-members__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "PD-2",
+   "quote": "Schedule is relative to the invoice due date; default offsets in days are `-3, 0, 7, 14`."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "`paid`, `draft`, `void` (ignored) \u2026 Partially paid invoices are eligible and are reminded for the outstanding amount only.",
+   "missing": "The eligibility rule omits how a credit note, dispute or payment plan affects an otherwise eligible invoice."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "AC-2.2",
+   "quote": "INV-1002 (total 800.00, paid 300.00) is eligible and its email states outstanding `500.00 USD`, not 800.00."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-2, R-5",
+   "quote": "customers flagged do-not-contact \u2026 Out of scope domain rules: delivery receipts, opt-out, language.",
+   "missing": "No rule says how customer pauses, do-not-contact flags or unsubscribes affect sending, or whether billing notices may still be sent after a marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-6",
+   "quote": "A consumed milestone is never sent again (T-7). \u2026 After a crash with an unknown outcome the attempt counts as failed and is retried (at-least-once, PD-6)",
+   "missing": "The spec permits a second email if the provider accepted the first before the process crashed. It supplies no way to deduplicate that retry."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "Immediately before each send it re-reads that one invoice from the invoice source and sends only if it is still eligible with the freshly read outstanding amount"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "One attempt per milestone per run; the next run that finds the milestone still due tries again. After 3 attempts (PD-7) without success the milestone is Exhausted (T-4) and is never retried",
+   "missing": "Sender failures consume retries during an outage. Exhaustion is visible in history, but the spec excludes an alert and assigns nobody to receive an escalation."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "NFR-4",
+   "quote": "the email provider's rate limit are unknown \u2026 Until set, the product processes invoices sequentially and makes no capacity claim",
+   "missing": "Sequential sends have no specified pacing against a provider quota or throttling response."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-3, R-9",
+   "quote": "A run on an installation with a long-overdue invoice sends its latest due milestone once \u2026 the first real run on a system with overdue invoices will send reminders to every one of them",
+   "missing": "Older steps are suppressed per invoice, but there is no rollout rule to spread the first sends across the backlog of overdue invoices."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "as-of = today in the configured timezone \u2026 Offsets and dates use calendar dates only; no time of day is configured",
+   "missing": "The spec gives one configured timezone. It gives no customer-local send window or rule for business hours, weekends or holidays."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-5, AC-5.1",
+   "quote": "outstanding amount as `<amount with two decimals> <currency>` \u2026 `500.00 USD`"
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-5, R-7",
+   "quote": "Missing contact: skip `no-recipient`. Invalid contact: skip `invalid-recipient` \u2026 Out of scope: delivery and bounce tracking",
+   "missing": "There is no action for an address that passes validation and then bounces after provider acceptance."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-5, AC-5.4",
+   "quote": "to the invoice's `contact_email`. A valid contact is exactly one address \u2026 `a@x.example,b@y.example` invalid"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-10",
+   "quote": "recorded time (UTC, ISO 8601), as-of date, invoice id, offset, outcome (`sent`, `failed`, `exhausted`, `superseded`, `skipped`), reason or attempt count, and for sent or failed entries the recipient address.",
+   "missing": "History can be filtered by invoice in the CLI. The spec provides no history on the invoice itself and retains no copy of the sent message."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "invoice number; due date as `YYYY-MM-DD`; outstanding amount as `<amount with two decimals> <currency>`; the payment URL line only when `payment_url` exists",
+   "missing": "The spec gives no expiry rule for the payment link or alternative way to pay when the URL is absent."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-1, R-8",
+   "quote": "The owner configures: `enabled` \u2026 `offsets_days` (default `[-3, 0, 7, 14]`) \u2026 manual `run` is the same command",
+   "missing": "The owner configures the schedule, but the spec assigns no authority to send or stop an individual reminder by hand."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "AC-1.5, R-9",
+   "quote": "`enabled = false` makes `run` exit 0, print `reminders disabled`, send nothing and leave the ledger unchanged \u2026 `invoice-reminders run --dry-run` evaluates exactly as a real run",
+   "missing": "There is no customer-specific disable control or manual resend action for a previously sent reminder."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "F-2, F-3",
+   "quote": "`run --dry-run` reads the same sources and prints what a real run would send, changing nothing. \u2026 operator runs `history` to see what was sent, skipped or failed."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "PD-5, R-3",
+   "quote": "At most one reminder is sent per invoice per run \u2026 A run on an installation with a long-overdue invoice sends its latest due milestone once",
+   "missing": "The limit applies separately to each invoice. There is no cap on total sends in a run or time window and no maximum age for the latest due reminder."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "PD-4",
+   "quote": "The product never modifies invoices; invoices belong to an external invoice source."
+  }
+ ]
+}

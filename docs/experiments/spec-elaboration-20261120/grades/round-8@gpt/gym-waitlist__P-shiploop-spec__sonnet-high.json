@@ -1,0 +1,146 @@
+{
+ "slot": "gym-waitlist__P-shiploop-spec__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "PD-2",
+   "quote": "when a spot opens, the first eligible waitlisted member is booked immediately, no offer to accept."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2, R-6",
+   "quote": "the list is ordered by acceptance order (I-4). \u2026 simultaneous joins, leaves, bookings and cancellations resolve as if executed in some serial order \u2026 **Left out:** priority tiers, manual reordering (G-2)."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "PD-4, G-6",
+   "quote": "Waitlisting overlapping classes is allowed. \u2026 Eligibility rules at join and at promotion (active membership, credits, overlapping booking) and their charge timing.",
+   "missing": "Whether booking the first class removes the overlapping entry immediately, leaves it for a later eligibility check, or permits both bookings."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "PD-2",
+   "quote": "a member may be booked into a class they no longer want and must cancel under the normal cancellation rules.",
+   "missing": "Whether declining late or missing an automatically booked class incurs the usual late-cancellation or no-show penalty."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4, AD-1",
+   "quote": "a cancellation that frees a spot and the promotion of the first eligible waitlist entry commit as one unit in the same authoritative store that holds bookings. \u2026 the waiting member finds themselves booked, without acting."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "A notification is attempted through the channel chosen under G-3 stating class, date and time. \u2026 a delivery failure never undoes the booking and is recorded",
+   "missing": "Which channel delivers the promotion notice."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-4, R-6, I-1",
+   "quote": "k spots promote the first k eligible entries in order. \u2026 No member is promoted twice and no spot is double-assigned. \u2026 The booked count of a class never exceeds its capacity because of any booking or promotion."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-6, T-5",
+   "quote": "simultaneous joins, leaves, bookings and cancellations resolve as if executed in some serial order \u2026 direct book | not booked to booked if free | `CLASS_FULL` offers waitlist; `ALREADY_BOOKED`; `ALREADY_WAITLISTED`"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "PD-9",
+   "quote": "Joining the waitlist costs nothing and holds no credit or payment; any charge happens only at promotion, exactly as a normal booking would.",
+   "missing": "If the charge fails, whether the member keeps their place and whether the spot passes to the next member."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "G-4",
+   "quote": "Waitlist cap (per class, per member) unspecified. No bound is invented. \u2026 Treated as unbounded in the spec; capacity planning unready.",
+   "missing": "The default is unlimited. If a cap is adopted, its value and the response shown when the list is full are unspecified."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "PD-6",
+   "quote": "The waitlist closes at class start. Promotion happens up to class start; no earlier cutoff."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-4.A6",
+   "quote": "capacity 3 raised to 5, booked A, B, C, waitlist D, E, F, G: D and E are promoted, waitlist F, G, booked 5",
+   "missing": "Whether staff may lower capacity while members are waiting and what happens to bookings and the queue if capacity falls below the booked count."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "If the class is cancelled (existing staff action, G-7), all entries are removed and members notified together with booked members as today."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "State and data assessment, PD-1",
+   "quote": "Waitlist entry (class, member, join order, status) \u2026 Waitlist order is first come, first served by the time the join was accepted.",
+   "missing": "Whether the record retains the acceptance timestamp as well as join order, and whether the authority persists current position or computes it from the surviving entries."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "at class start the waitlist is closed and its entries removed"
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A member can read their own position at any time. \u2026 Others' identities and the list length are not exposed (R-8)."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-8, R-3, NFR-8",
+   "quote": "**Left out:** staff views (G-8). \u2026 **Left out:** bulk removal, staff removal (G-8). \u2026 The authority records events with class id, member id, reason and order: `waitlist.joined`, `waitlist.left`, `waitlist.promoted`",
+   "missing": "Staff roster access and manual management are excluded. The spec gives staff no way to promote someone or see who was promoted at what time."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "AD-1",
+   "quote": "a cancellation that frees a spot and the promotion of the first eligible waitlist entry commit as one unit in the same authoritative store that holds bookings."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-9, State and data assessment",
+   "quote": "booking a class with a free spot, cancelling a booking, listing classes and the capacity limit work as they do today. \u2026 no existing record is migrated."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-10, State and data assessment",
+   "quote": "on a full class the primary action reads \"Join waitlist\" (replacing a disabled \"Class full\"). \u2026 created on join \u2026 Migration: waitlist entries are a new record; no existing record is migrated."
+  }
+ ]
+}

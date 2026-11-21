@@ -1,0 +1,149 @@
+{
+ "slot": "csv-user-import__P-shiploop-spec__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C6",
+   "quote": "If the batch cannot complete, create zero accounts from it and preserve existing account contents."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C4",
+   "quote": "A missing required value or value rejected by the account rules is reported with row number, field and correction."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C7",
+   "quote": "Any collision within the CSV or with an existing identity rejects the whole batch. Report the implicated rows where disclosure is allowed, and preserve existing accounts."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C4",
+   "quote": "Attempts to supply a role, scope or credential column are rejected as unsupported input.",
+   "missing": "The file cannot assign roles. The spec leaves open how to ensure that the default privileges of a created account fall within the submitting admin\u2019s authority."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C1",
+   "quote": "An authorized user administrator can open the import in their permitted directory and submit a file.",
+   "missing": "Whether an admin who can create one user needs a separate grant to import users."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C3 (R-2, Proposed file contract and File and shape)",
+   "quote": "The first record is a header. The provisional header is exactly `email`, case-sensitive. \u2026 Reject unreadable or invalid UTF-8, malformed quoting, missing or unsupported headers and incorrect field counts before any create."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C3 (R-2, Proposed file contract)",
+   "quote": "optional UTF-8 BOM, LF or CRLF record endings \u2026 Quoted fields are parsed as fields, including commas within quotes and doubled quotes as a literal quote.",
+   "missing": "Whether a newline inside a quoted field belongs to that field or makes the file malformed."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C6 (R-3, Create and read back and Domain limits and open gaps)",
+   "quote": "If the batch cannot complete, create zero accounts from it and preserve existing account contents. \u2026 Which existing activation, notification, billing, audit or other effects a normal create triggers is unknown.",
+   "missing": "What happens to invitations or other external effects from earlier rows when a later row fails, including whether delivery waits for commit."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C5",
+   "quote": "An oversized or over-row-limit file receives a useful limit message and writes zero users.",
+   "missing": "The maximum accepted file size in bytes or the maximum number of rows."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C3, C6",
+   "quote": "Empty and header-only files create zero users. \u2026 One eligible row is a valid batch."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C8, C7",
+   "quote": "Repeating that attempt with the same content returns its pending or terminal state without a second write. \u2026 Any collision within the CSV or with an existing identity rejects the whole batch."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C9 (R-4, Submit and feedback and Interaction and lifecycle)",
+   "quote": "It shows in-progress status after submission and confirms the actual created count only after authoritative commit. \u2026 Dismissing the view does not cancel an already submitted write.",
+   "missing": "Whether large files run as background jobs and what condition selects that path. The import view provides the completion result."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C6 (R-3, Domain limits and open gaps)",
+   "quote": "Which existing activation, notification, billing, audit or other effects a normal create triggers is unknown.",
+   "missing": "Whether imported users receive invitation or welcome emails and, if so, whether delivery is immediate for the whole batch or paced at a specified rate."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C6 (R-3, Domain limits and open gaps)",
+   "quote": "Updates, merges, role assignment, password import, and a new activation or invitation workflow are outside scope. Which existing activation, notification, billing, audit or other effects a normal create triggers is unknown.",
+   "missing": "The initial activation status, whether the account starts with a password, and how the new user first signs in."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C3 (R-2, State and data)",
+   "quote": "a transient copy under the submitting identity and directory context \u2026 discards the raw copy and parsed working data once processing finishes or is abandoned. No product copy is available to other clients, in upload history"
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C10 (R-4, Interaction and lifecycle)",
+   "quote": "Product import operation under authenticated actor and target. \u2026 Authorized operators can identify them by opaque correlation, outcome and counts where appropriate.",
+   "missing": "Whether an audit record links the importing admin to the accounts created and records when the import took place."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C8, C9 (R-4, Interaction and lifecycle)",
+   "quote": "After a definitive rejection, the admin can correct the file and make a new submission. \u2026 Dismissing the view does not cancel an already submitted write.",
+   "missing": "Whether the admin can explicitly cancel a running attempt and whether there is a way to resubmit just the reported rows. A rejected batch commits zero rows."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C9 (and Non-functional requirements, Capacity and compatibility)",
+   "quote": "It shows in-progress status after submission \u2026 No latency, throughput, availability or cost target is established by the request.",
+   "missing": "The maximum elapsed processing time for a file at the supported size limit."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C6, C7 (R-3, Basis and delta and State and service boundary)",
+   "quote": "Preserve single-user rules for identity, uniqueness, permissions, account lifecycle and any mandatory creation effects. \u2026 Existing accounts and unrelated changes are preserved."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

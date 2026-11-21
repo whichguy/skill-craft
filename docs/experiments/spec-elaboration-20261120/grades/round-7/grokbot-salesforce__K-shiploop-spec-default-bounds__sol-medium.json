@@ -1,0 +1,183 @@
+{
+ "slot": "grokbot-salesforce__K-shiploop-spec-default-bounds__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.4881478,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1 Entry; AD-1",
+   "quote": "The intended internal user opens **Grok Bot** from App Launcher and through its feature URL ... Serve Grok Bot as an LWC in the existing authenticated Lightning Experience shell with an actual CustomTab metadata entry."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "AD-2; R-1 State and data",
+   "quote": "The method has no CRM object queries, sharing dependencies, FLS dependencies, DML or record permissions."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "The method has no CRM object queries, sharing dependencies, FLS dependencies, DML or record permissions."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "AD-2; R-4 State and data",
+   "quote": "Use permission sets for entry/class/feature and for outbound principal access so they can be revoked independently. ... Salesforce admin alone provisions the encrypted secret and scoped use grants."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-3 Minimize disclosure; R-3 State and data",
+   "quote": "The bot exposes no chat history to a different page/user and creates no durable transcript, payload logs ... Only that view can read its application state."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-2",
+   "quote": "Use an imperative, non-cacheable LWC invocation of a narrow Apex method. ... The method has no CRM object queries, sharing dependencies, FLS dependencies, DML or record permissions.",
+   "missing": "The spec avoids DML-before-callout but chooses a synchronous imperative callout; no asynchronous (Queueable/future/batch) design is stated, and it explicitly uses no background job."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "Use an extensible Named Credential at `https://api.x.ai` and an External Credential with Custom authentication. ... Keep credential values out of code, UI, payload diagnostics and metadata artifacts."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "AD-2",
+   "quote": "Salesforce documents 100 callouts per transaction, 120 seconds cumulative timeout and a 6 MB synchronous request/response limit that counts toward heap. ... up to 20 concurrent external callouts for Developer Edition.",
+   "missing": "The CPU time limit and its number are not named."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2 Open gaps",
+   "quote": "The system-test owner checks request/response and timeout behavior with a controlled dependency.",
+   "missing": "That Apex tests cannot make real callouts and so require an HttpCalloutMock (mock callout) implementation is not stated."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "Use an extensible Named Credential at `https://api.x.ai` and an External Credential with Custom authentication."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "Service contracts, Lightning consumer \u2192 Salesforce",
+   "quote": "A returned terminal result for the active, timely attempt settles the UI. Lost, late or mismatched responses cannot settle it.",
+   "missing": "The spec assumes the imperative call returns the answer inline; no platform event, CDC, polled status or LMS notification mechanism is chosen."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2 Send/Recover; R-3 State and data",
+   "quote": "A repeat Send while waiting leaves the current attempt intact and produces no extra outbound request ... No failure advances history or triggers an automatic retry. ... An attempt settles at most once in the active view."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "AD-2; Service contracts",
+   "quote": "Salesforce also documents up to 20 concurrent external callouts for Developer Edition. ... Excess capacity follows R-2 unavailable feedback or the view deadline."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-2 failure table",
+   "quote": "Missing integration configuration, provider HTTP 401, 403 or 404 | Show that Grok is unavailable ... Outbound timeout, client deadline, disconnected/failed transport or HTTP 5xx | Show that a reply could not be obtained",
+   "missing": "Timeout and 5xx share one outcome rather than distinct ones; other 4xx (e.g. 422) fall into a generic bucket."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2 failure table; R-2 Recover",
+   "quote": "HTTP 429 | Show that Grok is busy or rate-limited and suggest waiting before sending again. ... No failure advances history or triggers an automatic retry."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2 Reply; R-2 Recover",
+   "quote": "Never promote partial text to a reply. ... The view stops waiting at 40 seconds from admission if no current result has been handled."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-3 State and data; AD-4",
+   "quote": "Keep the draft, current request identity, completed pairs, appearance and error as LWC instance state. ... Use no persistent client store, shared memory cache, custom object or background job.",
+   "missing": "No stored record shape with role, status, timestamps, model identifier or token/usage counts is defined; the spec deliberately stores nothing."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-3 State and data; R-3 Minimize disclosure",
+   "quote": "New chat advances the view's conversation identity and removes all previous content and error state. Reload, teardown, or detected account/session loss discards that view's data"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-3 Minimize disclosure; R-2 Domain exclusions",
+   "quote": "disclose that only synthetic text should be used ... No automatic Salesforce user or record identifiers are sent. ... CRM retrieval and writes ... are outside scope."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3 Follow up; AD-3",
+   "quote": "Zero through four completed pairs can precede the new prompt. On the fifth success the oldest pair leaves the window."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-1 Entry; R-2 Validate; R-2 Reply",
+   "quote": "Empty, whitespace-only, missing ... and over-limit input cause no outbound call. ... Accept 1 through 2,000 Unicode scalar values inclusive after trimming. Reject at 2,001"
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-4 State and data; R-2 failure table",
+   "quote": "If recovery fails, disable feature access and resolve configuration before re-enabling. ... The admin checks grant, endpoint, model and integration status.",
+   "missing": "How an admin changes the model (AD-3 requires spec reconciliation instead) and how an admin sees failed requests are not stated."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "R-3 Domain exclusions; Service contracts",
+   "quote": "Saved or shareable history, user profiles, synchronization, app-level usage audits containing content ... are outside scope. ... No new durable audit sink is needed for the interactive dev flow.",
+   "missing": "No audit record of who asked what and what was answered, nor its retention; only xAI's 30-day provider audit is noted."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-1 Domain exclusions; R-1 State and data",
+   "quote": "Production rollout, provisioning a new Salesforce identity, guest/public access and changes to unrelated applications or profiles are outside scope.",
+   "missing": "Per-environment configuration/credential differences, scratch org vs sandbox, and the production code-coverage requirement are not stated."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "R-2 Send; R-2 Recover",
+   "quote": "announces **Waiting for Grok**. ... The waiting cue does not assert provider receipt. ... The outbound wait is capped at 30 seconds after dispatch. The view stops waiting at 40 seconds from admission"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "Non-functional, Interface and accessibility; R-2 failure table",
+   "quote": "Demonstrate deliberate empty, waiting, error and reply layouts. ... Provider refusal or content-filter termination | Indicate that Grok could not answer the prompt and allow revision."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-1 Basis and delta; R-2 State and data",
+   "quote": "Preserve unrelated org navigation, permissions, records and automation. ... Salesforce does not persist this operation or alter any CRM object, record or field."
+  }
+ ]
+}

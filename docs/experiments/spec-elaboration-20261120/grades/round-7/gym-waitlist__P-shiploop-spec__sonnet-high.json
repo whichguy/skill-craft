@@ -1,0 +1,144 @@
+{
+ "slot": "gym-waitlist__P-shiploop-spec__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.332997,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "DD-2",
+   "quote": "Promotion is automatic, in first-come order, with no claim window or hold timer."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2, R-2.4, R-1",
+   "quote": "waitlist order is first-come-first-served by the server's recorded join order ... two joins that arrive \"simultaneously\" are totally ordered by the server's single recorded sequence ... Out of scope for this R: ... paid or priority waitlists."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "promotion applies the same booking rules a direct booking would (G-1 lists them: e.g. account in good standing, credits/payment, time conflicts)",
+   "missing": "Whether promoting a member into one class removes or resolves their waitlist entry/promotion for an overlapping class; only a skip on conflict is implied."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "G-5",
+   "quote": "how credits, payment, cancellation penalties apply to a promoted booking. Assumed: same rules as a direct booking at promotion time.",
+   "missing": "How the existing no-show/late-cancellation policy treats a promoted booking the member did not expect or cancels (e.g. late promotion then late cancel); the policy is Unknown."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "when a confirmed booking on a full class ends (member cancels, staff cancels it) or capacity increases, the earliest eligible waitlisted member is given a confirmed booking ... in the same atomic step as the seat being freed."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-6, G-6",
+   "quote": "notification failure never undoes a promotion; it is retried ... `cy` receives \"You're in: Spin 18:00\" ... Assumed: the app's existing booking-confirmation channel plus in-app status."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-4, R-8",
+   "quote": "one freed seat promotes one member; two freed seats promote two, in order ... Confirmed count never exceeds capacity ... each freed seat promotes at most one member exactly once even if the cancel event is retried."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-8, State and data assessment",
+   "quote": "each member has at most one entry or booking per class ... a losing concurrent request gets the normal rejection (full / already booked), never a corrupted state ... a (member, class) has booking xor entry"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-5, R-9, G-5",
+   "quote": "promotion applies the same booking rules a direct booking would (... credits/payment ...). A head-of-list member who fails them is removed from the waitlist with a reason, notified (R-6), and the next member is tried."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "G-3",
+   "quote": "G-3 \u2014 waitlist length cap. Assumed none.",
+   "missing": "Whether a cap exists is left an open gap, and what a member sees when the waitlist is full is not stated."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "the waitlist stops accepting joins, and no promotion occurs, once the class can no longer be booked: at the same cutoff that applies to direct bookings, or at the class start time if there is none"
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-4.3",
+   "quote": "capacity raised 2\u21924 while waitlist is [cy, dee, eli] and 2 confirmed \u2192 cy and dee promoted (in that order), eli remains position 1, count 4/4.",
+   "missing": "What happens when staff lower capacity while a waitlist exists (and below current confirmed count)."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-7, R-7.1",
+   "quote": "If a class is cancelled or removed, all its waitlist entries end and members are notified."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "NFR-4, State and data assessment",
+   "quote": "WaitlistEntry (member, class, sequence, created-at) \u2014 new ... created by join; deleted by leave/promote/remove/close ... sequence unique per class; positions contiguous 1..n"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "NFR-4, DD-5",
+   "quote": "Kept: until the entry ends (promoted \u2192 becomes a booking; left/removed/expired \u2192 deleted). No separate history is retained (DD-5)."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "DD-3",
+   "quote": "A member sees only their own waitlist position, never other members' identities or the total length"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "G-7, NFR-6",
+   "quote": "G-7 \u2014 staff visibility of waitlists. Not requested; excluded. ... Each promotion, skip and removal emits one structured log event with class id, entry id and outcome.",
+   "missing": "Staff viewing the waitlist, manually promoting or removing someone, and seeing promotion history are excluded rather than specified."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-4, R-4.4",
+   "quote": "in the same atomic step as the seat being freed ... there is no observable moment with a free seat and a non-empty eligible waitlist"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-9, NFR-7",
+   "quote": "everything the app does today for non-full classes, cancellations, rosters, attendance, capacity counts, billing/credits and reports is unchanged."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "Non-functional requirements (Excluded)",
+   "quote": "data migration (new entity only; nothing existing is rewritten, subject to G-1)",
+   "missing": "Whether classes already full at launch get a waitlist, and how members who were turned away before are handled."
+  }
+ ]
+}

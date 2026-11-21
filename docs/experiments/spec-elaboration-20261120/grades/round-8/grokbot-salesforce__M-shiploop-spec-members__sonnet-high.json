@@ -1,0 +1,184 @@
+{
+ "slot": "grokbot-salesforce__M-shiploop-spec-members__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.653022,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "an authorised user finds \"Grok Bot\" through the App Launcher and opens the chat page at `/lightning/n/Grok_Bot`. ... Out of scope: Experience Cloud, mobile-publisher branding, record pages, utility bar, console app, Classic."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "(b) Sharing: not applicable by design: the bot reads no records (PD-8); AD-6 still selects the safe sharing default for the server code so a later record read inherits it."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "(c) Object CRUD and (d) field-level security: not applicable by design: no SOQL/DML on org data."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "only a user holding the access grant can run the send operation; the grant bundles the tab, the app, the platform-boundary classes and the credential-principal access (AD-4).",
+   "missing": "Who may administer the bot (enter key, edit settings) is just 'Org administrator'; no permission set or specific permission defines bot administration."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "State and information lifecycle",
+   "quote": "Transcript and history | the open component, memory | only that user's page; never sent to another user's client ... stored nowhere by the product, and are not logged (R-12)."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-6",
+   "quote": "Order inside one transaction: read settings, build body, make the callout. No DML precedes the callout (a callout after uncommitted work in the same transaction is disallowed [S])",
+   "missing": "The spec deliberately chooses a synchronous imperative callout and rejects Queueable/async (AD-7); the asynchronous design the nuance requires is not adopted."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "the xAI API key is stored only in the org's credential facility (AD-3), entered by a person in Setup. It is never in source control, deployed metadata, a custom setting/metadata record, ... a log line or a test fixture."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "AD-7",
+   "quote": "cumulative callout time per transaction is capped at 120 seconds; one callout's timeout ranges from 1 ms to 120,000 ms ... at most 100 callouts per transaction. Heap limit for synchronous Apex (6 MB) [U].",
+   "missing": "CPU time limit is not named or given a number."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "AD-9",
+   "quote": "Apex tests use `HttpCalloutMock`; a mock proves the parse/classify/request-shape logic, not xAI's behavior or the credential."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-3",
+   "quote": "Named Credential `Grok_API` (URL `https://api.x.ai`) ... (c) no Remote Site Setting is needed for a Named Credential endpoint"
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "AD-7",
+   "quote": "the component calls `sendMessage` imperatively and awaits the promise.",
+   "missing": "The answer is assumed to return inline from a synchronous call; no platform event, CDC, polled status or message-service notification mechanism is specified."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "Service boundary contracts",
+   "quote": "Idempotency/duplicates | double-submit is prevented client-side (R-10); the server has no dedupe, a repeat call is a new billable call by design"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "Service boundary contracts",
+   "quote": "synchronous request/response; no acceptance-without-result ... no queue, no worker, so no abandoned-work recovery",
+   "missing": "Concurrent request limits (e.g. concurrent long-running synchronous Apex requests from several users) and the outcome when one is refused are not stated."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "Shared definitions (Error classes)",
+   "quote": "`E-AUTH` xAI answered 401 or 403; `E-RATE` xAI answered 429; `E-TIMEOUT` no answer within the configured timeout; ... `E-UPSTREAM` xAI answered 5xx ... Each class has its own visible text"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "Transient-group errors offer Retry ... retry is user-initiated only (PD-4) ... Out of scope: automatic retry/backoff"
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-10",
+   "quote": "if the call never returns, the platform timeout (R-9) ends it as E-TIMEOUT; the pending state is never left forever.",
+   "missing": "Handling of a partial or truncated (incomplete) answer that does contain some text is undecided; AD-2 leaves 'whether an incomplete status exists' unverified."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "PD-7",
+   "quote": "Conversations are not persisted anywhere in the org (R-8).",
+   "missing": "No stored record shape (role, status, timestamps, model id, token/usage counts) is defined; the spec deliberately stores nothing."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "Leaving the page, reloading, or closing the tab ends the conversation permanently; nothing is stored in the org or in browser storage."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "PD-8 / R-12",
+   "quote": "The bot does not read Salesforce records (no CRM grounding, no actions on data). ... a notice that messages are sent to xAI (Grok) ... users should not enter information they may not share with that provider."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "The window is `History_Window` messages (default 20, PD-3). When history plus the new message exceeds the window, the oldest complete turns ... are dropped"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "a message that is empty or only whitespace is not sent ... exactly 4,000 characters is accepted; 4,001 is rejected."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-9",
+   "quote": "an administrator edits, without a code change or deploy, `Model` (text) ... The next send uses the new values.",
+   "missing": "No explicit admin off switch, and no admin view of failed requests beyond optional platform debug logs of the R-12 diagnostic line."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "R-12",
+   "quote": "The product emits no diagnostic that contains message text, reply text, the system prompt, the key or an xAI response body.",
+   "missing": "No audit record of who asked what and what was answered, nor its retention; the spec deliberately keeps none."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-13",
+   "quote": "target is a development org only (a Developer Edition, sandbox or scratch org). A production org is refused ... a deploy validation (`sf project deploy validate`) before the real deploy",
+   "missing": "How configuration and credential differ per environment, and the production code-coverage requirement, are not stated."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "R-10 / PD-3",
+   "quote": "the UI shows a pending state: Send disabled ... 'Grok is thinking'. The pending state ends only when the call returns or fails, never on a timer ... timeout 60,000 ms"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "R-14",
+   "quote": "a deliberately designed chat interface ... designed empty, loading, error, not-ready and success states"
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-13",
+   "quote": "the bot's metadata is delivered to one named development org, additively: pre-existing components, fields, automation and access in that org are unchanged."
+  }
+ ]
+}

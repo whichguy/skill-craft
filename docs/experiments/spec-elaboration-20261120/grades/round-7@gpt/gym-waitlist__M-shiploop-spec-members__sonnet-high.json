@@ -1,0 +1,144 @@
+{
+ "slot": "gym-waitlist__M-shiploop-spec-members__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "PD-1",
+   "quote": "when a place opens, the first eligible waitlisted member is booked automatically; no claim window or \"confirm within N minutes\" step."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "a service-assigned sequence, not a client or wall-clock time, so two joins in the same millisecond still have a defined order \u2026 **Out of scope:** priority tiers, manual reordering, staff override"
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "G-4b late-cancel/penalty/credit behaviour for a promoted booking made close to start (unknown; owner: product owner; interim: apply existing booking rules unchanged).",
+   "missing": "Promotion is automatic. The spec leaves open whether cancelling the resulting booking late or missing the class incurs a penalty."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4, R-4:A1",
+   "quote": "as part of the same operation that opened the place** and before it returns \u2026 Ben cancels \u2192 Cai booked"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "class name, start time, \"you were promoted from the waitlist\" \u2026 in-app marker \"promoted from waitlist\" is always available; any existing outbound channel (ASM-5) is used in addition. \u2026 interim: one attempt, failure recorded \u2026 Cai still booked"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-4:A5, R-5:I3",
+   "quote": "Ana and Ben cancel, in either order \u2192 bookings {Cai} plus one free place; Cai is promoted exactly once \u2026 confirmed \u2264 capacity, even under simultaneous requests"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-5:A4, R-5",
+   "quote": "a waitlisted member cannot book directly (`ALREADY_WAITLISTED`), so no member is ever both. \u2026 concurrency resolved by serialising changes per class"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "payments, credit deduction or fees specific to waitlist (the existing booking rules apply as they do to direct bookings).",
+   "missing": "The payment rules being inherited are unspecified, including when a charge is taken and what happens to the seat and queue entry if it fails."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "interim behaviour is **no cap**. \u2026 `WAITLIST_FULL` only once a cap exists (G-1a).",
+   "missing": "The release cap and the member-facing response when that limit is reached remain open."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "PD-6",
+   "quote": "Waitlist entries **end at class start**; promotions can occur at any time before start."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-4, R-5",
+   "quote": "capacity +3 with 2 waiting promotes both and leaves 1 place for direct booking \u2026 If staff **reduce** capacity below confirmed bookings \u2026 no promotion happens until confirmed < capacity."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-7:A1",
+   "quote": "staff cancel class C-101 with waitlist [Cai, Dee] \u2192 both entries end `class_cancelled`; no bookings are created; both are notified."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1, R-10, R-2",
+   "quote": "creates one waitlist entry {class, member, join order, status} \u2026 an entry stores the member id, class id, order and timestamps only. \u2026 A member's position is 1-based and always contiguous",
+   "missing": "The stored order determines the current position, but the spec does not say which timestamp records when the member joined."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "`expired` (class started) \u2026 Retention period of terminal records: unresolved (G-7b). \u2026 interim: keep, with no personal data beyond the member id",
+   "missing": "The spec gives no retention duration or deletion point for the expired record."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "PD-5",
+   "quote": "Members see **their own position** and the **total waiting count**, never other members' identities."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-10, R-2, R-7",
+   "quote": "Staff visibility of waitlist contents: **not requested**, no staff screen is added \u2026 **Out of scope:** priority tiers, manual reordering, staff override \u2026 The terminal record keeps {class, member id, reason, ended-at}",
+   "missing": "Manual promotion is excluded. The spec leaves staff access unresolved and gives no staff workflow for removing a member or reviewing who was promoted when."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "NFR-time",
+   "quote": "promotion has completed by the time the operation that opened the place returns"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-9, R-1:A1",
+   "quote": "these remain exactly as before, and a regression check must pin each against the baseline: (a) booking a class with space and an empty waitlist \u2026 confirmed bookings still {Ana, Ben}."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

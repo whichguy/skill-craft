@@ -1,0 +1,145 @@
+{
+ "slot": "invoice-reminders__P-shiploop-spec__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "R-1, Draft product rules",
+   "quote": "Eligibility requires an issued collectible invoice, positive outstanding balance, a reached due instant, a usable authorized billing destination and active reminder authority.",
+   "missing": "The due instant rules out pre-due reminders. The number of reminders and each offset from that instant are unspecified."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1, Draft product rules",
+   "quote": "Partial payment remains eligible while its authoritative balance is positive. Draft, void, canceled, or fully settled invoices are ineligible.",
+   "missing": "Whether a credit leaving a positive balance, a dispute, or a payment plan suspends reminders."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2, Correct message",
+   "quote": "if the invoice is partially paid before dispatch authorization, the message uses the remaining balance."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-2, Open gaps",
+   "quote": "Confirm channel, sender identity, disclosure and approved wording, applicable contact permissions and the response to opt-outs. If authority cannot be established, withhold delivery.",
+   "missing": "How a customer\u2019s do-not-contact, paused, or unsubscribed status affects billing reminders, including whether a marketing opt-out permits them."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-3, One logical reminder per slot",
+   "quote": "repeated triggers, overlapping workers and recovery cannot produce additional accepted submissions for the same slot."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1, Final authorization",
+   "quote": "authorize a dispatch only after revalidating current balance, collectibility, destination, scope and automation authority for that invoice and slot."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-3, Recover definite failures",
+   "quote": "a proven temporary rejection can retry the same logical reminder within the open slot after fresh authorization.",
+   "missing": "How to pace and cap retries during a provider outage, and when and whom to alert if failures persist."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Non-functional requirements, Capacity and timing (R-1/R-3)",
+   "quote": "Confirm expected accumulated invoices after downtime, peak eligible occurrences, channel limits, scheduler precision, storage limits and operational costs against the selected runtime.",
+   "missing": "Which provider rate limit applies and how to pace a large eligible batch to stay within it."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1, Draft product rules",
+   "quote": "Pre-activation slots are excluded, and closed slots are skipped after downtime. Existing unpaid invoices can qualify at their next post-activation slot."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1, Open gaps",
+   "quote": "The billing owner must confirm the due-date interpretation and timezone, cadence, quiet hours, expiry, collection limits, first/last occurrence and treatment of existing overdue invoices.",
+   "missing": "Which time zone governs sending, whether to use the customer\u2019s business hours, and how weekends and holidays affect the send time."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-2, Correct message",
+   "quote": "gives the approved outstanding amount, currency and due date from the final authorized invoice snapshot",
+   "missing": "How to render currency and amount for the recipient, including currency notation, decimal precision, and separators."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-2, Correct recipient",
+   "quote": "missing, invalid or unauthorized destination prevents dispatch and leaves an operator-visible reason.",
+   "missing": "What happens when an apparently valid address bounces after submission, including whether later reminders still target it."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-2, State and data",
+   "quote": "Recipient identity comes from the invoice authority at final authorization. The scoped reminder process and the selected delivery boundary see only the facts needed for that notification. Send the notice to that destination only."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3, State and data",
+   "quote": "Track only the scope, invoice and occurrence references, outcome, timing, safe reason and evidence correlation needed for recovery and review.",
+   "missing": "How an operator can see what was sent for each step on the invoice itself. The specified operations view shows outcome metadata and excludes message content."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-2, Correct message",
+   "quote": "the reminder identifies the billing sender and invoice reference, gives the approved outstanding amount, currency and due date from the final authorized invoice snapshot, and uses approved wording to prompt payment.",
+   "missing": "What payment instructions the recipient gets. Payment links are explicitly outside scope, so there is no link expiry to implement."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-1, State and data",
+   "quote": "The billing owner controls scope activation and policy.",
+   "missing": "Who, if anyone, may manually send or stop an individual reminder. Manual reminders are outside the change, and existing permissions are unspecified."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "Non-functional requirements, Compatibility and release (R-1\u2013R-3)",
+   "quote": "Before activation, demonstrate scoped enable/disable, fresh suppression and honest status for in-flight handoffs.",
+   "missing": "Whether there are global and per-customer switches, how an operator previews or dry-runs reminders, and whether an existing manual resend is available."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-3, Outcome visibility",
+   "quote": "authorized operators can distinguish pending, blocked, suppressed, skipped, failed, unknown and channel-accepted outcomes as applicable.",
+   "missing": "How an operator identifies the next planned reminder and its scheduled time before it enters processing."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-1, Eligible slot",
+   "quote": "early or expired slots produce no outbound request. Boundary \u2014 the due and slot-opening instants are inclusive, and the closing instant is exclusive."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "Scope and source, Evidence and starting point",
+   "quote": "Invoice issuance, payment collection and reconciliation, due-date edits, manual reminders and changes to customer records are outside this change."
+  }
+ ]
+}

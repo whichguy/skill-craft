@@ -487,3 +487,64 @@ added:
   and, after the owner's word, an E2E round.
 
 The decision rule, the one permitted extension and everything else stand as registered above.
+
+### Result of rounds 7 and 8 (2026-11-21)
+
+48 sessions, all exit 0, after a passing pre-flight each round; the leak check found none in either round; both
+judges read all 48 specifications (4 sets of 24 verdict files, none with a missing or unknown item).
+`evidence/round-8/readings-M.txt`, `readings-K.txt`, `by-set.txt`.
+
+Covered on the 22 target items, the cue arm against the released stage of the same round, round 7 then round 8:
+
+| | Sonnet, registered judge | Sonnet, second judge | Sol, registered judge | Sol, second judge |
+| --- | --- | --- | --- | --- |
+| M | 13 v 13, 13 v 12: +0.5 | 11 v 12, 12 v 11: 0.0 | 8 v 7, 8 v 8: +0.5 | 5 v 6, 9 v 6: +1.0 |
+| K | 17 v 13, 14 v 12: **+3.0** | 16 v 12, 13 v 11: **+3.0** | 14 v 7, 12 v 8: **+5.5** | 14 v 6, 11 v 6: **+6.5** |
+
+- **R16.** M: nothing shown on either driver. K: **shown on both drivers** (the mean is at or above the band of 2
+  and both rounds are above zero, under both judges).
+- **R17, nothing lost.** Holds for both arms. K's other needed items are above the released stage's in every cell
+  (+2.5 and +4.5 on Sonnet, +5.0 and +1.5 on Sol), inside the band of 7.
+- **R18, no capability added.** Holds for both arms: K's means on the four items are 0.0 and 0.0 on Sonnet, +0.5
+  and -0.5 on Sol. Read in the specifications, each movement is an exclusion scored one way or the other ("there
+  is no cancel control", "No new roster or queue-management screen"), not a control
+  (`evidence/round-8/K-capability-items-round-*.md`).
+- **R19, the standing shortfalls.** K covers 7 and 5 of Sonnet's 24 where a fresh P covers 1 and 1; 14 and 14 of
+  Sol's 42 where a fresh P covers 4 and 8.
+- **Size.** K against P: words 1.03 on Sonnet and 1.17 on Sol (under the 1.2 that names a cost), requirements 1.05
+  and 1.03, output tokens 1.26 and 1.19. M: 0.98 and 1.08 in words.
+- **The whole checklist**, for context: K +4.5 and +8.5 on Sonnet, +10.5 and +9.0 on Sol.
+- **The four non-functional bounds, read as registered** (`K-nonfunctional-bounds-round-*.md`). Where K covers one
+  and P does not: reminders "at most 60 minutes late" resting on an assumed hourly run (A-4), and in the other
+  round a count bound, "maximum reminders ever sent for one invoice = number of offsets"; a reply timeout of 30
+  seconds on Sol in both rounds, a configured default inside the platform's 120; and one judge credit on a passage
+  that states no bound. None is a performance target with no stated basis.
+
+**Decision rule.** M: no change is proposed. K: R16 is shown on a driver and no harm reading fails, so the cue goes
+forward: to the review at maximum effort first, then to the owner.
+
+**What the counts do not say, read after them** (descriptive; the kinds are the sorters', the reading of passages
+mine; `K-target-items-round-*.md`, `K-stable-target-items.md`):
+
+- **Only the second sentence did anything.** By the sorters' kinds, covered in rounds 7 and 8 under the registered
+  judge, Sonnet then Sol: on X1's 7 sets P 5, 4 and 4, 4; M 5, 5 and 5, 5; K 5, 5 and 4, 4. On its 13 limits P 7, 6
+  and 3, 4; M 7, 6 and 3, 3; K 11, 8 and 9, 7. The two sets the released stage leaves unsettled in every draw
+  (every condition that stops a reminder sequence; an existing do-not-contact state) stay unsettled under both
+  cues in every round under both judges.
+- **What K's gain consists of.** Of the 20 times K covered a target item that the P of its round did not (registered
+  judge, both drivers, both rounds; 3 went the other way): 12 are a default for a limit the released stage also
+  says exists and leaves without a value (the import's size and row limits in all four cells, the prompt's maximum
+  length, the reply timeout, the reminder run and schedule); 3 are a cap on the waitlist that the request did not
+  mention (10, 10 and 20), where the released stage wrote "Assumed none", "No bound is invented ... Treated as
+  unbounded", or left capacity unresolved; 2 are platform limits given their numbers; 1 is a set's members named;
+  2 are no difference in substance.
+- **The defaults are recorded as the cue asks and differ between draws.** "A-4 | Limits: file at most 1,048,576
+  bytes (1 MiB); at most 1,000 data rows ... These are product defaults chosen for an admin-sized batch, not
+  platform limits; platform limits are gap G-3." The other three K specifications of that request chose 2 MiB and
+  5,000 rows, 256 KiB and 500, and 1 MiB and 1,000.
+- **Steady in both rounds:** three items a driver are covered by K in both rounds and by P in neither (the
+  import's limits on both; the waitlist cap and the reminder bound on Sonnet; the prompt's length and the reply
+  timeout on Sol), two of each three the same under the second judge. M has none.
+
+**Predictions held against it** (journal section 20): M moves Sol's X1 by less than 2: held (+0.5, +1.0). M moves
+Sonnet's by 1 to 3: not held (+0.5, 0.0). K moves Sol's by 4 or more: held (+5.5, +6.5). Neither moves X3: held.

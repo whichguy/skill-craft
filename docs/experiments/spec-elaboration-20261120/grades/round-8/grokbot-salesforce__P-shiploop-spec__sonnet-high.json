@@ -1,0 +1,185 @@
+{
+ "slot": "grokbot-salesforce__P-shiploop-spec__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.5051566000000001,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "a Lightning tab named **Grok** (route `/lightning/n/Grok_Bot`) shows the bot page only to users holding the **Grok Bot User** grant."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-11",
+   "quote": "the bot operation honours the calling user's sharing (it declares sharing), reads only the settings record, creates, changes and deletes no records"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-11",
+   "quote": "It does not read any object that needs object permission or field permission, so there is no CRUD or FLS surface. A reviewer must be able to confirm that statement."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "shows the bot page only to users holding the **Grok Bot User** grant. The same grant is required to call the server-side bot operation.",
+   "missing": "Who may administer the bot (edit settings, rotate the key) is left as generic 'admins', not expressed as a permission set or equivalent."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "State and data assessment",
+   "quote": "Transcript and draft | the page, in browser memory, transient | only that user's browser, never other users"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-11",
+   "quote": "makes at most one callout per call (platform ceiling 100)... the entry takes one conversation and is not reachable from triggers, Flow or batch.",
+   "missing": "The design is deliberately synchronous (AD-5); the callout-after-DML/uncommitted-work rule is not stated as a constraint and no asynchronous mechanism is chosen."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "the key exists only in the platform credential facility. It never appears in source files, deployed metadata values, the bot settings, any server-side return value, any browser response, any log line"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "NFR-8",
+   "quote": "Hard platform limits: one callout per send (\u2264 100 per transaction), \u2264 120,000 ms timeout (S-3).",
+   "missing": "Heap size and CPU time limits are not named or quantified."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "NFR-9",
+   "quote": "Every failure class and the window rule are testable with a simulated endpoint. The server tests carry a mock that **captures** the outbound request"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-3",
+   "quote": "Named Credential `Grok_xAI`: URL `https://api.x.ai`, Generate Authorization Header off, Allow Formulas in HTTP Header on."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "Service boundary: xAI",
+   "quote": "synchronous request and response. An accepted call means a reply or a classified failure, never \"pending\".",
+   "missing": "The interface relies on the Apex call returning inline; no platform event, polled status or message-channel mechanism is specified."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "T-5",
+   "quote": "Pending | Send or Enter | ignored, no second callout"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "AD-5",
+   "quote": "Revalidate when: the org shows concurrent-request-limit errors under many simultaneous waits (G-5 observes this)",
+   "missing": "The concurrent-request limit value and what the user sees when a request is rejected by it are not decided."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "Any other non-2xx status (400, 404, 3xx, 5xx) | `upstream_error` | \"Grok is temporarily unavailable. Try again.\"",
+   "missing": "A 400 refusal and a 5xx failure share one category and message; only 401/403, 429 and timeout are distinct."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "HTTP 429 | `rate_limited` | \"Grok is receiving too many requests right now. Wait a moment and try again.\" ... No automatic retry exists (A-9)."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "Read timeout (R-7 timeout elapsed) | `timeout` | \"Grok did not answer within the time limit. Try again.\"",
+   "missing": "A truncated or incomplete answer (e.g. a cut-off reply with text present) is not addressed; only empty/unparseable bodies are."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "A-5",
+   "quote": "No conversation or usage persistence in Salesforce. The transcript lives in the open page only (R-8).",
+   "missing": "No stored record shape; status, timestamps, model identifier and token/usage counts are not captured anywhere."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "Refreshing or navigating away discards everything, and nothing is saved in the org."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "The outbound call carries only the model id, the system prompt, the windowed conversation and the storage-off flag. It carries no Salesforce user id, name, email, org id or record data."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "each send includes the last *E* **completed exchanges** (a user message with its successful reply, *E* = Max history exchanges, default 10) plus the new user message."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "If the trimmed text is empty, Send is disabled ... exactly 4000 characters is accepted, 4001 is rejected"
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "NFR-7",
+   "quote": "An admin can change the model, prompt and limits without code (R-7), can rotate the key in Setup, and can find failures in the debug log by category (R-9).",
+   "missing": "No way for an administrator to turn the bot off is specified."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "Service boundary: xAI",
+   "quote": "No audit store is added (reason: no persistence is requested).",
+   "missing": "No record of who asked what and what was answered; only category, status and elapsed ms reach the debug log."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-12",
+   "quote": "deploy is validated first (dry run), then applied, with the terminal status and read-back retained.",
+   "missing": "How configuration and credential differ per environment and the production code-coverage requirement are not stated."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "NFR-1",
+   "quote": "Answer time is dominated by Grok and has no product target. ... The hard bound is the callout timeout (R-7, \u2264 120,000 ms; default 60,000). ... the pending indicator is visible from Send until the outcome"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "NFR-5",
+   "quote": "Designed empty state (greeting plus one hint line), loading state (pending indicator plus \"Grok is thinking\u2026\"), and error state (R-5 alert that persists until the next Send or Clear"
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "State and data assessment",
+   "quote": "Resources changed by delivery: new metadata only ... Records read, changed or deleted: none. Existing org metadata: observed only, for name-clash checks (G-3)."
+  }
+ ]
+}

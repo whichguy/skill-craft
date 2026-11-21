@@ -1,0 +1,147 @@
+{
+ "slot": "csv-user-import__P-shiploop-spec__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "a file is imported entirely or not at all."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-11",
+   "quote": "a table of row errors (line, email, problem in words)."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "AC-5.2",
+   "quote": "if `exists@example.com` appears on two lines, the first returns `already_exists` and the second `duplicate_in_file`."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "G-2",
+   "quote": "whether any admin may create other admins (A-14 assumes yes, audited).",
+   "missing": "The spec assumes every admin can grant admin. It leaves open how to check the requested role against the individual importer\u2019s grant authority."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "available only to an authenticated user who is an administrator *at the time the request is authorised and again at commit*.",
+   "missing": "The relationship between permission to create a single user and permission to bulk-import users is unspecified."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "line 1 is the header. \u2026 Required columns: `email`, `name`. Optional column: `role`. \u2026 stop row processing and create nothing: `missing_column` (one entry per missing required column, naming it), `unknown_column` (naming it)"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "quoted fields may contain commas and newlines, CRLF or LF record separators, an optional UTF-8 byte-order mark ignored"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-6, R-12",
+   "quote": "If any file-level or row error exists, no user is created \u2026 It sets no password, sends no email or invitation, and starts no session"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "size and row-count limits are configured values (`max_bytes`, `max_rows`, the latter counting data rows, header excluded); exceeding either rejects the whole file before any user is created (G-1: default values unresolved).",
+   "missing": "The production limits remain open. The acceptance cases supply values only for tests."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AC-2.2, AC-6.1",
+   "quote": "a 0-byte file returns `empty_file`; `email,name,role\\n` returns `no_data_rows` \u2026 a one-data-row file creates one user."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "Repeating a successful upload creates nothing and reports `already_exists` for every row"
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "AD-2",
+   "quote": "The request is parsed, validated and committed inside the single request, and the response is the final outcome.",
+   "missing": "The response tells the admin when synchronous processing finishes. Background processing for large files and completion reporting for such jobs are outside the specified flow."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-12",
+   "quote": "It sets no password, sends no email or invitation, and starts no session"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-12",
+   "quote": "It sets no password, sends no email or invitation, and starts no session (A-12). How a created user first gains access is a separate capability (G-7).",
+   "missing": "The account\u2019s initial active or pending status and the means of first sign-in remain open."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "AD-4, R-10",
+   "quote": "The file is parsed from the request stream/memory and is not written to the store, object storage or a cache. \u2026 any temporary file created by the platform's multipart handling is removed when the request ends, including on failure"
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "`import_id`, actor id, time of completion, `outcome`, `rows_total`, `rows_created`, and a count per error code."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-11",
+   "quote": "The file can be replaced and sent again.",
+   "missing": "The spec describes resubmitting a corrected file. It gives no cancellation behavior for an in-flight request or operation for retrying only its failed rows."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "NFR-7, R-11",
+   "quote": "An import at the row limit must finish inside the hosting platform's request time limit \u2026 the page shows upload progress while bytes are sent, then an indeterminate \"Creating users\u2026\" once sending is complete.",
+   "missing": "The platform deadline is unknown, leaving no concrete maximum duration. During server processing the admin sees a busy indicator without a measure of work completed."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "The import only creates; it never updates, overwrites or merges an existing user.",
+   "missing": "The spec gives no requirement preserving the existing manual single-user creation workflow."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-10, R-4",
+   "quote": "The import does not neutralise spreadsheet-formula prefixes (`=`, `+`, `-`, `@`) in stored values; that is the duty of any future export \u2026 `name`: non-empty after trimming (a maximum length is unresolved, G-3)",
+   "missing": "Formula handling for a spreadsheet export is deferred. The builder still needs a name-length limit and a row error for exceeding it."
+  }
+ ]
+}

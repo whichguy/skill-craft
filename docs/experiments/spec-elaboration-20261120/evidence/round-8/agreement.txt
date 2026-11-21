@@ -1,0 +1,39 @@
+ROUND round-8: agreement of tagged verdict sets with the registered one (24 specifications)
+
+@gpt  (gpt-6.2-astra high), 24 specifications in both sets
+  specification                                            registered     @gpt  diff
+  csv-user-import__K-shiploop-spec-default-bounds__sol-medium         15       11    -4
+  csv-user-import__K-shiploop-spec-default-bounds__sonnet-high         14       13    -1
+  csv-user-import__M-shiploop-spec-members__sol-medium             12       13    +1
+  csv-user-import__M-shiploop-spec-members__sonnet-high            13       13    +0
+  csv-user-import__P-shiploop-spec__sol-medium                     10        8    -2
+  csv-user-import__P-shiploop-spec__sonnet-high                    13       11    -2
+  grokbot-salesforce__K-shiploop-spec-default-bounds__sol-medium         18       13    -5
+  grokbot-salesforce__K-shiploop-spec-default-bounds__sonnet-high         16       15    -1
+  grokbot-salesforce__M-shiploop-spec-members__sol-medium          15       12    -3
+  grokbot-salesforce__M-shiploop-spec-members__sonnet-high         17       15    -2
+  grokbot-salesforce__P-shiploop-spec__sol-medium                  19       12    -7
+  grokbot-salesforce__P-shiploop-spec__sonnet-high                 16       14    -2
+  gym-waitlist__K-shiploop-spec-default-bounds__sol-medium         11        7    -4
+  gym-waitlist__K-shiploop-spec-default-bounds__sonnet-high         15       15    +0
+  gym-waitlist__M-shiploop-spec-members__sol-medium                10        8    -2
+  gym-waitlist__M-shiploop-spec-members__sonnet-high               12       10    -2
+  gym-waitlist__P-shiploop-spec__sol-medium                        10        7    -3
+  gym-waitlist__P-shiploop-spec__sonnet-high                       12       12    +0
+  invoice-reminders__K-shiploop-spec-default-bounds__sol-medium         11       10    -1
+  invoice-reminders__K-shiploop-spec-default-bounds__sonnet-high         11       10    -1
+  invoice-reminders__M-shiploop-spec-members__sol-medium           10        8    -2
+  invoice-reminders__M-shiploop-spec-members__sonnet-high           9        9    +0
+  invoice-reminders__P-shiploop-spec__sol-medium                    8        7    -1
+  invoice-reminders__P-shiploop-spec__sonnet-high                  12        9    -3
+  per specification: mean |diff| 2.04, largest 7, sum of diffs -47
+  nuance by nuance (534): same state 84%, same covered-or-not 86%
+  changes: covered -> partial x58, partial -> covered x14, partial -> absent x12, covered -> absent x3, absent -> partial x1
+  pooled by arm and driver, registered -> @gpt:
+    K-shiploop-spec-default-bounds sol-medium    55 ->  41  (-14)
+    K-shiploop-spec-default-bounds sonnet-high   56 ->  53  (-3)
+    M-shiploop-spec-members sol-medium    47 ->  41  (-6)
+    M-shiploop-spec-members sonnet-high   51 ->  47  (-4)
+    P-shiploop-spec    sol-medium    47 ->  34  (-13)
+    P-shiploop-spec    sonnet-high   53 ->  46  (-7)
+

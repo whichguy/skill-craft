@@ -1,0 +1,24 @@
+M-shiploop-spec-members against P-shiploop-spec, same-round pairs in round-7, round-8
+bands (the largest move between two draws of one arm, fixed before these rounds): {'X1': 2, 'X2': 7, 'X3': 2, 'all': 6}
+
+== sonnet-high
+   R16 set-or-limit items (22 items, band 2): opus: 13 vs 13 (+0), 13 vs 12 (+1), mean +0.5; astra: 11 vs 12 (-1), 12 vs 11 (+1), mean +0.0  => nothing shown
+   R17 the other needed items (53 items, band 7): opus: 36 vs 36 (+0), 33 vs 33 (+0), mean +0.0; astra: 31 vs 30 (+1), 31 vs 30 (+1), mean +1.0  => nothing shown
+   R18 capability not asked for (4 items, band 2): opus: 0 vs 0 (+0), 0 vs 1 (-1), mean -0.5; astra: 0 vs 0 (+0), 0 vs 0 (+0), mean +0.0  => nothing shown
+   the whole checklist (89 items, band 6): opus: 55 vs 55 (+0), 51 vs 53 (-2), mean -1.0; astra: 46 vs 48 (-2), 47 vs 46 (+1), mean -0.5  => below, not shown
+   R19 the 24 items the released stage covered in neither earlier draw: opus: 4 vs 1, 1 vs 1; astra: 4 vs 1, 2 vs 2
+   words: 31178 vs 29837, 31414 vs 34001  mean ratio 0.98
+   requirements: 43 vs 43, 52 vs 53  mean ratio 0.99
+   output_tokens: 177535 vs 153139, 173793 vs 184396  mean ratio 1.05
+
+== sol-medium
+   R16 set-or-limit items (22 items, band 2): opus: 8 vs 7 (+1), 8 vs 8 (+0), mean +0.5; astra: 5 vs 6 (-1), 9 vs 6 (+3), mean +1.0  => nothing shown
+   R17 the other needed items (53 items, band 7): opus: 32 vs 32 (+0), 34 vs 32 (+2), mean +1.0; astra: 31 vs 28 (+3), 28 vs 25 (+3), mean +3.0  => nothing shown
+   R18 capability not asked for (4 items, band 2): opus: 1 vs 1 (+0), 1 vs 1 (+0), mean +0.0; astra: 0 vs 1 (-1), 1 vs 0 (+1), mean +0.0  => nothing shown
+   the whole checklist (89 items, band 6): opus: 45 vs 42 (+3), 47 vs 47 (+0), mean +1.5; astra: 37 vs 36 (+1), 41 vs 34 (+7), mean +4.0  => nothing shown
+   R19 the 42 items the released stage covered in neither earlier draw: opus: 3 vs 4, 7 vs 8; astra: 5 vs 5, 7 vs 8
+   words: 20964 vs 22597, 24201 vs 19644  mean ratio 1.08
+   requirements: 17 vs 16, 17 vs 17  mean ratio 1.03
+   output_tokens: 48130 vs 50931, 51662 vs 42587  mean ratio 1.08
+
+DECISION RULE: R16 is not shown -> no change is proposed.

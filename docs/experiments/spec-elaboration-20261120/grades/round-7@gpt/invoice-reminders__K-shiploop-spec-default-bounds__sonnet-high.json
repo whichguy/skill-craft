@@ -1,0 +1,142 @@
+{
+ "slot": "invoice-reminders__K-shiploop-spec-default-bounds__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-10 (R-3 L1), C-1 (R-1 L1)",
+   "quote": "`offsets` (default `[-3, 0, 7, 14]`, days relative to the invoice due date; negative = before)"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-7, C-8, C-9 (R-2), C-30 (R-9)",
+   "quote": "draft; open with balance > 0 (including partially paid); paid / balance 0; void; any other host status (e.g. `in_collections`). Only \"open with balance > 0\" qualifies.",
+   "missing": "The spec gives a manual pause for disputes. It leaves open whether a credit, dispute or payment plan suppresses reminders when the invoice stays open, unpaused and has a positive balance."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-9",
+   "quote": "INV-2004 200.00 of 500.00 paid | message shows 300.00"
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "G-4 (R-10)",
+   "quote": "Legal and compliance review of automated payment-reminder e-mail per jurisdiction (unsubscribe, timing, wording). Not assessed here; not invented.",
+   "missing": "The spec leaves open how customer-level do-not-contact, pause and unsubscribe flags affect billing reminders, including whether a billing notice is exempt from a marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-15, C-16, C-18 (R-4), C-26 (R-7 L1)",
+   "quote": "the reminder key is `(invoice id, due date, offset)`. At most one message is ever handed to the mail provider per key, across repeated runs, parallel runs and restarts."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-20 (R-5 L2)",
+   "quote": "the fake invoice source returns `open` on the selection read and `paid` on the pre-claim read: no message, record `skipped/no-longer-unpaid`."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-26 (R-7 L1)",
+   "quote": "failure on every attempt: at 2026-12-13T14:00Z the record is `failed/retry-window-expired` with `attempts` equal to the number of runs in the window, and the S-hist shows it.",
+   "missing": "The spec leaves open whether repeated failures trigger an alert to a person, who receives it and when."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-26 (R-7 L1), NFR-2",
+   "quote": "A run that meets a provider quota treats it as a transient failure (R-7).",
+   "missing": "The provider limit and the rule for pacing a large batch within it remain unspecified."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-12 (R-3 L3)",
+   "quote": "has all four targets before the floor, so the first run after enabling records 4 `skipped/before-eligibility` and sends 0"
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "C-10, C-11 (R-3)",
+   "quote": "the **target instant** of invoice `I` is 09:00 local (account time zone, read at each run) on `I.due_date + k` calendar days.",
+   "missing": "The rule fixes the account\u2019s send time. It gives no recipient-local business-hours window or exception for a weekend or holiday in the customer\u2019s locale."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-24 (R-6 L2)",
+   "quote": "outstanding balance as `{CURRENCY} {amount}` using the ISO 4217 minor-unit count"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-22 (R-5 L4), C-27 (R-7 L2), G-5",
+   "quote": "empty, no `@`, more than one `@`, or empty local part: record `skipped/no-recipient` \u2026 becomes `failed` / `recipient-rejected` at once. Provider acceptance is recorded as `sent`; later bounces are not tracked (G-5)."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-22 (R-5 L4), R-6",
+   "quote": "one message per reminder, to the invoice's customer e-mail only",
+   "missing": "The spec assumes a single invoice e-mail address. It gives no selection rule if several billing contacts are available and none is designated as the invoice recipient."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-28 (R-8 L1)",
+   "quote": "invoice number, due date, offset, scheduled local date, status, reason, attempts, recipient, last change instant. Newest first, 50 per page (A-8), on an account-wide list and on each invoice."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-23, C-24 (R-6)",
+   "quote": "invoice number, outstanding balance as `{CURRENCY} {amount}` using the ISO 4217 minor-unit count, due date as `YYYY-MM-DD`, the account display name, the payment/view link only when the invoice has one",
+   "missing": "The spec leaves open whether the link expires and what to include if it has expired by send time."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-4 (R-1 L3), C-30 (R-9 L1)",
+   "quote": "a user with the manage-settings permission in acct-1 saves acct-1's policy. \u2026 a user who may edit invoices can pause reminders on an invoice (for example a disputed one) and resume them.",
+   "missing": "The permissions for configuration and pausing are specified. Whether anyone may trigger an individual send by hand remains open."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-6 (R-1 L5), C-30 (R-9)",
+   "quote": "disabling stops sending (R-5 L3) \u2026 a user who may edit invoices can pause reminders on an invoice (for example a disputed one) and resume them.",
+   "missing": "The spec leaves open whether an owner can disable reminders for an entire customer, preview or dry-run a schedule, or manually resend a reminder."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-26 (R-7 L1), C-28 (R-8 L1)",
+   "quote": "the record is `failed/retry-window-expired` with `attempts` equal to the number of runs in the window, and the S-hist shows it.",
+   "missing": "The spec shows outcomes in history but leaves open how a user sees the next pending reminder and its scheduled time."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-10 (R-3 L1), NFR-1",
+   "quote": "on a healthy system a due, eligible step is handed to the mail provider by the first run at or after its target, at most 60 minutes late."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "State and data assessment (Before and after), AD-3",
+   "quote": "no existing resource is modified except two additive invoice fields and the new policy and record stores"
+  }
+ ]
+}

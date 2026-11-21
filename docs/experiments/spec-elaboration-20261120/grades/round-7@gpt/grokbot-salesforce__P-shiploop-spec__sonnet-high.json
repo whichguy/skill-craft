@@ -1,0 +1,182 @@
+{
+ "slot": "grokbot-salesforce__P-shiploop-spec__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "AD-1",
+   "quote": "one Lightning web component (chat page) placed on a custom tab inside a custom Lightning app. \u2026 takes the new message and prior history"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "AD-1, R-8",
+   "quote": "`public with sharing` Apex class \u2026 the bot reads and writes no business records"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "the bot reads and writes no business records, so record sharing, object CRUD and FLS requirements are `n/a: no user data records are read or written`."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "AD-8, F-4",
+   "quote": "permission set `GrokBot_User` with: custom tab visibility, custom app visibility, Apex class access to the controller \u2026 Admin deploys, enters the xAI key in the credential facility, assigns the permission set to a user"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "DD-2, R-10",
+   "quote": "The conversation lives only in the user's open page. \u2026 transient platform diagnostics outside the product's control (for example a user turning on a debug trace that records callout bodies) are the administrator's decision"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-4",
+   "quote": "the controller makes one synchronous callout with the configured timeout (default 60,000 ms, platform ceiling 120,000 ms) and returns when it completes.",
+   "missing": "The spec gives no trigger or post-DML callout restriction and defines no asynchronous transaction for the call."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AD-3, R-7",
+   "quote": "External Credential using the Custom protocol \u2026 a secret parameter for the key \u2026 It is never in source files, test code, configuration records, the page, a log line, a debug statement or an error message."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Service boundaries (Salesforce platform)",
+   "quote": "100 callouts per transaction, 120,000 ms maximum per callout and cumulative per transaction",
+   "missing": "The numeric Apex heap and CPU-time limits are missing."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "AD-12, NFR-9",
+   "quote": "Apex tests use an `HttpCalloutMock` (including a throwing variant for timeout and connection failure) \u2026 Real xAI calls are not made from automated tests."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-3",
+   "quote": "a Named Credential for the xAI host references it. Apex calls `callout:<NamedCredentialName><path>`."
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-2, R-11",
+   "quote": "one reply per sent message. \u2026 A second submit while one is pending (click, Enter, repeated Enter) is ignored and produces no second call.",
+   "missing": "The duplicate-submit guard applies to a pending page request. The spec gives no way to identify an already-answered request when a job is retried or re-enqueued."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "Grok could not process that request. Check the bot's model setting with your administrator. \u2026 Grok is temporarily unavailable. Try again. \u2026 Grok took too long to respond. Try again or ask a shorter question."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "Grok is rate limiting requests. Try again in a moment. \u2026 Retry resends the same text as a new send (one callout). No automatic retry (DD-13)."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "DD-5, R-6",
+   "quote": "Reply length cap 1,024 output tokens. \u2026 Grok took too long to respond. Try again or ask a shorter question.",
+   "missing": "The spec gives a timeout message but does not say how to detect an incomplete reply or what the user sees when output is cut off."
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "DD-2, R-10",
+   "quote": "The org stores no message content. \u2026 Closing or leaving the page discards the conversation.",
+   "missing": "Local retention and disposal are explicit. The spec does not say what happens to an open conversation when the user's account is deleted."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-3, R-8, NFR-5",
+   "quote": "the configured system prompt; the bounded history (R-4); the new user message \u2026 the bot reads and writes no business records \u2026 Message text goes to xAI only; disclosure shown (DD-10).",
+   "missing": "The spec does not say whether personal information typed or pasted into a prompt may be sent as entered or must be removed or masked."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "At most the last 20 prior messages (DD-4) are sent. \u2026 If the truncated history would begin with a bot message, that message is dropped too, so history begins with a user message."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-3.a, R-5",
+   "quote": "history empty, message `Hello`, the outbound request body has `messages` = [system DD-7 text, user `Hello`] \u2026 An empty or whitespace-only message is not sent \u2026 exactly 4,000 characters is accepted; 4,001 is rejected."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-9, R-12",
+   "quote": "the administrator can edit: model id \u2026 an administrator tracing the org can see outcomes and latencies.",
+   "missing": "The spec does not provide an org-wide control for an administrator to turn off the bot."
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-1.a, R-7, AD-12",
+   "quote": "a validate-only deploy (dry run) of the project to the target org succeeds \u2026 The deploy carries the credential's structure and no secret value. \u2026 no coverage threshold is claimed for a development org",
+   "missing": "The spec leaves the development org type open and omits environment-specific configuration and credential selection and the production Apex coverage requirement."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "NFR-1",
+   "quote": "Wait is bounded by the configured callout timeout (default 60,000 ms, at most 120,000 ms, the documented per-callout and per-transaction ceiling). The in-flight indicator is visible before the server call returns (R-11)."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "NFR-11, R-6",
+   "quote": "empty (greeting plus a few example prompts \u2026 loading (the R-11 indicator); error (R-6 messages inline with Retry) \u2026 Grok could not process that request. Check the bot's model setting with your administrator."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-1, R-8",
+   "quote": "additive only. Nothing existing in the org is modified or removed. \u2026 the bot reads and writes no business records"
+  }
+ ]
+}

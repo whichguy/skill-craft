@@ -1494,3 +1494,99 @@ read; no model ran for it, and it marks all of it as read after its result, not 
    produced decided forms of requested work and required documents there. Section 19's finding holds for a request
    with nothing built yet, which is this experiment's four cases, and is not shown for one with a product already
    in place.
+
+## 22. Rounds 7 and 8: the cue that leaves a limit open moves nothing; the one that takes a recorded default is shown on both drivers (2026-11-21)
+
+48 sessions (arms M, K and P on both drivers, four cases, two rounds), all exit 0 after a passing pre-flight each
+round. The leak check found no session in either round that read outside its own directory and profile or named
+the held-out material. Both judges read all 48 specifications; none of the four sets of 24 verdict files has a
+missing or unknown item. Ran 04:22 to 05:31. `evidence/round-7/`, `evidence/round-8/`; the tables and tests are in
+the README, "Result of rounds 7 and 8".
+
+### The registered readings
+
+Covered on the 22 target items, cue arm against the released stage of the same round, round 7 then round 8, and
+the mean of the two differences.
+
+| | Sonnet, opus | Sonnet, astra | Sol, opus | Sol, astra | R16 |
+| --- | --- | --- | --- | --- | --- |
+| M, the review's wording: an unresolved bound is an open gap | +0, +1: +0.5 | -1, +1: 0.0 | +1, +0: +0.5 | -1, +3: +1.0 | nothing shown |
+| K, a limit left to choice is a recorded default | +4, +2: **+3.0** | +4, +2: **+3.0** | +7, +4: **+5.5** | +8, +5: **+6.5** | **shown on both drivers** |
+
+- R17, nothing lost: holds for both arms. K is above the released stage on the other 53 needed items in every cell.
+- R18, no capability added: holds for both arms. On the four items both sorters call beyond, K's means are 0.0
+  and 0.0 on Sonnet and +0.5 and -0.5 on Sol, and each movement, read in the specification, is a stated exclusion
+  scored one way or the other, not a control.
+- R19: of the items the released stage covered in neither earlier draw, K covers 7 and 5 of Sonnet's 24 (a fresh
+  released stage 1 and 1) and 14 and 14 of Sol's 42 (4 and 8).
+- Size, K against the released stage: words 1.03 and 1.17, requirements 1.05 and 1.03, output tokens 1.26 and
+  1.19 (Sonnet, Sol).
+- The four non-functional bounds, read as registered: no performance target without a stated basis. Details in
+  the README.
+
+**By the decision rule: no change is proposed for M. K goes forward**, to the review at maximum effort and then to
+the owner. Nothing under `skills/` has changed.
+
+The predictions of section 20: three of four held. M did less on Sonnet than predicted (I had said 1 to 3; it is
++0.5 and 0.0).
+
+### What the counts do not say
+
+Read after the readings, so descriptive. The kinds are the two sorters'; the reading of passages is mine, and the
+passages are in `evidence/round-8/K-target-items-round-7.md`, `-round-8.md` and `K-stable-target-items.md`.
+
+1. **The first sentence of both cues did nothing that can be seen.** On the target set's 7 sets the released stage
+   covers 5, 4 on Sonnet and 4, 4 on Sol; M 5, 5 and 5, 5; K 5, 5 and 4, 4. The two sets it leaves unsettled in
+   every draw since round 5 (every condition that stops a reminder sequence; an existing do-not-contact state on
+   the customer) stay unsettled under both cues, in every round, under both judges. Telling the stage to "name its
+   members" did not make it name them where no repository shows what the states are.
+2. **All of K's effect is its second sentence.** On the 13 limits: the released stage 7, 6 and 3, 4; M 7, 6 and
+   3, 3; K 11, 8 and 9, 7. M and K differ in that sentence only, and in one thing in it: where the request leaves
+   a limit to choice, M records an open gap and K takes a default and records it as an assumption.
+3. **What K decided, in the 20 times it covered a target item the released stage of its round did not** (3 went
+   the other way): 12 are a default for a limit the released stage also says exists and leaves without a value;
+   3 are a cap on the waitlist the request never mentioned; 2 are platform limits given their numbers; 1 is a
+   set's members named; 2 are no difference in substance. The 12 are what the cue was written for: "A-4 |
+   Limits: file at most 1,048,576 bytes (1 MiB); at most 1,000 data rows ... These are product defaults chosen
+   for an admin-sized batch, not platform limits; platform limits are gap G-3", beside the released stage's
+   "size and row-count limits are configured values ... (G-1: default values unresolved)".
+4. **The three are the cue over-reaching.** Every K specification of the waitlist request but one gives the
+   waitlist a cap (10, 10 and 20), each recorded as an assumption with its reason ("Bounds work per event and a
+   member's wait; small gyms rarely queue deeper"). The released stage said "G-3 — waitlist length cap. Assumed
+   none" and "No bound is invented ... Treated as unbounded". A file must have some size limit; a waitlist need
+   not have a cap. "A limit the request leaves to choice" was read as any limit one could set, and the judge
+   scored the cap covered and the decision to have none partial.
+5. **The defaults differ between draws**, as defaults will: the import's limits are 1 MiB and 1,000 rows, 2 MiB
+   and 5,000, 256 KiB and 500, 1 MiB and 1,000; the prompt's maximum is 2,000 code points in one and 4,000 UTF-16
+   units in the other.
+
+### What this is evidence of, and what it is not
+
+**It is evidence that the two drivers resolve the stage's own two instructions differently, and that one sentence
+settles it.** Duty 4 says to mark a user decision as an open gap; the RULES say "Unattended: take the best default
+and record it as an assumption; a person-only step is an open item". On limits Sol follows the first (3 or 4 of 13
+settled) and Sonnet more often the second (6 or 7). K's sentence points both at the second: Sol reaches 7 to 9,
+about where Sonnet's released stage is, and Sonnet 8 to 11. That is the stage's existing rule applied where one
+host was not applying it, not a new policy.
+
+**It is not evidence that the defaults are right, or that a product built from them is better.** The count credits
+deciding (section 14). Section 21 holds the only built-product evidence there is: in the pilot's three cases a
+clause the writer marked as its own choice failed on a correct product two times in five. A default for a limit
+is a choice. In a ShipLoop run the same specification is built and tested, so its own gates would pass with a cap
+of 10 on the waitlist; whether the owner wanted one is what no gate in that run can show.
+
+**And it is one frame.** These sessions had no repository, no research result and no selected baseline. In a real
+run the research stage may already have the platform's limits, and an existing product may already have a file
+size limit to read. How much of the gap on Sol remains then is not known.
+
+Limits: two rounds, so two draws an arm; X1's band is the floor of 2 and not a measured maximum; two cue arms were
+two chances to pass (K passes on both drivers under both judges in both rounds, which chance does not easily do);
+the checklist is the author's, though the sets are not.
+
+### Where it goes
+
+1. The review at maximum effort, on K's text inside duty 2 and on this section, as registered. It is asked two
+   things this section raises: whether the first sentence should go, and how to word the second so that it covers
+   a limit the requested behaviour cannot work without and not a limit that need not exist.
+2. Then the owner, with the review. A change to duty 2 is a ShipLoop product change: the owner's word, the packet
+   and guidance suites, a change note, and an E2E round after it.

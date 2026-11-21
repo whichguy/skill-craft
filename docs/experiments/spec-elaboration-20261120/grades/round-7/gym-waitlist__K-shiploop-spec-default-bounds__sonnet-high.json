@@ -1,0 +1,143 @@
+{
+ "slot": "gym-waitlist__K-shiploop-spec-default-bounds__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.39455300000000004,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "PD-1",
+   "quote": "Automatic promotion, no claim window. A freed spot books the first eligible waitlisted member directly and notifies them"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Entries are ordered first come, first served by join order, with no ties. ... Left out: moving a member up, swapping places, priority by membership age."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "PD-1",
+   "quote": "the member may cancel under the existing rules. ... Revisit if cancelling a promoted booking carries a penalty (G-3).",
+   "missing": "Whether cancelling or missing a promoted booking counts against the existing late-cancel/no-show policy; G-3 leaves that policy and its effect open."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "A spot is freed when a booked member cancels, when staff cancel or remove a booking ... or when capacity is raised; Promotion completes inside the freeing request; only the message is asynchronous, after commit."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "through the existing booking channel (A-5) ... Promoted: subject \"You're in: Spin, Tue 1 Dec 18:00\" ... A notification failure never undoes a booking or a removal"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "At all times booked <= capacity; each entry is promoted at most once; each freed spot goes to at most one member; ... M1 and M2 cancel concurrently: exactly M3 and M4 booked (each once)"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "A member has at most one entry per class and is never both booked and waiting in the same class. ... A member who becomes booked in a class by any path has that class's entry removed.",
+   "missing": "The concurrent case itself: what happens when the waitlisted member's own direct booking races their promotion (one booking, which path wins, which response they get)."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "A-8",
+   "quote": "The waitlist is free: no fee, penalty or no-show rule",
+   "missing": "Whether a promoted booking for a paid class takes payment, when, and what happens if payment fails."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "J8",
+   "quote": "Class full, open, waitlist already has 10 entries | WAITLIST_FULL: \"The waitlist for this class is full (10 of 10).\""
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "PD-3",
+   "quote": "The waitlist freezes at the cutoff. From the cutoff instant no one can join and no one is promoted. (A-3: Cutoff is 60 minutes before the class start instant)"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "when capacity is raised (the number freed is new capacity minus booked, if positive); (e) A capacity decrease below the booked count does not touch entries."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "(b) When a class is cancelled, every entry is removed and each member notified (R-6)."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-13.1",
+   "quote": "An entry holds only the member ID, class ID and join order. (AD-3: position is the count of entries with a lower sequence, plus one.)"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-13.3",
+   "quote": "Entries are deleted with the class's booking records under the existing retention (A-6, G-4) and immediately on account deletion"
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "No payload, page or message sent to a member includes another member's name, email or ID; the only information about others is the aggregate count and own position."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "G-5",
+   "quote": "Whether staff need to see or edit waitlists. Left out, not decided",
+   "missing": "Any staff view of the waitlist, manual promote/remove, and a record of who was promoted when."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-12.1",
+   "quote": "after any join, leave or cancel response returns, the next read by any client reflects it (read-your-write; no delayed promotion)"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-14.1",
+   "quote": "For a class with a free spot, booking, cancelling and viewing behave exactly as before this change, including the existing eligibility and cancellation rules"
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "State and data assessment",
+   "quote": "Out of scope: staff views, reports, migration of historical data (no entries exist before this change)",
+   "missing": "Whether classes already full at launch immediately offer Join waitlist, and how members already turned away are handled."
+  }
+ ]
+}

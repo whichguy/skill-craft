@@ -1,0 +1,182 @@
+{
+ "slot": "grokbot-salesforce__P-shiploop-spec__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.5240938,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1.a",
+   "quote": "An assigned user locates **Grok Bot** in the App Launcher and opens a usable empty prompt screen in the designated development org."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1 State and domain rules",
+   "quote": "Neither installation nor runtime reads or writes CRM records, so record sharing, object/field authorization and data migration are inapplicable to this slice."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1 State and domain rules",
+   "quote": "Neither installation nor runtime reads or writes CRM records, so record sharing, object/field authorization and data migration are inapplicable to this slice."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1 State and domain rules; AD-1",
+   "quote": "Only the authorized access administrator assigns or removes effective grants. ... Give the dedicated access grant the tab visibility, Apex class access and required external credential principal access."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-3.a; R-3.b; R-4",
+   "quote": "Org records and persistent browser storage hold no app transcript. ... An obsolete completion or error cannot populate a cleared or replaced view or another user's browser."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-2",
+   "quote": "Apex initiates the call synchronously while the browser waits asynchronously.",
+   "missing": "The spec chooses a synchronous imperative-Apex callout but never states the trigger or callout-after-DML constraints, or how the design avoids uncommitted DML before the callout."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AD-2; R-3.a",
+   "quote": "Use modern Salesforce Named Credentials and a Custom External Credential with a Named Principal ... Metadata carries references and safe configuration only."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Non-functional requirements, Operating envelope",
+   "quote": "Require an explicit tested timeout within host limits ... Platform maxima are ceilings, not targets.",
+   "missing": "No numbers are given for the callout timeout ceiling, callouts per transaction, heap or CPU limits."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2 Open gaps",
+   "quote": "Stage the generic paths and fixture-based checks independently.",
+   "missing": "It never says that Apex tests need a mock callout implementation (HttpCalloutMock) because real callouts are disallowed in tests."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "Use modern Salesforce Named Credentials and a Custom External Credential with a Named Principal to call the approved xAI endpoint over HTTPS."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2 Service contract",
+   "quote": "Consume the original response only, with no polling or background recovery promise. ... no provider snapshots, incremental sync, event subscriptions, durable jobs or completion notifications are needed for a foreground text question."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2.c",
+   "quote": "A duplicate tap or key activation while pending creates zero extra submissions. No automatic retry. Manual resend is a new request"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "One active display attempt per view and at most one generation request per accepted Send ... No app persistence, model tools, client-visible credential or durable queued work.",
+   "missing": "Org-wide concurrent-request limits, such as the concurrent long-running synchronous request limit, and what a user sees when a request is rejected by such a limit."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-2.c; Verification evidence",
+   "quote": "Distinguish unavailable setup/access, rate limiting, and timeout/service or unusable-response failure. For timeout or disconnect say the answer could not be confirmed."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2.c; Non-functional requirements",
+   "quote": "No automatic retry. Manual resend is a new request ... Provider rate limiting must remain visible and recoverable."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2.b; R-2.c",
+   "quote": "A provider error, incomplete result, missing or blank assistant text, or non-Grok fallback cannot count as an answer. ... For timeout or disconnect say the answer could not be confirmed."
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-3.a; R-4",
+   "quote": "Org records and persistent browser storage hold no app transcript. ... Events hold safe outcome class, correlation and timing only."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-3.b; R-3 State and domain rules",
+   "quote": "Reload, leaving the view, logout or account change starts a fresh empty view. ... The provider documents a default 30-day encrypted audit window with automatic deletion."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-2.b; R-3.a",
+   "quote": "Outbound content excludes earlier turns, Salesforce record data, Salesforce identifiers and tool requests. ... directed to use synthetic or non-sensitive text only."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2.b",
+   "quote": "Each question is independent. Outbound content excludes earlier turns, Salesforce record data, Salesforce identifiers and tool requests."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1.a; R-2.a",
+   "quote": "Blank, whitespace-only, or oversized input is rejected with an inline correction and zero provider requests. ... The confirmed prompt maximum is inclusive in the stated unit.",
+   "missing": "The actual prompt and answer maximum lengths are unset (32 is a fixture value only), and the behaviour when an answer reaches the output ceiling is not given."
+  },
+  {
+   "id": "N-22",
+   "state": "covered",
+   "where": "R-3.c; AD-2; R-4.a",
+   "quote": "Removing the bot binding and disabling or deleting its dedicated key ends future use. ... Keep endpoint and model selection under administrator control. ... An authorized operator can distinguish ... upstream failed"
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "R-4.a; R-4 State, recovery and open gaps",
+   "quote": "Events hold safe outcome class, correlation and timing only. ... The org operator owns diagnostic access, retention and removal using the approved org facility.",
+   "missing": "The outcome log records neither who asked nor what was asked and answered, and its retention period is left open."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-1.a; R-1.c",
+   "quote": "Production and unrelated orgs are outside the target. ... Salesforce deployment and setup surfaces",
+   "missing": "How configuration and credentials differ per environment, the deployment vehicle (scratch org, sandbox or metadata deploy), and the production code-coverage requirement."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "R-2.c; Non-functional requirements",
+   "quote": "While waiting, show **Waiting for Grok** and disable duplicate sends in that view. ... No latency, availability or throughput SLA is specified for this development slice.",
+   "missing": "There is no latency target, and the timeout value that bounds an answer is left open."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "Non-functional requirements, Designed interface",
+   "quote": "Design the empty, loading, error and ready states together."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-1 Basis and delta; R-1.c",
+   "quote": "Preserve unrelated org assets, settings, access, and records. ... Recovery is confined to bot-owned changes."
+  }
+ ]
+}

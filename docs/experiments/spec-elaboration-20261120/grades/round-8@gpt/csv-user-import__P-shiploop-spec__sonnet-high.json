@@ -1,0 +1,147 @@
+{
+ "slot": "csv-user-import__P-shiploop-spec__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "Creation is atomic: the store afterwards holds either all N new users or none, even on a failure partway through."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "all errors in a readable list or table (row, line, column, message)"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "EMAIL_EXISTS | normalized email already belongs to a user \u2026 DUPLICATE_IN_FILE | normalized email already appeared in an earlier row; the first occurrence is not flagged, and the error names the first row"
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "A-2",
+   "quote": "The CSV may assign only non-privileged roles. Initially the only such role is `member`; `admin` is rejected with ROLE_NOT_ALLOWED.",
+   "missing": "The fixed role list prevents elevation in the two-role model. The spec gives no rule comparing a requested role with the particular importer's grant authority."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "the import screen and the import operation are available only to an authenticated user who is currently an admin.",
+   "missing": "The spec does not define how single-user creation rights relate to import authorization or explicitly say that holding the former alone grants no bulk access."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2, R-3",
+   "quote": "The first record is the header. \u2026 columns are `email` (required), `name` (required) and `role` (optional). \u2026 Any header error rejects the whole file \u2026 MISSING_COLUMN | a required column is absent \u2026 UNKNOWN_COLUMN | any other header name"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "quoted fields may contain commas and line breaks \u2026 Accepted encoding is UTF-8, with or without a leading byte-order mark. Line endings may be LF or CRLF."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-5, A-3",
+   "quote": "no partial effects of any kind survive a rejected or failed import: no user, no role grant, no pending invite. \u2026 Import sends no email and sets no password."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2, R-11",
+   "quote": "exactly the configured number of rows is accepted for processing; one more is TOO_MANY_ROWS. Exactly the configured byte size is accepted; one byte more is FILE_TOO_LARGE.",
+   "missing": "The production byte and row limits are unset. Five rows is a test setting."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2, AC-5.4",
+   "quote": "EMPTY_FILE | 0 bytes \u2026 NO_DATA_ROWS | header only \u2026 A single-row file creates 1."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "re-submitting a file that already completed gives REJECTED with EMAIL_EXISTS for every row and creates nothing."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "AD-2",
+   "quote": "Choose a durable background job only if G-4 and G-5 show that it does not fit. A job requires a durable operation record, an owner for abandoned work, an authorized status lookup",
+   "missing": "The switch to background processing is conditional. The file size or row count that triggers it and how the admin sees completion after leaving the request are undecided."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "A-3",
+   "quote": "Import sends no email and sets no password."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "A-3, R-5",
+   "quote": "Import sends no email and sets no password. \u2026 the sign-in outcome for created users is not specified until the onboarding decision.",
+   "missing": "The initial account status (active or pending) and the first sign-in procedure remain unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-8, State and information lifecycle",
+   "quote": "Uploaded file | request memory or temp | the import code only | each request has its own copy | request end"
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "acting admin id, timestamp, outcome (COMPLETED, REJECTED, IMPORT_FAILED), counts (rows read, users created, errors) and the file-level or row-level error codes with their counts."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "Transition ledger (TC-19), A-4",
+   "quote": "the operation has no user cancel and a client disconnect does not stop a commit already begun \u2026 the file can be fixed and re-uploaded once.",
+   "missing": "Whole-file resubmission is described. The spec does not say whether the admin can select and retry just the rows named in the error report."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-10, R-12",
+   "quote": "Activity is indeterminate unless real progress exists. \u2026 A numeric latency target for a file at the row limit is **unresolved**",
+   "missing": "The screen shows activity, but the maximum elapsed time for a maximum-size import is undecided."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "Each created user is indistinguishable from a user created singly by an admin \u2026 Creating users does not touch existing users' data.",
+   "missing": "Record parity and preservation of existing users are specified. There is no requirement to preserve the manual creation workflow and its behavior."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-13, R-4",
+   "quote": "Because the product offers no CSV download of results, no formula-injection escaping applies today. \u2026 a 254-character valid email is accepted and 255 is INVALID_EMAIL. \u2026 The name length limit is unresolved (G-7).",
+   "missing": "The spec resolves formula handling and email length. It leaves the maximum name length and the outcome for an overlong name undecided."
+  }
+ ]
+}

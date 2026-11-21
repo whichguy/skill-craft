@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__M-shiploop-spec-members__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3382016,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3A",
+   "quote": "All-or-nothing and reject-on-conflict are defaults chosen to make correction and retry predictable. ... definitive validation, authorization or persistence rejection before commitment leaves zero users from that operation"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2C",
+   "quote": "report invalid records by one-based logical record number, with header as record 1, field and corrective reason."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3B",
+   "quote": "any duplicate canonical identity within the file, or any existing identity that conflicts under the ordinary account rules, rejects the entire batch and identifies the conflicting record positions and reason"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-3A",
+   "quote": "apply the same non-elevated default access and account lifecycle as ordinary creation. Submitters cannot use CSV to choose privileges."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1A",
+   "quote": "a signed-in administrator authorized to create users in the selected directory can open the upload action and submit there.",
+   "missing": "Whether import is a distinct permission or simply implied by single-user create authority; the spec effectively ties it to ordinary create permission (R-3 gaps: 'Only actors permitted by normal creation may add them through import')."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2B",
+   "quote": "reject undecodable input, missing or malformed header, duplicate or unknown header, missing required header, unmatched quotes, ragged rows"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2B",
+   "quote": "accept UTF-8 text with an optional initial UTF-8 BOM, comma-separated columns, LF or CRLF record separators ... double-quoted fields with doubled quotes for literal quotes. A quoted newline stays within one field."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-3A",
+   "quote": "rejection before commitment leaves zero users from that operation and zero activation or provisioning effects from its rows."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2C",
+   "quote": "Exceeding any published input bound rejects the batch with the breached limit and creates zero users. Boundary \u2014 a valid file at each inclusive maximum is eligible, a file one unit beyond is rejected",
+   "missing": "The actual byte, row and field limits; the spec leaves the numeric bounds open."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2B",
+   "quote": "reject ... missing or malformed header ... or a document with zero data records. ... A single well-formed data record is eligible."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-4B",
+   "quote": "Concurrent or sequential replay of the same reference and unchanged submission yields the accepted attempt's pending or terminal result without extra effects."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-4 state and open gaps",
+   "quote": "Recovery is limited to the submitter with current authority, and must be reachable without reliance on an open upload view.",
+   "missing": "Whether large files are processed asynchronously and at what size; how the admin is told it finished (no notification is chosen, only status lookup)."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3 state and open gaps",
+   "quote": "defining new invitation rules ... are outside scope. The account owner must confirm uniqueness ..., default access, create side effects and when a created account becomes usable.",
+   "missing": "Whether invitation/welcome mail goes out for every created user at once and how it is paced or throttled."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3A",
+   "quote": "apply the same non-elevated default access and account lifecycle as ordinary creation.",
+   "missing": "Whether the created user is active or pending, has a password, and how they first sign in; deferred to the account owner."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2 state and open gaps",
+   "quote": "Application-side upload/parsed values are scoped to verification and the in-flight attempt and discarded at termination ... Neither the raw file nor parsed rows belong in ordinary logs or persistent import history."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-4D",
+   "quote": "record an operation-level outcome for each accepted attempt with reference, initiating admin identifier, authorized scope, outcome, and safe counts or error category."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-4C",
+   "quote": "after confirmed rejection, give the admin a way to replace or correct the file and submit a new attempt. ... No post-submit cancel or undo action is offered because completion may already be irrevocable."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "NFR Workload and runtime fit",
+   "quote": "Open bounds include ... resource/time ceiling, and acceptable upload-to-feedback and upload-to-verdict latency at the agreed workload.",
+   "missing": "An actual time bound for a maximum-size file and any progress indication beyond a generic pending state."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3A",
+   "quote": "Proposed preservation is the ordinary account record ... plus all pre-existing accounts and unrelated state. ... Existing records and other directories are unaffected by the import."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-2 state and open gaps",
+   "quote": "Runtime owner must establish inclusive byte, data-record and field-size limits",
+   "missing": "Values for the field-length limit, and any handling of spreadsheet formula-injection values; formula injection is not addressed."
+  }
+ ]
+}

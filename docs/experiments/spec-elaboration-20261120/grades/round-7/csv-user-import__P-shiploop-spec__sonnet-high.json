@@ -1,0 +1,146 @@
+{
+ "slot": "csv-user-import__P-shiploop-spec__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.392842,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "Behaviour (A-7): a file is imported entirely or not at all. ... If any file-level or row error exists, no user is created and `outcome` is `rejected` with **all** errors listed"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "`row_errors` (list of `{line, email, code}` ordered by line; `line` is the physical 1-based line on which the record starts"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "`duplicate_in_file` is reported on every row after the first row with the same normalised email ... `already_exists` is reported on a row ... whose email is an existing user. The import only creates; it never updates"
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "G-2",
+   "quote": "whether any admin may create other admins (A-14 assumes yes, audited). ... Needed before: R-1 is implemented against a real role model; escalation risk is accepted or `role` is removed from the file.",
+   "missing": "No rule checks roles in the file against the importer's own authority; whether escalation is permitted is left open pending the real role model."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "the import (Import API and Import page) is available only to an authenticated user who is an administrator *at the time the request is authorised and again at commit*.",
+   "missing": "Whether the import permission is distinct from (not implied by) the ability to create a single user is not stated."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "line 1 is the header. ... Required columns: `email`, `name`. Optional column: `role`. ... any other column (including `password`) is an error ... `missing_column` ... `unknown_column` ... `duplicate_column`"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "quoted fields may contain commas and newlines, CRLF or LF record separators, an optional UTF-8 byte-order mark ignored"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "every row is created in a single atomic commit ... Created users hold no credential from the import and receive no message from it (R-12)."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "size and row-count limits are configured values (`max_bytes`, `max_rows` ...); exceeding either rejects the whole file before any user is created (G-1: default values unresolved).",
+   "missing": "The actual default values of max_bytes and max_rows."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AC-2.2, AC-6.1",
+   "quote": "a 0-byte file returns `empty_file`; `email,name,role\\n` returns `no_data_rows` ... Boundary: a one-data-row file creates one user."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "Repeating a successful upload creates nothing and reports `already_exists` for every row (AC-5.3 form); repeating a rejected upload after fixing the file simply imports it."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "The request is parsed, validated and committed inside the single request, and the response is the final outcome. The file is bounded by `max_bytes` and `max_rows`"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-12",
+   "quote": "The import creates user records only. It sets no password, sends no email or invitation, and starts no session (A-12)."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-12",
+   "quote": "It sets no password, sends no email or invitation, and starts no session (A-12). How a created user first gains access is a separate capability (G-7).",
+   "missing": "Whether the created user is active or pending, and how they first sign in (left to G-7)."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "the file and its rows are personal data. They are held only for the duration of the request, are not written to durable storage by the import"
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "each import by an administrator that reaches a decision stores one audit record: `import_id`, actor id, time of completion, `outcome`, `rows_total`, `rows_created`, and a count per error code."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-6",
+   "quote": "If any file-level or row error exists, no user is created and `outcome` is `rejected` with **all** errors listed, so one correction pass is enough.",
+   "missing": "Cancelling a running import is not addressed; retrying only failed rows is implicitly replaced by re-uploading the whole corrected file but not stated as such."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "NFR-7, R-11",
+   "quote": "No numeric latency target is set: the request gives none and the platform limit is unknown (G-1). ... shows upload progress while bytes are sent, then an indeterminate \"Creating users\u2026\"",
+   "missing": "A time bound for a maximum-size file; progress during server-side processing is only indeterminate."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "The import only creates; it never updates, overwrites or merges an existing user.",
+   "missing": "That creating a single user by hand continues to work unchanged is not stated."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-10, R-4",
+   "quote": "The import does not neutralise spreadsheet-formula prefixes (`=`, `+`, `-`, `@`) in stored values; that is the duty of any future export ... `name`: non-empty after trimming (a maximum length is unresolved, G-3)",
+   "missing": "A maximum length for name (only email has a bound), and what happens to an over-long field."
+  }
+ ]
+}

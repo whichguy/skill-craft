@@ -1,0 +1,141 @@
+{
+ "slot": "invoice-reminders__K-shiploop-spec-default-bounds__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2(b)",
+   "quote": "Ordinals 1, 2 and 3 open at 09:00 UTC respectively 1, 7 and 14 UTC calendar days after the authoritative due date. \u2026 Before the first opening and from the final close onward there is no live window."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2(a)",
+   "quote": "Include partially paid and partially credited invoices using the remaining balance. \u2026 Draft/unissued, paid, fully credited, void, written off/uncollectible, deleted, disputed or explicitly held, and invoices with a pending payment are excluded.",
+   "missing": "Whether an active payment plan suspends reminders when the invoice has a remaining balance and no explicit hold or pending payment."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2(a), R-3(a)",
+   "quote": "Include partially paid and partially credited invoices using the remaining balance. \u2026 In the body include the reference, due date, current outstanding amount with currency"
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-3(b)",
+   "quote": "Simultaneous or repeated evaluations share the same disposition and cannot both authorize a submission for the same attempt. \u2026 Rescheduling, restart or reactivation cannot create another accepted submission for a finalized slot."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2(c)",
+   "quote": "Immediately before each dispatch authorization, apply the invoice authority's current effective policy, access, invoice revision, date, outstanding balance, hold and recipient."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-4(a)",
+   "quote": "On confirmed temporary non-acceptance, retry no earlier than 1 hour after the first such result and 24 hours after the second \u2026 A temporary rejection on attempt 3 ends the slot as exhausted.",
+   "missing": "Whether repeated provider failures trigger an alert, when to raise it, and who receives it."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Non-functional requirements, Capacity and compatibility",
+   "quote": "Invoice volume, overdue backlog, dispatch bursts, scheduling precision, storage/retention capacity, provider limits and cost ceiling are unresolved.",
+   "missing": "What provider quota applies and how quickly the runtime may submit messages from a large batch to stay within it."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2(b)",
+   "quote": "On each evaluation, select the single window containing the current time, including after activation or downtime. \u2026 If evaluation was missed, an elapsed window is skipped."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-2(b)",
+   "quote": "Ordinals 1, 2 and 3 open at 09:00 UTC respectively 1, 7 and 14 UTC calendar days after the authoritative due date.",
+   "missing": "Whether dispatch within a live window is restricted to the customer's local business hours or deferred on weekends or holidays."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-3(a)",
+   "quote": "In the body include the reference, due date, current outstanding amount with currency",
+   "missing": "How to display the amount and currency across currencies and recipient locales, including decimal precision, separators, and currency symbol or code."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-3(a), R-4(b)",
+   "quote": "A missing, malformed, or unauthorized customer address or unavailable approved sender configuration suppresses submission \u2026 Correlate later rejection or bounce evidence where offered and expose it distinctly, without reopening the slot."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-3(a)",
+   "quote": "Send only to the designated billing address, even when other contact addresses exist."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3, Domain rules and data",
+   "quote": "The reminder runtime owns durable scope/invoice/ordinal dispositions. \u2026 Authorized billing operators can see status in their own scope. \u2026 Do not persist a second reminder copy of the address or body.",
+   "missing": "Whether the invoice itself shows a history identifying each sent reminder and its send time."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-3(a)",
+   "quote": "In the body include the reference, due date, current outstanding amount with currency, and the next step to use the original invoice's payment instructions or reply to billing for help.",
+   "missing": "If the original payment instructions use a link, whether it expires and how the recipient can pay once it expires."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-1(a), R-1 Domain rules and data, Basis and scope",
+   "quote": "An administrator with current authority for the billing scope can enable or disable the default policy. \u2026 Custom schedules, per-invoice administration, and new roles are outside scope. \u2026 This scope adds no screen, report, terminal interface, login, manual send"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1(a), Basis and scope",
+   "quote": "An administrator with current authority for the billing scope can enable or disable the default policy. \u2026 This scope adds no screen, report, terminal interface, login, manual send",
+   "missing": "Whether administrators can disable reminders for one customer or preview or dry-run the policy before activation."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-4(c)",
+   "quote": "Operators can distinguish withheld, retry pending, outcome unknown, expired, exhausted, permanently rejected, provider accepted and reported bounce, including a safe correlation reference and reason.",
+   "missing": "Whether operators can see which invoice and reminder step are scheduled next and when the send is due."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-2(b)",
+   "quote": "The next opening closes the prior window, and ordinal 3 closes at 09:00 UTC on day 21, exclusive. Before the first opening and from the final close onward there is no live window."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2, Basis and delta and Domain rules and data",
+   "quote": "Preserves existing invoice, payment and credit semantics. \u2026 Reminders observe those facts under current scoped authority and never write them."
+  }
+ ]
+}

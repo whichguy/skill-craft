@@ -1,0 +1,147 @@
+{
+ "slot": "csv-user-import__P-shiploop-spec__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "A7 (C2, C8)",
+   "quote": "Any invalid row, conflict, lost authority before commit, or definite failure before a successful batch commit rejects the whole batch."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "A10 (C2)",
+   "quote": "A definitive rejection shows zero created and a file-level reason or actionable row numbers and reasons, as applicable."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "A8 (C4)",
+   "quote": "A duplicate within the file or a collision at creation time rejects the whole batch. \u2026 Flag all rows in an in-file duplicate group."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "A5 (C3), R-3 State and data",
+   "quote": "Password, credential, role and scope columns are unsupported by this file contract. \u2026 The CSV adds no way to supply or read passwords, secrets or elevated privileges."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "A1 (C7), R-1 Open gaps",
+   "quote": "An authenticated administrator permitted to create users in the target scope can open **Import users** in **Users**. \u2026 whether an import permission already exists.",
+   "missing": "The spec leaves open whether an admin with individual-create authority also needs a distinct grant to import."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "A5 (C3)",
+   "quote": "The first nonempty record is a single header with the exact value `email` after CSV decoding. \u2026 Reject a missing or wrong header or a header with repeated or extra columns as a file error."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "A4 (C2, C3)",
+   "quote": "Accept an optional initial UTF-8 BOM, LF or CRLF record endings, and an optional final record ending. Quoted fields support commas, doubled quotes and embedded record endings."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "A7 (C8)",
+   "quote": "No user from that batch is left created and no creation side effects are issued for a rejected batch."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C10 (A6)",
+   "quote": "The platform and numeric caps are missing. \u2026 Confirm a valid file at each cap can proceed and the file one above is rejected with zero writes.",
+   "missing": "The inclusive byte and data-row caps still need numeric values."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "A5 (C2, C3)",
+   "quote": "A zero-byte file reports an empty file, an empty-record-only file reports a missing header, and a header-only file reports no data rows. Each creates zero users. One valid data row is allowed."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C5",
+   "quote": "Both input rows now collide under A8. The second attempt creates zero users and both recorded IDs and their attributes are unchanged."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "A10 (C1), R-4 State and data",
+   "quote": "On confirmed success, show the exact created count and a way back to Users. \u2026 The contract supplies no independent background completion guarantee, persistent import history, or status-sharing channel.",
+   "missing": "The spec defines in-view completion feedback. It gives no large-file threshold, background processing requirement, or way to learn that a job finished after leaving the view."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3 Open gaps (A7, C8)",
+   "quote": "If onboarding triggers external effects, confirm their timing and recovery before promising the same behavior for bulk input.",
+   "missing": "The builder still needs to know whether a successful import sends invitations or welcome messages and, if so, whether to send them together or at a specified rate."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3 Open gaps (A7)",
+   "quote": "required user status, default entitlements, and standard activation, invitations or other creation side effects.",
+   "missing": "The initial active or pending status, whether the account has a password, and how the new user first signs in are unresolved."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-2 State and data (A12, C11)",
+   "quote": "They can be read by authorized import processing only and are released on completion, rejection or operation expiry.",
+   "missing": "The storage location for transient files or buffers and the enforceable expiry and purge deadline for abandoned uploads are open."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "A13 (C11)",
+   "quote": "with a safe correlation reference and outcome class. \u2026 A confirmed creation count may be logged if permitted.",
+   "missing": "The event has no required actor identifier, timestamp, or reference identifying what was imported. Even the creation count is optional."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "Behavior model after T-8, R-3 State and data (C2)",
+   "quote": "Once submitted, there is no cancel or undo action in this scope. \u2026 A correction is a full resubmission from a fresh validation state."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "A10 (C2), Non-functional requirements, Capacity and responsiveness (C10)",
+   "quote": "Show a pending state while waiting for an authoritative outcome. \u2026 Numeric caps, deadlines and workload are open under R-2/R-4.",
+   "missing": "There is no maximum processing time for a file at the cap and no measure of work completed while the view shows pending."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "Non-functional requirements, Compatibility and scope (C6), A7 (C4)",
+   "quote": "Normal user-management and individual creation paths retain their behavior. \u2026 Existing users, permissions and accounts outside the batch are unaffected by bulk create."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-2 State and data (A5, A12, C11)",
+   "quote": "Raw cell contents and unrelated user records stay off the result and out of logs.",
+   "missing": "Omitting input values from results keeps uploaded formulas out of them. The spec leaves the maximum field length and handling of an overlong field within the file-size cap unspecified."
+  }
+ ]
+}

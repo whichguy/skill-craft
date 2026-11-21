@@ -1,0 +1,143 @@
+{
+ "slot": "invoice-reminders__P-shiploop-spec__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3.A (TC-7)",
+   "quote": "the processor automatically evaluates positions 1, 2 and 3 at 09:00 billing-account local time on calendar days 1, 7 and 14 after the invoice due date."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2.A (TC-4)",
+   "quote": "A partially paid invoice qualifies on its remaining balance. \u2026 drafts, canceled or voided invoices, invoices held from collection, and invoices with zero or negative balance produce zero dispatch initiations.",
+   "missing": "The balance rule handles credits that clear the balance. A builder still needs to know whether a credit leaving money due, an open dispute, or a payment plan puts collection on hold."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "TC-9 (R-3.C)",
+   "quote": "states USD 40.00 due, and requests payment using the established billing method. The prior USD 100.00 total and unrelated data are omitted."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-3.B (TC-8)",
+   "quote": "missing, invalid, ambiguous or suppressed contact data withholds dispatch and exposes a safe reason.",
+   "missing": "Which customer do-not-contact, pause or unsubscribe settings suppress billing notices, and whether a marketing-only opt-out permits one."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4.A (TC-10), R-4.B (TC-11)",
+   "quote": "one account, invoice and schedule position identifies a logical reminder across overlapping executions and restarts. \u2026 overlapping or stale workers cannot independently initiate a second handoff for that position \u2026 proof of no handoff"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2, F-2 (T-4 and T-5)",
+   "quote": "use authoritative state to select a candidate (T-4, TC-4/TC-6), then re-evaluate at dispatch authorization (T-5, TC-5)."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-4.B (TC-11)",
+   "quote": "On a confirmed transient failure with proof of no handoff, allow a controlled retry within the same window after rechecking R-1 through R-3.",
+   "missing": "The retry interval and attempt limit during a provider outage, and when and how persistent failures are escalated to a person."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Non-functional requirements, Capacity and cost (R-3, R-4)",
+   "quote": "Check a peak due-invoice cohort and overlapping processing against the selected runtime, data access and mail limits. Throttling must preserve account isolation and replay protection and expose deferred or expired work.",
+   "missing": "The provider's sending limit and how the processor paces or queues a large batch to stay within it."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-3.A (TC-7)",
+   "quote": "Only positions with start times strictly after the current activation time qualify."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-3.A (TC-7)",
+   "quote": "at 09:00 billing-account local time on calendar days 1, 7 and 14 after the invoice due date. \u2026 ends at the first instant on a later local date, exclusively.",
+   "missing": "The rule uses the billing account's clock and allows sends until midnight on any scheduled calendar date. It leaves the recipient's own time zone, business hours and any weekend or holiday adjustments unaddressed."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-3.C (TC-9) and TC-9 replay",
+   "quote": "remaining balance with currency \u2026 states USD 40.00 due",
+   "missing": "The USD example gives one display format. A builder still needs a formatting rule for other currencies, their decimal precision and the recipient's locale."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-3.B (TC-8) and R-4, F-4 (T-12)",
+   "quote": "missing, invalid, ambiguous or suppressed contact data withholds dispatch and exposes a safe reason. \u2026 An authoritative bounce after acceptance can refine the delivery outcome without allowing resend"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-3.B (TC-8)",
+   "quote": "address the notice to the one currently designated, eligible billing email for that invoice's customer and account. Failure: missing, invalid, ambiguous or suppressed contact data withholds dispatch"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-4, F-4 and Information lifecycle",
+   "quote": "durable dispatch state scoped by billing account, invoice and position. \u2026 Ordinary diagnostic records use restricted correlation identifiers, category, timestamp and reason codes.",
+   "missing": "How the invoice itself shows a history identifying the notice sent at each step and its send time. The support status and diagnostic records do not specify that view."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-3.C (TC-9)",
+   "quote": "the intended recipient can identify the approved sender, invoice reference, due date and remaining balance with currency, and sees a request to pay using their established billing method.",
+   "missing": "Whether the established billing method is reached through a link in the notice and, if so, when that link expires."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-1.A (TC-1) and R-1, F-1",
+   "quote": "an actor authorized to manage billing reminders can enable them for one billing account \u2026 An authorized billing actor submits enable or disable.",
+   "missing": "Whether anyone can change the cadence or manually send or stop an individual reminder, and which permissions those actions require."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1.C (TC-3)",
+   "quote": "disabling stops initiations authorized after the disable commits. Re-enabling starts a new active interval and only considers future scheduled times.",
+   "missing": "The switch covers one billing account. The spec leaves a customer-specific off switch, preview or dry-run operation, and manual resend unspecified."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-4.C (TC-12)",
+   "quote": "authorized billing support can distinguish an active position awaiting a valid attempt, a reserved/in-flight attempt, provider acceptance, a confirmed delivery failure",
+   "missing": "Whether the status view identifies the next scheduled reminder and its planned send time before its window opens."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-3.A (TC-7)",
+   "quote": "a window starts inclusively at its scheduled local time and ends at the first instant on a later local date, exclusively."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "Source and scope and R-2, F-2",
+   "quote": "Invoice creation, collections escalation, and changes to payment processing are outside this request. \u2026 The reminder processor reads the minimum account-scoped fields and leaves source records untouched."
+  }
+ ]
+}
