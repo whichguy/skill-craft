@@ -29,6 +29,8 @@ import signal
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -41,12 +43,34 @@ NOT_MEASURED = "not measured"
 NOT_PRODUCT = ["acceptance", "ratchet", "docs", "scripts", "testdata", ".shiploop-improve"]
 
 
+LIVE = set()  # process groups this script started and has not yet reaped
+STOPPING = threading.Event()
+
+
+def stop_children(signum, _frame):
+    """Asked to stop: start nothing more, take every command still running with us, and leave at once. Each command
+    runs in a session of its own, so it would otherwise outlive this script; a seeded fault that makes a test spin
+    then spins until someone finds it. The worker threads are not waited for: they would start the next command."""
+    STOPPING.set()
+    for _ in range(3):
+        for group in list(LIVE):
+            try:
+                os.killpg(group, signal.SIGKILL)
+            except (ProcessLookupError, PermissionError):
+                pass
+        time.sleep(0.2)
+    os._exit(128 + signum)
+
+
 def run(command, folder, temp):
     """One shell command in `folder`: its exit code, or None when it did not end."""
     env = {key: value for key, value in os.environ.items() if key != "PORT"}
     env["TMPDIR"] = str(temp)
+    if STOPPING.is_set():
+        return None
     proc = subprocess.Popen(command, shell=True, cwd=str(folder), env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                             stdin=subprocess.DEVNULL, start_new_session=True)
+    LIVE.add(proc.pid)
     try:
         proc.wait(timeout=SECONDS)
         code = proc.returncode
@@ -58,6 +82,7 @@ def run(command, folder, temp):
         pass
     if code is None:
         proc.wait()
+    LIVE.discard(proc.pid)
     return code
 
 
@@ -158,6 +183,8 @@ def main(argv=None):
     argv = [arg for arg in argv if arg != "--manifest"]
     if len(argv) != 4:
         raise SystemExit(__doc__)
+    signal.signal(signal.SIGTERM, stop_children)
+    signal.signal(signal.SIGINT, stop_children)
     label, tree, fixture, out = argv[0], Path(argv[1]).resolve(), Path(argv[2]).resolve(), Path(argv[3])
     scratch = Path(tempfile.mkdtemp(prefix="ratchet-mutate-"))
     # the untouched copy: which commands fail there and so decide nothing

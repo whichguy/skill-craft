@@ -1085,3 +1085,34 @@ and script 42.2 (each gate runs about 300 browser-backed tests).
 
 Evidence: `evidence/grokbot-local/ratchet/` (run.json, gates.json, the three closing looks, the fix note, the
 gradings at every stage in `final-grading.json` and `end-grading.log`, summary.json).
+
+## 18. An apparatus fault of mine that loaded the machine for four hours (found 2026-11-21 02:02)
+
+What happened. At 22:03:42 I stopped the first seeded-fault run (`mutate.py`, section 10) by its process id, to
+lower a load average of 45. The script starts each command in a session of its own. Two commands were in flight,
+each a `node --test` run on a seeded fault that makes a loop spin; they were not stopped with the script. Ten test
+worker processes then ran at about 100% of a processor each from about 22:00 until I found them at 02:02 while
+sweeping for leftovers after the last run. I stopped them by process id after checking each one's working folder
+(the script's own scratch folder). The load average went from 22 to 12 at once and to 3 once the pilot's last jobs
+had ended. So about half of the load I had set out to reduce was my own, for four hours.
+
+What it touched. The machine has 18 processors and was shared with another session's runs all evening.
+
+| Ran before the strays (not touched) | Ran with the strays on the machine |
+|---|---|
+| P1; P2 on orders; the chess, shared-expenses and medium ticket-assignment whole loops (ended 21:13, 21:47, 21:33) and with them the matched time reading R3.4; nearly all of the four ticket repair starts | the last 12 minutes of the high ticket-assignment loop; the due-times loop (21:43 to 00:13); every Grokbot-local arm, grading, probe and planted-defect run; the seeded-fault measures; the other session's work |
+
+- **Times in the right-hand column are inflated by an amount I cannot measure** for their local parts (test runs,
+  gates over hundreds of tests, browsers). Model latency is not affected. The Grokbot arms all ran inside the window
+  and share the load, so their ratios (2.3 and 12.3 times) are less exposed than their minutes.
+- **No pass or fail in this journal rests on it.** Every failing check counted here was read by hand with a probe;
+  the failures that turned out to be time-outs were the driver's assumptions, shown at a person's pace under the
+  same load. One earlier guess is now explained: the `npm test` that failed twice on an untouched copy at 22:05
+  ("the machine's load average was above 40") was running beside these strays.
+- **The other session paid for it too.** Its runs had about ten fewer processors for four hours. The owner is told.
+
+Fix. `mutate.py` now handles being stopped: it starts nothing more, kills every command group it still has, and
+exits at once. Checked on a toy project whose seeded fault spins for ever: before the fix, stopping the script left
+it and two test processes running; after it, none. What I do differently: after stopping any script of mine, list
+what still runs from its scratch folder and stop it by process id; and when the machine looks loaded, look for my
+own strays first.
