@@ -38,6 +38,11 @@
  * Calibration on the ShipLoop arm's build:
  *  10. Waiting for a new conversation to be empty counts messages only; that build draws task cards inside the
  *      Conversation region (the second yardstick's correction E, where it was found).
+ * Calibration on the Ratchet arm's first build, second look:
+ *  11. Coming back after the page was closed happens in the same browser (a new page of the same context), not in
+ *      a new one. That build keeps what a person has already seen with the browser, and in a brand-new browser it
+ *      had nothing to call "finished while you were away"; its own test of the same sentence, which reopens a tab,
+ *      passes. The request speaks of coming back, not of arriving on another machine.
  */
 'use strict';
 const fs = require('node:fs');
@@ -115,8 +120,8 @@ const messages = (page, who) => conversation(page).getByRole('article', { name: 
 const task = (page, title) => page.getByRole('article', { name: `Task: ${title}`, exact: true });
 const taskStatus = (page, title) => task(page, title).getByRole('status', { name: 'Task status', exact: true });
 
-async function newPage(width = 1440, height = 1000) {
-  const context = await browser.newContext({ viewport: { width, height }, reducedMotion: 'reduce' });
+async function newPage(width = 1440, height = 1000, sameBrowser = null) {
+  const context = sameBrowser || await browser.newContext({ viewport: { width, height }, reducedMotion: 'reduce' });
   const page = await context.newPage();
   page.setDefaultTimeout(8000);
   page.setDefaultNavigationTimeout(15000);
@@ -430,9 +435,10 @@ async function tasksMode() {
   await attempt('work-continues-while-the-app-is-closed', async () => {
     await ask(page, 'Assistant', 'long task: audit [long]', "I'll work on");
     await waitStatus(page, 'audit', ['Running'], 5000);
-    await page.context().close();
+    const mine = page.context(); // come back in the same browser, as a person does (calibration 11)
+    await page.close();
     await sleep(3200);
-    page = await newPage();
+    page = await newPage(1440, 1000, mine);
     await signIn(page, server.base, 'Maya');
     for (let tries = 0; tries < 15 && !onReturn.includes('audit'); tries += 1) { // what the account says on coming back (calibration 8)
       onReturn = await region(page, 'Since you were away').first().innerText().catch(() => '');

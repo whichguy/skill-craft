@@ -32,6 +32,8 @@
  *   E. Waiting for a new conversation to be empty counts messages only. The ShipLoop arm's build draws its task
  *      cards inside the Conversation region, and the first version counted those as messages and never saw an
  *      empty conversation.
+ *   F. Coming back after the page was closed happens in the same browser (the first yardstick's correction 11):
+ *      the Ratchet arm's first build keeps what a person has seen with the browser.
  */
 'use strict';
 const crypto = require('node:crypto');
@@ -569,9 +571,10 @@ async function tasksMode() {
     await ask(page, 'long task: quick note', 'I\'ll work on "quick note"'); // 3 steps, 3.6 s
     await newConversation(page);
     await ask(page, 'long task: export [fail step 2]', 'I\'ll work on "export"'); // fails 2.4 s from here
-    await page.context().close();
+    const mine = page.context(); // come back in the same browser, as a person does (calibration F)
+    await page.close();
     await sleep(4500);
-    page = await newPage();
+    page = await newPage(1440, 1000, mine);
     await signIn(page, server.base, 'Maya');
     const titles = ['big survey', 'export', 'quick note'];
     let text = '';
