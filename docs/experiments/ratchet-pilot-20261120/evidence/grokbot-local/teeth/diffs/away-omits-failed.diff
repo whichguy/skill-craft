@@ -1,0 +1,12 @@
+diff -ru <runs>/teeth/away-omits-failed/.untouched/product/public/app.js <runs>/teeth/away-omits-failed/product/public/app.js
+--- <runs>/teeth/away-omits-failed/.untouched/product/public/app.js	2026-11-20 22:30:53
++++ <runs>/teeth/away-omits-failed/product/public/app.js	2026-11-20 22:57:07
+@@ -118,7 +118,7 @@
+       needsAttention.length + ' need attention',
+     ].join(' · '));
+     const list = node('ul');
+-    for (const task of [...finished, ...running, ...needsAttention]) {
++    for (const task of [...finished, ...running]) {
+       list.append(node('li', '', task.title + ' · ' + task.status + ' · ' + task.botName + ' / ' + task.conversationTitle));
+     }
+     return [heading, text, list];

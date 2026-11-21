@@ -1,0 +1,12 @@
+diff -ru <runs>/teeth/task-edit-duplicates/.untouched/product/lib/workspace.js <runs>/teeth/task-edit-duplicates/product/lib/workspace.js
+--- <runs>/teeth/task-edit-duplicates/.untouched/product/lib/workspace.js	2026-11-20 22:30:53
++++ <runs>/teeth/task-edit-duplicates/product/lib/workspace.js	2026-11-20 22:57:07
+@@ -311,7 +311,7 @@
+           }
+           return;
+         case 'save-task':
+-          saveItem(workspace.savedTasks, input);
++          workspace.savedTasks.push({ id: randomUUID(), name: cleanText(input.name, 'Name', 80), text: cleanText(input.text, 'Text') });
+           return;
+         case 'delete-saved-task':
+           deleteItem(workspace.savedTasks, input.id);

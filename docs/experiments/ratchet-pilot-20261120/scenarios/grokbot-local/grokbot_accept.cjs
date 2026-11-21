@@ -27,6 +27,9 @@
  *      after fetching them was found without the button and never signed in.
  *   7. After a restart, the check that Setup is absent waits half a second for the first screen to draw before it
  *      looks (the same instant-of-load fault, here in the lenient direction).
+ *   8. The account of what happened while away is read on coming back (for up to three seconds after signing in),
+ *      which is when the request says it tells me. The first version read it only after the task had gone on to
+ *      finish in front of the person, and a build whose account follows the tasks live had by then moved on.
  */
 'use strict';
 const fs = require('node:fs');
@@ -407,6 +410,7 @@ async function coreMode() {
 async function tasksMode() {
   let server = await startServer('tasks');
   let page = await newPage();
+  let onReturn = '';
   await signIn(page, server.base, 'Maya').catch(() => {});
   await attempt('a-long-task-runs-to-the-end', async () => {
     await ask(page, 'Assistant', 'long task: quarterly review', "I'll work on");
@@ -421,6 +425,10 @@ async function tasksMode() {
     await sleep(3200);
     page = await newPage();
     await signIn(page, server.base, 'Maya');
+    for (let tries = 0; tries < 15 && !onReturn.includes('audit'); tries += 1) { // what the account says on coming back (calibration 8)
+      onReturn = await region(page, 'Since you were away').first().innerText().catch(() => '');
+      if (!onReturn.includes('audit')) await page.waitForTimeout(200);
+    }
     await task(page, 'audit').waitFor({ state: 'visible' });
     expect(await doneCount(page, 'audit') >= 3, 'fewer than three steps were done while the page was closed');
     await waitStatus(page, 'audit', ['Completed'], 15000);
@@ -428,7 +436,7 @@ async function tasksMode() {
   await attempt('coming-back-shows-what-happened-while-away', async () => {
     const away = region(page, 'Since you were away');
     await away.waitFor({ state: 'visible' });
-    expect((await away.innerText()).includes('audit'), 'the account of what happened does not name the task');
+    expect(onReturn.includes('audit') || (await away.innerText()).includes('audit'), 'the account of what happened does not name the task, on coming back or after');
   });
   await attempt('a-running-task-can-be-cancelled', async () => {
     await ask(page, 'Assistant', 'long task: cleanup [long]', "I'll work on");

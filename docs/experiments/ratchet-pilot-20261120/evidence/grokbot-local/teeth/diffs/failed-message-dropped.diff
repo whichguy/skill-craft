@@ -1,0 +1,29 @@
+diff -ru <runs>/teeth/failed-message-dropped/.untouched/product/public/app.js <runs>/teeth/failed-message-dropped/product/public/app.js
+--- <runs>/teeth/failed-message-dropped/.untouched/product/public/app.js	2026-11-20 22:30:53
++++ <runs>/teeth/failed-message-dropped/product/public/app.js	2026-11-20 22:57:08
+@@ -4,6 +4,7 @@
+ const composer = $('message');
+ const thread = $('conversation');
+ const slices = new Map();
++const sawPending = new Set();
+ const drafts = new Map();
+ const scrollPositions = new Map();
+ const taskReceipts = new Set();
+@@ -444,6 +445,7 @@
+   if (memoryId && !bot.memory.some(({ id }) => id === memoryId)) resetMemory();
+   if (changedChat) composer.value = drafts.get(conversation.id) || '';
+ 
++  for (const message of conversation.messages) if (message.reply?.status === 'pending') sawPending.add(message.id);
+   const last = conversation.messages.at(-1);
+   const inFlight = last?.reply?.status === 'pending';
+   view = { personId: person.id, bot, conversation, inFlight };
+@@ -474,7 +476,8 @@
+   $('empty-thread').hidden = conversation.messages.length > 0;
+   updateSlice('timeline', [conversation.messages, conversation.proposals], ([messages, proposals]) => {
+     const byMessage = new Map(proposals.map((proposal) => [proposal.messageId, proposal]));
+-    return messages.map((message) => messageContent(message, byMessage.get(message.id)));
++    return messages.filter((message) => message.reply?.status !== 'failed' || sawPending.has(message.id))
++      .map((message) => messageContent(message, byMessage.get(message.id)));
+   });
+   const replyText = inFlight ? bot.name + ' is replying…' : '';
+   if ($('reply-status').textContent !== replyText) $('reply-status').textContent = replyText;

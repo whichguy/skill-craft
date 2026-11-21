@@ -1,0 +1,13 @@
+diff -ru <runs>/teeth/box-out-of-view-narrow/.untouched/product/public/style.css <runs>/teeth/box-out-of-view-narrow/product/public/style.css
+--- <runs>/teeth/box-out-of-view-narrow/.untouched/product/public/style.css	2026-11-20 22:30:53
++++ <runs>/teeth/box-out-of-view-narrow/product/public/style.css	2026-11-20 22:57:09
+@@ -582,6 +582,9 @@
+   .setup { margin: 10px 14px 0; padding: 10px; }
+   .proposal, .change-result { margin-left: 0; }
+ }
++@media (max-width: 399px) {
++  .compose { position: relative; top: 900px; }
++}
+ @media (prefers-reduced-motion: reduce) {
+   *, *::before, *::after { animation: none !important; scroll-behavior: auto !important; }
+ }

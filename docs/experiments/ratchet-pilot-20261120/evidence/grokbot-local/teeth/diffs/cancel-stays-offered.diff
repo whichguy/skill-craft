@@ -1,0 +1,12 @@
+diff -ru <runs>/teeth/cancel-stays-offered/.untouched/product/public/app.js <runs>/teeth/cancel-stays-offered/product/public/app.js
+--- <runs>/teeth/cancel-stays-offered/.untouched/product/public/app.js	2026-11-20 22:30:53
++++ <runs>/teeth/cancel-stays-offered/product/public/app.js	2026-11-20 22:57:07
+@@ -366,7 +366,7 @@
+       $(status.id)?.focus({ preventScroll: true });
+     }
+   };
+-  if (task.status === 'Running') {
++  if (['Running', 'Completed'].includes(task.status)) {
+     article.append(button('Cancel task', (event) => control('cancel-task', event), 'secondary', 'cancel-' + task.id));
+   }
+   if (['Failed', 'Interrupted'].includes(task.status)) {

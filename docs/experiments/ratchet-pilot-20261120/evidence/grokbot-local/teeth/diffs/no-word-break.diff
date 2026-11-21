@@ -1,0 +1,12 @@
+diff -ru <runs>/teeth/no-word-break/.untouched/product/public/style.css <runs>/teeth/no-word-break/product/public/style.css
+--- <runs>/teeth/no-word-break/.untouched/product/public/style.css	2026-11-20 22:30:53
++++ <runs>/teeth/no-word-break/product/public/style.css	2026-11-20 22:57:09
+@@ -310,7 +310,7 @@
+ .message-meta { display: flex; gap: 9px; align-items: baseline; margin: 2px 0 6px; }
+ .message-meta strong { font-size: 12px; font-weight: 680; overflow-wrap: anywhere; }
+ .message-meta time { font-size: 10px; color: var(--muted); white-space: nowrap; }
+-.message-text { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 15px; line-height: 1.65; }
++.message-text { white-space: pre-wrap; font-size: 15px; line-height: 1.65; }
+ .person-message .message-text {
+   color: var(--text);
+   padding: 9px 13px;

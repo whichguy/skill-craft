@@ -1,0 +1,29 @@
+diff -ru <runs>/teeth/delete-task-not-kept/.untouched/product/public/app.js <runs>/teeth/delete-task-not-kept/product/public/app.js
+--- <runs>/teeth/delete-task-not-kept/.untouched/product/public/app.js	2026-11-20 22:30:53
++++ <runs>/teeth/delete-task-not-kept/product/public/app.js	2026-11-20 22:57:08
+@@ -4,6 +4,7 @@
+ const composer = $('message');
+ const thread = $('conversation');
+ const slices = new Map();
++const gone = new Set();
+ const drafts = new Map();
+ const scrollPositions = new Map();
+ const taskReceipts = new Set();
+@@ -308,7 +309,7 @@
+   apply.disabled = !enabled;
+   const edit = button('Edit ' + item.name, () => editSaved(type, item), 'quiet', 'edit-' + item.id);
+   const remove = button('Delete ' + item.name, async () => {
+-    if (await act(isInstruction ? 'delete-instruction' : 'delete-saved-task', { id: item.id })) {
++    if (isInstruction ? await act('delete-instruction', { id: item.id }) : (gone.add(item.id), render(), true)) {
+       const form = $(forms[type].form);
+       if (form.dataset.itemId === item.id) editSaved(type);
+       $(forms[type].name).focus();
+@@ -378,7 +379,7 @@
+ function syncSend() {
+   const enabled = Boolean(view && state.configured && !view.inFlight && !sending);
+   $('send').disabled = !enabled;
+-  updateSlice('saved-task-list', [state?.workspace?.savedTasks || [], enabled], ([tasks, canRun]) =>
++  updateSlice('saved-task-list', [(state?.workspace?.savedTasks || []).filter((item) => !gone.has(item.id)), enabled], ([tasks, canRun]) =>
+     tasks.map((item) => savedItem(item, 'saved-task', canRun, false)));
+ }
+ 

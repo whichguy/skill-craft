@@ -1,0 +1,12 @@
+diff -ru <runs>/teeth/focus-leaves-the-box/.untouched/product/public/app.js <runs>/teeth/focus-leaves-the-box/product/public/app.js
+--- <runs>/teeth/focus-leaves-the-box/.untouched/product/public/app.js	2026-11-20 22:30:53
++++ <runs>/teeth/focus-leaves-the-box/product/public/app.js	2026-11-20 22:57:09
+@@ -539,7 +539,7 @@
+     if (!taskId && view?.conversation.id === conversationId && composer.value === text) {
+       composer.value = '';
+       drafts.delete(conversationId);
+-      composer.focus();
++      composer.blur();
+     } else if (!taskId && drafts.get(conversationId) === text) {
+       drafts.delete(conversationId);
+     }

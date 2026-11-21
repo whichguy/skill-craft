@@ -15,8 +15,20 @@
  * beside this file). Each mode runs on a free port with an empty data folder of its own; checks in one mode share
  * that mode's state. A message is written at a person's pace, as in the first yardstick after its calibration.
  *
- * Calibration, 2026-11-20: `signIn` waits until the first screen has drawn (the first yardstick's correction 6),
- * found on the Ratchet arm's first build. No check of this file was changed.
+ * Calibration, 2026-11-20 (the journal lists what was observed):
+ *   A. `signIn` waits until the first screen has drawn (the first yardstick's correction 6), found on the Ratchet
+ *      arm's first build.
+ *   B. Found on the ShipLoop arm's build, which runs one task a conversation and says so when asked for a second:
+ *      every check that needs two or three tasks at once now starts each in a conversation of its own, and opens
+ *      the conversation that holds a task before looking for it (an app may list only the open conversation's
+ *      tasks). The request does not say several tasks run in one conversation, and provider/README.md speaks of
+ *      "their running task in this conversation".
+ *   C. The account on coming back is read on coming back (for up to three seconds after signing in), on a server of
+ *      its own whose steps take 1200 ms, so that one task has finished, one has failed and one still runs while the
+ *      page is closed.
+ *   D. Two blind spots that planted defects exposed (one defect a check, on copies of the bare build) were closed:
+ *      the instructions check now also asks a bot that existed before the instruction was used, and the long-word
+ *      check now measures the word itself and not only the page.
  */
 'use strict';
 const crypto = require('node:crypto');
@@ -76,11 +88,11 @@ function freePort() {
     probe.listen(0, '127.0.0.1', () => { const { port } = probe.address(); probe.close(() => resolve(port)); });
   });
 }
-async function startServer(name, { data } = {}) {
+async function startServer(name, { data, stepMs = 700 } = {}) {
   const port = await freePort();
   const dataDir = data || path.join(output, `data-${name}`);
   fs.mkdirSync(dataDir, { recursive: true });
-  const env = { ...process.env, PORT: String(port), DATA_DIR: dataDir, PROVIDER_TOKEN: TOKEN, STANDIN_SLOW_MS: '1500', STANDIN_STEP_MS: '700' };
+  const env = { ...process.env, PORT: String(port), DATA_DIR: dataDir, PROVIDER_TOKEN: TOKEN, STANDIN_SLOW_MS: '1500', STANDIN_STEP_MS: String(stepMs) };
   const log = fs.openSync(path.join(output, `server-${name}.log`), 'a');
   const child = spawn('node', ['server.js'], { cwd: product, env, detached: true, stdio: ['ignore', log, log] });
   const base = `http://127.0.0.1:${port}`;
@@ -176,6 +188,19 @@ async function conversationButtons(page) {
     text: (each.innerText || '').trim(),
   })));
   return rows.filter((row) => !row.isNew);
+}
+/** Bring a task's article onto the screen: an app may list only the open conversation's tasks (calibration B). */
+async function showTask(page, title) {
+  if (await task(page, title).count()) return;
+  const listed = (await conversationButtons(page)).length;
+  for (let turn = 0; turn < listed; turn += 1) {
+    const rows = await conversationButtons(page);
+    if (!rows[turn]) break;
+    await navigation(page, 'Conversations').getByRole('button').nth(rows[turn].index).click();
+    await page.waitForTimeout(500);
+    if (await task(page, title).count()) return;
+  }
+  throw new Error(`no conversation shows the task "${title}"`);
 }
 async function waitStatus(page, title, wanted, limit) {
   const pattern = new RegExp(wanted.join('|'));
@@ -319,10 +344,14 @@ async function savedMode() {
     expect(entries === 1, `saving again under the same name left ${entries} entries named Brief`);
   });
   await attempt('instructions-belong-to-the-bot-that-uses-them', 'stated', "Using one makes it the open bot's instructions from the next reply on", async () => {
+    await newBot(page, 'Other'); // a bot that exists before the instruction is used (calibration D)
+    await openBot(page, 'Assistant');
     await button(instructions(), 'Use Brief').click();
     await ask(page, 'who are you', /My instructions: Answer in (one|two) lines?\./);
-    await newBot(page, 'Other');
+    await openBot(page, 'Other');
     await ask(page, 'who are you', 'I am Other. I have no special instructions');
+    await newBot(page, 'Third'); // and one made afterwards
+    await ask(page, 'who are you', 'I am Third. I have no special instructions');
   });
   await attempt('a-saved-instruction-can-be-deleted', 'stated', 'Each saved one has buttons named Use <name>, Edit <name> and Delete <name>', async () => {
     await textbox(instructions(), 'Instruction name').fill('Temp');
@@ -495,22 +524,28 @@ async function tasksMode() {
     expect(done === 9, `the steered task shows ${done} finished steps; its 8 and the added one make 9`);
   });
   await attempt('cancelling-one-task-leaves-another-running', 'implied', 'A region named Tasks shows each long task ... steer ongoing work with a follow-up or cancel it', async () => {
-    await ask(page, 'long task: first job [long]', 'I\'ll work on "first job"');
+    await newConversation(page); // each task in a conversation of its own (calibration B)
     await ask(page, 'long task: second job [long]', 'I\'ll work on "second job"');
+    await waitStatus(page, 'second job', ['Running'], 5000);
+    await newConversation(page);
+    await ask(page, 'long task: first job [long]', 'I\'ll work on "first job"');
     await waitStatus(page, 'first job', ['Running'], 5000);
     await button(task(page, 'first job'), 'Cancel task').click();
     await waitStatus(page, 'first job', ['Cancelled'], 6000);
+    await showTask(page, 'second job');
     await waitStatus(page, 'second job', ['Completed'], 30000);
     const done = await doneCount(page, 'second job');
     expect(done === 8, `the task that was not cancelled shows ${done} of its 8 steps`);
   });
   await attempt('a-cancelled-task-stays-cancelled-after-a-restart', 'implied', 'an honest account of what finished, what is still happening ... what has already happened', async () => {
+    await showTask(page, 'first job');
     const earlier = await doneCount(page, 'first job');
     await page.context().close();
     await server.stop();
     server = await startServer('tasks', { data: server.dataDir });
     page = await newPage();
     await signIn(page, server.base, 'Maya');
+    await showTask(page, 'first job');
     await task(page, 'first job').waitFor({ state: 'visible' });
     const state = await waitStatus(page, 'first job', ['Running', 'Completed', 'Failed', 'Cancelled', 'Interrupted'], 8000);
     expect(state.includes('Cancelled'), `after a restart the cancelled task reads "${state}"`);
@@ -518,19 +553,31 @@ async function tasksMode() {
     const later = await doneCount(page, 'first job');
     expect(later === earlier, `a cancelled task went from ${earlier} to ${later} finished steps after a restart`);
   }, 90000);
+  await page.context().close().catch(() => {});
+  await server.stop();
+  // a server of its own with slower steps: while the page is closed one task finishes, one fails and one still runs
+  server = await startServer('away', { stepMs: 1200 });
+  page = await newPage();
+  await signIn(page, server.base, 'Maya').catch(() => {});
   await attempt('coming-back-names-what-finished-what-runs-and-what-failed', 'stated', 'a region named Since you were away tells me what finished, what is still running and what needs my attention', async () => {
-    await ask(page, 'long task: big survey [long]', 'I\'ll work on "big survey"');
-    await ask(page, 'long task: export [fail step 2]', 'I\'ll work on "export"');
-    await ask(page, 'long task: quick note', 'I\'ll work on "quick note"');
+    await ask(page, 'long task: big survey [long]', 'I\'ll work on "big survey"'); // 8 steps, 9.6 s
+    await newConversation(page);
+    await ask(page, 'long task: quick note', 'I\'ll work on "quick note"'); // 3 steps, 3.6 s
+    await newConversation(page);
+    await ask(page, 'long task: export [fail step 2]', 'I\'ll work on "export"'); // fails 2.4 s from here
     await page.context().close();
-    await sleep(3500);
+    await sleep(4500);
     page = await newPage();
     await signIn(page, server.base, 'Maya');
-    const away = region(page, 'Since you were away');
-    await away.waitFor({ state: 'visible' });
-    const text = await away.innerText();
-    const missing = ['big survey', 'export', 'quick note'].filter((title) => !text.includes(title));
-    expect(missing.length === 0, `the account does not name: ${missing.join(', ')}`);
+    const titles = ['big survey', 'export', 'quick note'];
+    let text = '';
+    for (let tries = 0; tries < 15; tries += 1) { // what the account says on coming back (calibration C)
+      text = await region(page, 'Since you were away').first().innerText().catch(() => '');
+      if (titles.every((title) => text.includes(title))) break;
+      await page.waitForTimeout(200);
+    }
+    const missing = titles.filter((title) => !text.includes(title));
+    expect(missing.length === 0, `on coming back the account does not name: ${missing.join(', ')} (it reads "${text.replace(/\s+/g, ' ').slice(0, 140)}")`);
   });
   await page.context().close().catch(() => {});
   await server.stop();
@@ -571,6 +618,13 @@ async function layoutMode() {
     await narrow.waitForTimeout(300);
     const [content, width] = await narrow.evaluate(() => [document.documentElement.scrollWidth, window.innerWidth]);
     expect(content <= width + 1, `the page is ${content} pixels wide in a ${width}-pixel window`);
+    // the word itself must wrap inside the window: a pane that scrolls sideways hides it as well (calibration D)
+    const right = await theirs(narrow).filter({ hasText: 'WWWWWWWWWWWWWWWWWWWW' }).last().evaluate((article) => {
+      const range = document.createRange();
+      range.selectNodeContents(article);
+      return Math.round(range.getBoundingClientRect().right);
+    });
+    expect(right <= width + 1, `the long word runs to ${right} pixels in a ${width}-pixel window`);
   });
   await narrow.context().close();
   await server.stop();

@@ -1,0 +1,18 @@
+diff -ru <runs>/teeth/forgets-place-on-switch/.untouched/product/lib/workspace.js <runs>/teeth/forgets-place-on-switch/product/lib/workspace.js
+--- <runs>/teeth/forgets-place-on-switch/.untouched/product/lib/workspace.js	2026-11-20 22:30:53
++++ <runs>/teeth/forgets-place-on-switch/product/lib/workspace.js	2026-11-20 22:57:09
+@@ -99,6 +99,14 @@
+   function connect(personId) {
+     if (!Object.hasOwn(store.read().workspaces, personId)) {
+       store.update((state) => ensureWorkspace(state, personId));
++    } else {
++      store.update((state) => {
++        const workspace = state.workspaces[personId];
++        const bot = workspace.bots.find(({ id }) => id === workspace.activeBotId);
++        const fresh = createConversation();
++        bot.conversations.unshift(fresh);
++        bot.activeConversationId = fresh.id;
++      });
+     }
+   }
+ 
