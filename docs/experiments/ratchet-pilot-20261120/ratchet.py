@@ -102,7 +102,14 @@ Source: <request | implied: <by which use case or sentence> | existing: <the fil
 The clauses cover every sentence of the request; every implied requirement; every limit, boundary and error case,
 with its exact number; every existing rule the change must keep (one clause each); and what must not change. Where
 the request is silent and a builder would have to guess, decide and say so (Source: choice). Add no feature the
-request's intent does not cover. Number use cases U-1, U-2, ... and clauses C-1, C-2, ... with no gaps. One behaviour
+request's intent does not cover.
+
+A choice is the loosest requirement that still serves the user. Fix what a user relies on; never fix a spelling, a
+wording, a format, an order or an internal detail that the request leaves open. If the request says an error names
+the line, the clause says the message contains the line number, not how the message is worded. A choice lives in its
+own clause, and an Observable states only what its own clause requires: it never repeats another clause's choice.
+Another correct product, built by someone who read only the request, must be able to pass every clause that is not a
+choice. Number use cases U-1, U-2, ... and clauses C-1, C-2, ... with no gaps. One behaviour
 a clause: a statement joined by "and" is two clauses.
 
 ## Done when
@@ -141,8 +148,8 @@ for each use case, what to run or observe to see it work, and what a test of thi
 Look more than once: after a first full plan, read the specification, the code and your plan again for a nuance you
 missed, and stop when a full pass finds nothing that would change the build.
 If planning shows that the specification lacks something a use case needs, add it at the end of `ratchet/spec.md` as a
-clause with the next number and `Source: implied: <what showed it>`. Never edit, reorder or remove an existing clause
-or use case. Write no product code and no tests.
+clause with the next number and `Source: implied: <what showed it>`, stating what a user needs to be true and nothing
+about how the product is made. Never edit, reorder or remove an existing clause or use case. Write no product code and no tests.
 
 {loop}
 
@@ -204,7 +211,9 @@ never by what the code happens to do.
 
 ## What to do
 1. {scope} write test cases under `acceptance/` that fail when exactly that clause is broken in an otherwise correct
-   product and pass when it holds. Take each expected result from the clause's own words and its Observable line. For
+   product and pass when it holds. Take each expected result from the clause's own words and its Observable line,
+   and assert only what that clause states: a detail that belongs to another clause (the wording of a message, when
+   the clause is about the kind of error) is tested there and nowhere else. For
    every number or limit a clause states, test the last value that must be accepted and the first that must be
    refused. Test what a clause implies without saying it: the empty case, the repeated case, and the case after a
    restart where data is kept.
@@ -309,6 +318,9 @@ only shows now that the product runs, a limit or an interaction the first pass d
 For each real finding add a clause at the end of `ratchet/spec.md` (or a use case, for a way of using the product
 that nobody wrote down), in the form the others have, with the next number and `Source: discovery: <what showed it>`. A finding is real when a user or operator would care, the request's intent
 covers it and a test could show it. It is not a new feature, a matter of taste or an existing clause said again.
+Write what a user or operator needs to be true, not what this product happens to do: if another correct product
+could behave differently and nobody would miss it (which of two errors is reported first, how a number rounds at
+the edge of its type), it is not a clause. A finding the product does not keep to is worth more than five it does.
 Never edit, reorder or remove an existing clause or use case.
 Write `ratchet/delta-{cycle}.md`: what you used and tried; then each clause you added with
 "product keeps to it: yes | no | not checked"; or the single line "No delta." when you add nothing.

@@ -227,6 +227,60 @@ What changes in the registration:
 - The smoke run in flight is the first form; a second smoke is not run: the plan stage's only new machinery is the
   Until Loop's review count, which the first counted run with a plan stage shows or fails to show (reported).
 
-## 9. Results
+## 9. Amendment 2, 2026-11-20 19:22: the loosest choice, in its own clause (after the first P1 result, before any enriched result)
 
-(none yet)
+The first P1 cell (section 10, F1) showed one arbitrary choice of the spec stage copied into the Observable line of
+eleven request clauses, so a correct product failed them. Three prompt rules follow; the enriched arm of P1, and P2 and
+P3, run with them.
+
+- **spec (enrich):** a choice is the loosest requirement that still serves the user; never a spelling, wording,
+  format, order or internal detail the request leaves open; a choice lives in its own clause and no other clause's
+  Observable repeats it; another correct product built from the request alone must be able to pass every clause that
+  is not a choice.
+- **tests:** assert only what the clause states; a detail that belongs to another clause is tested there.
+- **delta and plan:** a clause says what a user or operator needs to be true, not what this product happens to do
+  (the smoke run's first closing look added five clauses, every one a description of current behaviour; section 10,
+  F2).
+
+Registration: the P1 enriched arm is amendment 1 plus these rules, for all three cases. The enriched orders run
+already in flight without them (`p1e-stand-in-rules`) is kept as a labelled extra cell, exploratory, so the rules'
+effect can be seen beside it. The comparison R1.3 (first form against enriched) therefore compares bundles: use cases
+and implied requirements, the plan stage, and the loosest-choice rules together.
+
+## 10. Results
+
+Evidence folders are under `docs/experiments/ratchet-pilot-20261120/evidence/`; run folders are outside the repository
+under `/Users/dadleet/e2e-runs/ratchet-pilot-20261120-b6eab2/` and may be pruned.
+
+### P1, first form, orders case (`p1-stand-in-rules`; Codex gpt-6.2-sol high; one run)
+
+| Measure | Result | Registered bar |
+|---|---|---|
+| Clauses | 63 (30 from the request, 21 choices, 12 existing) | none |
+| Clauses that fail on the correct reference | 22 of 63 (35%): 11 choices, 11 request clauses | R1.1: at most 10% |
+| Calibrated defects caught | 2 of 4 (`one-rule-missing`, `limit-never-trips`); missed `tested-only`, `cross-field` | R1.2: 80% pooled |
+| Time | 12.9 min: spec 4.6, tests 7.7, gates 0.6 | none |
+| Guards | nothing put back, no frozen file changed, no held-out name in either event stream | none |
+
+- **F1 (interim: one run, mechanism read in the artifacts).** The request says each rule names "the 1-based line in
+  its message". The spec stage chose a spelling, clause C-40 "formats each line validation error message with a
+  `Line N: ` prefix" (Source: choice), and wrote "a message beginning `Line 1: `" into the Observable of every clause
+  that throws. The reference writes `line 1: ...`. So eleven request clauses fail on a correct product for a capital
+  letter, among them C-24 (quantity below 1) and C-38 (an open order with a shipping date), the clauses that would
+  have caught `tested-only` and `cross-field`: both defects fail exactly the reference's 22 clauses and no other.
+  By the registered rule (a defect is caught only by a clause that passes on the reference) they count as missed.
+  The suite's power to see them is masked, not shown absent.
+- A third of this spec's clauses are choices where the request is silent (21 of 63); 11 of those reject the reference
+  (unknown key, repeated key, missing key, empty segment, empty id, empty price, message prefix, error order).
+- Reading: R1.1 fails for this cell, and with it R1.2 cannot be read for it. In a full loop the builder builds to the
+  spec, so these clauses pass there (the smoke run's first build passed 68 of 68); the cost appears when the product
+  must also satisfy someone who read only the request, which is what held-out checks do.
+- Evidence: `evidence/p1-first-orders/` (run.json, strength.json, spec.md, acceptance.json, tests-1.md, run-log.txt).
+
+### Smoke, first form, orders case from the request (`smoke-standin-sol-high`; not counted)
+
+- **F2 (exploratory).** Spec 4.9 min, 68 clauses; one-pass build 2.5 min inside an Until Loop that completed on its
+  first iteration with the gate passing; heavy tests 7.5 min; first gate 68 of 68, so no fix stage; closing look 2.9
+  min, 5 new clauses (C-69 to C-73), each marked "product keeps to it: yes" in its own report: which of two errors is
+  reported first, how a number rounds at the edge of its type, what the shared counter holds after a failed batch.
+  The stage used the product (its report lists the probes) and wrote down what the product does. The run continues.
