@@ -171,3 +171,57 @@ session is paid for.
 Open questions rung 0 does not touch: how often a test session runs its tests on the product while writing (being
 counted from the five test sessions' records now); whether a short decide step answers as well as the whole plan
 did on due times (two of two); whether the rest of the plan changes a build that did not wait for it.
+
+## 5. Rung 1, registered 2026-11-21 08:21: two test sessions that never see the build (before any run of them)
+
+Owner, 08:18, to "Should I run the 15-minute step, one test session that writes without the build?": "Yes, run it".
+
+**What runs.** The test pass of the pilot's loop, started from a specification and a plan already on file and from
+the starting product, with no build present, then stopped. Two cells, so that one draw is not read alone:
+`b1-due-times-a` from the specification and plan of the reworded text's loop a, `b1-due-times-b` from those of loop
+b (pilot journal, section 21). Codex `gpt-6.2-sol` at high, as in the loops; a new Git repository each, in a runs
+root of this session's own. Each loop's build was made from that same specification and plan, by a session this
+test writer never meets, and each loop's own test session wrote its suite beside that build: those two suites are
+the comparison.
+
+**The instructions.** The standing test packet with five passages changed and nothing else
+(`evidence/parallel/tests-packet-blind-against-standing.diff`): it is told the build is being made elsewhere and is
+not here; it keeps everything about how the product is started, configured and called in one adapter file, taking
+names and the answers at open points from the plan; it runs its tests on the starting project, where a test of an
+`existing` clause must pass and a test of new behaviour must fail for the reason its clause gives; and its report
+lists what it had to assume. The frame's paragraph on open points is unchanged.
+
+**Apparatus** (in this branch only): `ratchet.py run --tests-blind-from RUN --stop-after tests` copies RUN's
+specification and plan as they stood after its plan stage, runs the test pass with those instructions, and gates
+the suite on the starting project. Self-tested with the scripted stand-in before this entry: the standing check
+passes for all three texts; a run from a source stopped at its build holds one session, no product file of that
+build, an identical plan, and a prompt that says the build is not here; the two wrong combinations are refused.
+Afterwards `overlay.py` runs each new suite on the two builds.
+
+**Readings.**
+
+- **P1.1, what a writer gets wrong without the build.** Items of the new suite that fail on the build made from its
+  own specification and plan, under `overlay.py`, beside the loop's own suite under the same tool (loop a: 3 of 42
+  fail; loop b: none of 41). *Little to catch up* at 5 failing items or fewer; *about half a pass or more* above a
+  third of the items; *some* between. Each failing item is then read into one of four kinds: the test drives the
+  product in a way the plan does not give or the build did not take; the test is wrong in itself; the build breaks
+  the clause, and the suite written beside the build did not say so; the test asserts an answer to an open point.
+- **P1.2, what the starting product catches early.** In the run's own gate, on the starting project: tests of
+  `existing` clauses that fail (a test that is wrong or stricter than the shipped product, known before any build
+  exists), and tests of other clauses that pass (a test that does not test the change). Counted and read.
+- **P1.3, carry-over.** The same suite on the other loop's build.
+- **P1.4, cost.** Minutes and output tokens of the session beside the loop's own test session (16.7 and 13.4
+  minutes), and what it ran.
+- Strength against planted defects is not read at this rung. It is rung 2, and only if P1.1 is not "about half a
+  pass or more".
+
+**Predictions, mine.** P1.1: some, 4 to 10 items on each build, most of them tests wrong in themselves, one or two
+about how the product is driven, none asserting an answer to an open point, and at most one that a build really
+breaks. P1.2: one to three tests of existing behaviour fail on the starting project. P1.4: a shorter session, 10
+to 13 minutes, because it cannot run to green.
+
+**Limits known before the runs.** Two sessions, one case, one model family. The suites compared were written by
+other draws of the test session, so a difference of two or three items is inside the spread seen in section 2.
+The overlay's exported copy differs from a run's own folder on two `npm test` items of loop a (section 2), so
+every count is taken under the one tool. A wrong test and a strict test are told apart by reading, which a Sonnet
+subagent drafts and I check.

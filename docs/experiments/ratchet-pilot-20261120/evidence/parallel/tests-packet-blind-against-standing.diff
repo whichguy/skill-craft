@@ -1,0 +1,42 @@
+--- ratchet.py TESTS_PACKET
++++ ratchet.py blind_tests_packet()
+@@ -4,2 +4,6 @@
+ never by what the code happens to do.
++
++The product is being built by another session at this moment and is not in this folder. What is here is the
++starting project, as it was before the change. You write the acceptance tests now, from the specification and the
++plan, and they will be run on the build when it arrives. You will not see it.
+ 
+@@ -17,4 +21,4 @@
+    For every use case (U-n) write one scenario test that walks its whole flow as that user would, start to end.
+-   `ratchet/plan.md` (How we will know, Nuances) and the Discoveries in `ratchet/build-*.md` name scenarios worth a
+-   test: add those, and any other scenario the specification implies.
++   `ratchet/plan.md` (How we will know, Nuances) names scenarios worth a test: add those, and any other scenario
++   the specification implies.
+ 2. Reach the product only as its users do: its HTTP interface, its command line, the module interface the request
+@@ -22,2 +26,6 @@
+    same tests.
++   Keep everything about how the product is started, configured and called (the command that starts it, the names
++   of its settings, how a data file is prepared) in one adapter file under `acceptance/`, and reach the product only
++   through it. Take each name, and each answer at an open point, from `ratchet/plan.md`: the build is being made to
++   that plan. Where the plan gives none, take the likeliest and list it in your report under Assumed.
+ 3. Give every clause and every use case an entry in `ratchet/acceptance.json`:
+@@ -28,8 +36,13 @@
+    a selection that matches no test otherwise looks like a pass.
+-4. Run every command against the product as it stands. A test that fails because the product breaks its clause
+-   STAYS as it is: do not weaken it and do not fix the product. A test that fails because the test is wrong (it
+-   contradicts its clause) is yours to correct.{keep}
++4. You cannot run a test of new behaviour to a pass, because the build is not here. Run every command against the
++   starting project instead. A test of a clause whose Source is `existing` must pass there: if it fails, the test is
++   wrong or stricter than the shipped product, and it is yours to correct. A test of new behaviour must fail there,
++   and for the reason its clause gives (the behaviour is absent), not because the test cannot start, cannot find a
++   file or has an error of its own. Do not build any part of the product.{keep}
+ 5. Write `ratchet/tests-{cycle}.md`:
+-## Failing now
+-clause ids whose tests fail on the product, each with what the product did instead ("none" when none fail)
++## On the starting project
++ids of `existing` clauses whose tests fail there, and ids of other clauses whose tests pass there, each with why
++("none" when there are none)
++## Assumed
++each name or answer you took that the plan does not give, one a line ("none" when there are none)
+ ## Discoveries

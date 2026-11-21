@@ -564,6 +564,51 @@ again, until it says the run is complete or stopped. Never write or edit the rec
 exists and says the run is active, run its `next_argv` instead of starting again.
 {check_note}"""
 
+# The test pass written beside the build, not after it (docs/ratchet-parallel-journal.md): the same packet with four
+# passages changed, each of which must be present in the standing packet.
+BLIND_CHANGES = (
+    (("never by what the code happens to do.\n"),
+     ("never by what the code happens to do.\n\n"
+      "The product is being built by another session at this moment and is not in this folder. What is here is the\n"
+      "starting project, as it was before the change. You write the acceptance tests now, from the specification and the\n"
+      "plan, and they will be run on the build when it arrives. You will not see it.\n")),
+    (("   `ratchet/plan.md` (How we will know, Nuances) and the Discoveries in `ratchet/build-*.md` name scenarios worth a\n"
+      "   test: add those, and any other scenario the specification implies.\n"),
+     ("   `ratchet/plan.md` (How we will know, Nuances) names scenarios worth a test: add those, and any other scenario\n"
+      "   the specification implies.\n")),
+    (("   same tests.\n"),
+     ("   same tests.\n"
+      "   Keep everything about how the product is started, configured and called (the command that starts it, the names\n"
+      "   of its settings, how a data file is prepared) in one adapter file under `acceptance/`, and reach the product only\n"
+      "   through it. Take each name, and each answer at an open point, from `ratchet/plan.md`: the build is being made to\n"
+      "   that plan. Where the plan gives none, take the likeliest and list it in your report under Assumed.\n")),
+    (("4. Run every command against the product as it stands. A test that fails because the product breaks its clause\n"
+      "   STAYS as it is: do not weaken it and do not fix the product. A test that fails because the test is wrong (it\n"
+      "   contradicts its clause) is yours to correct.{keep}\n"),
+     ("4. You cannot run a test of new behaviour to a pass, because the build is not here. Run every command against the\n"
+      "   starting project instead. A test of a clause whose Source is `existing` must pass there: if it fails, the test is\n"
+      "   wrong or stricter than the shipped product, and it is yours to correct. A test of new behaviour must fail there,\n"
+      "   and for the reason its clause gives (the behaviour is absent), not because the test cannot start, cannot find a\n"
+      "   file or has an error of its own. Do not build any part of the product.{keep}\n")),
+    (("## Failing now\n"
+      "clause ids whose tests fail on the product, each with what the product did instead (\"none\" when none fail)\n"),
+     ("## On the starting project\n"
+      "ids of `existing` clauses whose tests fail there, and ids of other clauses whose tests pass there, each with why\n"
+      "(\"none\" when there are none)\n"
+      "## Assumed\n"
+      "each name or answer you took that the plan does not give, one a line (\"none\" when there are none)\n")),
+)
+
+
+def blind_tests_packet():
+    text = TESTS_PACKET
+    for old, new in BLIND_CHANGES:
+        if text.count(old) != 1:
+            raise RuntimeError(f"the tests packet no longer holds exactly once: {old[:60]!r}")
+        text = text.replace(old, new)
+    return text
+
+
 GATE_NOTE = ("The exit check is `python3 {gate} {work}`: it runs every acceptance check there is, the project's own checks "
              "({checks}) and a syntax check of the files you changed, and exits 0 only when nothing fails. You may run it "
              "yourself at any time.")
@@ -653,7 +698,8 @@ class Run:
                        "started": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "start_tree": args.start_tree,
                        "frozen_from": args.frozen_from, "build_from": args.build_from, "bare": bool(args.bare), "sessions": [], "gates": [], "snapshots": [], "cycles": [],
                        "reverted": [], "spec_violations": [], "local_head": git(REPO, "rev-parse", "HEAD").strip(),
-                       "named_checks": True, "enrich": args.enrich, "spec_from": args.spec_from}
+                       "named_checks": True, "enrich": args.enrich, "spec_from": args.spec_from,
+                       "tests_blind_from": args.tests_blind_from}
         self.fake = load_fake(args.fake) if args.host == "fake" else None
         self.host = self.env = None
         if not self.fake:
@@ -885,6 +931,19 @@ class Run:
         self.commit("spec")
         return clauses
 
+    def given_plan(self):
+        """Specification and plan without a session: as another run had them after its plan stage (--tests-blind-from)."""
+        source = Path(self.args.tests_blind_from)
+        snaps = json.loads((source / "run.json").read_text())["snapshots"]
+        commit = next(snap["commit"] for snap in snaps if snap["label"] == "plan-1")
+        (self.work / "ratchet").mkdir(parents=True, exist_ok=True)
+        for name in ("spec.md", "plan.md"):
+            (self.work / "ratchet" / name).write_text(git(source / "work", "show", f"{commit}:ratchet/{name}"))
+        clauses = read_spec(self.work)
+        self.say(f"specification and plan are those of {source} after its plan stage ({len(clauses)} items); no build is present")
+        self.commit("plan-1")
+        return clauses
+
     def stage_build(self, cycle, new):
         name = f"build-{cycle}"
         if cycle == 1:
@@ -914,7 +973,7 @@ class Run:
         self.gate("after-given-build")
         self.commit("build-1")
 
-    def stage_tests(self, cycle, clauses, new):
+    def stage_tests(self, cycle, clauses, new, blind=False):
         self.gate_config(frozen=None)  # the test owner may change the acceptance tests
         problems = ""
         for attempt in range(1, 4):
@@ -925,8 +984,9 @@ class Run:
                 scope = ("The specification has grown. For each of these new items of `ratchet/spec.md` (" + ", ".join(new) +
                          "), and for any older clause you find weakly tested,")
                 keep = "\n   The acceptance tests already here stay: add to them and strengthen them, never weaken or remove one."
-            self.session("tests", TESTS_PACKET.format(frame=self.frame, request=self.request, scope=scope, keep=keep, cycle=cycle,
-                                                      problems=problems, conduct=self.conduct()), f"tests-{cycle}-{attempt}")
+            packet = blind_tests_packet() if blind else TESTS_PACKET
+            self.session("tests", packet.format(frame=self.frame, request=self.request, scope=scope, keep=keep, cycle=cycle,
+                                                problems=problems, conduct=self.conduct()), f"tests-{cycle}-{attempt}")
             self.enforce(before, ["acceptance/", "ratchet/acceptance.json", f"ratchet/tests-{cycle}.md"], "tests")
             wrong = self.manifest_problems(clauses)
             if not wrong:
@@ -1121,6 +1181,8 @@ class Run:
         self.setup()
         if self.args.frozen_from:
             clauses = read_spec(self.work)
+        elif self.args.tests_blind_from:
+            clauses = self.given_plan()
         elif self.args.spec_from:
             clauses = self.given_spec()
         else:
@@ -1137,7 +1199,9 @@ class Run:
             self.record["cycles"].append(entry)
             repair_start = cycle == 1 and bool(self.args.frozen_from)
             self.cycle_start_frozen = git(self.work, "rev-parse", "HEAD").strip()
-            if not repair_start:
+            if self.args.tests_blind_from:
+                self.stage_tests(cycle, clauses, new, blind=True)
+            elif not repair_start:
                 added = self.stage_plan(cycle, clauses, new)
                 if added:
                     clauses, new = read_spec(self.work), {**new, **added}
@@ -1203,6 +1267,8 @@ def main(argv=None):
     run.add_argument("--frozen-from", help="a finished run whose spec and acceptance tests this run starts with, frozen")
     run.add_argument("--build-from", help="cycle 1's build is this product tree, laid over the work folder by the script: no build session")
     run.add_argument("--spec-from", help="a run whose ratchet/spec.md this run starts with, as written: no spec session")
+    run.add_argument("--tests-blind-from", help="a run whose specification and plan (as after its plan stage) this run starts "
+                                                "with; then the test pass is written with no build present, and the run stops")
     run.add_argument("--stop-after", choices=("spec", "build", "tests"),
                      help="end the run once the specification is written, once cycle 1's build is committed, or once "
                           "cycle 1's acceptance tests are frozen and gated")
@@ -1223,10 +1289,12 @@ def main(argv=None):
         raise SystemExit("--stop-after spec runs the spec stage alone: it takes none of --spec-from, --build-from, --bare")
     if args.stop_after == "build" and (args.build_from or args.bare):
         raise SystemExit("--stop-after build ends after the build session: it takes neither --build-from nor --bare")
-    if args.spec_from:
-        source = json.loads((Path(args.spec_from) / "run.json").read_text())
+    if args.tests_blind_from and (args.stop_after != "tests" or args.spec_from or args.build_from or args.frozen_from or args.bare):
+        raise SystemExit("--tests-blind-from goes with --stop-after tests and none of --spec-from, --build-from, --frozen-from, --bare")
+    if args.spec_from or args.tests_blind_from:
+        source = json.loads((Path(args.spec_from or args.tests_blind_from) / "run.json").read_text())
         if source.get("case") != args.case or source.get("enrich", "single") != args.enrich:
-            raise SystemExit(f"--spec-from {args.spec_from} is case {source.get('case')!r} with enrich "
+            raise SystemExit(f"--spec-from or --tests-blind-from {args.spec_from or args.tests_blind_from} is case {source.get('case')!r} with enrich "
                              f"{source.get('enrich', 'single')!r}; this run is {args.case!r} with {args.enrich!r}")
     return Run(args, load_case(args.case)).run()
 
