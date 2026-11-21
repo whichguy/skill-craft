@@ -1191,3 +1191,53 @@ tests checked against seeded faults in the lines it wrote, a short document, cle
 ShipLoop. Readings: held-out checks, the share of 60 seeded faults the delivery's own tests catch, minutes and
 output tokens. The harness for it is here: `ratchet.py run --bare` is the first arm, `grade.py`, `mutate.py` and
 `analyze.py` take the three readings, and section 17 is the yardstick lesson to keep. Not started; the owner's call.
+
+## 20. Amendment 7, 2026-11-21 03:22: the other session's lens form as the enrichment text, measured through built products (registered before any run)
+
+Owner, 2026-11-21: "We should pick up the elaboration message from the other chat about a new elaboration of a spec
+prompt." My reading, told to the owner before starting: take the one-pass lens form that the session "Spec
+elaboration prompt for Shiploop" measured (section 19; its journal `docs/spec-elaboration-journal.md`, sections 11 to
+16) into this pilot's enrich stage, and measure it with this pilot's instruments.
+
+Why it is worth a run. That experiment found the lens form covers far more of a held-out checklist than this
+pilot's enrichment text (64 against 43 of 89 on Sonnet high, 62 against 29 on Sol 6.2 medium), and its own review
+said what its instrument cannot: whether deciding more is right. This pilot's instruments can say that for three
+cases, because they run the tests a specification leads to against products known to be correct and products known
+to be wrong. The pilot's findings about enrichment (F10, F20, R1.1, R1.3) were made with one text, and section 19
+recorded that as a limit.
+
+What changes. `ratchet.py` gains `SPEC_PACKET_LENSES` and `--enrich lenses` (default `single`, the pilot's own
+text; `run.json` records which). The lens text is `docs/experiments/spec-elaboration-20261120/arms/L-lenses-once.md`
+set into this stage: this stage's frame and file path, its repository-reading step kept as the first thing to do,
+and its `existing` source kind kept (that experiment's cases had no repository). Nothing else differs
+(`evidence/lens-enrichment/port-against-L-lenses-once.diff`). The plan, build, tests, fix and closing-look packets
+are unchanged, and so are the gate and the graders.
+
+Runs, each Codex `gpt-6.2-sol` at high (the runner of every cell they are compared with), one new Git repository
+each, outside the checkout:
+
+| Cell | What runs | Compared with |
+|---|---|---|
+| `p1L-stand-in-rules`, `p1L-ticket-assignment`, `p1L-ticket-due-times` | enrich with the lens text, plan, the correct reference laid in as the build, heavy test pass, stop; then `grade.py strength` | `p1e2-*` of 2026-11-20 (section 10, "P1, enriched form") |
+| `p3L-ticket-due-times-a`, `-b` | enrich with the lens text, plan, build, heavy test pass, stop; then the held-out checks at the first build | `p3-ticket-due-times-sol-high` (3 of 8 at its first build; the reference passes 7) and F20 |
+
+Readings:
+
+- **R8.1, the reading of the due-times request.** The pilot's text read "Due times are switched on in production
+  only once the data file holds them" as an operator's preparation step and a service that refuses to start, in two
+  of two specifications. The lens form *avoids the misreading* if both `p3L` first builds pass the five held-out
+  checks that failed (`cli`, `migrate`, `restart`, `rollback`, `switch`); it *does not* if both fail them; one of
+  each is not settled. Each specification is also read by hand for the preparation step and the refusal.
+- **R8.2, clauses that reject a correct product.** Pooled over the three `p1L` cells, the share of clauses that
+  fail on the harness's correct reference. With the pilot's text it was 59 of 499 (11.8%). *Better* at or under
+  7.9% (a third lower), *worse* at or over 15.7% (a third higher), otherwise no difference shown. Reported beside
+  it: use cases failing on the reference (16 of 44 before), and items the second correct ticket-assignment
+  delivery fails beyond the reference (17 before).
+- **R8.3, strength.** Calibrated defects caught of 37 (37 before). *Kept* at 35 or more.
+- **R8.4, reported.** Clauses and use cases written, minutes of the enrich session and of the cell, output tokens.
+
+Limits known before the runs: one run a cell on both sides (two for R8.1), and no measure of this pilot's own
+run-to-run spread, so the thresholds are set wide on purpose; the comparison cells ran on 2026-11-20 between 19:23
+and 20:33, before the stray processes of section 18, and these run on a quieter machine, so minutes are compared
+loosely; Codex still shows the account's skills to every session (section 19), the same on both sides; the gradings
+are run after all five runs have ended, not beside them.

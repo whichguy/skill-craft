@@ -119,6 +119,117 @@ a clause: a statement joined by "and" is two clauses.
 {problems}
 {conduct}"""
 
+SPEC_PACKET_LENSES = """# Ratchet stage: enrich (the request, ground out until nothing is left implicit)
+
+{frame} This stage turns the incoming request into the enriched specification that everything after it is planned,
+built and tested from. Write no product code and no tests.
+
+A short request is not a small job. Almost everything that decides whether the built thing is right is absent from
+the words you were given: it is implied by them, and it stays implied until someone writes it down. Your work is to
+state what was implied, all of it, so that nothing a builder would otherwise have got wrong is left unsaid.
+
+## The incoming request
+{request}
+
+## The deliverable
+
+`ratchet/spec.md`, in exactly this form, use cases first:
+
+## Use cases
+
+### U-<n>: <who> <does what, to get what>
+Flow: <the steps they take and what they see, with the exact values where the request gives them>
+Source: <request | implied: <by which sentence or situation> | existing: <the file that describes it>>
+
+## Clauses
+
+### C-<n>: <one statement of one behaviour, complete in itself>
+Observable: <what someone outside the code does and sees when it holds, with the exact values>
+Source: <request | implied: <by which use case or sentence> | existing: <the file that states the rule> | choice: <why, where the request is silent>>
+
+Number use cases U-1, U-2, ... and clauses C-1, C-2, ... with no gaps. One behaviour a clause: a statement joined by
+"and" is two clauses. The specification says what is true for a user or a caller, not how it is built: a structure, a
+library or a technology choice is not a clause. Where the runtime this runs on makes a rule that binds the
+behaviour, the clause states the behaviour the rule forces and names the rule as its reason.
+
+The clauses cover every sentence of the request; every implied requirement; every limit, boundary and error case,
+with its exact number; every existing rule the change must keep (one clause each); and what must not change. Add no
+feature the request's intent does not cover.
+
+Where a clause names a dimension rather than a single fact — the states that stop something, the fields a
+record holds, the controls an operator has, the conditions that refuse an action, the parts of a message — the
+clause lists that dimension's members, every one of them, or says which it deliberately leaves out and why. A clause
+that names the dimension and leaves its members to the builder is half a clause: "the sequence stops once the invoice
+is settled" has to become the list of every state that counts as settled. The same holds for a bound: a clause about
+a limit states the limit's value, and where you cannot establish it, states your own decided value as a choice or
+says inside the clause that the figure is unconfirmed. A dimension with no list and a bound with no number are the
+two commonest ways a specification looks complete and is not.
+
+Where the request is silent and a builder would have to guess, decide and say so (Source: choice). A choice is the
+loosest requirement that still serves the user: fix what a user relies on, and never fix a spelling, a wording, a
+format, an order or an internal detail the request leaves open. A choice lives in its own clause, and an Observable
+states only what its own clause requires. Another correct product, built by someone who read only the request, must
+be able to pass every clause that is not a choice.
+
+## How to get there
+
+First read what is here: the README, the documents, the code and its tests, as far as the request touches them. In an
+existing product the rules it already follows (how it answers errors, how it stores data, what its documents
+promise) bind the change too.
+
+Then write `ratchet/spec.md` once. Think the whole thing through first, along every one of the lines below, and then
+write the complete specification in a single piece. Do not write a draft and go back over it in passes: whatever each
+line turns up belongs in what you write the first time.
+
+**The ground.** Who meets this, and every way they meet it: the ordinary use the request describes, the
+same use at its edges (the first time, the repeated time, the empty case, the largest case), the unhappy paths
+(wrong input, a refused action, a limit reached, a thing it depends on failing), the operator's work (start, stop,
+configure, observe, recover, carry on with data that already exists, go back to the version before). Write the use
+cases, then the clause each one plainly needs.
+
+**What each sentence takes for granted.** Take the request one sentence at a time, and then each clause you
+have written one at a time, and ask of it: what must already be true for this to mean anything? A sentence that
+names a thing takes for granted that the thing exists, that it is found somehow, that someone is allowed to see it,
+that there is one of it rather than none or many. Every answer is a clause. This is the recursion: your own new
+clauses are sentences too, so put them through the same question, and keep going down each line until the answers
+stop being about this product and become facts about the world.
+
+**Where the parts meet.** List the parts: each use case, each piece of state, each outside system, each
+existing feature this touches. Walk the pairs that can meet and ask what happens when they do — two of them at once,
+one during the other, one undone while the other runs, one arriving late, one arriving twice. Order, timing,
+duplication and partial completion live here. Each answer is a clause. Interactions nobody wrote down are where
+built things break.
+
+**The runtime's own rules.** Name the runtime, platform or service this sits on and the limits it imposes
+that this design cannot escape: what it forbids, what it caps, what it times out, what it will not do
+synchronously, what it requires before it will run at all, and what it demands before this could ship beyond a
+development environment. State each as the behaviour the rule forces, with its number where the rule has one. If
+you are unsure of a limit, write the clause and say in it that the exact figure is unconfirmed.
+
+**What must not change, and what must never happen.** The behaviour that exists today and still has to
+hold: one clause each. Then the things that must never be true however the rest is built — someone seeing what they
+may not see, a thing done twice that should happen once, data lost on the way, a rule enforced in one path and not
+another.
+
+**The builder's read.** Hold the whole specification in mind as someone who has to build it and will be blamed for
+what is wrong, and write it so that it has none of these: a clause whose Observable cannot actually be observed; a
+word in a clause that two readers would read differently; a number the request implies but nobody has written; a use
+case with no unhappy path; a piece of state with no end; a decision made silently rather than as a choice; a clause
+that is really two.
+
+Where the next answer needs someone to decide something only the requester can decide, write the clause as a choice
+with your decision and its reason, and carry on.
+
+## Done when
+- `ratchet/spec.md` exists in that form, written once, and is the only file you changed.
+{problems}
+{conduct}"""
+
+# The enrichment texts a run can use. "single" is the pilot's own (amendments 1 and 2). "lenses" is the one-pass lens
+# form measured in docs/experiments/spec-elaboration-20261120 (arms/L-lenses-once.md), set into this stage's frame with
+# this stage's file path, its repository-reading step and its `existing` source kept.
+ENRICH = {"single": SPEC_PACKET, "lenses": SPEC_PACKET_LENSES}
+
 PLAN_PACKET = """# Ratchet stage: plan ({title})
 
 {frame} This stage plans how to build it. It does not cut the work into steps for others: right after you, one
@@ -441,7 +552,7 @@ class Run:
                        "started": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "start_tree": args.start_tree,
                        "frozen_from": args.frozen_from, "build_from": args.build_from, "bare": bool(args.bare), "sessions": [], "gates": [], "snapshots": [], "cycles": [],
                        "reverted": [], "spec_violations": [], "local_head": git(REPO, "rev-parse", "HEAD").strip(),
-                       "named_checks": True}
+                       "named_checks": True, "enrich": args.enrich}
         self.fake = load_fake(args.fake) if args.host == "fake" else None
         self.host = self.env = None
         if not self.fake:
@@ -646,7 +757,7 @@ class Run:
         problems = ""
         for attempt in range(1, 4):
             before = git(self.work, "rev-parse", "HEAD").strip()
-            self.session("spec", SPEC_PACKET.format(frame=FRAME, request=self.request, problems=problems, conduct=self.conduct()),
+            self.session("spec", ENRICH[self.args.enrich].format(frame=FRAME, request=self.request, problems=problems, conduct=self.conduct()),
                          f"spec-{attempt}")
             self.enforce(before, ["ratchet/spec.md"], "spec")
             try:
@@ -965,6 +1076,8 @@ def main(argv=None):
     run.add_argument("--build-from", help="cycle 1's build is this product tree, laid over the work folder by the script: no build session")
     run.add_argument("--stop-after", choices=("tests",), help="end the run once cycle 1's acceptance tests are frozen and gated")
     run.add_argument("--bare", action="store_true", help="no loop: one session is given the request and builds; a comparison arm")
+    run.add_argument("--enrich", choices=("single", "lenses"), default="single",
+                     help="the enrichment text of the spec stage: the pilot's own, or the one-pass lens form (amendment 7)")
     run.add_argument("--max-cycles", type=int, default=3, help="apparatus limit: cycles before the run is stopped (reported)")
     run.add_argument("--max-fixes", type=int, default=4, help="apparatus limit: fix sessions per cycle (reported)")
     run.add_argument("--max-budget-usd", type=float, default=None, help="per session, on hosts that price a session")

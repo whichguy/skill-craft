@@ -1,0 +1,36 @@
+--- arms/L-lenses-once.md
++++ ratchet.py SPEC_PACKET_LENSES
+@@ -1 +1 @@
+-# Specify: the request, ground out until nothing is left implicit
++# Ratchet stage: enrich (the request, ground out until nothing is left implicit)
+@@ -3,2 +3,2 @@
+-This stage turns the incoming request into the specification that everything after it is planned, built and tested
+-from. Write no product code and no tests.
++{frame} This stage turns the incoming request into the enriched specification that everything after it is planned,
++built and tested from. Write no product code and no tests.
+@@ -15 +15 @@
+-`spec.md`, in exactly this form, use cases first:
++`ratchet/spec.md`, in exactly this form, use cases first:
+@@ -21 +21 @@
+-Source: <request | implied: <by which sentence or situation>>
++Source: <request | implied: <by which sentence or situation> | existing: <the file that describes it>>
+@@ -27 +27 @@
+-Source: <request | implied: <by which use case or sentence> | choice: <why, where the request is silent>>
++Source: <request | implied: <by which use case or sentence> | existing: <the file that states the rule> | choice: <why, where the request is silent>>
+@@ -35 +35 @@
+-with its exact number; every existing rule this must keep (one clause each); and what must not change. Add no
++with its exact number; every existing rule the change must keep (one clause each); and what must not change. Add no
+@@ -55,3 +55,7 @@
+-Write `spec.md` once. Think the whole thing through first, along every one of the lines below, and then write the
+-complete specification in a single piece. Do not write a draft and go back over it in passes: whatever each line
+-turns up belongs in what you write the first time.
++First read what is here: the README, the documents, the code and its tests, as far as the request touches them. In an
++existing product the rules it already follows (how it answers errors, how it stores data, what its documents
++promise) bind the change too.
++
++Then write `ratchet/spec.md` once. Think the whole thing through first, along every one of the lines below, and then
++write the complete specification in a single piece. Do not write a draft and go back over it in passes: whatever each
++line turns up belongs in what you write the first time.
+@@ -99 +103 @@
+-- `spec.md` exists in that form in your working directory, written once, and is the only file you wrote.
++- `ratchet/spec.md` exists in that form, written once, and is the only file you changed.
