@@ -30,6 +30,11 @@
  *   8. The account of what happened while away is read on coming back (for up to three seconds after signing in),
  *      which is when the request says it tells me. The first version read it only after the task had gone on to
  *      finish in front of the person, and a build whose account follows the tasks live had by then moved on.
+ * Calibration on the Sonnet bare arm's build:
+ *   9. After a cancel, the step that was in flight may finish and be shown (one more "Done:" within three seconds);
+ *      after that nothing more may finish. The request speaks of "what can still be stopped and what has already
+ *      happened"; the first version allowed no step at all after the status read Cancelled, and a build that lets
+ *      the step in flight finish, and labels it "in progress" until it has, failed for it.
  */
 'use strict';
 const fs = require('node:fs');
@@ -443,9 +448,12 @@ async function tasksMode() {
     await waitStatus(page, 'cleanup', ['Running'], 5000);
     await button(task(page, 'cleanup'), 'Cancel task').click();
     await waitStatus(page, 'cleanup', ['Cancelled'], 6000);
+    const atCancel = await doneCount(page, 'cleanup');
+    await sleep(3000); // the step that was in flight may still finish and be shown (calibration 9)
     const before = await doneCount(page, 'cleanup');
     await sleep(2500);
     const after = await doneCount(page, 'cleanup');
+    expect(before - atCancel <= 1, `more than the step in flight finished after the cancel (${atCancel} then ${before} of 8)`);
     expect(after === before && after < 8, `steps kept finishing after the cancel (${before} then ${after} of 8)`);
   });
   await attempt('a-failed-task-can-be-retried-without-redoing-finished-steps', async () => {
