@@ -670,3 +670,12 @@ ShipLoop fix that sits beneath this journal's unpublished entries. `qualcheck.py
 finished run's own files, the values the registered checks rest on; it grades nothing. `evidence/qualification/`
 holds its output and the reading worker's report for each delivery. Nothing here bears on the experiment's
 conclusion.
+
+## An illustrated explainer (2026-11-21)
+
+`explainer/spec-lessons.html` is a page for the owner, published at their request ("Illustrate and help educate me
+on what we have learned") as a private claude.ai artifact: what the bench, the real-delivery readings, the Ratchet
+session's built products, its fork's suite overlays and the qualification evaluation each showed, with eight
+figures drawn to scale. `explainer/build.py` writes it; every figure comes from the journal (sections 1 to 36) and,
+for threads 3 and 4, from the Ratchet session's record as the journal has it. It adds no finding of its own.
+
