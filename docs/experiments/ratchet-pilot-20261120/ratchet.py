@@ -338,6 +338,17 @@ PRESERVE_PLAN = ("\n**One question the plan answers in writing.** It is a key qu
                  "next number, stating what the\nproduct does today, with `Source: existing: <the file that shows it>`. Where what is "
                  "here does not settle whether\nsomething stays as it is, say so in that section. Where there is no existing product, "
                  "write `none` in it.\n")
+# The same question in the specification, in the form the plan answered (amendment 12, F39): a section to fill. It is
+# PRESERVE_PLAN word for word with the file and the place changed, so the two differ in the stage and nothing else.
+PRESERVE_SPEC_SECTION = ("**One question the specification answers in writing.** It is a key question ShipLoop asks of every "
+                         "request: \"" + PRESERVE_K2 +
+                         "\" Answer it\nfrom what is here (the code, its tests and its documents), not from memory, in a third "
+                         "section of `ratchet/spec.md`,\n`## Preserved behaviour`, after the clauses: each thing that must not "
+                         "change, with the file that shows it. Where the\nspecification has no clause for one of them, add it as a "
+                         "clause with the next number, stating what the product does\ntoday, with `Source: existing: <the file "
+                         "that shows it>`. Where what is here does not settle whether something stays\nas it is, say so in that "
+                         "section. Where there is no existing product, write `none` in it.\n\n")
+SPEC_STAGE_QUESTION = {"spec": PRESERVE_SPEC, "spec-section": PRESERVE_SPEC_SECTION}
 
 # What every later stage is told about an `Open:` line, in runs whose enrichment text can write one.
 OPEN_NOTE = (" In this run a clause of the specification may carry an `Open:` line. It marks a point the request does not "
@@ -875,7 +886,7 @@ class Run:
         for attempt in range(1, 4):
             before = git(self.work, "rev-parse", "HEAD").strip()
             self.session("spec", ENRICH[self.args.enrich].format(frame=self.frame, request=self.request, problems=problems, conduct=self.conduct(),
-                                                                 preserve=PRESERVE_SPEC if self.args.preserve == "spec" else ""),
+                                                                 preserve=SPEC_STAGE_QUESTION.get(self.args.preserve, "")),
                          f"spec-{attempt}")
             self.enforce(before, ["ratchet/spec.md"], "spec")
             try:
@@ -1227,9 +1238,9 @@ def main(argv=None):
     run.add_argument("--bare", action="store_true", help="no loop: one session is given the request and builds; a comparison arm")
     run.add_argument("--enrich", choices=("single", "lenses", "reworded"), default="single",
                      help="the enrichment text of the spec stage: the pilot's own, the one-pass lens form, or its reworded form")
-    run.add_argument("--preserve", choices=("none", "spec", "plan"), default="none",
+    run.add_argument("--preserve", choices=("none", "spec", "spec-section", "plan"), default="none",
                      help="with --enrich reworded: ShipLoop's key question on preserved behaviour is answered in writing by the "
-                          "spec stage, by the plan stage, or not asked")
+                          "spec stage (as clauses, or in a section of the specification), by the plan stage, or not asked")
     run.add_argument("--max-cycles", type=int, default=3, help="apparatus limit: cycles before the run is stopped (reported)")
     run.add_argument("--max-fixes", type=int, default=4, help="apparatus limit: fix sessions per cycle (reported)")
     run.add_argument("--max-budget-usd", type=float, default=None, help="per session, on hosts that price a session")

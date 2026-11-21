@@ -2607,3 +2607,66 @@ own session files are kept in each Sol run's home folder (two for `p1R-ticket-as
 `p3R-ticket-due-times-a`), so it can be read from records on file, with no run. The cells of amendments 10 to 12
 on Sonnet are not touched: there a tool's result is what the model is given. For F39 it adds a second way, on
 Sol, for text to leave no trace: it is not printed.
+
+## 23. Amendment 13, 2026-11-21 14:28: the same question in the specification, with a section to fill (registered before any run)
+
+Owner: asked which next step to start ("A then B's first rung (my pick), A only, add the optional reading C, or stop
+here"), he answered "Yes". I take that as the pick named: step A, registered here, and then the first rung of step B,
+which is designed after A's result and registered by itself.
+
+**What it asks.** F39 left two things together: the plan answered the question and the specification did not, and
+the plan had a section to fill where the specification had only one more instruction. Here the stage is the
+specification and the form is the plan's.
+
+**The text** (`ratchet.py`: `PRESERVE_SPEC_SECTION`, chosen by `--preserve spec-section` with `--enrich reworded`).
+It is `PRESERVE_PLAN` word for word with the file and the place changed: "in a third section of `ratchet/spec.md`,
+`## Preserved behaviour`, after the clauses" where the plan's says "in a sixth section of `ratchet/plan.md`", and "add
+it as a clause with the next number" where the plan's says "add it at the end of `ratchet/spec.md` as a clause with
+the next number". It sits where amendment 12's specification paragraph sat, above "How to get there". The script's
+reader of a specification already ends an item at a section heading, so it reads such a file unchanged.
+
+Checked before this registration: the 20 text constants of the committed script are unchanged and two are added; the
+specification packet renders byte for byte as before for `none`, `spec` and `plan`, and with `spec-section` it is
+the baseline packet plus this one paragraph; the standing self-test passes plain and with the new setting ("selftest
+ok: 10 sessions, 6 gates, 14 snapshots" twice); the paragraph is in the spec session's prompt only; the setting is
+refused without `--enrich reworded`. `by_source.py specs` now also counts the entries of such a section and how
+many name a file (`NAMES_A_FILE`, a word match); it reproduces amendment 12's table line for line and counts the two
+plans' sections as the helper's recount did (14 and 13; 10 and 9).
+
+**Cells.** Three runs, `q-sec-1` to `q-sec-3`: ticket assignment, the spec stage alone (`--stop-after spec`), Claude
+host, `claude-sonnet-5-5` at medium, 6 dollars a session at most. They are read beside the seven specifications on
+file from amendment 12: five written without the question (the earlier one, `q-base-1`, `q-base-2`, `q-plan-1`,
+`q-plan-2`) and two with the question as an instruction (`q-spec-1`, `q-spec-2`). No baseline is run again: the
+text for the other settings is what wrote those seven, byte for byte, with the same model and effort on the same
+day.
+
+**Readings.**
+
+- **R14.1, the first reading: is the question answered?** A run *answers* if its specification holds a section
+  `## Preserved behaviour` with at least 5 entries that name a file (the plans held 13 and 9; counted by the
+  script). *The form decides* if all three answer. *The stage decides* if none does. Otherwise mixed, given as
+  counts.
+- **R14.2, do the answers become clauses?** Clauses sourced `existing` (first word) as the spec stage leaves them,
+  against 1 to 5 in the seven on file. *They do* if at least two of the three runs hold 7 or more: the top of that
+  range plus two (F38), and what the plan's question ended at (7 and 8). *They do not* if all three hold 5 or
+  fewer. Otherwise not shown.
+- **R14.3, harm** (my reading, named as such, with the clauses listed): `existing` clauses that state behaviour of
+  the new feature and not of the product as it is, the kind F41 found; and choice clauses, 2 or fewer in each.
+- **R14.4, the one defect** (reported): whether any clause says that a resolved ticket can still be changed, the
+  behaviour `update-rejects-resolved` breaks. No test is run here; this says only whether the clause is written.
+- Reported: clauses, use cases, `Open:` lines, whether the section says what the repository does not settle,
+  seconds and cost.
+
+**Predictions.** All three answer, with 8 to 15 entries naming a file. The entries mostly do not become clauses:
+`existing` clauses between 4 and 8, 7 or more in at most one run, because this text's own rule on what earns a
+clause pulls the other way and every specification already has one clause that says existing behaviour is
+unchanged. The resolved-ticket clause is written in at most one run. At most one clause in all decides something
+new under an `existing` source.
+
+**What each outcome means for the next rung**, written now. If the form decides, a catalog question can be put to
+the specification stage as a section, and step B's question arm does that. If the stage decides, or the result is
+mixed, step B's question arm puts its question in the plan, where it was answered twice of twice.
+
+**Limits known before the runs.** One case, one model at one effort, three runs. The specification alone: nothing
+here says what tests or products do with a section. The paragraph is the plan's with two phrases changed, and both
+changes are mine. The seven specifications it is read against were written two hours earlier.
