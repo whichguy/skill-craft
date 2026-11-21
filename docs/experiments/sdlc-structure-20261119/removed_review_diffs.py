@@ -16,7 +16,11 @@ in the tree diff the files come smallest first, each file's diff is cut at 2,500
 fits is named with its size, so one large file cannot hide the others. OUT/key.json says which run, driver and arm each
 packet is; the judges get the packets only. A review that changed neither is counted in the key and gets no packet.
 
-Usage: python3 -I removed_review_diffs.py OUT RUN_FOLDER [RUN_FOLDER ...]
+Round 8 reads every review point on one model, in whole deliveries and in seeded slices alike: `--all-stages` keeps a
+review of any stage, `--slices` keeps seeded runs (their request is the run's own request.md), `--model MODEL` keeps
+that model's runs only. Without these options the output is round 7's.
+
+Usage: python3 -I removed_review_diffs.py OUT RUN_FOLDER [RUN_FOLDER ...] [--all-stages] [--slices] [--model MODEL]
 """
 import difflib
 import json
@@ -90,7 +94,7 @@ def result_diff(before, after):
     return "\n".join(difflib.unified_diff(plain(before), plain(after), "result as submitted", "result as accepted", lineterm="", n=1))
 
 
-def main(out, folders):
+def main(out, folders, all_stages=False, slices=False, model=None):
     out = pathlib.Path(out)
     out.mkdir(parents=True, exist_ok=True)
     key, number = [], 0
@@ -99,18 +103,22 @@ def main(out, folders):
             run = trace.parent
             worktree = run.parent / "worktree"
             invocation = option.load(folder / "invocation.json")
-            if invocation.get("kind") == "step-slice" or invocation.get("seeded"):
+            seeded = invocation.get("kind") == "step-slice" or bool(invocation.get("seeded"))
+            if (seeded and not slices) or (model and invocation.get("model") != model):
                 continue
-            try:
-                request = (folder / "prompt.txt").read_text(errors="replace").strip()[:2500]
-            except OSError:
-                request = "(not recorded)"
+            request = "(not recorded)"
+            for source in (folder / "prompt.txt", run / "request.md"):
+                try:
+                    request = source.read_text(errors="replace").strip()[:2500]
+                    break
+                except OSError:
+                    continue
             for bind in sorted((run / "improve").glob("*-bind.md"), key=lambda p: p.stat().st_mtime):
                 action = bind.name[:-len("-bind.md")]
                 record = base.state(run / "results" / f"{action}.md") or {}
                 stage = record.get("stage")
                 passes = run / "improve" / action / "passes.md"
-                if stage not in REMOVED or not passes.exists():
+                if (stage not in REMOVED and not all_stages) or not stage or not passes.exists():
                     continue
                 before_tree = (base.state(bind) or {}).get("tree")
                 recorded = [option.load(path) for path in sorted((run / "improve" / action / "reviews").glob("pass-*.json"),
@@ -124,7 +132,7 @@ def main(out, folders):
                           if submitted and any(row.get("result_changed") for row in recorded) else "")
                 row = {"folder": folder.name, "case": invocation.get("case"), "driver": f"{invocation.get('model')} {invocation.get('effort')}",
                        "arm": arm_of(folder.name), "stage": stage, "action": action, "tree_chars": len(tree), "result_chars": len(result),
-                       "packet": None}
+                       "kind": "slice" if seeded else "whole delivery", "passes": len(recorded), "packet": None}
                 if tree or result:
                     number += 1
                     row["packet"] = number
@@ -135,11 +143,14 @@ def main(out, folders):
                         + (cut(result, RESULT_CAP) if result else "(the result did not change)") + "\n")
                 key.append(row)
     (out / "key.json").write_text(json.dumps(key, indent=1) + "\n")
-    print(f"reviews of the removed stages: {len(key)}; with a change, so with a packet: {number}")
+    print(f"reviews of the {'kept' if all_stages else 'removed'} stages: {len(key)}; with a change, so with a packet: {number}")
     for row in key:
         print(f"  {row['folder']:<30}{row['driver']:<24}{row['stage']:<20}"
               f"{'packet ' + str(row['packet']) if row['packet'] else 'no change':<12} tree {row['tree_chars']:>6} chars, result {row['result_chars']:>5}")
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2:])
+    ARGS = sys.argv[1:]
+    MODEL = ARGS[ARGS.index("--model") + 1] if "--model" in ARGS else None
+    PLAIN = [a for i, a in enumerate(ARGS) if not a.startswith("--") and (i == 0 or ARGS[i - 1] != "--model")]
+    main(PLAIN[0], PLAIN[1:], all_stages="--all-stages" in ARGS, slices="--slices" in ARGS, model=MODEL)

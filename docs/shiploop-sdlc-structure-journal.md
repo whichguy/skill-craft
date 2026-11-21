@@ -1980,6 +1980,104 @@ it.
   took 339 to 364 active minutes, 112 to 134 of them in reviews: the step reviews 38 to 53, the four planning
   reviews 46 to 56. Their review records are still on disk and have not been judged.
 
+## Round 8 (2026-11-20): Grok's reviews and a Sol 6.2 high baseline, on the latest ShipLoop
+
+### Question
+
+Asked "what should we do to continue?", the owner chose "Start Grok scan": a Grok 4.6 xhigh delivery of the
+ticket request takes about six hours on record, a third of it in reviews, and round 7 showed that what a review
+is worth depends on the driver. Two instructions arrived while the scan ran, and both change the round.
+
+### Owner decisions, 2026-11-20
+
+1. **"lets switch to sol 6.2 high instead of medium".** Read here as: the study's drivers are now Sonnet 5.5
+   high, Grok 4.6 xhigh and Sol 6.2 high. The Sol 6.2 medium results of rounds 4 to 7 stay as measured and are
+   never pooled with high. No whole delivery on Sol 6.2 high is on record, so a baseline is registered below.
+2. **"alwasy use the absolute latest version of shiploop".** It came right after a status note said the three
+   recorded Grok deliveries ran ShipLoop 1.34.3. Read here as: every run of this study is built from the newest
+   commit of `skills/shiploop` on `main` at its launch, with no overlay unless an overlay is the arm; the commit
+   is recorded with the run; runs on different ShipLoop commits are not pooled; and records made on an older
+   ShipLoop are context and carry no reading. Today the newest is ShipLoop 2.4.0
+   (4693c1a307984a71dda367d98568337e663d6e53).
+
+### Context from the records (ShipLoop 1.34.3 and 2.3.0, so no reading)
+
+The scan the owner asked for, kept as background because of decision 2.
+
+**R65. Time and cost of a Grok 4.6 xhigh delivery on ShipLoop 1.34.3** (`evidence/next-round-cuts.txt`, part C;
+the planning-points probe of 2026-11-14, 909adf228e00254d293ddfcd76b8011ef296fd6c: three finished deliveries of
+`ticket-due-times`, all passing). 339, 348 and 364 active minutes; $89 to $96 each. In minutes: planning 36 to
+40, step plan and test spec 26 to 28, implement 25 to 35, test 38 to 61, document 28 to 37, system tests 12 to
+14, acceptance to handoff 26 to 36, reviews 112 to 134 (33 to 39%). Their plans held 8 to 11 steps, under the
+step text of that version.
+
+**R66. What Grok's reviews changed, from their pass logs** (`evidence/grok-review-scan.txt`: 76 reviews in 10
+runs; the whole deliveries are the three above, a fourth that did not finish, and a `hello` delivery stopped
+after its spec review).
+
+| Reviewed stage | Reviews | Changed anything | Lines changed when it did | Minutes a review (median) |
+|---|---|---|---|---|
+| spec | 5 | 5 | 21 to 210 | 9.8 |
+| test-strategy | 4 | 4 | 32 to 104 | 11.6 |
+| plan | 4 | 4 | 26 to 81 | 12.1 |
+| step-plan | 4 | 4 | 12 to 37 | 15.7 |
+| a step | 33 | 8 (24%) | 1 to 8 | 3.9 |
+| carry-forward | 4 | 0 | | 7.2 |
+| system-test-author | 4 | 1 | 17 | 2.5 |
+| release-plan | 3 | 2 | 6 and 25 | 10.3 |
+
+In the five slices (ShipLoop 2.3.0, one on 1.36.0): step-plan 5 of 5, a step 1 of 5, carry-forward 0 of 3.
+
+What it suggests, and no more than that. On these records Grok looks like Sonnet, more so: the four reviews
+before the build changed something every time, by tens to hundreds of lines, at 10 to 16 minutes each. Step
+reviews seldom changed anything and then by a few lines, and their 32 to 45 minutes a delivery follow the step
+count, which the current step text has cut (Grok planned this request as 2 steps under it, R52). The
+end-of-item review never changed anything. None of it was judged, and none of it is today's ShipLoop.
+
+### Registered design (written and committed before any counted run)
+
+**Builds.** A clean detached worktree of `main` at this registration's commit (ShipLoop 2.4.0), its plugin built
+with `build_arm.py` and no overlay, and `run.py --source checkout --plugin-dir` from that worktree. Before each
+batch the newest ShipLoop commit on `main` and `origin/main` is checked again; if it has moved, the batch is
+built from the newer one and is not pooled with earlier runs.
+
+**Sol 6.2 high baseline** (starts with this commit). `ticket-due-times` four times and `shared-expenses` twice
+on Codex `gpt-6.2-sol` at `--effort high`; at most four runs of one fixture at once. The base it is read
+against is round 7's Sol 6.2 medium runs of the same two requests in arm S (two a request; ShipLoop 2.4.0 with
+planning reviews pinned on). Round 7's two medium L runs of `ticket-due-times` count for the planning choice
+only.
+
+- *Measures*, each per run: minutes from start to end and to two milestones (the first step plan, the first
+  entry into `system-test`); seconds by stage; the harness verdicts; held-out checks; reviews run and which
+  changed anything; refusals; work items; the planning choice (the service fills the data file when it starts,
+  or refuses to start until an operator has run a script), read from the probes.
+- *Time*: high is slower in a cell at 15% or more above medium's mean minutes, faster at 15% or more below;
+  within 15% no difference is readable. If a run is interrupted, the cell is read at the milestones.
+- *Quality*: held-out checks and verdicts are reported per run. The planning choice is counted, four high
+  against four medium. Four against four cannot show a difference in a rate, even none against two, so no
+  reading is registered on it; the count is kept for pooling with later runs.
+- A run that records `none` by itself (R56) is reported apart from the cell.
+
+**Grok 4.6 xhigh on the latest ShipLoop: registered, not started.** A recorded delivery cost $89 to $96 and took
+about six hours, so no Grok run starts without the owner's word. If it is given: one or two deliveries of
+`ticket-due-times` from the same build.
+
+- *Measures*: minutes by part with a host running; steps and work items; every review's passes, seconds and
+  whether it changed anything; held-out checks.
+- *Judges*: every review that changed anything, at all eight review points, as packets built like round 7's
+  (`removed_review_diffs.py --all-stages`), two Opus judges blind to each other, round 7's labels. Six of round
+  7's packets are mixed in as anchors: if a judge labels fewer than five of the six as round 7's judges did,
+  the shares are reported without a reading.
+- *Readings*, by group (the five reviews round 7 removed; the step reviews; the two end reviews): a group earns
+  its place at 30% or more substantive by both judges and does not at 10% or fewer.
+- R65's minutes are not a baseline for it: the version differs, so a difference is described and not read.
+
+**Limits known before the run.** Two to four runs a cell. The medium runs ran hours earlier and with the pin.
+Sol 6.2 high has no earlier whole delivery, so nothing checks this baseline against another day. One model as
+both judges.
+
+**Budget.** Six Codex deliveries, about 20 to 40 minutes each. No Grok spend without the owner's word.
+
 ## Evidence (all rounds)
 
 | File | Holds |
@@ -2024,6 +2122,7 @@ it.
 | `runs-reviews/interrupted.json`, `runs-reviews/reruns.json`, `runs-reviews/l1-at-kill.json` | round 7: which runs the kill reached and how each went on, the one check run again, and the grading of the run that was unfinished at the first write-up at its last commit before the kill (R60, R62) |
 | `evidence/late-work-census.txt`, `late_work_census.py` | round 7 update: how often a stage after the build opened a new work item, by driver, in 311 finished whole deliveries, and the minutes it added (F50) |
 | `evidence/next-round-cuts.txt`, `next_round_cuts.py` | round 7 update, exploratory: seconds by stage and after refused commands in this round's deliveries, criteria per work item, and the recorded Grok deliveries by part |
+| `evidence/grok-review-scan.txt`, `grok_review_scan.py` | round 8, context only: every recorded Grok 4.6 review's passes, seconds and whether it changed anything, on ShipLoop 1.34.3 to 2.3.0 (R66) |
 | `removed_review_diffs.py`, `judge-reviews/packet-*.txt`, `judge-reviews/key.json` | round 7: each review of a removed stage that changed anything, as the judges saw it, and which run and driver each is |
 | `judge-reviews/out-A.jsonl`, `judge-reviews/out-B.jsonl`, `evidence/removed-review-judge-brief.txt` | round 7: each judge's label, scope and reason per packet, and the brief |
 | `evidence/removed-review-judged.txt`, `removed_review_score.py` | round 7: the judges' agreement and the substantive share by driver and reviewed stage (R64) |
@@ -2082,6 +2181,10 @@ judges label them with `evidence/removed-review-judge-brief.txt`, and `removed_r
 rescores from the repository alone. `late_work_census.py <work>/census.json runs-reviews/census.json` reads the
 runs' traces and reproduces `evidence/late-work-census.txt`; `next_round_cuts.py runs-reviews/census.json
 <work>/census.json` does the same for `evidence/next-round-cuts.txt`.
+
+Round 8: `python3 -I grok_review_scan.py grok-4.6 <run roots>` reads the runs' pass logs and reproduces
+`evidence/grok-review-scan.txt`. `removed_review_diffs.py OUT <run folders> --all-stages --slices --model <model>`
+builds packets for every review point of one model's runs, seeded slices included.
 
 Round 3: `python3 -I replay_score.py judge-replay` rescores from the repository alone. To run it again from the
 recorded runs: `replay_cases.py <work>` (needs `<work>/census.json` and `<work>/review_edits.json`),
