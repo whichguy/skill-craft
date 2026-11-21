@@ -694,3 +694,111 @@ registered now and taken by script with no model:
 - **Limits.** The catalog seeds faults in source files it can parse, so the page's inline script may get none. Its
   copies are made under a plain folder (`TMPDIR` set), for the reason given in section 6. The product's own tests
   are not measured: the tool runs `npm test` for them and this product has no package file.
+
+## 13. Battleship, result (2026-11-21 12:16; runs 11:31 to 12:02, fault runs to 12:15)
+
+Status: firm for what was run: one cell a side, one request, Sol 6.2 at high. No session's record holds a
+held-out mark, and neither test session changed a product file.
+
+**The loop.** `bs-loop`: specification 3.2 minutes (28 items: 4 use cases and 24 clauses, with 6 open lines), plan
+3.5, build 8.0, test pass 15.1; 31.7 in all with the gates. The build is 5 files and 588 lines and passes the
+harness's four checks. The new grader also passes two finished ShipLoop Battleship deliveries and fails an empty
+tree, so it can tell the two apart.
+
+**B1, first meeting: nothing to update.**
+
+| Suite | Items | On the empty starting folder | On the build |
+|---|---|---|---|
+| `bs-blind`, written with no build and nothing to run on | 28 | 0 of 28 | 28 of 28 at first meeting, and again on a second run |
+| `bs-loop`'s own, written beside the build | 28 | | 28 of 28 at its first gate |
+
+- My prediction of 3 to 8 failing items was wrong. It is the fourth wrong prediction in this journal.
+- Tool check: `overlay.py` reproduces `bs-loop`'s own first-gate count, 28 of 28.
+- The page items are real. With the page's address for firing a shot broken by hand, the build-less U-2 fails:
+  "Selecting a board square must submit a shot and receive its outcome."
+
+**B6, strength: the same.** `mutate.py` found 51 fault sites in the build's source (`game.js` 24, `server.js` 27),
+fewer than the 60 registered, so all 51 were seeded. None was invalid.
+
+| Suite | Seeded faults caught, of 51 |
+|---|---|
+| written with no build | 32 (63%) |
+| written beside the build | 31 (61%) |
+
+- Fault by fault: 31 are caught by both and 19 by neither. One is caught only by the build-less suite (the upper
+  bound on the port, which it tests at 65535). None is caught only by the suite written beside the build.
+- My prediction that the build-less suite would catch fewer was wrong.
+- The 19 that neither catches: 8 in how ships are placed and squares numbered, 11 in the server's conditions
+  (request checks, the two routes, the port check, the body limit, two flags). Some cannot be told from the
+  original from outside, such as a bound moved by one in a random placement. They were not examined one by one.
+- The product's own tests are not measured: the tool runs `npm test` for them and this product has no package
+  file.
+
+**B2, the adapter.** `adapter.cjs` is 481 of the build-less suite's 1,430 lines (34%). With the listener
+instrument, the reporter and the browser driver the execution side is 687 lines (48%), against about 30% on due
+times. Nothing outside the adapter starts or configures the product. The suite written beside the build is 1,223
+lines, with driving and asserting mixed in two of its files.
+
+**B3, assumptions, and B4, nothing to run on.** A Sonnet subagent read the two session records and both suites
+(`battleship/bs-session-activity.md`). I checked five of its claims against the files and they hold; I did not
+check every row.
+
+- The writer's three lines of assumptions hold four things. Two are execution: the browser driver (the Mac's own
+  WebKit, compiled with Clang) and the hedges at two open points (zero-based coordinates tried first and one-based
+  accepted; the `game` id field first and other shapes accepted). Two are design gaps, both where the plan fixes
+  no name: the page's controls and wording (the plan says "100 labeled buttons" and a completion message, and
+  gives no selector and no text), and what the rules module exposes (the plan names no export).
+- The writer met both gaps by writing code that finds things (controls by where they are drawn, a board in any of
+  several shapes). It did not have to wait for the code.
+- It ran its tests three times and each run stopped at the first step, "no HTTP game became reachable" (66 times
+  in its record). So most of its test code had never executed before it met the build. It built no stand-in
+  product; it tried its own driver and instrument on two one-line throwaway files.
+- One difference in kind: in three page items (C-7, C-10, C-11) the build-less suite answers the page's shots
+  itself with forged replies, so those items test the page alone. The other suite's proxy passes real replies
+  through.
+
+**Tolerance** (the same reading). The build-less suite accepts more than one answer or shape in 17 places. The
+suite written beside the build is as tolerant in 9 of them, more tolerant in 3 and less in 2; 2 are mixed; the
+build-less suite is the looser in 1, a fallback it does not need on this build. Both packets carry the reworded
+text's rule that a test must pass whichever reasonable answer a build took. The tolerance comes from that rule,
+not from the missing build.
+
+**B5, the sessions.**
+
+| Test session | Minutes | Output tokens | Shell commands | Runs of its own tests | Product files read | Lines written |
+|---|---|---|---|---|---|---|
+| with no build | 16.5 | 45,571 | 22 | 3, none reaching a product | 0 | 1,430 |
+| beside the build | 15.1 | 38,836 | 19 | 5, and once on 6 faulted copies of its own making | 4 | 1,223 |
+
+The build-less session is again not cheaper: 9% longer, with 17% more output tokens.
+
+**Predictions against results.** Failing items at first meeting: predicted 3 to 8, found 0. Adapter above 30%:
+right (34%, and 48% for the whole execution side). More than four assumptions with a design gap about the page:
+four, two of them design gaps, one about the page. Strength: predicted 60 to 75% against 75 to 90%; found 63%
+against 61%.
+
+**What it says.**
+
+1. For a small new app with a page, tests written from the specification and the plan needed no update when the
+   build arrived, and caught as many seeded faults as tests written beside the build. With due times that makes
+   three cells of three with nothing to catch up, and this one had no product to run on at all.
+2. Section 8's line holds here in a sharper form. Where the plan fixed a name, the tests used it. Where it did not
+   (the page's controls, the module's interface), the writer did not wait for the code: it wrote code that finds
+   the thing. That is where the larger execution side went.
+3. So "how tests execute gets specific after the code" was not needed on this app. It was paid for in advance, in
+   lines and in a longer session.
+4. Both suites miss the same 19 faults. That is a fact about tests written under the reworded text's rule against
+   a randomly placed fleet, not about writing them early.
+
+**Limits.** One cell a side and one model family. The app is small. The build was right the first time, so
+nothing here says how a build-less suite meets a wrong build, beyond the seeded faults. Seeded faults are
+single-token edits, a different yardstick from the pilot's calibrated defects. The tolerance and activity readings
+are a subagent's, spot-checked.
+
+**Is there enough to conclude early?** On whether tests can be written before the code without being updated and
+at no loss of strength: yes for small cases, three of three. Not for size. Grokbot-local has four times the
+clauses and a far richer page, and is where this is most likely to break. It runs next, at the owner's word.
+
+Evidence: `evidence/parallel/battleship/` (each run's record, reports and manifest; the build-less adapter and
+packet; the held-out result; `overlay-battleship.json`; `mutate-bs-blind.json` and `mutate-bs-loop.json`;
+`bs-session-activity.md`).

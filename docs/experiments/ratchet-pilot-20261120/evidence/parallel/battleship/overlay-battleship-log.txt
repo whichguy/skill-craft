@@ -1,0 +1,3 @@
+loop-own: suite bs-loop on bs-loop at build-1 (8769513771a0) (product history): 28 of 28 pass; failing none
+blind: suite bs-blind on bs-loop at build-1 (8769513771a0) (product history): 28 of 28 pass; failing none
+wrote /private/tmp/claude-501/-Users-dadleet-src-skill-craft/50835528-f438-4c91-9001-f1d0ee5b8f4d/scratchpad/parallel/overlay-battleship.json

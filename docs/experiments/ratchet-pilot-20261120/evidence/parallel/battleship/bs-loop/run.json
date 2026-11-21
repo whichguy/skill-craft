@@ -1,0 +1,227 @@
+{
+ "case": "battleship",
+ "host": "codex",
+ "model": "gpt-6.2-sol",
+ "effort": "high",
+ "started": "2026-11-21T11:30:58-0800",
+ "start_tree": null,
+ "frozen_from": null,
+ "build_from": null,
+ "bare": false,
+ "sessions": [
+  {
+   "number": 1,
+   "role": "spec",
+   "label": "spec-1",
+   "seconds": 189.2,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 189.2,
+   "held_out_marks": []
+  },
+  {
+   "number": 2,
+   "role": "plan",
+   "label": "plan-1",
+   "seconds": 207.0,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 207.0,
+   "held_out_marks": []
+  },
+  {
+   "number": 3,
+   "role": "build",
+   "label": "build-1",
+   "seconds": 477.7,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 477.7,
+   "held_out_marks": []
+  },
+  {
+   "number": 4,
+   "role": "tests",
+   "label": "tests-1-1",
+   "seconds": 903.3,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 903.3,
+   "held_out_marks": []
+  }
+ ],
+ "gates": [
+  {
+   "number": 1,
+   "label": "after-build-1",
+   "pass": true,
+   "failing": [],
+   "passing": [],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [],
+   "clauses": 0,
+   "at": 874.8
+  },
+  {
+   "number": 2,
+   "label": "cycle-1-first",
+   "pass": true,
+   "failing": [],
+   "passing": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4"
+   ],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [],
+   "clauses": 28,
+   "at": 1845.5
+  },
+  {
+   "number": 3,
+   "label": "final",
+   "pass": true,
+   "failing": [],
+   "passing": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4"
+   ],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [],
+   "clauses": 28,
+   "at": 1904.3
+  }
+ ],
+ "snapshots": [
+  {
+   "label": "base",
+   "commit": "3a6a37ab9f5ec5004f62bb16f02c0d9dd2371685",
+   "tree": "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+   "at": 0.1
+  },
+  {
+   "label": "spec",
+   "commit": "c823cd6c0a1fe69ab4017f30991fa307a10a1a10",
+   "tree": "56679cfe00a5d816b9fb6ccabbbb6622bae376c2",
+   "at": 189.4
+  },
+  {
+   "label": "plan-1",
+   "commit": "bd2a8fda446a7cf8c4ecd188a760e61209114918",
+   "tree": "c6bee00b55328465bffeade74770fb37facf6937",
+   "at": 396.5
+  },
+  {
+   "label": "build-1",
+   "commit": "8769513771a021ab6153722cf4371fc95366b209",
+   "tree": "f4769250be5ad6e405f2ccbe49376b246730cca6",
+   "at": 874.8
+  },
+  {
+   "label": "tests-1",
+   "commit": "2ad362e63043971f30a378de2dfed32b01e99c84",
+   "tree": "1174a4db7ed6fbd1cceef47a7c9622f512276b4d",
+   "at": 1778.3
+  },
+  {
+   "label": "final",
+   "commit": "47e8b4e01ae9f4c48f43ada1fc3a6db9f07e7987",
+   "tree": "1174a4db7ed6fbd1cceef47a7c9622f512276b4d",
+   "at": 1904.4
+  }
+ ],
+ "cycles": [
+  {
+   "cycle": 1,
+   "clauses_at_start": 28,
+   "new_clauses": [],
+   "plan_loops": [
+    {
+     "name": "plan-1",
+     "session": "exited",
+     "loop": "complete",
+     "iterations": 2,
+     "trivial_streak": 1
+    }
+   ],
+   "plan_added": [],
+   "build_loop": {
+    "loop": "complete",
+    "iterations": 1,
+    "trivial_streak": 0
+   },
+   "first_gate_failing": []
+  }
+ ],
+ "reverted": [],
+ "spec_violations": [],
+ "local_head": "9cd3b3520ea348b65828fdf1282da4901b1956d8",
+ "named_checks": true,
+ "enrich": "reworded",
+ "spec_from": null,
+ "tests_blind_from": null,
+ "stop": "stop-after-tests",
+ "final_pass": true,
+ "seconds": 1904.4,
+ "clauses": 24,
+ "use_cases": 4,
+ "tamper": [],
+ "finished": "2026-11-21T12:02:43-0800"
+}

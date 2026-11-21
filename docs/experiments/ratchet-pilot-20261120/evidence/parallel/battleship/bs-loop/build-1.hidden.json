@@ -1,0 +1,14 @@
+{
+ "observed": true,
+ "reason": null,
+ "passed": [
+  "own-tests",
+  "page",
+  "fire",
+  "whole-game"
+ ],
+ "failed": {},
+ "kind": "battleship",
+ "work": "/Users/dadleet/e2e-runs/ratchet-parallel-20261121-6f54fb/bs-loop/work",
+ "commit": "8769513771a021ab6153722cf4371fc95366b209"
+}
