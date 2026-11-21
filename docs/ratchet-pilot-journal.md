@@ -2025,23 +2025,58 @@ as `grade.py` does for a variant), on due times:
 | loop b's (41 items) | 41 | 41 at its own gate | 29 or 31 |
 | the test-strength cell's (39 items) | 31 | 31 | 35 |
 
+> **Superseded 2026-11-21 09:10** (the fork's own correction; its commit
+> d610919065c98e9eedcb96755362034b2e7848fb): four cells of this table were wrong. Its tool made its copies under
+> the system's temporary folder, which on macOS is a symbolic link, and a test that watches `npm test` by file path
+> then sees no test run. Measured again in a plain folder, with the copy a clone of the product's repository, the
+> tool reproduces the runs' own gates (loop a's suite on its own build 41 of 42, loop b's 41 of 41) and gives:
+>
+> | Suite | On loop a's build | On loop b's build | On the correct reference |
+> |---|---|---|---|
+> | loop a's (42 items) | 41 | 39 | 30 |
+> | loop b's (41 items) | 41 | 41 | 31 |
+> | the test-strength cell's (39 items) | 32 | 32 | 35 |
+>
+> Its readings stand, it says: a suite carries between products that took the same answers, and loses 10 to 12
+> items against the reference, all of them about how the product is driven or about its own tests.
+
 (It gives the two loops' results on the reference as "29 and 31" without saying which is which.) Every cross
 failure, it reports, is about how a test drives the product at an open point (one `RESPONSE_HOURS` setting against
 four `DUE_HOURS_*` ones; how the data file is prepared) or about the product's own tests. None is about what a
 clause asserts.
 
-**What that does to the readings above.** R9.5 stands as it was read: no test asserts an answer to an open point.
-But it said too little. A suite is written against one product, drives it through the answers that product took,
-and so does not carry to another correct product that answered differently: a loop's suite fails 10 to 13 of its
-items on the reference. R9.2 could not show this, because in a test-strength cell the tests are written with the
-reference as the product in front of them, for every text alike. So F31's "removed most of what rejected a correct
-product" holds for what a clause asserts and not for how its test reaches the product. With the earlier texts the
-specification fixed a control's name and a correct product that named it otherwise failed; with this text nothing
-fixes it, and the test takes it from the product at hand. A second correct product still needs the plan's answers,
-or tests that find a product's controls from its documents.
+**What that does to the readings above.** R9.5 stands as it was read: no test asserts an answer to an open point. But
+it said too little. A suite is written against one product, drives it through the answers that product took, and so
+does not carry to another correct product that answered differently: a loop's suite fails 10 to 13 of its items on the
+reference (*corrected 09:10: 10 to 12, by the table above*). R9.2 could not show this, because in a test-strength cell
+the tests are written with the reference as the product in front of them, for every text alike. So F31's "removed most
+of what rejected a correct product" holds for what a clause asserts and not for how its test reaches the product. With
+the earlier texts the specification fixed a control's name and a correct product that named it otherwise failed; with
+this text nothing fixes it, and the test takes it from the product at hand. A second correct product still needs the
+plan's answers, or tests that find a product's controls from its documents.
 
 **Two notes on the apparatus.** The fork's exported copy of loop a's own build counts 39 of 42 where this run's
 gate counted 41 (C-33 and U-8, both about `npm test`): not examined, and the same kind of difference as loop b's
 `suite` check in section 20, a copy without Git history. And for about a minute (08:03 to 08:04:43), before it knew
 it was the fork, it had left one untracked file in this worktree: the launch guards here read a clean tree at
 08:03:08 and at 08:06:59, and no commit of this branch holds it.
+
+> **Superseded 2026-11-21 09:10:** "a copy without Git history" was my guess at the 39 against 41 and it was wrong.
+> The fork found the cause, the temporary folder above; in a plain folder its copy counts 41 of 42, as the gate
+> did. `grade.py strength` makes its copies under the run folder and is not affected. Loop b's `suite` check in
+> section 20 is a different case, read there in the test's own output (`git archive` of release 1.4.0).
+
+**The fork's first run, received 09:08** (its commit d610919065c98e9eedcb96755362034b2e7848fb, its journal section
+6; the owner's word to it was "Yes, run it"; Codex `gpt-6.2-sol` at high; not re-run here). Two test sessions
+started from this amendment's two loop specifications and plans and the starting product, with no build present.
+Their suites pass 42 of 42 and 41 of 41 on the two loop builds, which they never saw, and on each other's. It
+had predicted 4 to 10 failing. The sessions were not cheaper (15.9 and 19.7 minutes against 16.7 and 13.4, on a
+loaded machine). Not measured: whether such a suite catches the planted defects.
+
+What that adds to the reading above, in my words: it is the other half of the same thing. A suite fails on a
+product that took other answers, and passes on a product it never saw that took the same ones. So with the
+reworded text the plan is where a product's answers to the open points are fixed. What a second product, or a
+test written somewhere else, has to share is those answers and the names the plan fixes: not the whole plan, not
+the specification alone and not the build. The fork, asked whether this states its finding, agreed and added that
+narrowing, and that it is shown for two sessions on one request with one model, whose blind sessions took every
+name that starts or configures the product from the plan, the specification or the starting documents.
