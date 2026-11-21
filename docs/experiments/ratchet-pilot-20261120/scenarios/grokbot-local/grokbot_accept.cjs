@@ -35,6 +35,9 @@
  *      after that nothing more may finish. The request speaks of "what can still be stopped and what has already
  *      happened"; the first version allowed no step at all after the status read Cancelled, and a build that lets
  *      the step in flight finish, and labels it "in progress" until it has, failed for it.
+ * Calibration on the ShipLoop arm's build:
+ *  10. Waiting for a new conversation to be empty counts messages only; that build draws task cards inside the
+ *      Conversation region (the second yardstick's correction E, where it was found).
  */
 'use strict';
 const fs = require('node:fs');
@@ -314,10 +317,11 @@ async function coreMode() {
   });
   await attempt('a-second-conversation-starts-empty-and-both-are-listed', async () => {
     await button(page, 'New conversation').click();
-    let shown = await conversation(page).getByRole('article').count();
+    const shownMessages = () => conversation(page).getByRole('article', { name: /^Message from / }).count(); // messages only (calibration 10)
+    let shown = await shownMessages();
     for (let tries = 0; tries < 40 && shown > 0; tries += 1) { // wait for the empty conversation to be on screen (calibration 4)
       await page.waitForTimeout(200);
-      shown = await conversation(page).getByRole('article').count();
+      shown = await shownMessages();
     }
     expect(shown === 0, `the new conversation still shows ${shown} message(s) after 8 s`);
     await ask(page, 'Planner', 'fresh start', '(Planner has 1 message(s)');

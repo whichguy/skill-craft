@@ -29,6 +29,9 @@
  *   D. Two blind spots that planted defects exposed (one defect a check, on copies of the bare build) were closed:
  *      the instructions check now also asks a bot that existed before the instruction was used, and the long-word
  *      check now measures the word itself and not only the page.
+ *   E. Waiting for a new conversation to be empty counts messages only. The ShipLoop arm's build draws its task
+ *      cards inside the Conversation region, and the first version counted those as messages and never saw an
+ *      empty conversation.
  */
 'use strict';
 const crypto = require('node:crypto');
@@ -170,10 +173,11 @@ async function newBot(page, name) {
 }
 async function newConversation(page) {
   await button(page, 'New conversation').first().click();
-  let shown = await conversation(page).getByRole('article').count();
+  const shownMessages = () => conversation(page).getByRole('article', { name: /^Message from / }).count(); // an app may draw task cards there too (calibration E)
+  let shown = await shownMessages();
   for (let tries = 0; tries < 40 && shown > 0; tries += 1) {
     await page.waitForTimeout(200);
-    shown = await conversation(page).getByRole('article').count();
+    shown = await shownMessages();
   }
   expect(shown === 0, `the new conversation still shows ${shown} message(s) after 8 s`);
 }
