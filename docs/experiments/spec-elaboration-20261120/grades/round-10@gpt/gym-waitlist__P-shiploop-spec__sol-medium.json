@@ -1,0 +1,148 @@
+{
+ "slot": "gym-waitlist__P-shiploop-spec__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2, State and domain defaults",
+   "quote": "the member will be booked automatically if a seat opens while they are still eligible."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2, Allocate in order; R-1, State and domain defaults; Scope and sources",
+   "quote": "the earliest eligible active waiter in acceptance order. \u2026 Concurrent joins are ordered by authoritative acceptance, including ties in displayed time. \u2026 priority tiers, staff reordering, guest/group queues, and outbound messages are excluded from this change."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-2, Open gaps",
+   "quote": "whether existing booking terms allow automatic confirmation, including any payment, credits, waiver, membership, schedule-conflict or affirmative-consent rules",
+   "missing": "It leaves open what happens to the other overlapping waitlist entry when the first class confirms the member."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-2, Allocate in order and State and domain defaults",
+   "quote": "An accepted cancellation of a confirmed place \u2026 even when their app was closed during the change. \u2026 The proposed behavior makes a valid opening and its allocations one coherent outcome."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-2, Allocate in order; Scope and sources",
+   "quote": "The booking is visible as **Booked** on their next authoritative read, even when their app was closed during the change. \u2026 outbound messages are excluded from this change.",
+   "missing": "The member can discover the promotion in the app. The spec provides no promotion message to send or delivery-failure behavior."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2, Protect the seat and State and domain defaults",
+   "quote": "Each newly available place serves at most one member. \u2026 Direct booking attempts, simultaneous seat openings and concurrent Leave actions resolve in authoritative order. \u2026 Confirmed occupancy cannot exceed bookable capacity as a result of this feature."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2, Protect the seat and Allocate in order",
+   "quote": "Direct booking can take only a residual seat after eligible active waiters are served. \u2026 The winner has one ordinary confirmed booking and their active entry ends."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2, Open gaps",
+   "quote": "whether existing booking terms allow automatic confirmation, including any payment, credits, waiver, membership, schedule-conflict or affirmative-consent rules",
+   "missing": "Charge timing and the disposition of the seat and waitlist entry after a failed payment are open."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "Non-functional requirements, Performance and capacity",
+   "quote": "Queue length, throughput, latency, storage, concurrency and cost limits are unresolved. \u2026 This specification adds no numeric SLA or waitlist cap.",
+   "missing": "It sets no maximum number of entries and gives no member-facing response for a join rejected at a queue limit."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-3, Close and State and domain defaults",
+   "quote": "At the cutoff, new joins and promotions are forbidden \u2026 Reuse the existing booking cutoff if applicable. The proposed fallback is the scheduled start instant",
+   "missing": "The fallback permits promotion right up to class start. No required lead time before class is specified."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2, Allocate in order and State and domain defaults",
+   "quote": "an authorized increase in bookable capacity gives each available seat to the earliest eligible active waiter in acceptance order. \u2026 Capacity decreases use the existing capacity policy and do not by themselves trigger a promotion."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-3, Close",
+   "quote": "An authorized occurrence cancellation or the booking cutoff ends all active entries for that occurrence. Members returning to it see the class as cancelled or closed, with no active waitlist action."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-4, State, privacy and lifetime; R-1, State and domain defaults",
+   "quote": "The booking authority holds the member/occurrence link, its order and state \u2026 Enrollment creates one active entry and establishes its order when the authority accepts it.",
+   "missing": "The spec does not say whether each record retains a join timestamp or whether its current numerical position is stored or calculated from acceptance order."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-3, Close; R-4, State, privacy and lifetime",
+   "quote": "the booking cutoff ends all active entries for that occurrence. \u2026 remove ended waitlist state, retry history and operational evidence on their applicable approved schedules.",
+   "missing": "The applicable retention period for ended entries is left open."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-4, Read and recover status and State, privacy and lifetime",
+   "quote": "**Waitlisted** with Leave when active \u2026 Other members' identities, queue order, membership data and eligibility details stay outside the member client.",
+   "missing": "The spec gives the member a waiting status but does not provide their own numerical position."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "Behavior model and service contracts, Owned event coverage (R-1\u2013R-4)",
+   "quote": "Retain operational evidence of join, leave, promotion, closure, denied mutations, consequential write failures and recovery outcomes through approved existing coverage where it supports those outcomes.",
+   "missing": "It does not specify a staff roster, manual promotion or removal, or a history that shows staff which member was promoted and when."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-2, State and domain defaults; TC-8(b)",
+   "quote": "The proposed behavior makes a valid opening and its allocations one coherent outcome. \u2026 interrupt Ana's permitted cancellation before the coherent outcome commits (T-3). Read-back gives {Ana}, [Ben, Cy]."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1, Join; App \u2194 booking authority (R-1\u2013R-4)",
+   "quote": "With a bookable seat and no earlier eligible waiter to serve, show the ordinary booking action. \u2026 Verify prior ordinary booking records still resolve, and no historical bookings are enrolled by enabling the feature."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "App \u2194 booking authority (R-1\u2013R-4); R-1, Join",
+   "quote": "no historical bookings are enrolled by enabling the feature. \u2026 A signed-in eligible member with no confirmed place or active entry for a full, open occurrence can select **Join waitlist**.",
+   "missing": "The spec leaves rollout to already-full occurrences implicit. It does not say when or how their waitlists become available at launch."
+  }
+ ]
+}

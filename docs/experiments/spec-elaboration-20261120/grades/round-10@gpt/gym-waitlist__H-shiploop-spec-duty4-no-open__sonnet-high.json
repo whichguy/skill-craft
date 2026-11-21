@@ -1,0 +1,143 @@
+{
+ "slot": "gym-waitlist__H-shiploop-spec-duty4-no-open__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "PD-1",
+   "quote": "A freed spot goes to the first waiting member **automatically** (booked at once, member told). No offer/claim window"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "PD-2, PD-8",
+   "quote": "Order is first-come-first-served by the order the server commits joins \u2026 staff waitlist viewing or editing is out of scope"
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-1 (Domain rules), R-10",
+   "quote": "no per-member limit on simultaneous waitlists, no overlap rule beyond the existing booking rules \u2026 At promotion eligibility is checked again",
+   "missing": "The spec leaves open whether confirming one class immediately removes the member from the overlapping waitlist or leaves that entry for a later eligibility check."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "PD-1, R-9",
+   "quote": "existing late-cancel penalties make a surprise booking harmful \u2026 all existing eligibility and cancellation rules",
+   "missing": "Automatic booking eliminates the offer to decline. The spec leaves open whether missing the promotion notice and then cancelling late or failing to attend incurs the existing penalty."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "when a booked member's cancellation frees a spot on a still-bookable class and members are waiting, the first eligible waiting member is booked into that spot **as part of the same operation**"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "PD-7, AC-8.1, AC-8.2",
+   "quote": "In-app status is the mandatory notice; the existing notification channel, if any, is used additionally \u2026 \"Confirmed (from waitlist)\" \u2026 Cy remains booked and the status still shows it; the failure is logged"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AC-4.2, R-7",
+   "quote": "Ana and Ben cancel simultaneously (either order): booked [Cy, Dee], waiting [Eli]; each promoted exactly once \u2026 booked members never exceed capacity because of waitlist actions"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "AC-1.2, R-7",
+   "quote": "Cy (waiting) books C1 directly: refused `on_waitlist` \u2026 a spot freed on a class that has waiting members cannot be taken by a direct booking, in any ordering"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "an ineligible head entry is skipped \u2026 the member is told, and the next entry is tried. Whatever the existing booking charges (credit, pass, payment) is applied at promotion, not at joining; a failed charge counts as ineligible."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "PD-4",
+   "quote": "No waitlist length cap"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "PD-4, PD-6",
+   "quote": "promotion can happen any time before the class's booking closes \u2026 the working assumption is the class start instant"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-5, AC-5.3",
+   "quote": "raising a class's capacity promotes waiting members in order, one per new spot, until spots or the list run out. \u2026 Capacity lowered or unchanged: no promotion and no removal of anyone"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "when staff cancel a class, every waiting entry ends as `class_cancelled`, the members are told, and no booking is created for them."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "State and data assessment, AD-2",
+   "quote": "Waitlist entry (new): class, member, join order, status \u2026 Positions are derived from a stored join order, not stored as mutable numbers.",
+   "missing": "A stored sequence can establish join order. The spec leaves open whether each entry also records the time the member joined."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-6, State and information lifecycle",
+   "quote": "When the booking-close instant passes, remaining entries end as `expired` \u2026 record kept as long as the existing booking records"
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "AC-11.3",
+   "quote": "Responses to a member (and the UI's data) contain own position and the count, but no other member's name or id"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "PD-8, NFR-7",
+   "quote": "staff waitlist viewing or editing is out of scope \u2026 Join, leave, promote, skip-ineligible, expire, class-cancel and notice-failure each produce one log event with class id and member id",
+   "missing": "Staff viewing and manual changes are expressly excluded. The spec leaves open whether staff can access a timestamped history of promotions."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "State and data assessment, G-5",
+   "quote": "if the feature is switched off after entries exist, entries stay unpromoted until the feature returns or they expire; the platform's staged-release options and the promotion/stop condition are unknown",
+   "missing": "The rollback rule describes existing entries. It leaves open whether there is a supported on/off control and whether enablement can vary by class or class type."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "NFR-2",
+   "quote": "a promotion is visible on the first read after the cancel returns."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "AC-9.1, State and data assessment",
+   "quote": "A class with a free spot books exactly as before and shows no waitlist controls \u2026 existing bookings are untouched."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "State and data assessment, R-1",
+   "quote": "no migration or backfill; existing classes start with an empty waitlist \u2026 a signed-in member viewing a full, still bookable class they are neither booked in nor waiting for is offered \"Join waitlist\""
+  }
+ ]
+}

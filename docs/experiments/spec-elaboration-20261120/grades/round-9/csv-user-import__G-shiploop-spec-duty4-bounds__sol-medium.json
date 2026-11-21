@@ -1,0 +1,149 @@
+{
+ "slot": "csv-user-import__G-shiploop-spec-duty4-bounds__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.37113159999999995,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Rejection or a confirmed creation failure creates zero users from this attempt. ... Keep publication whole. Positive: The complete creation set becomes authoritative before success can be reported."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "An invalid field or missing required value rejects the entire file and identifies the affected CSV record and, where identifiable, its column and the reason."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "An identity collision within the file or with an existing account rejects the full attempt without modifying the conflicting account."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "CSV fields cannot select a target or bypass the assigned permissions of ordinary user creation.",
+   "missing": "Whether the file may name roles at all and, if so, how each named role is checked against the importer's own authority rather than ordinary defaults."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "An admin with create authority in the selected user-management scope can open the import and select a CSV.",
+   "missing": "The spec ties import to ordinary create authority and leaves the admin grant open; it does not state that import is a distinct permission not implied by single-user creation."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Invalid encoding, malformed quoting, missing or duplicate headers, unsupported headers, and data records with the wrong field count reject the file with actionable feedback; no user is created."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "UTF-8 with an optional initial byte-order mark, comma-delimited fields, one header record, CRLF or LF record separators ... Double-quoted fields can contain commas, line breaks or doubled quotes"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Open prerequisite for the product owner: determine ... any required invitations, activation, credentials, notifications or audit effects. Open feasibility prerequisite ...: verify whole-batch publication, including any mandatory provisioning effects",
+   "missing": "What happens to invitations or other side effects already triggered for earlier rows when a later row fails; whether they are deferred until commit or undone."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Input above the effective byte ceiling is rejected with a size-limit outcome, zero creations and a way to choose a smaller file.",
+   "missing": "The actual byte ceiling and any row cap value; both are left open."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2, R-3",
+   "quote": "Empty input, header-only input and data made up entirely of empty records produce a no-data error. ... A single valid data row is enough for an import."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "A repeat of a successful file while those identities still exist fails with conflicts and creates no duplicates."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "After submission the view indicates processing ... On lost confirmation the view states that the result is unknown and directs the admin to check the authoritative user list",
+   "missing": "Whether large files run in the background and how the admin is told of completion after leaving the view; processing duration and disconnect behavior are left to revalidation."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "determine the canonical identity, uniqueness scope, account defaults and any required invitations, activation, credentials, notifications or audit effects.",
+   "missing": "Whether invitation/welcome mail is sent for imported users and how bulk sends are paced."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Created accounts use the ordinary user lifecycle. Open prerequisite for the product owner: determine ... account defaults and any required invitations, activation, credentials",
+   "missing": "Whether created users are active or pending, whether they have a password, and how they first sign in."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "Discard temporary processing data when the operation settles or is terminated ... No durable raw upload, import history or cross-client drafts are required."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "The domain contract must supply allowed headers and matching rules, required/optional fields, normalization, valid field values and handling of omitted optional values.",
+   "missing": "Date, number and locale formats for field values are not addressed; normalization is deferred to an unspecified domain contract."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Existing mandatory account auditing, if applicable, follows its authoritative policy ... using sanitized attempt references and outcome categories.",
+   "missing": "Whether an audit record of who imported which file and when is required, and what it contains."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "A disconnected or superseded view cannot control a submitted operation.",
+   "missing": "Whether an admin can cancel a running import; retrying only failed rows is not addressed beyond correcting and resubmitting the whole file."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "At the effective input envelope, the surface shows processing and remains responsive ... No SLA or numeric performance target is established.",
+   "missing": "A time bound for a maximum-size file and progress indication beyond a generic processing state."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1, R-3",
+   "quote": "Preserve any applicable account-creation and target-access rules ... Existing users are preserved."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

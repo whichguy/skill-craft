@@ -1,0 +1,147 @@
+{
+ "slot": "csv-user-import__H-shiploop-spec-duty4-no-open__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "TC-5",
+   "quote": "Default to partial success after definitive row rejection."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "TC-8, TC-5",
+   "quote": "Definitive completion lists final outcomes by starting physical line \u2026 rejects that row with its starting physical line, field when applicable and reason."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "TC-6",
+   "quote": "Later field-valid rows with the same identity yield \u201cDuplicate in this file.\u201d Existing identities and losing writes in a race yield \u201cIdentity unavailable\u201d with no stored account details."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-3, TC-5",
+   "quote": "This import cannot set scope, secrets or roles or mutate preexisting accounts. \u2026 its privileges, activation and ordinary effects match direct creation.",
+   "missing": "Role columns are excluded. The specification leaves open whether the ordinary account\u2019s effective privileges must also be bounded by the submitting admin\u2019s own access."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Add an import entry point for admins with current user-creation authority in their managed scope.",
+   "missing": "The stated admission rule does not require a distinct bulk-import grant for an admin who can create individual users."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "TC-3",
+   "quote": "The required header contains `email` and optionally `name`, in either order. \u2026 a missing or invalid header, duplicate or unsupported columns \u2026 produce a file error and zero writes"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "TC-3",
+   "quote": "UTF-8 comma-separated text with an optional single leading UTF-8 BOM and LF or CRLF separators. \u2026 Fields may be quoted to contain separators or line breaks"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "TC-7, TC-6",
+   "quote": "Committed accounts remain after a later failure or interrupted interaction. \u2026 The winning or existing account retains its ID, values and effects."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "TC-4",
+   "quote": "Default maximum 65,536 file bytes inclusive \u2026 A file above the cap is rejected with the limit and zero creates."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "TC-3, TC-5",
+   "quote": "Zero bytes \u2026 produce a file error and zero writes \u2026 A valid header with no data records yields \u201cNo user rows\u201d and zero writes. \u2026 submit `email\\n ada@example.test \\n`; the email is `ada@example.test`"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "TC-6",
+   "quote": "After TC-5\u2019s mixed submission, resubmit `mixed.csv` under T-8. \u2026 T-6 gives zero created and six rejected, and there are no new records or ordinary effects."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "TC-7, TC-8",
+   "quote": "Closing the view does not promise cancellation or background completion. \u2026 Show empty, selected, processing and completed states.",
+   "missing": "Completion is visible in the active view. The specification gives no size at which processing moves to the background or way to notify an admin who has left."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Identity keys, uniqueness domain, validation, initial role, activation and notifications are ordinary account rules left unstated in the request.",
+   "missing": "A builder needs the ordinary invitation policy and, if mail is sent, whether batch messages go out immediately or at a specified rate."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "TC-5, R-3",
+   "quote": "its privileges, activation and ordinary effects match direct creation. \u2026 This import cannot set scope, secrets or roles or mutate preexisting accounts.",
+   "missing": "The initial activation status, whether a password exists at creation, and how the new user first signs in are left to the target product."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Only authorized processing can access submitted bytes and parsed values, held transiently for the active operation. Release them and remove any transient copies at completion or abandonment. There is no retained upload or downloadable file."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "Service boundaries",
+   "quote": "Diagnostics include a safe correlation reference, outcome category and counts when known. \u2026 Reconcile any mandatory audit obligation with the target before connecting writes.",
+   "missing": "The specification leaves open how an auditor would identify the submitting admin, the time of submission, and the accounts created by that import."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "TC-7",
+   "quote": "If a response was lost after commit, retry encounters the authoritative conflict and can create identities that did not commit. Closing the view does not promise cancellation or background completion.",
+   "missing": "There is no defined action to cancel a running import or to select and retry only failed rows."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements, Bounded operation",
+   "quote": "With valid input through the effective cap, expose pending then an authoritative final or unconfirmed outcome. \u2026 No SLA, throughput target or concurrency quota was supplied.",
+   "missing": "Pending is visible, but a maximum completion time at the byte cap and any indication of how many rows have been processed are unspecified."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Add a batch path that follows the ordinary authorized account-creation rules. Preserve field validation, identity uniqueness, privileges, initial account status and established creation effects. \u2026 This import cannot set scope, secrets or roles or mutate preexisting accounts."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "TC-9, TC-5",
+   "quote": "only the row numbers, field labels, counts and safe reasons needed to act \u2026 a field rejected by ordinary creation rejects that row",
+   "missing": "Row values are excluded from results. Within the file byte cap, handling an oversized field depends on the ordinary creation validator, whose field-length limits are unspecified."
+  }
+ ]
+}

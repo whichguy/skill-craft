@@ -1,0 +1,142 @@
+{
+ "slot": "gym-waitlist__H-shiploop-spec-duty4-no-open__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.34522579999999997,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "PD-1",
+   "quote": "A freed spot goes to the first waiting member **automatically** (booked at once, member told). No offer/claim window"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "PD-2",
+   "quote": "Order is first-come-first-served by the order the server commits joins | Priority tiers"
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "Domain rules (R-1)",
+   "quote": "no per-member limit on simultaneous waitlists, no overlap rule beyond the existing booking rules",
+   "missing": "What happens to a member's other waitlist entry for an overlapping class when one promotion books them; whether it is removed, skipped, or left waiting."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "PD-1",
+   "quote": "Studio wants no-show control, or existing late-cancel penalties make a surprise booking harmful",
+   "missing": "Whether a promoted member who cancels late or does not attend is charged under the existing no-show/late-cancel policy."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4; Service boundaries",
+   "quote": "the first eligible waiting member is booked into that spot **as part of the same operation** (R-7)... promotion completes within the freeing operation (R-7e); only notice delivery is asynchronous"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-8; PD-7",
+   "quote": "a notice is also sent through the existing notification channel where one exists (G-2). A failed notice never undoes a promotion."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AC-4.2; R-7",
+   "quote": "Ana and Ben cancel simultaneously (either order): booked [Cy, Dee], waiting [Eli]; each promoted exactly once"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "AC-1.2; T-10",
+   "quote": "SC-1.8: Cy (waiting) books C1 directly: refused `on_waitlist`."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "Whatever the existing booking charges (credit, pass, payment) is applied at promotion, not at joining; a failed charge counts as ineligible."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "PD-4",
+   "quote": "No waitlist length cap and no \"latest promotion time\" cutoff. The list is bounded by one entry per member per class (R-1)"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "PD-4",
+   "quote": "no \"latest promotion time\" cutoff... promotion can happen any time before the class's booking closes"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-5; AC-5.3",
+   "quote": "raising a class's capacity promotes waiting members in order, one per new spot... Capacity lowered or unchanged: no promotion and no removal of anyone"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "when staff cancel a class, every waiting entry ends as `class_cancelled`, the members are told, and no booking is created for them."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "State and data assessment; AD-2",
+   "quote": "Waitlist entry (new): class, member, join order, status... Positions are derived from a stored join order, not stored as mutable numbers."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-6; State and information lifecycle",
+   "quote": "When the booking-close instant passes, remaining entries end as `expired`... record kept as long as the existing booking records"
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-11",
+   "quote": "other members' identities on a waitlist are never returned to a member"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "PD-8",
+   "quote": "Members see their own position and the number waiting; staff waitlist viewing or editing is out of scope",
+   "missing": "Any staff view, manual promote/remove, or record of who was promoted when; the spec excludes these rather than specifying them."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "State and data assessment",
+   "quote": "if the feature is switched off after entries exist, entries stay unpromoted until the feature returns or they expire",
+   "missing": "Whether and how the feature is switched off, and whether it can be enabled per class or class type."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "NFR-2",
+   "quote": "a promotion is visible on the first read after the cancel returns"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-9; AC-9.1",
+   "quote": "A class with a free spot books exactly as before and shows no waitlist controls"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "State and data assessment",
+   "quote": "Existing data: no migration or backfill; existing classes start with an empty waitlist; existing bookings are untouched."
+  }
+ ]
+}

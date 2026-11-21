@@ -1,0 +1,145 @@
+{
+ "slot": "invoice-reminders__G-shiploop-spec-duty4-bounds__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "R-1 \u00b7 Open gaps",
+   "quote": "whether unpaid invoices before their due date qualify, recurrence or a single reminder, any repeat/end rule",
+   "missing": "The reminder count and each offset from the invoice due date, including whether any reminder precedes it."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2 A1",
+   "quote": "A paid or otherwise conclusively ineligible invoice grants no send authority.",
+   "missing": "Which part-paid, voided, credited, disputed or payment-plan invoices stop receiving reminders. Only payment in full has a definite outcome among the listed states."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-3 \u00b7 Open gaps",
+   "quote": "routing rules (including the recipient of record and any consent or suppression rules)",
+   "missing": "How customer-level do-not-contact, pause and unsubscribe settings affect billing reminders, including whether a marketing opt-out permits a billing notice."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4 A1 (C6, C7)",
+   "quote": "The effective allowance is one accepted handoff per account/invoice/occurrence. At that allowance, concurrent, repeated, stale, or restarted work creates no additional accepted handoff."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2 A2 (C4)",
+   "quote": "A payment, other disqualifying change, or revocation authoritative before dispatch authorization prevents that authorization, including if a prior read said eligible."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-4 A2 (C7, C8)",
+   "quote": "If the outcome remains unknown or retry is unavailable or exhausted, the authorized operational consumer can distinguish the hold or terminal failure.",
+   "missing": "Which provider failures trigger retries, how often and for how long, how an outage affects attempts, and when persistent failures are escalated to a person."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Non-functional requirements \u00b7 Timeliness and capacity",
+   "quote": "Maximum lateness, workload, burst/overlap limits, quota response thresholds and cost bounds are unresolved.",
+   "missing": "Which provider send quota applies and how to pace a large batch to stay within it."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-1 \u00b7 Open gaps",
+   "quote": "missed-run behavior and whether already-open invoices enter the schedule",
+   "missing": "Which reminders to skip, combine or defer for already-overdue invoices so activation does not release the whole backlog at once."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1 \u00b7 Open gaps",
+   "quote": "time zone/calendar if applicable",
+   "missing": "Whose time zone governs sending, the permitted local business hours, and how to schedule around weekends and holidays."
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C5 \u00b7 Recipient resolution",
+   "quote": "Separately remove the destination, make it invalid or ambiguous, or revoke its authorization. Each branch produces zero handoffs and a scoped safe reason."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3 A1 (C5)",
+   "quote": "If the destination is missing, invalid, unauthorized, ambiguous under policy, or cannot be confirmed, suppress or defer sending and expose a safe reason to the authorized operational consumer.",
+   "missing": "How to choose the designated recipient from multiple billing contacts. The specification settles what happens if the choice remains ambiguous."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-4 \u00b7 State and recovery",
+   "quote": "The scoped identity is account, invoice and policy occurrence. Attempt and result correlation identify the specific handoff.",
+   "missing": "What sent content and send time to retain for each reminder step and how to show that history on the invoice."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-3 A1 (C5)",
+   "quote": "The notice identifies the invoice in terms the recipient can recognize and says that payment is outstanding.",
+   "missing": "Whether the notice includes the amount, due date and a way to pay, and whether or when a payment link expires."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-1 \u00b7 State and recovery",
+   "quote": "The billing policy owner controls effective reminder policy.",
+   "missing": "Who may manually send or stop a reminder."
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "Non-functional requirements \u00b7 Recipient experience and operability (C8)",
+   "quote": "An authorized operator can distinguish suppressed, handed off, failed, and indeterminate outcomes without access to raw payloads.",
+   "missing": "How an operator can see the next scheduled reminders and when they will be sent."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements \u00b7 Timeliness and capacity",
+   "quote": "Maximum lateness, workload, burst/overlap limits, quota response thresholds and cost bounds are unresolved.",
+   "missing": "An enforceable cap on sending volume or a maximum permitted delay after the scheduled time."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "Scope and basis (R-2, C3)",
+   "quote": "The scope is reminder behavior. Invoice issuance, payment collection, changes to balances or contact data, and a new settings or status screen are outside this request."
+  }
+ ]
+}

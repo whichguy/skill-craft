@@ -1,0 +1,146 @@
+{
+ "slot": "csv-user-import__G-shiploop-spec-duty4-bounds__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "exactly one user is created per data record, as one atomic unit: all appear or none do."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "`rejected` shows \"Nothing was imported\", the error count and a table with columns Row, Field, Problem sorted by row"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "unique within the file compared case-insensitively (`duplicate_in_file`, also giving `first_row`); not already in the store, compared case-insensitively (`email_exists`)."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1, A-7",
+   "quote": "The CSV cannot grant any role [\u2026] created users take the host default role.",
+   "missing": "The file cannot assign roles. The spec leaves open whether the host default can exceed the importer\u2019s authority and how to handle that case."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "the import page and the import request are available only to an authenticated identity the host\n  authorizes as admin.",
+   "missing": "The relationship between the host\u2019s single-user creation permission and its admin grant is unspecified."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "first record is a header. [\u2026] against `email` and `name`; both are required, order is free, nothing\n  else is allowed. [\u2026] header errors `missing_column`, `unknown_column`, `duplicate_column`"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2, AC-3.2, R-3",
+   "quote": "UTF-8 with\n  an optional leading BOM that is stripped; comma delimiter; RFC 4180 double-quote quoting; LF or CRLF [\u2026] record `ada@example.com,\"Lovelace, Ada\"` is valid [\u2026] a record spanning several physical lines is one row."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "AC-4.2, Service boundaries",
+   "quote": "A fault injected at the second insert of a valid file returns 500 `import_failed` and leaves S0. [\u2026] no third-party or remote service is called; no outbound email."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-6",
+   "quote": "no default value is chosen [\u2026] Over `MAX_FILE_BYTES` the upload is rejected with 413 `file_too_large` [\u2026] more than `MAX_DATA_ROWS` data records is rejected 400 `too_many_rows` before any row validation.",
+   "missing": "The production byte and data-row limits still need values. The numeric fixtures apply only to tests."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AC-2.4, AC-4.5",
+   "quote": "empty body part returns 400 `file_empty`; `email,name` + LF returns 400 `no_rows` [\u2026] a one-row file `email,name` / `solo@example.com,Solo` returns 201 with created_count 1."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "AC-4.3",
+   "quote": "F-OK a second time against the store after AC-4.1 returns 422 with `(2,email,email_exists)` and `(3,email,email_exists)`; the store keeps 3 users and each name is unchanged."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-5, AD-1",
+   "quote": "the import request completes synchronously and its response is the only result carrier. [\u2026] No job queue, worker or status record.",
+   "missing": "The spec chooses synchronous processing for every accepted file. It provides no background processing or completion notification for a background import."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-4, Service boundaries",
+   "quote": "welcome or invitation email, and how new users first sign in (G-4) [\u2026] no outbound email."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "G-4",
+   "quote": "how imported users first obtain credentials (invitation, reset link, none) and whether they are notified. This is a product decision for the user.",
+   "missing": "The initial account status, whether a password exists at creation, and the first sign-in flow remain unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-7, State and information lifecycle",
+   "quote": "Uploaded bytes live only in request memory (or a transient spool removed before the response is sent). [\u2026] Upload bytes | server request memory | no one | n/a, per request | the response is sent"
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "event `user_import`, actor id, UTC timestamp, outcome (`created`, `rejected`, `denied`, `failed`),\n  data-row count when parsed, created_count, and the distinct set of error codes."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "Transition ledger (T-3, Timeout and cancellation)",
+   "quote": "a client that disconnects mid-upload leaves no partial effect [\u2026] no write; 422 with every error | fix and resend",
+   "missing": "The spec covers disconnects and whole-file retries. It gives no admin action to cancel work already running or retry just the failed rows."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "NFR-5, R-8",
+   "quote": "an import of `MAX_DATA_ROWS` rows completes within the host runtime's request time limit; neither value is known [\u2026] button disabled, label \"Importing\", indeterminate indicator, no fabricated percentage",
+   "missing": "The pending indicator is specified. A measurable maximum duration for a maximum-size import still depends on the host timeout and the production limits."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Import only creates. It never\n  changes or replaces an existing user.",
+   "missing": "The spec does not require the existing manual single-user creation flow to keep its behavior."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "any value the host would reject is also a row error `invalid_value` on that field. [\u2026] values are stored verbatim after trim; any later CSV export owns that risk"
+  }
+ ]
+}

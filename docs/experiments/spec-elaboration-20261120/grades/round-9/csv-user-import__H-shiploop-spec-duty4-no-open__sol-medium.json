@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__H-shiploop-spec-duty4-no-open__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.37134720000000004,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Other valid rows continue. Boundary \u2014 The default is independent commitment per row, including for a file containing a single valid row."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "show counts for created, rejected and already exists, and the logical record number and reason for each non-created row in file order."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "An existing identity or one created by an earlier row receives an already-exists outcome and does not change the existing account or repeat its creation side effects."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-2, R-3, W-2",
+   "quote": "Reject the whole file before any creates for ... unsupported or missing headers, extra header columns ... Email-only input, ordinary non-admin role ... `email,role\\nada@example.test,admin`, which R-2 rejects for unsupported header columns."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "An authenticated admin with user-create authority in the active scope can open the entry point ... The default requires an admin with ordinary user-create permission.",
+   "missing": "Who may import is stated, but it is tied to ordinary single-user create permission; the spec does not make bulk import a distinct ability not implied by single create."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Reject the whole file before any creates for unreadable input, invalid UTF-8, malformed quoting, unsupported or missing headers, extra header columns, or zero data records. Give a file-level reason."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "UTF-8, optionally with one leading UTF-8 BOM ... LF or CRLF as record separators outside quoted fields ... A newline in quotes belongs to that field."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Confirmed creates remain available through normal user administration when processing stops ... Irreversible completed creates survive interruption."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Above that effective maximum, show the maximum and how to split or reduce the file. Reject before any creates ... The maximum is inclusive. Apply it to the file bytes before decoding"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2, R-3",
+   "quote": "unsupported or missing headers, extra header columns, or zero data records ... independent commitment per row, including for a file containing a single valid row."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Authorized resubmission resolves each supplied identity against current directory state and cannot create a duplicate."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-4, Service boundaries",
+   "quote": "On submit, show an accessible pending state through validation and processing ... a background dispatcher and notification delivery are inapplicable to the specified request-scoped flow."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "Scope and sources, R-3",
+   "quote": "Updating or deleting users, choosing roles, importing credentials and adding an invitation workflow are outside this change ... Check for required account fields and ordinary create side effects",
+   "missing": "Whether ordinary create side effects (e.g. welcome mail) fire for every row at once and any pacing for hundreds of mails."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "Scope and sources",
+   "quote": "importing credentials and adding an invitation workflow are outside this change. Ordinary account creation and its established lifecycle continue to apply.",
+   "missing": "Whether created users are active or pending, have a password, and how they first sign in."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2, R-4",
+   "quote": "Raw files and records are discarded when the request terminates, including validation rejection or interruption ... The product retains no import history, file, or per-attempt retrieval record for this feature."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "Include a safe operation correlation reference, outcome, applicable counts, and the authorized scope and actor reference when allowed by policy.",
+   "missing": "Actor is recorded only when policy allows (and not at all without a policy); no timestamp or record of which users were imported is required."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-4, R-3",
+   "quote": "Leaving the view drops the local draft and result and does not undo writes or promise cancellation ... Authorized resubmission resolves each supplied identity against current directory state",
+   "missing": "Whether a running import can be cancelled; retry is only by resubmitting the whole file, not retrying just the failed rows."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-4, NFR Capacity",
+   "quote": "show an accessible pending state through validation and processing ... No latency SLA, availability target, load figure or cost target was supplied.",
+   "missing": "A concrete time bound for a maximum-size file and visible progress beyond a generic pending state."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "Scope and sources, Service boundaries",
+   "quote": "Ordinary account creation and its established lifecycle continue to apply ... Write only the new account for each eligible record. Preserve unrelated and existing users."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-4, R-2",
+   "quote": "Row diagnostics use logical record number and allowlisted reason without echoing field values or file contents.",
+   "missing": "Formula-like values are not addressed explicitly, and there is no maximum field length or rule for an overlong field."
+  }
+ ]
+}

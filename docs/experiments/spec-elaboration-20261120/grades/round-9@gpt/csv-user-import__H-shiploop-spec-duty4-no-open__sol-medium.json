@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__H-shiploop-spec-duty4-no-open__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Other valid rows continue. \u2026 The default is independent commitment per row, including for a file containing a single valid row."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "show counts for created, rejected and already exists, and the logical record number and reason for each non-created row in file order."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "An existing identity or one created by an earlier row receives an already-exists outcome and does not change the existing account or repeat its creation side effects."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "W-2; R-3",
+   "quote": "Reset and use `foreign.csv` with `email,role\\nada@example.test,admin`, which R-2 rejects for unsupported header columns. \u2026 Email-only input, ordinary non-admin role"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "An authenticated admin with user-create authority in the active scope can open the entry point, submit, and see their own attempt\u2019s results while authorized."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "The header value after CSV decoding is exactly `email`. \u2026 Reject the whole file before any creates for unreadable input, invalid UTF-8, malformed quoting, unsupported or missing headers, extra header columns, or zero data records."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "UTF-8, optionally with one leading UTF-8 BOM \u2026 Recognize commas as field separators and LF or CRLF as record separators outside quoted fields. \u2026 A newline in quotes belongs to that field."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Irreversible completed creates survive interruption. \u2026 An existing identity or one created by an earlier row receives an already-exists outcome and does not change the existing account or repeat its creation side effects."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Admit otherwise eligible files at or below the advertised maximum raw CSV bytes. \u2026 Above that effective maximum, show the maximum and how to split or reduce the file. Reject before any creates."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2; R-3",
+   "quote": "Reject the whole file before any creates for unreadable input, invalid UTF-8, malformed quoting, unsupported or missing headers, extra header columns, or zero data records. \u2026 including for a file containing a single valid row."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Authorized resubmission resolves each supplied identity against current directory state and cannot create a duplicate."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Default completion belongs to the submitted request and its current UI view. \u2026 The request leaves background completion, cancellation, history and notifications unspecified.",
+   "missing": "For background processing, a builder would need a rule for which files become jobs and how the admin receives the result after leaving the view."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Check for required account fields and ordinary create side effects, including any downstream provisioning.",
+   "missing": "Whether ordinary creation sends an invitation or welcome email for each imported user and, if so, at what rate."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Preserve ordinary user creation validation, uniqueness, authorization, role, account lifecycle and side effects wherever established.",
+   "missing": "The initial account status, whether the account has a password, and how the user obtains access for the first sign-in."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2; R-4",
+   "quote": "Only the import operation uses that data. Raw files and records are discarded when the request terminates, including validation rejection or interruption. \u2026 The product retains no import history, file, or per-attempt retrieval record for this feature."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "Include a safe operation correlation reference, outcome, applicable counts, and the authorized scope and actor reference when allowed by policy.",
+   "missing": "How the audit records the time of import and links the batch to the specific account creations behind its counts."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "After rejection or interruption, an authorized admin can choose a corrected file or resubmit and receive a result for that attempt. \u2026 Leaving the view drops the local draft and result and does not undo writes or promise cancellation.",
+   "missing": "Whether an admin can stop remaining rows during processing and how to select only failed rows for retry."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-2; R-4",
+   "quote": "the target\u2019s safe end-to-end budget for ingress, full-file validation, creation and result delivery \u2026 On submit, show an accessible pending state through validation and processing.",
+   "missing": "The maximum elapsed time at the upload limit and whether progress shows how much work has finished."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "Scope and sources; R-3",
+   "quote": "Ordinary account creation and its established lifecycle continue to apply. \u2026 An existing identity or one created by an earlier row receives an already-exists outcome and does not change the existing account or repeat its creation side effects."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Row diagnostics use logical record number and allowlisted reason without echoing field values or file contents.",
+   "missing": "Omitting input values keeps formulas out of results. The maximum field length and the handling of an overlong field within the file-size limit are unspecified."
+  }
+ ]
+}

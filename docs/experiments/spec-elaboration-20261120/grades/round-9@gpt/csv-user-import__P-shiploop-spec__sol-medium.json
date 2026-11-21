@@ -1,0 +1,147 @@
+{
+ "slot": "csv-user-import__P-shiploop-spec__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "report success only after all requested users are committed. \u2026 Validation or known pre-commit failure leaves zero users from this submission and triggers no user-creation side effects."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Row locations are 1-based physical start lines, with the header on line 1. \u2026 check exact locations and reasons"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Reject the batch on a wrong cell count, missing or invalid required values, duplicate canonical identity in the same CSV or any identity conflicting in the authoritative uniqueness domain."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "The CSV cannot set privileges or credentials.",
+   "missing": "The file cannot grant a role, but the specification leaves the default role open and gives no rule limiting its access to the importer\u2019s own authority."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "A signed-in admin with create-user authority in the selected scope can open the import and submit there.",
+   "missing": "The access rule does not distinguish bulk-import permission from an admin\u2019s permission to create one user."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Require each mandatory header once and permit each supported optional header at most once. \u2026 Reject undecodable or malformed CSV, missing, unknown or repeated headers"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Accept UTF-8 comma-delimited records with a header, LF or CRLF separators, optional initial UTF-8 BOM, an optional final line ending, quoted commas and line breaks, and doubled quotes inside quoted cells."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Validation or known pre-commit failure leaves zero users from this submission and triggers no user-creation side effects. \u2026 For definitive failure, the batch contributes no records or effects."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Reject undecodable or malformed CSV, missing, unknown or repeated headers, and files above the published size or record limit.",
+   "missing": "The maximum byte size and record count are left for the runtime owners to set."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A header and one data record suffice. An empty file or header-only file is rejected."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-4, R-2",
+   "quote": "Repeating the same submission identity with the same input converges on one authoritative outcome and creates at most one batch. \u2026 Reject the batch on \u2026 any identity conflicting in the authoritative uniqueness domain."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "Closing a page ends presentation state while an operation already received by the authority settles independently. \u2026 Show processing after submission and a confirmed created count on success. \u2026 show an unconfirmed outcome with a way to recheck."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "The identity and runtime owners must establish the actual write authority, standard account status/role and lifecycle effects, including any external identity provisioning or notifications",
+   "missing": "Whether imported users receive invitation or welcome mail, and whether delivery is immediate or paced, remain open."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "The CSV cannot set privileges or credentials. Any established account lifecycle effects must follow ordinary creation under its confirmed contract.",
+   "missing": "The initial account status, whether a password exists at creation, and the first sign-in procedure are unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Uploaded bytes and decoded values are transient within the authorized operation. \u2026 Release product-held bytes when validation/creation no longer needs them, including failure or abandoned processing."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Authorized operators can trace submission outcomes, access denials and recovery by a safe correlation value, actor, scope where safely known, and outcome. Record counts only for resolved outcomes.",
+   "missing": "The audit identifies the actor and submission, but no event timestamp is required."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Cancellation after submission, deletion of completed imports from the UI, and account migrations are inapplicable to this create-only flow. \u2026 A rejected file can be corrected and sent as a fresh submission.",
+   "missing": "A fresh upload is defined, but the specification does not say whether the admin can select just the flagged rows for retry."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-4, Non-functional requirements",
+   "quote": "Show processing after submission and a confirmed created count on success. \u2026 No response-time SLA, throughput number or cost ceiling was supplied.",
+   "missing": "The admin sees a processing state, but there is no upper bound on completion time for a maximum-size file."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3, Non-functional requirements",
+   "quote": "Existing users retain their prior IDs, fields and privileges. \u2026 Confirm ordinary user creation and lookup still work under the supported clients and record lifecycle, with existing records and policies preserved."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "A data record has the header's cell count and passes standard create-user field and identity validation. \u2026 Do not echo raw cells, arbitrary headers, filenames or parser internals in diagnostics.",
+   "missing": "Suppressing raw cells keeps submitted formulas out of diagnostics. The maximum field lengths and handling of an overlong cell are left to unconfirmed create-user rules."
+  }
+ ]
+}

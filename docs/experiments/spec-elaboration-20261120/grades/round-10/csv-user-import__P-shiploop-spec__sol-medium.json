@@ -1,0 +1,146 @@
+{
+ "slot": "csv-user-import__P-shiploop-spec__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.364537,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Atomic creation and rejection on conflict are proposed defaults."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2 A3",
+   "quote": "identify each invalid field by record number and field, with correction guidance. Reject the batch before any user is created."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3 A2",
+   "quote": "Repeated identities in the file or identities that already exist in the directory's uniqueness scope reject the entire batch. Report affected logical records"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-3 A1",
+   "quote": "CSV input cannot assign privilege or override account lifecycle defaults."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1 A1",
+   "quote": "An authenticated admin with create permission for the active account scope can open Import users.",
+   "missing": "Whether bulk import needs its own entitlement distinct from single-user create permission; the spec ties it to create permission and leaves the actual entitlement open."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2 / R-2 A2",
+   "quote": "The default header is exactly `email`, case sensitive, with exactly one field per data record. ... Reject invalid encoding, malformed quoting, incorrect headers, unequal field counts and files with no data."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "UTF-8 with an optional initial byte-order mark, comma delimiter, LF or CRLF record endings ... Support double-quoted fields, doubled quotes within quoted fields and quoted record breaks."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-3 A4 / R-3 Open gap",
+   "quote": "An authoritative abort after some rows have been staged leaves zero visible or durable users ... If normal creation has irreversible effects or the boundary cannot meet atomicity, reconcile the product policy",
+   "missing": "What happens to invitations or other irreversible onboarding effects already triggered for earlier rows; deferred to owners."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2 A4",
+   "quote": "Enforce each limit on the authoritative boundary, reject the whole file with the applicable limit and permit a smaller replacement.",
+   "missing": "The actual byte and row-count limit values, which remain unresolved."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2 A2 / R-3 A1",
+   "quote": "Reject ... files with no data. ... Both one-row and multi-row files are valid."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-4 A3",
+   "quote": "Replaying the same valid attempt and same payload returns its authoritative outcome or pending state without a second batch. ... a fresh attempt, which still obeys R-3 uniqueness."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-4 A4 / R-4 A2",
+   "quote": "No post-submit cancel or promised unattended processing. ... On timeout or disconnect after submission, show Outcome unknown and offer Check result when reachable."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "Scope and source / R-3 Open gap",
+   "quote": "invitation campaigns ... are outside this scope. ... onboarding effects such as existing invite behavior",
+   "missing": "Whether creating hundreds of users sends invitation/welcome mail at once and any pacing; left to the directory owner."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3 A1 / R-3 Open gap",
+   "quote": "with the imported identity and ordinary new-user defaults ... must establish ... default role and account state",
+   "missing": "Whether created users are active or pending, whether they have a password, and how they first sign in."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2 State and data",
+   "quote": "removes its processing copies on success, rejection or when the authoritative request is abandoned. Raw bytes, filenames and row values stay out of operation status, diagnostic telemetry and durable import storage."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-5 State and boundary",
+   "quote": "The import authority emits restricted operational events with event category, scoped actor reference where known, safe correlation, time and aggregate outcome where applicable.",
+   "missing": "Whether the record identifies which users were imported, and the mandatory audit rules and retention, which remain open."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-4 A4 / R-3 State and data",
+   "quote": "No post-submit cancel or promised unattended processing. ... Correct a failed batch and resubmit."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements / R-4 A1",
+   "quote": "Bound ... time to authoritative resolution and retained state. ... Unresolved. ... Import shows Submitting with an accessible status",
+   "missing": "The actual time bound for a maximum-size file and whether any progress beyond a Submitting state is shown."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Preserve existing user records, entitlements, and ordinary account-creation invariants."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Bound file bytes, data records, field/processing resources",
+   "missing": "Handling of spreadsheet formula-like values, and a specific maximum field length with its rejection behaviour."
+  }
+ ]
+}

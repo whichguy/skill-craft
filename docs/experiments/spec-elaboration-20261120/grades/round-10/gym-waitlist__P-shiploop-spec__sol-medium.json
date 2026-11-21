@@ -1,0 +1,145 @@
+{
+ "slot": "gym-waitlist__P-shiploop-spec__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.377659,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2 State and domain defaults",
+   "quote": "The proposed Join action states that the member will be booked automatically if a seat opens while they are still eligible. The default adds no claim window, new consent mechanism"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1 State and domain defaults; R-2 Allocate in order; Scope",
+   "quote": "Concurrent joins are ordered by authoritative acceptance, including ties in displayed time. ... gives each available seat to the earliest eligible active waiter in acceptance order. ... priority tiers, staff reordering ... are excluded"
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-2 Open gaps",
+   "quote": "The product owner must confirm before allocation design whether existing booking terms allow automatic confirmation, including any payment, credits, waiver, membership, schedule-conflict or affirmative-consent rules",
+   "missing": "What happens to a member's other waitlist entry or booking for an overlapping class when they are promoted in one."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-2 Allocate in order; R-2 State and domain defaults",
+   "quote": "An accepted cancellation of a confirmed place or an authorized increase in bookable capacity gives each available seat to the earliest eligible active waiter ... even when their app was closed during the change. ... makes a valid opening and its allocations one coherent outcome."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "Scope; R-2 State and domain defaults; R-4 Read and recover status",
+   "quote": "outbound messages are excluded from this change. Members see their own outcome in the booking app. ... The default adds no ... notification channel"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2 Protect the seat; R-2 State and domain defaults",
+   "quote": "Each newly available place serves at most one member. ... simultaneous seat openings ... resolve in authoritative order. ... Confirmed occupancy cannot exceed bookable capacity as a result of this feature."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2 Protect the seat; R-2 State and domain defaults",
+   "quote": "Direct booking attempts, simultaneous seat openings and concurrent Leave actions resolve in authoritative order. ... A member cannot simultaneously hold an active wait entry and a confirmed booking for that occurrence."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2 State and domain defaults; R-2 Open gaps",
+   "quote": "The default adds no ... new charge ... confirm ... whether existing booking terms allow automatic confirmation, including any payment ... Automatic confirmation is unready where existing terms require an extra step.",
+   "missing": "When payment for a promoted booking is taken and what happens to the seat and entry if payment fails."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "Non-functional requirements, Performance and capacity",
+   "quote": "Queue length, throughput, latency, storage, concurrency and cost limits are unresolved. ... This specification adds no numeric SLA or waitlist cap.",
+   "missing": "Whether any queue-length limit applies once runtime ceilings are known, and what a member sees when the waitlist cannot accept them."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-3 Close; R-3 State and domain defaults",
+   "quote": "At the cutoff, new joins and promotions are forbidden ... Reuse the existing booking cutoff if applicable. The proposed fallback is the scheduled start instant"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2 Allocate in order; R-2 State and domain defaults",
+   "quote": "an authorized increase in bookable capacity gives each available seat to the earliest eligible active waiter ... Capacity decreases use the existing capacity policy and do not by themselves trigger a promotion."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-3 Close",
+   "quote": "An authorized occurrence cancellation or the booking cutoff ends all active entries for that occurrence. Members returning to it see the class as cancelled or closed, with no active waitlist action."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-4 State, privacy and lifetime; Behavior model",
+   "quote": "The booking authority holds the member/occurrence link, its order and state ... The authoritative member/occurrence states are none, waiting, booked ... and ended without booking",
+   "missing": "Whether join time is a recorded field and whether queue position is stored or derived from it."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-4 State, privacy and lifetime",
+   "quote": "remove ended waitlist state, retry history and operational evidence on their applicable approved schedules.",
+   "missing": "The actual retention period for ended entries after the class has run."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-4 State, privacy and lifetime; R-4 Open gaps",
+   "quote": "Other members' identities, queue order, membership data and eligibility details stay outside the member client. ... Exact queue position, outbound notifications and staff queue views are outside this change."
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "Scope; R-4 Open gaps; Owned event coverage",
+   "quote": "staff reordering ... excluded ... staff queue views are outside this change. ... Retain operational evidence of join, leave, promotion, closure"
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-2 State and domain defaults; Non-functional Performance and capacity",
+   "quote": "The proposed behavior makes a valid opening and its allocations one coherent outcome. ... This specification adds no numeric SLA",
+   "missing": "A stated time bound for promotion where cancellation can complete independently of allocation (left as an open gap)."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1 Join; Non-functional Privacy, compatibility and operability",
+   "quote": "With a bookable seat and no earlier eligible waiter to serve, show the ordinary booking action. ... Existing bookings and normal seat availability remain usable."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "App \u2194 booking authority contract",
+   "quote": "Verify prior ordinary booking records still resolve, and no historical bookings are enrolled by enabling the feature.",
+   "missing": "Whether classes already full at rollout gain a waitlist and how it is started for them."
+  }
+ ]
+}

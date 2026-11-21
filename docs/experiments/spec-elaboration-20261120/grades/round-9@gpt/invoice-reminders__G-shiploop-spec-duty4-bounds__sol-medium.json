@@ -1,0 +1,147 @@
+{
+ "slot": "invoice-reminders__G-shiploop-spec-duty4-bounds__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "R-1, Open gaps",
+   "quote": "the timing anchor (for example, due date or issue date), eligibility start, cadence",
+   "missing": "The reminder count and offsets from the invoice due date, including whether any reminder precedes it."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2, Open gaps",
+   "quote": "The billing policy owner must confirm how partial payments, outstanding credits, drafts, disputed, voided, written-off, reopened and cancelled invoices map to eligibility wherever these states exist.",
+   "missing": "Full settlement suppresses sending. The stopping rules for partial payment, voiding, credits, disputes and payment plans are undecided."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-3, Open gaps",
+   "quote": "source of contact authorization, consent/suppression and multi-recipient rules where applicable",
+   "missing": "How do-not-contact, pause and unsubscribe flags affect reminders, including whether billing notices are exempt from a marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "T-7",
+   "quote": "Overlapping runs, restart and replay refer to the same logical occurrence within its billing scope. A confirmed handoff for that occurrence prevents a further submission for it."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "T-4",
+   "quote": "Before each new handoff attempt, including recovery, establish current eligibility against the billing authority's supported consistency contract."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "T-8",
+   "quote": "If recovery cannot safely proceed, including when the retry window or budget is exhausted, stop submissions and expose the blocked or terminal outcome with its reason.",
+   "missing": "When and how often to retry during a provider outage, and when persistent failure triggers an alert to a person."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Non-functional requirements, Freshness, throughput and cost (R-1\u2013R-4)",
+   "quote": "Scheduling precision, acceptable dispatch delay, burst/workload, invocation and delivery quotas and cost limits are unresolved.",
+   "missing": "The provider's sending limit and how to pace or defer a large batch to stay within it."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-1, Open gaps",
+   "quote": "late-work and catch-up behavior, and how changes apply to existing invoices, past occurrences and in-flight work",
+   "missing": "Which missed steps to send for invoices already overdue at activation and how to prevent an immediate backlog burst."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1, Open gaps",
+   "quote": "timezone/calendar and precision for computing due instants",
+   "missing": "Whose local time governs sending and which hours, weekend days and holidays allow delivery."
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "T-5",
+   "quote": "A missing, ambiguous, invalid or unauthorized destination or missing required content prevents handoff and leaves an actionable reason.",
+   "missing": "How a bounce reported after handoff affects future attempts to reach that address."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3, Open gaps",
+   "quote": "The billing policy owner must identify the intended recipient, source of contact authorization, consent/suppression and multi-recipient rules where applicable",
+   "missing": "Which billing contacts receive the reminder when several are authorized."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-4, Operational evidence",
+   "quote": "Authorized operations can correlate a scheduled occurrence with suppression, hold, confirmed acceptance, rejection or unresolved outcome and recovery. Delivery evidence, if available, is attributed to the same occurrence.",
+   "missing": "What send details and timestamp each invoice's reminder history shows for each step, and whether that history is visible on the invoice."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "T-5",
+   "quote": "The received message identifies the invoice and communicates that payment remains outstanding using approved fields.",
+   "missing": "Whether the reminder includes the amount, due date and a way to pay, and whether a payment link expires."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-1, State and lifecycle",
+   "quote": "The authorized billing policy owner supplies timing policy.",
+   "missing": "Manual sends are outside scope. Who, if anyone, may stop an individual reminder by hand is unspecified."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1, State and lifecycle",
+   "quote": "Changed or withdrawn policy requires re-evaluation before dispatch.",
+   "missing": "Whether an operator can disable reminders globally or per customer and preview or dry-run them. Manual reminders are outside scope."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-4, Operational evidence",
+   "quote": "Authorized operations can correlate a scheduled occurrence with suppression, hold, confirmed acceptance, rejection or unresolved outcome and recovery.",
+   "missing": "Whether and where an operator can see the next planned reminder before it is processed."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "T-2",
+   "quote": "An occurrence outside the allowed window generates zero submissions and an observable skipped outcome.",
+   "missing": "The maximum permitted lateness or a sending-volume cap. The length of the catch-up window is left to policy."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2, State and lifecycle",
+   "quote": "Before and after each evaluation the reminder feature leaves billing records unchanged."
+  }
+ ]
+}

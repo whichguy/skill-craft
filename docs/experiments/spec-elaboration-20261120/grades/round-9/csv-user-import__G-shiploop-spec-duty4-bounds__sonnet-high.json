@@ -1,0 +1,146 @@
+{
+ "slot": "csv-user-import__G-shiploop-spec-duty4-bounds__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3999774,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "one user is created per row, all or none: after the request, either every row's user exists or none does."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "Each entry has `row` (1-based data row, or null for file/header errors), `column` (or null), a stable machine-readable `code`, and a human-readable `message`."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "If an email already belongs to an existing user, that row is an error `EMAIL_EXISTS`... If the same email appears more than once in the file, the first occurrence is kept and every later occurrence is an error"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "otherwise must be a role the uploader is allowed to assign (`ROLE_NOT_ALLOWED`...)... a role the uploader may not assign ... \u2192 `ROLE_NOT_ALLOWED`, nothing created (no privilege escalation through CSV)."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "the bulk-import operation is available only to an authenticated user who currently holds the admin role.",
+   "missing": "Whether bulk import is a distinct permission from single-user creation; the spec ties it to the admin role (definition open in G-4) and never says that being able to create one user does not grant import."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "the header must contain `email` (required)... Unknown columns, or a duplicated column, reject the whole file... Each row must have exactly as many fields as the header (`ROW_FIELD_COUNT`)."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "optional double-quote quoting with `\"\"` escapes (quoted fields may contain commas and line breaks), LF or CRLF line endings, UTF-8 encoding with an optional leading BOM (stripped)."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "any failure before commit leaves the store unchanged; failure during commit rolls back everything (or compensates, G-6)"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "A body larger than `MAX_BYTES` is rejected `FILE_TOO_LARGE` (HTTP 413)... more than `MAX_ROWS` data rows is rejected `TOO_MANY_ROWS` (422).",
+   "missing": "The actual values of MAX_BYTES and MAX_ROWS are left open (G-1)."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "is zero bytes, or has a header but no data rows is rejected as a whole with a file-level error (... `EMPTY_FILE`, `NO_DATA_ROWS`)"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "A second submission of an already imported file is not an error of the system: every row is `EMAIL_EXISTS` (R-4), nothing changes."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "AD-1",
+   "quote": "parse, validate and write within the upload request; the outcome is in the response. No job queue, background worker, status endpoint or notification.",
+   "missing": "Whether a maximum-size file actually fits in a synchronous request is unresolved (G-1); the background alternative is deferred, not decided."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "The feature sends no email or other notification (A-7)."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-9",
+   "quote": "Created users are put in the same initial state a single-created user would be (G-2). The feature creates no usable credential on its own.",
+   "missing": "Active vs pending and how a bulk-created user first signs in are left open (G-2)."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "held only for the duration of the request, in memory (or request-scoped temporary storage deleted at request end, success or failure)... not retained afterwards."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-14",
+   "quote": "locale-delimited (semicolon) files are rejected with an explanatory header error.",
+   "missing": "How the values themselves are handled across locales (Unicode normalisation of names, any date/number formats) is not stated; only the delimiter is addressed."
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "one record per attempt, written for success and for rejection: timestamp, uploader id, outcome (`created`, `rejected`, `conflict`, `failed`), row count, created count"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-8",
+   "quote": "recovery is to look at the user list or resubmit \u2014 the resubmission result (`EMAIL_EXISTS` rows) shows what was created. There is no automatic retry and no import identifier.",
+   "missing": "Cancelling a running import is not addressed at all; retrying only failed rows is implied away by atomicity but not stated."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-14",
+   "quote": "at `MAX_ROWS` rows the request completes within the runtime's request time limit (value from G-1, **unresolved**).",
+   "missing": "The time bound has no value; progress is only an indeterminate status (R-11), not progress through the rows."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "existing users are never modified or overwritten.",
+   "missing": "Nothing says the existing single-user creation path stays unchanged and keeps working; the spec only reuses its rules."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-14",
+   "quote": "no CSV, XLSX or other export is produced by this feature, so spreadsheet-formula injection on output does not apply"
+  }
+ ]
+}

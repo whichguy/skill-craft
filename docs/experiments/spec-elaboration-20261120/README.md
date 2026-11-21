@@ -625,3 +625,40 @@ evidence. Nothing under `skills/` changes either way.
 
 **Predictions, written before the sort and before any subject call:** G moves Sol's N1 by less than 2; no G
 specification caps the waitlist; H moves Sol's N1 by 3 or more; at most one H specification caps the waitlist.
+
+### Result of rounds 9 and 10 (2026-11-21)
+
+48 sessions, all exit 0, after a passing pre-flight each round; the scan flagged none; both judges read all 48
+specifications. `evidence/round-10/readings-G.txt`, `readings-H.txt`, `by-set.txt`,
+`waitlist-cap-and-cutoff-lines.txt`. The sort made beforehand: N1, six limits both sorters say must exist; O1, six
+both say need not; bands 2 and 2 (`labels/limit-sets.txt`, `labels/bands-2.txt`).
+
+| covered on N1, round 9 then 10, registered judge / second judge | Sonnet | Sol |
+| --- | --- | --- |
+| P, the released stage | 3, 3 / 4, 2 | 1, 3 / 1, 3 |
+| G, the review's text | 3, 3 / 3, 3 | 1, 0 / 0, 1 |
+| H, G without its "keep the bound open" sentence | 4, 4 / 4, 4 | 4, 4 / 5, 5 |
+
+- **R20.** G: nothing shown (0.0 and 0.0 on Sonnet; -1.5 and -1.5 on Sol). H: shown on Sol (+2.0 and +3.0, every
+  round above zero under both judges), interim on Sonnet (+1.0 and +1.0).
+- **R21.** Neither is shown on O1. No G and no H specification gives the waitlist a maximum size or a cutoff of
+  its own (0 of 4 each; arm K: 3 of 4).
+- **R22.** G is below the released stage on the other needed items in every cell (-6.0 and -6.0 on Sol; item by
+  item 2 or 3 gained and 14 or 15 lost). H: no net loss.
+- **R23.** Not shown for either; H's one +3 is three stated exclusions scored covered by one judge.
+- **The whole checklist.** G on Sol is worse: -12.0 and -10.5, beyond the band of 7.
+- **Size.** Output tokens against the released stage: G 1.03 and 0.98; H 1.18 and 1.23.
+
+**By the rule registered above:** the review's text does not go forward and no trial on built products is
+recommended for it. H says why (one sentence switches the rule off in this frame) and, as a contrast arm, cannot
+be proposed from these rounds.
+
+## Concluded (2026-11-21)
+
+The owner said to conclude. **No template was changed and none is proposed.** The journal's section 28 has the
+conclusion, what stands and what does not, the one candidate left on the shelf (arm H's text, untested in
+ShipLoop) and the lessons. Section 26 is the reading that matters most for anyone picking this up: 31 real
+deliveries show both the one real difference between the drivers (on Sol a limit nobody stated is chosen without
+a record or not built; on Sonnet it is specified and tested) and that this experiment's frame makes the stage
+write ten times what it writes in a real run. Read the numbers above as comparisons between arms inside that
+frame.

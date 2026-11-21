@@ -1,0 +1,141 @@
+{
+ "slot": "gym-waitlist__P-shiploop-spec__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3086056,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "PD-2",
+   "quote": "A freed seat is given to the first eligible entry automatically and at once; there is no claim window or confirm step."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "PD-1, R-5, State and data assessment, Domain rules left out",
+   "quote": "Queue order is first come, first served by join order, per class. ... the ordering key is assigned by the service ... entry order within a class is a strict sequence ... no priority tiers ... no manual reordering by staff"
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4, Service boundaries",
+   "quote": "becomes a confirmed booking in the same operation as the freeing ... Triggers: the member's own booking cancelled; staff cancelling a booking ... Promotion happens inside the cancelling operation, so no worker or scheduler owns work."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "notified when promoted (\"You have a spot in Spin, Tue 6:00 PM\") ... uses the app's existing channel; if none exists the in-app bookings area is the notice ... a failed delivery never reverses a promotion"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "confirmed bookings never exceed capacity, no member holds two seats or two active entries in a class, no entry is promoted twice"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-10, PD-4, PD-5",
+   "quote": "whatever the interleaving of joins, leaves, cancellations and bookings ... no member holds two seats or two active entries in a class"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "Service boundaries, G-2",
+   "quote": "Payments or credits: unresolved (G-2). If a booking has a cost, promotion must apply the same charging rule with a defined outcome on failure.",
+   "missing": "Whether booking costs money, when the charge is taken on promotion, and what happens to the seat when payment fails."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "PD-8",
+   "quote": "No cap on waitlist length is enforced."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "PD-3",
+   "quote": "The waitlist is open only while normal booking for that class is open. Where the app has no separate cutoff, that is until the class start time. After that no promotion occurs."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "capacity increased, where the app lets staff edit it (one seat per added unit, in queue order)",
+   "missing": "What happens to the waitlist (and existing bookings) when staff lower capacity."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "when a class is cancelled, every active entry ends as `class_cancelled` and its member is notified."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "State and data assessment, R-3",
+   "quote": "Waitlist entry (class ID, member ID, status, service-assigned order, joined and resolved timestamps) ... Position is derived from the live queue"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-9, PD-7",
+   "quote": "When the class start time passes, every active entry ends as `class_started`. ... Waitlist entry records are kept, with a final status, for as long as booking records are kept."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "PD-6, R-3",
+   "quote": "A member sees only their own entry and position, never other members' identities."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "PD-9, G-6, NFR-6",
+   "quote": "Staff roster views, manual reordering and staff removal are out of scope.",
+   "missing": "Whether staff can view the waitlist, promote or remove members by hand, and see a promotion history; left out of scope and open (G-6)."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "becomes a confirmed booking in the same operation as the freeing"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-11",
+   "quote": "booking a class with a free seat and an empty waitlist, cancelling a booking, class listings, and authorisation rules behave exactly as before this change"
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

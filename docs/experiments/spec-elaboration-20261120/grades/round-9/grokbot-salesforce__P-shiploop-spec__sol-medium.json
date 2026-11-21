@@ -1,0 +1,185 @@
+{
+ "slot": "grokbot-salesforce__P-shiploop-spec__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.44570719999999997,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "AD-1; AD-2",
+   "quote": "Use a Lightning Web Component in an explicitly deployed Custom Tab ... uses the `lightning__Tab` target ... There is no trusted Salesforce record context in the request."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1 State and service contract",
+   "quote": "No Salesforce business-record read or write is in scope, so record sharing, object CRUD and field permissions are inapplicable to chat data access."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1 State and service contract; R-4 B",
+   "quote": "No Salesforce business-record read or write is in scope, so record sharing, object CRUD and field permissions are inapplicable ... No Salesforce record lookup ... in the inference payload."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1 B; AD-1; AD-2",
+   "quote": "The explicitly granted user can invoke the bot ... Use additive metadata and scoped permission sets for access ... Restrict access to the Apex entry and External Credential principal with scoped grants."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-3 B; R-3 State assessment; R-4 C",
+   "quote": "No other user or separately opened view receives the prior state ... Only that view's current user reads the rendered copy ... No conversation records ... prompt/response text ... stay out of app-owned telemetry"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-2",
+   "quote": "Use an imperative, non-cacheable Lightning-to-Apex request for each accepted send ... A server transaction allows one inference callout per send.",
+   "missing": "The spec chooses a synchronous callout and never states the callout-after-DML or trigger restrictions, nor an asynchronous (Queueable/future/batch) design."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AD-2; R-4 A",
+   "quote": "Use an enhanced Salesforce Named Credential over HTTPS with a Custom External Credential ... No provider credential in product source, browser artifacts, chat display, app-owned logs or handoff."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "AD-2",
+   "quote": "Salesforce documents a maximum of 100 callouts and 120 seconds cumulative callout time per transaction, and a synchronous maximum request or response size of 6 MB with heap use also accounted for.",
+   "missing": "No CPU time limit is named, and the chosen operating timeout is left open."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2 C",
+   "quote": "Controlled delayed, distinct successes and failure fixtures verify displayed text, status, submitted prompts and call count.",
+   "missing": "It never says that Apex tests cannot make real callouts, and it does not require an HttpCalloutMock implementation for the test suite."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "Use an enhanced Salesforce Named Credential over HTTPS ... Use the xAI Responses API, `POST https://api.x.ai/v1/responses` ... The endpoint, model, retention setting and credential are server-controlled."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "AD-2; R-2 C",
+   "quote": "Use an imperative, non-cacheable Lightning-to-Apex request ... A browser timeout additionally ends the current UI operation when an invocation never returns.",
+   "missing": "The UI depends on the synchronous call returning inline. No platform event, CDC, polled status or LMS notification path is defined."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2 C; R-2 D",
+   "quote": "commit the pair once ... No automatic retry or duplicate send while pending ... Ignore late or duplicate completion after settlement"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "AD-2; R-2 State and service contract",
+   "quote": "verify the target's concurrent-callout limit and provider rate/context limits ... No cached replies, durable queue",
+   "missing": "No concurrent-request limit value is given, and the spec does not say what the user sees when a request cannot be accepted because of concurrency."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-2 C; R-4 A",
+   "quote": "For rate limits, credentials/configuration error, upstream outage, unavailable response, timeout or malformed/incomplete result, remove pending state, keep prior pairs, restore the draft and show an actionable, sanitized message.",
+   "missing": "Apart from the credential setup error, 4xx, 5xx and timeout share one generic outcome. Distinct user-visible messages for each are not stated."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2 C",
+   "quote": "For rate limits ... restore the draft and show an actionable, sanitized message ... No automatic retry or duplicate send while pending. A user-initiated retry is a new request and may incur a new charge."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2 A; R-2 C; walkthrough",
+   "quote": "A rejected, malformed, incomplete or empty provider result cannot appear as a successful Grok reply ... A finite wait ends in success or recoverable failure ... No partial text appears."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-3 State assessment; AD-2",
+   "quote": "The chat view begins empty and owns completed pairs and draft in session memory ... No conversation records ... Send ordered text inputs with user and assistant roles",
+   "missing": "The spec deliberately stores nothing durably, so timestamps, model identifier and token/usage counts per turn are not defined."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-3 B; R-3 State assessment; R-4 State and data assessment",
+   "quote": "Leaving the chat, refresh, sign-out or identity change ends that view's state ... No conversation records ... xAI documents default audit retention of 30 days"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-4 B; R-4 State and data assessment",
+   "quote": "No Salesforce record lookup, Salesforce user identifiers or attachments in the inference payload ... Arbitrary user-entered text could contain personal or confidential information, so this dev use is limited to synthetic/non-sensitive prompts"
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-2 B; R-3 A",
+   "quote": "Do not silently clip user input or retained context ... A context-limit rejection lets the user clear chat or shorten the draft",
+   "missing": "The context budget size is left as an open gap, so the size at which rejection happens is undecided."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-3 A; R-2 B",
+   "quote": "A fresh view begins with no prior context ... Empty, whitespace-only or over-budget input starts no provider call ... Accept exactly the configured limit under a documented counting rule and reject the first value above it."
+  },
+  {
+   "id": "N-22",
+   "state": "covered",
+   "where": "R-1 State and service contract; R-4 State and data assessment; R-4 C",
+   "quote": "the responsible admin withdraws bot access ... The integration administrator owns the secret and non-secret route/model configuration ... Authorized operators can distinguish successful completion, provider rejection by safe category, timeout and invalid response"
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "R-4 C; R-4 State and data assessment",
+   "quote": "Names, prompt/response text, secrets, raw provider bodies and headers stay out of app-owned telemetry; no dedicated event service or per-user audit trail.",
+   "missing": "The spec explicitly declines a who-asked-what-and-was-answered audit record. Only provider-side 30-day audit retention is noted."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-1 A; R-1 Open gaps; AD-1; R-4 State and data assessment",
+   "quote": "Development org only ... No broad grants or production rollout are specified ... Request supported rollback-on-error explicitly ... Provision separately from deployable configuration.",
+   "missing": "Per-environment configuration and credential differences, scratch org vs sandbox, and the production Apex code-coverage requirement are not stated."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "R-2 C; Non-functional requirements",
+   "quote": "Show the pending message and an accessible progress status as soon as a valid send starts ... No latency SLA, multi-user throughput target or spend figure was requested.",
+   "missing": "No latency bound or timeout value is chosen. The timeout is left open with the integration owner."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "Non-functional requirements; R-1 B",
+   "quote": "Design the empty, loading, success and persistent error states ... A platform denial or a safe access message is acceptable."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-1 Basis and delta; AD-1; Non-functional requirements",
+   "quote": "Preserve unrelated navigation, settings, access, automation and business data ... Use additive metadata and scoped permission sets ... cannot alter another user's view or create Salesforce record changes."
+  }
+ ]
+}

@@ -1,0 +1,146 @@
+{
+ "slot": "invoice-reminders__H-shiploop-spec-duty4-no-open__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3000656,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1 A2; R-3 D1",
+   "quote": "eligible starting at the beginning of the day after its due date ... The invoice is ineligible throughout the due date. / Use one automatic reminder milestone per organization and stable invoice identity"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1 A2",
+   "quote": "Draft, void, uncollectible and fully paid invoices and invoices with zero or credit balance are ineligible. ... A collectible partially paid invoice with positive balance qualifies.",
+   "missing": "Whether a disputed invoice or one on a payment plan stops reminders."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-2 B1",
+   "quote": "Identify the billing organization, invoice reference and due date and ask the recipient to pay the outstanding invoice.",
+   "missing": "Whether the message states any amount, and if so the remaining balance rather than the original amount for part-paid invoices."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-2 B1",
+   "quote": "Withhold when the sender or destination is missing, invalid, ambiguous, unauthorized or suppressed by the applicable sending policy.",
+   "missing": "How a customer-level do-not-contact/paused/unsubscribed state is treated and whether billing notices are exempt from marketing opt-outs."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-3 D1",
+   "quote": "establish durable ownership of the intent so overlapping evaluations cannot independently send it. ... A crash or replay recovers the same intent. An accepted intent causes zero further sends."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1 A3",
+   "quote": "Before authorizing each dispatch, use the current scoped grant, enablement, invoice, balance, due date and recipient. Decision-changing updates effective before authorization supersede candidate selection."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-3 D2",
+   "quote": "After authoritative recoverable nonacceptance, retry on a later eligible processing opportunity when the sending route permits ... If conclusive evidence is unavailable, surface the unknown outcome for billing operations.",
+   "missing": "Retry limits/backoff, provider-outage handling, and escalation to a person after repeated recoverable failures."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Non-functional requirements, Capacity and compatibility",
+   "quote": "At a runtime or sender limit, respect the limit, retain recoverable work and resume when permitted.",
+   "missing": "The actual rate limit and how a large batch is paced within it; quotas are left unresolved."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-1 A1",
+   "quote": "Once activated, evaluate unattended, including invoices already overdue, default, and those that cross the threshold later.",
+   "missing": "Whether the backlog of already-overdue reminders is staggered rather than sent all at once on activation."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1 A2",
+   "quote": "Use the authoritative invoice billing time zone, then the organization's billing time zone, then UTC if both are absent, default.",
+   "missing": "Sending hours in the customer's local time, business hours, weekends and holidays."
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-2 B1",
+   "quote": "Withhold when the sender or destination is missing, invalid, ambiguous, unauthorized or suppressed ... Expose the reason to authorized operations.",
+   "missing": "Handling of a bounce after sender acceptance."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-2 B1; C3",
+   "quote": "Send a plain-text email ... to the current designated billing address. ... Withhold when the ... destination is ... ambiguous ... Each message has one recipient."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3 D3",
+   "quote": "Authorized billing operations can distinguish withheld, pending, sender accepted, definitive failure and unknown using scoped identity, time and reason where applicable.",
+   "missing": "Visibility of the record on the invoice itself and a record of what content was sent."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-2 B1",
+   "quote": "Identify the billing organization, invoice reference and due date and ask the recipient to pay the outstanding invoice.",
+   "missing": "Amount, a way/link to pay, and whether that link expires."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-1 Domain and state; R-3 Domain and state",
+   "quote": "Only the existing authorized billing role can activate or deactivate it. ... Recurring dunning, manual resend and collection actions are outside scope.",
+   "missing": "Who may stop an individual reminder by hand."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1 Domain and state",
+   "quote": "Only the existing authorized billing role can activate or deactivate it. ... Deactivation ends evaluation for that scope",
+   "missing": "Per-customer disable and preview/dry-run behaviour."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-3 D3",
+   "quote": "Authorized billing operations can distinguish withheld, pending, sender accepted, definitive failure and unknown",
+   "missing": "A view of what the system will send next."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements, Unattended operation",
+   "quote": "Supported workload and processing intervals remain unresolved. The request supplies no latency SLA.",
+   "missing": "An actual bound on sending volume or on how late a reminder may go out."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1 Domain and state",
+   "quote": "Invoice, payment, contact and unrelated configuration facts are unchanged by success, withholding and interruption. ... Invoice creation, payment recording and collections escalation are outside this change."
+  }
+ ]
+}

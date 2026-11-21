@@ -1,0 +1,144 @@
+{
+ "slot": "gym-waitlist__H-shiploop-spec-duty4-no-open__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3700856,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-4.a",
+   "quote": "the booking authority automatically awards each available seat to the earliest active, currently eligible waitlisted customer. Consume that entry with the confirmed booking as one outcome."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-4.a",
+   "quote": "First-come, first-served by authoritative join acceptance order is the default. Concurrent joins get a definite order within the occurrence.",
+   "missing": "Whether staff can override or reorder the queue; membership-tier priority is only excluded implicitly in Submission (\"Group or priority reservations ... would require additional product rules\")."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-4 Bounds and prerequisites",
+   "quote": "It neither bypasses payments, waivers, conflicts or other preconditions",
+   "missing": "What happens to the person's entry on an overlapping class when one promotion commits (auto-remove, keep, block); only non-overlapping occurrences are walked (C-1)."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-4.b",
+   "quote": "Pending allocation survives interruption and is recovered by the booking authority independently of the client.",
+   "missing": "How promptly the background allocation must run after the triggering cancellation; NFR states no latency target."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2 Bounds and prerequisites",
+   "quote": "A successful promotion is discoverable in-app even if the app was closed. Email, SMS, push, a waitlist directory, and a separate screen are outside this scope."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-4.b",
+   "quote": "Interrupted or duplicate release handling converges on the same valid allocation. ... There is at most one confirmed booking or one active entry per customer and occurrence. This feature creates no booking beyond capacity."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-4.b",
+   "quote": "Direct booking, waitlist allocation, withdrawal and booking closure respect one authoritative order for the affected occurrence. ... There is at most one confirmed booking or one active entry per customer and occurrence."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-4 Bounds and prerequisites",
+   "quote": "If the existing rules require a new payment or separate confirmation when a seat opens, the product owner must decide the affected consent or acceptance flow before automatic booking is enabled there.",
+   "missing": "When payment is taken for a promoted booking and what happens to the seat and entry if payment fails."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1 Bounds and prerequisites",
+   "quote": "No new roles, group enrollment, or per-customer or per-class queue cap is introduced."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-5.a",
+   "quote": "The default effective close is the earlier of the existing booking cutoff, if any, and scheduled start, or immediately on class cancellation. At and after close, no join or promotion can commit."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-4.b",
+   "quote": "A supported capacity decrease preserves existing bookings even if the new capacity is below their count. New allocation waits until confirmed occupancy falls below configured capacity."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-5.a",
+   "quote": "At the effective booking close or class cancellation, remaining entries cease to be active and any unresolved allocation stops. Show the ordinary closed or canceled class state, with no join action."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1 State and data",
+   "quote": "Each active entry belongs to the booking scope, occurrence, and customer and carries the minimum information to prove opt-in and determine authoritative acceptance order.",
+   "missing": "The entry's explicit fields and states, and whether queue position is stored or derived from acceptance order."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-5.b",
+   "quote": "Remove residual waitlist participation data once it is no longer needed to settle those intents, subject to established retention and deletion obligations. ... There is no separate waitlist history"
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2.a",
+   "quote": "The default customer view reveals only their own participation and ordinary class availability. Other customers' entries, identities, queue size and exact position stay off this client"
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "There is no evidenced numeric latency, workload, storage, execution, concurrency, cost or availability target for this feature.",
+   "missing": "The actual time bound between a committed cancellation and the resulting promotion."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Preserve existing class visibility, eligibility and normal booking while an unallocated place is available. ... After acceptance there is one, with existing bookings and other classes unaffected."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

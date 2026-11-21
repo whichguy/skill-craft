@@ -1,0 +1,140 @@
+{
+ "slot": "invoice-reminders__H-shiploop-spec-duty4-no-open__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "D-3",
+   "quote": "Default schedule = reminder offsets (days relative to the due date) **-3, 0, 7, 14**"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1, R-4",
+   "quote": "an invoice is eligible iff `status = issued` AND `outstanding_balance > 0`. Draft, paid, void,\n  zero-balance and negative-balance (credit) invoices are never reminded. \u2026 disputes, payment plans, grace periods for payments in flight",
+   "missing": "Disputes and payment plans are left out. There is no stop or resume rule specific to either condition while an issued invoice still has a positive balance."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "AC-4.3",
+   "quote": "Balance drops from 250.00 to 100.00 on 2026-12-09 (partial payment): the 12-10 message states\n    \"Outstanding balance: 100.00 USD\"."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "D-10",
+   "quote": "No per-invoice or per-customer pause, no public unsubscribe link",
+   "missing": "The specification does not say how to treat existing customer contact restrictions or whether a marketing unsubscribe permits a billing reminder."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-7, NF-2",
+   "quote": "for each (invoice, offset) in live mode at most one claim can ever exist \u2026 no customer is mailed twice for the same step. \u2026 Restart of the runtime loses no setting, ledger row or schedule."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "immediately before a message is claimed for sending, the invoice is re-read from the source. If it\n  is no longer eligible (R-1) nothing is sent"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-6",
+   "quote": "A definitive not-accepted answer is retried up to 3 attempts\n  total (waits 60 s, then 300 s) \u2026 no answer\n  within 30 s is `unknown` after one attempt and is never retried",
+   "missing": "Failures are visible in history, but no repeated-failure or outage threshold triggers a notification or handoff to a responsible person."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "NF-3",
+   "quote": "Missing evidence: the real number of unpaid\n  invoices, and the email provider's sending quota (OG-1). \u2026 A numeric duration or throughput target waits for those two inputs.",
+   "missing": "The provider quota is unresolved, and there is no rule for pacing a batch to stay within it."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "D-6",
+   "quote": "when reminders become *enabled and live*, `live_since` = that account-local date; steps dated before it are skipped, never sent."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "once enabled, an evaluation runs once per local day at the configured send time \u2026 the local date uses the account time zone \u2026 weekend/holiday shifting, per-customer send windows",
+   "missing": "The daily account schedule explicitly omits weekend and holiday shifting and per-customer send windows. It supplies no customer-local business hours for delivery."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "The amount uses the currency's standard number of decimal places. \u2026 amount `0.01` renders `0.01 USD`."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-3, R-6",
+   "quote": "a missing or malformed billing address \u2192 skipped `no-recipient` / `invalid-recipient`. \u2026 permanent rejection of the address is `failed` after one attempt \u2026 **Left out:** bounce, complaint, open or click tracking after provider acceptance"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "D-2",
+   "quote": "one recipient per invoice: the invoice's billing contact address. No cc/bcc.",
+   "missing": "If several billing contacts exist and none is designated on the invoice, the specification gives no selection rule for populating its single billing address."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-8, R-5",
+   "quote": "Each invoice has a Reminder history listing every configured step with its step date\n  and its state: *Scheduled* (no row yet), *Sent* (time) \u2026 the ledger keeps recipient address,\n  subject and template version"
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "AC-5.1",
+   "quote": "subject `Reminder: invoice INV-1001 is due on 2026-12-10`, body has\n    `Outstanding balance: 250.00 USD`, `Due date: 2026-12-10`, `Due in 3 days.`, `Pay online:\n    https://pay.acme.example/i/1001`.",
+   "missing": "The payment link is included when present, but its lifetime and the handling of an expired link are unspecified."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2, R-3, D-10",
+   "quote": "read/written by\n  operators only \u2026 **Left out:** weekend/holiday shifting, per-customer send windows, \"send now\" button \u2026 the only stop controls are the global `enabled` switch, `dry-run` mode, and the invoice leaving the unpaid state."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "D-10, D-8, R-3",
+   "quote": "No per-invoice or per-customer pause \u2026 the global `enabled` switch \u2026 `dry-run` (compute and record, send nothing) \u2026 **Left out:** weekend/holiday shifting, per-customer send windows, \"send now\" button",
+   "missing": "The operator can disable all reminders and dry-run them. Per-customer disabling is expressly excluded, and no manual resend operation is provided."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "Each invoice has a Reminder history listing every configured step with its step date\n  and its state: *Scheduled* (no row yet), *Sent* (time), *Failed* / *Unknown* (reason, attempts)"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "AC-3.9",
+   "quote": "An evaluation never sends more than one message for the same invoice in one local date."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1, AD-2",
+   "quote": "Before/after: invoices unchanged. \u2026 Invoices stay in the invoicing system of record and are only read."
+  }
+ ]
+}

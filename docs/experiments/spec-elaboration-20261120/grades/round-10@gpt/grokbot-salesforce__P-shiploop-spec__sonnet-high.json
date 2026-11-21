@@ -1,0 +1,182 @@
+{
+ "slot": "grokbot-salesforce__P-shiploop-spec__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "AD-1, Interfaces and boundaries",
+   "quote": "a Lightning web component exposed to a Lightning tab \u2026 one imperative method taking the message list `[{role, content}]` \u2026 user's Salesforce session for the browser\u2192Apex hop"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "The bot does **not** query or modify any standard or custom object records. \u2026 The class declares `with sharing`"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "The bot does **not** query or modify any standard or custom object records. Sharing, object CRUD and field-level security are therefore **not applicable** to bot runtime reads (there are none)"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "AD-8, R-7, R-9",
+   "quote": "`Grok_Bot_User` grants tab visibility, app visibility, access to the Apex classes, and the credential principal. \u2026 set by an administrator through Setup \u2026 Administrators configure the bot through editable configuration"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-10, State and data assessment (summary)",
+   "quote": "independent conversations, no shared state, no cross-visibility. \u2026 That user only; also sent to xAI per call"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "EL-5, R-13",
+   "quote": "no callout after uncommitted DML in the same transaction \u2026 synchronous Apex invoked from the LWC (imperative, non-cacheable)",
+   "missing": "The specification omits the trigger restriction and uses a synchronous controller. It defines no asynchronous job or separate transaction for a trigger-initiated callout."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AD-3, R-14",
+   "quote": "the API key is a principal parameter entered by an administrator in Setup \u2026 key custody is the platform credential facility; no key in source, metadata retrieved into the repo, notes, chat or logs."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "EL-5",
+   "quote": "max 100 callouts per transaction; cumulative callout timeout 120 s per transaction; per-callout timeout set in code, min 1 ms, max 120000 ms",
+   "missing": "The numerical Apex heap and CPU-time limits are missing."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "AD-10",
+   "quote": "Apex tests in the org with `HttpCalloutMock` for controller/service"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-7, R-6",
+   "quote": "never contacts a host other than the xAI API host configured in the named credential. \u2026 `NOT_CONFIGURED` (credential/named credential absent or the caller's principal not permitted, so no callout could be made)"
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "`PROVIDER_ERROR` (5xx); `REQUEST_REJECTED` (other 4xx, including an unknown model); `UNREACHABLE` (callout raised an exception with no HTTP response, including a timeout) \u2026 The UI shows a category-specific message in an inline, persistent banner"
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-6, AC-6.2",
+   "quote": "There is **no automatic retry** \u2026 u2 shown marked \"not sent\", persistent banner with the rate-limit message and a Retry control",
+   "missing": "Manual retry is specified. There is no waiting interval or rule for when to retry after a provider limit or exhausted quota."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-6",
+   "quote": "A timeout is an *unknown outcome*: the provider may have processed the request; the message says so for `UNREACHABLE`.",
+   "missing": "The timeout message is defined. The specification gives no rule for detecting a truncated but nonempty reply or indicating to the user that it is incomplete."
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-10, R-14",
+   "quote": "message text lives in browser memory only; it ends on New chat, refresh or navigation. \u2026 retention period: none stored, so no deletion rule is needed."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "PD-5, R-14, State and data assessment (summary)",
+   "quote": "it never queries or writes Salesforce records on the user's behalf \u2026 message text and the conversation window are sent to xAI \u2026 neither is stored or logged by the product"
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-4, AC-4.2",
+   "quote": "keep the last 10 user messages = u3..u12, with each reply after u3 = a3..a11",
+   "missing": "The cutoff is measured in turns. The specification does not say what to trim if those turns plus the system prompt still exceed the selected model\u2019s context window."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "AC-2.1, R-5",
+   "quote": "chat interface rendered, empty state visible. \u2026 A message is rejected, with no provider call, when it is empty or whitespace-only after trimming \u2026 default 4000 characters \u2026 exactly max length is accepted; max+1 is rejected."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-9, AC-9.3, R-14",
+   "quote": "Administrator-editable configuration that deploys with the code \u2026 model name blank \u2192 `NOT_CONFIGURED`, zero callouts. \u2026 error category, provider HTTP status code, and elapsed time",
+   "missing": "An administrator can change the model or blank it to stop calls. The specification lists diagnostic log fields but does not define how an administrator can find failed user requests."
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-16, R-15",
+   "quote": "(1) deploy metadata; (2) administrator enters the key in the external credential principal \u2026 any coverage figure comes from the actual deployment gate for the target",
+   "missing": "Development deployment and separate key entry are specified. The environment-specific configuration and credential choices and the production Apex coverage requirement are missing."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "R-13",
+   "quote": "Performance bound for end-to-end reply latency: **unresolved** \u2026 the product requirement is only truthful pending feedback until the timeout",
+   "missing": "There is a callout timeout and a pending indicator, but no end-to-end target or bound for the user to receive an answer."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "R-12, R-6",
+   "quote": "designed **empty** (greeting plus three starter prompts \u2026 **loading** (pending indicator + status text \"Grok is thinking\u2026\" \u2026 **error** (R-6 persistent banner with Retry) \u2026 `REQUEST_REJECTED` (other 4xx, including an unknown model) \u2026 The UI shows a category-specific message"
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-1, R-8",
+   "quote": "Deployment is additive \u2026 Carriers changed: org metadata only \u2026 every pre-existing component is byte-for-byte the same on read-back \u2026 The bot does **not** query or modify any standard or custom object records."
+  }
+ ]
+}

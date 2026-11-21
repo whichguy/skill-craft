@@ -1,0 +1,187 @@
+{
+ "slot": "grokbot-salesforce__G-shiploop-spec-duty4-bounds__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.5182298,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-1, C-8, AD-1",
+   "quote": "an approved, signed-in user can reach **Grok Bot** from Salesforce navigation ... the bot uses ephemeral draft and result state only, with no org records, browser storage, saved history, Salesforce record context"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1 State and data",
+   "quote": "Salesforce record sharing, object permissions and field permissions are inapplicable to bot data access because the bot reads and writes no business records."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1 State and data",
+   "quote": "Salesforce record sharing, object permissions and field permissions are inapplicable to bot data access because the bot reads and writes no business records."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-2, AD-1, AD-2",
+   "quote": "a user with the approved execution grant can submit from the entry ... narrowly scoped permission assignments for existing Salesforce identities ... Grant access to the Apex entry point and principal only to the approved existing users."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-7, C-8",
+   "quote": "Failure: another view or user cannot read that interaction through the bot. ... the bot uses ephemeral draft and result state only, with no org records, browser storage, saved history"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-2",
+   "quote": "Use an imperative Salesforce page-to-Apex request and one foreground HTTPS callout per submission ... A durable job or deferred polling would require result ownership and cleanup",
+   "missing": "The spec chooses a synchronous foreground callout and never states the platform restrictions (no callout from a trigger, no callout after uncommitted DML) or when an async Queueable/future design would be required."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AD-2, C-9",
+   "quote": "Store the API key as an encrypted credential parameter on a Custom authentication named principal in an External Credential. ... browser responses/resources, logs, deployable source/configuration and user messages reveal no key."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "S3",
+   "quote": "the documented synchronous callout body ceiling is 6 MB per request or response, counted against heap. The per-call timeout is configurable up to 120 seconds and the cumulative transaction callout time cannot exceed 120 seconds.",
+   "missing": "Callouts-per-transaction, the heap limit itself and CPU time limit are not given as numbers, and the bot's own working limits are left open."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C-3, Behavior model",
+   "quote": "In a controlled integration setup ... Fixture responses are controlled inputs for acceptance design.",
+   "missing": "No statement that Apex tests cannot make real callouts and must use a mock callout implementation (e.g. HttpCalloutMock)."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "AD-2",
+   "quote": "one foreground HTTPS callout ... to the xAI Responses API at `https://api.x.ai/v1/responses`. ... Link it to a Named Credential",
+   "missing": "Does not state that the endpoint host must be registered via the Named Credential URL or a Remote Site Setting, nor that an unregistered callout is refused."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "AD-2, T-4",
+   "quote": "Use an imperative Salesforce page-to-Apex request ... Reconsider the foreground route if measured inference cannot fit the org and browser deadlines.",
+   "missing": "The interface learns the answer only from the inline imperative return; no platform event, polled status or LMS mechanism is specified, and the fallback if inference exceeds synchronous limits is left to later."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-3, T-4",
+   "quote": "Repeat activation while pending makes no second request. ... Late or duplicate completions cannot change a terminal view."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "S3, Capacity and performance",
+   "quote": "Developer Edition has a documented 20-concurrent-external-callout ceiling. These are platform maxima, not bot limits. ... quota contention produces a recoverable failure.",
+   "missing": "What the user sees when a request is rejected by the concurrent-callout ceiling, and any bot-level concurrency bound, are not stated."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-6",
+   "quote": "rejected provider credentials ... directs the user to the org administrator. Rate or quota rejection tells the user to try later ... A provider outage ... reports the failure and permits a manual retry."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-6",
+   "quote": "Rate or quota rejection tells the user to try later or contact the administrator if it persists. ... Every failed submission ends the pending state and generates zero automatic retries."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-6",
+   "quote": "a request exceeding the deadline ... leaves pending with a timeout or connection message ... provider-reported truncation produces an actionable incomplete-answer message and no partial answer presented as complete."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-8",
+   "quote": "the bot uses ephemeral draft and result state only, with no org records, browser storage, saved history, Salesforce record context or provider conversation storage.",
+   "missing": "The spec deliberately stores no conversation, so no record shape exists; the model identifier and token/usage counts are not captured anywhere."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-7, R-3 State and data",
+   "quote": "Reload, leaving the page or sign-out discards the local prompt, answer and pending state (**default**). ... xAI documents 30-day audit retention by default ... The bot neither controls nor promises deletion of provider audit copies"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-8, R-3 Domain rules left out",
+   "quote": "The outbound request includes the explicitly submitted prompt and inference configuration. ... Free text may contain personal or secret data typed by a user. The notice and intended data scope do not assert automatic detection or filtering."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "C-5, C-7",
+   "quote": "Beyond it, Send reports that the prompt must be shortened, keeps the editable draft, and makes zero calls. No silent truncation. Check ... model context allowance for the full request.",
+   "missing": "Turns are independent so nothing accumulates, but the concrete context/size ceiling is left open."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "C-1, C-5, C-6",
+   "quote": "empty or whitespace-only text is rejected with guidance and zero egress ... at the inclusive effective prompt limit, a valid prompt can be sent ... an otherwise usable completed answer at the inclusive output cap ... displays normally.",
+   "missing": "The concrete maximum prompt and answer lengths are not set (deferred to open gaps)."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "C-2, R-1 State and data",
+   "quote": "the authorized admin removes that user's effective execution grant ... keep consumer access disabled or withdraw only the new access",
+   "missing": "No administrator control to change the model, and no admin view of failed requests (persistent telemetry is excluded); turning off is only via access revocation."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "C-8, R-3 State and data",
+   "quote": "payload, reply, raw provider errors and user details are excluded from bot logs ... Provider audit handling still applies. ... xAI documents 30-day audit retention by default",
+   "missing": "No in-org audit record of who asked what and what was answered; only the provider-side audit retention is mentioned."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-1 Domain rules left out, Service boundaries",
+   "quote": "Production distribution ... Require terminal deployment status, scoped read-back and role-specific entry before claiming delivery.",
+   "missing": "Per-environment configuration/credential differences, scratch org vs sandbox, deployment mechanism and the production code-coverage requirement are not stated."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "C-3, Capacity and performance",
+   "quote": "The view announces that it is waiting. ... There is no workload evidence or requirement for a latency SLA",
+   "missing": "The answer deadline value is left open; no latency target or bound is set."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "C-11, Interface quality",
+   "quote": "Empty, loading and error states each have a deliberate composition. The reply is the reading focus when present, and the composer and recovery action remain easy to find."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-1 State and data, R-2 State and data",
+   "quote": "Unrelated metadata and effective grants must survive. ... the bot reads and writes no business records. ... There is no compensating business-data write or automatic retry."
+  }
+ ]
+}

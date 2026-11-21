@@ -1,0 +1,187 @@
+{
+ "slot": "grokbot-salesforce__G-shiploop-spec-duty4-bounds__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-1, C-3, AD-1, R-4.a",
+   "quote": "Use a Lightning Web Component on an activated Lightning App Page with an App Launcher entry for designated users. \u2026 No earlier turn, Salesforce records, Salesforce user identifiers or browser session tokens accompany the prompt."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-6, AD-2",
+   "quote": "Apex does not read or mutate business records, so record sharing, CRUD and FLS for runtime business-data access are inapplicable.",
+   "missing": "The design preserves visibility by excluding record access. It supplies no user-sharing-context rule for answering from records."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-1, C-2, R-1.c, AD-2",
+   "quote": "the org administrator installs and activates the bot and grants access only to designated existing users. \u2026 map app entry, Apex class access and external-credential principal access to bot-specific permissions for existing users."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-6, R-4.a, R-4 (State and data)",
+   "quote": "only to the submitting session/page. \u2026 Exclude prompt, reply, secrets, raw errors and Salesforce identifiers from application diagnostics."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-3, AD-3",
+   "quote": "The browser can wait asynchronously while a Salesforce transaction makes the foreground HTTP call.",
+   "missing": "The specification gives no trigger restriction, DML ordering rule or separate asynchronous Apex transaction for a callout originating from a trigger."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-4, C-6, AD-2, R-4.b",
+   "quote": "Use a modern Named Credential and Custom External Credential with a named principal for the xAI inference host. \u2026 the key stays off the browser, deployable source, application logs and handoff output."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-7, C-8, Non-functional requirements (Runtime capacity and spend)",
+   "quote": "The documented synchronous HTTP payload ceiling is 6 MB per request or response, with the payload charged against heap. The documented maximum callout time is 120 seconds",
+   "missing": "The numeric ceilings for callouts per transaction, Apex heap and CPU time are unspecified. The 6 MB figure bounds the HTTP payload."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C-4, Behavior model and verification cases",
+   "quote": "The controlled provider is a test dependency with independently captured incoming requests and injected outcomes.",
+   "missing": "The fixture is specified, but the text leaves open how Apex unit tests substitute a mock callout for the real HTTP call."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-3, AD-2, AD-3",
+   "quote": "Use a modern Named Credential and Custom External Credential with a named principal for the xAI inference host. \u2026 Use `POST https://api.x.ai/v1/responses` from Salesforce"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-5, T-3, Service boundaries (Browser \u2192 Salesforce)",
+   "quote": "UI Send is pending until Salesforce returns the result for that attempt; \u2026 A current pending attempt receives usable completed assistant text and becomes successful."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-5",
+   "quote": "Expect 2 total outbound requests and a single displayed Grok reply matching the retry.",
+   "missing": "The case covers an explicit resend after failure. It gives no request-level idempotency rule for duplicate execution or redelivery of the same job."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-5, R-3.a, Non-functional requirements (Runtime capacity and spend)",
+   "quote": "While waiting, a second activation of Send starts zero additional provider calls and there is no queued send. \u2026 Developer Edition specifically has a 20-concurrent-external-callout ceiling.",
+   "missing": "The page rejects a second send while busy. No org-wide job queue or admission outcome is specified for a new request that encounters exhausted concurrent capacity."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-4, C-8, R-3.b, R-3.c",
+   "quote": "For access or setup errors direct the user to the org administrator. \u2026 For transient service, network or timeout failure offer explicit resubmission. \u2026 on a callout timeout, leave waiting and show a retryable timeout with no Grok reply."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-4, R-3.b",
+   "quote": "after failure the authorized user can submit again explicitly with the failed prompt available to edit. \u2026 **default** of zero automatic retries. \u2026 For quota rejection suggest waiting."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-4, C-8, R-2.c, R-3.c",
+   "quote": "end pending state and show a size/incomplete failure with a path to submit a shorter request. \u2026 on a callout timeout, leave waiting and show a retryable timeout with no Grok reply."
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-6, R-4.c",
+   "quote": "page state is discarded when the page instance ends. Provider audit retention follows the verified team policy, separately from page lifetime.",
+   "missing": "The specification gives page cleanup and provider retention rules but does not say whether deleting a user triggers any additional removal of retained provider copies."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-3, C-6, R-4.a",
+   "quote": "instruct users to use synthetic development text. \u2026 the product sends the current prompt and required inference parameters only. No earlier turn, Salesforce records, Salesforce user identifiers or browser session tokens accompany the prompt."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "C-3, C-7, R-2.b",
+   "quote": "the second contains only the second prompt. \u2026 If the provider rejects an admitted prompt for its context limit, show a shorten-and-resubmit error with the original prompt available.",
+   "missing": "Earlier turns are always omitted. The effective size threshold and units for the remaining prompt are left for model and org measurements."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "C-1, C-4, C-7, R-2.b, R-2.c",
+   "quote": "a prompt composer in an empty exchange. \u2026 Each gets required-text feedback and zero callouts. \u2026 accept text at the effective input maximum \u2026 a completed usable reply at the effective generation limit is displayed as returned.",
+   "missing": "The first-use, blank-input and at-limit outcomes are specified. The actual maximum input and generation lengths and their units remain open."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "C-1, C-2, C-4, R-1 (State and data), R-4 (State and data)",
+   "quote": "To back out, remove the bot-specific grants and entry \u2026 Record only operational categories for bot-side admission, denial, completion and failure with an opaque per-attempt correlation value",
+   "missing": "The administrator can withdraw access and inspect failure diagnostics. The specification does not designate who can change the configured model or how that change is made."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "C-4, C-6, R-4 (State and data)",
+   "quote": "Exclude prompt, reply, secrets, raw errors and Salesforce identifiers from application diagnostics. Use Salesforce-native diagnostics within the org's verified trace access, retention and cleanup settings.",
+   "missing": "Retention is addressed for diagnostics and provider copies. There is no audit record linking an identified asker to the question and answer, or retention period for such a record."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "C-1, C-6, R-1.a, R-4 (State and data)",
+   "quote": "only the identified development org is in scope. \u2026 Readback identifies the same org and revision as the terminal deploy receipt. \u2026 Secret provisioned outside deployable artifacts.",
+   "missing": "The development-org type and deployment path remain open. Cross-environment settings, separate credentials and the production code-coverage requirement are unspecified."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "C-5, C-8, R-3.a, R-3.c",
+   "quote": "an accepted send displays the submitted prompt and an accessible waiting status until that send completes or fails. \u2026 Salesforce's 10 seconds, measured at the downstream call.",
+   "missing": "The ten-second window bounds the downstream call. The specification gives no end-to-end target or bound from Send to a visible answer."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "C-4, C-9, R-3.b, Non-functional requirements (Interface and accessibility)",
+   "quote": "Give empty, waiting, error and success states designed copy and layout. \u2026 For access or setup errors direct the user to the org administrator. \u2026 review consistent typography, spacing and iconography across the designed states."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-1, C-6, R-1 (State and data)",
+   "quote": "the scoped change preserves existing org assets and records. \u2026 No Salesforce record import, object/field creation, record sharing changes, or production deployment is in scope."
+  }
+ ]
+}

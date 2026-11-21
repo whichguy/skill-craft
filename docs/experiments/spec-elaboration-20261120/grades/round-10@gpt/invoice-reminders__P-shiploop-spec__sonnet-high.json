@@ -1,0 +1,144 @@
+{
+ "slot": "invoice-reminders__P-shiploop-spec__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "A-3, A-1",
+   "quote": "Default schedule: reminders at 3, 7 and 14 days after the due date (\"offsets\"), sent at 09:00 in the business timezone. \u2026 Pre-due reminders are not sent"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "balance > 0, due date < today in the business timezone, and it is not void, written off, draft or disputed \u2026 A partial payment leaves the invoice in scope with the reduced balance.",
+   "missing": "R-4 lists credit notes and payment-plan invoices as out of scope. It leaves unclear whether either suppresses reminders on an otherwise eligible invoice with money still owing."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "The amount is the invoice's current balance at send time, not its original total."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "when an offset is due and the invoice is on hold, or its customer is opted out, the offset is recorded `skipped: paused` or `skipped: opted_out`, and is never sent later",
+   "missing": "Which existing customer contact restrictions count as a reminder opt-out, including whether a marketing unsubscribe also suppresses billing notices."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-6",
+   "quote": "The provider call carries the record ID as idempotency key. \u2026 If the provider lacks idempotency-key support (G-2) and the first call's outcome was unknown, a duplicate message is possible.",
+   "missing": "How to prevent a second send after an ambiguous provider response when the provider cannot deduplicate the retry."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "The evaluator re-reads the invoice from the invoicing system immediately before claiming a send (R-6) and never uses a cached or earlier-run copy for the decision."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "each later evaluator run while the offset is still current retries, up to 3 attempts in total \u2026 persistent trouble is visible to staff (R-8).",
+   "missing": "Whether exhausting retries triggers an alert to a person, who receives it and how."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-7, NFR-4",
+   "quote": "Provider throttling that returns \"retry later\" does not consume an attempt and is retried on the next run. \u2026 volume and provider rate limits are unknown",
+   "missing": "What quota applies and how to pace a large batch of sends to stay within it."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "A-5",
+   "quote": "when the feature is enabled, a reminder whose scheduled instant is earlier than the enabling instant is never sent"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "A-3, R-1.AC4, R-2",
+   "quote": "sent at 09:00 in the business timezone. Offsets, send time and timezone are configurable \u2026 time `00:00`; time `23:59`. \u2026 weekend or holiday avoidance (a reminder due on a Saturday is sent on that Saturday)."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "A-9",
+   "quote": "amounts as \"USD 1,200.00\" (ISO currency code, thousands separator, two decimals)."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-3, R-7",
+   "quote": "a missing or syntactically invalid contact address yields no provider call and the record `skipped: no_recipient` \u2026 A permanent rejection (address rejected) makes the record `failed` at once. \u2026 Out of scope: bounce and complaint events after acceptance"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "A-2, R-3",
+   "quote": "The reminder is an email to the invoice's single billing-contact address. \u2026 customer-visible unsubscribe handling (G-3); multiple recipients.",
+   "missing": "If several billing contacts are listed and no single invoice recipient is designated, which contact gets the reminder or whether sending is skipped."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-8, G-9",
+   "quote": "for each invoice, staff can list reminder records: offset, scheduled instant (UTC), state, reason (for `skipped` and `failed`), attempts, instant of last attempt, and the recipient address used.",
+   "missing": "Whether staff can see the history directly on the invoice and inspect the content that went out, including the amount shown at that step."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-3, G-6",
+   "quote": "`Invoice: <number>`, `Amount due: USD <balance>`, `Due date: <Month D, YYYY>` \u2026 payment link or instructions (G-6; none in the default message)",
+   "missing": "The default omits a way to pay. G-6 leaves inclusion open, with no payment method or expiration rule specified for a link if included."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "A-12, R-5, R-7",
+   "quote": "Staff who can edit invoices can configure, pause and view reminders \u2026 staff (A-12) can put one invoice on hold and release it \u2026 manual \"resend\".",
+   "missing": "Manual resend is excluded. The spec does not say whether anyone may trigger an initial reminder by hand or which permission would allow it."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1.AC5, R-5, R-7",
+   "quote": "zero messages, zero reminder records for INV-1001. \u2026 staff can silence reminders for one invoice or one customer without disabling the feature. \u2026 Out of scope: bounce and complaint events after acceptance (see Service boundaries); manual \"resend\".",
+   "missing": "Whether an operator can preview a reminder or dry-run a batch before sending."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-8",
+   "quote": "for each invoice, staff can list reminder records: offset, scheduled instant (UTC), state, reason (for `skipped` and `failed`), attempts, instant of last attempt, and the recipient address used.",
+   "missing": "How staff can see the next eligible reminder and its scheduled time before a reminder record exists."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "NFR-1, NFR-4",
+   "quote": "is sent at the first run at or after it. \u2026 volume and provider rate limits are unknown, so no bound is invented.",
+   "missing": "A maximum sending volume per period or a maximum elapsed time between a scheduled instant and dispatch."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "F-1, Service boundaries (Invoice store)",
+   "quote": "the evaluator writes only reminder records and leaves other invoice changes untouched."
+  }
+ ]
+}

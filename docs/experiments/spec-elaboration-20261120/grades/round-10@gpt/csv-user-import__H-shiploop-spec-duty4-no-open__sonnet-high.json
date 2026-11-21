@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__H-shiploop-spec-duty4-no-open__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "in **one atomic commit**: afterwards either all N users exist or none does."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "headline \"No users were created\", file-error message **or** a problem table (row, line, column, message) with the truncation notice when applicable"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "same normalised email as an earlier row \u2192 `EMAIL_DUPLICATE_IN_FILE` with `first_row` (the earliest row with that syntactically valid email); else already belongs to an existing user \u2192 `EMAIL_EXISTS`."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-5.AC5",
+   "quote": "Imported user cannot be admin: a header `email,name,role` is refused (R-2.AC3); no accepted file can produce a user with the admin role."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "The import operation succeeds only for a signed-in user who is an admin **at the time of the request**.",
+   "missing": "The rule identifies eligible importers but does not say how import authority relates to permission to create a single user."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Header: first non-blank record; names matched case-insensitively after trimming; must be exactly `email` and `name`, each once, in any order. \u2026 A file with no records at all \u2192 `HEADER_INVALID`."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "valid UTF-8, an optional leading byte-order mark is removed \u2026 records end in LF or CRLF; a field may be quoted with `\"`, in which case it may contain commas, line breaks and doubled quotes"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-5.AC4, PD-5",
+   "quote": "A store failure injected on the 2nd of 2 inserts in V1's commit \u2192 `failed`, users 4 afterwards (not 5). \u2026 The import sets **no credentials and sends no email**."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "A file larger than **2,097,152 bytes** is rejected `TOO_LARGE`; a file with more than **5,000 data rows** is rejected `TOO_MANY_ROWS`."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2, R-5",
+   "quote": "A file with no records at all \u2192 `HEADER_INVALID`. Header only \u2192 `NO_ROWS`. \u2026 One row (N = 1) and 5,000 rows (N = max) behave identically."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "Re-uploading a file whose import was committed changes nothing: every row is `EMAIL_EXISTS`."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "PD-8, R-7",
+   "quote": "The import is **one synchronous request/response**; the response is sent only after the outcome is final. \u2026 \"{n} user(s) created\", all created emails, \"Import another file\"",
+   "missing": "The screen reports completion, but even the largest accepted file is processed synchronously. Background processing for large files is explicitly excluded."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "PD-5",
+   "quote": "The import sets **no credentials and sends no email**."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "how imported users obtain a way to sign in is not specified; PD-5 imports them without credentials.",
+   "missing": "The initial active or pending status and the steps a new user takes to sign in for the first time are unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "live only in the request's memory (or an equivalent transient scope) and are discarded when the response is sent \u2026 and are visible only to the uploading admin's request."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-8",
+   "quote": "timestamp, actor id (or `anonymous`), outcome, file error code if any, data rows parsed, created count, errors total, duration. It never contains emails, names, any cell value, file content or the file name.",
+   "missing": "The audit identifies the actor, time and counts. It provides no identifier linking an attempt to the particular file or accounts imported."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "F-3",
+   "quote": "file or row problems \u2192 `rejected`, nothing created; screen Rejected; the admin fixes the file and starts F-1 again.",
+   "missing": "The recovery path is a whole-file retry. The specification gives no cancellation action or cancellation outcome for an in-flight import, and no retry limited to failed rows."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-12, R-7",
+   "quote": "the only hard bound is the host's request timeout, which is unknown (G-5). \u2026 button disabled and relabelled \"Importing\u2026\", indeterminate progress, chooser disabled",
+   "missing": "The admin sees progress, but the maximum duration for a 5,000-row file depends on a timeout whose value is unresolved."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "PD-2, R-5",
+   "quote": "existing users are never modified. \u2026 the same defaults as a user created one at a time by the existing product path",
+   "missing": "The import preserves existing accounts and reuses single-user defaults. There is no requirement that the existing manual creation flow continue to work exactly as before."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-11, R-4",
+   "quote": "begins with `=`, `+`, `-` or `@` is stored verbatim; neutralising such values is the duty of any future CSV/spreadsheet export \u2026 email of 254 characters accepted, 255 rejected; name of 255 accepted, 256 rejected"
+  }
+ ]
+}

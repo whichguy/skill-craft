@@ -1,0 +1,149 @@
+{
+ "slot": "gym-waitlist__H-shiploop-spec-duty4-no-open__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "by default the opt-in authorizes automatic booking under the existing terms."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "in order of accepted join, earliest eligible member first \u2026 Selection uses the booking authority's order when joins overlap. \u2026 Staff priority, new fees or entitlements, offer-and-claim windows, and new delivery channels are outside scope."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "if promotion committed first, the person sees the booking and uses ordinary booking cancellation.",
+   "missing": "Ordinary cancellation applies after automatic booking. The spec does not say whether missing that booking or declining the place incurs a no-show or late-cancellation penalty."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-3; Case B",
+   "quote": "With `M1` and `M2` active, close both waiting clients. `P0` cancels their own `Yoga-101` booking at 17:03. \u2026 R-3 awards the seat first to `M1`.",
+   "missing": "The cancellation triggers unattended allocation, but the maximum delay from cancellation to promotion is unspecified."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-2; R-3",
+   "quote": "the ordinary **Booked** status for a confirmed booking. \u2026 Existing confirmation effects, if applicable, follow the recovered booking contract.",
+   "missing": "The app shows the booking on refresh. Whether a promotion also sends a message, through which channel, with what content, and how delivery failure is handled depends on an unspecified confirmation contract."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "until the available places or eligible members run out. \u2026 At every externally confirmed outcome, occupancy stays within allocatable capacity and the promoted participant is booked only once."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "the promoted participant is booked only once. \u2026 Reconcile on a vacancy while open, on any direct booking attempt with available capacity"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "If the existing flow requires a new payment step or consent at booking time, withhold dependent automatic fulfillment design for that path until the product owner resolves how to fulfill under those terms.",
+   "missing": "When to charge for a promoted booking and what a failed charge does to the booking, seat and membership remain open."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "There is no feature-specific numerical list cap."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "the existing booking cutoff applies, with class start as the default only if the app has no cutoff. At the effective cutoff and later, the list is closed to joins and promotions.",
+   "missing": "The rule guarantees a cutoff, but a strictly pre-start cutoff depends on the existing app. The fallback allows promotions until class start."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-3; Case F",
+   "quote": "the fixture authorizes `Operator` to increase that occurrence's capacity from 1 to 4 through its capacity control. \u2026 R-3 evaluates the three vacancies at once.",
+   "missing": "The increase is specified. For a decrease below current occupancy, a builder still needs to know whether to reject the change or how to handle existing bookings and waiting members."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "when the authority closes bookings or cancels the occurrence, the waitlist ends and the accessible occurrence shows its closed or cancelled state. \u2026 Closing a class ends active membership for that occurrence"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "with an identity for each membership and an authoritative order. \u2026 After it there is one active membership and no confirmed booking.",
+   "missing": "The membership has state and order, but the spec leaves open whether it records a join timestamp and whether position is stored or derived."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "At the end of the authorized retention period, purge the person's waitlist data from retained product records under the applicable deletion policy. \u2026 No retention duration is assumed.",
+   "missing": "The duration for which ended entries may be retained after class closure is unspecified."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-2; R-5",
+   "quote": "Position, estimated wait and other members' activity are outside scope. \u2026 The response exposes no other person's record, place in line, identity or private existence signal.",
+   "missing": "The privacy rule is explicit. Showing a member their own queue position is expressly outside scope."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "authorized operators can trace allocation commitment, failure and recovery, and denied waitlist operations through existing owned diagnostics.",
+   "missing": "The spec does not grant staff a roster view or manual promotion and removal controls, or require a history identifying each promoted member and promotion time."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements, Integrity and recovery",
+   "quote": "No target for wall-clock promotion or uptime can be established from the available evidence.",
+   "missing": "There is no maximum elapsed time from a cancellation to the resulting promotion."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3; Non-functional requirements, Runtime fit and compatibility",
+   "quote": "Once eligible waiting demand is exhausted, remaining available places follow ordinary booking. \u2026 Preserve ordinary booking and cancellation for existing records, including pre-feature classes with no existing waitlist entries."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "Non-functional requirements, Runtime fit and compatibility; R-1",
+   "quote": "pre-feature classes with no existing waitlist entries. \u2026 an eligible caller viewing a full, open occurrence can choose **Join waitlist** \u2026 an accepted join creates one membership for the caller and occurrence."
+  }
+ ]
+}

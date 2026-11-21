@@ -1,0 +1,26 @@
+{
+ "round": "round-10",
+ "case": "csv-user-import",
+ "arm": "G-shiploop-spec-duty4-bounds",
+ "arm_sha256_12": "e90e88637faf",
+ "driver": "sol-medium",
+ "host": "codex",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "rc": 0,
+ "seconds": 275.7,
+ "ok": true,
+ "wrote": [
+  "KNOWLEDGE/spec.md"
+ ],
+ "stray_files": [],
+ "workdir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/round-10/csv-user-import__G-shiploop-spec-duty4-bounds__sol-medium-3719e8",
+ "user_skills_turned_off": 11,
+ "usage": {
+  "input_tokens": 323408,
+  "cached_input_tokens": 285824,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 11517,
+  "reasoning_output_tokens": 1733
+ }
+}

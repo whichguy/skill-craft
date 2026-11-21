@@ -1,0 +1,143 @@
+{
+ "slot": "gym-waitlist__G-shiploop-spec-duty4-bounds__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.4004818,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "A-1",
+   "quote": "Automatic promotion, no claim window. The oldest eligible waiter is booked the moment a spot frees; no accept/decline step and no timer."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "order is join order per class (AD-2)... R-2.c boundary: order is by server sequence, not request arrival time claimed by the client; R-1 out of scope: priority tiers; R-3 out of scope: manual staff promotion"
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Out of scope here (bounded by this R): ... joining several overlapping classes' waitlists (no clash check is added)",
+   "missing": "What happens to a member's entry on an overlapping class once they are promoted into the other; the spec adds no clash check and does not resolve the second entry."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Out of scope: claim window / accept-decline offers (A-1); ... refunds or penalties.",
+   "missing": "Whether an automatic promotion the member then cancels late or no-shows counts against the existing no-show/late-cancellation policy."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "whenever the booked count drops below capacity ... by a member cancelling their booking, a staff removal of an attendee, or a capacity increase \u2014 the system, in the same atomic unit (AD-1, AD-3), books the oldest Waiting entry"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "Outbound notification of promotion and removal uses an existing channel if one exists (AD-7, G-4). ... a failed notification send never reverses a promotion; it is logged (R-12).",
+   "missing": "Which channel is used (left open as G-4) and what the outbound message says."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "all operations on one class serialize (AD-1)... I-2: booked count \u2264 capacity; R-3: Promotion never exceeds capacity."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-9.b",
+   "quote": "A member who already has a Waiting entry directly booking \u2192 ALREADY_WAITLISTED. (with R-10: all operations on one class serialize)"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "G-3 \u2014 if booking consumes a prepaid credit or charges a payment instrument, whether automatic promotion may do that ... needs an owner decision ... Interim: those classes are excluded from the waitlist",
+   "missing": "When payment is taken for a promoted booking and what happens when the charge fails; only an interim exclusion of paid classes is given."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "A-2",
+   "quote": "No cap on waitlist length. The only bound is the natural one: one Waiting entry per member per class (R-1.d). Waitlist size therefore \u2264 number of distinct members."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "A free spot while B is false \u2192 no promotion (the spot stays free; entries are closed by R-6)."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "A capacity increase of k promotes up to k entries. ... I-2: booked count \u2264 capacity, except where staff lower capacity below the booked count (existing behaviour, untouched)."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "Removed(CLASS_CANCELLED) when staff cancel the class. Joining after either \u2192 BOOKING_CLOSED / CLASS_CANCELLED (R-1)."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-16",
+   "quote": "Waitlist entry (class, member, sequence, status, reason) ... Position, waiting count | derived at read | the member | not stored"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "A-7",
+   "quote": "Ended entries are kept (not deleted) while the class record exists, and shown to the member until the class's start time passes. No new retention period is introduced."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-11",
+   "quote": "a member sees only their own entries, their position and the anonymous waiting count \u2014 never another member's name, id or entry."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-11",
+   "quote": "Staff visibility of waiters is out of scope. (R-3 out of scope: manual staff promotion; R-12 records waitlist.promoted with an opaque member id)",
+   "missing": "A staff view of the waitlist, staff manual promote/remove, and a staff-readable record of who was promoted when; only an audit log event exists."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "AD-3",
+   "quote": "Promotion runs inside the transaction of the operation that freed capacity. (R-3: in the same atomic unit (AD-1, AD-3), books the oldest Waiting entry)"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "classes that are not full, booking, cancelling a booking, capacity enforcement and the existing cut-off rules behave as before"
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

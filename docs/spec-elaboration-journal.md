@@ -1879,3 +1879,154 @@ large" refusal or a named maximum, and a service could bound a body some other w
 deliveries' own verdicts (many of the due-times ones failed) are about other things; nothing here shows a limit
 changed a verdict. Whether an unstated ceiling of a million hours is a defect at all is a judgement: the point is
 that it was decided and not written.
+
+## 27. Rounds 9 and 10: the review's wording moves nothing and is worse on Sol; without its "keep the bound open" sentence it settles the limits that must exist (07:15, 2026-11-21)
+
+48 sessions (arms G, H and P, both drivers, four cases, two rounds), all exit 0, 06:07 to 07:14, after a passing
+pre-flight each round; the scan flagged no session in either round; both judges read all 48 specifications and no
+verdict file has a missing or unknown item. `evidence/round-9/`, `evidence/round-10/` (`readings-G.txt`,
+`readings-H.txt`, `by-set.txt`, the item-by-item files, `waitlist-cap-and-cutoff-lines.txt`).
+
+Covered, round 9 then round 10, registered judge / second judge:
+
+| | Sonnet | Sol |
+| --- | --- | --- |
+| **N1, the 6 limits that must exist.** P, the released stage | 3, 3 / 4, 2 | 1, 3 / 1, 3 |
+| G, the review's seven sentences in duty 4 | 3, 3 / 3, 3 | 1, 0 / 0, 1 |
+| H, G without "If the basis for such a default is missing, keep the bound open" | 4, 4 / 4, 4 | 4, 4 / 5, 5 |
+| **O1, the 6 limits that need not exist.** P | 5, 4 / 5, 3 | 0, 0 / 0, 1 |
+| G | 3, 3 / 2, 5 | 1, 0 / 0, 0 |
+| H | 4, 4 / 4, 4 | 2, 2 / 2, 0 |
+
+**R20, limits that must exist.**
+- **G: nothing shown.** Against the P of its round: 0.0 and 0.0 on Sonnet; -1.5 and -1.5 on Sol.
+- **H: shown on Sol** (+3, +1 and +4, +2: means +2.0 and +3.0, every round above zero under both judges), interim
+  on Sonnet (+1.0 and +1.0).
+
+**R21, limits that need not exist.** Neither arm is shown on O1. H's +2 and +2 on Sol under the registered judge
+are a reply timeout given a default (60 seconds) and, on the waitlist, the sentence "There is no feature-specific
+numerical list cap", which the judge scored covered where the released stage's "no numeric SLA or waitlist cap"
+with the cap left to its owners was partial. **The twelve waitlist specifications, read: none of G's four and none
+of H's four gives the waitlist a maximum size, and none sets a cutoff of its own.** Sonnet under G: "No cap on
+waitlist length ... A cap is not needed for correct or safe behaviour ... Inventing a number would turn people
+away, which the request opposes". Sonnet under H: "No waitlist length
+cap and no 'latest promotion time' cutoff". Arm K capped it in three of four.
+
+**R22, the other needed items.** G is below the released stage in every cell: -1.0 and -3.0 on Sonnet, -6.0 and
+-6.0 on Sol (band 7). Item by item on Sol it covers 2 or 3 item-cells the released stage does not and fails to
+cover 14 or 15 that it does. H: +4.0 and +2.5 on Sonnet, +0.5 and +1.0 on Sol; item by item on Sol 9 or 10 gained
+and 8 lost.
+
+**R23, capability not asked for.** Not shown for either. H's +3 in round 9 on Sonnet under the registered judge
+is three stated exclusions scored covered ("Staff get no waitlist view and no manual promotion in this change";
+"No per-invoice or per-customer pause"; no cancel for a running import); the second judge scored none of them.
+
+**The whole checklist.** G on Sol is **worse**: -12.0 and -10.5, beyond the band of 7 in both rounds under both
+judges. H: +6.0 and +4.0 on Sonnet, +1.5 and +2.5 on Sol.
+
+**Size.** Output tokens against the released stage: G 1.03 and 0.98; H 1.18 and 1.23.
+
+**Steady in both rounds:** H settles the import's size and row limit in both rounds on both drivers where the
+released stage does in neither (on Sol under both judges), each time labelled a default: "Limits: file 2,097,152
+bytes (2 MiB); 5,000 data rows ... Labelled defaults, not requirements"; "Default maximum 65,536 file bytes
+inclusive". G has no such item.
+
+### By the registered rule
+
+**The review's text does not go forward.** It is not shown on the limits that must exist on either driver, and on
+Sol it is worse than the stage as released. No trial on built products is recommended for it.
+
+**H explains why, and cannot be proposed from these rounds.** The two arms differ by one sentence. With "If the
+basis for such a default is missing, keep the bound open", Sol settles 1 and 0 of the 6 limits that must exist;
+without it, 4 and 4. In this frame the basis is always missing, so the sentence switches the rule off, and the
+six sentences around it then tell the session about open gaps at greater length than the released stage does.
+
+Predictions of section 25: G moves Sol by less than 2: held. No G specification caps the waitlist: held. H moves
+Sol by 3 or more: held under the second judge, not under the registered one (+2.0). At most one H specification
+caps the waitlist: held (none). Not predicted: that G would make Sol worse.
+
+Limits: six items a set; two rounds; the same frame, which section 26 shows is not the stage's real conditions.
+In a real run the basis for a default may not be missing, and G's sentence may then cost nothing.
+
+## 28. Concluded: no template change, one candidate left on the shelf, and what this experiment was worth (07:16, 2026-11-21)
+
+The owner, 2026-11-21, on being told what could and could not be concluded: "Conclude now". Earlier the same
+morning: "Yes, plan small experiments before doing larger ones to see if you can get fast iteration. Do we have
+sufficient evidence to conclude early?" This section closes the side experiment that began on 2026-11-20 with "a
+prompt that will actually help take an incoming, kind of vague prompt ... and ... elaborate into a verbose spec".
+
+### The answer to the owner's to-do
+
+"Did we update the prompt templates for Shiploop to improve them?" **No, and none is proposed.** Nothing under
+`skills/` or `agents/` was changed at any point in this experiment.
+
+### What stands, most firmly first
+
+1. **The released spec stage is not missing an elaboration step.** Ten rounds, twelve arms, two drivers, two
+   judges. Run alone on a one-sentence request it reaches 80 to 87 of 89 held-out items; in real deliveries it
+   writes a short, complete specification (section 26).
+2. **Wording that leaves the stage free to keep a point open changes nothing.** The earlier block's enumeration
+   sentence (round 6), arm M (rounds 7 and 8) and the review's own text, arm G (rounds 9 and 10, where it was
+   worse on Sol).
+3. **Wording that tells the stage to take a default changes what it writes, most on Sol.** Arm K (shown on both
+   drivers) and arm H (shown on Sol). Worded as "a limit the request leaves to choice" it also invents limits and
+   controls nobody asked for (K: a waitlist cap in three of four, a per-invoice pause, a 60-minute cutoff). Worded
+   as "only where the requested behaviour cannot work correctly or safely without it" it did not (H: no cap in
+   four of four).
+4. **In real deliveries on the latest ShipLoop, Sol's products carry limits nobody wrote down, or lack ones a
+   careful build includes; Sonnet's specifications state and test them** (section 26: 0 of 12 against 4 of 4 on
+   the hours ceiling; 0 of 10 against 1 of 1 on a request-size cap).
+5. **The operator and unhappy-path cue was right to withdraw.** Its lift was added operator controls (section 19),
+   which the owner's rule of 2026-09-27 calls overbuilding, and two outside sorters picked out the same items.
+
+### What does not stand
+
+- The lens block (section 15), arm K as worded (section 24) and the review's text as worded (section 27).
+- Every number here as a statement about the stage in a real run. The frame (one sentence, no repository, the
+  submission folded into the specification) makes the stage write ten times as much and leave open what a real
+  run never raises (section 26). The numbers compare arms inside that frame and nothing more.
+- A covered count as a measure of quality. It credits deciding (sections 14 and 24), and half of K's gain was on
+  limits two outside sorters say a correct product could do without (section 25's sort).
+
+### One candidate, on the shelf and not proposed
+
+Arm H's text: in duty 4, the review's rule without its "keep the bound open" sentence
+(`arms/H-shiploop-spec-duty4-no-open.insert.txt`). It has two rounds on this bench as a contrast arm, +18 to 23%
+output tokens there, and no run of any kind in ShipLoop. If it is ever wanted, the test is small and its control
+exists: two or three deliveries a case on Sol of ticket due times and shared expenses, against the 12 and 10
+already archived (0 of 12 specifications state the hours ceiling; 0 of 10 products cap a request), read for
+whether the specification states the limit, a test holds it, the final report shows it and the held-out verdicts
+move. It needs the owner's word, a candidate plugin build and the E2E harness; none of that is started. On Sonnet
+the released stage already does this unprompted.
+
+Also the owner's, unchanged: the E2E harness's Codex sessions being shown the user's own skills (section 7; a
+task card was put up for it); the stale sentence in `skills/shiploop/references/behavioral-requirements.md`
+(sections 14 and 24: both reviews found it); and the order in which this experiment's commits and another
+session's are published from the shared checkout.
+
+### What it cost and what it was worth
+
+Ten rounds of subject sessions, two judges, two reviews at maximum effort, two sorts. It did not improve the
+template. It did establish that the stage is not short of elaboration, turn three plausible additions into
+recorded negatives before any of them reached a release, find that the E2E harness's Codex sessions are shown the
+user's skills, and locate one real difference between the two drivers in built products.
+
+### Lessons for the next experiment, each of which cost something here
+
+1. **Read deliveries that already ran before building a bench.** Section 26 took an hour and no model, and showed
+   both the real gap and that this experiment's frame was ten times off. It should have been section 1.
+2. **Check a bench against the real thing on a plain measure first** (here, words in the specification). A bench
+   that makes the stage write ten times as much is measuring something else.
+3. **A count that rewards deciding needs its items sorted by someone else** into what must be settled and what
+   need not. Two cheap sorts changed the reading of every round after them.
+4. **Write the prediction down before the run.** Eight were registered in sections 20 and 25 and six held; the
+   two that missed (how far M would move Sonnet; H under the registered judge) were the informative ones, and so
+   was the thing not predicted at all (G making Sol worse).
+5. **Decide after the first round.** M and G were visibly doing nothing after one round under one judge, and the
+   second judge never reversed a direction on a target set. Dropping each after its first round, and keeping the
+   second judge for arms still alive, would have saved 16 of the 96 sessions of rounds 7 to 10 and 48 of their
+   192 judge calls. (I told the owner "about a third" before counting; it is a sixth and a quarter.)
+6. **Take the review before the write-up goes anywhere, and check it.** Both reviews withdrew claims I had already
+   made to the owner; both were right on every fact I checked.
+7. **An open route in the wording is the whole wording.** "Or record it as unresolved", "as an open gap", "if the
+   basis is missing, keep the bound open": three texts, three nulls.

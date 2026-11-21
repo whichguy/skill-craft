@@ -1,0 +1,142 @@
+{
+ "slot": "invoice-reminders__G-shiploop-spec-duty4-bounds__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "the owner defines the reminder schedule as an ordered list of integer day offsets from an invoice's due date (0 = due date, positive = days after, negative = days before)"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-5, R-9",
+   "quote": "no outstanding balance, or is void, written off, or paused, nothing is sent \u2026 does not stop reminders while any balance remains. \u2026 a disputed invoice is not chased while paused.",
+   "missing": "Whether a dispute itself suspends reminders before an owner pauses the invoice, and how a payment plan affects eligibility."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "AC-3.3",
+   "quote": "A balance of 100.00 on an invoice of 250.00 (partial payment) shows `100.00 USD`, never 250.00."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-3, R-9",
+   "quote": "customer opt-out or unsubscribe handling beyond R-9's owner-side pause. \u2026 Out of scope: customer-level pause, bulk pause, scheduled pause end date.",
+   "missing": "Whether to honor an existing customer do-not-contact flag and whether billing reminders are exempt from a marketing-only unsubscribe."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "the job atomically claims `(invoice, step offset)` in the ledger. Only the claim winner sends. \u2026 re-running the job the same day, two overlapping runs, and a crash between claim and recording are all covered"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "the job re-reads the invoice immediately before each send \u2026 a payment recorded between the scan and the send stops that send."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "it is retried on each following daily run while it remains the latest eligible step and the invoice is still eligible. \u2026 **For the last step the retry bound is open (G-3)**",
+   "missing": "When to stop retrying the final step and when, how, and to whom persistent failures should be escalated."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "NFR-4",
+   "quote": "the mail provider's send quota and rate, and the runtime's maximum job duration are unknown \u2026 if a run stops early at any runtime or provider limit, every unprocessed invoice's due steps stay unrecorded",
+   "missing": "Which provider rate or quota applies and how to pace sends within that limit during a run."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "steps scheduled before `effective_from` are never sent; a newly saved schedule does not mass-mail existing overdue invoices unless the owner sets `effective_from` back"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2, A-9, R-1",
+   "quote": "once per business-timezone calendar day \u2026 no run time of day is fixed; it is a deployment setting, since any time yields the required once-a-day behaviour. \u2026 business-day or holiday calendars"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2, AC-3.3",
+   "quote": "amounts are shown in the invoice's own currency, unconverted \u2026 A balance of 100.00 on an invoice of 250.00 (partial payment) shows `100.00 USD`, never 250.00."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-3, S-2",
+   "quote": "a missing or syntactically invalid recipient address means no send; the step is recorded `skipped_no_recipient` with no retry for that step \u2026 delivery and bounces are not observed"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "each reminder is one email to the invoice's billing contact address, taken from the invoice's customer record at send time. \u2026 one recipient address",
+   "missing": "Which address to select when the customer record has several billing contacts."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-8",
+   "quote": "for any invoice the owner can see each ledger row: step offset, scheduled date, state \u2026 attempt count, last-attempt timestamp \u2026 Open: G-6 (the surface: host invoice view, report, or API).",
+   "missing": "Whether the owner can see this history directly on the invoice."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "invoice number, outstanding balance with currency, due date (`YYYY-MM-DD`) \u2026 If the host exposes a payment link for the invoice it is included, otherwise the message omits it.",
+   "missing": "Whether the payment link expires and, if so, when."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "NFR-3, R-8, AD-1",
+   "quote": "Only the owner role can read history, change the schedule, or pause an invoice. \u2026 no edit or manual resend in this scope. \u2026 runs on demand with an explicit as-of instant.",
+   "missing": "Who, if anyone, may initiate an on-demand run that sends a due reminder."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "NFR-5, R-9, R-8",
+   "quote": "disabling the feature is clearing the schedule (R-1), which stops all sends from the next run \u2026 Out of scope: customer-level pause \u2026 no edit or manual resend in this scope.",
+   "missing": "Whether an owner can preview reminders or dry-run the schedule without sending email."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-8",
+   "quote": "`unknown` and `failed` rows are distinguishable at a glance and can be listed across invoices.",
+   "missing": "Whether and where an owner can see the next planned reminder and its scheduled date."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "reminders arrive on or just after their scheduled day, at most one per invoice per day."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "S-1, AD-2",
+   "quote": "host store is the only authority for paid, void, balance, due date and recipient \u2026 the runtime identity must have read-only access \u2026 The ledger never writes to the invoice record."
+  }
+ ]
+}

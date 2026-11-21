@@ -1,0 +1,141 @@
+{
+ "slot": "gym-waitlist__H-shiploop-spec-duty4-no-open__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.437499,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "A-1",
+   "quote": "Automatic promotion: when a seat opens, the head of the waitlist is booked at once. There is no offer, confirm or hold window."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "A-2",
+   "quote": "FIFO by server-recorded join order. No priority tiers."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "A-9",
+   "quote": "A member holding a time-overlapping booking elsewhere is handled by the existing eligibility rules (P-1). No new overlap rule.",
+   "missing": "Whether promotion into one class removes or otherwise resolves the member's entry on an overlapping class's waitlist; this depends on unknown existing rules (P-1)."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "G-1",
+   "quote": "whether a cancellation shortly after promotion is penalised. | A-1 and A-12: charge and penalise exactly as for a direct booking."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "When a member's booking on a bookable class is cancelled and the waitlist is non-empty, the same operation runs a promotion pass."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "PROMOTED (booking confirmed, with class and time)... Delivery failure of a notification does not undo a promotion, removal or expiry."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "M1 and M2 cancel concurrently \u2192 promotions are M3 then M4 in either order, final booked [M3, M4], list []. ... two seats freed together serve two entries without duplication."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "I-3 a member has at most one entry and is never both booked and waitlisted on the same class; ... Concurrent operations on one class behave as if they ran one at a time"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "G-1",
+   "quote": "it must be decided whether a promoted booking charges at promotion ... Default in force: charge and penalise exactly as for a direct booking.",
+   "missing": "What happens when payment for a promoted booking fails (removal, retry, seat passed on); whether charging occurs at all is unknown (P-1)."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "A-3",
+   "quote": "No cap on waitlist length. The rule is one entry per member per class. ... A cap would turn people away"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "The waitlist is open exactly while direct booking would be open (A-4). When the window closes, all entries expire and no promotion occurs, even if a seat is freed afterwards."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "a capacity increase ... runs the same promotion pass ... Reducing capacity below the booked count removes no booking and promotes nobody until booked < capacity."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "If staff cancel the class, all entries are removed and no booking is created."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "Section 4 terms / R-1 State",
+   "quote": "Position = 1 + the number of entries ahead. ... new waitlist entry (class, member, join order)"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "A-11",
+   "quote": "No history is retained once an entry ends. The only durable trace is the \"from waitlist\" origin marker on the resulting booking."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "A member can join, leave and view only their own entry. No response to a member contains another member's identity or position."
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "A-10",
+   "quote": "Staff get no waitlist view and no manual promotion in this change."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-10",
+   "quote": "Roll-back: removing the feature leaves bookings intact; promoted bookings stay valid.",
+   "missing": "Whether there is an off switch, and whether the waitlist can be enabled per class or class type."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "AC-3.2",
+   "quote": "promotion happens inside the cancellation operation. When the cancel request has returned, a read-back already shows M3 booked, with no polling or delay."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "Classes with open seats book exactly as before. ... Cancellation, the class listing and existing notifications for non-waitlist events are unchanged."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "No existing data is migrated. Existing classes start with empty waitlists."
+  }
+ ]
+}

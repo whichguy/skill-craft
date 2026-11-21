@@ -1,0 +1,180 @@
+{
+ "slot": "grokbot-salesforce__G-shiploop-spec-duty4-bounds__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1, R-8",
+   "quote": "an assigned user opens a \"Grok Bot\" entry from the Lightning App Launcher \u2026 No Salesforce record data is read or sent"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "AD-6",
+   "quote": "Sharing/CRUD/FLS not applicable: no records are read. Class declared `with sharing` as a default."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-9",
+   "quote": "Sharing, object CRUD and field-level security are **not applicable** because the product reads and writes no org records",
+   "missing": "Record access is excluded. There is no field-permission or encrypted-field rule for reading or displaying record data."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-9, Actors",
+   "quote": "only users granted the access grant (a permission set deployed with the product) can open the panel and invoke the server-side operation \u2026 **Org admin** (deploys, grants access, enters the xAI API key)"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-3, R-8",
+   "quote": "context lives only in the open panel (browser memory) \u2026 no saved or shareable conversations, no history across sessions, no multi-user chat \u2026 Chat content is not stored in the org and not written to logs"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "Evidence limits, AD-1",
+   "quote": "callout not allowed after DML in the same transaction \u2026 Apex makes a single synchronous HTTP callout to xAI",
+   "missing": "The post-DML restriction is stated, but the design provides neither a trigger restriction nor an asynchronous job in a separate transaction."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-8, AD-3",
+   "quote": "the xAI API key exists only in the org's secret-credential facility (AD-3): never in source, metadata files, custom settings, the browser, Apex return values, debug logs or the transcript."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Evidence limits",
+   "quote": "1 ms\u2013120 s per callout, 120 s cumulative, 100 callouts \u2026 heap 10 MB sync/25 MB async",
+   "missing": "The Apex CPU-time ceiling is unspecified."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "AD-8",
+   "quote": "Apex tests with `HttpCalloutMock` capturing the request"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-3",
+   "quote": "a Named Credential pointing at the xAI base URL"
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "\"Grok could not process this request (error <status>).\" \u2026 \"Grok is unavailable (error <status>). Try again.\" \u2026 \"Grok did not answer in 60 seconds. It may still have processed your message; try again.\""
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-7, R-13",
+   "quote": "\"Grok is rate-limited right now. Wait a moment and try again.\" \u2026 429 is surfaced, never retried (R-7)"
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-6, R-7",
+   "quote": "\"Reply was cut off at the length limit\" when xAI reports the response as incomplete \u2026 \"Grok did not answer in 60 seconds. It may still have processed your message; try again.\""
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-3, R-8",
+   "quote": "reload, navigating away or closing the tab ends it; nothing is stored in the org \u2026 xAI's own retention policy applies beyond that (G-7)",
+   "missing": "Session cleanup is defined, but the specification gives no deletion behavior for a still-open session or any provider-held copy when the Salesforce user is deleted."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-3, R-8, NFR-3",
+   "quote": "earlier completed exchanges of the same session \u2026 No Salesforce record data is read or sent \u2026 user text leaves the org to xAI; the panel discloses it"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "keep at most **20** messages (Max_History_Messages, including the new message) and at most **100,000** characters total (Max_Context_Chars); drop the **oldest whole exchange** repeatedly until both hold"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-3, R-4, R-6",
+   "quote": "a fresh chat starts blank \u2026 inputs `\"\"`, `\"   \"` rejected (empty); `\"a\"` accepted; 4,000\u00d7`a` accepted; 4,001\u00d7`a` rejected \u2026 each xAI request asks for at most **1,024** output tokens"
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-10, NFR-7",
+   "quote": "these values are deployed with the product as configuration and changed without code change: model id \u2026 per request one debug-log line: outcome class, HTTP status, latency ms, message counts",
+   "missing": "Model changes and failure diagnostics are specified. An administrator has no stated org-wide off switch."
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-12, AD-8",
+   "quote": "deploy, permission-set assignment and entering the key are three separate steps \u2026 Apex coverage rule follows the org's effective test level, read at plan.",
+   "missing": "The dev-org deployment is described, but environment-specific configuration, credential provisioning across environments and the production coverage requirement are unspecified."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "NFR-1",
+   "quote": "Bound: Timeout_Seconds = 60 (B-5); observable: pending state is visible from the moment of submit until the call settles (R-11.2)."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "NFR-9",
+   "quote": "States designed: empty (short greeting with three example prompts), loading (pending indicator, R-11), error (inline, Retry, R-7), not-configured, denied; trimmed-context divider."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-9, R-12",
+   "quote": "the product reads and writes no org records \u2026 it adds only its own components (tab, app or tab-in-existing-app, permission set, Apex, web component, configuration, credential shell) and changes no existing org metadata."
+  }
+ ]
+}

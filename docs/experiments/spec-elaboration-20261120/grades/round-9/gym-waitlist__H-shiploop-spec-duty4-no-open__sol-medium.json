@@ -1,0 +1,149 @@
+{
+ "slot": "gym-waitlist__H-shiploop-spec-duty4-no-open__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.358776,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "by default the opt-in authorizes automatic booking under the existing terms. ... It proceeds with the waiting client closed. ... offer-and-claim windows ... are outside scope."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "vacancies go in order of accepted join, earliest eligible member first ... Selection uses the booking authority's order when joins overlap. ... Staff priority, new fees or entitlements ... are outside scope."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "It proceeds with the waiting client closed. ... Reconcile on a vacancy while open, on any direct booking attempt with available capacity, and when an eligibility change takes effect",
+   "missing": "Timeliness of the background promotion; the NFR says no wall-clock promotion target can be established."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "Service boundaries",
+   "quote": "New notification, external delivery and client live-subscription contracts are inapplicable because confirmation uses existing booking behavior and status is retrieved in the app.",
+   "missing": "What the promoted person is told and what happens when the existing confirmation fails to send; it is deferred to the recovered booking contract."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "one remaining place yields at most one booking, also across simultaneous joins, cancels, withdrawals, direct bookings or repeated vacancy processing."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "At every externally confirmed outcome, occupancy stays within allocatable capacity and the promoted participant is booked only once.",
+   "missing": "What happens to the person's active membership, and which outcome wins, when a waitlisted member books directly at the same moment they are being promoted."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "If the existing flow requires a new payment step or consent at booking time, withhold dependent automatic fulfillment design for that path until the product owner resolves how to fulfill under those terms.",
+   "missing": "When payment for a promoted booking is taken and what happens when it fails."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "There is no feature-specific numerical list cap."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "the existing booking cutoff applies, with class start as the default only if the app has no cutoff. At the effective cutoff and later, the list is closed to joins and promotions."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "A cancellation or other supported capacity change alters the affected occurrence's inventory.",
+   "missing": "What happens when staff lower capacity while a waitlist exists; only an increase is shown, in Case F."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "when the authority closes bookings or cancels the occurrence, the waitlist ends and the accessible occurrence shows its closed or cancelled state. Failure \u2014 stale joins and still-uncommitted promotions produce no new memberships or bookings after closure."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "The booking authority owns membership scoped to the existing participant identity and class occurrence, with an identity for each membership and an authoritative order.",
+   "missing": "Whether join time is stored on the record, and whether position is stored or derived from it."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "At the end of the authorized retention period, purge the person's waitlist data ... No retention duration is assumed.",
+   "missing": "How long ended entries are kept after the class has run."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "The response exposes no other person's record, place in line, identity or private existence signal.",
+   "missing": "Whether members see their own position; R-2 puts 'Position, estimated wait and other members' activity' outside scope instead of showing it."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "authorized operators can trace allocation commitment, failure and recovery, and denied waitlist operations through existing owned diagnostics.",
+   "missing": "A staff view of the waitlist and manual promote or remove actions; staff priority is out of scope."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "No target for wall-clock promotion or uptime can be established from the available evidence.",
+   "missing": "The actual bound on time from cancellation to promotion."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "If an ordinarily bookable place is now available after applying R-3, the stale join leaves the person unqueued and directs them to ordinary booking."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Preserve ordinary booking and cancellation for existing records, including pre-feature classes with no existing waitlist entries.",
+   "missing": "Whether classes already full at launch become joinable right away, and how."
+  }
+ ]
+}

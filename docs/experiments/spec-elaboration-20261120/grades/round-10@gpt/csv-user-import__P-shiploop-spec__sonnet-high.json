@@ -1,0 +1,146 @@
+{
+ "slot": "csv-user-import__P-shiploop-spec__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "PD-1",
+   "quote": "**All-or-nothing:** if any row or the file is invalid, no user is created."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-12 (AL-12.2)",
+   "quote": "each showing its row number, line, field and a plain-language problem"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "the **later** row is `duplicate_in_file` with `first_row` pointing at the earlier. A row whose normalised email equals an existing user's \u2192 `email_taken`."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-2 (AL-2.2), R-7",
+   "quote": "`role-col` \u2192 [`unknown_column` (column `role`)]; S3 unchanged. \u2026 assigns no role beyond whatever the product gives a new user by default",
+   "missing": "Rejecting the role column prevents CSV role overrides. The spec leaves open whether the default grant can exceed the importing admin\u2019s authority and what to do if it does."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "the import operation and the import page are available to an authenticated administrator and to no one else. Authority is evaluated from the product's current role data on every request"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "PD-2, R-2",
+   "quote": "exactly the columns `email` and `name`, in any order, matched case-insensitively after trimming; any other column is an error. \u2026 `missing_column` (`email` or `name` absent), `unknown_column`, `duplicate_column`"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "PD-12",
+   "quote": "comma-separated UTF-8 (an optional BOM is accepted and removed); CRLF and LF line endings are both accepted; a quoted field may contain commas, doubled quotes and line breaks"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-6 (AL-6.2), R-7",
+   "quote": "store forced to fail the **third** insert \u2192 `failed` (500), `created_count` 0; S3 shows S0 unchanged (neither Ada nor Grace exists). \u2026 sends no email or other message."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "two configured limits apply: `MAX_BYTES` (file size) and `MAX_ROWS` (non-blank data records). Over either \u2192 `rejected`, nothing created.",
+   "missing": "The production byte and row limits still need values. The numeric acceptance cases use test settings."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2 (AL-2.3), R-6 (AL-6.4)",
+   "quote": "`empty` \u2192 [`empty_file`]; `header-only` \u2192 [`no_rows`] \u2026 a file with a single valid row \u2192 1 user (`created_count` 1)."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-5 (AL-5.1)",
+   "quote": "`ok-3` first (\u2192 `created`), then `ok-3` again \u2192 `rejected`, `error_count` 3, rows 1, 2, 3 each `email_taken`; S3 shows 6 users in total after both calls (3 + 3), unchanged by the second."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "AD-1",
+   "quote": "The caller receives the final outcome in the response. No job queue, no status polling, no background worker.",
+   "missing": "The response tells the admin when a synchronous import finishes. A background import would need a threshold for switching to a job and a way for the admin to receive its eventual result."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "sends no email or other message."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "the new users hold the product's default new-user role/state and **no credential** \u2026 how they sign in is **not decided here**",
+   "missing": "The spec leaves the default account\u2019s active or pending status unidentified and the first sign-in method open."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "\u00a77, Information lifecycle",
+   "quote": "| Uploaded file | request memory (server) | nobody; never exposed | none | request end |"
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "NFR-3, R-4",
+   "quote": "cell values are stored as given after trimming and are not interpreted. \u2026 Values are trimmed; the email is lowercased",
+   "missing": "The text rule handles date-like and numeric strings literally. The spec gives no locale rule for lowercasing email values."
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "one audit record: actor id, time, outcome (`created`, `rejected`, `failed`, `forbidden`), `row_count` (data records parsed, 0 if parsing did not reach rows), `created_count`, `error_count` and `byte_size`."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "\u00a76, Forbidden or ignored events; PD-1",
+   "quote": "cancellation, expiry and restart** are `n/a: the operation is one synchronous request with no retained work (AD-1)` \u2026 An admin can fix and re-upload the whole file",
+   "missing": "The specified recovery retries the whole file. Supporting a running cancellation or a failed-row-only retry would require defining when work can stop and how to resubmit selected rows after an atomic rejection."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "NFR-2, R-12",
+   "quote": "inside the host's request-time limit for a file of exactly `MAX_ROWS` rows at `MAX_BYTES`. \u2026 **pending** (the control keeps focus and announces \"Importing\u2026\", no second submit, the chooser is inactive)",
+   "missing": "The host timeout and production maximum are unresolved, so there is no concrete completion bound. The pending message shows activity but gives no measure of progress."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-5, R-7",
+   "quote": "Existing users are neither changed nor skipped. \u2026 an imported user is created through the same creation rules as the product's single-user creation, if one exists",
+   "missing": "The spec protects existing records and reuses the single-user rules. It gives no requirement to preserve the manual creation flow and its existing behavior."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-8, R-4",
+   "quote": "The body never contains the contents of a cell. \u2026 email of 254 characters valid, 255 invalid; name of 100 valid, 101 invalid. \u2026 any row error \u2192 `rejected`, nothing created"
+  }
+ ]
+}

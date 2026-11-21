@@ -1,0 +1,150 @@
+{
+ "slot": "gym-waitlist__G-shiploop-spec-duty4-bounds__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3520278,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1.a, R-2.a",
+   "quote": "sees that joining authorizes automatic booking if a seat opens and existing rules allow it. ... allocate each newly bookable seat to the earliest authoritatively accepted active entry currently eligible to book."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2.a",
+   "quote": "allocate each newly bookable seat to the earliest authoritatively accepted active entry ... Order equal-time joins by their recorded acceptance sequence.",
+   "missing": "Whether any membership tier or staff override can jump the queue; the summary only says to revalidate against 'any established priority'."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-2.b",
+   "quote": "if promotion takes effect first, any subsequent cancellation follows the existing booking rules.",
+   "missing": "Whether an automatic promotion the person cannot attend (e.g. one close to class start) counts against the existing late-cancel or no-show policy."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-2.c",
+   "quote": "A vacancy enters fulfillment when existing booking rules make it bookable, including a cancellation that makes a seat bookable. Accepted waitlist work remains eligible for fulfillment with all clients closed.",
+   "missing": "How soon the background work must run; the deadline is left open."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "Service boundaries (Inapplicable), R-3.d",
+   "quote": "outbound notification delivery contract are outside this feature's scope. Existing booking notifications, if applicable, retain their established contract. ... A completed promotion appears on the existing booking surface upon authoritative refresh.",
+   "missing": "Whether a promoted person gets told at all, what the message says, and what happens if sending fails."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2.a, R-2.b",
+   "quote": "allocate up to the smaller of the two counts, rechecking at each commit. ... Duplicate or stale work cannot create a second booking, move a different entry, or displace a committed booking."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2 State and data, R-2.b",
+   "quote": "Waitlist actions cannot introduce a booking in excess of authoritative capacity or an active waitlist entry alongside a confirmed booking for the same booker and instance."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2 Open gaps",
+   "quote": "If interactive confirmation, charging, or another irreversible user action is required, the product owner must decide how to allocate the seat in that flow before planning dependent fulfillment.",
+   "missing": "When payment is taken for a promoted booking and what happens if it fails."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1.c",
+   "quote": "When a required limit prevents a join, show that the waitlist cannot accept the request ... No limit value is selected.",
+   "missing": "Whether there is a cap and what its value is."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-2.c",
+   "quote": "Fulfillment runs inside the existing permitted booking window. At its effective closing boundary use the existing authority's definition of open; once closed, no promotion can commit.",
+   "missing": "The actual cut-off time before class start; the spec says cutoff semantics must be recovered and the values are open."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-2.c",
+   "quote": "A cancellation or capacity change that creates zero bookable seats yields zero promotions.",
+   "missing": "What happens when staff lower capacity while a waitlist (or bookings above the new capacity) exists; raising capacity is only implied."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-3.c",
+   "quote": "When the instance ceases to support bookings permanently, end active participation. Show the applicable closed/canceled state to viewers who are still authorized."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3 State and data, Logical state inventory",
+   "quote": "Keep only existing identity/class references, acceptance order, and the disposition data necessary to reconcile the operation.",
+   "missing": "Whether queue position is stored or derived from acceptance order; the record's fields are only sketched."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-3 State and data",
+   "quote": "When that policy permits removal and reconciliation no longer needs the waitlist record, remove it from persistent feature data and derived views.",
+   "missing": "How long entries are kept after the class runs; no retention period is chosen."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-3.a",
+   "quote": "The default waitlist view shows only own status, with no roster or numeric position. Unauthorized readers and writers cannot see or change another booker's entry"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-3 State and data",
+   "quote": "disclosed to the booker for that entry and existing authorized service roles as required to administer booking.",
+   "missing": "Whether staff can manually promote or remove someone, and whether they can see who was promoted and when."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Submission (Open bounds), R-2 Open gaps",
+   "quote": "No evidence justifies a numeric intake cap, promotion deadline, retry budget, latency target, or retention period.",
+   "missing": "The actual time bound between a cancellation and the promotion."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1 Basis and delta, R-1.a",
+   "quote": "Preserve the existing booking path for available seats ... Below capacity, use existing booking when R-2 leaves a seat available for direct booking."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

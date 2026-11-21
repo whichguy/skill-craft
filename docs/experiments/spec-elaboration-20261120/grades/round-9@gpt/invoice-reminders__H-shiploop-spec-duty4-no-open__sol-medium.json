@@ -1,0 +1,145 @@
+{
+ "slot": "invoice-reminders__H-shiploop-spec-duty4-no-open__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3 summary; R-1 A2 (C1)",
+   "quote": "Use one reminder milestone per stable invoice identity. \u2026 eligible starting at the beginning of the day after its due date"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1 A2 (C2)",
+   "quote": "A collectible partially paid invoice with positive balance qualifies. \u2026 Draft, void, uncollectible and fully paid invoices and invoices with zero or credit balance are ineligible.",
+   "missing": "Whether a dispute or an active payment plan suppresses a reminder while a positive balance remains, and whether a partial credit changes eligibility independently of the resulting balance."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "C2; R-2 B1 (C3)",
+   "quote": "Independently post USD 40 before authorization. A2 qualifies USD 60. \u2026 ask the recipient to pay the outstanding invoice.",
+   "missing": "Whether the message shows the remaining USD 60, the original USD 100, or no amount."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-2 B1 (C3)",
+   "quote": "Withhold when the sender or destination is missing, invalid, ambiguous, unauthorized or suppressed by the applicable sending policy.",
+   "missing": "Which customer do-not-contact, pause and unsubscribe settings suppress billing reminders, and whether billing notices are exempt from a marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-3 D1 (C4)",
+   "quote": "Before handoff, establish durable ownership of the intent so overlapping evaluations cannot independently send it. \u2026 A crash or replay recovers the same intent. An accepted intent causes zero further sends."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1 A3 (C2)",
+   "quote": "Before authorizing each dispatch, use the current scoped grant, enablement, invoice, balance, due date and recipient. Decision-changing updates effective before authorization supersede candidate selection."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-3 D2 (C4)",
+   "quote": "After authoritative recoverable nonacceptance, retry on a later eligible processing opportunity when the sending route permits, under the same intent and after A3. A permanent rejection stays visible until relevant input or authority changes.",
+   "missing": "When repeated failures or a sustained provider outage trigger escalation, and who is alerted."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "Non-functional requirements, Capacity and compatibility (C4)",
+   "quote": "At a runtime or sender limit, respect the limit, retain recoverable work and resume when permitted."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-1 summary (C1)",
+   "quote": "Include invoices still overdue at activation or after missed evaluations, since they meet the same eligibility rule.",
+   "missing": "How to stagger the first sends across already-overdue invoices so activation does not release the entire backlog at once."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1 A2 (C1)",
+   "quote": "Use the authoritative invoice billing time zone, then the organization's billing time zone, then UTC if both are absent",
+   "missing": "Whether dispatch follows the customer\u2019s local time when it differs from the billing zone, and which hours, weekends or holidays permit sending."
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-2 B1 (C3)",
+   "quote": "Withhold when the sender or destination is missing, invalid, ambiguous, unauthorized or suppressed by the applicable sending policy. Expose the reason to authorized operations.",
+   "missing": "How to handle a bounce reported after the provider accepted a message to an apparently valid address."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-2 B1 (C3)",
+   "quote": "to the current designated billing address. \u2026 Withhold when the sender or destination is missing, invalid, ambiguous, unauthorized or suppressed by the applicable sending policy. \u2026 Each message has one recipient."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3 D3 and Domain and state (C5)",
+   "quote": "The reminder authority owns durable dispatch state keyed by organization and stable invoice identity. \u2026 Keep the intent, current outcome, needed attempt correlation and minimal times and reasons.",
+   "missing": "Whether and how the invoice itself displays a history identifying what reminder was sent at each step and when. Operations can read the outcome, but the stored record excludes message bodies."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C3",
+   "quote": "The North recipient sees North, INV-41, 2026-11-20 and a request to pay the outstanding invoice.",
+   "missing": "Whether to include the amount and payment instructions or a payment link, and when any such link expires."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-1 and R-3, Domain and state (C2)",
+   "quote": "Only the existing authorized billing role can activate or deactivate it. \u2026 Recurring dunning, manual resend and collection actions are outside scope.",
+   "missing": "Whether anyone may edit the cadence, initiate a first send manually or stop an individual reminder, and which roles may do so."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1 and R-3, Domain and state (C2)",
+   "quote": "Deactivation ends evaluation for that scope and supersedes stale eligibility. \u2026 Recurring dunning, manual resend and collection actions are outside scope.",
+   "missing": "Whether the organization can pause reminders for one customer and whether operators can preview or dry-run pending sends."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-3 D3 (C5)",
+   "quote": "Authorized billing operations can distinguish withheld, pending, sender accepted, definitive failure and unknown using scoped identity, time and reason where applicable.",
+   "missing": "How operations can see which invoices will receive the next reminders and when, before a dispatch intent is pending."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-3 summary; Non-functional requirements, Capacity and compatibility (C4)",
+   "quote": "Use one reminder milestone per stable invoice identity. \u2026 At a runtime or sender limit, respect the limit, retain recoverable work and resume when permitted.",
+   "missing": "What aggregate volume cap applies across invoices or how long after the scheduled date a delayed reminder may still go out."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1, Domain and state",
+   "quote": "Invoice, payment, contact and unrelated configuration facts are unchanged by success, withholding and interruption. \u2026 Invoice creation, payment recording and collections escalation are outside this change."
+  }
+ ]
+}

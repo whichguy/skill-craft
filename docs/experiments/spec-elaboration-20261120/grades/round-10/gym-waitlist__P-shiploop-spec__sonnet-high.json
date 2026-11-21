@@ -1,0 +1,143 @@
+{
+ "slot": "gym-waitlist__P-shiploop-spec__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.38509459999999995,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "PD-1",
+   "quote": "Promotion is **automatic**: when a place frees, the first eligible waiting member is booked without a further confirmation step."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "PD-2, R-3",
+   "quote": "Order is **first-come-first-served** by the moment the join was accepted. No priority tiers. ... Two joins arriving together get distinct sequences, decided by the order the service commits them. ... Left out: priority/tier ordering, manual reordering by staff."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Left out (domain rules the request does not state): waitlisting for several overlapping classes; ... None is implemented.",
+   "missing": "Whether a member may wait on overlapping classes at all, and what happens to the other entry when one is promoted."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-5, G-3",
+   "quote": "penalties or fees for late cancellation (existing rule, preserved, unknown)",
+   "missing": "Whether a promotion the member did not attend or a promotion close to start counts against the existing no-show/late-cancel policy."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-5, Service boundary assessment",
+   "quote": "books the lowest-sequence eligible waiting member ... **in the same atomic unit as the cancellation** ... promotion is **synchronous with the cancellation** (committed together), so no queue, worker or outbox is introduced"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-6, PD-8",
+   "quote": "the member is informed they are now booked, class name and start. At minimum the in-app status changes ... notification delivery failure never reverses the promotion ... the failure is logged"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-5, R-9",
+   "quote": "Exactly one waiting member is promoted per freed place. ... two cancels freeing two places with one waiter (one promotion, one free place)"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-9, I-2",
+   "quote": "all state-changing operations on one class (book, cancel, join, leave, promote, capacity change, expiry) are serialised so that I-1\u2026I-5 hold ... I-2 a member has at most one of {booked booking, waiting entry} per class"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "G-3, PD-7",
+   "quote": "Eligibility at promotion: credits/payments/limits/late-cancel fees. Does promotion charge the member? ... PD-7: reuse ordinary booking rules; skip ineligible",
+   "missing": "When payment is taken for a promoted booking and what happens if it fails (left as an open user decision)."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "PD-4",
+   "quote": "The waitlist has **no product-imposed length cap**. Request names none; an invented bound is forbidden."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "PD-5, R-8",
+   "quote": "no promotion after start ... an operation at exactly the start instant counts as started (inclusive) ... promotion itself checks `now < start`"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "if capacity rises from C to C\u2032, then in the same atomic unit the first (C\u2032\u2212booked) eligible waiting members are promoted ... Lowering capacity ... keeps the existing rule of the app (unknown); it never creates or removes waiting entries."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "If the class is cancelled by staff (when the app supports that), entries become `closed` and each waiting member is informed using the R-6 channel rules"
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "Domain model",
+   "quote": "Waitlist entry: member \u00d7 class session, `sequence` (monotonic per class, assigned at accept time), status `waiting | promoted | left | skipped | expired | closed`. ... Position ... Derived, never stored independently"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-8, R-11",
+   "quote": "at the class start time every `waiting` entry becomes `expired` ... Terminal entries are retained only for as long as and in the same manner as the existing app retains booking history for that class; no longer."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "PD-6, R-10",
+   "quote": "A member sees **their own** position and the **count** of people waiting, never another member's identity."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "G-7, R-4",
+   "quote": "Do staff need a waitlist roster or removal capability? | Not provided ... Left out: staff removing a member from the waitlist (not requested; G-7).",
+   "missing": "Whether staff can view the waitlist, promote or remove by hand, and see promotion history (only logs of waitlist.promoted are stated)."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-5, AD-2",
+   "quote": "**in the same atomic unit as the cancellation** ... No window exists in which the place is free and bookable by a non-waiting member (I-3)."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "the waitlist action appears only when a class is full; otherwise the unchanged booking action is shown. Booking a class that is not full never creates a waiting entry."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "Transition ledger audit",
+   "quote": "*migration* n/a (new records only, no existing data changed, but see G-1 for schema change in the existing store)",
+   "missing": "Whether classes already full at launch gain a waitlist and how existing full classes are handled at ship time."
+  }
+ ]
+}

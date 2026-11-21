@@ -1,0 +1,145 @@
+{
+ "slot": "invoice-reminders__G-shiploop-spec-duty4-bounds__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "Product model (Reminder policy), R-1, R-3",
+   "quote": "ordered `schedule` of distinct integer day offsets from the invoice due date (negative = before due, 0 = on due date, positive = after)"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2, R-4",
+   "quote": "Drafts, voided and fully paid invoices never receive a reminder. A partially paid invoice counts as unpaid and its reminder states the *remaining* balance",
+   "missing": "Whether a dispute or payment plan suspends reminders on an invoice that still has an outstanding balance."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A partially paid invoice counts as unpaid and its reminder states the *remaining* balance"
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "G-9",
+   "quote": "Legal/compliance rules for payment-reminder emails (unsubscribe, consent, regional rules) \u2014 not assessed here",
+   "missing": "Which customer do-not-contact, pause or unsubscribe settings suppress a reminder, and whether a marketing opt-out exempts billing notices."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "at most one message is dispatched per (invoice, offset), across repeated runs, overlapping runs, restarts and retries of the same run."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "the invoice's unpaid status is evaluated **immediately before each dispatch**, not only when the run starts."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-6, G-11",
+   "quote": "zero automatic retries** \u2014 one dispatch attempt per (invoice, offset), the next offset is unaffected.",
+   "missing": "How to handle a provider-wide outage and when persistent failures should trigger human intervention. The interim policy exposes failures only in history."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "NFR-2",
+   "quote": "a run that cannot dispatch every due step (quota or time limit) leaves the unprocessed steps unclaimed",
+   "missing": "The applicable provider quota and how to pace a large batch within its rate window."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "enabling a disabled policy sets it for all offsets to the enabling time. A step whose due instant is earlier than `active_since` is never sent (recorded `SkippedInactive`)"
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "G-5, R-3, NFR-1",
+   "quote": "Policy time zone. Interim: UTC unless the account already has a business time zone (then that one).",
+   "missing": "How sending hours relate to the customer's local business hours, weekends and holidays. The schedule uses account calendar days."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-5 (AC-5.1)",
+   "quote": "contains `INV-1001`, `500.00 USD`, `2026-11-10`",
+   "missing": "How to format amounts for other currencies and their decimal precision, and which number format recipients see."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-5 (AC-5.3), R-6",
+   "quote": "INV-2006 with no billing address \u2192 no message; record `NotSentNoRecipient`; History shows the reason",
+   "missing": "How to handle a present but invalid address or a bounce after provider acceptance, including whether later steps reuse that address."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "one message per reminder, by email (D-6; G-6) to the invoice's billing contact address.",
+   "missing": "Which address to choose when an invoice has several billing contacts."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "can see, per invoice, every reminder record: offset, state, reason, recipient, attempted time.",
+   "missing": "How the invoice history shows the actual message content or invoice details sent at that step."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "How to pay (link or instructions) is included if and only if the invoicing system already has one for that invoice (G-6); otherwise the message says to contact the issuer.",
+   "missing": "Whether the payment link expires and, if so, when."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "G-1, R-1, R-9",
+   "quote": "Who may configure/see reminders. Interim: the account owner/admin role only.",
+   "missing": "Whether anyone can manually send or stop an individual reminder and which role may do so."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-9, R-8",
+   "quote": "Disabling stops all future sends immediately; existing records are untouched.",
+   "missing": "How an operator disables reminders for one customer or previews a run. The at-most-once rule also precludes a manual resend of a recorded step."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-6, R-7",
+   "quote": "a synchronous rejection by the mail transport sets the record `Failed` with a reason and the failure is visible in history",
+   "missing": "How an operator sees the next scheduled reminder before it is attempted."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "G-2",
+   "quote": "the finite, human-entered, distinct-offset list (at most one reminder per invoice per day) is the cap."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "invoices are **observed only**; this feature never modifies an invoice."
+  }
+ ]
+}

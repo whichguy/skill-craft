@@ -1,0 +1,149 @@
+{
+ "slot": "csv-user-import__G-shiploop-spec-duty4-bounds__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-3, C-5 (R-3)",
+   "quote": "The complete creation set becomes authoritative before success can be reported. \u2026 A confirmed pre-commit failure after partial preparation leaves zero created users from that attempt"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-3 (R-2)",
+   "quote": "An invalid field or missing required value rejects the entire file and identifies the affected CSV record and, where identifiable, its column and the reason."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-4 (R-3)",
+   "quote": "An identity collision within the file or with an existing account rejects the full attempt without modifying the conflicting account."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-3 (R-2)",
+   "quote": "CSV fields cannot select a target or bypass the assigned permissions of ordinary user creation.",
+   "missing": "The builder still needs a rule for rejecting role columns or checking each requested role against the importing admin\u2019s own authority."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-1 (R-1)",
+   "quote": "An admin with create authority in the selected user-management scope can open the import and select a CSV.",
+   "missing": "The spec uses the admin\u2019s create authority as the entry condition. It leaves out a separate grant for bulk import."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-3 (R-2)",
+   "quote": "missing or duplicate headers, unsupported headers, and data records with the wrong field count reject the file with actionable feedback; no user is created."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-2, C-3 (R-2)",
+   "quote": "UTF-8 with an optional initial byte-order mark, comma-delimited fields, one header record, CRLF or LF record separators \u2026 Double-quoted fields can contain commas, line breaks or doubled quotes representing a literal quote."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-5 (R-3, State and gaps)",
+   "quote": "verify whole-batch publication, including any mandatory provisioning effects, inside the safe envelope.",
+   "missing": "The spec requires atomic account creation but leaves open when invitations may be sent and what happens to invitations already sent if a later row fails."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C-6",
+   "quote": "the effective byte ceiling and any independently necessary processing bound have no established values. \u2026 confirm accepted creation at the ceiling and zero effects with a size error above it.",
+   "missing": "The builder still needs the maximum file size or row count."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-3, C-2 (R-2, R-3)",
+   "quote": "Empty input, header-only input and data made up entirely of empty records produce a no-data error. \u2026 A single valid data row is enough for an import."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-4 (R-3)",
+   "quote": "A repeat of a successful file while those identities still exist fails with conflicts and creates no duplicates."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-2",
+   "quote": "The view shows pending before confirmation. \u2026 T-6 shows one created.",
+   "missing": "The current view reports completion, but the spec leaves open whether large uploads run as background jobs."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-2 (R-3, State and gaps)",
+   "quote": "determine the canonical identity, uniqueness scope, account defaults and any required invitations, activation, credentials, notifications or audit effects.",
+   "missing": "The builder still needs to know whether to send welcome or invitation mail for imported users and, if so, at what rate."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-2 (R-3, State and gaps)",
+   "quote": "Created accounts use the ordinary user lifecycle. \u2026 account defaults and any required invitations, activation, credentials, notifications or audit effects.",
+   "missing": "The spec leaves the account\u2019s initial activation status, password setup and first sign-in flow to an unidentified account policy."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-1, C-7 (R-2, R-4)",
+   "quote": "The authoritative import operation temporarily holds accepted input \u2026 Unrelated clients and revoked actors receive no import data \u2026 Discard temporary processing data when the operation settles or is terminated \u2026 T-8 ends accessible local feedback."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-7 (R-4)",
+   "quote": "using sanitized attempt references and outcome categories. \u2026 Existing mandatory account auditing, if applicable, follows its authoritative policy",
+   "missing": "The builder still needs to know whether an audit record must tie an importing admin and timestamp to the affected accounts."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-5 (R-4, R-3)",
+   "quote": "A disconnected or superseded view cannot control a submitted operation. \u2026 Input correction, or a fresh submission following a confirmed zero-effect failure, is the recovery path.",
+   "missing": "After rejection, the admin can correct the file and resubmit the whole batch. The spec leaves open whether the admin can explicitly cancel a pending attempt and when cancellation takes effect."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-6, C-2 (Capacity and responsiveness)",
+   "quote": "At the effective input envelope, the surface shows processing and remains responsive to navigation \u2026 No SLA or numeric performance target is established.",
+   "missing": "The builder still needs the maximum time allowed to finish a file at the size ceiling."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "C-2, C-4 (R-3)",
+   "quote": "Existing users are preserved. \u2026 Uniqueness is resolved at authoritative publication, including simultaneous ordinary user creation.",
+   "missing": "The spec accounts for concurrent manual creation but leaves preservation of the full single-user creation workflow unstated."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

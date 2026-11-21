@@ -1,0 +1,146 @@
+{
+ "slot": "csv-user-import__P-shiploop-spec__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "F-2",
+   "quote": "either commits the complete user set and confirms it (T-5) or definitively rejects it (T-4)."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2 A3",
+   "quote": "For a parseable file with the expected header and field count, identify each invalid field by record number and field, with correction guidance."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3 A2",
+   "quote": "Repeated identities in the file or identities that already exist in the directory's uniqueness scope reject the entire batch. Report affected logical records without disclosing protected directory details."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-3 A1, R-2 A2, TC-3",
+   "quote": "CSV input cannot assign privilege or override account lifecycle defaults. \u2026 Reject invalid encoding, malformed quoting, incorrect headers, unequal field counts and files with no data. \u2026 GH fails the header"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1 A1\u2013A2",
+   "quote": "An authenticated admin with create permission for the active account scope can open Import users. \u2026 Unauthenticated, non-admin, out-of-scope and unresolvable authority requests cannot start a new attempt"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2, R-2 A2",
+   "quote": "The default header is exactly `email`, case sensitive, with exactly one field per data record. \u2026 Reject invalid encoding, malformed quoting, incorrect headers, unequal field counts and files with no data."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "UTF-8 with an optional initial byte-order mark, comma delimiter, LF or CRLF record endings, with or without a final record ending. Support double-quoted fields, doubled quotes within quoted fields and quoted record breaks."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-3, Open gap",
+   "quote": "If normal creation has irreversible effects or the boundary cannot meet atomicity, reconcile the product policy with its owner before affected work.",
+   "missing": "A builder still needs a rule for when invitations may be sent and what to do with invitations already sent if a later row fails."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2 A4",
+   "quote": "Valid input exactly at either limit is eligible. Input one unit over is rejected with zero writes.",
+   "missing": "The maximum file size in bytes and maximum number of data records are unspecified."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2 A2, R-3 A1",
+   "quote": "Reject invalid encoding, malformed quoting, incorrect headers, unequal field counts and files with no data. \u2026 Both one-row and multi-row files are valid."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-4 A3, R-3 A2",
+   "quote": "At most one commit per reference. \u2026 After expiry the admin may start a fresh attempt, which still obeys R-3 uniqueness. \u2026 identities that already exist in the directory's uniqueness scope reject the entire batch."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-4 A1, A4",
+   "quote": "Import shows Submitting with an accessible status, blocks repeat clicks and reports Created with the exact committed count upon confirmation. \u2026 No post-submit cancel or promised unattended processing.",
+   "missing": "The form reports completion, but there is no large-file background workflow or completion notice for an admin who has left the form."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3, Open gap",
+   "quote": "onboarding effects such as existing invite behavior \u2026 Normal defaults and effects have no imported override.",
+   "missing": "The spec leaves open whether creation sends welcome or invitation emails and whether those messages go out together or at a defined rate."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3 A1, R-3 Open gap",
+   "quote": "ordinary new-user defaults \u2026 default role and account state, onboarding effects such as existing invite behavior",
+   "missing": "The initial account state, whether a password is provisioned, and the first sign-in steps are unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2, State and data",
+   "quote": "only while resolving the request, then removes its processing copies on success, rejection or when the authoritative request is abandoned. Raw bytes, filenames and row values stay out of operation status, diagnostic telemetry and durable import storage."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-5, State and boundary",
+   "quote": "The import authority emits restricted operational events with event category, scoped actor reference where known, safe correlation, time and aggregate outcome where applicable."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-4 A4, R-3 State and data",
+   "quote": "No post-submit cancel or promised unattended processing. \u2026 Correct a failed batch and resubmit.",
+   "missing": "Cancellation is explicitly unavailable after submission. Recovery specifies whole-batch resubmission and gives no way to select only the failed records for retry."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-4 A1, Non-functional requirements (capacity, latency and resource use)",
+   "quote": "Import shows Submitting with an accessible status \u2026 Bound file bytes, data records, field/processing resources, concurrent attempts, time to authoritative resolution and retained state.",
+   "missing": "There is no time bound for a maximum-size file. The form shows that work is pending without indicating how much has finished."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2, R-3",
+   "quote": "Preserve other user-management journeys and ordinary account field validation. \u2026 Preserve existing user records, entitlements, and ordinary account-creation invariants."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "Non-functional requirements (capacity, latency and resource use)",
+   "quote": "Bound file bytes, data records, field/processing resources \u2026 Oversize and capacity rejections must be legible and side-effect free.",
+   "missing": "The spec gives no per-field length limit or rule for handling formula-like values in results opened in a spreadsheet."
+  }
+ ]
+}

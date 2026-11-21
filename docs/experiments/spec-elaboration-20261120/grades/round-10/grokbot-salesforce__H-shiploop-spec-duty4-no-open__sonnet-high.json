@@ -1,0 +1,184 @@
+{
+ "slot": "grokbot-salesforce__H-shiploop-spec-duty4-no-open__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.5393941999999999,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "the product ships a Lightning app and a tab (names in AD-4) that show the chat component full-width. A user holding the product's permission set sees the app in App Launcher and can open the tab by URL"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "(c) The controller reads and writes no Salesforce record data and does not pass any org data to xAI beyond what the user typed; the bot has no action it can take in the org."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "AD-1",
+   "quote": "Object CRUD/FLS: not applicable because no standard or custom object is read or written; the Custom Metadata read is of the app's own configuration type."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "AD-5",
+   "quote": "`Grok_Bot_User` grants: visibility of tab `Grok_Bot` and app `Grok_Bot_App`; access to `GrokBotController` ... External Credential principal access",
+   "missing": "Use is gated by a permission set, but administration is only 'admins in Setup' / 'Setup users with credential admin rights'; no named permission or permission set defines who may administer the bot."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "State and information lifecycle",
+   "quote": "That browser session only; sent to xAI per send (R-9); not readable by other Salesforce users or admins"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "NFR-PERF",
+   "quote": "one callout per transaction (platform limit 100), no DML so the \"callout after pending DML\" restriction cannot trigger.",
+   "missing": "The spec deals with the DML-before-callout restriction but rejects an asynchronous design and runs the callout synchronously (AD-1). It never addresses the trigger constraint and adopts no Queueable/future/batch design."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "NFR-SEC",
+   "quote": "API key stored only as an External Credential secret (R-11 A3 proves none in source; Setup shows the parameter masked)"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "AD-1",
+   "quote": "100 callouts/transaction, 120 s cumulative timeout, 10 s default, 120 000 ms maximum per callout, no callout after pending DML",
+   "missing": "Heap is explicitly 'not verified here and is not asserted', and CPU time is not mentioned; no numbers are given for either."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "AD-6",
+   "quote": "Apex: `GrokBotControllerTest`/`GrokClientTest` with `HttpCalloutMock` ... none uses the real xAI endpoint"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-4",
+   "quote": "Named Credential | `Grok_API` (URL `https://api.x.ai/v1`, bound to `Grok_xAI`)"
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "AD-1",
+   "quote": "browser LWC `grokBot` \u2192 imperative Apex call `GrokBotController.send` ... Rejected: ... Apex Queueable/async",
+   "missing": "The UI learns of the reply only because the synchronous Apex call returns inline. No event, CDC, polled status or LMS mechanism is defined."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "Service boundary: xAI Chat Completions",
+   "quote": "Duplicates / ordering: single in-flight guard (T-9); no idempotency key because no retry is automatic."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "State and information lifecycle",
+   "quote": "One in-flight send per component; Send disabled while pending (R-2 A5); two tabs have independent transcripts",
+   "missing": "No org-wide concurrency limit (e.g. concurrent long-running Apex requests) is named, and nothing says what happens to a request rejected for capacity."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "xAI HTTP 5xx | UPSTREAM | \"Grok is temporarily unavailable. Try again.\" | `CalloutException` read timeout | TIMEOUT ... Any other HTTP 4xx ... | REQUEST"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-5 / R-6",
+   "quote": "No automatic retry (a retry could bill twice and cannot be proven safe). ... xAI HTTP 429 | RATE_LIMIT | \"Grok is rate-limiting requests. Try again shortly.\""
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-5 / R-6",
+   "quote": "The reply length is capped by *K* = 1024 tokens ... `CalloutException` read timeout | TIMEOUT | \"Grok took too long to answer. Try again.\"",
+   "missing": "The never-arrives case is covered by TIMEOUT, but a reply truncated at the token cap (finish_reason 'length') has no stated detection or user-visible indication."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-9",
+   "quote": "The product stores no transcript anywhere (see State table), logs no message text (R-10), and keeps no xAI response id.",
+   "missing": "The spec deliberately stores no conversation records, so there is no record shape with role, status, timestamps, model identifier or token/usage counts, and usage is not captured anywhere."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "State and information lifecycle",
+   "quote": "New chat (R-13, F-2), page reload, navigation away: all clear it. No persistence"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-7 / R-9",
+   "quote": "does not pass any org data to xAI beyond what the user typed ... \"Messages are sent to xAI. Don't enter confidential or customer data.\""
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Only the most recent *N* = 20 messages (default; configurable per R-8) ending with the new user message are transmitted; earlier ones stay visible in the UI but are not sent."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-2 / R-4",
+   "quote": "before the first message the transcript area shows \"Ask Grok anything.\" ... a message that is empty after trim is not sent ... a 4000-character message is accepted; a 4001-character message is refused"
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-8 / R-10",
+   "quote": "Changing a value in Setup (Custom Metadata) takes effect on the next send with no redeploy. ... logged at INFO with outcome code (`OK` or an errorCode)",
+   "missing": "Changing the model is covered, and failures are visible only through debug logs. There is no explicit way to turn the bot off (no enable flag or kill switch)."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "R-10",
+   "quote": "each send produces one correlation id ... logged at INFO with outcome code ... No log line contains the message text, reply text",
+   "missing": "No audit record of who asked what and what was answered. The log omits content and identity, and its retention is left to platform policy."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-11 / AD-6",
+   "quote": "deploys to the target development org with a single `sf project deploy start --target-org <alias>` ... Org-level coverage gate for a non-dev target: unresolved, not applicable to a development org.",
+   "missing": "How configuration and credential differ per environment (dev vs sandbox vs production) and the production 75% coverage requirement are not decided."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "NFR-PERF / R-2",
+   "quote": "pending state appears synchronously on send (A2 of R-2), a hard cap of *T* (60 s default, \u2264120 s platform cumulative limit, AD-1)"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "NFR-UI",
+   "quote": "Designed states: empty (R-2 A1), pending (indicator, Send disabled), error (R-6 text + Retry), config-missing (R-6 CONFIG text); none shows raw JSON or a blank card."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-11",
+   "quote": "deploys additively (no deletion or overwrite of existing org metadata) ... Anything already in the org stays untouched."
+  }
+ ]
+}
