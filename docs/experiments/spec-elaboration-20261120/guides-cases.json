@@ -1,0 +1,34 @@
+{
+  "_doc": "Checklists for the guides test's cases that are not in cases.json, which is frozen. A checklist here is NOT written independently: it is carried over from a frozen one, item for item, by the spec-elaboration session, before any run of its case (journal section 48).",
+  "cases": [
+    {
+      "id": "csv-ticket-import",
+      "title": "CSV ticket import (the guides test's second case)",
+      "request": "Let agents upload a CSV to bulk-create tickets.",
+      "note": "Not written independently: the csv-user-import checklist carried over to tickets item for item by the spec-elaboration session on 2026-11-21 (journal section 48), before any run of this case. Nine items are reworded for tickets; the other twelve are unchanged.",
+      "nuances": [
+        {"id": "N-1", "category": "interaction", "nuance": "Partial failure: whether the import is all-or-nothing or row by row, stated deliberately."},
+        {"id": "N-2", "category": "interaction", "nuance": "What the agent gets back: a result naming the rows that failed and why."},
+        {"id": "N-3", "category": "interaction", "nuance": "A row matching a ticket that already exists: skipped, updated, or an error — and duplicates within the one file."},
+        {"id": "N-4", "category": "permission", "nuance": "An import must not create a ticket in a state or with fields the importer could not set one at a time: values named in the file are checked against the importer's own authority."},
+        {"id": "N-5", "category": "permission", "nuance": "Who may import at all, and that the ability is not implied by being able to create one ticket."},
+        {"id": "N-6", "category": "unhappy", "nuance": "Validation of the file itself: required columns, unexpected or missing columns, a missing header row."},
+        {"id": "N-7", "category": "unhappy", "nuance": "File encoding and shape: a byte-order mark, line endings, quoted fields containing commas or newlines."},
+        {"id": "N-8", "category": "unhappy", "nuance": "A row failing after side effects have already happened for earlier rows (notifications already sent)."},
+        {"id": "N-9", "category": "edge", "nuance": "A limit on file size or row count, and what happens to a file above it."},
+        {"id": "N-10", "category": "edge", "nuance": "An empty file, a file with only a header, and a single-row file."},
+        {"id": "N-11", "category": "edge", "nuance": "The same file uploaded twice: the import is idempotent or says why not."},
+        {"id": "N-12", "category": "async", "nuance": "A large file is processed in the background, and how the agent learns it finished."},
+        {"id": "N-13", "category": "async", "nuance": "The requesters' notifications for the new tickets: whether hundreds go out at once, and the pacing if so."},
+        {"id": "N-14", "category": "data", "nuance": "The initial state of a created ticket: its status, priority and assignee when the file does not give them, and the times it is stamped with."},
+        {"id": "N-15", "category": "data", "nuance": "The uploaded file holds personal data: where it is stored, for how long, and who may download it again."},
+        {"id": "N-16", "category": "data", "nuance": "Date, number and locale handling of the file's values."},
+        {"id": "N-17", "category": "operator", "nuance": "An audit of who imported what and when."},
+        {"id": "N-18", "category": "operator", "nuance": "Cancelling an import that is running, and retrying only the rows that failed."},
+        {"id": "N-19", "category": "nonfunctional", "nuance": "A bound on how long a file of the stated maximum size takes, and visible progress while it runs."},
+        {"id": "N-20", "category": "preserve", "nuance": "Creating a single ticket by hand still works exactly as it does, and existing tickets are not modified."},
+        {"id": "N-21", "category": "unhappy", "nuance": "Hostile content in the file: a value that becomes a formula when the result is opened in a spreadsheet, or a field far longer than any column allows."}
+      ]
+    }
+  ]
+}

@@ -58,6 +58,24 @@ HARNESS = "test/shiploop_e2e/run.py"
 BUILD_ARM = "docs/experiments/sdlc-structure-20261119/build_arm.py"
 OVERLAYS = HERE / "overlays"
 LABELS = HERE / "labels"
+# A study is one sentence on one existing program with one checklist. `use` points the driver at one of them.
+STUDIES = {
+    "users": {
+        "request": REQUEST,
+        "checklist": CASE,
+        "base_case": BASE_CASE,
+        "fixture": "node-base",
+        "labels": "here-{}.json",
+    },
+    "tickets": {
+        "request": "Let agents upload a CSV to bulk-create tickets.",
+        "checklist": "csv-ticket-import",  # in guides-cases.json: the first study's checklist carried over to tickets
+        "base_case": "ticket-import",  # its base, fixtures/node-tickets
+        "fixture": "node-tickets",
+        "labels": "here-tickets-{}.json",
+    },
+}
+STUDY, LABEL_NAME = "users", "here-{}.json"
 RESULTS = HERE / "results"
 SPEC = "docs/shiploop/spec.md"
 ARMS = ("A", "R", "C", "X")
@@ -179,6 +197,32 @@ LAY_BASE = (
 )
 RENDER = "import sys; sys.path.insert(0, sys.argv[1]); import shiploop_prompts as p; sys.stdout.write(p.prompt('spec'))"
 GOALS = "import sys, json; sys.path.insert(0, sys.argv[1]); import shiploop_stage_spec as s; print(json.dumps({name: row.goal for name, row in s.STAGE_SPEC.items()}))"
+
+
+def use(study: str) -> None:
+    """Point the driver at one study: its sentence, its checklist, its base and its label files."""
+    global REQUEST, CASE, BASE_CASE, FIXTURE, STUDY, LABEL_NAME
+    chosen = STUDIES[study]
+    REQUEST, CASE, BASE_CASE, LABEL_NAME, STUDY = (
+        chosen["request"],
+        chosen["checklist"],
+        chosen["base_case"],
+        chosen["labels"],
+        study,
+    )
+    FIXTURE = REPO / "test" / "shiploop_e2e" / "fixtures" / chosen["fixture"]
+
+
+def checklist() -> dict:
+    """The study's checklist: a frozen bench case, or one carried over from it in guides-cases.json."""
+    frozen = grade.cases()
+    if CASE in frozen:
+        return frozen[CASE]
+    return next(
+        case
+        for case in json.loads((HERE / "guides-cases.json").read_text())["cases"]
+        if case["id"] == CASE
+    )
 
 
 def sh(argv: list[str], cwd: Path) -> str:
@@ -408,6 +452,7 @@ def cmd_prepare(root: Path, allow_dirty: bool) -> int:
             1 for line in diff if line[:1] in "+-" and line[:3] not in ("+++", "---")
         )
     record = {
+        "study": STUDY,
         "checkout": str(REPO),
         "head": sh(["git", "rev-parse", "HEAD"], REPO).strip(),
         "checkout_status_lines": len(dirty),
@@ -431,10 +476,10 @@ def cmd_prepare(root: Path, allow_dirty: bool) -> int:
 
 
 def cmd_sort(judge_name: str, timeout: int) -> int:
-    out = LABELS / f"here-{judge_name}.json"
+    out = LABELS / LABEL_NAME.format(judge_name)
     if out.is_file():
         raise SystemExit(f"{out.name} exists: the sort is done once")
-    judge, case = grade.JUDGES[judge_name], grade.cases()[CASE]
+    judge, case = grade.JUDGES[judge_name], checklist()
     wanted = [n["id"] for n in case["nuances"]]
     cwd = grade.WORK / "labels" / f"here-{judge_name}-{uuid.uuid4().hex[:6]}"
     cwd.mkdir(parents=True)
@@ -496,7 +541,7 @@ def cmd_sort(judge_name: str, timeout: int) -> int:
 
 
 def label_files() -> dict[str, Path]:
-    return {name: LABELS / f"here-{name}.json" for name, _ in JUDGE_TAGS}
+    return {name: LABELS / LABEL_NAME.format(name) for name, _ in JUDGE_TAGS}
 
 
 def labels_committed() -> bool:
@@ -520,7 +565,7 @@ def frozen_items(root: Path) -> dict:
         raise SystemExit(
             f"step 0 is not done: {missing} missing; run `sort opus` and `sort astra`"
         )
-    wanted = [n["id"] for n in grade.cases()[CASE]["nuances"]]
+    wanted = [n["id"] for n in checklist()["nuances"]]
     sorts = {}
     for name, path in files.items():
         record = json.loads(path.read_text())
@@ -1355,7 +1400,7 @@ def verdicts(manifest: dict, code: str, tag: str | None) -> dict | None:
         v.get("id"): v.get("state")
         for v in json.loads(kept.read_text()).get("verdicts") or []
     }
-    wanted = [n["id"] for n in grade.cases()[CASE]["nuances"]]
+    wanted = [n["id"] for n in checklist()["nuances"]]
     return (
         {i: RANK[states[i]] for i in wanted}
         if all(states.get(i) in RANK for i in wanted)
@@ -1386,7 +1431,7 @@ def seal(root: Path, manifest: dict, rubric: str) -> list:
 
 
 def cmd_judge(root: Path, set_id: str, timeout: int) -> int:
-    manifest, case = manifest_of(root, set_id), grade.cases()[CASE]
+    manifest, case = manifest_of(root, set_id), checklist()
     grade.JUDGE_PROMPT = live_rubric()  # judge_one reads the module's text when it runs
     jobs = [
         (slot_dir(manifest, code), tag, judge_name)
@@ -1772,8 +1817,18 @@ def main() -> int:
         default="",
         help="for `sets`: the set ids the several-sets rule counts, comma separated",
     )
+    parser.add_argument(
+        "--case",
+        default="users",
+        choices=sorted(STUDIES),
+        help="for `prepare` and `sort`: the study; other commands read it from ROOT",
+    )
     args = parser.parse_args()
     rest, command = args.rest, args.command
+    if command in ("prepare", "sort"):
+        use(args.case)
+    elif rest and (Path(rest[0]) / "prepare.json").is_file():
+        use(load(Path(rest[0]) / "prepare.json").get("study") or "users")
     if command == "overlays":
         return cmd_overlays()
     if command == "sets":

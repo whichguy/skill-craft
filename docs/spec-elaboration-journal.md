@@ -3602,3 +3602,50 @@ arm, so only the move from partly to covered can be seen. The rule was amended o
 the reader do not know the arms; this session does. The machine was under load throughout, so seconds are rough.
 
 **Where it stops.** The registered step is done. Anything further is a new entry.
+
+## 48. A second case registered before any run: the same test on the help-desk ticket service (15:05, 2026-11-21)
+
+Run on the owner's word of section 44, which covers further experiments in this study.
+
+**Why.** Section 47's main limit is its list. On the small user service nine items apply, and every arm says
+something on all nine, so only a move from partly to covered could be seen. The ticket service of the E2E catalog
+(`fixtures/node-tickets`, the base of the catalog's `ticket-import` case) has an audit log, notifications through
+an outbox and a background worker, a data file kept across restarts and an operator's command line. More of the
+checklist should apply to it, and there should be things for a specification to leave out.
+
+**The case.** The sentence: "Let agents upload a CSV to bulk-create tickets." The base: `node-tickets` as the
+catalog pins it. The checklist: `guides-cases.json`, case `csv-ticket-import`, which is the first case's 21 items
+carried over to tickets item for item: nine are reworded (N-2, N-3, N-4, N-5, N-8, N-12, N-13, N-14, N-20) and
+twelve are unchanged. It is not an independent checklist. I wrote the carry-over today, knowing the first case's
+results, and `cases.json`, which is frozen, is not touched. The catalog's own request for a ticket import (190
+words, a JSON body) is not used: this case is the vague one.
+
+**Arms, runs, judging and the reader** are sections 44 and 46's: A, R, C and X on Sol at medium, each run stopped
+at its specification's acceptance, two blind judges, a blind Sonnet reader for added capability. Step 0 comes
+first again: the two sorters label the 21 items against this base (`labels/here-tickets-opus.json`,
+`labels/here-tickets-astra.json`), and fewer than 8 items for both ends it there.
+
+**How it is read, fixed now.** Three sets, t1 to t3, by section 46's rule with its delivery checks: X over A is
+shown at a net of 2 in every set; X over C, R over A and C over A at a net of 1 in every set. Beside the rule, as
+description: for each arm over the three sets, the item readings covered by both judges, the item readings absent
+for both, and the words.
+
+**Predictions, before any run.**
+
+16. At least 12 of the 21 items apply for both sorters.
+17. The released arm leaves at least one applicable item absent under both judges in at least two of the three
+    sets. (On the first case it never did.)
+18. Over the three sets X has at least 4 more item readings covered by both judges than A.
+19. X over A is not shown by the rule.
+20. The reader verifies no capability in X alone.
+21. X's specification is the longest in each set.
+
+**What it costs.** Two sorter sessions; twelve Sol runs of three to five minutes; 24 judge readings, about four
+dollars for the registered judge's twelve; three readers. About forty minutes.
+
+**Where it stops.** After t3 the result is reported as it is.
+
+**Checked, no model called.** The driver takes the case from `--case` at `prepare` and `sort` and from the run
+folder afterwards (`use`, `checklist`). A dry `prepare` on this base built the four arms with no problem (the base
+is 60 files; the rendered spec stage is the same 8,786, 8,786, 8,954 and 15,630 characters). The rehearsal on the
+first case still holds at 87 checks, none failed.
