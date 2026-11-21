@@ -1106,7 +1106,11 @@ def page():
     whole packet made it read the reference list and open the requirements guide, and the specification was no fuller.
     What the released stage leaves thin is specific and the same in every arm: on the ticket service, the per-row
     result, what the file may set, the flood of notifications, an audit of the import, hostile content, and dates.
-    The gap is particular questions nobody asks, not guidance on how to write requirements.</div></li>
+    The gap is particular questions nobody asks, not guidance on how to write requirements. A third test then made the
+    spec stage fill a section answering ShipLoop's own twelve key questions: the section was written every time,
+    twelve entries, and it read as an index of what the requirements already said. Coverage did not move (21 of 27
+    against 18, and 21 of 45 against 20). Three levers tried, none shown; what is left is a few particular questions,
+    and whether ShipLoop should carry them is yours to decide.</div></li>
     <li><div><b>Try "open in the spec, answered in the plan" in ShipLoop?</b> Nothing is proposed yet. It would need your
     word, a candidate build and real end-to-end deliveries, and it is untested where one session writes the plan, the
     tests and the product in turn.</div></li>
