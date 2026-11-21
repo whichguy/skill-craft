@@ -2080,3 +2080,138 @@ test written somewhere else, has to share is those answers and the names the pla
 the specification alone and not the build. The fork, asked whether this states its finding, agreed and added that
 narrowing, and that it is shown for two sessions on one request with one model, whose blind sessions took every
 name that starts or configures the product from the plan, the specification or the starting documents.
+
+### Amendment 11, 2026-11-21 10:52: Sonnet at medium against Sonnet at high, the small step first, then one test-strength cell at each (registered before any run)
+
+Owner, 10:49, after the test-strength cell on Sonnet had been described at their request: "Can we run this at Sonnet
+medium to see if we get different behavior than we would if we ran this at high?" My reading: run that cell at
+both efforts and say whether what Sonnet does differs between them. Medium is also what this account's Sonnet
+sessions use when no effort is given, so it is the setting a day-to-day run would have.
+
+**How the effort reaches a session.** The harness's Claude host puts `--effort <level>` on the command line
+(`test/shiploop_e2e/hosts.py`), and the installed `claude` accepts low, medium, high, xhigh and max there. Amendment
+10's ten runs went out with `--effort high`. A correction to a limit stated there: I wrote that a Claude session
+started by the pilot "runs in the real home and is shown the account's own instructions". The launcher also passes
+`--setting-sources project,local`, which leaves the user-level settings out; what else that leaves out I have not
+checked by a run. The limit was stated more broadly than I knew.
+
+**Rungs.**
+
+| Rung | What runs | About |
+|---|---|---|
+| 1, small | the spec stage alone with the reworded text at `--effort medium`: `sm-orders`, `sm-ticket-assignment`, `sm-due-times-1`, `-2`, `-3`; compared with amendment 10's five at high | 3 minutes |
+| 2 | the test-strength cell on ticket assignment at each effort, each from that effort's own specification (`--spec-from`), the correct reference laid in as the build, plan and heavy test pass at that effort, `--stop-after tests`, then `grade.py strength`: `p1S-ticket-assignment-high` (from `s1-ticket-assignment`) and `p1S-ticket-assignment-medium` (from `sm-ticket-assignment`) | 20 minutes and the grading |
+
+Rung 2 runs whatever rung 1 shows, unless the medium ticket-assignment specification is not accepted by the script.
+Each session of rung 2 is capped at 6 dollars, each of rung 1 at 3.
+
+**Readings.**
+
+- **R12.1, what medium writes.** *Different* if any of the five medium specifications writes more than 2 choice
+  clauses or no `Open:` line (R11.1's bar, which all five at high met), or if any of the three due-times ones
+  requires that an enabled start refuse a data file without due times (none at high did). Otherwise the same on
+  this reading. Reported beside it: clauses, `existing` clauses, minutes and cost.
+- **R12.2, strength at each effort.** Calibrated defects caught of 27: *kept* at 25 or more (Sol with this text:
+  26). Reported: clauses failing on the correct reference, items the second correct delivery fails beyond it, which
+  defects are missed and of what kind, minutes and cost.
+- **R12.3, medium against high.** *Different* if the two caught counts differ by 2 or more, or if one is kept and
+  the other is not. Otherwise no difference shown.
+
+**What it cannot show.** One run a cell at each effort, and no measure of Sonnet's run-to-run spread, so one defect
+either way is nothing. Whole cells are compared (specification, plan and tests all at one effort), so a difference
+would not say which stage made it. Nothing is built on Sonnet. If a cell is not kept, it does not say whether the
+short specification or Sonnet's way of writing tests is the cause: the lens text on Sonnet in the same cell would,
+and it is not registered here.
+
+**Predictions.** The medium specifications meet R11.1's bar and are a little shorter than the high ones. Both cells
+are kept, and medium catches as many as high or one fewer. I hold these loosely: this pilot has no record of
+Sonnet writing a plan or tests.
+
+### Amendment 11, result (2026-11-21 11:12; Sonnet at medium against Sonnet at high)
+
+Status: firm for what was run: five specifications at medium beside the five at high of amendment 10; one
+test-strength cell on ticket assignment at each effort; one run a cell; Claude host, `claude-sonnet-5-5`; every
+specification accepted on its first try; no held-out mark in any session; 1.48 dollars for the five medium
+specifications, 2.03 for the high cell's two sessions and 1.05 for the medium cell's.
+
+**Table 1. The specifications** (each cell is medium / high; the high ones are amendment 10's reworded row).
+
+| Specification | Clauses, medium / high | Use cases | choice | `Open:` lines | `existing` | Seconds to write |
+|---|---|---|---|---|---|---|
+| orders | 19 / 21 | 4 / 4 | 1 / 0 | 7 / 9 | 0 / 1 | 39 / 61 |
+| ticket assignment | 22 / 32 | 5 / 6 | 1 / 0 | 8 / 7 | 2 / 6 | 47 / 118 |
+| due times 1 | 19 / 22 | 6 / 6 | 1 / 2 | 7 / 12 | 1 / 3 | 56 / 84 |
+| due times 2 | 20 / 28 | 4 / 6 | 1 / 0 | 8 / 8 | 3 / 6 | 45 / 153 |
+| due times 3 | 16 / 22 | 6 / 6 | 1 / 1 | 6 / 6 | 1 / 6 | 51 / 95 |
+
+**Table 2. The test-strength cell on ticket assignment** (Sol's two rows are as recorded under "Rung 3, result").
+
+| Cell | Clauses / use cases tested | Clauses failing on the correct reference | Second correct delivery, beyond the reference | Defects caught of 27 | The one missed | Caught only through the product's own tests | Minutes (enrich + the rest) | Cost |
+|---|---|---|---|---|---|---|---|---|
+| Sonnet medium | 22 / 5 | 0 | 5 | 26 | `update-rejects-resolved` | 5 | 5.8 (0.8 + 5.0) | 1.37 dollars |
+| Sonnet high | 34 / 6 | 2 | 8 (5 clauses, 3 use cases) | 26 | `update-rejects-resolved` | 3 | 14.2 (2.0 + 12.3) | 2.45 dollars |
+| Sol high, reworded | 44 / 9 | 3 | 3 | 26 | `update-rejects-resolved` | 1 | 26.9 (3.8 + 23.1) | not priced |
+| Sol high, lens | 153 / 11 | 13 | 15 | 26 | `cli-no-assignee` | 0 | 38.0 (7.0 + 31.0) | not priced |
+
+**The readings of amendment 11.**
+
+- **R12.1, what medium writes: the same on this reading.** Every medium specification writes one choice clause and 6
+  to 8 open lines; none of the three due-times ones requires the refusal. What differs is size and time: 16 to 22
+  clauses against 21 to 32, under a minute each, and still less existing behaviour restated (0 to 3 `existing`
+  clauses against 1 to 6).
+- **R12.2, strength at each effort: kept at both.** 26 of 27 at each; the bar was 25.
+- **R12.3, medium against high: no difference shown.** The same count and the same defect missed.
+
+**What did differ, reported.** At high Sonnet wrote more (34 clauses against 22), took two and a half times as long
+(14.2 minutes against 5.8) and cost 1.8 times as much (2.45 dollars against 1.37). Its tests fail on the correct
+reference for two clauses: the request's own "has tests" clause (C-32) and an implied refusal the reference does not
+make (C-5, "A name that is not a single line of text is refused": the reference answers 200 to an assignee
+holding a control character where the clause says 400, the added refusal of F28 again). Medium's tests fail on
+none. The second correct delivery fails 8 of the high cell's items against 5 of the medium cell's.
+
+**How much of the catch is the suite's own** (reported, not registered). Some clauses, taken from the request ("the
+existing tests must still pass"; "npm test runs the new tests"), are tested by running the product's own test suite.
+Defects caught only through them: 5 of 26 at medium (22 clauses), 3 of 26 at high (34), 1 of 26 for Sol with this
+text (44), none for Sol with the lens text (153). So the shorter the specification, the more of the existing
+behaviour is covered by the product's tests and not by tests the session wrote. That is the risk amendment 10
+named, visible and small, and it follows the specification's length across four cells.
+
+**Predictions scored.** All three held: the medium specifications meet the bar and are a little shorter; both cells
+are kept; medium catches as many as high.
+
+**Findings.**
+
+- **F36 (firm at this size: three cells, two models, two efforts).** What the shorter specification costs is the same
+  one defect each time. Sol at high, Sonnet at high and Sonnet at medium all catch 26 of 27 and all miss
+  `update-rejects-resolved`, a defect in existing behaviour that none of the three specifications pins and that the
+  product's own tests do not catch. The lens text on Sol, with about a hundred `existing` clauses, caught it and
+  missed another.
+- **F37 (one run a cell; no measure of spread).** On Sonnet the effort changed length, time and cost, not the
+  registered outcomes. Medium wrote the shortest specification of any cell (22 clauses), caught as many defects,
+  rejected the correct reference on nothing, and did it in 5.8 minutes for 1.37 dollars, against 14.2 minutes and
+  2.45 dollars at high and 26.9 minutes for Sol at high.
+
+**Received with this round.** The session "Spec elaboration" pointed out that the stage frame already told the test
+session that a test "must pass whichever reasonable answer a build took" at an open point, and that the fork's
+overlays show the suites did not manage it across builds that answered differently. That is a duty written into a
+prompt that the sessions did not meet, as F22 was.
+
+**Is there enough to conclude?** For the owner's question (does Sonnet behave differently at medium than at high),
+yes on these readings: it does not, and medium is cheaper. Not established: Sonnet's run-to-run spread; any case but
+ticket assignment; anything built by Sonnet; which stage would be sensitive to effort if one were.
+
+**Checked twice, and who decided what.** The readings against the registered rules were made in the main session; a
+Sonnet subagent copied the evidence, recounted the figures with a script of its own and drafted this subsection from
+the facts given to it. Its recount matches every count; it found two roundings of mine, corrected above (84
+seconds for one specification, 14.2 minutes for the high cell, where the owner had been told 85 and 14.3). It also
+searched the three medium due-times specifications for a clause that refuses a start on a file without due times:
+none.
+
+**Limits.** One run a cell and no measure of spread, so one defect either way would have been nothing. Whole cells
+are compared. The calibrated defects are partly caught through the product's own tests, for every text. The gradings
+ran one after another with no other run of mine live; the medium cell's grading overlapped the high cell's test
+session.
+
+Evidence: `evidence/reworded-enrichment/` (`sm-*/`, `p1S-ticket-assignment-high/` and `-medium/`,
+`sonnet-effort-specs-log.txt` and `.json`; and `spec-final.md` added to the five `p1R-*` and `p3R-*` folders, whose
+records had no final specification).

@@ -1,0 +1,122 @@
+{
+ "C-1": {
+  "command": "node --test --test-name-pattern='^C-1 ' acceptance/*.check.js"
+ },
+ "C-2": {
+  "command": "node --test --test-name-pattern='^C-2 ' acceptance/*.check.js"
+ },
+ "C-3": {
+  "command": "node --test --test-name-pattern='^C-3 ' acceptance/*.check.js"
+ },
+ "C-4": {
+  "command": "node --test --test-name-pattern='^C-4 ' acceptance/*.check.js"
+ },
+ "C-5": {
+  "command": "node --test --test-name-pattern='^C-5 ' acceptance/*.check.js"
+ },
+ "C-6": {
+  "command": "node --test --test-name-pattern='^C-6 ' acceptance/*.check.js"
+ },
+ "C-7": {
+  "command": "node --test --test-name-pattern='^C-7 ' acceptance/*.check.js"
+ },
+ "C-8": {
+  "command": "node --test --test-name-pattern='^C-8 ' acceptance/*.check.js"
+ },
+ "C-9": {
+  "command": "node --test --test-name-pattern='^C-9 ' acceptance/*.check.js"
+ },
+ "C-10": {
+  "command": "node --test --test-name-pattern='^C-10 ' acceptance/*.check.js"
+ },
+ "C-11": {
+  "command": "node --test --test-name-pattern='^C-11 ' acceptance/*.check.js"
+ },
+ "C-12": {
+  "command": "node --test --test-name-pattern='^C-12 ' acceptance/*.check.js"
+ },
+ "C-13": {
+  "command": "node --test --test-name-pattern='^C-13 ' acceptance/*.check.js"
+ },
+ "C-14": {
+  "command": "node --test --test-name-pattern='^C-14 ' acceptance/*.check.js"
+ },
+ "C-15": {
+  "command": "node --test --test-name-pattern='^C-15 ' acceptance/*.check.js"
+ },
+ "C-16": {
+  "command": "node --test --test-name-pattern='^C-16 ' acceptance/*.check.js"
+ },
+ "C-17": {
+  "command": "node --test --test-name-pattern='^C-17 ' acceptance/*.check.js"
+ },
+ "C-18": {
+  "command": "node --test --test-name-pattern='^C-18 ' acceptance/*.check.js"
+ },
+ "C-19": {
+  "command": "node --test --test-name-pattern='^C-19 ' acceptance/*.check.js"
+ },
+ "C-20": {
+  "command": "node --test --test-name-pattern='^C-20 ' acceptance/*.check.js"
+ },
+ "C-21": {
+  "command": "node --test --test-name-pattern='^C-21 ' acceptance/*.check.js"
+ },
+ "C-22": {
+  "command": "node --test --test-name-pattern='^C-22 ' acceptance/*.check.js"
+ },
+ "C-23": {
+  "command": "node --test --test-name-pattern='^C-23 ' acceptance/*.check.js"
+ },
+ "C-24": {
+  "command": "node --test --test-name-pattern='^C-24 ' acceptance/*.check.js"
+ },
+ "C-25": {
+  "command": "node --test --test-name-pattern='^C-25 ' acceptance/*.check.js"
+ },
+ "C-26": {
+  "command": "node --test --test-name-pattern='^C-26 ' acceptance/*.check.js"
+ },
+ "C-27": {
+  "command": "node --test --test-name-pattern='^C-27 ' acceptance/*.check.js"
+ },
+ "C-28": {
+  "command": "node --test --test-name-pattern='^C-28 ' acceptance/*.check.js"
+ },
+ "C-29": {
+  "command": "node --test --test-name-pattern='^C-29 ' acceptance/*.check.js"
+ },
+ "C-30": {
+  "command": "node --test --test-name-pattern='^C-30 ' acceptance/*.check.js"
+ },
+ "C-31": {
+  "command": "node --test --test-name-pattern='^C-31 ' acceptance/*.check.js"
+ },
+ "C-32": {
+  "command": "node --test --test-name-pattern='^C-32 ' acceptance/*.check.js"
+ },
+ "C-33": {
+  "command": "node --test --test-name-pattern='^C-33 ' acceptance/*.check.js"
+ },
+ "C-34": {
+  "command": "node --test --test-name-pattern='^C-34 ' acceptance/*.check.js"
+ },
+ "U-1": {
+  "command": "node --test --test-name-pattern='^U-1 ' acceptance/*.check.js"
+ },
+ "U-2": {
+  "command": "node --test --test-name-pattern='^U-2 ' acceptance/*.check.js"
+ },
+ "U-3": {
+  "command": "node --test --test-name-pattern='^U-3 ' acceptance/*.check.js"
+ },
+ "U-4": {
+  "command": "node --test --test-name-pattern='^U-4 ' acceptance/*.check.js"
+ },
+ "U-5": {
+  "command": "node --test --test-name-pattern='^U-5 ' acceptance/*.check.js"
+ },
+ "U-6": {
+  "command": "node --test --test-name-pattern='^U-6 ' acceptance/*.check.js"
+ }
+}

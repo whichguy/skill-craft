@@ -1,0 +1,2992 @@
+{
+ "case": "ticket-assignment",
+ "graded_with": "586f6f4756655c510ace22c4ed3479d47eb04f49",
+ "reference": {
+  "failing": [
+   "C-32",
+   "C-5"
+  ],
+  "unstable": [],
+  "did_not_end": [],
+  "ids": [
+   "C-1",
+   "C-10",
+   "C-11",
+   "C-12",
+   "C-13",
+   "C-14",
+   "C-15",
+   "C-16",
+   "C-17",
+   "C-18",
+   "C-19",
+   "C-2",
+   "C-20",
+   "C-21",
+   "C-22",
+   "C-23",
+   "C-24",
+   "C-25",
+   "C-26",
+   "C-27",
+   "C-28",
+   "C-29",
+   "C-3",
+   "C-30",
+   "C-31",
+   "C-32",
+   "C-33",
+   "C-34",
+   "C-4",
+   "C-5",
+   "C-6",
+   "C-7",
+   "C-8",
+   "C-9",
+   "U-1",
+   "U-2",
+   "U-3",
+   "U-4",
+   "U-5",
+   "U-6"
+  ],
+  "seconds": 24.5,
+  "tails": {
+   "C-5": [
+    "    expected: 400,",
+    "    operator: 'strictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-32": [
+    "    expected: [],",
+    "    operator: 'deepStrictEqual',",
+    "    diff: 'simple'",
+    "  }"
+   ]
+  }
+ },
+ "controls": {
+  "alternative": {
+   "failing": [
+    "C-1",
+    "C-10",
+    "C-18",
+    "C-2",
+    "C-32",
+    "C-5",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "seconds": 24.9,
+   "tails": {
+    "C-1": [
+     "    expected: 'in_progress',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-2": [
+     "    expected: 'in_progress',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-5": [
+     "    expected: 400,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-9": [
+     "    expected: '2026-11-21T19:07:01.774Z',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-10": [
+     "    expected: { id: 'T-0001', title: 'Printer problem number 1', priority: 'normal', requester: 'maria@example.com', status: 'open', created: '2026-11-21T19:07:02.474Z', updated: '2026-11-21T19:07:02.474Z', assignee: null },",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-18": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-1": [
+     "    expected: 'in_progress',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-2": [
+     "    expected: 'in_progress',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-3": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  }
+ },
+ "raw": {
+  "filter-or": {
+   "failing": [
+    "C-25",
+    "C-28",
+    "C-31",
+    "C-32",
+    "C-5",
+    "U-4"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "seconds": 26.8,
+   "tails": {
+    "C-5": [
+     "    expected: 400,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-25": [
+     "    expected: [ 'T-0001' ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-28": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-31": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-4": [
+     "    expected: [ 'T-0001' ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "filter-after-page": {
+   "failing": [
+    "C-26",
+    "C-32",
+    "C-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "seconds": 25.1,
+   "tails": {
+    "C-5": [
+     "    expected: 400,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-26": [
+     "    expected: [ 'T-0001', 'T-0003', 'T-0004' ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "no-envelope": {
+   "failing": [
+    "C-15",
+    "C-3",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "seconds": 26.7,
+   "tails": {
+    "C-3": [
+     "    expected: 'invalid',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-4": [
+     "    expected: 'invalid',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-5": [
+     "    expected: 400,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-6": [
+     "    expected: 'invalid',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-7": [
+     "    expected: 'not_found',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-8": [
+     "    expected: 'conflict',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-15": [
+     "    expected: 'invalid',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-31": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-33": [
+     "    expected: 'invalid',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "conflict-as-invalid": {
+   "failing": [
+    "C-31",
+    "C-32",
+    "C-5",
+    "C-8"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "seconds": 24.9,
+   "tails": {
+    "C-5": [
+     "    expected: 400,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-8": [
+     "    expected: 409,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-31": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "closed-assignable": {
+   "failing": [
+    "C-21",
+    "C-31",
+    "C-32",
+    "C-5",
+    "C-8"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "seconds": 25.6,
+   "tails": {
+    "C-5": [
+     "    expected: 400,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-8": [
+     "    expected: 409,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-21": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-31": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "notify-inline": {
+   "failing": [
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-20",
+    "C-21",
+    "C-31",
+    "C-32",
+    "C-5",
+    "U-3"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "seconds": 53.6,
+   "tails": {
+    "C-5": [
+     "    expected: 400,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-17": [
+     "    expected: 1,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-18": [
+     "      at async withDir (/Users/dadleet/e2e-runs/ratchet-reworded-20261121-08805f/p1S-ticket-assignment-high/strength-work/ratchet-notify-inline-o_8g43_z/acceptance/lib.js:109:12)",
+     "      at async TestContext.<anonymous> (/Users/dadleet/e2e-runs/ratchet-reworded-20261121-08805f/p1S-ticket-assignment-high/strength-work/ratchet-notify-inline-o_8g43_z/acceptance/notify.check.js:34:3)",
+     "      at async Test.run (node:internal/test_runner/test:1409:7)",
+     "      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)"
+    ],
+    "C-19": [
+     "    expected: 1,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-20": [
+     "    expected: [ 'T-0001', 'T-0002' ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-21": [
+     "    expected: 2,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-31": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-3": [
+     "    expected: 1,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "notify-no-template": {
+   "failing": [
+    "C-18",
+    "C-21",
+    "C-30",
+    "C-32",
+    "C-5",
+    "U-3"
+   ],
+   "unstable": [
+    "C-31"
+   ],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "seconds": 145.7,
+   "tails": {
+    "C-5": [
+     "    expected: 400,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-18": [
+     "      at async withDir (/Users/dadleet/e2e-runs/ratchet-reworded-20261121-08805f/p1S-ticket-assignment-high/strength-work/ratchet-notify-no-template-5ztr4lh3/acceptance/lib.js:109:12)",
+     "      at async TestContext.<anonymous> (/Users/dadleet/e2e-runs/ratchet-reworded-20261121-08805f/p1S-ticket-assignment-high/strength-work/ratchet-notify-no-template-5ztr4lh3/acceptance/notify.check.js:34:3)",
+     "      at async Test.run (node:internal/test_runner/test:1409:7)",
+     "      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)"
+    ],
+    "C-21": [
+     "      at async withDir (/Users/dadleet/e2e-runs/ratchet-reworded-20261121-08805f/p1S-ticket-assignment-high/strength-work/ratchet-notify-no-template-5ztr4lh3/acceptance/lib.js:109:12)",
+     "      at async TestContext.<anonymous> (/Users/dadleet/e2e-runs/ratchet-reworded-20261121-08805f/p1S-ticket-assignment-high/strength-work/ratchet-notify-no-template-5ztr4lh3/acceptance/notify.check.js:119:3)",
+     "      at async Test.run (node:internal/test_runner/test:1409:7)",
+     "      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)"
+    ],
+    "C-30": [
+     "      at async withDir (/Users/dadleet/e2e-runs/ratchet-reworded-20261121-08805f/p1S-ticket-assignment-high/strength-work/ratchet-notify-no-template-5ztr4lh3/acceptance/lib.js:109:12)",
+     "      at async TestContext.<anonymous> (/Users/dadleet/e2e-runs/ratchet-reworded-20261121-08805f/p1S-ticket-assignment-high/strength-work/ratchet-notify-no-template-5ztr4lh3/acceptance/misc.check.js:62:3)",
+     "      at async Test.run (node:internal/test_runner/test:1409:7)",
+     "      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)"
+    ],
+    "C-32": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-3": [
+     "      at async withDir (/Users/dadleet/e2e-runs/ratchet-reworded-20261121-08805f/p1S-ticket-assignment-high/strength-work/ratchet-notify-no-template-5ztr4lh3/acceptance/lib.js:109:12)",
+     "      at async TestContext.<anonymous> (/Users/dadleet/e2e-runs/ratchet-reworded-20261121-08805f/p1S-ticket-assignment-high/strength-work/ratchet-notify-no-template-5ztr4lh3/acceptance/usecases.check.js:57:3)",
+     "      at async Test.run (node:internal/test_runner/test:1409:7)",
+     "      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)"
+    ]
+   }
+  },
+  "notify-key-per-ticket": {
+   "failing": [
+    "C-19",
+    "C-21",
+    "C-31",
+    "C-32",
+    "C-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "seconds": 24.2,
+   "tails": {
+    "C-5": [
+     "    expected: 400,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-19": [
+     "    expected: 1,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-21": [
+     "    expected: 3,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-31": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "notify-requester": {
+   "failing": [
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-20",
+    "C-21",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-5",
+    "U-3"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "seconds": 53.9,
+   "tails": {
+    "C-5": [
+     "    expected: 400,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-17": [
+     "    expected: 1,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-18": [
+     "      at async withDir (/Users/dadleet/e2e-runs/ratchet-reworded-20261121-08805f/p1S-ticket-assignment-high/strength-work/ratchet-notify-requester-kjbcmlxb/acceptance/lib.js:109:12)",
+     "      at async TestContext.<anonymous> (/Users/dadleet/e2e-runs/ratchet-reworded-20261121-08805f/p1S-ticket-assignment-high/strength-work/ratchet-notify-requester-kjbcmlxb/acceptance/notify.check.js:34:3)",
+     "      at async Test.run (node:internal/test_runner/test:1409:7)",
+     "      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)"
+    ],
+    "C-19": [
+     "    expected: 1,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-20": [
+     "    expected: [ 'T-0001', 'T-0002' ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-21": [
+     "    expected: 1,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-30": [
+     "    expected: 2,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-31": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-3": [
+     "    expected: 1,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "audit-bypassed": {
+   "failing": [
+    "C-13",
+    "C-15",
+    "C-16",
+    "C-31",
+    "C-32",
+    "C-5",
+    "U-1",
+    "U-2",
+    "U-6"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "seconds": 24.8,
+   "tails": {
+    "C-5": [
+     "    expected: 400,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-13": [
+     "    expected: 2,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-15": [
+     "    expected: 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-16": [
+     "    expected: null,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-31": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-1": [
+     "    expected: 1,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-2": [
+     "    expected: [ { from: null, to: 'dana' }, { from: 'dana', to: null } ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-6": [
+     "    expected: [ [ 'lead.ana', null, 'dana' ], [ 'lead.bo', 'dana', 'sam' ] ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "actor-ignored": {
+   "failing": [
+    "C-15",
+    "C-31",
+    "C-32",
+    "C-5",
+    "U-6"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "seconds": 23.6,
+   "tails": {
+    "C-5": [
+     "    expected: 400,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-15": [
+     "    expected: 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-31": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-6": [
+     "    expected: [ [ 'lead.ana', null, 'dana' ], [ 'lead.bo', 'dana', 'sam' ] ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "same-agent-not-noop": {
+   "failing": [
+    "C-10",
+    "C-13",
+    "C-16",
+    "C-21",
+    "C-31",
+    "C-32",
+    "C-5",
+    "C-9",
+    "U-1"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "seconds": 27.9,
+   "tails": {
+    "C-5": [
+     "    expected: 400,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-9": [
+     "    expected: { id: 'T-0001', title: 'Printer problem number 1', priority: 'normal', requester: 'maria@example.com', status: 'open', assignee: 'dana', created: '2026-11-21T19:08:41.606Z', updated: '2026-11-21T19:08:41.608Z' },",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-10": [
+     "    expected: { id: 'T-0001', title: 'Printer problem number 1', priority: 'normal', requester: 'maria@example.com', status: 'open', assignee: null, created: '2026-11-21T19:08:42.315Z', updated: '2026-11-21T19:08:42.315Z' },",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-13": [
+     "    expected: 2,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-16": [
+     "    expected: 'a1',",
+     "    operator: 'notStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-21": [
+     "    expected: 2,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-31": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-1": [
+     "    expected: { id: 'T-0007', title: 'Printer problem number 7', priority: 'normal', requester: 'maria@example.com', status: 'in_progress', assignee: 'dana', created: '2026-11-21T19:09:00.738Z', updated: '2026-11-21T19:09:00.773Z' },",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "memory-only-assignee": {
+   "failing": [
+    "C-12",
+    "C-13",
+    "C-28",
+    "C-29",
+    "C-32",
+    "C-5",
+    "U-5",
+    "U-6"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "seconds": 27.0,
+   "tails": {
+    "C-5": [
+     "    expected: 400,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-12": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-13": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-28": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-29": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-5": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-6": [
+     "    expected: 'sam',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "old-data-refused": {
+   "failing": [
+    "C-12",
+    "C-32",
+    "C-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "seconds": 24.1,
+   "tails": {
+    "C-5": [
+     "    expected: 400,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-12": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "old-assignee-undefined": {
+   "failing": [
+    "C-12",
+    "C-32",
+    "C-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "seconds": 24.9,
+   "tails": {
+    "C-5": [
+     "    expected: 400,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-12": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "raw-column-inserted": {
+   "failing": [
+    "C-29",
+    "C-32",
+    "C-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "seconds": 25.3,
+   "tails": {
+    "C-5": [
+     "    expected: 400,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-29": [
+     "    expected: 2,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "cli-no-assignee": {
+   "failing": [
+    "C-13",
+    "C-28",
+    "C-32",
+    "C-5",
+    "U-5",
+    "U-6"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "seconds": 27.3,
+   "tails": {
+    "C-5": [
+     "    expected: 400,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-13": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-28": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-5": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-6": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "no-unassign": {
+   "failing": [
+    "C-10",
+    "C-11",
+    "C-13",
+    "C-15",
+    "C-16",
+    "C-2",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-25",
+    "C-31",
+    "C-32",
+    "C-5",
+    "C-7",
+    "C-8",
+    "U-2",
+    "U-5",
+    "U-6"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "seconds": 35.6,
+   "tails": {
+    "C-2": [
+     "    expected: 200,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-5": [
+     "    expected: 400,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-7": [
+     "    expected: 404,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-8": [
+     "    expected: 409,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-10": [
+     "    expected: 200,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-11": [
+     "    expected: 200,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-13": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-15": [
+     "    expected: 4,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-16": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-21": [
+     "    expected: 200,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-22": [
+     "    expected: [ 'T-0005', 'T-0010' ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-23": [
+     "    expected: [ 'T-0001', 'T-0002' ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-25": [
+     "    expected: [ 'T-0005' ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-31": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-2": [
+     "    expected: 200,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-5": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-6": [
+     "    expected: { from: 'sam', to: null },",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "empty-filter-ignored": {
+   "failing": [
+    "C-23",
+    "C-25",
+    "C-26",
+    "C-31",
+    "C-32",
+    "C-5",
+    "U-4"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "seconds": 30.6,
+   "tails": {
+    "C-5": [
+     "    expected: 400,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-23": [
+     "    expected: [ 'T-0002' ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-25": [
+     "    expected: [ 'T-0007' ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-26": [
+     "    expected: [ 'T-0001', 'T-0003', 'T-0004' ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-31": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-4": [
+     "    expected: [ 'T-0003', 'T-0005' ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "name-limit-off-by-one": {
+   "failing": [
+    "C-3",
+    "C-32",
+    "C-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "seconds": 28.6,
+   "tails": {
+    "C-3": [
+     "    expected: 200,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-5": [
+     "    expected: 400,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "listing-hides-assignee": {
+   "failing": [
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-28",
+    "C-32",
+    "C-5",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "seconds": 31.5,
+   "tails": {
+    "C-5": [
+     "    expected: 400,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-11": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-12": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-13": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-22": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-23": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-24": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-28": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-4": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-5": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-6": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "update-rejects-resolved": {
+   "failing": [
+    "C-32",
+    "C-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "seconds": 25.7,
+   "tails": {
+    "C-5": [
+     "    expected: 400,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "default-limit-changed": {
+   "failing": [
+    "C-31",
+    "C-32",
+    "C-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "seconds": 27.0,
+   "tails": {
+    "C-5": [
+     "    expected: 400,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-31": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "resolved-template-replaced": {
+   "failing": [
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-5"
+   ],
+   "unstable": [
+    "C-17"
+   ],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "seconds": 56.7,
+   "tails": {
+    "C-5": [
+     "    expected: 400,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-30": [
+     "      at async withDir (/Users/dadleet/e2e-runs/ratchet-reworded-20261121-08805f/p1S-ticket-assignment-high/strength-work/ratchet-resolved-template-replaced-br95rxoq/acceptance/lib.js:109:12)",
+     "      at async TestContext.<anonymous> (/Users/dadleet/e2e-runs/ratchet-reworded-20261121-08805f/p1S-ticket-assignment-high/strength-work/ratchet-resolved-template-replaced-br95rxoq/acceptance/misc.check.js:62:3)",
+     "      at async Test.run (node:internal/test_runner/test:1409:7)",
+     "      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)"
+    ],
+    "C-31": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "audit-not-saved": {
+   "failing": [
+    "C-13",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-5",
+    "U-6"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "seconds": 29.5,
+   "tails": {
+    "C-5": [
+     "    expected: 400,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-13": [
+     "    expected: 2,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-30": [
+     "    expected: 2,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-31": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-6": [
+     "    expected: 2,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "backoff-linear": {
+   "failing": [
+    "C-31",
+    "C-32",
+    "C-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "seconds": 26.2,
+   "tails": {
+    "C-5": [
+     "    expected: 400,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-31": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "validate-renamed": {
+   "failing": [
+    "C-31",
+    "C-32",
+    "C-5"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "seconds": 25.5,
+   "tails": {
+    "C-5": [
+     "    expected: 400,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-31": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-32": [
+     "    expected: [],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  }
+ },
+ "items": 40,
+ "clauses": 34,
+ "use_cases": 6,
+ "fails_on_reference": [
+  "C-32",
+  "C-5"
+ ],
+ "clauses_failing_on_reference": [
+  "C-32",
+  "C-5"
+ ],
+ "use_cases_failing_on_reference": [],
+ "defects": {
+  "filter-or": {
+   "caught": true,
+   "by": [
+    "C-25",
+    "C-28",
+    "C-31",
+    "U-4"
+   ]
+  },
+  "filter-after-page": {
+   "caught": true,
+   "by": [
+    "C-26"
+   ]
+  },
+  "no-envelope": {
+   "caught": true,
+   "by": [
+    "C-15",
+    "C-3",
+    "C-31",
+    "C-33",
+    "C-4",
+    "C-6",
+    "C-7",
+    "C-8"
+   ]
+  },
+  "conflict-as-invalid": {
+   "caught": true,
+   "by": [
+    "C-31",
+    "C-8"
+   ]
+  },
+  "closed-assignable": {
+   "caught": true,
+   "by": [
+    "C-21",
+    "C-31",
+    "C-8"
+   ]
+  },
+  "notify-inline": {
+   "caught": true,
+   "by": [
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-20",
+    "C-21",
+    "C-31",
+    "U-3"
+   ]
+  },
+  "notify-no-template": {
+   "caught": true,
+   "by": [
+    "C-18",
+    "C-21",
+    "C-30",
+    "U-3"
+   ]
+  },
+  "notify-key-per-ticket": {
+   "caught": true,
+   "by": [
+    "C-19",
+    "C-21",
+    "C-31"
+   ]
+  },
+  "notify-requester": {
+   "caught": true,
+   "by": [
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-20",
+    "C-21",
+    "C-30",
+    "C-31",
+    "U-3"
+   ]
+  },
+  "audit-bypassed": {
+   "caught": true,
+   "by": [
+    "C-13",
+    "C-15",
+    "C-16",
+    "C-31",
+    "U-1",
+    "U-2",
+    "U-6"
+   ]
+  },
+  "actor-ignored": {
+   "caught": true,
+   "by": [
+    "C-15",
+    "C-31",
+    "U-6"
+   ]
+  },
+  "same-agent-not-noop": {
+   "caught": true,
+   "by": [
+    "C-10",
+    "C-13",
+    "C-16",
+    "C-21",
+    "C-31",
+    "C-9",
+    "U-1"
+   ]
+  },
+  "memory-only-assignee": {
+   "caught": true,
+   "by": [
+    "C-12",
+    "C-13",
+    "C-28",
+    "C-29",
+    "U-5",
+    "U-6"
+   ]
+  },
+  "old-data-refused": {
+   "caught": true,
+   "by": [
+    "C-12"
+   ]
+  },
+  "old-assignee-undefined": {
+   "caught": true,
+   "by": [
+    "C-12"
+   ]
+  },
+  "raw-column-inserted": {
+   "caught": true,
+   "by": [
+    "C-29"
+   ]
+  },
+  "cli-no-assignee": {
+   "caught": true,
+   "by": [
+    "C-13",
+    "C-28",
+    "U-5",
+    "U-6"
+   ]
+  },
+  "no-unassign": {
+   "caught": true,
+   "by": [
+    "C-10",
+    "C-11",
+    "C-13",
+    "C-15",
+    "C-16",
+    "C-2",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-25",
+    "C-31",
+    "C-7",
+    "C-8",
+    "U-2",
+    "U-5",
+    "U-6"
+   ]
+  },
+  "empty-filter-ignored": {
+   "caught": true,
+   "by": [
+    "C-23",
+    "C-25",
+    "C-26",
+    "C-31",
+    "U-4"
+   ]
+  },
+  "name-limit-off-by-one": {
+   "caught": true,
+   "by": [
+    "C-3"
+   ]
+  },
+  "listing-hides-assignee": {
+   "caught": true,
+   "by": [
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-28",
+    "U-4",
+    "U-5",
+    "U-6"
+   ]
+  },
+  "update-rejects-resolved": {
+   "caught": false,
+   "by": []
+  },
+  "default-limit-changed": {
+   "caught": true,
+   "by": [
+    "C-31"
+   ]
+  },
+  "resolved-template-replaced": {
+   "caught": true,
+   "by": [
+    "C-30",
+    "C-31"
+   ]
+  },
+  "audit-not-saved": {
+   "caught": true,
+   "by": [
+    "C-13",
+    "C-30",
+    "C-31",
+    "U-6"
+   ]
+  },
+  "backoff-linear": {
+   "caught": true,
+   "by": [
+    "C-31"
+   ]
+  },
+  "validate-renamed": {
+   "caught": true,
+   "by": [
+    "C-31"
+   ]
+  }
+ },
+ "caught": 26,
+ "pool": 27,
+ "not_judged": []
+}
