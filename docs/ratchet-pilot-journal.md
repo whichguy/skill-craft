@@ -1671,3 +1671,69 @@ give no reason to expect more insight from size alone, and a browser yardstick w
 builds before it could be trusted (F18). What would add depth on the other side of the question, deciding too
 much, is more cases like due times: a change to an existing product with one thing left unsaid, which the text's
 author has not seen. There is one such case today.
+
+### Rung 2, result (2026-11-21 07:22; the orders cell and the two due-times first builds)
+
+Status: firm for what was run: one test-strength cell and two first builds, each from a specification of rung 1.
+
+**Orders, test strength (`p1R-stand-in-rules`, from `r1-orders`; graded 07:19 from commit 80d2f064fc7c).**
+
+| Text | Clauses / use cases tested | Clauses failing on the correct reference | Use cases failing | Defects caught | Minutes (of which enrich) | Output tokens |
+|---|---|---|---|---|---|---|
+| reworded | 27 / 5 | 2 (7.4%) | 1 | 4 of 4 | 18.2 (2.6) | 42,611 |
+| lens | 82 / 8 | 9 (11.0%) | 1 | 4 of 4 | 23.7 (5.0) | 61,805 |
+| pilot's | 69 / 12 | 9 (13.0%) | 3 | 4 of 4 | 18.8 (6.1) | 49,042 |
+
+- The three items that fail on the reference (C-25, C-26, U-5) are the request's own "cover it with node:test
+  tests; npm test must pass": this case's reference ships no tests of its own, the artifact noted in section 10 and
+  in the lens cell (C-78 to C-80 there). No other clause fails. The six that failed with the lens text were choices,
+  and this specification has none: those points are its open lines, and every clause that carries one passes.
+- All four planted defects are caught, each by request clauses (`one-rule-missing` by C-6, C-11, U-1; `tested-only`
+  by C-13, C-20; `limit-never-trips` by C-23, C-24, C-27, U-3, U-4; `cross-field` by C-18, C-19, C-20). A third of
+  the clauses, the same catch.
+- The plan stage added one clause (C-27, recovery after the meter's limit error) and it passes on the reference;
+  the seven it added in earlier cells all failed (F27).
+- The tests pin no open point. The plan says so in words ("Inputs whose outcomes depend on an `Open:` choice are
+  outside those assertions, including field permutations, alternative separators and number spellings, shape-valid
+  calendar anomalies, multiple simultaneous errors, and out-of-contract or overflowing totals"), and a search of
+  the acceptance tests finds no assertion on an unknown, missing or repeated key, another separator, calendar
+  validity, precedence, or an empty price.
+
+**Due times, the two first builds (`p3R-ticket-due-times-a` from specification 2, `-b` from specification 3),
+graded on the held-out checks when each build was committed, while the runs went on to their test pass.**
+
+| First build | Held-out checks | Minutes to it (enrich, plan, build) |
+|---|---|---|
+| reworded, a | 8 of 8 | 20.5 (4.6, 6.9, 9.0) |
+| reworded, b | 8 of 8 | 18.1 (4.3, 5.0, 8.7) |
+| lens, a and b | 3 of 8 and 2 of 8 | 28.1 and 31.9 |
+| pilot's | 3 of 8 | 32.3 |
+
+- **R9.1, due times: avoided.** Both first builds pass the five checks that failed in all three earlier loops
+  (`cli`, `migrate`, `restart`, `rollback`, `switch`), and the other three.
+- **How.** Each specification had left the start open and named both answers (rung 1). Each plan then took the
+  same one as its default for the build and said it was a default: "Choose preparation as part of enabled startup
+  ... It fills gaps before binding" (a); "For the open preparation policy, use one enabled startup to prepare
+  missing deadlines synchronously before listening" (b). Each build report lists the answer it took at every open
+  point under its discoveries (a: C-18; b: C-20), as the stage frame asks. So the same model family that decided
+  for the refusal four times in five when it wrote a specification chose the other answer two times in two when
+  the point reached it open, at planning, with both answers in front of it.
+- **Other decisions moved the same way.** Both plans also chose the settings' names (`DUE_HOURS_URGENT` and three
+  more) and a range for the hours (1 to 876,000 in a; up to the largest safe integer in b), how two filters combine
+  with `overdue=true`, and what the command-line tool shows. With the earlier texts each of those was a clause with
+  a test, and failed on the correct reference. Here each is a line in the build report, and no test holds a second
+  correct product to it.
+- Limits: two builds, one model family, and a text whose author knew this case. The held-out checks ask for none of
+  the other decisions, so they say nothing about whether those defaults are what a customer wants.
+
+**Is there enough to conclude early?** For R9.1, yes: the registered reading is settled, two of two. For the text as
+a whole, no. Orders is the case with the least existing behaviour. Whether tests written from a specification of
+30 to 43 clauses still catch the 27 and 6 planted defects of the two ticket cases is the open risk, and only rung 3
+measures it.
+
+By the registered rule (no apparatus failure; the orders tests pin no open point): go on. Rung 3 started at
+07:20:52, from commit 80d2f064fc7c.
+
+Evidence: `evidence/reworded-enrichment/p1R-stand-in-rules/` (run record, `strength.json`, plan, tests report,
+manifest), `p3R-ticket-due-times-a/` and `-b/` (`build-1-hidden.json`, and the plan and build report at the first
+build's commit), `rung-2-orders-by-source-log.txt`.
