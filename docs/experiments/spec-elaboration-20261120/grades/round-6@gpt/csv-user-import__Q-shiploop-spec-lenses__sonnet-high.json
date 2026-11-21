@@ -1,0 +1,144 @@
+{
+ "slot": "csv-user-import__Q-shiploop-spec-lenses__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "after the step either all N users and the audit record exist or none does."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "error messages are readable by an admin without the spec: each names the row, the column and the rule, for example \"Row 3, email: 'not-an-email' is not a valid email address.\""
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "F-mixed row 4 (`bob@example.com`) gives `ROW_EMAIL_EXISTS`; row 5 (`ERIN@example.com`) gives `ROW_EMAIL_DUPLICATE_IN_FILE` naming row 2; row 2 itself has no error."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "`admin` or any role the import may not grant gives `ROW_ROLE_NOT_ALLOWED`",
+   "missing": "The role restriction applies to imports generally. The spec gives no rule for checking a requested role against this admin\u2019s own access and grant authority."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The import page and the import endpoint are available to a signed-in user holding the admin role and to nobody else."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Header row required. Recognized columns: `email` (required), `name` (required), `role` (optional). \u2026 Unknown column (including `password`, `id`, `status`): 422 `HEADER_UNKNOWN_COLUMN`, naming the column. \u2026 Missing required column: 422 `HEADER_MISSING_COLUMN`."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2, R-3",
+   "quote": "a UTF-8 BOM is allowed and ignored \u2026 a quoted field may hold commas, doubled quotes and line breaks; `\\n` and `\\r\\n` both end a record."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "an import sends the same message to each created user, **after** the atomic commit of R-6 and never for a rejected or failed import."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "larger than 1,048,576 bytes: 413 `FILE_TOO_LARGE`; reading stops once the limit is exceeded"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2, R-3, R-6",
+   "quote": "zero bytes: 422 `FILE_EMPTY`. \u2026 Header only, or no non-empty record after it: 422 `NO_DATA_ROWS`. \u2026 a single-row file creates one."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-11",
+   "quote": "The same file submitted twice (double click, retry after a timeout): the first creates; the second finds every email existing and is rejected with `ROW_EMAIL_EXISTS` for each row, creating nothing."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "A-9, R-14",
+   "quote": "The import is synchronous: one request carries the file and returns the final result. No background job. \u2026 Submits: status text appears, then \"3 users created\" with three rows.",
+   "missing": "The page reports completion of a synchronous request. The spec explicitly excludes background processing even for the largest accepted file."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-8",
+   "quote": "If single-create sends the new user an invitation or welcome message, an import sends the same message to each created user, **after** the atomic commit of R-6",
+   "missing": "The spec gives no pacing rule for a large batch, such as sending all invitations immediately or limiting sends per minute."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-6",
+   "quote": "the same initial state, credential state and timestamps as a single-create user \u2026 the import never sets, receives, echoes, logs or stores a password. How a created user first signs in is whatever single-create does",
+   "missing": "The builder must establish single-create\u2019s starting account status, usable credential state, and first-sign-in procedure. The spec identifies these as unknown."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "The file and the parsed rows exist only in the memory of the request. They are not written to disk, caches, error trackers, request logs or the audit record."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-3, R-4",
+   "quote": "Recognized columns: `email` (required), `name` (required), `role` (optional). \u2026 Unknown column (including `password`, `id`, `status`): 422 `HEADER_UNKNOWN_COLUMN` \u2026 Stored exactly as given after trimming \u2026 compared ignoring case with the product's role catalogue"
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "import id, acting admin id, UTC timestamp, outcome \u2026 from an import id in the result they can find the users it created."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-14, R-11",
+   "quote": "Not cancellable in this version. \u2026 re-uploading the same file is safe (it creates everyone or, if it already did, creates no one).",
+   "missing": "Cancellation is settled. The retry rule addresses the whole file and supplies no operation for retrying only the reported rows. With atomic rejection, even the valid rows still need creation."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-14, R-16",
+   "quote": "a status \"Importing N bytes...\" appears without a made-up progress percentage \u2026 Numeric target for response time at 1,000 rows: **unresolved**",
+   "missing": "The platform timeout has no stated duration. The admin sees an in-flight status, but no measure of how much of the file has been processed."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-13",
+   "quote": "Existing users are never created twice, modified, deactivated or deleted by an import. \u2026 The single-user create, sign-in, role management, user list and any export behave as before."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-15, R-4",
+   "quote": "No CSV result export exists in this version, so formula-injection is `n/a`; if one is added, cells starting with `=`, `+`, `-` or `@` must be neutralized. \u2026 F-email-255 `ROW_EMAIL_INVALID` \u2026 F-name-100 accepted, F-name-101 `ROW_NAME_INVALID`"
+  }
+ ]
+}

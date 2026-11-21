@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__A-single__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-30",
+   "quote": "After a file is rejected or an account write fails, the admin finds no accounts created by that submission, even if some records were eligible."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-28, C-29",
+   "quote": "An import rejection identifies the reason the service refused it. \u2026 Feedback identifies the offending record for a record-specific rejection."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "U-3, C-18",
+   "quote": "include one account that already exists, the import reports the conflict and the original accounts keep their current details. \u2026 An import containing duplicate user identities is rejected."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-14",
+   "quote": "A caller supplies a role, permission, or other account setting they cannot assign through normal creation and the import refuses that assignment."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-1",
+   "quote": "An admin allowed to create users can select and submit a CSV through the application's user-management experience.",
+   "missing": "The clause treats ordinary creation authority as sufficient for an admin. It supplies no independent grant for bulk import."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-23",
+   "quote": "An otherwise readable CSV omitting a required column is rejected with feedback identifying the missing column.",
+   "missing": "A builder still has to decide how to handle unexpected columns and a file with no header row."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-3, C-4, C-6",
+   "quote": "the accepted text encoding. \u2026 CSV quoting preserves a comma within a field value. \u2026 A line break within a quoted CSV field does not start a new user record.",
+   "missing": "The encoding, treatment of a byte-order mark, and accepted record line endings are unspecified."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-30, C-44",
+   "quote": "After a file is rejected or an account write fails, the admin finds no accounts created by that submission \u2026 that user receives the corresponding communication after a successful import."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-25",
+   "quote": "A file with exactly 1,000 valid user records can be imported when it satisfies the other requirements. A file with 1,001 otherwise valid user records is refused."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-21, C-2",
+   "quote": "A zero-byte file or a file containing only non-record content allowed by the accepted layout produces feedback that there are no users to import. \u2026 One successful CSV submission creates one user per eligible record."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "U-3",
+   "quote": "If they resubmit the original CSV or include one account that already exists, the import reports the conflict and the original accounts keep their current details."
+  },
+  {
+   "id": "N-12",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-44",
+   "quote": "If ordinary creation under the same settings sends an invitation or other new-account communication to a user, that user receives the corresponding communication after a successful import.",
+   "missing": "The builder must decide whether to send all invitations together or pace delivery, and at what rate."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-43, U-13",
+   "quote": "An imported account enters the same setup state as an equivalent normally created account, including any existing activation or verification requirement. \u2026 After a successful import, the recipient follows the deployment's normal account setup process."
+  },
+  {
+   "id": "N-15",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-47",
+   "quote": "Where normal user creation emits an audit record, the operator can find a corresponding creation record for an imported account with the information normally captured for that action.",
+   "missing": "The clause leaves open whether the records identify the importing admin, the import time, and which accounts belonged to that import."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-35",
+   "quote": "After the admin resolves the cause of a prior rejection, they can submit an eligible CSV using the same import entry point.",
+   "missing": "The builder has no rule for admin-initiated cancellation or for selecting only failed rows to retry."
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-48, C-17",
+   "quote": "Existing callers submitting their usual single-user creation inputs continue to get the same results under the same permissions and settings. \u2026 Import leaves existing accounts untouched."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "C-11",
+   "quote": "A record containing a value the normal creation path rejects for its format, length, or allowed values is rejected on the same basis.",
+   "missing": "The clause covers overlong fields. A builder still has to decide how to prevent submitted values in spreadsheet-readable results from executing as formulas."
+  }
+ ]
+}

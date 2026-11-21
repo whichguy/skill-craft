@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__Q-shiploop-spec-lenses__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3 A",
+   "quote": "If the authoritative create operation definitively fails for a row, report that row as failed and preserve already committed rows. \u2026 Mixed rows preserve valid independent work."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-4 A",
+   "quote": "Its authorized result shows confirmed created, skipped, failed and unprocessed totals and gives non-created records by logical record number and safe reason."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3 B",
+   "quote": "Existing identities and later valid in-file duplicates create nothing and never edit, reactivate, replace, or re-invite an existing account."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-2 default format, R-3 resources",
+   "quote": "The default header set is required `email` and optional `name`. \u2026 No other headers are accepted under this default. \u2026 Account edits, role assignment, password fields, forced invitations, credential import, and automatic rollback are outside the upload contract."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1 A, R-5 resources",
+   "quote": "An admin with create authority in the active scope can open Import users and select a local file. \u2026 Individual cancellation, a special per-import grant and batch undo are outside scope.",
+   "missing": "The spec grants import through ordinary create authority. It gives no rule for allowing an admin to create one user while withholding bulk import from that admin."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2 default format and B",
+   "quote": "The first record must be the header. \u2026 The default header set is required `email` and optional `name`. \u2026 missing or invalid header, duplicate or unsupported headers \u2026 produce a file rejection and zero account writes."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2 default format",
+   "quote": "One UTF-8 comma-delimited file per submission, with an optional leading UTF-8 BOM, LF or CRLF record breaks and an optional final record break. Double-quoted fields may contain commas, doubled quotes or line breaks."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-3 A/B and resources",
+   "quote": "report that row as failed and preserve already committed rows. \u2026 one set of ordinary create side effects for that identity \u2026 automatic rollback are outside the upload contract."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2 C",
+   "quote": "A file above the byte, data-record or decoded field-size cap is rejected as a file with zero account writes.",
+   "missing": "The maximum upload size and data-record count have no specified values."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2 B, R-3 A",
+   "quote": "Zero bytes \u2026 produce a file rejection and zero account writes. \u2026 Header only, or header followed only by physically empty records, yields \u201cNo data rows\u201d with zero account writes. \u2026 One valid row can create one user."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-3 B",
+   "quote": "Repeat the same file as a new import. \u2026 There is at most one committed creation and one set of ordinary create side effects for that identity while it remains reserved under the existing policy."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-4 A and state and recovery",
+   "quote": "It progresses independently of the submitting view. \u2026 an admitted import can be reopened by the authorized submitter \u2026 including completed with issues or with zero users."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3 resources",
+   "quote": "If ordinary creation has a separate owned onboarding boundary, its normal authorization, retry and completion contract must be confirmed and preserved.",
+   "missing": "The spec leaves open whether bulk creation sends invitation or welcome mail and, if so, how many messages may go out at once or over time."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3 A",
+   "quote": "Required account state and ordinary onboarding follow the single-create rules.",
+   "missing": "The initial account status, whether the new user has a password, and the first sign-in steps depend on single-create rules that the spec does not describe."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-6 state lifecycle, input and in-flight row data",
+   "quote": "Private product processing, scoped to the admitted import. \u2026 No product download \u2026 Remove rejected input on rejection and remove admitted input when it is no longer needed, at latest on terminal settlement."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-6 B, R-4 state and recovery",
+   "quote": "Operators can retrieve events by safe correlation reference, scope, timestamp, event/outcome code and aggregate counts \u2026 It binds the reference to the submitter, scope and original submission intent.",
+   "missing": "The spec does not say how an auditor identifies the submitting admin for a recorded import. The actor binding is specified for receipt recovery."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-5 B and resources",
+   "quote": "After acceptance there is no uploader cancel or batch undo. \u2026 The file may be corrected and resubmitted under R-2 and R-3.",
+   "missing": "Cancellation is explicitly ruled out. The spec permits a corrected upload but does not say how failed rows are selected for a retry or whether the admin must assemble that subset manually."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements, Capacity and response (R-2 C, R-4)",
+   "quote": "At the supported maximum upload and concurrent load, valid admitted work remains recoverable, controls stay usable, and progress communicates pending work. \u2026 The supported workload and acceptable wait time remain open.",
+   "missing": "There is no upper bound on time to completion for a maximum-size file."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3 basis and delta, R-3 B",
+   "quote": "Preserve all existing single-create rules, records and authorized writers. \u2026 Existing identities and later valid in-file duplicates create nothing and never edit, reactivate, replace, or re-invite an existing account."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-6 A, R-2 C",
+   "quote": "raw field values, filenames, passwords, credentials and provider diagnostics are absent from receipt payloads and import logs. \u2026 A file above the byte, data-record or decoded field-size cap is rejected as a file with zero account writes."
+  }
+ ]
+}

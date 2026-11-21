@@ -1,0 +1,138 @@
+{
+ "slot": "invoice-reminders__D-enumerated-only__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-29",
+   "quote": "One, seven, and fourteen calendar days after the due date provide a finite overdue follow-up schedule."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-20, C-21",
+   "quote": "qualifies after a partial payment or partial credit. \u2026 voided or canceled invoice, fully paid or fully credited invoice \u2026 A disputed invoice is excluded while the dispute places it on a collection hold.",
+   "missing": "Whether an invoice on a payment plan continues to receive reminders."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-26",
+   "quote": "For an invoice with 25.00 USD remaining on a 100.00 USD original total, the email identifies 25.00 USD as the amount currently due."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-42, C-46, C-48",
+   "quote": "at most one submission in progress for that milestone \u2026 automatic reevaluation does not resubmit it while uncertain \u2026 no further submission after a restart, pause, re-enable, recipient edit, due-date edit, payment reversal, or re-deployment."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-39",
+   "quote": "A scheduled send uses the current submission eligibility at the point of starting submission \u2026 invoice disposition, collectible balance \u2026 If any required condition fails or the relevant record cannot be read authoritatively, submission does not start."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "U-9, C-43, C-44",
+   "quote": "Operations can identify the interruption. \u2026 the earliest a still-eligible retry can start is 1 hour after non-acceptance is established. \u2026 After the third submission returns conclusive temporary non-acceptance, the milestone is closed to automatic retry.",
+   "missing": "Whether persistent failure triggers a notification or handoff, who receives it, and when."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-65",
+   "quote": "If the live email service restricts throughput or concurrent submissions, work above its admitted capacity waits for later consideration."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-36",
+   "quote": "Catch-up considers only the latest milestone that has opened \u2026 Only day seven is considered for submission at activation, and day fourteen becomes the candidate when it opens."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-30, C-88",
+   "quote": "Each milestone opens at 09:00 UTC on its calendar day \u2026 Daylight saving changes and account locale do not shift that instant. \u2026 Weekends, holidays, and month or year boundaries do not move a milestone to another day."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-26",
+   "quote": "The reminder email shows the outstanding amount in the invoice currency \u2026 the email identifies 25.00 USD as the amount currently due.",
+   "missing": "Which display convention applies across currencies and recipient locales, including fractional digits, separators, and currency codes or symbols."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-24, C-82",
+   "quote": "An invoice-specific address that is present but invalid is held for correction. A missing or ambiguous customer fallback is held for correction. \u2026 a bounce or other final delivery failure, the previously accepted milestone stays closed to new submissions."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-24",
+   "quote": "The invoice's current billing email takes precedence. \u2026 use the linked customer's current billing email for that account if there is exactly one designated address. \u2026 A missing or ambiguous customer fallback is held for correction."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-12, C-58, C-59",
+   "quote": "Open an invoice and see each recorded reminder outcome for that invoice. \u2026 the operator can identify day one, seven, or fourteen \u2026 Each attempt exposes its start timestamp, destination, result, and result timestamp when known."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-81, C-28",
+   "quote": "the customer-facing reference, balance and currency, due date, and any existing customer-facing payment route. \u2026 If the invoice has neither, the reminder can go out without a payment route.",
+   "missing": "Whether the payment link expires and, if so, when."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-31, C-14, C-75",
+   "quote": "Channel, cadence, time zone, time, catch-up, templates, and per-invoice overrides are not editable reminder settings. \u2026 Changing reminder activation requires account billing settings authority \u2026 these communications continue under their existing rules",
+   "missing": "Who can manually send a reminder or stop an individual pending send, if those actions are available."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-18, C-75",
+   "quote": "After the deployment-wide stop takes effect, new reminders cease across all accounts. \u2026 manual reminders can already be sent, these communications continue under their existing rules",
+   "missing": "Whether an operator can disable reminders for one customer, preview or dry-run dispatch, or manually resend a particular automatic reminder."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-57, C-58",
+   "quote": "The activity distinguishes upcoming, due \u2026 retry scheduled, accepted, failed, uncertain \u2026 For a displayed milestone the operator can identify day one, seven, or fourteen, its current scheduled timestamp if it has one, and its outcome or hold."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-68",
+   "quote": "If one milestone stays continuously ready and service capacity is available for all ready work throughout, its submission starts within 1 hour of becoming ready. \u2026 Under interruption or saturation this time bound does not apply."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-72, C-73, C-74",
+   "quote": "Automatic reminders preserve normal invoice lifecycle actions \u2026 Automatic reminders preserve normal settlement actions \u2026 The amount, currency, balance, due date, and invoice lifecycle status remain as set by billing."
+  }
+ ]
+}

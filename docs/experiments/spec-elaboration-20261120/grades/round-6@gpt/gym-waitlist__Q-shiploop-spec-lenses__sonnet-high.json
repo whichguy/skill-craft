@@ -1,0 +1,144 @@
+{
+ "slot": "gym-waitlist__Q-shiploop-spec-lenses__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "Promotion is automatic. \u2026 automatic booking, not an \"offer with a claim window\""
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "first-come-first-served by the System's own record of when the join was accepted \u2026 ordered by a stable System-assigned tiebreak \u2026 There is no priority, no paid priority, no reordering by staff"
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-8",
+   "quote": "A member is promoted into a class that overlaps another booking: \u2026 governed solely by the existing direct-booking rule (G-3)",
+   "missing": "Whether booking the first class removes the member from the overlapping waitlist or leaves that entry active for a later eligibility check."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "it creates a booking for that member in the same operation that freed the seat \u2026 a member cancels a booking \u2026 a waiting member ends up booked without having to be watching."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "they were promoted and are now booked, naming class and start time \u2026 Delivery failure is recorded (R-12) and retried within the notification channel's own rules. \u2026 reuse whatever the app uses for booking confirmations today"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-6, R-15",
+   "quote": "two seats freed at the same time promote the first two heads, each once \u2026 no run shows a confirmed count above capacity or a double promotion."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-6, R-5",
+   "quote": "while the queue is non-empty a freed seat can be claimed only through promotion \u2026 it creates a booking for that member in the same operation that freed the seat, removes the entry"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "at promotion time the head member must pass whatever check a direct booking would pass today \u2026 including payment or credits \u2026 if the head fails the check, that entry is removed with a recorded reason",
+   "missing": "When payment is actually collected and whether a failed charge follows the same skip-and-notify rule as a failed eligibility check."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "until decided the spec does not forbid a plan from enforcing a documented cap, but the acceptance below applies to the uncapped case.",
+   "missing": "Whether to impose a cap, its size, and what the next member sees when the queue reaches it."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-8",
+   "quote": "Whether to stop promoting some minutes *before* start is not in the request (G-7, open); default A-5: promote until the start instant.",
+   "missing": "Whether to adopt an earlier cut-off and, if so, how far before the start promotions stop."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "capacity is raised (frees *k* = new \u2212 old seats; promotes up to *k* heads in order) \u2026 no booking is removed by the waitlist and no promotion occurs until confirmed < capacity."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "**Class cancelled** (by staff): all entries end with reason \"class cancelled\"; each member notified (R-7)."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "State and data assessment, R-3",
+   "quote": "Waitlist entry (class, member, accepted-at, tiebreak, status, end reason) \u2026 The member's position is 1 + the number of active entries ahead of theirs for that class."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-8, R-17",
+   "quote": "remaining active entries end with reason \"class started\" \u2026 ended entries and audit retention period: **unresolved**",
+   "missing": "How long an ended entry is retained after class start."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "it shows only the member's own position, never the queue length or other people"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-9, R-12",
+   "quote": "roster showing the ordered queue (member name, join time, position), the count, and a Remove action \u2026 recorded with timestamp, class id, member id \u2026 event (join, leave, promote \u2026 Staff/Operators can retrieve them for a class.",
+   "missing": "Whether staff can manually trigger a promotion and, if so, which entry they can promote."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-11",
+   "quote": "A **global** waitlist switch and a **per-class** override (on/off/inherit) exist."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-5, R-16",
+   "quote": "it creates a booking for that member in the same operation that freed the seat \u2026 after a freeing operation returns success, a subsequent read by the promoted member shows the booking"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-13",
+   "quote": "everything the app does today for classes with open seats, for bookings and for cancellations behaves as before \u2026 book a seat in a class with space \u2026 existing classes, bookings and members need no migration of their own"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-13, R-11",
+   "quote": "after release no waitlist entries exist, and existing full classes show the empty-queue state. \u2026 global off, Fay sees no waitlist control on a full class; Operator switches on \u2192 control appears"
+  }
+ ]
+}

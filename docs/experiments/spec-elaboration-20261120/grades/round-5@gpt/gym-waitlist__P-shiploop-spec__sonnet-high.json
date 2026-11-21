@@ -1,0 +1,144 @@
+{
+ "slot": "gym-waitlist__P-shiploop-spec__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "D-1",
+   "quote": "Promotion is automatic, with no accept/decline step."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-3, AC-3.1, AD-4",
+   "quote": "entries are served strictly in join order. [\u2026] two joins at the same instant get distinct join orders (no tie) [\u2026] store a monotonically increasing join order per session"
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-1, R-6",
+   "quote": "joining several overlapping classes' waitlists is allowed only to the extent the app already allows booking overlapping classes [\u2026] every existing eligibility, credit/payment, overlap and cutoff rule",
+   "missing": "The spec leaves open whether promotion into one class immediately ends the overlapping entry or leaves it waiting for its own eligibility check."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "D-1",
+   "quote": "Promotion is automatic, with no accept/decline step. [\u2026] a promoted member who cannot attend must cancel through the existing cancel flow (late-cancel rules apply as today).",
+   "missing": "Late cancellation is addressed, but the spec does not explicitly say whether missing an automatic promotion and failing to attend counts as a no-show."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "the first eligible entry in join order is turned into a real booking, in the same atomic operation that freed the seat. Triggers: member cancels their booking"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-9, AC-9.1",
+   "quote": "one notification through the app's existing notification channel (G-3), stating the class, its time and the outcome. [\u2026] channel returns an error \u2192 booking and entry stay Promoted, the failure is logged"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AC-8.1",
+   "quote": "two simultaneous cancellations free two seats (capacity 2, booked [Ana, Ben], waiting [Cara, Dev, Eli]) \u2192 exactly Cara and Dev promoted, Eli position 1; no one promoted twice."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "AC-7.1, T-4",
+   "quote": "a member with a Waiting entry who books directly gets ON_WAITLIST; entry unchanged. [\u2026] seat release + mark Promoted + create booking in ONE atomic unit"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-6, AC-6.1, G-2",
+   "quote": "the waitlist takes no payment [\u2026] Cara's entry becomes Ineligible, Dev (next) is evaluated for the same seat [\u2026] Concrete E-4/E-5 triggers and charge behaviour **unready**",
+   "missing": "The spec defers when a promoted booking is charged and whether a failed charge skips the member as ineligible or rolls back the promotion as a booking-creation failure."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "a waitlist length cap (G-5, default none)"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-11, AC-11.2",
+   "quote": "When the class is no longer bookable under the app's existing rule (started or past cutoff), no join and no promotion happens [\u2026] the instant of the cutoff follows the app's existing booking rule exactly"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "AC-5.2",
+   "quote": "staff sets capacity 4 \u2192 Cara and Dev promoted in that order [\u2026] capacity 4 \u2192 3 with booked 4 (staff cut): no booking is removed; Ana cancels \u2192 booked 3 = capacity 3, no promotion"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-11",
+   "quote": "when the studio cancels a class, every Waiting entry becomes Closed and the member is told"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "State and data assessment, AD-4",
+   "quote": "Waitlist entry (member, session, join order, state, link to booking) [\u2026] store a monotonically increasing join order per session; position = 1 + count of Waiting entries with a smaller order.",
+   "missing": "The record stores join order, but the spec leaves open whether it also records the time the member joined."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "E-5, D-11",
+   "quote": "Dev still Waiting but not promoted [\u2026] Retention of terminal entries follows existing booking-record retention until G-7 is decided.",
+   "missing": "Entries can still be Waiting after the class runs. The spec gives a retention rule only for terminal entries, leaving the cleanup time for these Waiting entries undecided."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "A member sees their own position; they never see who else is queued."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-12, AC-12.1",
+   "quote": "applies only if the app already has a staff/admin role [\u2026] a staff member opens S1 and sees the ordered waiting members with their join order and can remove one entry",
+   "missing": "The staff controls cover viewing and removal. The spec gives staff no manual promotion action and does not specify a staff-visible history showing who was promoted and when."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "the first eligible entry in join order is turned into a real booking, in the same atomic operation that freed the seat."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "AC-13.1, Service boundaries (Booking authority)",
+   "quote": "a class with free seats and no queue is booked and cancelled exactly as before. [\u2026] unrelated bookings are untouched."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "State and data assessment, R-1",
+   "quote": "No migration of existing data is needed: entries start empty. [\u2026] a signed-in member viewing a full, bookable class can join its waitlist"
+  }
+ ]
+}

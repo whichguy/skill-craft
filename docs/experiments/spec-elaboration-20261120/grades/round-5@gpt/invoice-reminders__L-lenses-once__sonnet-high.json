@@ -1,0 +1,138 @@
+{
+ "slot": "invoice-reminders__L-lenses-once__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-4",
+   "quote": "3 days before the due date, on the due date, 7 days after, 14 days after, until the owner edits it."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-17, C-18",
+   "quote": "paid in full, void or cancelled, written off or marked uncollectible, or reduced to a zero balance by credits or refunds. \u2026 A partly paid invoice is still reminded",
+   "missing": "Whether a dispute or a payment plan suspends reminders on an invoice with an outstanding balance."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-18",
+   "quote": "After a partial payment, later reminders for that invoice are sent and state the remaining balance, not the original total."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-24",
+   "quote": "the customer receives at most one email in total, including when two workers evaluate the same step simultaneously, when a worker restarts partway through, and when the scheduler runs twice."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-21",
+   "quote": "The invoice's state is checked immediately before each send attempt"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-25",
+   "quote": "When the provider refuses or rejects the email, or is unreachable, the attempt is retried 1 hour later, up to 3 retries (4 attempts in all); if the fourth also fails the step shows \"failed\".",
+   "missing": "Whether a final failure triggers a notification, who receives it, and how."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-26",
+   "quote": "When the provider answers that the account is being rate-limited, the step is retried under C-25 and not marked failed on the first answer.",
+   "missing": "What sending limit applies and how to pace a large batch to stay within it."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "U-7",
+   "quote": "The owner turns reminders on while some invoices are already past due. Those invoices are not sent reminders for days that already passed; they get only the reminders still ahead of them."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "C-12, C-13",
+   "quote": "The reminder for offset N goes out on the calendar day (in the account's time zone) that is the invoice's due date plus N days. \u2026 09:00 in the account's time zone, or in UTC",
+   "missing": "The schedule fixes an account-local time but gives no customer-local business hours or explicit weekend or holiday exceptions."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-39",
+   "quote": "The amount is the remaining balance at the time of sending (C-18), with its currency, to the currency's usual number of decimal places."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-36, C-37",
+   "quote": "no billing email address, or the address is not a syntactically valid email address, the step shows \"skipped: no recipient\" \u2026 After an address bounces permanently, no more reminders go to it for that invoice"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-35",
+   "quote": "The email's recipient is exactly the invoice's billing contact email address as it stands when the attempt is made, so a changed address takes effect for all later steps. No other person is copied or blind-copied."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "U-6",
+   "quote": "sees every reminder step with its day offset, the date it was scheduled for, and its outcome (upcoming, sent, skipped with the reason, cancelled with the reason, failed, unconfirmed, bounced) with the time that outcome happened."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-39, C-41",
+   "quote": "the invoice number, the amount still owed, the due date \u2026 a way to pay or view the invoice \u2026 works for that invoice only and stays valid while the invoice is unpaid"
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-9",
+   "quote": "Only users permitted to manage billing settings can change reminder settings or pause and resume an invoice's reminders",
+   "missing": "Whether anyone may send a reminder manually and which permission that requires."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-2, C-33",
+   "quote": "The owner can turn reminders on and off for the whole account \u2026 The owner can pause and resume reminders on a single invoice",
+   "missing": "Whether an owner can disable reminders for a whole customer, preview or dry-run sends, or manually resend a reminder."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "U-6",
+   "quote": "the date it was scheduled for, and its outcome (upcoming, sent, skipped with the reason, cancelled with the reason, failed, unconfirmed, bounced)"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-28",
+   "quote": "A step more than 24 hours past its scheduled time is skipped as missed"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-50, C-49",
+   "quote": "Issuing, editing, paying, voiding and writing off invoices \u2026 behave and look exactly as before the release \u2026 the invoice's status, amounts, due date, payments and the customer's record are the same as before."
+  }
+ ]
+}

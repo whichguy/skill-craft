@@ -1,0 +1,39 @@
+ROUND round-5: agreement of tagged verdict sets with the registered one (24 specifications)
+
+@gpt  (gpt-6.2-astra high), 24 specifications in both sets
+  specification                                            registered     @gpt  diff
+  csv-user-import__F-guarded__sol-medium                           13       11    -2
+  csv-user-import__F-guarded__sonnet-high                          17       13    -4
+  csv-user-import__L-lenses-once__sol-medium                       15       11    -4
+  csv-user-import__L-lenses-once__sonnet-high                      13       12    -1
+  csv-user-import__P-shiploop-spec__sol-medium                     12       11    -1
+  csv-user-import__P-shiploop-spec__sonnet-high                    12       13    +1
+  grokbot-salesforce__F-guarded__sol-medium                        21       13    -8
+  grokbot-salesforce__F-guarded__sonnet-high                       21       13    -8
+  grokbot-salesforce__L-lenses-once__sol-medium                    23       13   -10
+  grokbot-salesforce__L-lenses-once__sonnet-high                   22       17    -5
+  grokbot-salesforce__P-shiploop-spec__sol-medium                  17        9    -8
+  grokbot-salesforce__P-shiploop-spec__sonnet-high                 19       18    -1
+  gym-waitlist__F-guarded__sol-medium                              12       11    -1
+  gym-waitlist__F-guarded__sonnet-high                             15       14    -1
+  gym-waitlist__L-lenses-once__sol-medium                          13       10    -3
+  gym-waitlist__L-lenses-once__sonnet-high                         16       13    -3
+  gym-waitlist__P-shiploop-spec__sol-medium                         7        6    -1
+  gym-waitlist__P-shiploop-spec__sonnet-high                       18       14    -4
+  invoice-reminders__F-guarded__sol-medium                         14       14    +0
+  invoice-reminders__F-guarded__sonnet-high                        15       15    +0
+  invoice-reminders__L-lenses-once__sol-medium                     11       11    +0
+  invoice-reminders__L-lenses-once__sonnet-high                    13       13    +0
+  invoice-reminders__P-shiploop-spec__sol-medium                    7        5    -2
+  invoice-reminders__P-shiploop-spec__sonnet-high                   9       11    +2
+  per specification: mean |diff| 2.92, largest 10, sum of diffs -64
+  nuance by nuance (534): same state 82%, same covered-or-not 84%
+  changes: covered -> partial x67, partial -> covered x11, covered -> absent x8, partial -> absent x8, absent -> partial x1
+  pooled by arm and driver, registered -> @gpt:
+    F-guarded          sol-medium    60 ->  49  (-11)
+    F-guarded          sonnet-high   68 ->  55  (-13)
+    L-lenses-once      sol-medium    62 ->  45  (-17)
+    L-lenses-once      sonnet-high   64 ->  55  (-9)
+    P-shiploop-spec    sol-medium    43 ->  31  (-12)
+    P-shiploop-spec    sonnet-high   58 ->  56  (-2)
+

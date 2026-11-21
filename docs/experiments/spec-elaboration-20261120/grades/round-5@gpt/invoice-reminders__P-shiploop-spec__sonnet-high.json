@@ -1,0 +1,141 @@
+{
+ "slot": "invoice-reminders__P-shiploop-spec__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "A-3",
+   "quote": "day offsets **0, +7, +14** from the invoice due date (due date, 7 days overdue, 14 days overdue); **no** reminders before the due date"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "A-4, R-4",
+   "quote": "\"Unpaid\" = invoice has been issued to the customer, is not void, and has an outstanding balance greater than zero. \u2026 Out of scope: per-invoice pause/dispute hold.",
+   "missing": "The balance rule covers full and partial payment. The spec does not say how credits affect that balance or whether a payment plan suspends reminders."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "outstanding balance 300.00 on a 500.00 invoice with 200.00 paid \u2192 body says `300.00 USD`, not 500.00."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "G-3",
+   "quote": "Legal/compliance rules for automated payment-reminder email to customers (unsubscribe, jurisdiction, sender identity). Not researched; no rule is claimed.",
+   "missing": "Whether an existing customer pause, do-not-contact flag or unsubscribe suppresses billing reminders, and whether a marketing opt-out applies."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "a pass that cannot create the claim does not send. Overlapping passes, repeated passes, and restarts therefore cannot both send."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "Immediately before each send, the system re-reads the invoice and the business setting from their authoritative store (no cache) and re-applies the R-2 eligibility test."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-6",
+   "quote": "A failed attempt is retried on the next evaluation pass. \u2026 provider fails 3 times \u2192 `exhausted`, history shows it, no 4th attempt \u2026 provider outage across many invoices \u2192 each slot fails and retries independently",
+   "missing": "Whether exhausting retries alerts a person, and who receives that alert."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "NFR-7",
+   "quote": "Mail-provider rate limits are unknown (G-5); a refusal due to throttling is a `failed` attempt.",
+   "missing": "What sending limit applies and how messages in a large batch are spaced to stay within it."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "feature enabled 2026-12-10T16:00Z (10:00 local) for INV-1001 with no records: offsets 0 and +7 are due, +14 is not \u2192 exactly one email (offset +7, \"9 days overdue\"), offset-0 record is `superseded`, no offset-0 email."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "A-5",
+   "quote": "Days are calendar days in the **business's time zone** (IANA name). Reminders go out on or after **09:00 local** on the due offset date. A business without a time zone uses UTC.",
+   "missing": "The schedule uses business-local calendar days. It specifies no recipient-local business-hours window or adjustment for a customer's weekends or holidays."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "outstanding balance with ISO currency code (two decimals, thousands separator `,`)"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-3, R-6",
+   "quote": "invoice has no billing address, or an address failing basic address syntax \u2192 no send; record `blocked: no recipient` \u2026 Out of scope: bounce handling, delivery receipts."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "One plain-text email to the invoice's customer billing address",
+   "missing": "Which address to use when several billing contacts exist and none is designated as the invoice recipient."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "The invoice-detail view lists reminder history for that invoice, newest first: offset, send-day local date, outcome (R-6 vocabulary), recipient address as used, attempts."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "business name, invoice number, outstanding balance with ISO currency code (two decimals, thousands separator `,`), due date as `YYYY-MM-DD` \u2026 A pay-link line is included only if the invoice already has a payment URL",
+   "missing": "Whether the payment URL expires and whether an expired URL is included in a reminder."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-1, Domain rules (R-2, R-4)",
+   "quote": "An authorised user of that business (G-8: the role that may change business settings) can set it. \u2026 Left **out of scope**: editing the schedule (R-2), per-invoice pause/snooze or \"dispute\" hold (R-4), a \"send now\" button"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1, Domain rules (R-1, R-2)",
+   "quote": "`off` stops all further sends from the next pass and from the pre-send re-check (R-4) \u2026 a \"send now\" button (R-2) \u2026 per-customer overrides (R-1)",
+   "missing": "The business switch and exclusions for customer overrides and manual sending settle those controls. Whether a user can preview a reminder or dry-run a batch is unspecified."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-7, R-6",
+   "quote": "a *next reminder* line: the date of the next offset not yet recorded as final \u2026 provider fails 3 times \u2192 `exhausted`, history shows it"
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "NFR-2",
+   "quote": "**Numeric bound unresolved**: no latency target was given. Proposed (not accepted): passes at least hourly (A-8), so lateness is at most one pass interval plus send time.",
+   "missing": "There is no accepted maximum dispatch delay or aggregate send-volume limit."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "State and data assessment",
+   "quote": "*invoice record* \u2014 **read only**, never modified by this feature; (5) *customer email* \u2014 read only. Out of scope: payment recording, invoice creation, customer data editing."
+  }
+ ]
+}

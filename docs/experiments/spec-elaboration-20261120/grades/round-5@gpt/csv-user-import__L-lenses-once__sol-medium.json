@@ -1,0 +1,147 @@
+{
+ "slot": "csv-user-import__L-lenses-once__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-44",
+   "quote": "The import commits either every user record or zero user records."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-46, C-47",
+   "quote": "For an invalid record, identify its starting physical line \u2026 A rejected file has at least one applicable actionable error.",
+   "missing": "The admin may get only the first actionable error. The specification does not require a reason for every failing row in the same result."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "U-4",
+   "quote": "A file containing a repeated identity or an identity already held in the destination fails."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-50, C-51",
+   "quote": "The supplied data cannot give a user administrative access or change ordinary account privileges. \u2026 Imported users receive the ordinary default permissions for newly created users.",
+   "missing": "Role assignments from the file are prohibited. Whether the default grants can exceed the importer's own access is unspecified."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-6, C-7",
+   "quote": "A signed-in non-admin cannot submit an import. \u2026 An admin needs ordinary user-creation authority in the destination.",
+   "missing": "The specification gives no separate bulk-import authorization rule for an admin who can already create individual users."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-26, C-27, C-28",
+   "quote": "The first record contains the headers. \u2026 The file is refused with the missing or repeated header identified. \u2026 Unrecognized headers are refused."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-19, C-22, C-23",
+   "quote": "A single UTF-8 byte-order mark at the start of the file is optional. \u2026 The import accepts LF and CRLF as record separators. \u2026 Inside the enclosing quotes, a comma, LF, or CRLF is part of the value"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-56",
+   "quote": "If equivalent ordinary creation triggers an invitation, activation message, or administrative creation notice, a rejected import triggers none of those creation notices for its rows."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "U-3",
+   "quote": "Check the published limits of 1,048,576 file bytes and 1,000 user records. \u2026 A file one byte or one record over its respective limit is refused."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-32, C-33",
+   "quote": "zero-byte file, a file with only a mark or ignored lines, or a valid header with no user records. The attempt is refused as having no user records. \u2026 one eligible record. One user is created."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-63, C-42",
+   "quote": "Repeating an upload cannot recreate an identity created by the previous attempt. \u2026 A batch containing an identity unavailable under ordinary creation is refused."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-74",
+   "quote": "whether work may continue after a request ends are unconfirmed. \u2026 If the host ends the client request before a result is known, the admin gets an unconfirmed outcome when status is available.",
+   "missing": "The specification leaves background processing undecided and gives no way to receive a final completion result for a background job."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-56",
+   "quote": "A committed import triggers the ordinary notices under their ordinary timing and delivery rules.",
+   "missing": "The specification does not say whether a batch sends all invitations at once or what pacing applies across recipients."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-52, C-53, C-54",
+   "quote": "Imported users start in the ordinary initial account state. \u2026 No CSV cell becomes a credential. \u2026 An imported user can use the same account claim, activation, or initial sign-in steps as an equivalent ordinarily created user.",
+   "missing": "The host determines activation status and first sign-in. The specification does not establish whether a password exists when the account is created."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-60",
+   "quote": "After success, rejection, or failure, the raw upload is unavailable as an import download or history item.",
+   "missing": "The file\u2019s storage location during processing and the deletion deadline for any underlying copy are unspecified."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-62",
+   "quote": "Operator visibility covers the attempt time and destination when known, the outcome, and the count on success.",
+   "missing": "The operational record need not identify the importing admin or link the batch to the particular accounts created."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-71, C-33",
+   "quote": "Closing the interface gives no cancellation guarantee after submission. \u2026 without adding a cancellation feature \u2026 an admin should be able to retry a single corrected row using the same workflow"
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-74",
+   "quote": "In a healthy target deployment, a valid file at both limits can reach a definitive result.",
+   "missing": "The specification gives neither a maximum elapsed time nor a requirement to show progress during processing."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-81, C-43",
+   "quote": "An authorized admin can still create one user through the ordinary entry point with the same accepted fields, validation, defaults, and outcome as before the import release. \u2026 The import leaves existing users unmodified."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-58, C-39",
+   "quote": "Formula-like text, markup, and URLs in a field are processed only as candidate account data. \u2026 Uploading or viewing the result cannot execute or fetch them \u2026 both make the same decision about its allowed characters, format, length"
+  }
+ ]
+}

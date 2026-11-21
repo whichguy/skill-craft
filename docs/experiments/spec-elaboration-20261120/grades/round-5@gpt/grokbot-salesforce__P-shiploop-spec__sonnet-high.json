@@ -1,0 +1,181 @@
+{
+ "slot": "grokbot-salesforce__P-shiploop-spec__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "A-1, A-3",
+   "quote": "a Lightning web component on a custom tab) where a signed-in user types and Grok answers, with conversation memory for the visit. \u2026 It reads no Salesforce records and sends none to xAI"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-17",
+   "quote": "the Apex service class is declared `with sharing` (it reads no records, so this is defence in depth only)."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-17",
+   "quote": "*Field-level security:* none apply, no record field is read, written or sent."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-8, R-6, R-5",
+   "quote": "One permission set, `Grok_Bot_User`, grants everything a user needs \u2026 One administrator-editable configuration record named `Default` \u2026 administrator-managed credential entry set in Setup."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "AD-5, R-10",
+   "quote": "the lifetime is one page visit with no sharing and no recovery \u2026 the transcript exists only in the open component (T-10). User text and model output are not written to any log"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-15",
+   "quote": "One send is one Apex transaction with exactly one callout and no DML before it (the callout would otherwise be refused)",
+   "missing": "The specification uses a synchronous call. It gives no trigger restriction or asynchronous job that makes the callout in a separate transaction."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AD-2, R-5",
+   "quote": "the External Credential keeps the key out of source, Apex and the browser \u2026 It is never in source control, the component bundle, a configuration record, a debug line"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "S-5, R-15",
+   "quote": "120,000 ms max per callout, 120 s cumulative per transaction, 100 callouts per transaction \u2026 this stage has not re-read the synchronous Apex heap limit",
+   "missing": "The numeric heap and CPU-time limits are missing."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-21",
+   "quote": "with the HTTP callout mocked (`HttpCalloutMock`) \u2026 Apex tests must not call xAI."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-2, R-5.AL-2, R-7.AL-5",
+   "quote": "The Named Credential fixes the host \u2026 metadata inspection of the credential's base URL. \u2026 The mock throws a `CalloutException` with message `Unauthorized endpoint`: CONNECTION_FAILED."
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-9, R-7.AL-10",
+   "quote": "Only the latest request token may update state. \u2026 on success the message becomes `sent`, the reply follows it, and the failure item is removed.",
+   "missing": "The client handles stale results and manual retries. No rule deduplicates a reply if a worker processes the same message twice."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-15",
+   "quote": "external callouts to 20 for the whole org; the 21st concurrent send may fail and surfaces as CONNECTION_FAILED or UPSTREAM_ERROR",
+   "missing": "The limit applies to active callouts. The specification gives no limit for queued jobs or outcome for a failed enqueue."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "Grok could not process this request. Try a shorter message or start a new conversation. \u2026 Grok is temporarily unavailable. Try again shortly. \u2026 Grok did not respond within {Timeout_Seconds} seconds. It may still have processed your message"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "The product makes **one** attempt per send and never retries on its own \u2026 HTTP 429 | \"Grok is receiving too many requests. Wait a moment, then retry.\""
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-11, R-7",
+   "quote": "the text is shown with the notice \"Response was cut off at the output limit.\" \u2026 Grok did not respond within {Timeout_Seconds} seconds. It may still have processed your message; retry to send it again."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-3, T-3, R-12",
+   "quote": "A **turn** is a `sent` user message plus its assistant reply. \u2026 Append assistant message, mark user message `sent` \u2026 configured model, and input and output token counts when present.",
+   "missing": "The transcript is transient and usage is logged separately. There is no stored conversation and turn schema linking text, role, status, timestamps, model and usage."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "AD-5, T-10",
+   "quote": "the lifetime is one page visit with no sharing and no recovery \u2026 Component disconnected or page reloaded | Memory released | Transcript gone; nothing persisted"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "No Salesforce record, field, user name, email or org id is added to the request. \u2026 Whatever a user types is theirs to disclose; the bot does not scan or redact it."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "The request carries at most the last `Max_History_Turns` turns (default 10), oldest dropped first, followed by the new user message; the full transcript stays on screen regardless."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-3.AL-2, R-4",
+   "quote": "with zero prior turns it holds one item. \u2026 Empty after trimming is rejected \u2026 Exactly `Max_Input_Chars` characters is accepted; one more is rejected."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-6.AL-4, R-12",
+   "quote": "Changing `Model` on the deployed record to a second valid model id changes the model id shown on the next reply. \u2026 An operator with a trace flag can tell success from each failure kind",
+   "missing": "The specification gives the administrator no explicit org-wide control to turn the bot off."
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-13, R-13.AL-4, R-13.AL-6",
+   "quote": "source deploys to the target org with the standard CLI deploy. \u2026 the External Credential principal has no value after deploy (an administrator sets it). \u2026 coverage of the Apex classes meets the org's actual deploy gate.",
+   "missing": "The development deployment is specified. Environment-specific configuration and credentials for promotion, and the production code-coverage requirement, are unspecified."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "R-14, R-9",
+   "quote": "The callout timeout is `Timeout_Seconds` (default 60), never above the platform cap of 120 seconds per callout \u2026 The indicator ends only when a result for the current request arrives (success or failure)"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "R-18, R-7",
+   "quote": "Empty (R-1 prompts), loading (R-9 indicator), error (R-7 persistent item with Retry) \u2026 Grok could not process this request. Try a shorter message or start a new conversation."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-17, R-15, R-13",
+   "quote": "the Apex service class is declared `with sharing` (it reads no records \u2026 no record field is read, written or sent. \u2026 existing triggers or flows (none touched). \u2026 never changes unrelated existing metadata."
+  }
+ ]
+}

@@ -1,0 +1,186 @@
+{
+ "slot": "grokbot-salesforce__F-guarded__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-2, C-50",
+   "quote": "opens the bot from the App Launcher in Lightning Experience \u2026 the list of that user's conversations \u2026 A recording stand-in sees no Salesforce record data"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-49, C-53",
+   "quote": "In the bot's screens and server actions, a user sees, opens, continues and deletes only conversations they own. \u2026 the bot reads no Salesforce record on a user's behalf.",
+   "missing": "The owner check and exclusion of CRM records constrain the answers. The specification leaves open whether conversation and message queries run under the asking user's Salesforce sharing rules."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-84",
+   "quote": "The user permission set grants: opening the chat screen, and creating, reading and deleting the holder's own conversations and messages, and sending messages. \u2026 The administrator permission set grants: reading and changing settings, and reading and deleting call-log rows."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-49",
+   "quote": "a user sees, opens, continues and deletes only conversations they own. \u2026 The administrator permission set does not widen this. (Holders of the platform's View All Data or Modify All Data permission keep the platform's own visibility"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-73",
+   "quote": "A send reaches Grok before anything is written for it \u2026 the platform refuses a callout after a database write in the same transaction",
+   "missing": "The write ordering is specified, but there is no rule moving a trigger-initiated callout to a separate asynchronous transaction."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-38, C-8",
+   "quote": "After saving it, no screen, API response or deployment retrieval shows the key's value to anyone \u2026 The key appears in no other request, response, page, record, log line, error message or file of the project.",
+   "missing": "The builder must choose the protected Salesforce credential store behind the Setup entry."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-29",
+   "quote": "the platform allows at most 120 seconds for all callouts in one request (default per call is 10 seconds",
+   "missing": "The specification gives no numeric ceilings for callouts per transaction, Apex heap, or CPU time."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-77",
+   "quote": "use only a simulated Grok service \u2026 no test sends a request to api.x.ai \u2026 tests may not make real callouts"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-58",
+   "quote": "No one has to authorize api.x.ai separately in Setup; the deployment already contains that authorization."
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-4",
+   "quote": "a single Send (including a double-click, or Enter pressed twice quickly) produces exactly one request; the call log gains exactly one row.",
+   "missing": "The text covers repeated UI input. It leaves open how a worker recognizes an already completed request and prevents a second reply when a job is replayed."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-74",
+   "quote": "When more long-running synchronous requests are in progress in the org than the platform's concurrency limit \u2026 the refused send shows the C-27 message, the text returns to the box, and nothing is stored.",
+   "missing": "The limit and refusal apply to synchronous requests. Async queue capacity and the outcome of an enqueue failure are unspecified."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-26, C-27",
+   "quote": "Grok answers HTTP 400, 401, 403 or 404 \u2026 contact an administrator \u2026 When Grok answers HTTP 429, 500, 502, 503 or 504 \u2026 no answer within 60 seconds \u2026 the problem is temporary and to try again later.",
+   "missing": "A timeout and the listed 5xx responses produce the same message. A distinct user-visible timeout outcome is missing."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-27, C-30",
+   "quote": "When Grok answers HTTP 429 \u2026 the problem is temporary and to try again later. \u2026 The bot never retries a failed request to Grok by itself \u2026 the retry happens only when the user presses Send again."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-32, C-27",
+   "quote": "the text is shown and stored, with a visible note that the reply was cut off \u2026 no answer within 60 seconds \u2026 the problem is temporary and to try again later."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-18, C-24, C-45",
+   "quote": "each message with its text, sender and time \u2026 A turn is stored only after Grok has answered successfully, and then as a pair \u2026 time, user, conversation, model, outcome, HTTP status, duration, three token counts",
+   "missing": "Status, model, and usage belong to a call-log row linked to the conversation. The specification gives no turn-level fields or unique link from that row to the corresponding turn."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-54, C-22",
+   "quote": "A daily clean-up removes call-log rows older than 30 days and conversations idle for more than 90 days \u2026 Deleting a conversation asks for confirmation and then removes the conversation and all its messages",
+   "missing": "User-initiated conversation deletion is specified. The disposition of conversations when the owning user account is removed is unspecified."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-50, C-49, C-51",
+   "quote": "the system prompt, the conversation's included messages, the new message \u2026 no Salesforce record data, user name, email address \u2026 only conversations they own \u2026 messages are sent to xAI's Grok service"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-7",
+   "quote": "Then come at most the 20 most recent stored messages of that conversation, oldest first \u2026 Messages older than the 20 are not sent but stay visible in the transcript."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "U-3, C-11, C-12",
+   "quote": "First time: the screen shows an empty transcript, an empty message box and no past conversations. \u2026 A message that is empty or only whitespace cannot be sent \u2026 A message of exactly 4,000 characters is accepted and sent."
+  },
+  {
+   "id": "N-22",
+   "state": "covered",
+   "where": "U-11, U-13",
+   "quote": "The administrator edits settings in the org (on/off, model, system prompt, maximum reply length) without deploying code. \u2026 filters to the failed ones and reads the short error summary."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "C-45, C-47, C-54",
+   "quote": "time, user, conversation, model, outcome \u2026 The call log never contains the API key, message text or reply text \u2026 A daily clean-up removes call-log rows older than 30 days and conversations idle for more than 90 days",
+   "missing": "The transcript holds the question and reply. The retained audit row identifies only the user and conversation, leaving no record of the exchange's content once the owner deletes the conversation."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "C-58, C-82, C-77",
+   "quote": "deploys to an empty Developer Edition or scratch org with the Salesforce CLI \u2026 after that org's own key is entered and its permission set assigned \u2026 at least 75% (the platform's minimum for production deployment)",
+   "missing": "Per-org key entry, deployment, and coverage are explicit. Which settings should differ between development and production is left open."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "C-5, C-29",
+   "quote": "Between pressing Send and the reply or error appearing, a waiting indicator is visible \u2026 no sooner than 60 and no later than 75 seconds after pressing Send"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "C-67, C-5, C-66, C-20",
+   "quote": "a list area saying there are no conversations yet \u2026 a waiting indicator is visible, Send is disabled \u2026 an error message and a Retry control \u2026 the conversation is full and a new one should be started"
+  },
+  {
+   "id": "N-27",
+   "state": "partial",
+   "where": "C-61, C-53",
+   "quote": "existing custom objects, existing permission sets, sharing settings, other apps) before and after deploying the project shows no difference except the added items. \u2026 causes no change to any record and no further fetch",
+   "missing": "Additive deployment and side-effect-free replies are specified. There is no constraint preventing a newly added trigger from changing how an existing business flow runs."
+  }
+ ]
+}

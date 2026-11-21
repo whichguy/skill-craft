@@ -1,0 +1,186 @@
+{
+ "slot": "grokbot-salesforce__L-lenses-once__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "C-6, C-57",
+   "quote": "a Salesforce entry point whose visible description identifies Grok \u2026 No Salesforce records, record context, Salesforce user identifiers, session tokens, conversation history, or browser state are included.",
+   "missing": "The invocation surface and the context Salesforce passes to it are unspecified. C-57 defines the outgoing provider request."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-61, C-91",
+   "quote": "The operation does not read a business record for the answer, even if the user has Salesforce record access. \u2026 Existing user logins, object and field permissions, and record sharing work as before.",
+   "missing": "The spec protects visibility by excluding all record reads. It never specifies record-backed answers running in the asking user's sharing context."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "C-61, C-91",
+   "quote": "Bot use never retrieves Salesforce business records. \u2026 Existing user logins, object and field permissions, and record sharing work as before.",
+   "missing": "There is no field-level read or display rule for encrypted, restricted, or otherwise inaccessible fields beyond excluding business-record retrieval altogether."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-9, C-11",
+   "quote": "An internal Salesforce user needs an explicit bot grant. \u2026 A Salesforce administrator with the relevant setup rights can administer the bot using Salesforce controls."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "U-13, C-58",
+   "quote": "A different user or a new view cannot retrieve the interaction through the bot. \u2026 They cannot be retrieved by an administrator via a bot-owned record, transcript, or export."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-87, C-88",
+   "quote": "An Apex request blocked by uncommitted work cannot dispatch to Grok in that transaction. \u2026 Salesforce also forbids synchronous Apex callouts from record triggers.",
+   "missing": "Both transaction restrictions are stated. The spec leaves open whether a separate asynchronous job performs inference."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-65",
+   "quote": "Inspect the bot UI, subsequent configuration views, exported bot metadata, client assets, browser request traffic, errors, and bot-emitted diagnostics after provisioning. None reveals the key, Salesforce auth tokens, or credential-bearing headers.",
+   "missing": "The spec leaves the server-side secret store unspecified and does not explicitly bar embedding the key in server-side code."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-53, C-80, C-84, C-85",
+   "quote": "per-call override from 1 through 120,000 milliseconds \u2026 100 available callouts \u2026 heap limits are 10 MB synchronous and 25 MB asynchronous \u2026 10,000 ms synchronous and 60,000 ms asynchronous."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-106",
+   "quote": "In an ordinary Apex unit-test run, external HTTP calls are blocked and substitutes supply their results."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-66",
+   "quote": "Salesforce prevents the external send until the destination is authorized again. Salesforce requires a usable Named Credential for that destination or the applicable Remote Site Setting for a direct Apex callout."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-26",
+   "quote": "While Grok is generating, the view shows pending status. When the answer is complete, it becomes visible together.",
+   "missing": "The builder must choose how the view detects completion and receives or retrieves the answer."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-33, C-36",
+   "quote": "replay it after it finishes. Observe at most 1 inference request and at most 1 displayed final result for that action. \u2026 A later result or error cannot replace a terminal outcome"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-89, C-41",
+   "quote": "an attempt that cannot run within the interaction deadline shows failure or timeout. \u2026 The originating user gets a Salesforce capacity or availability outcome",
+   "missing": "The spec gives a daily async execution quota and a capacity-failure outcome, but no async queue-depth or concurrent-job limit governing admission."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-50, C-51, C-53",
+   "quote": "HTTP 400, 405, 415, or 422. \u2026 the user sees a request failure \u2026 Return HTTP 5xx \u2026 The user sees that Grok service is unavailable for the attempt. \u2026 The originating view reports timeout."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-44, C-45, C-37, C-39",
+   "quote": "quota problem is visible as an account-capacity failure. \u2026 the view indicates that capacity is temporarily unavailable. \u2026 The bot performs zero automatic retries of user inference. \u2026 deliberately try again for capacity"
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-48, C-35",
+   "quote": "Any displayed excerpt is identified as incomplete. \u2026 if a final result has not reached the view 45 seconds after it indicated pending, the view ends the attempt with a timeout outcome."
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-58, C-59",
+   "quote": "After refresh, navigation away, close, logout, or reopening in another view, past drafts, prompts, replies, and errors are unavailable through the bot. \u2026 default provider audit retention is 30 days unless the team is configured for Zero Data Retention.",
+   "missing": "The spec defines transient local history and provider retention. It leaves the effect of deleting a Salesforce user on any retained provider data unspecified."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-57, C-61",
+   "quote": "the current submitted text and the selected Grok model \u2026 No Salesforce records, record context, Salesforce user identifiers, session tokens, conversation history, or browser state are included. \u2026 Bot use never retrieves Salesforce business records.",
+   "missing": "The spec excludes automatic org data and user identifiers. It leaves the policy for personal data in the user's submitted text unspecified."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "C-28, C-46",
+   "quote": "A later submission uses only its current prompt as user context. \u2026 The provider input/context and output token ceilings are unconfirmed until the Grok model and endpoint are selected.",
+   "missing": "The spec drops all prior turns on every send and reports a provider size refusal. It gives no context-size threshold or trimming policy for a growing conversation."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "U-3",
+   "quote": "opens the empty view, tries an empty or all-whitespace prompt, and sees that nothing was sent. They can send nonblank text of 1 through 4,000 Unicode code points"
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "C-73, C-67, C-78",
+   "quote": "The administrator can disable new inference without removing the bot. \u2026 can replace it with a text model available to the authorized API key \u2026 For a fresh sample attempt, the administrator can distinguish success, local access denial",
+   "missing": "The administrator can diagnose a fresh sample. The spec gives no way to discover or inspect other users' failed requests."
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "C-3, C-107, C-105",
+   "quote": "Developer Edition as the default when provisioning a new org is necessary. \u2026 The destination administrator supplies authorized credential material there \u2026 Salesforce rejects inadequate org-wide Apex coverage below 75% or a trigger with zero coverage.",
+   "missing": "The spec leaves the deployment method and the handling of environment-specific settings other than credentials open."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "C-24, C-35",
+   "quote": "The originating view shows that the attempt is in progress until it reaches a final outcome. \u2026 A pending view has a 45-second interaction deadline."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "C-16, C-24, C-49, C-47",
+   "quote": "A new bot view starts empty. \u2026 The originating view shows that the attempt is in progress \u2026 The user sees that no usable reply was received. \u2026 the user sees a refusal for that attempt."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-90, C-91, C-92",
+   "quote": "Existing Salesforce records and field values remain as before installation \u2026 record sharing work as before. \u2026 Existing triggers, flows, validation rules, and scheduled behavior retain their prior conditions and effects after the bot is installed, enabled, or disabled."
+  }
+ ]
+}

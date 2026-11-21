@@ -1,0 +1,146 @@
+{
+ "slot": "invoice-reminders__A-single__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "C-8, C-18",
+   "quote": "Reminders begin only after the invoice payment deadline has passed \u2026 Each invoice can have at most one accepted automatic reminder delivery",
+   "missing": "How long after the deadline the single reminder is scheduled to go out."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-4, C-5, C-7",
+   "quote": "A fully settled invoice is ineligible for reminders \u2026 A partial payment leaves an otherwise eligible invoice eligible while a collectible balance remains \u2026 A canceled or voided invoice produces no automatic reminder",
+   "missing": "Whether a credit with a remaining balance, a dispute, or an active payment plan suspends reminders."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "C-5",
+   "quote": "An otherwise eligible invoice with a positive collectible balance after partial payment can receive an automatic reminder.",
+   "missing": "Which amount the recipient sees after a partial payment, if the reminder shows an amount at all."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-18",
+   "quote": "Once a delivery service accepts an invoice's automatic reminder, later checks, overlapping checks, or replayed work do not cause another accepted automatic reminder for that invoice."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "U-5",
+   "quote": "After an invoice becomes eligible, a payment that settles it or a cancellation is recorded before the next delivery handoff. The customer receives no reminder from that handoff."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-21, C-44",
+   "quote": "A definitively rejected temporary delivery is retried while its invoice remains eligible \u2026 the operator can determine the cause known to the service, such as a missing billing address or a temporary provider outage.",
+   "missing": "How long to wait between retries and when repeated failures trigger escalation to a person."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-25",
+   "quote": "When more invoices qualify than a check can process, the remaining invoices are considered over subsequent checks while they remain eligible",
+   "missing": "How delivery attempts are paced against the provider's rate limit, including within a single check."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "U-13, U-8",
+   "quote": "Existing eligible invoices can be reminded without being reissued. \u2026 If the eligible set exceeds the capacity of one check, work continues on later checks until it has been considered.",
+   "missing": "What limits the initial send when the entire overdue backlog fits within one check."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "C-9, C-10",
+   "quote": "the invoice is not overdue at any time on that date in the billing time zone. \u2026 UTC governs a date-only due date when billing has no applicable time zone or deadline rule",
+   "missing": "Whether delivery follows the customer's local time, which hours permit sending, and how weekends and holidays affect delivery."
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-14, C-49",
+   "quote": "billing address is blank or malformed produces no automatic delivery attempt until it has a usable destination. \u2026 If a delivery service reports a bounce after accepting a reminder, the invoice's reminder outcome shows the reported delivery failure."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-13",
+   "quote": "A reminder is addressed to the current billing email applicable to the invoice",
+   "missing": "Which recipients to use if several current billing contacts apply to the same invoice."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-43",
+   "quote": "The operator can look up whether a reminder was accepted for delivery, skipped, rejected, or has an uncertain result for a particular invoice that was processed.",
+   "missing": "Whether the invoice displays the sent message and its send time alongside the recorded outcome."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "U-2",
+   "quote": "The customer receives a reminder at the invoice's billing email address that identifies the invoice and asks for payment.",
+   "missing": "Whether the message includes the amount, due date, and a way to pay, and whether any payment link expires."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-27, C-42",
+   "quote": "An authorized operator disables reminders for the records they manage \u2026 A manual communication previously available for an invoice can still be sent in the same circumstances after reminder activation",
+   "missing": "Whether anyone may change the schedule or manually send or stop an individual reminder, and which permissions govern those actions."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-27, C-42",
+   "quote": "A billing operator can disable automatic reminders for their billing scope \u2026 A manual communication previously available for an invoice can still be sent in the same circumstances after reminder activation, including after an automatic reminder for that invoice.",
+   "missing": "Whether global and per-customer switches are available, how to preview or dry-run deliveries, and whether an operator can manually resend the reminder itself."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-17, C-43",
+   "quote": "the operator can determine when an eligible invoice would normally be considered. \u2026 The operator can look up whether a reminder was accepted for delivery, skipped, rejected, or has an uncertain result",
+   "missing": "How an operator can see which specific reminders are due to go out next."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-25",
+   "quote": "Reaching per-check capacity leaves excess work eligible for later checks",
+   "missing": "What maximum send volume applies per check or time period, or how late a reminder may still be delivered."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-38, C-39, C-40",
+   "quote": "Reminder processing leaves existing invoice issuance rules in effect \u2026 Reminder processing leaves existing invoice update rules in effect \u2026 Customers or billing staff can make or record payments under the same existing rules with reminders active or inactive."
+  }
+ ]
+}

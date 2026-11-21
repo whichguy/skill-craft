@@ -1,0 +1,187 @@
+{
+ "slot": "grokbot-salesforce__Q-shiploop-spec-lenses__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-01, AD-1, R-2.c",
+   "quote": "a Lightning Web Component exposed through a Salesforce custom tab and an authorized app navigation item \u2026 empty chat and usable composer \u2026 exclude attachments, Salesforce records and org/user identifiers from inference input"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-06, R-2",
+   "quote": "the bot performs no business-record queries or mutations \u2026 a sealed sentinel record is neither read nor changed through the bot",
+   "missing": "The specification excludes record grounding. It gives no rule for executing a record query in the asking user\u2019s sharing context."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-02, C-10, R-4",
+   "quote": "With Dev-A granted and Dev-D denied \u2026 Salesforce Setup owns enablement, active non-secret configuration revision and per-user permission assignments; only authorized operators may change them."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-09, C-10, R-3, R-4.c",
+   "quote": "No other person\u2019s conversation is delivered to the client. \u2026 operator-only redacted outcome evidence \u2026 no prompts, answers, secrets, usernames, raw headers or provider bodies in bot diagnostics."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-05, AD-1, AD-3",
+   "quote": "Use one bounded outbound call per inference request. \u2026 Keep customer records, browser persistence, shared transcript stores, provider response chaining and durable jobs out of the design.",
+   "missing": "The design specifies neither the trigger and post-DML callout restrictions nor a separate asynchronous Apex transaction for the callout."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AD-2, C-06",
+   "quote": "Use a Salesforce Named Credential backed by an External Credential \u2026 without embedding values in metadata, application source or UI. \u2026 hidden/secret markers never reach the browser or bot logs"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Non-functional requirements (latency, reliability and resource ceilings)",
+   "quote": "Salesforce allows 100 callouts and 120 seconds cumulative callout timeout per transaction \u2026 Synchronous Apex allows 6 MB for a callout request or response and 6 MB heap",
+   "missing": "The numeric Apex CPU-time ceiling is missing."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C-05",
+   "quote": "in a fresh case for each controlled result: HTTP 401, 403, unavailable model, exhausted credit, 429, 503, transport failure, no reply before deadline",
+   "missing": "Controlled provider results are required, but the specification does not require an Apex callout mock for unit tests or state the restriction on live callouts in those tests."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-10, R-4.a, AD-2",
+   "quote": "Use a Salesforce Named Credential backed by an External Credential for outbound TLS \u2026 the org operator sets the permitted endpoint/model binding \u2026 disabled, unset or invalid configuration fails closed and exposes a safe unavailable status."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-08, AD-1, service contracts (browser \u2194 Salesforce runtime)",
+   "quote": "Use imperative Apex for the protected, non-cacheable invocation. \u2026 Each request belongs to one active view/attempt; correlate its one terminal result, enforce deadline and discard stale results.",
+   "missing": "The view handles completion of the original invocation. No delivery mechanism is specified for a reply produced by a job after that invocation returns."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-08, R-3.b",
+   "quote": "repeated submit while pending causes no additional dispatch; unmatched or duplicated completion causes no mutation.",
+   "missing": "Duplicate suppression is scoped to the open view. There is no message-level idempotency rule across executions of a retried or re-enqueued job."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "Non-functional requirements (latency, reliability and resource ceilings)",
+   "quote": "Developer Edition allows 20 concurrent out-of-domain callouts across the org; confirm edition and handle saturation without queuing/replaying in the bot.",
+   "missing": "The stated limit applies to outbound callouts. The specification gives no queue-depth or concurrent-job limit and no outcome for failed job admission."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-05, R-2.b",
+   "quote": "unavailable access/configuration (including provider 401/403 or unavailable configured model), rate/quota or exhausted provider credit, connectivity/timeout, provider outage, explicit refusal \u2026 Render a safe message and appropriate next action for each group"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-05, R-2.b",
+   "quote": "rate/quota or exhausted provider credit \u2026 Render a safe message and appropriate next action for each group \u2026 retained draft and zero committed pairs, with one dispatch and no automatic retry."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-05, R-2.b, R-3.c",
+   "quote": "do not auto-replay or show partial output as success. \u2026 disconnection during a send ends in an error at the applicable deadline if the view survives \u2026 retained draft and zero committed pairs"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-07, AD-3, R-3",
+   "quote": "Keep completed role/text pairs, draft and current attempt in component memory. \u2026 no Salesforce conversation records, shared client store, durable job, event replay, or cache of prompts/replies.",
+   "missing": "There is no persisted conversation and turn schema associating each turn with status, timestamps, model ID and usage counts."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-09, R-3.a, non-functional requirements (data and operations)",
+   "quote": "a fresh page, reload, leaving the bot, logout or **New conversation** discards local content \u2026 audit retention, which is 30 days by default. Actual provider policy and operator diagnostic retention are open.",
+   "missing": "Local history has a defined lifetime, but the specification leaves provider retention unconfirmed and gives no deletion rule for surviving copies when the Salesforce user is deleted."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-06, R-2.c, R-2",
+   "quote": "the provider receives only configured inference parameters and the text entered or generated in this chat \u2026 the composer tells users that text goes to xAI and to exclude personal, CRM and secret data."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "C-04, R-3.a",
+   "quote": "If total context exceeds the bound, explain the limit and let the user edit or start fresh; never silently drop older pairs.",
+   "missing": "The combined-context threshold that triggers this behavior is left open."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-01, C-04, R-2.a",
+   "quote": "empty chat and usable composer \u2026 absent, null, non-text or whitespace-only input is rejected before dispatch \u2026 accept input exactly at the effective UTF-8 byte limit, including supported Unicode"
+  },
+  {
+   "id": "N-22",
+   "state": "covered",
+   "where": "C-10, R-4.a, R-4.b, R-4.c",
+   "quote": "the org operator sets the permitted endpoint/model binding \u2026 operator can stop the bot for all users \u2026 an authorized operator can tie a failed or completed request to its safe outcome."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "C-05, C-10, R-4.c",
+   "quote": "Record only opaque attempt reference, time, outcome category, status class when available and elapsed time when applicable. \u2026 no prompts, answers, secrets, usernames, raw headers or provider bodies in bot diagnostics.",
+   "missing": "The diagnostics omit asker identity and question/answer content. No retention period is specified for an audit record linking all three."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "C-01, C-11, AD-2",
+   "quote": "Provider owner provisions a permitted development key, model entitlement, endpoint, budget and retention policy. \u2026 With independently inventoried revision, grants and neighboring metadata, stage a controlled bad bot configuration in the test development org.",
+   "missing": "Deployment and credential provisioning cover one development org. No production configuration or credential separation, promotion path or production Apex code-coverage requirement is specified."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "C-05, non-functional requirements (latency, reliability and resource ceilings)",
+   "quote": "The page remains interactive and shows a pending state until a matching terminal response or a finite deadline. \u2026 Exact user deadline, transport timeout, prompt maximum, combined-context maximum, output cap, and expected concurrent load are unresolved.",
+   "missing": "There is no numeric end-to-end answer target or user-visible deadline. The Salesforce callout ceiling bounds only the transport step."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "C-01, C-05, R-2.b, non-functional requirements (UI usability and polish)",
+   "quote": "Use a luminous light canvas and tonal, rounded surfaces, with readable message groups, a visually prominent composer \u2026 Compose empty, pending, error and answered layouts deliberately. \u2026 show a refusal as a refusal."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-06, C-11, R-2, R-1.c",
+   "quote": "Existing Salesforce data, permissions and automation are preserved; the bot performs no business-record queries or mutations. \u2026 the operation is confined to bot-owned resources and explicitly scoped grants in that development target."
+  }
+ ]
+}

@@ -1,0 +1,143 @@
+{
+ "slot": "gym-waitlist__D-enumerated-only__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "U-3, C-33",
+   "quote": "They accept using the existing booking terms and see a confirmed booking. \u2026 The offer deadline is 15 elapsed minutes after issuance or the occurrence's waitlist closing time, whichever comes first."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-29, C-30, C-107",
+   "quote": "Offers are ordered by when active entries successfully joined that occurrence. \u2026 Either initial order is acceptable, provided it stays consistent for those entries. \u2026 The release does not require manual offers, queue edits"
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-24",
+   "quote": "Leave or decline produces withdrawn. A missed offer deadline produces expired while the occurrence and the feature remain open.",
+   "missing": "Whether declining an offer or letting it expire counts under the existing no-show or late-cancellation policy."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-9, C-110",
+   "quote": "The waitlist can use the vacancy caused by releasing that reservation. \u2026 An available seat with an eligible waiter is offered within 60 elapsed seconds of continuous healthy operation."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-35, C-36, C-109, C-111",
+   "quote": "existing class name and scheduled date and time \u2026 An in-app offer shows its claim deadline. \u2026 recover from an interrupted notice publication. Find no duplicate notice \u2026 discoverable when that offer becomes active."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-44, C-32, C-88",
+   "quote": "assign each opening to a different eligible waiter \u2026 A single entry has at most 1 active offer. \u2026 No waitlist action causes the confirmed seat count for that occurrence to exceed its configured capacity."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-87, C-90",
+   "quote": "The app routes the member to the claim \u2026 claim while an ordinary booking for the same identity is confirming. The waitlist cannot produce a second booking once a confirmed booking exists."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-93, C-50, C-94",
+   "quote": "A successful claim incurs the normal booking charge, if any. \u2026 A failed booking completion can be retried on the same live offer. \u2026 Any authorization or payment attributable to the failed claim is released or reversed"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-27",
+   "quote": "A join is not refused solely for reaching a waitlist-specific count."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-21, C-128",
+   "quote": "The waitlist closes at the earlier of the occurrence's existing booking cutoff and its scheduled start. \u2026 A delayed offer cannot be issued for a closed waitlist."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-43, C-65, C-66",
+   "quote": "An opening from an increase in bookable capacity is eligible for offer assignment. \u2026 The offer for the earlier queue entry keeps its seat. \u2026 A hold displaced by capacity reduction returns its entry to its previous place"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-58",
+   "quote": "Cancel an occurrence with waiting members and offered members. All active entries end as occurrence closed."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-23, C-29",
+   "quote": "An active entry has exactly one status, waiting or offered. \u2026 Offers are ordered by when active entries successfully joined that occurrence.",
+   "missing": "Whether each entry records its join timestamp and whether its queue position is stored or derived from the ordering data."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-59, C-119",
+   "quote": "Active entries end as occurrence closed. \u2026 A closed entry is subject to the existing app's retention and deletion rules for member booking activity. \u2026 The applicable retention period is unconfirmed.",
+   "missing": "How long the existing retention rules keep a closed entry."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-3, C-95",
+   "quote": "The app shows the member the current state of their own enrollment. \u2026 No other entry's member identity, queue order, status, or deadline is disclosed.",
+   "missing": "Whether members see their own position in the queue while waiting."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-104, C-107",
+   "quote": "Operator inspection shows each active entry's member identity, queue order, status, and claim deadline if offered. \u2026 The release does not require manual offers, queue edits",
+   "missing": "Manual promotion and removal are not required. The spec leaves staff access to past promotion recipients and times unspecified."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-8, C-39",
+   "quote": "Authorized operators can disable waitlist enrollment for the app. \u2026 Changing it affects both. No per-class overrides are required."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-110",
+   "quote": "An available seat with an eligible waiter is offered within 60 elapsed seconds of continuous healthy operation."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-5, C-82",
+   "quote": "Open a class occurrence with capacity available to ordinary booking. The existing booking action can still confirm a seat for an eligible member. \u2026 Existing confirmed bookings remain confirmed when waitlists are enabled."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-7, C-99",
+   "quote": "An eligible member can then join a full occurrence that is open for booking. \u2026 Each class starts with an empty queue. \u2026 members must choose to join under the new policy"
+  }
+ ]
+}

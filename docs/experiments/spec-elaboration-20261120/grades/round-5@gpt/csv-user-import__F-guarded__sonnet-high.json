@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__F-guarded__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-42",
+   "quote": "Any invalid row or file-level problem means no user is created"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "U-2",
+   "quote": "a list of every invalid row with its row number, the column, the value found and the reason."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-68",
+   "quote": "`Ann@X.com` in the file, when `ann@x.com` already exists (or occurs in an earlier row), is reported \"already registered\" (or \"duplicate of row N\")."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-15, C-46",
+   "quote": "the message lists each unrecognised header exactly as found in the file (for example `email;name` for a semicolon-separated file, or `role`, or `password`) \u2026 Imported users get the default non-admin role and importing cannot make admins",
+   "missing": "The file cannot assign roles. The specification gives no rule for checking a requested role against the particular importer's authority."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-3",
+   "quote": "A signed-in account that is not currently an active admin is refused",
+   "missing": "The admin requirement is explicit. Its relationship to permission to create a user individually is unspecified."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-12, U-3",
+   "quote": "The first record is the header and columns are matched by name, in any order \u2026 whose header lacks `email` or has unknown, duplicate or empty column names. They see that nothing was created"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-11, C-9",
+   "quote": "A leading UTF-8 byte-order mark is ignored \u2026 Fields are separated by commas and records end at LF or CRLF; a field wrapped in double quotes may contain commas and line breaks"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-48",
+   "quote": "First-access messages are sent only after the import has been fully applied \u2026 A rejected or failed import sends no message to any address in the file"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-23",
+   "quote": "one of 1,048,577 bytes is rejected with HTTP status 413 and a message stating the 1,048,576-byte limit; no user is created."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-18, C-19, C-43",
+   "quote": "A zero-byte file or a file with only blank records is rejected \u2026 A file with a header but no data rows is rejected \u2026 A fully valid file creates exactly one user per data row"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-54",
+   "quote": "A second submission of a file already applied is rejected with every data row reported as \"already registered\" and the user listing unchanged."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-24, C-56",
+   "quote": "small enough to finish synchronously \u2026 an in-progress indication is shown until the result arrives.",
+   "missing": "The admin receives the synchronous result. The specification gives no background import workflow or way to learn of completion after leaving the page."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-48",
+   "quote": "an applied import sends one per created user, which may arrive after the result page is shown.",
+   "missing": "Whether invitations go out together or in batches, and what sending rate applies."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-47",
+   "quote": "Each imported user goes through the same first-access step (an invitation, a set-password message or whatever an individually created user goes through; unconfirmed what that is) \u2026 the file contains no password",
+   "missing": "First access follows individual creation. The account's initial active or pending status and whether it already has a password are unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-59",
+   "quote": "After the response is sent, the file's contents are not stored anywhere readable by admins or operators, other than the users it created."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "C-61",
+   "quote": "For each attempt the operator can find, in the product's logs, the admin's identity, the time, the file's name, the outcome (created, rejected rows, rejected file, refused, failed)"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-53, U-4",
+   "quote": "After a timeout or dropped connection during processing the file is either fully applied or not at all \u2026 After a rejection the admin corrects the file and submits it again",
+   "missing": "Whether an admin can deliberately cancel a running import or select only the failed rows for retry, and how either action would work."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-25, C-56",
+   "quote": "A file at the maximum size completes within 30 seconds \u2026 After the admin presses submit, the control is disabled and an in-progress indication is shown until the result arrives."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-65, C-64",
+   "quote": "Every action and every outcome of single-user creation, including its fields, validation and first-access messages, is the same with the feature present as without it. \u2026 The import does not change, deactivate or delete existing users"
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "C-31, C-33, C-60",
+   "quote": "An email longer than 254 characters is invalid \u2026 A name longer than 200 characters is invalid \u2026 Values echoed in the report are shown as plain text",
+   "missing": "How formula-like values echoed in results would be kept from executing when opened in a spreadsheet."
+  }
+ ]
+}

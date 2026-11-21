@@ -1,0 +1,48 @@
+ROUND round-5@gpt   judge gpt-6.2-astra high   24 graded specs
+
+case                 arm                driver         covered  part   of   U    C  words   min
+csv-user-import      F-guarded          sol-medium          11     9   21  13  118   7042   6.6
+csv-user-import      F-guarded          sonnet-high         13     7   21  11   70   5393   4.6
+csv-user-import      L-lenses-once      sol-medium          11     9   21   8   86   5444   3.3
+csv-user-import      L-lenses-once      sonnet-high         12     8   21   9   53   4249   3.0
+csv-user-import      P-shiploop-spec    sol-medium          11     9   21   0    0   5342   4.2
+csv-user-import      P-shiploop-spec    sonnet-high         13     7   21   0    0   6742   5.8
+grokbot-salesforce   F-guarded          sol-medium          13    13   27   9  134   7419   6.5
+grokbot-salesforce   F-guarded          sonnet-high         13    12   27  18   86   7238   7.3
+grokbot-salesforce   L-lenses-once      sol-medium          13    12   27  15  108   7949   5.0
+grokbot-salesforce   L-lenses-once      sonnet-high         17     8   27  12   67   6004   3.7
+grokbot-salesforce   P-shiploop-spec    sol-medium           9    14   27   0    0   5858   7.0
+grokbot-salesforce   P-shiploop-spec    sonnet-high         18     7   27   0    0  10288   8.2
+gym-waitlist         F-guarded          sol-medium          11     9   21  30  141   9525   7.3
+gym-waitlist         F-guarded          sonnet-high         14     7   21  13   66   4490   3.7
+gym-waitlist         L-lenses-once      sol-medium          10    11   21  13   90   6481   3.4
+gym-waitlist         L-lenses-once      sonnet-high         13     7   21  10   49   3512   2.2
+gym-waitlist         P-shiploop-spec    sol-medium           6    14   21   0    0   4505   5.8
+gym-waitlist         P-shiploop-spec    sonnet-high         14     6   21   0    0   7113   4.9
+invoice-reminders    F-guarded          sol-medium          14     6   20  16  134   8637   8.1
+invoice-reminders    F-guarded          sonnet-high         15     5   20  18   86   5727   6.5
+invoice-reminders    L-lenses-once      sol-medium          11     9   20  10   88   6002   3.6
+invoice-reminders    L-lenses-once      sonnet-high         13     6   20  11   51   4222   2.5
+invoice-reminders    P-shiploop-spec    sol-medium           5    15   20   0    0   5059   3.5
+invoice-reminders    P-shiploop-spec    sonnet-high         11     9   20   0    0   6825   4.0
+
+BY ARM AND DRIVER (pooled over cases)
+  F-guarded          sol-medium   covered  49/ 89 ( 55%)  partial  37  over 4 cases
+  F-guarded          sonnet-high  covered  55/ 89 ( 62%)  partial  31  over 4 cases
+  L-lenses-once      sol-medium   covered  45/ 89 ( 51%)  partial  41  over 4 cases
+  L-lenses-once      sonnet-high  covered  55/ 89 ( 62%)  partial  29  over 4 cases
+  P-shiploop-spec    sol-medium   covered  31/ 89 ( 35%)  partial  52  over 4 cases
+  P-shiploop-spec    sonnet-high  covered  56/ 89 ( 63%)  partial  29  over 4 cases
+
+BY NUANCE CATEGORY (covered / of)
+  category           F-guarded sol-me     F-guarded sonnet  L-lenses-onc sol-me  L-lenses-onc sonnet  P-shiploop-s sol-me  P-shiploop-s sonnet
+  async                          4/11                 5/11                 3/11                 4/11                 2/11                 5/11
+  data                           2/10                 2/10                 0/10                 6/10                 2/10                 4/10
+  edge                          11/12                12/12                 9/12                11/12                 4/12                10/12
+  interaction                    6/12                 7/12                 6/12                 7/12                 6/12                 8/12
+  nonfunctional                   2/5                  5/5                  3/5                  4/5                  1/5                  3/5
+  operator                        3/9                  5/9                  2/9                  5/9                  0/9                  2/9
+  permission                      4/8                  4/8                  3/8                  3/8                  3/8                  7/8
+  platform                        1/5                  2/5                  3/5                  2/5                  2/5                  3/5
+  preserve                        5/5                  4/5                  5/5                  4/5                  4/5                  4/5
+  unhappy                       11/12                 9/12                11/12                 9/12                 7/12                10/12

@@ -1,0 +1,188 @@
+{
+ "slot": "grokbot-salesforce__P-shiploop-spec__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "AD-1; TC-4",
+   "quote": "a Lightning web component exposed as a custom tab and available from App Launcher \u2192 All Items. \u2026 Each new send transmits only its own prompt and fixed inference settings."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Preserve Salesforce business data and existing automation by making no business record reads or writes.",
+   "missing": "Records are excluded entirely. The specification gives no rule for answering from records under the asking user's sharing context."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "AD-1; R-1",
+   "quote": "Assign tab, runtime class and provider principal access only to designated users \u2026 The Salesforce administrator controls grants and configuration."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "TC-9",
+   "quote": "The viewer sees only their own current prompt and reply. \u2026 Another user or view has no access to that exchange through the app."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-2",
+   "quote": "Propose one imperative, noncached call from the Lightning component to Apex, with a bounded Salesforce callout to the xAI Responses API.",
+   "missing": "The proposed call runs in the foreground. There is no asynchronous Apex dispatch rule for triggers or transactions with prior DML."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AD-2; TC-10",
+   "quote": "Use the extensible Named Credential and Custom Authentication External Credential with a dedicated named principal. \u2026 No credential material appears in app/UI payloads, logs or deployment files."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "AD-2",
+   "quote": "Salesforce documents 120 seconds cumulative callout time per Apex transaction and 6 MB for synchronous callout request or response, also subject to heap.",
+   "missing": "The numeric limits for callout count, heap and CPU time per transaction are unspecified. The 6 MB figure limits the callout payload."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "TC-6",
+   "quote": "Hold a controlled provider response, attempt a second send, and verify state and call count.",
+   "missing": "The fixtures require a controllable provider boundary, but the specification does not require an Apex callout mock for tests that cannot make live calls."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "The fixed provider base is `https://api.x.ai` \u2026 Use the extensible Named Credential and Custom Authentication External Credential with a dedicated named principal."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "AD-2",
+   "quote": "Parse the terminal result on the server and return only display text or a sanitized outcome to the owner view.",
+   "missing": "The interface receives the foreground call's result. No completion notification or status check is defined for work that finishes after the call returns."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Admission fixes the submitted text for that attempt. The first current terminal result wins.",
+   "missing": "This protects the current view. It does not specify how a retried or re-enqueued job recognizes a reply it already posted."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "TC-6",
+   "quote": "One pending attempt per open view. Repeated sends while pending cause no duplicate call from that view.",
+   "missing": "The limit applies within a view. There is no job queue capacity or outcome for a request that cannot be enqueued."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "TC-7",
+   "quote": "Provider authorization/model setup failure points to the org administrator. Rate limiting points to trying again later. Timeout, network failure, provider error or unusable output allows another manual send.",
+   "missing": "Timeout and provider failure share the manual-resend outcome. Distinct user-visible feedback for a timeout versus a 5xx response is unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "TC-7",
+   "quote": "Rate limiting points to trying again later. \u2026 There is no automatic retry, fallback answer, or implication that upstream work was canceled."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "TC-7; T-5",
+   "quote": "incomplete, malformed, and completed-with-blank-text outcomes \u2026 No answer appears for the failed attempt. \u2026 Error remains visible and prompt becomes editable."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "The authenticated user's current view owns its draft, submitted prompt, answer and status.",
+   "missing": "Only a volatile exchange is defined. There is no conversation-and-turn record schema with roles, timestamps, model identifier and token or usage counts."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "TC-9; TC-10",
+   "quote": "Reload, navigation away and session end discard the bot's local exchange. This does not delete any provider-retained copy. \u2026 xAI is authoritative for the team's audit retention, deletion policy and key revocation.",
+   "missing": "The specification does not say what happens to provider-retained content when the Salesforce user is deleted."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "TC-9",
+   "quote": "instructs users to enter synthetic text only. \u2026 The app does not attach Salesforce identity or record data"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "TC-4",
+   "quote": "Each new send transmits only its own prompt and fixed inference settings. An earlier prompt, reply or Salesforce record is never included."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "TC-1; TC-5",
+   "quote": "its empty state \u2026 Empty, whitespace-only and oversized input gets a visible reason with editable text and no provider invocation. \u2026 A prompt at the selected maximum is accepted",
+   "missing": "The boundary behavior is specified, but the maximum accepted prompt length and its measurement unit still need values."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-1; AD-2; Non-functional requirements",
+   "quote": "withhold or remove bot-only grants as authorized \u2026 with a configured `model` \u2026 Diagnose by status category and safe operation correlation with native platform evidence where available.",
+   "missing": "The specification does not say how an administrator changes the model or where that administrator can inspect individual failed requests."
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "T-1; AD-2; TC-10",
+   "quote": "Authorized deployer submits candidate. \u2026 Credential provisioning is an authorized setup operation separate from metadata deployment. \u2026 dedicated development provider credential",
+   "missing": "The development deployment and credential are scoped, but the scratch-org or sandbox path, configuration differences across environments and production code-coverage requirement are unspecified."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "TC-6; R-2",
+   "quote": "A valid send presents **Waiting for Grok** while the answer is pending. \u2026 The implementation owner resolves prompt units and bounds, output cap and timeout against the selected model and actual org.",
+   "missing": "The wait state is defined, but the specification leaves the answer deadline or latency target open."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "Non-functional requirements, Polished Lightning interface",
+   "quote": "Design empty, pending, rejected, error and completed states using the same system. Pending and failure are readable without relying on motion, color or a disappearing toast."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-1; R-2",
+   "quote": "Preserve unrelated org metadata, access and records. \u2026 Preserve Salesforce business data and existing automation by making no business record reads or writes."
+  }
+ ]
+}

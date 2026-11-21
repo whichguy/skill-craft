@@ -1,0 +1,188 @@
+{
+ "slot": "grokbot-salesforce__P-shiploop-spec__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-01 (AD-1), C-03, C-05",
+   "quote": "Build the bot as a Lightning Web Component exposed as a custom tab. \u2026 Each submission uses current effective authority at server admission. \u2026 No model tools or Salesforce record context."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-10",
+   "quote": "Inspect affected metadata/baseline and runtime effects for no CRM reads/writes or app-created transcripts.",
+   "missing": "The bot excludes CRM records altogether. The specification gives no rule for querying records under the asking user\u2019s sharing authority."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-01 (AD-1), C-03",
+   "quote": "Grant access only to the intended users after the setup checks, using a feature-scoped permission set. \u2026 the org administrator handles configuration and access"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-10, C-11",
+   "quote": "the answer appears only to that session. \u2026 Bot storage excludes transcript records, browser persistence and provider response history. \u2026 Platform and provider traces follow their own access and retention settings."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-05\u2013C-08 (T-3)",
+   "quote": "The view freezes it, asynchronously awaits Salesforce, and Salesforce admits with current permission, validates and sends one foreground request to xAI.",
+   "missing": "Only the browser waits asynchronously. The specification gives no Apex worker or transaction boundary for a trigger-initiated callout or a callout after DML."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-11 (AD-2)",
+   "quote": "An admin populates the encrypted principal parameter through Salesforce Setup. \u2026 Ship credential metadata without the secret. \u2026 Application diagnostics omit credentials, prompt/reply content, raw errors and headers."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-06\u2013C-09 (capacity and failure containment)",
+   "quote": "The Salesforce synchronous ceilings include 100 callouts and 120 seconds cumulative callout timeout per transaction, with a 6 MB callout payload limit that also counts towards heap.",
+   "missing": "The payload ceiling is specified, but the numerical Apex heap and CPU time ceilings are missing."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C-06",
+   "quote": "At the integration boundary exercise each error class with controlled responses, assert outbound counts and sanitized outcomes, then recover with a new valid response.",
+   "missing": "The controlled responses have no specified Apex test implementation. The text does not require a callout mock in place of real HTTP calls in Apex tests."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-06, C-11 (AD-2)",
+   "quote": "Use a modern Named Credential targeting the approved xAI HTTPS base URL and a Custom authentication External Credential with a named principal."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-08 (AD-2, R-4)",
+   "quote": "The component uses a non-cacheable imperative Apex entry point. \u2026 An accepted submission signals waiting, and a matching terminal result changes the visible status.",
+   "missing": "The interface receives the foreground Apex result. No mechanism delivers or retrieves an answer completed by a separate async job."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-08",
+   "quote": "The first matching terminal result wins; ignored completions cannot resurrect a cleared or closed view.",
+   "missing": "The guard covers display in one view. There is no request-level deduplication rule for a retried or re-enqueued worker posting a reply."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-06",
+   "quote": "Missing configuration, upstream 401/403 or unavailable model yields setup guidance. \u2026 Transport, timeout, upstream failure or an invalid, blank or incomplete success response gives a safe failure with a recovery action.",
+   "missing": "Timeout and upstream server failure share the same user-visible outcome. The text gives no distinct recovery message for each."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-06",
+   "quote": "Rate limiting yields a wait-and-retry message. \u2026 No automatic resend, and a manual resend is a fresh request.",
+   "missing": "Manual retry is explicit, but there is no backoff interval or rule for when retry becomes appropriate, including when team quota is exhausted."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-06, C-08",
+   "quote": "Transport, timeout, upstream failure or an invalid, blank or incomplete success response gives a safe failure with a recovery action. \u2026 The first matching terminal failure leaves the submitted question editable and provides a persistent error and next action."
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-09, C-10, C-11",
+   "quote": "Owner-visible local content is dropped on clear or view exit and excludes application persistence and logs. \u2026 Local Clear has no effect on provider audit retention.",
+   "missing": "Local and provider retention are addressed. The text gives no lifecycle rule for data still present when a user account is deleted."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-05, C-10",
+   "quote": "Only that question and fixed bot instructions, if used, supply content. No model tools or Salesforce record context. \u2026 Before sending, the composer tells users their question goes to xAI and to use synthetic text only."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "C-05, C-07",
+   "quote": "A second question starts a new turn. Only that question and fixed bot instructions, if used, supply content. \u2026 The exact cap and unit are an open prerequisite below.",
+   "missing": "Prior turns are excluded on every send. The maximum size of the current prompt that fits the model\u2019s context window is left open."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "C-07",
+   "quote": "An empty view presents a labeled prompt field and Send action. \u2026 Empty or whitespace-only input is not submitted. \u2026 At the selected input cap, admit otherwise-valid text.",
+   "missing": "The specification defines how the boundary behaves but leaves the maximum length and its measurement unit undecided."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "C-02, C-05, C-11",
+   "quote": "The release owner can withdraw the feature grant \u2026 The Salesforce admin owns the selected endpoint and model configuration \u2026 the owner of the integration may use Salesforce/xAI administrative facilities within their access.",
+   "missing": "Withdrawing access and configuring the model are described. No specific administrator view or trace is required to show failed requests."
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "C-01, C-02 (AD-1, AD-2)",
+   "quote": "Delivery is to the single bound development org. \u2026 Deploy the feature-owned Salesforce metadata with rollback on deployment error. \u2026 Ship credential metadata without the secret.",
+   "missing": "The development deployment is defined. The text gives no sandbox or scratch-org promotion path, environment-specific production configuration and credentials, or production code-coverage threshold."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "C-07, C-08",
+   "quote": "A valid send enters a distinct, announced pending state. \u2026 During the pending state, the view keeps the submitted text visible.",
+   "missing": "The request must have a finite timeout, but its value and the user-visible answer deadline are left open."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "C-03, C-11, C-12",
+   "quote": "Design the empty, pending, answer and persistent error states together. A distinct, calm status area next to the composer communicates progress and recovery. \u2026 Bot denial is owned at the submission boundary and produces a sanitized access response"
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-02, C-10",
+   "quote": "This introduces the bot entry while preserving unrelated configuration, permissions, automation and records. \u2026 Inspect affected metadata/baseline and runtime effects for no CRM reads/writes or app-created transcripts."
+  }
+ ]
+}

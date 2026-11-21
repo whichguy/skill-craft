@@ -1,0 +1,29 @@
+ROUND round-6: agreement of tagged verdict sets with the registered one (16 specifications)
+
+@gpt  (gpt-6.2-astra high), 16 specifications in both sets
+  specification                                            registered     @gpt  diff
+  csv-user-import__P-shiploop-spec__sol-medium                     12        9    -3
+  csv-user-import__P-shiploop-spec__sonnet-high                    14       12    -2
+  csv-user-import__Q-shiploop-spec-lenses__sol-medium              14       13    -1
+  csv-user-import__Q-shiploop-spec-lenses__sonnet-high             17       15    -2
+  grokbot-salesforce__P-shiploop-spec__sol-medium                  17       11    -6
+  grokbot-salesforce__P-shiploop-spec__sonnet-high                 19       15    -4
+  grokbot-salesforce__Q-shiploop-spec-lenses__sol-medium           16       13    -3
+  grokbot-salesforce__Q-shiploop-spec-lenses__sonnet-high          19       17    -2
+  gym-waitlist__P-shiploop-spec__sol-medium                         7        5    -2
+  gym-waitlist__P-shiploop-spec__sonnet-high                       15       13    -2
+  gym-waitlist__Q-shiploop-spec-lenses__sol-medium                 11       10    -1
+  gym-waitlist__Q-shiploop-spec-lenses__sonnet-high                16       14    -2
+  invoice-reminders__P-shiploop-spec__sol-medium                    7        6    -1
+  invoice-reminders__P-shiploop-spec__sonnet-high                  12       13    +1
+  invoice-reminders__Q-shiploop-spec-lenses__sol-medium             7        6    -1
+  invoice-reminders__Q-shiploop-spec-lenses__sonnet-high           16       16    +0
+  per specification: mean |diff| 2.06, largest 6, sum of diffs -31
+  nuance by nuance (356): same state 82%, same covered-or-not 85%
+  changes: covered -> partial x38, partial -> covered x11, partial -> absent x10, covered -> absent x4, absent -> partial x2
+  pooled by arm and driver, registered -> @gpt:
+    P-shiploop-spec    sol-medium    43 ->  31  (-12)
+    P-shiploop-spec    sonnet-high   60 ->  53  (-7)
+    Q-shiploop-spec-lenses sol-medium    48 ->  42  (-6)
+    Q-shiploop-spec-lenses sonnet-high   68 ->  62  (-6)
+

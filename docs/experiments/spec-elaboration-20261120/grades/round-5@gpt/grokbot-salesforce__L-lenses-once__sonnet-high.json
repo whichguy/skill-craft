@@ -1,0 +1,182 @@
+{
+ "slot": "grokbot-salesforce__L-lenses-once__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-1, C-46",
+   "quote": "a chat page inside a Lightning app that appears in the App Launcher in Lightning Experience \u2026 Opening the Grok app shows the user's most recently active conversation"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-4, C-11",
+   "quote": "A user can read only their own conversations and messages \u2026 No Salesforce record data and no user identity are sent to Grok unless the user typed it",
+   "missing": "The specification limits chat history and outbound data but leaves the sharing context for server-side record reads unspecified."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-2",
+   "quote": "A user holding only the chat one can use the chat and cannot open or change the settings. A user holding the administer one can open and change the settings and read every conversation."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-4",
+   "quote": "cannot see user A's conversations or messages through the chat panel, through a list view, through a report or through a SOQL query. Only user A, and administrators holding the administer permission set, can."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-38",
+   "quote": "Salesforce forbids a callout after unsaved database changes in the same request, so the builder must order work so this holds.",
+   "missing": "The restriction on synchronous trigger callouts and the asynchronous design for making the callout are unspecified."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-52, C-5",
+   "quote": "The key is entered through the credential storage (C-7), not among them. \u2026 The key is not in the deployed source \u2026 Searching the debug log of a full chat exchange for the key finds nothing.",
+   "missing": "The specification requires secret storage in Setup but leaves the Salesforce credential mechanism unnamed."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-31, C-29",
+   "quote": "Salesforce allows at most 120 seconds for one callout and for all callouts in one request together \u2026 the synchronous response size is limited (6 MB heap)",
+   "missing": "The callout count per transaction and the CPU time limit are unspecified."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-65",
+   "quote": "Salesforce forbids callouts in tests, so a simulated xAI is used"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-8",
+   "quote": "No administrator step to allow the host (such as a Remote Site Setting) is needed beyond what deployment brings."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-20",
+   "quote": "It appears as one complete entry labelled as Grok \u2026 a synchronous server call returns one result",
+   "missing": "The panel receives the synchronous result. No notification or polling mechanism tells it that a separate job has finished."
+  },
+  {
+   "id": "N-12",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-44",
+   "quote": "the org has too many concurrent long-running requests \u2026 the panel shows a \"could not send, try again\" message, re-enables the input and keeps the typed text.",
+   "missing": "This handles Salesforce refusing a browser request. The async job capacity and the outcome of a failed enqueue are unspecified."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-40, C-41",
+   "quote": "advising the user to contact their administrator \u2026 advising the user to try again later: (a) HTTP 429; (b) HTTP 408 or any 500 to 599; (c) the 100-second timeout",
+   "missing": "Server errors and timeouts share the same user guidance. The specification distinguishes their stored categories but leaves a distinct visible outcome for each unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-41, C-32",
+   "quote": "These cases show a message advising the user to try again later: (a) HTTP 429 \u2026 Only the user pressing Send again makes another."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-30, C-31",
+   "quote": "the transcript shows the partial text with a visible note stating the answer was shortened \u2026 When xAI does not answer within 100 seconds the user sees a \"try again later\" failure"
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "C-49",
+   "quote": "A message record holds: its conversation, role (user or Grok), text, time sent, order within the conversation, status (success or failed), failure category, HTTP status, failure detail, model used, finish reason, prompt tokens and completion tokens"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-50",
+   "quote": "A conversation, with all its messages, is deleted when its last activity is older than the retention period; default 30 days, allowed 1 to 365",
+   "missing": "What happens to the conversation and its messages when the owning user is deleted is unspecified."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-10, C-11",
+   "quote": "the system prompt, the history window, the new message, the model name and the reply-length cap \u2026 No Salesforce record data and no user identity are sent to Grok unless the user typed it"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-22, C-25",
+   "quote": "Each request carries up to the N most recent earlier messages of the same conversation, oldest first \u2026 The history window N is an administrator setting; default 20, allowed 2 to 50"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-47, C-15, C-16",
+   "quote": "sees no messages and an invitation to type \u2026 An empty message cannot be sent \u2026 After removing leading and trailing whitespace, a message of exactly 4,000 characters can be sent and one of 4,001 cannot."
+  },
+  {
+   "id": "N-22",
+   "state": "covered",
+   "where": "U-8, U-9",
+   "quote": "the administrator changes the model \u2026 or switches the bot off \u2026 The administrator opens a list of failed messages (newest first) and reads each one's failure category and HTTP status."
+  },
+  {
+   "id": "N-23",
+   "state": "covered",
+   "where": "C-48, C-49, C-50",
+   "quote": "A conversation record holds: owner \u2026 its conversation, role (user or Grok), text, time sent \u2026 A conversation, with all its messages, is deleted when its last activity is older than the retention period; default 30 days"
+  },
+  {
+   "id": "N-24",
+   "state": "covered",
+   "where": "U-1, U-10, C-65",
+   "quote": "deploys the bot's source to a development org (Developer Edition, sandbox or scratch org) with the Salesforce CLI \u2026 unconfigured until a key is entered there \u2026 org-wide 75% and all tests passing"
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "C-31, C-19",
+   "quote": "The bot waits up to 100 seconds for Grok's answer and then gives up with a timeout failure \u2026 From pressing Send until the answer or failure arrives, an indicator is visible"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "C-47, C-19, C-43, C-39",
+   "quote": "sees no messages and an invitation to type \u2026 a \"Grok is replying\" indicator \u2026 a visible \"not delivered\" mark \u2026 the panel shows a notice that the bot is switched off, sending produces a refusal"
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-63, C-13",
+   "quote": "Deploying the bot changes nothing that already existed in the org \u2026 The bot never creates, changes or deletes any Salesforce business data on the strength of what Grok says"
+  }
+ ]
+}

@@ -1,0 +1,181 @@
+{
+ "slot": "grokbot-salesforce__P-shiploop-spec__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "AD-1",
+   "quote": "The chat surface is one Lightning web component placed on a custom tab. One Apex entry point (`@AuraEnabled`) receives `{message, priorExchanges[]}`"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "AD-8",
+   "quote": "Controller `with sharing`; the product reads no user records"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-6, PD-4",
+   "quote": "Field-level security: n/a: no field is read. \u2026 The bot answers from the model and the conversation only."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-6, F-4",
+   "quote": "access is granted by one named permission set covering the entry (R-2), the server operation and the use of the credential. \u2026 Org admin deploys source \u2192 enters the key in the credential store \u2192 assigns the access grant"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4, R-11",
+   "quote": "readable only by the user in that page \u2026 stored nowhere; logged never"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-3",
+   "quote": "one synchronous callout per turn with `setTimeout(configured ms)`; the LWC awaits the imperative Apex call",
+   "missing": "The specification gives no trigger or post-DML callout constraints and specifies no separate asynchronous transaction for the model call."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AD-2, R-5",
+   "quote": "key lives in an External Credential \u2026 It is never in source, in deployed or retrieved metadata, in configuration records, in any browser payload, in any log or in any error text."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "AD-3, NFR-2",
+   "quote": "configurable per request 1 ms to 120,000 ms; cumulative callout time per transaction capped at 120 s; 100 callouts per transaction.",
+   "missing": "The applicable Apex heap limit and CPU-time limit are unquantified."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "AD-3",
+   "quote": "Apex tests cannot make callouts and use `HttpCalloutMock`"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-2, R-7",
+   "quote": "The Apex callout targets `callout:<NamedCredentialName>/...`. The base URL lives in the Named Credential. \u2026 or the credential not set up | `The bot is not set up yet. Ask your administrator.`"
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "`The request was rejected. Ask your administrator to check the model setting.` \u2026 `Grok is unavailable right now. Try again later.` \u2026 `Grok did not answer in time. It may still have processed your message. Retry?`"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-7, R-7.9",
+   "quote": "There is no automatic retry. \u2026 `Grok is rate limited right now. Try again in a moment.` \u2026 activating Retry sends the same text once"
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "PD-5, R-7",
+   "quote": "A reply appears when complete. \u2026 `Grok did not answer in time. It may still have processed your message. Retry?`",
+   "missing": "The timeout message is defined. The specification does not say how to recognize a nonempty reply cut short by an output limit or what the user sees for that reply."
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-11",
+   "quote": "the conversation is shown only in the user's page; stored nowhere; logged never; kept until refresh, New chat, close or navigation; removed with it. No deletion path is needed because nothing is stored."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-10, NFR-4",
+   "quote": "the system prompt (if any), the windowed conversation messages, and the configured optional output limit. It contains no Salesforce username, email, user Id, org Id, record data or client metadata \u2026 The dev-org default assumes non-sensitive test content."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-4, NFR-2",
+   "quote": "the most recent configured number of completed exchanges (default 10) in order, then the new message. \u2026 plus replies of unknown size",
+   "missing": "The ten-exchange rule drops older turns, but there is no size threshold tied to the selected model's context window or rule for trimming retained turns that still exceed it."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-2.1, R-3.3, R-3.4",
+   "quote": "the tab with the chat page (empty state, R-13) \u2026 `Enter a message to send.`, calls the service zero times \u2026 A message of exactly 4,000 characters (`a` repeated 4,000 times) is sent"
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-9.1, R-11.2",
+   "quote": "Changing the model value from the shipped model to another valid model ID changes the `model` member of the next outgoing request body \u2026 the log lines for the turn include the category or status and the elapsed time.",
+   "missing": "An administrator can change the model and inspect failures in debug logs. An org-wide control to turn the bot off is unspecified."
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-1.3, AD-2, AD-5, AD-10",
+   "quote": "A production org identity makes the deploy step refuse. \u2026 the secret parameter value is entered in Setup after deploy \u2026 Custom metadata deploys with the code \u2026 a production deploy would also need the Apex coverage gate",
+   "missing": "The specification does not identify configuration or credential differences across environments or give the production code-coverage threshold."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "NFR-1",
+   "quote": "No numeric end-to-end latency target \u2026 shipped default 60,000 ms (PD-7). Observable acceptance: the pending state (R-8.1) is shown before the service returns",
+   "missing": "The timeout bounds the provider call. The elapsed time from Send until the user sees an answer or failure has no stated target or bound."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "NFR-6.3, R-7",
+   "quote": "empty (introduction, R-10.3 disclosure, optional starter prompts left to plan), loading (R-8.1 indicator), error (R-7 failed message with Retry \u2026 `The request was rejected. Ask your administrator to check the model setting.`"
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-1, R-6, R-11.1",
+   "quote": "Deployment is additive: it creates the bot's components and changes nothing unrelated. \u2026 no object is read or written (R-11). \u2026 A full successful turn and a failed turn each perform zero DML statements"
+  }
+ ]
+}

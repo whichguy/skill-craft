@@ -1,0 +1,148 @@
+{
+ "slot": "gym-waitlist__A-single__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-24",
+   "quote": "When 1 place opens for an occurrence with an eligible active entry, the selected member gets a confirmed booking without having to claim or accept the place."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-26, C-27",
+   "quote": "The earliest accepted active entry among eligible waiters receives the next place \u2026 close-together joins need a stable order without prescribing how to break a tie",
+   "missing": "The first eligible entry has priority, but the spec leaves the tie-breaker unspecified and does not say whether staff may override that order."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-50",
+   "quote": "A member with a booking from the waitlist can cancel under the same conditions as a member with an otherwise equivalent ordinary booking.",
+   "missing": "The ordinary cancellation policy applies once promoted. The spec does not say whether missing the automatically booked class counts as a no-show."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "U-6",
+   "quote": "If cancellation releases 1 place and a member is eligible on the waitlist, 1 waiting member gets a confirmed booking.",
+   "missing": "Cancellation triggers assignment without the waiter's participation, but the maximum delay from release to confirmation is unspecified."
+  },
+  {
+   "id": "N-6",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-32, C-39, C-40",
+   "quote": "Waitlist assignment can fill multiple newly bookable places \u2026 Concurrent actions cannot assign the same available place more than once \u2026 one waitlist entry yields at most 1 confirmed booking."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-39",
+   "quote": "With 1 place bookable, concurrent actions that could consume it produce at most 1 new confirmed booking for the place.",
+   "missing": "The spec protects the seat but does not resolve a direct booking racing the same member's promotion, including how to reconcile their entry if the direct booking succeeds."
+  },
+  {
+   "id": "N-9",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-38",
+   "quote": "For a class and member population the app otherwise supports, an eligible member's join cannot be refused solely because of the number of entries already on the waitlist."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-43",
+   "quote": "When the existing booking rules make it permanently too late to book an occurrence, members no longer see active entries for it.",
+   "missing": "The spec does not establish how far before class start promotions stop or whether the ordinary booking deadline falls before the start at all."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "U-10",
+   "quote": "An increase that creates bookable places allows the waitlist to advance. A reduction does not cancel existing bookings through waitlist processing."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-42",
+   "quote": "Canceling or removing an occurrence ends its active waitlist entries"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-8",
+   "quote": "When a member with an active entry joins again, the original entry continues to count from its original acceptance.",
+   "missing": "Active state and acceptance order are specified, but the builder must decide whether to record the join timestamp and whether to store or derive queue position."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-43",
+   "quote": "When the existing booking rules make it permanently too late to book an occurrence, members no longer see active entries for it.",
+   "missing": "The spec ends active waiting at permanent closure but gives no retention period or deletion rule for ended entries."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-46",
+   "quote": "A regular member checking their own waitlist status is not shown the identities of other waiters.",
+   "missing": "The spec does not say whether members can see their own numerical position."
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-55",
+   "quote": "Starting the updated app with a working existing booking configuration lets members join eligible full occurrences without an operator configuring the waitlist.",
+   "missing": "Default enablement is clear, but the spec does not define an off switch or controls for individual classes or class types."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "U-6",
+   "quote": "If cancellation releases 1 place and a member is eligible on the waitlist, 1 waiting member gets a confirmed booking.",
+   "missing": "The builder has no upper bound on elapsed time between cancellation and promotion."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-47, C-57",
+   "quote": "Ordinary booking continues through the existing flow when a place is available for ordinary booking \u2026 Existing confirmed bookings retain their status after the update"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "U-11",
+   "quote": "Existing full classes can accept waiters without being recreated."
+  }
+ ]
+}

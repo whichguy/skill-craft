@@ -1,0 +1,186 @@
+{
+ "slot": "grokbot-salesforce__D-enumerated-only__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "C-20, C-36",
+   "quote": "The navigation location and label are left open \u2026 The bot adds no Salesforce record contents to the request.",
+   "missing": "The invocation surface and the context it passes to the bot are unspecified."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-45",
+   "quote": "Granting the bot to a user who lacks access to a Salesforce record or app leaves that record or app unavailable to that user.",
+   "missing": "Existing record visibility is preserved. The specification excludes CRM retrieval and gives no rule for answering from records under the asking user\u2019s sharing context."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-12, C-23, C-25",
+   "quote": "Only Salesforce users granted bot access can use it. \u2026 The operator can grant bot use to a named Salesforce user. \u2026 A bot-use grant alone provides no bot administration privileges."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-52, C-95",
+   "quote": "The result appears only in the view that originated its attempt. \u2026 Routine bot logs, audit entries it creates, and error diagnostics contain no question or answer body",
+   "missing": "The specification isolates users\u2019 results but gives no explicit rule for administrator access to another user\u2019s live conversation."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-76",
+   "quote": "If an Apex transaction already has uncommitted record changes, queued asynchronous work, scheduled work, or a pending email send, then the same transaction cannot send a live Grok request while those operations are pending.",
+   "missing": "The trigger restriction and an asynchronous design for making the callout in a separate transaction are unspecified."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-80, C-94",
+   "quote": "If the bot's external credential is moved through a Salesforce package, installing the package alone provides no working xAI secret. \u2026 bot-generated logs and failure feedback omit the configured key",
+   "missing": "The packaging rule is conditional. The specification does not require protected credential storage in every installation or exclude secrets from source code and ordinary metadata."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-70, C-71",
+   "quote": "permits 1 millisecond through 120,000 milliseconds for a single callout. \u2026 If the transaction executing the bot's callout has exhausted its 100 callouts, Salesforce refuses the next callout",
+   "missing": "The numeric heap and CPU-time limits are missing. C-75 gives transport payload ceilings."
+  },
+  {
+   "id": "N-9",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-66",
+   "quote": "If the target org has no authorization for outbound access to xAI, a question fails with setup feedback and does not reach the provider."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-85",
+   "quote": "If the provider reports it has accepted a request for processing but supplies no completed answer yet, the bot does not show success from acceptance alone.",
+   "missing": "The specification distinguishes acceptance from completion but leaves open how the interface receives or detects completion."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-53",
+   "quote": "After a timeout, success, or other failure has become visible for an attempt, subsequent responses for that attempt leave that result untouched, including after a deliberate retry starts."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-73",
+   "quote": "20 callouts to endpoints outside the org's domain are already active, another such Apex callout cannot run concurrently. A refused submission yields feedback under C-40.",
+   "missing": "The stated limit applies to active callouts. The async queue or job concurrency limit and the outcome of an enqueue failure are unspecified."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-40",
+   "quote": "Feedback distinguishes Salesforce access denied, bot disabled, input invalid, setup or provider authorization rejected, provider usage limited, timeout, service or connection failure, and unusable provider reply. \u2026 xAI transport failure, and provider outage."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-69, C-40, C-50",
+   "quote": "HTTP 429 at the provider and a usage-limit outcome in the bot. \u2026 insufficient account capacity or a model context limit falls under provider usage limited. \u2026 The bot never automatically resubmits a failed attempt."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-41, C-42",
+   "quote": "a provider-reported failed or incomplete response \u2026 yields feedback rather than an apparent successful blank or partial answer. \u2026 before 30 seconds have elapsed, the visible terminal result is a timeout."
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "U-7, C-84",
+   "quote": "Opening a fresh view does not recover either the draft or the reply. \u2026 The documented default audit retention is 30 days. Teams with Zero Data Retention enabled have no provider disk retention of prompts or responses.",
+   "missing": "The view lifetime and provider retention modes are stated. The specification does not address user deletion or its effect on retained provider copies."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-36, C-103",
+   "quote": "no Salesforce record contents \u2026 no automatically added Salesforce user ID, username, email, session credential, org ID, or record ID. \u2026 Values typed into the prompt by the user are part of the question."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-32, C-104",
+   "quote": "Earlier questions and replies are absent. \u2026 exceeding the selected model's context window, the bot reports a usage-limit failure without resending a shorter question. The window in tokens is unconfirmed until the model is selected."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "U-1, C-32, U-2",
+   "quote": "On the first visit the prompt is empty. \u2026 Earlier questions and replies are absent. \u2026 Empty, whitespace-only, and over-limit inputs receive feedback without reaching Grok. The 4,000-code-point prompt can be sent."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "C-15, C-58, C-31",
+   "quote": "The operator can turn off new bot submissions. \u2026 the next dispatched question to use the new model \u2026 the operator can see the Grok reply or the failure feedback for a valid sample prompt",
+   "missing": "The operator can observe a verification failure. No means of reviewing failed requests from ordinary, unobserved user sessions is specified."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "C-95, C-84",
+   "quote": "Routine bot logs, audit entries it creates, and error diagnostics contain no question or answer body \u2026 The documented default audit retention is 30 days.",
+   "missing": "Bot audit entries omit the question and answer. No audit record links the asker to both texts, and no retention period is given for bot audit entries."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "C-79, C-80, C-82",
+   "quote": "A queued or in-progress Metadata API deployment cannot be treated as an installed bot. \u2026 The target org must have a usable credential populated separately. \u2026 at least 75% overall coverage with coverage of each trigger.",
+   "missing": "The development environment type, deployment path and model configuration across environments remain open. The Metadata API and packaging clauses apply conditionally."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "C-39, C-42",
+   "quote": "While the bot awaits the terminal result of a submission, the user sees an in-progress state. \u2026 The current attempt has a 30-second response deadline."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "C-4, C-39, C-40, C-62",
+   "quote": "The bot opens with an empty prompt. \u2026 the user sees an in-progress state. \u2026 A terminal failure identifies an actionable failure category. \u2026 The answer remains available alongside the new validation feedback."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-86, C-87, C-88",
+   "quote": "The bot creates no business records and changes or deletes none of the existing records. \u2026 Unrelated org features keep their pre-existing access settings. \u2026 without replacing or removing unrelated configuration."
+  }
+ ]
+}

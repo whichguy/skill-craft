@@ -1,0 +1,193 @@
+{
+ "slot": "grokbot-salesforce__A-single__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "C-4, C-45",
+   "quote": "The user finds an entry point in the designated org that opens the bot. \u2026 The bot does not automatically include Salesforce record data in Grok input.",
+   "missing": "The Salesforce surface and the context it passes to the bot are unspecified."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-45, C-48",
+   "quote": "The bot does not automatically include Salesforce record data in Grok input. \u2026 access to existing objects, fields, records, and unrelated apps is the same after bot setup as before it.",
+   "missing": "Setup preserves record access, but the spec gives no requirement to run record reads in the asking user's sharing context."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "C-48",
+   "quote": "For each affected user, access to existing objects, fields, records, and unrelated apps is the same after bot setup as before it.",
+   "missing": "The spec does not say how field-level permissions, encryption or restrictions govern the bot's reads and displayed answers."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-20, C-35",
+   "quote": "A signed-in user without bot authorization cannot invoke Grok through the bot \u2026 An operator with the applicable setup authority can install a valid credential",
+   "missing": "The Salesforce permission set or equivalent entitlement for bot users and for administrators is unspecified."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-11, C-51",
+   "quote": "each sees only their own result \u2026 the earlier interaction is not available as a saved transcript in Salesforce.",
+   "missing": "Concurrent replies are isolated and there is no saved Salesforce transcript. Administrator access to conversations is unspecified."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "U-9",
+   "quote": "the external service used in U-2 may fail to return a complete result",
+   "missing": "The spec does not require an asynchronous Salesforce callout or define how it is scheduled outside a trigger or transaction with preceding DML."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-36",
+   "quote": "Inspecting the bot page, its browser requests, and its user-visible errors does not expose the configured credential.",
+   "missing": "The protected storage mechanism and the exclusion of secrets from source code, metadata and logs are unspecified."
+  },
+  {
+   "id": "N-8",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-9",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-10",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "U-2",
+   "quote": "They see that the prompt is pending if the answer is still being generated. When Grok answers, they read its reply within Salesforce.",
+   "missing": "The spec does not say how the interface detects completion and retrieves or receives the reply."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-44",
+   "quote": "After interruption, reopening the bot generates zero new Grok requests for the interrupted submission by itself.",
+   "missing": "The spec prevents replay on reopen but does not define how duplicate reply posting is prevented when an async job runs again."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-41, C-26, C-28",
+   "quote": "the operator can identify the provider access problem \u2026 the user sees a service failure for the submission. \u2026 the user sees that the submission timed out.",
+   "missing": "Server errors and timeouts have distinct user outcomes. Recognized 401 and 403 rejections have an operator diagnosis but no specified user-visible outcome."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "U-8",
+   "quote": "The user sees the relevant problem. They can submit again after capacity returns or the operator restores the allowance.",
+   "missing": "The spec allows manual resubmission but does not say whether the bot retries automatically or what backoff or retry limit applies."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-30, C-28",
+   "quote": "If the bot displays text from an incomplete response, the user can tell the displayed reply is incomplete. \u2026 If no terminal result arrives by the active deadline, the user sees that the submission timed out."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-51",
+   "quote": "The bot does not create saved Salesforce conversation history.",
+   "missing": "The spec rules out saved Salesforce history and supplies no conversation or turn record schema with roles, text, status, timestamps, model and usage."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-51",
+   "quote": "After a user closes the bot and opens it again, the earlier interaction is not available as a saved transcript in Salesforce.",
+   "missing": "The spec defines what is available after reopening, but does not define deletion of conversation data, including when a user is deleted."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-45",
+   "quote": "With an existing record open in Salesforce, submitting text that omits the record's data sends none of that record's fields or attachments to Grok.",
+   "missing": "Automatic record context is excluded. The spec gives no visibility or personal-data rule for org data a user includes in the prompt."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "C-17",
+   "quote": "When Grok rejects the request for excessive input length, the user sees that the prompt needs to be shortened.",
+   "missing": "The spec does not say whether previous turns are included, or when and how an oversized conversation is trimmed or summarised."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "U-2, C-12, C-15",
+   "quote": "opens the bot for the first time \u2026 A submission containing zero characters or only whitespace receives input feedback and generates zero Grok requests. \u2026 measured at the exact published maximum proceeds past the bot's length validation."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "C-39, C-37, C-41",
+   "quote": "The operator can revoke a user's bot access. \u2026 The operator can determine the exact model identifier in use for the development org. \u2026 the operator can identify the provider access problem.",
+   "missing": "The spec does not give an administrator an org-wide off switch, a model-change operation or a way to inspect failed requests generally."
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "U-1",
+   "quote": "If the destination is missing, ambiguous, or a production business org, deployment stops before changes are made.",
+   "missing": "The org type and deployment method, environment-specific configuration and credentials, and production code-coverage requirement are unspecified."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "C-27, C-8",
+   "quote": "The deployed bot or its operating instructions give the exact positive deadline in seconds, measured from acceptance of the submission. \u2026 While an accepted submission is awaiting its result, the user can tell that processing is in progress.",
+   "missing": "The builder must choose the actual latency bound. The spec gives its unit and starting point and requires pending feedback."
+  },
+  {
+   "id": "N-26",
+   "state": "partial",
+   "where": "U-4, C-8, C-25, C-21",
+   "quote": "The bot indicates that it needs a text prompt. \u2026 the user can tell that processing is in progress. \u2026 the user sees that the request failed. \u2026 the user sees an outcome identifying the request as declined.",
+   "missing": "The initial empty view and the presentation of these states are unspecified beyond the feedback each must communicate."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-48, C-47, C-49",
+   "quote": "access to existing objects, fields, records, and unrelated apps is the same \u2026 deployment has not created, altered, or deleted those records. \u2026 An existing workflow or automation outside the bot still produces its prior observable result"
+  }
+ ]
+}

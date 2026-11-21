@@ -956,6 +956,11 @@ stage's own duties telling the session to leave open and leave out what L, with 
 settles what R14 measured, in the review's favour: two documents with two policies, not a stage with and without
 an addition.
 
+> **Superseded 2026-11-21** (the second judge on the same specifications; section 16): "settles" is too strong,
+> and the 14 is one judge's. Under gpt-6.2-astra L alone is 45 on Sol and the lenses inside the stage 42, a gap of
+> 3. The 62 that Opus gave L on Sol is the largest disagreement between the two judges on any cell (17). What
+> both judges agree on is narrower: L over P on Sol is +19 and +14, and the draft over P is +5 and +11.
+
 **The released stage is steady.** Its two draws are 58 and 60 on Sonnet and 43 and 43 on Sol, the same four
 per-case numbers both times on Sol.
 
@@ -989,3 +994,32 @@ Open and the owner's:
 - Whether finding 2 goes to the ratchet pilot's session.
 - The E2E harness's Codex sessions being shown the user's own skills (section 7), put up as its own task.
 - The stale sentence in `skills/shiploop/references/behavioral-requirements.md` (section 14).
+
+## 16. The second judge on the deciding rounds (2026-11-21)
+
+gpt-6.2-astra at high, calibrated in section 12, read rounds 5, 6 and 4c beside the registered verdicts
+(`grades/round-5@gpt/`, `round-6@gpt/`, `round-4c@gpt/`; `evidence/round-6/two-judges.txt`). It is stricter
+throughout and agrees with Opus on covered-or-not for 84 to 87% of nuance verdicts.
+
+| comparison (covered of 89) | Sonnet: Opus / astra | Sol: Opus / astra |
+| --- | --- | --- |
+| D over A, the iterating lenses over the ratchet pilot's single pass | +31 / +26 | +35 / +31 |
+| L over A, the one-pass lenses over it | +24 / +22 | +33 / +21 |
+| F over L, iterating over one pass (R9) | +4 / 0 | -2 / +4 |
+| L over P, the lenses alone over the released stage alone (R14) | +6 / -1 | +19 / +14 |
+| **Q over the mean of P's two draws, the draft inside the stage (R15)** | **+9 / +7.5** | **+5 / +11** |
+| Q over P in the same round | +8 / +9 | +5 / +11 |
+
+- **What holds under both judges.** The lens arms over the ratchet pilot's single pass, by a wide margin on both
+  drivers, one pass or iterating. One pass against iterating: no difference under either. These two are the
+  experiment's firm results.
+- **The draft against the released stage is positive in all four cells and reaches 12 in none.** +5 to +11
+  against the mean, +5 to +11 in the same round. Interim under both judges, and the review's stricter test (12 or
+  more under both judges on a driver) is not met. The conclusion of section 15 stands.
+- **Touched, under both judges:** the released stage 80 to 87 of 89, the lens arm alone 84 to 89, the draft 86 to
+  89, the ratchet pilot's single pass 71 to 82. That the released stage already reaches nearly everything on this
+  checklist does not depend on the judge.
+- **One cell is the judges' largest disagreement and a claim rested on it.** Opus gave L 62 on Sol; astra gave it
+  45. Section 15's "the lenses lose their standalone lead inside the stage" used the 62 (note there).
+
+Status of the experiment: concluded, with what is the owner's listed at the end of section 15.

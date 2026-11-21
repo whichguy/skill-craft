@@ -1,0 +1,145 @@
+{
+ "slot": "invoice-reminders__P-shiploop-spec__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "For an activated scope the default is one reminder per invoice after its due cutoff, at the first successful eligible evaluation"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Proposed defaults treat partial payment with a remaining collectible balance as unpaid, exclude invoices on collection hold, and begin only after the due cutoff.",
+   "missing": "Paid and void invoices are excluded. The builder still needs rules for credits, disputes and payment plans, including whether each creates a collection hold."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3.a",
+   "quote": "It contains no attachment, payment link, balance, account identifier, credentials or unrelated invoices."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "subject to an approved sender, recipient mapping, preferences and required content",
+   "missing": "Which customer contact restrictions suppress a billing reminder, and whether a marketing unsubscribe applies to it."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4.a",
+   "quote": "Concurrent evaluations, duplicate triggers and restart converge on that identity. \u2026 At most one accepted handoff for the logical reminder, including reactivation or later invoice edits."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2.b",
+   "quote": "Authorize each handoff using fresh effective policy, current service access, invoice eligibility, and the current billing destination. \u2026 Final authorization is the ordering point immediately before the external handoff."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-4.b",
+   "quote": "retry a transient failure under active policy with fresh authorization. \u2026 Attempt exhaustion or a permanent rejection stays actionable in a held state.",
+   "missing": "How long to back off during an outage, when to stop retrying, and when and how repeated failures are escalated to a person."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-1, R-2 (Timeliness and capacity)",
+   "quote": "Exercise missed evaluations, backlog and throttling under the supported workload. Workload, acceptable delay, retry limits, concurrency, quota headroom, cost and catch-up capacity are unresolved.",
+   "missing": "Which provider quota applies and how to pace submissions from a large batch within that quota."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "including eligible invoices already overdue at activation after the operator confirms that cohort",
+   "missing": "How to stagger the confirmed overdue cohort so all its notices do not go out in the first evaluation."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Product owner must confirm production timing and timezone semantics, cohort and any additional cadence or quiet-hour rules before enabling the affected scope.",
+   "missing": "Whose time zone governs dispatch, which business hours are allowed, and how weekends and holidays affect the send time."
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2.a, R-3.a, R-3.b",
+   "quote": "A definitively missing approved billing destination suppresses sending until corrected. \u2026 the destination is invalid \u2026 expose a scoped failure \u2026 A bounce, if reported, remains a transport outcome and does not automatically create another accepted reminder."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3.a",
+   "quote": "For an eligible invoice, automatically address a reminder to its current approved billing destination.",
+   "missing": "Which contact or contacts receive the reminder when an invoice has several approved billing contacts."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "The reminder runtime owns durable state scoped by billing scope and invoice identity. \u2026 Store the minimum identifiers, decision/outcome, timestamps and safe correlation needed for restart, deduplication and investigation.",
+   "missing": "How the invoice view exposes each reminder\u2019s send time and identifies what was sent given that reminder history omits the body."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-3.a",
+   "quote": "The default notice is plain text with the invoice reference and a request to pay or to disregard if already paid. It contains no attachment, payment link, balance, account identifier, credentials or unrelated invoices.",
+   "missing": "The specified copy omits the amount and due date and gives no way to pay. A payment link is expressly excluded, so expiry does not arise for the default."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-1.a",
+   "quote": "An authorized billing operator can establish an active reminder policy for a specific billing scope through the supported configuration surface and can disable it there.",
+   "missing": "Which roles may edit timing or manually send or stop an individual reminder, if those actions are supported."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1.a",
+   "quote": "A disable committed before final dispatch authorization prevents that handoff, including previously selected work.",
+   "missing": "Whether the disable control is available globally and per customer, whether operators can preview or dry-run sends, and whether they can initiate a manual resend distinct from failure recovery."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-4.c",
+   "quote": "A scoped operator can retrieve send acceptance, suppression/defer reason, failed or exhausted attempts, unresolved handoffs, and reconciliation outcome using sanitized correlation.",
+   "missing": "How the operator sees which invoices are scheduled for the next send and when."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-1, R-2 (Timeliness and capacity)",
+   "quote": "Workload, acceptable delay, retry limits, concurrency, quota headroom, cost and catch-up capacity are unresolved.",
+   "missing": "The maximum send volume in a given period or the maximum lateness allowed for a reminder."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Before and after, invoice and contact records are changed only by existing billing operations. \u2026 The reminder path reads invoice state and has no invoice write or asynchronous invoice completion to reconcile."
+  }
+ ]
+}

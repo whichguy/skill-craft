@@ -1,0 +1,147 @@
+{
+ "slot": "gym-waitlist__F-guarded__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-25",
+   "quote": "The confirmed booking is present without a separate acceptance action."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-34, C-91",
+   "quote": "by their acceptance order. \u2026 If two accepted joins cannot be distinguished by time, the app still settles on one order for those entries and uses it consistently. \u2026 Waitlist priority has no operator override in the waitlist feature."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "C-134, C-57",
+   "quote": "A member can have active entries for more than one eligible occurrence at a time. \u2026 A confirmed assignment ends the active waitlist entry for that occurrence.",
+   "missing": "Whether booking one of two overlapping classes closes the member\u2019s other entry, and when that happens."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-25, C-44",
+   "quote": "The confirmed booking is present without a separate acceptance action. \u2026 To give up the seat the member must use ordinary cancellation, with its usual eligibility and terms.",
+   "missing": "Whether missing an automatically booked class counts as a no-show. Automatic confirmation eliminates a separate offer to decline."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-36, C-64",
+   "quote": "Release one or more seats by a confirmed booking cancellation \u2026 An assignment can finish without a live member session.",
+   "missing": "How quickly a cancellation must lead to assignment while the service is healthy."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-30, C-140, C-141",
+   "quote": "The member can verify each outcome in the app. \u2026 including existing confirmation notifications and calendar updates where applicable. \u2026 The member still has the one booking and zero duplicate bookings from that entry.",
+   "missing": "For any confirmation that is sent, the delivery channel, required message content, and whether or when failed delivery must be retried."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-52, C-55",
+   "quote": "An occurrence can never gain a booking from the waitlist above its current capacity. \u2026 A confirmed booking can result at most once from a given waitlist entry."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-61",
+   "quote": "Race assignment against another valid booking path for the same member and occurrence. At most one confirmed booking for the member results."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C-28, C-78, C-80",
+   "quote": "Joining alone has zero ordinary booking charges or credit debits. \u2026 An automatic booking uses the ordinary booking\u2019s applicable financial terms. \u2026 An automatic assignment that ultimately fails leaves no completed booking charge or debit for that attempt.",
+   "missing": "Whether a declined charge during assignment ends the entry and passes the seat to the next waiter, or holds it for another payment attempt."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-13",
+   "quote": "For any finite number of already waiting members that the app can serve, another distinct eligible member can join without a refusal based on queue length."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-99, C-60",
+   "quote": "The waitlist cutoff is the earlier of the applicable ordinary booking cutoff and the occurrence\u2019s scheduled start. \u2026 Automatic assignment confirms zero bookings after the occurrence permanently closes to booking."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-36, C-53, C-54",
+   "quote": "Release one or more seats by a confirmed booking cancellation or a capacity increase \u2026 There is no newly confirmed booking while capacity is exhausted. \u2026 Existing eligible entries remain active in their prior order."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-102",
+   "quote": "The occurrence has zero active entries as soon as the cancellation takes effect."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-66, C-34, C-31",
+   "quote": "A platform-rejected join cannot be reported as accepted without a recorded entry. \u2026 by their acceptance order. \u2026 An occurrence\u2019s waitlist status for its member distinguishes waiting, booked and no longer waiting.",
+   "missing": "Whether the entry records the acceptance timestamp and whether its queue position is stored or derived from the ordering."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-9, C-129",
+   "quote": "Check active participation after the waitlist cutoff, occurrence cancellation or occurrence removal. Zero entries remain active. \u2026 The app\u2019s existing class access duration and retention obligations are unconfirmed.",
+   "missing": "How long ended entry records are retained after the class runs."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-87, C-6",
+   "quote": "Members see no other member\u2019s waitlist identity or participation through member access. \u2026 The occurrence still shows that the member is waiting.",
+   "missing": "Whether the member can see their own position in the queue."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-88, C-91",
+   "quote": "An authorized operator can determine the waitlist outcome for a specified member and occurrence. \u2026 Waitlist priority has no operator override in the waitlist feature.",
+   "missing": "Whether staff can view the whole queue, manually promote its next eligible member, remove an entry, or look up when each promotion occurred."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-92, U-11",
+   "quote": "A planned rollback can suspend new waitlist admissions before the earlier release is restored. \u2026 The operator stops new waitlist admissions for a planned rollback and lets active entries resolve."
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-4, C-72",
+   "quote": "Open an occurrence with a seat available for ordinary booking, then book through the existing flow and observe the normal confirmation. \u2026 Existing confirmed bookings remain confirmed when the waitlist is enabled."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-10, C-74",
+   "quote": "Open an eligible full occurrence created before rollout. Its waitlist can accept an eligible member. \u2026 Those members see no active entry unless they join after rollout."
+  }
+ ]
+}

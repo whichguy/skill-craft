@@ -1,0 +1,137 @@
+{
+ "slot": "invoice-reminders__F-guarded__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-5",
+   "quote": "Each reminder step is an integer number of days relative to the invoice's due date (negative = before, 0 = on, positive = after). The default schedule is 0, 7, 14 and 30."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-2, C-3, U-6",
+   "quote": "Only open and partially paid invoices receive reminders. \u2026 paid in full, void, written off, or has a balance of 0.00 or less (fully paid, credited or refunded) \u2026 The operator pauses reminders on INV-1003",
+   "missing": "Whether a payment plan suspends reminders on an otherwise open invoice, and whether a recorded dispute alone suspends them before an operator pauses the invoice."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-4",
+   "quote": "For a partially paid invoice the reminder states the outstanding balance (total minus payments and credits), not the original total."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-68",
+   "quote": "Deliberately not provided: sending a reminder on demand, pausing per customer, a per-customer or per-invoice schedule, a customer-facing unsubscribe link",
+   "missing": "Whether existing customer-level contact restrictions suppress a billing reminder, including whether billing notices are exempt from a marketing unsubscribe."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-32",
+   "quote": "Whatever happens \u2014 two evaluations at the same time, an evaluation run twice, a restart, a retry \u2014 no recipient receives more than one email for the same invoice and offset."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-36",
+   "quote": "The invoice state is checked immediately before each email is handed to the delivery provider; a payment, void, pause or turning off recorded before that check prevents the send"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-37, C-82, C-60",
+   "quote": "at least 60 minutes later, up to 3 attempts in total per recipient and step \u2026 no attempt is counted against C-37's limit of 3 \u2026 An operator can list reminder steps across all invoices filtered by step outcome",
+   "missing": "Whether repeated failures trigger a notification or assignment to a person, who receives it, and when."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-62",
+   "quote": "no more than 10 per second by default (a decided value, unconfirmed against the provider); when the rate is exceeded or the provider says it is throttling or its quota is spent, the remaining sends are delayed, not dropped"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "U-9",
+   "quote": "Only invoices that have a step whose date is within the last 3 days (or today) receive a reminder, one email per invoice."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-9, C-10",
+   "quote": "at or after the send time (default 09:00) on the step's date in the business time zone (default UTC) \u2026 even if it is a Saturday, Sunday or public holiday; dates are not moved."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-49",
+   "quote": "The outstanding balance is shown with its ISO currency code and with the currency's standard number of decimal places (2 for USD and EUR, 0 for JPY)"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-53, C-76, C-27",
+   "quote": "later steps of that invoice show that address as \"suppressed\" \u2026 its result in the history is \"rejected\" with the reason \"invalid address\" \u2026 If the window closes first it is recorded as failed with the reason \"no recipient\"."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-24",
+   "quote": "Recipients are the billing email addresses listed on the invoice. \u2026 At most 5 recipients, taken in the order the invoice lists them after addresses repeated (ignoring upper/lower case) are counted once, are used"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-31",
+   "quote": "For every step the invoice shows: offset, scheduled date, outcome (pending, sent, skipped, failed, outcome unknown), the reason for skipped/failed, the time of the last attempt, and per recipient address and result",
+   "missing": "Whether the invoice history preserves the content actually sent in production, such as the balance quoted before a later payment."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-28",
+   "quote": "the invoice number; the outstanding balance with its currency code; the due date; the timing line of C-29; the invoice's payment link where it has one, otherwise the payment-instructions text where one is set",
+   "missing": "Whether the payment link expires and, if so, when."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-21, C-68",
+   "quote": "Turning on/off, editing settings and pausing/resuming an invoice are refused for users without the permission to manage reminders \u2026 Deliberately not provided: sending a reminder on demand"
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "C-68, C-43",
+   "quote": "turn reminders on/off \u2026 Deliberately not provided: sending a reminder on demand, pausing per customer \u2026 In an environment not marked production, no reminder is delivered to a customer address \u2026 the content that would have been sent."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "U-7, U-8",
+   "quote": "They also see the next scheduled step with its date, or the reason there is none. \u2026 The operator lists reminder steps that are failed or pending-with-problem"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-11",
+   "quote": "A step whose date is today or up to 3 calendar days earlier (business time zone) is still sent. A step more than 3 days past is not sent and is recorded as skipped with the reason \"window expired\""
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-42",
+   "quote": "Creating invoices, recording payments and voiding work as without the feature, even if reminders are off, failing or running."
+  }
+ ]
+}

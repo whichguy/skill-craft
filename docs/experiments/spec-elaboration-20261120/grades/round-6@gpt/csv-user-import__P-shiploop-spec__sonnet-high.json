@@ -1,0 +1,146 @@
+{
+ "slot": "csv-user-import__P-shiploop-spec__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "Either every row's user exists afterwards or none does."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-7.5",
+   "quote": "a table \"Row / Field / Problem\" with six lines in the API's order, each problem in plain words (for example the duplicate line says it repeats row 1)."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "email already used earlier in this file (by normalized value) \u2192 `EMAIL_DUPLICATE_IN_FILE`, carrying `first_row` \u2026 email equal to an existing user's, any role or status \u2192 `EMAIL_EXISTS`"
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-4.3",
+   "quote": "every user created by an import has role `member` \u2026 FX-23 (extra `role` column naming `admin`) \u2192 400 `HEADER_INVALID`",
+   "missing": "Rejecting the role column prevents escalation. The specification gives no rule for comparing a requested role with the importing admin\u2019s authority."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "The import page and the API are available only to a signed-in user whose **current** role is admin.",
+   "missing": "The admin requirement is explicit. The specification does not state the relationship between single-user creation permission and import permission."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "First line is a header; after trimming and ASCII case-folding it must be exactly `email` and `name`, each once, in either order. \u2026 header not as above (missing, extra, duplicate or unknown column) \u2192 400 `HEADER_INVALID`"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2, R-3.3",
+   "quote": "RFC 4180 quoting, LF or CRLF line ends, optional UTF-8 BOM (ignored) \u2026 a quoted comma in a name (FX-2) \u2026 FX-15 (line break inside a quoted name) \u2192 422, row 1 `NAME_INVALID`."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-4.2, D-10",
+   "quote": "failure on the first insert and on the last insert behave the same (store exactly S-0). \u2026 no credential, and no email is sent (G-2)."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "size over `max_bytes` \u2192 413 `FILE_TOO_LARGE` \u2026 more data rows than `max_rows` \u2192 413 `ROW_LIMIT_EXCEEDED` \u2026 Both are configuration, not constants in code."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2, R-4.1",
+   "quote": "zero bytes \u2192 400 `FILE_EMPTY` \u2026 no data rows after ignoring blank lines \u2192 400 `NO_ROWS` \u2026 a one-row file (FX-3) creates exactly one user"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "Re-uploading a file that already succeeded creates nothing and reports `EMAIL_EXISTS` for every row."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "AD-1",
+   "quote": "the upload request parses, validates and commits, and its response carries the final outcome. No background job, queue or polling endpoint.",
+   "missing": "The response tells the admin when the synchronous import finishes. The specification explicitly excludes background processing, so it defines no completion signal for a background job."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "D-10",
+   "quote": "**Imported users** get the product's default non-admin role, no credential, and no email is sent (G-2)."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "a store-assigned id, and **no credential**. \u2026 imported users cannot sign in until that path exists \u2026 whether other fields (status, created-by) exist on the user record.",
+   "missing": "The initial account status and the path by which a user obtains credentials and first signs in are open."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "Upload bytes: request lifetime, readable by the handler only, removed on every exit (including temp storage)."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "actor id (absent if unauthenticated), UTC time, outcome (`created`, `rejected`, `failed`, `forbidden`, `unauthenticated`), `total_rows` when parsed, `created_count`, file size in bytes"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-6.3, R-7.5",
+   "quote": "the client aborts the connection \u2026 store read-back is S-0 **or** S-0 plus all three users \u2026 The chosen file stays shown so the admin may re-send or pick another",
+   "missing": "Disconnect and whole-file resubmission have defined outcomes. There is no admin action specified to stop processing or to resubmit just the failed rows."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-7.3, R-10",
+   "quote": "an indeterminate progress indicator appears (no percentage) \u2026 The maximum rows and file size, and with them a latency target, are not given and are not invented here.",
+   "missing": "The allowable elapsed time for a maximum-size import remains open."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-4.1",
+   "quote": "S-0's three users unchanged.",
+   "missing": "The specification preserves existing records but gives no requirement that the manual single-user creation flow retain its existing behavior."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-9, R-3",
+   "quote": "A name starting with `=`, `+`, `-` or `@` is stored verbatim; neutralizing it for spreadsheet export is **excluded** \u2026 a maximum name length (code would be `NAME_TOO_LONG`)",
+   "missing": "Formula handling is explicit and email has length limits. The maximum accepted name length is unresolved, so a builder lacks the rejection boundary for an overlong name."
+  }
+ ]
+}

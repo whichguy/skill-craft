@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__P-shiploop-spec__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "when the file has no file-level and no row findings, every row becomes one user in **one atomic unit** (all or none)."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "the admin sees row number, column and reason for each problem."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "`duplicate_in_file` (same canonical email as an earlier row that passed the format check; the **earlier** row is not flagged) \u2192 `email_exists` (canonical email already in the User store)."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "PD-4; AC-4.5",
+   "quote": "Created users get the **Default role** only. \u2026 a file containing a column `role` with value `admin` \u2192 `422` `unknown_column`/`role`, no user created."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "the import capability (endpoint and page) is available to an Admin only.",
+   "missing": "Whether someone allowed to create one user by hand must qualify separately for bulk import."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "PD-2; PD-3",
+   "quote": "CSV columns are exactly `email` and `name`, both required; header row required; column order free; header names matched trimmed and case-insensitively. \u2026 Unknown columns reject the file (`unknown_column`)."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "UTF-8 with or without BOM; `,` delimiter; RFC 4180-style quoting (quoted fields may contain commas, doubled quotes and newlines); LF or CRLF line ends"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "AC-4.3; R-9",
+   "quote": "with a fault injected on the store write of row 3 of FX-1 (test-only) \u2192 `500` `import_failed`, `ada@` and `grace@` **absent**, count unchanged \u2026 does not send mail, SMS or any notification."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Exactly M rows and exactly B bytes are accepted; M+1 rows is `too_many_rows`; B+1 bytes is `file_too_large`.",
+   "missing": "The production row limit M and byte limit B."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AC-2.3; AC-4.4",
+   "quote": "FX-8 (header only) \u2192 `no_data_rows`; FX-9 (0 bytes) \u2192 `empty_file` \u2026 a 1-row valid file \u2192 `201`, 1 created."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "AC-6.2",
+   "quote": "A posts FX-1 and gets `201`; A posts FX-1 again \u2192 `422`, `email_exists` on rows 2, 3, 4, created 0, count unchanged"
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "AD-1; AC-8.4",
+   "quote": "the import runs inside one HTTP request: authorize, parse, validate, commit, audit, respond. No queue, worker, polling or job record. \u2026 releasing the response shows the outcome.",
+   "missing": "Completion is shown for a synchronous request. If a large file exceeds the request time limit, background processing and its completion notice are left open."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "creating a user through import does not set a password or token and does not send mail, SMS or any notification."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "PD-5",
+   "quote": "Created users have **no credential** and **no message is sent**. \u2026 users cannot sign in until a separate activation path exists (G-2).",
+   "missing": "The account\u2019s formal activation status and the steps the user takes to obtain access and sign in for the first time."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "State, ownership and lifecycle (Uploaded file bytes); R-7",
+   "quote": "Server, request memory or request-scoped temp storage | Only the handling request; never another admin, never logs \u2026 The uploaded file is not retained anywhere after the request ends."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "actor id (absent when unauthenticated), UTC timestamp, outcome, number of rows seen, number of file and row findings with their codes, and on success the new user ids."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-7; R-4",
+   "quote": "an aborted upload writes no `created` record and no users \u2026 retrying the same file is safe because nothing was written.",
+   "missing": "Whether an admin can cancel after upload while processing is underway, and whether there is a way to retry just the failed rows."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-11; R-8",
+   "quote": "a valid M-row file returns `201` within the host's request time limit \u2026 visible and announced progress status",
+   "missing": "The maximum file size and the elapsed-time target for processing it. The host request timeout is also unknown."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Existing users are never modified.",
+   "missing": "Whether the existing manual single-user creation flow must retain its current behavior."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-3; PD-11",
+   "quote": "name 100 chars valid, 101 invalid. Email 254 chars valid, 255 invalid. \u2026 Result is shown once in the response and not stored: no import history, no downloadable error file."
+  }
+ ]
+}

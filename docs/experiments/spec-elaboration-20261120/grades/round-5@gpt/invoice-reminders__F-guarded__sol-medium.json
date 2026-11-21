@@ -1,0 +1,138 @@
+{
+ "slot": "invoice-reminders__F-guarded__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-9",
+   "quote": "The automatic schedule has three occurrences at 1, 7, and 14 calendar days after the due date"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-7, C-30",
+   "quote": "A partially paid invoice whose displayed amount still due is positive can qualify. \u2026 A disputed, archived, refunded, or reopened invoice qualifies only if the billing workflow treats it as issued, payable now, and free of a collection block",
+   "missing": "Whether entering a payment plan pauses reminders while the invoice still shows a collectible balance."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "U-4",
+   "quote": "If the payer makes a partial payment instead, the next eligible reminder reflects the remaining balance."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-88",
+   "quote": "If the host already blocks billing email to a destination or for an account, a reminder generates zero submissions there while the restriction is active.",
+   "missing": "Which customer-level pauses and unsubscribe settings block billing email, including whether a marketing-only opt-out permits reminders."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-47, C-92",
+   "quote": "Overlapping processing, repeated triggers, late completion reports, and restarts cannot produce two accepted submissions for the same account, invoice, and schedule offset. \u2026 After restoration and explicit re-enabling, accepted offsets remain consumed"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-43, C-46",
+   "quote": "The first handoff begins only while the invoice is eligible \u2026 Preparing an email earlier does not authorize a later handoff. \u2026 If the invoice is paid or withdrawn \u2026 before the retry starts, the service receives zero further submissions"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-55, C-67",
+   "quote": "Repeated retryable failures produce at most one initial submission attempt and two retries per invoice offset. \u2026 After scheduling, billing, or delivery service recovers, eligible work resumes while reminders remain enabled.",
+   "missing": "Whether repeated failures trigger a notification to a person, who receives it, and when."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-74, C-17",
+   "quote": "If the service reports a rate, concurrency, or daily volume limit, the automation defers eligible work when capacity is unavailable. \u2026 A batch larger than available capacity can be processed across multiple opportunities while its invoices remain eligible."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-33",
+   "quote": "Enabling on April 18 for an invoice due April 10 produces no catch-up for April 11 or 17. The April 24 occurrence can still send."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-9, C-31, C-32",
+   "quote": "1, 7, and 14 calendar days after the due date \u2026 the invoice's established billing zone \u2026 The first such instant is included and the first instant of April 12 is excluded. A 23- or 25-hour date constitutes one window."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-13",
+   "quote": "An invoice issued for USD 100.00 with USD 60.00 still due shows USD 60.00 as the amount outstanding in the reminder.",
+   "missing": "How to display currencies with different minor units and which number-formatting convention to use for the recipient."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-25, C-61, C-122",
+   "quote": "An invoice with a blank, malformed, ambiguous, or unresolved billing email produces zero submissions. \u2026 A delivery bounce does not reissue an accepted occurrence \u2026 suppresses later reminders to that same destination"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-24, C-104",
+   "quote": "For an invoice whose billing workflow designates a primary billing recipient and additional contacts, the automation uses the primary address only. \u2026 with no single designated primary, the invoice is skipped for an ambiguous destination."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-19, C-63",
+   "quote": "The operator locates an occurrence through its invoice \u2026 its invoice reference, schedule offset \u2026 each attempt\u2019s start time, submitted destination, submitted amount and currency, and known submission and delivery outcomes."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-22, C-35, C-14",
+   "quote": "Each email gives the reference and amount for only its own invoice. \u2026 A reminder states the due date that made it eligible \u2026 existing payment instructions, an authorized invoice or payment destination, or the issuer's established billing contact.",
+   "missing": "Whether a payment link expires and, if so, when. A billing contact alone also satisfies the specified next step."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-40, C-36",
+   "quote": "Rights equivalent to managing account billing allow changing reminder settings. \u2026 a single account-level on or off setting \u2026 no controls for offsets \u2026 per-invoice scheduling, or sending an automatic occurrence on demand."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-125, C-36, C-130",
+   "quote": "stops the deployment's reminder execution without editing the account setting, sending stops \u2026 customer overrides, per-invoice scheduling, or sending an automatic occurrence on demand. \u2026 An approved test destination can receive a reminder generated from a test invoice.",
+   "missing": "Whether a billing operator can preview a particular reminder or run the schedule without submitting email. The specified rehearsal sends a test message."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-108, C-63, C-16",
+   "quote": "The current schedule shows the new date for an unconsumed offset. \u2026 scheduled date, disposition, and reason when applicable. \u2026 The billing operator can find the failed occurrence and distinguish its failure from a confirmed acceptance."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-32, C-109",
+   "quote": "Each occurrence is open for its scheduled civil date only \u2026 An invoice receives at most three accepted automatic reminders in its lifetime"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-81, C-85",
+   "quote": "its normal issuance action still creates the same issued invoice with reminders enabled or disabled. \u2026 The same valid full or partial payment is recorded and applied by the billing workflow"
+  }
+ ]
+}

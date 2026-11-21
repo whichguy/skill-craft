@@ -1,0 +1,150 @@
+{
+ "slot": "gym-waitlist__P-shiploop-spec__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "The proposed default is first-in, first-out automatic booking, with that consequence explained before Join."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2.a",
+   "quote": "For multiple openings, allocate only up to available capacity, in committed join order."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "TC-7 (R-2.c)",
+   "quote": "Bea then Cal join and close their apps. Ada cancels. Interrupt after cancellation commit and before promotion commit.",
+   "missing": "The cancellation triggers allocation even with the apps closed, but the maximum time to complete promotion is undecided."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-3.a",
+   "quote": "Reopening or refreshing the affected class shows the member's confirmed Waiting status, regular booking after promotion, or the applicable closed/unavailable state.",
+   "missing": "The member can discover the booking on a later read. The spec excludes external notifications and defines no promotion message sent to the member or handling for a failed send."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "TC-5 (R-2.a)",
+   "quote": "Bea, Cal, Dev join in that order. The two owners cancel their own bookings before allocation. T-4 selects Bea then Cal, Dev remains waiting, and occupancy becomes 2."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-2.a",
+   "quote": "A competing direct booking can use only capacity left after earlier waiters are accounted for.",
+   "missing": "If the direct requester is the waiter being promoted, the spec leaves the same-member result undecided, including how to avoid two bookings when multiple seats open."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "The product owner must confirm that joining can authorize automatic booking under existing payment, credit, consent, eligibility, and cancellation rules.",
+   "missing": "The charge timing and the fate of the seat and queue entry if payment fails are undecided."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Confirm capacity for active entries, retries, and retained evidence against real platform quotas under both contention on one occurrence and independent occurrence load.",
+   "missing": "Platform sizing leaves open whether a class has a waitlist limit, its value, and what the next member sees at that limit."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-2.b",
+   "quote": "Recheck eligibility and the occurrence's booking window at allocation.",
+   "missing": "The time at which promotion stops relative to the class start is unspecified."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Subsequent capacity changes follow the existing booking policy, including its treatment of already-issued bookings.",
+   "missing": "Newly bookable seats go to waiters, but the supported staff capacity edits and the treatment of a decrease below current occupancy depend on an unidentified policy."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-2.b",
+   "quote": "If the occurrence closes or is cancelled before allocation, stop promotion and end its remaining active entries. A later retry cannot revive them."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Keep the minimum member/occurrence reference, ordering and state necessary.",
+   "missing": "Commit order is defined, but the spec does not say whether to record a join timestamp or store or derive a numeric position."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "When ended, remove from contention immediately. Retain only what is needed for reconciliation, closure display or existing audit rules, then purge it.",
+   "missing": "Closure ends membership, but the applicable retention period for ended entries has yet to be identified."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-4.a",
+   "quote": "The client receives only that member's status and ordinary class availability.",
+   "missing": "Other members\u2019 identities are private. Display of the member\u2019s own position is explicitly outside scope."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Authorized operators may inspect only what's required for recovery.",
+   "missing": "The limited recovery access does not provide staff with a queue view, manual promotion or removal, or a history showing who was promoted when. Staff controls are outside scope."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements \u2014 Integrity and resilience (R-2)",
+   "quote": "Bounds for allocation delay, recovery effort, hot-occurrence concurrency and ordinary load are unresolved.",
+   "missing": "No maximum interval between a committed cancellation and promotion is given."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Preserve ordinary booking wherever a seat is bookable and preserve existing eligibility."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

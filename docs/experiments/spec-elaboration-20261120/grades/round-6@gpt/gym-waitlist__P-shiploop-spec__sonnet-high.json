@@ -1,0 +1,144 @@
+{
+ "slot": "gym-waitlist__P-shiploop-spec__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "D-1",
+   "quote": "When a seat frees, the first Waiting member is booked at once. There is no offer or claim window."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "D-3, AC-8.1",
+   "quote": "Order is first-come, first-served by join time, per class. No priority tiers. \u2026 Expect three entries at positions 1, 2, 3 in some order, all distinct, no duplicates.",
+   "missing": "Tied joins must get distinct positions, but the specification leaves the choice of which tied join goes first to the builder."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "G-2, D-4",
+   "quote": "What booking rules (credits, membership, overlap) and cutoff time apply \u2026 At promotion the existing booking rules for that member are applied.",
+   "missing": "When one class books the member, should the other overlapping entry close immediately or stay queued until its own promotion check?"
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-10",
+   "quote": "late-cancel fees, no-show handling \u2026 Any existing rule of these kinds still applies at promotion (D-4); the waitlist adds none of its own.",
+   "missing": "Automatic booking eliminates the offer to decline. The text leaves open how to classify a member giving up or missing an automatic promotion under the existing penalty policy."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "F-3",
+   "quote": "Member A cancels (existing cancel) or capacity is raised. In the same operation T-6 promotes from the head until Full or empty."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-6, AC-6.2",
+   "quote": "on the app's existing notification channel and also on the member's own class view \u2026 notification sender fails during AC-5.1: Cy's Booking exists, Cy's class view shows Booked, a log record exists, no second promotion occurs."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-8, R-5, NFR-1",
+   "quote": "operations on one class behave as if applied one at a time. \u2026 a capacity raise from 2 to 4 with two waiting promotes both, in order. \u2026 zero over-capacity bookings and zero duplicate seat holders at rest"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-8, T-2, I-2",
+   "quote": "operations on one class behave as if applied one at a time. \u2026 tries to book | Nothing | `WAITLISTED(current position)` \u2026 never has both a Booking and a `Waiting` entry for the same class"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-10, R-5",
+   "quote": "payments, credits \u2026 Any existing rule of these kinds still applies at promotion (D-4) \u2026 a head who fails the existing booking rules is `Skipped` and told (D-4); the next entry is tried.",
+   "missing": "The builder still needs to know when to charge and whether a failed charge prevents confirmation or changes an already confirmed booking."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "D-7",
+   "quote": "No cap on waitlist length and no per-member limit on how many waitlists they join."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-5, Vocabulary (Open)",
+   "quote": "Promotion happens only while the class is Open \u2026 before its booking cutoff and before it starts, and not cancelled"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "AC-5.3, Transition ledger (excluded event families)",
+   "quote": "capacity raised 2 to 3 expects Cy promoted, Dee at 1; raised 2 to 4 expects both promoted, queue empty. \u2026 capacity decrease below current bookings (existing behaviour, no waitlist effect: `Waiting` entries stay"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "T-8",
+   "quote": "All `Waiting` become `Closed`; no Bookings created; waiting members told"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "State inventory, D-3, R-3",
+   "quote": "Waitlist entry, states `Waiting`, `Promoted`, `Left`, `Skipped`, `Closed` \u2026 Order is first-come, first-served by join time, per class. \u2026 position is 1 plus the Waiting entries ahead.",
+   "missing": "The queue order and position formula are specified. The builder still decides whether each entry records its join time and whether to store its position or compute it on read."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-7, G-8",
+   "quote": "at class start every `Waiting` entry becomes `Closed` and no one is booked from it. \u2026 Terminal entries kept no longer than the class's booking records."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "D-5",
+   "quote": "A member sees only their own entry and position; never who else is waiting."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-9, NFR-6",
+   "quote": "staff view of the waitlist, waitlist counts, and any waitlist-specific permissions for staff. \u2026 Each join, leave, promotion, skip and close is logged by the app's existing logger with class id, member identifier, outcome and time",
+   "missing": "The log records who was promoted and when. The specification excludes staff waitlist permissions and gives staff no way to inspect the roster or history, promote someone, or remove an entry."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "NFR-2",
+   "quote": "when the cancel call returns, the promotion has already been applied, so a following read shows the promoted Booking."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-10, NFR-7",
+   "quote": "booking a class with free seats, cancelling a booking, class listings and any existing cancellation policy behave exactly as before \u2026 Additive: no change to existing booking data."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

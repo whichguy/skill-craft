@@ -1,0 +1,149 @@
+{
+ "slot": "gym-waitlist__L-lenses-once__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-31",
+   "quote": "If the session gains one bookable place and has one eligible waiting member, that member receives one confirmed booking with no new action from the member or operator."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-32",
+   "quote": "When two eligible members are waiting for one opening, the first accepted join wins. If attempts overlap, there is one consistent acceptance order even if their displayed times match or their responses arrive in the opposite order."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "C-20",
+   "quote": "A member can join a second or subsequent eligible full session while waiting for an earlier one, subject to existing eligibility and runtime limits.",
+   "missing": "The specification leaves open whether promotion into one session ends the wait for an overlapping session or allows it to continue."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-82",
+   "quote": "Where cancellation ordinarily results in a charge, credit, refund, or no financial change, cancelling a promoted booking has the same result in the equivalent case.",
+   "missing": "Promotion is automatic, so there is no offer to decline. Financial consequences of cancellation are specified, but whether a late cancellation or missed class earns a policy strike is unclear."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-89",
+   "quote": "If a cancellation commits but allocation cannot finish during the same request, the cancellation remains effective. The released place is handled under the same priority and recovery rules.",
+   "missing": "A successful cancellation that frees a place triggers allocation, but the specification gives no deadline for completing it outside the cancellation request."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-55",
+   "quote": "A promoted member receives the ordinary confirmation associated with the booking under the app's existing confirmation policy. The policy's channels, content, and timing are unconfirmed.",
+   "missing": "The channel and message content depend on an unspecified policy. C-51 preserves the booking if confirmation fails, but leaves retry or fallback delivery undecided."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-38",
+   "quote": "If two places become available together with three eligible waits, exactly two members receive bookings in priority order and the third remains waiting while admission remains open."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-45",
+   "quote": "As soon as a booking for the member and session takes effect, the member is booked and the wait ceases to be active, whichever existing booking path supplied the place."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C-80",
+   "quote": "Where the app charges for a confirmed booking, promotion applies the same price and charge rules as the equivalent direct booking. Existing prices, currencies, and charging conditions are unconfirmed.",
+   "missing": "The charge follows ordinary booking rules, but its precise timing and the disposition of the booking, wait, and place after a payment decline are unspecified."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-19",
+   "quote": "For any supported session, the first eligible member and later eligible members can join even if there are already more waiting members than there are total places. No feature-level maximum is imposed."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-56, C-59",
+   "quote": "The waitlist closes at the earlier of the existing booking cutoff and the scheduled session start. \u2026 An opening processed at or after cutoff creates zero waitlist bookings."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "U-9",
+   "quote": "If the app supports changing capacity or other booking conditions, the operator uses those controls. New bookable places go to waiting members in order. A reduction supplies no new places."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-60",
+   "quote": "From when that change takes effect, the cancelled, removed, or closed session has zero active waits and cannot receive waitlist bookings."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-24, C-67",
+   "quote": "another member's identity, entry, join time, position, eligibility result, or allocation outcome \u2026 whether a specified member is actively waiting, confirmed, or has no active wait",
+   "missing": "Entry details and observable states are named, but the specification leaves open whether join time is persisted and whether queue position is stored or derived from acceptance order."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-58",
+   "quote": "At or after the cutoff, a member whose wait did not yield a booking has no active waiting place even if there was no cancellation or member action.",
+   "missing": "There is no retention period or deletion rule for ended entries after the session."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-23, C-24",
+   "quote": "without a numeric position, total queue length, estimated wait time, or roster being required. \u2026 a member cannot obtain another member's identity",
+   "missing": "Other members' identities are private. Displaying the member's own position is optional, so a builder need not make it visible."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-67, C-68",
+   "quote": "whether a specified member is actively waiting, confirmed, or has no active wait \u2026 no manual promote or reorder control.",
+   "missing": "Staff can inspect individual outcomes, and manual promotion is explicitly excluded. A staff roster, manual removal, and a history showing who was promoted when are unspecified."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-72",
+   "quote": "Before a rollback resumes ordinary booking without waitlist priority, the operator can verify zero active waits across the affected sessions.",
+   "missing": "Rollback retires waitlisting. The specification leaves open whether an operator can disable it in the running release or select participating classes or class types."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-50",
+   "quote": "The allocation and recovery time limits in the deployment are unconfirmed.",
+   "missing": "No maximum elapsed time is given from a cancellation freeing a place to an eligible member receiving the booking."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "U-11",
+   "quote": "Existing bookings and session availability carry forward. An existing full session can accept its first waiting member, and a session with availability still supports ordinary booking."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "U-11, C-69",
+   "quote": "An existing full session can accept its first waiting member \u2026 Immediately after enabling waitlists for existing sessions, members have no waiting places unless they actually joined after the feature became available."
+  }
+ ]
+}

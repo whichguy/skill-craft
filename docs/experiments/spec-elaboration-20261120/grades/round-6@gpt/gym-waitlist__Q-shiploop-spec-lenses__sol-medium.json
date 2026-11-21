@@ -1,0 +1,148 @@
+{
+ "slot": "gym-waitlist__Q-shiploop-spec-lenses__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3.a",
+   "quote": "In committed join order, convert eligible entries to ordinary confirmed bookings and end their waiting entries until available capacity or the queue is exhausted."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1.b, R-3, R-6.c",
+   "quote": "It is appended in authoritative acceptance order. \u2026 membership-based priority, reserved staff seats invented by this feature, and overbooking are out of scope. \u2026 There is no staff queue editing, manual promotion"
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1.a, R-3",
+   "quote": "a seat can be booked automatically under the ordinary booking terms \u2026 Existing billing/refund and cancellation terms take precedence.",
+   "missing": "The ordinary cancellation terms apply after booking. The specification does not say whether missing a promotion or failing to attend an automatically booked class counts as a no-show."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-3.a",
+   "quote": "An effective booking cancellation or authorized capacity increase that frees capacity on an open, enabled occurrence triggers allocation, including with no member online.",
+   "missing": "There is no deadline for completing the promotion after the cancellation commits."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-4, R-2.a",
+   "quote": "Confirmation is in the app and ordinary booking effects are preserved. \u2026 **Booked** with ordinary booking controls",
+   "missing": "The in-app result is specified. If the ordinary booking flow also sends a confirmation, the specification leaves its delivery-failure response, such as a retry or member-visible fallback, unresolved."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-3.a, R-3.b, R-3",
+   "quote": "until available capacity or the queue is exhausted. \u2026 Competing mutations resolve at the booking authority against effective capacity and current queue and class state. \u2026 Each committed promotion leaves exactly one ordinary booking for the booking identity"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-3.b, R-1, R-3",
+   "quote": "Existing waiting priority is evaluated before a direct-booking attempt takes a freed seat. \u2026 A booked member has no active entry for the same occurrence \u2026 Each committed promotion leaves exactly one ordinary booking for the booking identity"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "side effects such as credit, payment, or booking confirmation. Existing billing/refund and cancellation terms take precedence.",
+   "missing": "The charge point relative to booking confirmation is unspecified, as is whether a failed payment holds the seat, ends the entry, or leaves a confirmed booking to reconcile."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "The largest supported queue, any admission cap and the runtime limits behind it are unresolved. If an evidenced cap applies, the next join is refused with a clear reason and leaves existing entries and bookings intact.",
+   "missing": "Whether a cap applies and, if so, the maximum number of active entries remain open."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-3.c",
+   "quote": "first reaches its ordinary booking close or start, whichever comes first. Entries end without bookings and no longer carry priority."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-3.a, R-3.b",
+   "quote": "authorized capacity increase that frees capacity on an open, enabled occurrence triggers allocation \u2026 If a capacity reduction wins, it removes that availability for further allocations. Existing rules govern already confirmed bookings after a reduction"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-3.c",
+   "quote": "End active entries when the occurrence is cancelled \u2026 Entries end without bookings and no longer carry priority. Explain closure on any still-accessible occurrence."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Its logical entry data consists of occurrence ID, booking identity, a distinct entry identity, committed order, status, the recorded opt-in and applicable booking terms reference, and when applicable the end reason or confirmed booking reference.",
+   "missing": "The record retains committed order and state. It does not specify a join timestamp or say whether current rank is stored separately or calculated from the remaining entries."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-3.c, R-5",
+   "quote": "first reaches its ordinary booking close or start, whichever comes first. Entries end without bookings \u2026 Retain terminal information only for the applicable policy window and then remove it.",
+   "missing": "The duration of the terminal retention window remains unspecified."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "No member sees other entries or a queue roster. \u2026 No policy tiers, waitlist position estimates, or extra identity fields are introduced.",
+   "missing": "Estimates are excluded, but the text does not say whether a member can see their own exact position."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-5, R-6.c",
+   "quote": "Only authorized personnel with a need to reconcile can inspect restricted record details. \u2026 There is no staff queue editing, manual promotion, or bulk cancellation of entries by feature control.",
+   "missing": "Manual promotion and removal through queue editing are ruled out. Restricted reconciliation access does not specify a staff roster view or a history showing which member was promoted at what time."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-6.a",
+   "quote": "Authorized operators can enable or pause waitlisting globally and pause or enable it for a single occurrence through an approved operations surface."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements, Performance and capacity (R-3, R-4)",
+   "quote": "Measure join, own-status, and seat-release-to-booking times at representative independent and hot-class workloads.",
+   "missing": "The measurement has no maximum allowed elapsed time from cancellation to confirmed promotion."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1, R-1.a",
+   "quote": "Preserve existing occurrence visibility, ordinary booking for available seats, booking restrictions, and existing reservations. \u2026 With an unallocated seat and no waiting priority, the surface offers ordinary booking."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-6.a, R-1.a, R-1",
+   "quote": "Rollout starts paused globally until authorized activation. \u2026 On a visible, open, full occurrence with waitlisting enabled, a member eligible except for capacity can choose **Join waitlist**. \u2026 The first admissible join is allowed on an empty queue."
+  }
+ ]
+}

@@ -1,0 +1,147 @@
+{
+ "slot": "csv-user-import__P-shiploop-spec__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-4 (R-3, State and recovery)",
+   "quote": "Rejection rolls back the full batch."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-3 (R-4, State and recovery)",
+   "quote": "The outcome view shows counts, logical record numbers and safe reasons."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-4 (R-3.b)",
+   "quote": "A duplicate within the file or an identity already reserved by ordinary account policy rejects the entire batch."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-3 (R-2, Input contract default)",
+   "quote": "Reject unsupported columns, including credentials or privileged role inputs.",
+   "missing": "Privileged role inputs are rejected. The spec gives no rule comparing any assignable role or the access granted by default with the importer's own authority."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-2 (R-1.a)",
+   "quote": "A signed-in admin with current user-create authority for the managed scope can open and submit the import. \u2026 An unsigned caller or signed-in non-admin cannot use the action"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-3 (R-2.b and R-2 input contract)",
+   "quote": "missing, repeated or unsupported headers, wrong field count, invalid required value or an exceeded limit reject the batch. \u2026 a required header \u2026 Default to a required `email` column when ordinary creation supports it as sufficient input."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-1, C-3 (R-2 input contract)",
+   "quote": "UTF-8 comma-delimited file with optional leading UTF-8 BOM \u2026 LF or CRLF record endings \u2026 Double quotes delimit fields and a doubled quote escapes a quote. A quoted record spanning lines has one logical record number."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-4",
+   "quote": "fail pair.csv after preparing the first record but before final commit. R-3.a yields no users and no lifecycle effects"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C-3 (R-2.b)",
+   "quote": "A file exactly at each published maximum is eligible, and the next byte or logical record is rejected when the other limit is satisfied.",
+   "missing": "The maximum byte size and logical record count have no specified values."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-1, C-3 (R-2 input contract and R-2.b)",
+   "quote": "A header with zero data records is rejected. A single permitted record is accepted. \u2026 a required header"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-4",
+   "quote": "A further submission of pair.csv reports conflict and creates zero, and the exact original two records remain."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-6 (R-4.a)",
+   "quote": "Show processing while the operation is outstanding and show the created count only on authoritative commit confirmation for the active attempt.",
+   "missing": "The active view reports completion. The spec excludes a job continuation promise and supplies no background processing or later completion notice for large files."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-4 (R-3, Open gap)",
+   "quote": "activation and invitation behavior, any effects of ordinary creation and their recovery rules",
+   "missing": "Whether a committed import sends invitations, and how many may be sent in a given interval, are unresolved."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-1 (R-3, Open gap)",
+   "quote": "Confirm the identity key and uniqueness scope, normalization, default non-privileged access, activation and invitation behavior",
+   "missing": "The initial account status, whether the account starts with a password, and the user's first sign-in steps are unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-3 (R-2, State and recovery)",
+   "quote": "The import authority reads the upload only for the active attempt within the authorized scope. Release raw bytes and parsed input at the terminal outcome or attempt expiry \u2026 Keep them out of ordinary history, logs and other clients."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-6 (R-4, State and recovery)",
+   "quote": "Relevant metadata is limited to safe correlation, outcome, safe reason category, timing and any permitted aggregate count.",
+   "missing": "An operator gets timing and outcome metadata, but no required audit record ties an identified importer to the specific batch or users created."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-5 (R-4.b and R-4, State and recovery)",
+   "quote": "can retry with source rows known to be absent. \u2026 No new import history, job continuation promise, cancellation after submit or external notification channel is in scope.",
+   "missing": "Cancellation is explicitly unavailable. Retry uses a fresh submission after checking which users exist. No operation selects and retries failed rows from a rejection result."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-6 (R-4.a)",
+   "quote": "Show processing while the operation is outstanding and show the created count only on authoritative commit confirmation for the active attempt.",
+   "missing": "There is no maximum completion time for a file at the limit. The pending indicator also gives no measure of how much work has finished."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-4",
+   "quote": "A further submission of pair.csv reports conflict and creates zero, and the exact original two records remain. \u2026 Eve has ordinary North user-create authority and creates bo@example.test there through the ordinary action."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "C-3, C-6 (Non-functional requirements, Capacity)",
+   "quote": "Publish the supported file, row and applicable field limits before submission and reject out-of-bound uploads without a user write or indefinite processing.",
+   "missing": "The field length caps are unresolved, and the spec gives no rule for preventing a value in spreadsheet-readable results from executing as a formula."
+  }
+ ]
+}

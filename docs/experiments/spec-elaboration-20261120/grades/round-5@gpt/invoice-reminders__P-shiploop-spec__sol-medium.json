@@ -1,0 +1,147 @@
+{
+ "slot": "invoice-reminders__P-shiploop-spec__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "C1\u2013C2, C4 (Schedule and content walkthrough)",
+   "quote": "Zero submissions before and at cutoff. Each positive run yields one accepted submission and one fixture email",
+   "missing": "The spec allows one reminder on the first eligible evaluation after cutoff. It leaves the evaluation interval and target delay from the due date open."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C2 (R-1 proposed rules)",
+   "quote": "Partially paid invoices with a remaining balance qualify. Draft, paid, void, canceled, deleted and collection-held invoices are ineligible.",
+   "missing": "A builder still needs the rules for credits, disputes and payment plans, including whether each suspends reminders while a positive balance remains."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C4",
+   "quote": "It identifies the sender and invoice, states the current outstanding amount and currency, and directs the recipient to the existing authorized invoice or payment route when available."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C3",
+   "quote": "A payment, hold, deletion, disablement, contact revocation or other disqualifying change effective by the final authority check suppresses the submission.",
+   "missing": "The spec leaves open which customer do-not-contact, pause or unsubscribe settings revoke permission for billing reminders and whether marketing opt-outs exempt billing notices."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C5",
+   "quote": "One confirmed acceptance consumes the reminder for that scoped invoice. Concurrent evaluations, retries after acceptance, restart and later invoice edits produce no additional accepted submission."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C3",
+   "quote": "Immediately before each submission, including a retry, use current invoice facts, contact and enabled scope. A qualifying invoice uses the current contact and balance."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C6",
+   "quote": "Confirmed permanent failure or exhausted retry allowance ends automatic attempts and exposes an actionable outcome.",
+   "missing": "The retry interval and attempt limit during a provider outage remain open. The spec also leaves undecided who is notified when repeated failures exhaust retries."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C1, C6 (R-1 and R-3 timing and capacity criterion)",
+   "quote": "At the selected runtime and authorized provider quota, excess work stays recoverable and visible to operators.",
+   "missing": "The provider's sending limit and the rate or batch schedule for releasing queued reminders within that limit remain open."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C2",
+   "quote": "An issued, collectible invoice with a positive residual balance becomes eligible strictly after its cutoff, including an invoice already overdue in an approved cohort.",
+   "missing": "The spec allows already-overdue invoices into the rollout cohort but gives no rule to stagger their first reminders when the cohort is enabled."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "C2 (R-1 open gaps)",
+   "quote": "The billing owner must confirm cutoff semantics for date-only invoices and time zones",
+   "missing": "The customer's local time zone, permissible sending hours and treatment of weekends and holidays are undecided."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C4",
+   "quote": "states the current outstanding amount and currency",
+   "missing": "The spec leaves recipient-facing formatting open, including currency code or symbol, decimal precision and locale conventions."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C4, C5, C8",
+   "quote": "If there is no valid authorized contact, submit nothing, record the reason and allow future evaluation after correction. \u2026 A delivery failure after acceptance does not rearm the invoice."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C4 (R-2 open gaps)",
+   "quote": "The billing owner must confirm channel, sender, contact selection for multiple contacts",
+   "missing": "A builder still needs the rule for choosing which authorized contacts receive the email when several exist."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C8\u2013C9 (R-3 lifecycle and service boundary)",
+   "quote": "Durable reminder state may retain scoped identifiers, attempt references, status, reason codes and timestamps needed for recovery and read-back.",
+   "missing": "The spec provides operator access to outcomes but leaves open whether the invoice itself displays a dated entry identifying the reminder that was sent."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C4",
+   "quote": "It identifies the sender and invoice, states the current outstanding amount and currency, and directs the recipient to the existing authorized invoice or payment route when available.",
+   "missing": "Whether the email includes the due date and whether or when its link expires are unspecified."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C1, C3 (Source and scope)",
+   "quote": "Authorized account configuration determines the enabled scope. \u2026 No new identity, shared workspace, settings page, or manual send control is required.",
+   "missing": "Scope enablement has an authorized owner. The spec leaves open who can change the cadence or manually send or stop an individual reminder."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C3 (operability and compatibility criterion)",
+   "quote": "Disabling the approved scope stops new attempts at the next final check, including during recovery.",
+   "missing": "The spec leaves open whether global and individual customer switches are available, whether an operator can preview or dry-run sends, and whether a manual resend is available."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C8",
+   "quote": "Authorized billing operators can distinguish ineligible or suppressed, pending, retryable, unresolved, accepted and ended without acceptance.",
+   "missing": "Operators can see pending work and failures, but the spec leaves open how they identify which reminder is due to go out next and when."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C6 (R-3 open gaps)",
+   "quote": "The billing and runtime owners must agree retry intervals, finite budget, maximum reminder age",
+   "missing": "The maximum permissible lateness has no value, and the spec supplies no aggregate sending cap per run or time window."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C1\u2013C3 (R-1 state and service boundary), operability and compatibility criterion",
+   "quote": "Before and after evaluation the invoice is unmodified. \u2026 Original invoice and payment workflows retain their authority and behavior."
+  }
+ ]
+}

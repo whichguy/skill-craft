@@ -1,0 +1,40 @@
+THE DECIDING COMPARISONS UNDER BOTH JUDGES (covered of 89): Opus 5.5 high, the registered judge, then gpt-6.2-astra high
+
+sonnet-high   (A and D: round 4)
+   A  single pass (ratchet text)      Opus 40   astra 33   (-7)
+   P  released stage, first draw      Opus 58   astra 56   (-2)
+   P  released stage, second draw     Opus 60   astra 53   (-7)
+   L  lenses, one pass                Opus 64   astra 55   (-9)
+   F  lenses, iterating               Opus 68   astra 55   (-13)
+   D  iterating, no guard             Opus 71   astra 59   (-12)
+   Q  the draft inside the stage      Opus 68   astra 62   (-6)
+
+sol-medium   (A and D: round 4c, the clean draw)
+   A  single pass (ratchet text)      Opus 29   astra 24   (-5)
+   P  released stage, first draw      Opus 43   astra 31   (-12)
+   P  released stage, second draw     Opus 43   astra 31   (-12)
+   L  lenses, one pass                Opus 62   astra 45   (-17)
+   F  lenses, iterating               Opus 60   astra 49   (-11)
+   D  iterating, no guard             Opus 64   astra 55   (-9)
+   Q  the draft inside the stage      Opus 48   astra 42   (-6)
+
+comparison                                             Sonnet: Opus / astra    Sol: Opus / astra
+D over A (iterating lenses over the ratchet single pass)     +31.0 /  +26.0        +35.0 /  +31.0
+L over A (one-pass lenses over the ratchet single pass)     +24.0 /  +22.0        +33.0 /  +21.0
+F over L (iterating over one pass; R9)                    +4.0 /   +0.0         -2.0 /   +4.0
+L over P, first draw (R14)                                +6.0 /   -1.0        +19.0 /  +14.0
+Q over the mean of P's two draws (R15)                    +9.0 /   +7.5         +5.0 /  +11.0
+Q over P in the same round                                +8.0 /   +9.0         +5.0 /  +11.0
+Q over L                                                  +4.0 /   +7.0        -14.0 /   -3.0
+
+TOUCHED (covered or partial) under each judge:
+   sonnet-high  A 78/82   P5 87/85   P6 87/80   L 86/84   Q 89/87
+   sol-medium   A 71/74   P5 87/83   P6 83/81   L 89/86   Q 87/86
+
+AGREEMENT of astra with Opus, nuance by nuance:
+   round-5   per specification: mean |diff| 2.92, largest 10, sum of diffs -64
+   round-5   nuance by nuance (534): same state 82%, same covered-or-not 84%
+   round-6   per specification: mean |diff| 2.06, largest 6, sum of diffs -31
+   round-6   nuance by nuance (356): same state 82%, same covered-or-not 85%
+   round-4c  per specification: mean |diff| 2.25, largest 5, sum of diffs -14
+   round-4c  nuance by nuance (178): same state 85%, same covered-or-not 87%

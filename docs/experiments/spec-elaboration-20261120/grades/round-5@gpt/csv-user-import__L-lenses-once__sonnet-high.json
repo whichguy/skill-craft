@@ -1,0 +1,146 @@
+{
+ "slot": "csv-user-import__L-lenses-once__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-34",
+   "quote": "One invalid row means no user is created"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "U-2",
+   "quote": "The page shows that nothing was created and lists every problem with its row number, column and reason."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-30, C-31",
+   "quote": "A row whose email already belongs to an existing user is invalid \u2026 A repeated email within the file is invalid on its second and later occurrences"
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-27",
+   "quote": "A role value, compared without regard to case (`Member`, `ADMIN`), that is neither `member` nor `admin` makes the row invalid",
+   "missing": "Whether each requested role must also fall within the importing admin\u2019s own authority to grant access."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-2",
+   "quote": "A signed-in user whose role is not `admin` who requests the import page or sends an upload receives HTTP status 403",
+   "missing": "Whether permission to create one user is independent of permission to import users in bulk."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "U-3, C-15, C-18",
+   "quote": "a file with no header row or missing required columns \u2026 If it has no `email` column, or no `name` column, the file is refused \u2026 Columns other than `email`, `name` and `role` are ignored and reported"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-11, C-13",
+   "quote": "The file is read as UTF-8, with an optional byte-order mark ignored \u2026 A field wrapped in double quotes may contain commas, line breaks, and doubled double quotes \u2026 Records end with LF, CRLF or CR."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-42, C-37",
+   "quote": "Invitations are sent after the users are saved \u2026 the set of users is as before, no invitation is sent"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-9",
+   "quote": "A file of 1,048,577 bytes or more is refused with a message that states the limit \"1 MiB\"; for an API caller the status is 413."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-10, C-19, C-35",
+   "quote": "An empty file is refused \u2026 A file with a header but no data rows is refused \u2026 A fully valid file creates exactly one user per row"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "U-4",
+   "quote": "re-uploads a file that already succeeded \u2026 Each email ends up with exactly one account; the upload that cannot create an account for some email is refused as a whole with the reason \"already exists\" for that row."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-53",
+   "quote": "shows the success result of C-36 in no more than 30 seconds \u2026 the processing runs inside a single web request",
+   "missing": "The admin sees completion in the upload response. A background job and a way to learn its outcome after that request ends are unspecified."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-41, C-42",
+   "quote": "Each new user receives exactly one invitation email \u2026 The success response of C-36 is shown without waiting for the emails to be delivered.",
+   "missing": "Whether all invitations are dispatched at once or at a defined rate, and what that rate is."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-35, C-40, U-7",
+   "quote": "in the active state \u2026 No password is taken from the file, and new users cannot sign in until they set one \u2026 opens the link in it, chooses a password, and is then able to sign in"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-48",
+   "quote": "After the response, the uploaded file is not available anywhere in the application (not retrievable by any URL, not stored in the import record)."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "U-8",
+   "quote": "sees each attempt with who ran it, when, the file name and the outcome, opens one, and sees the users it created or the errors it produced."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "U-2",
+   "quote": "The page shows that nothing was created and lists every problem with its row number, column and reason. The admin corrects the file and uploads it again.",
+   "missing": "Whether an admin can cancel an in-progress import or select only failed rows for retry."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-53",
+   "quote": "Uploading a valid file of 1,000 rows (each with email, name and role, at most 1 MiB) shows the success result of C-36 in no more than 30 seconds",
+   "missing": "What progress the admin sees between submission and the final result."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "C-39",
+   "quote": "No existing user is updated, deactivated or deleted by an import.",
+   "missing": "Whether the existing workflow for creating a single user by hand must retain its current behavior."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "C-26",
+   "quote": "A row is invalid with an error on column `name` if the name, after trimming, is empty or longer than 200 characters. \u2026 including apostrophes, hyphens, non-ASCII letters and a leading `=`.",
+   "missing": "How to keep a formula-like value literal if an import result is opened in a spreadsheet."
+  }
+ ]
+}

@@ -1,0 +1,19 @@
+ROUND round-4c: agreement of tagged verdict sets with the registered one (8 specifications)
+
+@gpt  (gpt-6.2-astra high), 8 specifications in both sets
+  specification                                            registered     @gpt  diff
+  csv-user-import__A-single__sol-medium                             8       10    +2
+  csv-user-import__D-enumerated-only__sol-medium                   17       15    -2
+  grokbot-salesforce__A-single__sol-medium                          8        3    -5
+  grokbot-salesforce__D-enumerated-only__sol-medium                17       12    -5
+  gym-waitlist__A-single__sol-medium                                9        7    -2
+  gym-waitlist__D-enumerated-only__sol-medium                      16       15    -1
+  invoice-reminders__A-single__sol-medium                           4        4    +0
+  invoice-reminders__D-enumerated-only__sol-medium                 14       13    -1
+  per specification: mean |diff| 2.25, largest 5, sum of diffs -14
+  nuance by nuance (178): same state 85%, same covered-or-not 87%
+  changes: covered -> partial x16, partial -> covered x5, covered -> absent x3, absent -> partial x3
+  pooled by arm and driver, registered -> @gpt:
+    A-single           sol-medium    29 ->  24  (-5)
+    D-enumerated-only  sol-medium    64 ->  55  (-9)
+

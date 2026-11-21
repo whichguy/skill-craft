@@ -1,0 +1,147 @@
+{
+ "slot": "csv-user-import__F-guarded__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-40",
+   "quote": "A file with one invalid record alongside valid records, or a write failure confirmed before the batch took effect, creates zero accounts attributable to that upload."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-41, C-43",
+   "quote": "A row error identifies the record by its 1-based logical record number with the header as record 1. \u2026 If several checks fail, the result identifies at least one blocking input error.",
+   "missing": "The builder can stop after the first error. Reporting every failed row with its reason is optional."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-36, C-37",
+   "quote": "Two rows resolving to the same uniqueness key cause a file conflict. \u2026 When a submitted identity conflicts with an account reserved under the destination's ordinary uniqueness policy, the affected record gets a conflict error."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-29, C-76",
+   "quote": "In the default schema `name`, `role`, `password`, `id`, `tenant`, `status` and `permissions` are unsupported \u2026 CSV submission itself cannot grant elevated privileges.",
+   "missing": "The default schema rejects role assignments. The specification does not say how to handle ordinary baseline privileges that exceed the importing admin's own access."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-9, C-12",
+   "quote": "Import cannot be used without administrator authority to create users in the destination \u2026 A signed-out caller, a signed-in non-admin or an admin without create authority in that destination cannot open it."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-25, C-26, C-29, C-109",
+   "quote": "The first nonempty CSV record is the header \u2026 The default import schema requires the email header \u2026 The import refuses unsupported headers \u2026 omitting any published required header yields a header error"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-19, C-21, C-22",
+   "quote": "valid UTF-8 with no byte-order mark or with one UTF-8 byte-order mark at the beginning \u2026 The import accepts LF and CRLF as record endings \u2026 A double-quoted CSV field can contain separators, line breaks or literal double quotes"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-79",
+   "quote": "Submitting a confirmed rejected or failed batch causes zero invitations or onboarding messages attributable to that batch."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-6",
+   "quote": "A file of 1,048,577 bytes is refused with a file-size error. A file of exactly 1,048,576 bytes passes the file-size check."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-4, C-5",
+   "quote": "An otherwise valid file with exactly one new user record creates one user. \u2026 A zero-byte file or a valid header with zero user records creates zero users and yields an input error."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-51",
+   "quote": "If the identities in the original file are still reserved, resubmitting it yields conflicts and creates zero accounts. If the identities are later freed through ordinary lifecycle rules, submitting again evaluates the file against the directory at that time."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-7, C-64",
+   "quote": "After a confirmed success, the submitting admin sees a success result for that upload. \u2026 any requirement to continue work outside the request are unconfirmed.",
+   "missing": "The builder must decide whether large uploads run in the background and how an admin who leaves the flow learns that processing finished."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-78",
+   "quote": "If ordinary creation sends a notification for a corresponding new user, an imported user gets that same notification under the same conditions after the account exists.",
+   "missing": "The specification gives no bulk sending schedule or rate limit for a batch of invitations."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-75, C-77",
+   "quote": "An imported user starts in the state ordinary creation assigns to the corresponding user. \u2026 An imported user's credential setup and sign-in eligibility follow the ordinary new-user policy.",
+   "missing": "The initial state, whether a password exists at creation, and the steps for first sign-in depend on an unspecified ordinary policy."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-88, C-90",
+   "quote": "Import results are private to the submitting admin while authorized \u2026 After success or confirmed failure, returning to the application offers no way to retrieve the uploaded file.",
+   "missing": "The builder must decide where the file is stored and when its contents are deleted."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-93",
+   "quote": "If ordinary account creation records an audit event, each account created by import is observable through the same audit policy with the submitting admin attributed as the initiator where ordinary events record one.",
+   "missing": "A timestamp and a way to associate the created accounts with a particular import are unspecified. Even recording the initiator depends on the ordinary audit policy."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-57, C-58, C-40",
+   "quote": "the requested upload does not require a cancellation operation \u2026 An authorized admin can submit again after a rejected, failed or indeterminate result. \u2026 A failed batch creates zero accounts",
+   "missing": "Cancellation is optional and retry is defined for a new submission. The specification gives no action for selecting and retrying just the rows with errors."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-52, C-64",
+   "quote": "While the result is pending and the admin stays in the flow, the import shows that the submission is still being processed. \u2026 The product promises no separate completion-time figure.",
+   "missing": "There is no completion-time bound for a maximum-size upload. The pending indicator need not show how much work has finished."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-70, C-71, C-72, C-73",
+   "quote": "Ordinary single-user creation keeps its existing input contract \u2026 Ordinary single-user creation keeps its existing access policy \u2026 Ordinary single-user creation keeps its existing result behavior \u2026 Existing account values are unaffected by an import"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-91, C-34",
+   "quote": "An admin submitting a filename, header or value containing markup or formula-like text sees it rejected under the applicable rule or handled as inert text. \u2026 at most 254 ASCII characters total after trimming surrounding ASCII spaces and tabs"
+  }
+ ]
+}
