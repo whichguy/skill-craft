@@ -1,0 +1,8 @@
+FIRST SCREEN {"button":["Continue as Maya","Continue as Theo","Continue as Ana"],"textbox":[],"region":[],"navigation":[],"alert":[],"status":[],"heading":["Choose a workspace"],"dialog":[]}
+Continue as Maya buttons: 1
+AFTER CONTINUE {"button":["Switch person","New bot","Assistant","Rename bot","New conversation","Untitled conversation","Return to message ↗","Count visible orders ↗","Compare suppliers ↗","Send","Return to message ↗","Save instruction","Save task"],"textbox":["Write a message…","","","",""],"region":["Conversation","Since you were away You’re caught up on background","Tasks Background work from this conversation will ","Saved instructions Instruction name Instruction te","Saved tasks Task name Task request Save task","Memory This bot has no saved facts. Try “remember "],"navigation":["Bots","Conversations"],"alert":[],"status":[],"heading":["BOTS","CONVERSATIONS","Untitled conversation","What are you working on?","Workspace","Since you were away","Tasks","Saved instructions","Saved tasks","Memory"],"dialog":[]}
+Message textbox count 1 visible true
+body: ✳ Stillroom Maya Switch person BOTS + Assistant Rename bot CONVERSATIONS + Untitled conversation Return to message ↗ Assistant Untitled conversation Local workspace ✳ What are you working on? Ask about your records, pick up a discussion, or give a task time to run in the background. Count visible orders ↗ Compare suppliers ↗ Message ↑ Enter to send · Shift+Enter for a new line Local stand-in Workspace Return to message ↗ Since you were away You’re caught up on background work. Tasks Background work from this conversation will appear here. Saved instructions Instruction name Instruction text Sa
+errors: []
+server log: Local chat listening on http://127.0.0.1:53362
+

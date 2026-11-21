@@ -21,6 +21,12 @@
  *      for, before it writes. The first version wrote within milliseconds of the click.
  *   5. `send` pauses 300 ms before it writes, the pause `openBot` always had: a person does not send a message
  *      within milliseconds of their last click, and the request states no such speed.
+ * Calibration on the Ratchet arm's first build, the same evening, before the ShipLoop arm's result had been read:
+ *   6. `signIn` waits until the first screen has drawn its Continue as button, or the Message box, before it decides
+ *      whether to click. The first version looked the instant the page had loaded; a build that draws the people
+ *      after fetching them was found without the button and never signed in.
+ *   7. After a restart, the check that Setup is absent waits half a second for the first screen to draw before it
+ *      looks (the same instant-of-load fault, here in the lenient direction).
  */
 'use strict';
 const fs = require('node:fs');
@@ -108,8 +114,10 @@ async function newPage(width = 1440, height = 1000) {
 async function signIn(page, base, who) {
   await page.goto(base + '/', { waitUntil: 'load' });
   const enter = button(page, `Continue as ${who}`);
-  if (await enter.count()) await enter.click();
-  await textbox(page, 'Message').waitFor({ state: 'visible' });
+  const box = textbox(page, 'Message');
+  await enter.or(box).first().waitFor({ state: 'visible' }); // the first screen may be drawn after the page has loaded (calibration 6)
+  if (await enter.isVisible()) await enter.click();
+  await box.waitFor({ state: 'visible' });
 }
 async function send(page, text) {
   await page.waitForTimeout(300); // a person's pace after their last click (calibration 5)
@@ -187,8 +195,10 @@ async function setupMode() {
   await attempt('the-saved-token-survives-a-restart', async () => {
     const again = await newPage();
     await again.goto(server.base + '/', { waitUntil: 'load' });
+    await again.waitForTimeout(500); // let the first screen draw before looking (calibration 7)
     expect(await region(again, 'Setup').count() === 0, 'Setup is shown again after a restart although a token was saved');
     await signIn(again, server.base, 'Maya');
+    await again.waitForTimeout(500);
     expect(await region(again, 'Setup').count() === 0, 'Setup is shown after continuing as a person although a token was saved'); // calibration 3
     await ask(again, 'Assistant', 'ping', 'You said: "ping"');
     await again.context().close();

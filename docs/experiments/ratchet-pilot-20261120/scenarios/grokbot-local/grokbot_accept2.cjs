@@ -14,6 +14,9 @@
  * receives observation.json and the server logs, FIXTURE is the folder every run started from (default: the one
  * beside this file). Each mode runs on a free port with an empty data folder of its own; checks in one mode share
  * that mode's state. A message is written at a person's pace, as in the first yardstick after its calibration.
+ *
+ * Calibration, 2026-11-20: `signIn` waits until the first screen has drawn (the first yardstick's correction 6),
+ * found on the Ratchet arm's first build. No check of this file was changed.
  */
 'use strict';
 const crypto = require('node:crypto');
@@ -119,8 +122,10 @@ async function newPage(width = 1440, height = 1000, context) {
 async function signIn(page, base, who) {
   await page.goto(base + '/', { waitUntil: 'load' });
   const enter = button(page, `Continue as ${who}`);
-  if (await enter.count()) await enter.click();
-  await textbox(page, 'Message').waitFor({ state: 'visible' });
+  const box = textbox(page, 'Message');
+  await enter.or(box).first().waitFor({ state: 'visible' }); // the first screen may be drawn after the page has loaded (calibration 6)
+  if (await enter.isVisible()) await enter.click();
+  await box.waitFor({ state: 'visible' });
 }
 async function switchTo(page, who) {
   await button(page, 'Switch person').click();

@@ -774,6 +774,36 @@ What follows from it:
 
 Evidence: `evidence/grokbot-local/` (the bare run's record, both gradings, the two probes and their output).
 
+### A second round of calibration, found on the Ratchet arm's first build (2026-11-20 23:05; before the ShipLoop arm's grading had been read)
+
+The Ratchet arm reached its first build 37.5 minutes into its run (spec 10.1, plan 6.7, build 20.7). Graded with
+the yardstick as section 14 left it, that build scored **6 of 49**: the five setup checks and its own `npm test`
+pass, and all 43 others fail from the first step, `continue-as-a-person`, a time-out waiting for the Message box.
+
+Driven by hand at a person's pace (a probe: load the page, wait, press `Continue as Maya`), the same build shows its
+main screen with the Message box, both navigations and all six regions, and no page error. The build draws the three
+`Continue as` buttons after it has fetched the people. The yardstick's `signIn` asked whether the button existed at
+the instant the page had loaded, found none, did not click, and waited for a Message box that could not come. The
+bare build happened to draw the buttons sooner.
+
+Corrections 6 and 7, in the headers of both files:
+
+6. `signIn` waits until the first screen has drawn the `Continue as` button, or the Message box, before it decides
+   whether to click.
+7. After a restart, the check that Setup is absent waits half a second before it looks (the same instant-of-load
+   fault, in the direction that lets a build pass).
+
+No check of the second yardstick changed; it uses the same `signIn`.
+
+Under the rule every arm is graded again with this final version: the bare build (49 of 49 and 28 of 28 before it),
+the Ratchet first build, and the ShipLoop arm, whose first grading already runs on it. The earlier gradings are kept
+beside the new ones (`hidden-before-calibration-6.json`).
+
+What this costs the earlier claims: section 14 said one version would grade every arm after calibration, and it
+took a second build to expose a fault of the same kind (the driver outrunning the page). The yardstick has now been
+corrected three times for pace. That is the limit section 12 named, a yardstick calibrated on the arms it measures,
+showing up in practice.
+
 ## 15. Amendment 5, 2026-11-20 22:50: a second, harder yardstick for Grokbot-local (registered before it has graded any build)
 
 Why. Section 14: the first yardstick is passed whole by one unstructured session, so it can show a loss for the
