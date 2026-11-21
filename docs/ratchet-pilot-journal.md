@@ -1888,3 +1888,41 @@ gradings of rung 2 and of the two larger cases ran beside live runs; the two las
 Evidence: `evidence/reworded-enrichment/` (`p1R-ticket-assignment/`, `p1R-ticket-due-times/` with each run's record,
 `strength.json`, plan, tests report, manifest and grading log; `failing-by-source-log.txt` and `.json` for the three
 cells against the lens text's; `summary.json`).
+
+### Amendment 10, 2026-11-21 08:02: the small step again on the other runner, Sonnet (registered before any run of it)
+
+Owner, 08:00, to "What next: the 5-minute Sonnet check first, or merge and push this branch?": "Sonnet check first".
+
+**Why.** Every stage of amendment 8 ran on one model family. The first limit named in the result above is that
+nothing shows the reworded text does the same to another. The owner's other named runner is Sonnet at high
+(section 1). The cheapest run that can say is rung 1 again: the spec stage alone.
+
+**Cells**, each `--host claude --model claude-sonnet-5-5 --effort high --stop-after spec`, one new repository a
+run, a cap of 3 dollars a session so a session that runs away ends (`--max-budget-usd 3`):
+
+- Wave 1, the check: the reworded text, `s1-orders`, `s1-ticket-assignment`, `s1-due-times-1`, `-2`, `-3`.
+- Wave 2, the base on the same model: the lens text, `s1L-orders`, `s1L-ticket-assignment`, `s1L-due-times-1`,
+  `-2`, `-3`. No Sonnet specification exists with either earlier text, and "stops deciding" needs what Sonnet
+  decides when it is told to. It runs when wave 1 has ended, unless wave 1 already reads "does not hold".
+
+**Readings**, counted by `by_source.py specs` at each run's `spec` commit:
+
+- **R11.1, the mechanism.** *Holds* if each of the five reworded specifications writes at most 2 choice clauses and
+  at least one `Open:` line (Sol: none and 7 to 10). *Does not hold* if any writes 12 or more choices (the fewest
+  any Sol specification wrote with the other two texts). Otherwise partly.
+- **R11.2, the due-times start.** Of the three, how many require, not under an `Open:` line, that an enabled start
+  refuse a data file without due times (Sol with this text: none of three; with the other texts: four of five).
+- **R11.3, the base.** The same counts and the same reading for the lens text on Sonnet, beside them.
+- Reported: clauses and use cases, added refusals, minutes, and the cost the host reports.
+
+**What it cannot show.** Anything about a built product or about tests on Sonnet: that is a later rung, with priced
+sessions, and it is put to the owner with the result, not run. One specification of two of the cases.
+
+**Prediction.** With the reworded text Sonnet writes 0 to 2 choices and several open lines in each, and at most one
+of its three due-times specifications requires the refusal. With the lens text it writes choices, but I do not
+know how many: Sonnet and Sol resolved the same instruction differently in the other session's rounds, so its base
+may be well under Sol's 14 to 25.
+
+**Limits known before the runs.** A Claude session started by the pilot runs in the real home, so it is shown the
+account's own instructions, as Codex is shown its skills (section 19); the same in both waves. Minutes are not
+compared with Sol's.
