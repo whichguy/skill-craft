@@ -1180,3 +1180,14 @@ and two evidence lines of this journal name them. They are now saved as text fil
 `grokbot-local/bare/run-and-grading-log.txt`, `grokbot-local/final-grading-log.txt`,
 `grokbot-local/ratchet/end-grading-log.txt` and `grokbot-local/seeded-faults/run-log.txt`. Every number they hold is
 also in a committed JSON file beside them.
+
+**If this is continued: the arm nobody has run.** The owner's first question was whether ShipLoop can be contracted
+to one build pass with the stages' duties written into the prompt. This pilot ran a bare session (no duties) and a
+loop (duties named in the build prompt, plus enrichment, a plan, separate tests and closing looks). F22 says a duty
+named in a prompt did not do what a script-run check did. The comparison that would answer the question has three
+arms on the same cases, model and effort: a bare session; one session with the duties stated as outcomes and their
+script-run checks kept (syntax and lint, a test for each stated requirement, the suite green, the session's own
+tests checked against seeded faults in the lines it wrote, a short document, clean commits) and nothing else; and
+ShipLoop. Readings: held-out checks, the share of 60 seeded faults the delivery's own tests catch, minutes and
+output tokens. The harness for it is here: `ratchet.py run --bare` is the first arm, `grade.py`, `mutate.py` and
+`analyze.py` take the three readings, and section 17 is the yardstick lesson to keep. Not started; the owner's call.
