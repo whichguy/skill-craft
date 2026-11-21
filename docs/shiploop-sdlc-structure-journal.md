@@ -2078,6 +2078,107 @@ both judges.
 
 **Budget.** Six Codex deliveries, about 20 to 40 minutes each. No Grok spend without the owner's word.
 
+### Results: the Sol 6.2 high baseline (run 2026-11-20 after ff8e63fab93a592dda80fe600d088d16173d5c68)
+
+**R67. The runs** (`evidence/effort-sol-high.txt`). Six whole deliveries on Codex `gpt-6.2-sol` at high effort,
+from a clean checkout of the registration commit (ShipLoop 2.4.0, no overlay): `ticket-due-times` four at once,
+then `shared-expenses` two at once. The newest ShipLoop commit was checked before each batch and had not moved.
+Every run ended in one session with every harness verdict. Two of the six recorded `none` by themselves and are
+reported apart (R70).
+
+**R68. Time**, in minutes.
+
+| Request | Measure | Medium, arm S | High | Change |
+|---|---|---|---|---|
+| ticket-due-times | start to end | 20.8 (resumed), 16.5 | 19.7, 20.0, 25.3 | +16% |
+| | to the first step plan | 4.6, 3.7 | 4.5, 4.1, 4.6 | +5% |
+| | to `system-test` | 15.2, 13.0 | 16.1, 16.3, 20.7 | +26% |
+| shared-expenses | start to end | 10.9, 9.0 | 16.5 | +66% |
+| | to the first step plan | 2.9, 2.5 | 3.4 | +23% |
+| | to `system-test` | 8.4, 7.3 | 12.6 | +61% |
+
+The two runs apart, with planning reviews off by their own choice, took 20.4 minutes (`ticket-due-times`) and
+15.2 (`shared-expenses`). Round 7's medium runs with them off at the harness's request took 15.2 and 16.8, and
+14.2 and 12.9.
+
+**R69. Held-out checks and the planning choice.** `shared-expenses`: 6 of 6 in both high runs.
+`ticket-due-times`: 8 of 8, 8 of 8, 3 of 8 and 3 of 8. The two 3 of 8 are R62's choice again: a script an
+operator must run, and a service that will not start switched on before it ("ticket T-0001 has no due time; run
+scripts/backfill-due.js before ..."; "tickets are missing due times; run npm run backfill:due before setting
+DUE_TIMES=on"). That is 2 of 4 on high, 2 of 4 on medium (R62) and 4 of 8 on Sol 6.2 in all, against 0 of 4 on
+Sonnet (R62).
+
+**R70. Two runs switched planning reviews off by themselves.** `sol-high-due-2` and `sol-high-expenses-1`. Each
+one's first ShipLoop command was `workspace start --repo "$PWD" --planning-review none --improve-skill=<the
+plugin's Improve card>`, sent right after it read the skill card. Nothing in the request or the harness asked
+for it. The card's start section names the option twice, in a comment ("Optional (required with
+--planning-review none): select the exact actual Improve skill at initialization") and in its list of run
+options, and does not say that `stage` is the default or when `none` is meant. With R56's two that is four on
+record: 3 of the 7 Sol 6.2 whole deliveries that were free to choose, and one terra run.
+
+**R71. Reviews, plans and refusals.** One high run's reviews changed something (2 of 8); the other five's
+changed nothing. Medium arm S: 1 of 8 and 0 of 8 on `ticket-due-times`, 0 of 8 twice on `shared-expenses`. First
+step plans hold 3 to 7 criteria in one or two steps on high and 2 to 7 on medium. Refused commands: 2 to 8 a
+run on high, 3 to 8 on medium. One work item in every run and no work opened after the build.
+
+**R72. A known exposure in the Codex host**, found by the spec-elaboration session
+(6c9055f1672a61ec43fc9776ba7728486bf66546): Codex 0.171.0 lists the owner's own skills to every session, the
+harness's throwaway profile included. Every Sol run of this study ran that way, the medium base and this
+baseline alike. None of round 8's six runs names a file under those skill folders in its events; of 43 Sol run
+folders of rounds 4 to 7, one rehearsal does.
+
+### Registered readings: the Sol 6.2 high baseline
+
+- **Time.** `ticket-due-times`: high is slower, 16% above medium's mean from start to end. The medium cell holds
+  a resumed run; at the first entry into `system-test`, which no run of either cell reached interrupted, high is
+  26% slower. `shared-expenses`: high is slower (66%), on one high run against two, the other having recorded
+  `none`.
+- **Quality.** Held-out checks are the same on `shared-expenses` (6 of 6). On `ticket-due-times` they are 8, 8,
+  3 and 3 of 8 on high against 3, 8, 3 and 8 on medium.
+- **The planning choice**: 2 of 4 against 2 of 4. Counted; no reading was registered and none is taken.
+- **Apart**: two of six runs recorded `none` by themselves.
+
+### Findings
+
+- **F51 (interim; four against four).** Sol 6.2 high made the planning choice that fails the held-out probes as
+  often as medium did: half the time. Higher effort is not what moves it.
+- **F52 (firm in direction; two requests).** High costs minutes for the same held-out results: about a sixth
+  more on the planning-heavy request and two thirds more on the small one. On the ticket request planning takes
+  the same time at both efforts and the extra is in the build.
+- **F53 (firm; the cause is read in the runs).** Sol 6.2 switches planning reviews off by itself in 3 of the 7
+  deliveries that were free to. It does it in its first command, straight from the skill card, whose start
+  section names `--planning-review none` without saying which value is the default. Round 7's recommendation 3
+  asked whether a run may do this; this is how often it does and why.
+- **F54 (context only; ShipLoop 1.34.3).** On record Grok's four reviews before the build always changed
+  something and by a lot, its step reviews seldom and by little, its end-of-item review never (R66). Nothing on
+  today's ShipLoop says whether that still holds, or what a Grok delivery takes now (F41).
+
+### Recommendation (owner's decisions; nothing built)
+
+1. **Sol 6.2 high stays the owner's call; this is what it bought here.** No change in the planning choice, the
+   same held-out results, and 16 to 66% more minutes. If that failure was the reason for the switch, effort is
+   not the lever. The two that could be are unchanged from round 7: the spec stage saying how existing data gets
+   its new field (the spec-elaboration session's work), and what the yardstick accepts.
+2. **One sentence in the skill card would stop the unasked `none`** (F53): say in the start section that
+   `stage` is the default and that `none` is for a user who asks for it. It is smaller than round 7's pin and it
+   treats the cause. It is a ShipLoop text change: the owner's go-ahead, a change note, the packet tests and an
+   E2E round.
+3. **Grok on the latest ShipLoop: one delivery, on the owner's word.** By the records about four hours and $60
+   to $90. It gives the end-to-end time under the current step text and a full set of reviews to judge by the
+   registered design above.
+4. **The yardstick** (round 7, recommendation 6) now rests on eight Sol 6.2 deliveries: four take the
+   operator-step reading.
+5. **The Codex skills exposure** (R72) is with the owner through the spec-elaboration session. Every Sol result
+   of this study is in the exposed condition.
+
+### Limits
+
+- One to four runs a cell. `shared-expenses` on high has one run in its cell, because the other chose `none`.
+- The medium base ran hours earlier, with planning reviews pinned on, and one of its runs was resumed.
+- All Sol runs, base and baseline, ran with the owner's own skills listed to the session (R72).
+- The held-out checks of `ticket-due-times` count one planning choice five times (F46).
+- No Grok run on the latest ShipLoop exists yet; R65 and R66 are an older version and were not judged.
+
 ## Evidence (all rounds)
 
 | File | Holds |
@@ -2123,6 +2224,7 @@ both judges.
 | `evidence/late-work-census.txt`, `late_work_census.py` | round 7 update: how often a stage after the build opened a new work item, by driver, in 311 finished whole deliveries, and the minutes it added (F50) |
 | `evidence/next-round-cuts.txt`, `next_round_cuts.py` | round 7 update, exploratory: seconds by stage and after refused commands in this round's deliveries, criteria per work item, and the recorded Grok deliveries by part |
 | `evidence/grok-review-scan.txt`, `grok_review_scan.py` | round 8, context only: every recorded Grok 4.6 review's passes, seconds and whether it changed anything, on ShipLoop 1.34.3 to 2.3.0 (R66) |
+| `evidence/effort-sol-high.txt`, `effort_report.py`, `runs-effort/census.json` | round 8: the six Sol 6.2 high deliveries beside round 7's Sol 6.2 medium runs, the registered readings, and the file they are computed from (R67 to R71) |
 | `removed_review_diffs.py`, `judge-reviews/packet-*.txt`, `judge-reviews/key.json` | round 7: each review of a removed stage that changed anything, as the judges saw it, and which run and driver each is |
 | `judge-reviews/out-A.jsonl`, `judge-reviews/out-B.jsonl`, `evidence/removed-review-judge-brief.txt` | round 7: each judge's label, scope and reason per packet, and the brief |
 | `evidence/removed-review-judged.txt`, `removed_review_score.py` | round 7: the judges' agreement and the substantive share by driver and reviewed stage (R64) |
@@ -2184,7 +2286,11 @@ runs' traces and reproduces `evidence/late-work-census.txt`; `next_round_cuts.py
 
 Round 8: `python3 -I grok_review_scan.py grok-4.6 <run roots>` reads the runs' pass logs and reproduces
 `evidence/grok-review-scan.txt`. `removed_review_diffs.py OUT <run folders> --all-stages --slices --model <model>`
-builds packets for every review point of one model's runs, seeded slices included.
+builds packets for every review point of one model's runs, seeded slices included. The baseline: a detached worktree of
+the registration commit, `build_arm.py <folder>` with no overlay, `run.py --case <case> --host codex --model
+gpt-6.2-sol --effort high --source checkout --plugin-dir <plugin> --output <root>/<name>` from that worktree, then
+`review_option_census.py runs-effort/census.json <root>` and `effort_report.py runs-reviews/census.json
+runs-effort/census.json`, which reads the run folders and reproduces `evidence/effort-sol-high.txt`.
 
 Round 3: `python3 -I replay_score.py judge-replay` rescores from the repository alone. To run it again from the
 recorded runs: `replay_cases.py <work>` (needs `<work>/census.json` and `<work>/review_edits.json`),

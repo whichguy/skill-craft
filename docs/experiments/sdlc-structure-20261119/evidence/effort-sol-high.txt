@@ -1,0 +1,35 @@
+run                       effort  arm ShipLoop option pass checks planning choice         min to plan to sys-test reviews changed refused criteria steps items late own skills
+sol-high-expenses-1       high    -   2.4.0    none   yes  6/6    -                      15.2     2.8        11.2       4       0       2        4     1     1    0          0
+sol-high-expenses-2       high    -   2.4.0    stage  yes  6/6    -                      16.5     3.4        12.6       8       0       5        3     1     1    0          0
+sol-medium-expenses-L-1   medium  L   2.4.0    none   yes  6/6    -                      14.2     2.6        10.2       3       1       7        2     1     1    0          0
+sol-medium-expenses-L-2   medium  L   2.4.0    none   yes  6/6    -                      12.9     2.6        10.2       3       0       5        7     1     1    0          0
+sol-medium-expenses-S-1   medium  S   2.4.0    stage  yes  6/6    -                      10.9     2.9         8.4       8       0       6        6     1     1    0          0
+sol-medium-expenses-S-2   medium  S   2.4.0    stage  yes  6/6    -                       9.0     2.5         7.3       8       0       7        2     1     1    0          0
+sol-high-due-1            high    -   2.4.0    stage  yes  8/8    fills at start         19.7     4.5        16.1       9       0       5        7     2     1    0          0
+sol-high-due-2            high    -   2.4.0    none   yes  8/8    fills at start         20.4     4.5        14.8       4       0       3        6     1     1    0          0
+sol-high-due-3            high    -   2.4.0    stage  NO   3/8    operator step first    20.0     4.1        16.3       8       2       8        5     1     1    0          0
+sol-high-due-4            high    -   2.4.0    stage  NO   3/8    operator step first    25.3     4.6        20.7       9       0       4        4     2     1    0          0
+sol-medium-due-L-1        medium  L   2.4.0    none   NO   3/8    operator step first    15.2     2.2        12.1       4       0       4        2     2     1    0          0
+sol-medium-due-L-2        medium  L   2.4.0    none   NO   8/8    fills at start         16.8     3.0        13.5       4       1       5        5     2     1    0          0
+sol-medium-due-S-1        medium  S   2.4.0    stage  NO   3/8    operator step first    20.8     4.6        15.2       8       1       3        3     1     1    0          0  2 sessions
+sol-medium-due-S-2        medium  S   2.4.0    stage  yes  8/8    fills at start         16.5     3.7        13.0       8       0       8        6     1     1    0          0
+(min: start to end; to plan / to sys-test: minutes to the first step plan and to the first entry into system-test; changed: reviews whose pass log shows a change; own skills: mentions of a file under the user's own skill folders in the run's events)
+
+== the registered readings, by request ==
+shared-expenses
+  recorded an option other than stage by itself, reported apart: sol-high-expenses-1
+  minutes start to end (the registered measure): medium S 10.9, 9.0 (mean 9.9); high 16.5 (mean 16.5); change +66.3%: high is slower
+  minutes to the first step plan: medium S 2.9, 2.5 (mean 2.7); high 3.4 (mean 3.4); change +23.4%: high is slower
+  minutes to the first entry into system-test: medium S 8.4, 7.3 (mean 7.8); high 12.6 (mean 12.6); change +60.7%: high is slower
+  held-out checks: medium S ['6/6', '6/6'], medium L ['6/6', '6/6'], high ['6/6', '6/6']
+  reviews that changed anything: medium S ['0 of 8', '0 of 8'], high ['0 of 4', '0 of 8']
+  first step plan, criteria in steps: medium ['2 in 1', '7 in 1', '6 in 1', '2 in 1'], high ['4 in 1', '3 in 1']
+ticket-due-times
+  recorded an option other than stage by itself, reported apart: sol-high-due-2
+  minutes start to end (the registered measure): medium S 20.8, 16.5 (mean 18.6); high 19.7, 20.0, 25.3 (mean 21.7); change +16.4%: high is slower; resumed runs in this cell: sol-medium-due-S-1
+  minutes to the first step plan: medium S 4.6, 3.7 (mean 4.2); high 4.5, 4.1, 4.6 (mean 4.4); change +4.7%: no readable difference
+  minutes to the first entry into system-test: medium S 15.2, 13.0 (mean 14.1); high 16.1, 16.3, 20.7 (mean 17.7); change +26.1%: high is slower
+  held-out checks: medium S ['3/8', '8/8'], medium L ['3/8', '8/8'], high ['8/8', '8/8', '3/8', '3/8']
+  planning choice, runs whose service refuses to start switched on until an operator step: medium 2 of 4 (S and L), high 2 of 4; counted, no reading registered
+  reviews that changed anything: medium S ['1 of 8', '0 of 8'], high ['0 of 9', '0 of 4', '2 of 8', '0 of 9']
+  first step plan, criteria in steps: medium ['2 in 2', '5 in 2', '3 in 1', '6 in 1'], high ['7 in 2', '6 in 1', '5 in 1', '4 in 2']
