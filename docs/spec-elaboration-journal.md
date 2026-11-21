@@ -2030,3 +2030,14 @@ user's skills, and locate one real difference between the two drivers in built p
    made to the owner; both were right on every fact I checked.
 7. **An open route in the wording is the whole wording.** "Or record it as unresolved", "as an open gap", "if the
    basis is missing, keep the bound open": three texts, three nulls.
+
+### Closing actions (07:18)
+
+- A note with this conclusion and section 26's two findings was put in the Ratchet session's inbox; whether it
+  has been read is not known here.
+- Not published. `origin/main` is at 79de0b67d1feec278a90e194ffb7aa628de6dd75. The shared checkout's local main holds this
+  experiment's commits after it, interleaved with two of the SDLC session's that are not on origin either. A note
+  to that session about the order was held and expired undelivered, because the two sessions run in different
+  permission modes. The order is put to the owner.
+- No session, monitor or queue of this experiment is running. Raw session folders stay under
+  `~/e2e-runs/spec-elaboration-20261120/`.
