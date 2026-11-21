@@ -79,6 +79,7 @@
    "npm test"
   ],
   "hidden": "grokbot",
-  "source": "scenarios/grokbot-local/REQUEST.md: the owner's Grok chat request (commit 71fa298e44db73f6afa46217377ba0ea850de916) moved to a local Node app, with a checkable section; fixture and yardstick in scenarios/grokbot-local/"
+  "source": "scenarios/grokbot-local/REQUEST.md: the owner's Grok chat request (commit 71fa298e44db73f6afa46217377ba0ea850de916) moved to a local Node app, with a checkable section; fixture and yardstick in scenarios/grokbot-local/",
+  "hidden2": "grokbot2"
  }
 }

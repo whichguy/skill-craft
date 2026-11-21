@@ -606,3 +606,44 @@ What follows from it:
   arms end.
 
 Evidence: `evidence/grokbot-local/` (the bare run's record, both gradings, the two probes and their output).
+
+## 15. Amendment 5, 2026-11-20 22:50: a second, harder yardstick for Grokbot-local (registered before it has graded any build)
+
+Why. Section 14: the first yardstick is passed whole by one unstructured session, so it can show a loss for the
+other two arms and no gain. The owner's question was whether a scenario exists that is hard enough to compare the
+approaches. The request has sentences the first yardstick never probes. This one probes them. It was written with
+the bare build finished and graded on the first yardstick, and with the ShipLoop and Ratchet arms still running and
+ungraded; I had read the bare build's behaviour only where section 14 says (setup order, a second conversation).
+
+What (`scenarios/grokbot-local/grokbot_accept2.cjs`; `grade.py second RUN`, `grade.py tree grokbot2 WORK COMMIT OUT`).
+28 checks, each carrying the sentence it comes from and a tier. **Stated** (23): the sentence says it. **Implied**
+(5): the check is my reading of a sentence. The tiers are counted apart and only the stated tier has a bar.
+
+| Group | Checks (implied ones marked) |
+|---|---|
+| What is delivered | the stand-in's two files are byte for byte the starting ones; `package.json` names no dependency and no `node_modules` is delivered |
+| Returning to the right discussion | opening an earlier conversation shows it and answers from it; exactly one conversation is marked current and the mark moves; each bot comes back to its own discussion |
+| Awkward moments in a conversation | a reload during a slow reply loses neither the message nor the reply and doubles neither; a failed reply can still be retried after a reload |
+| What was saved | Edit puts an instruction back into its two textboxes and saving keeps one entry; an instruction used by one bot is not another bot's; an instruction can be deleted and stays deleted after a reload; the same three for a saved task; after Enter the next message can be typed with no click (implied) |
+| Three people | another person is shown neither my saved instruction nor my bot's memory; the third person is answered only from the records that list them; coming back as myself I find my instruction, my bot's memory and my conversation |
+| Changes at awkward moments | Confirm changes works from the keyboard; the same proposal confirmed in two windows of one person creates one order; a proposal whose record another person has changed meanwhile is not applied over their change unless the proposal showed their value (implied) |
+| Long tasks | a completed task offers no Cancel task; a steered eight-step task shows nine finished steps; cancelling one of two tasks leaves the other to finish all eight (implied); a cancelled task is still Cancelled, with no further step, after a restart (implied); Since you were away names a task that finished, one that failed and one still running while the page was closed |
+| The wide and the narrow window | at 1440 pixels every region, navigation, button and textbox the request names for the main screen is visible with a memory and a task present; at 320 by 640, after a reply, the Message box is wholly in the window and the newest reply at least partly; a 240-letter unbroken word does not widen the page at 320 (implied) |
+| Where things are kept | after all of the above, no file of the app's own folder was added, changed or removed (the data folder is elsewhere) |
+
+Readings:
+
+- R6.1 **headroom exists** if the bare build, after calibration, fails at least 3 of the 23 stated checks. Fewer
+  reads as the ceiling again, on a harder yardstick.
+- R6.2 **quality at the end**, stated checks: an arm is ahead of another by 3 or more; within 2 reads as no
+  difference shown. Implied checks are reported beside it and decide nothing.
+- R6.3 reported: for the Ratchet arm, stated checks passed at the first build and at the end of each cycle, and for
+  each check its first build fails, whether its own specification and acceptance tests named that behaviour.
+- R6.4 reported: any check an arm fails on this yardstick and whether the same arm's own tests cover it.
+
+Calibration: the rule of section 12, on the bare build. A check is corrected only where it contradicts the request
+or the two README files, never to make a build pass; every correction is listed; then one version grades every arm.
+
+Limits: written by me in one sitting, with one build in existence; several checks share a mode's state, so one
+failure can cause the next in the same group (each check's note says what it saw); 5 of the 28 are my reading and
+are kept out of the bar for that reason.

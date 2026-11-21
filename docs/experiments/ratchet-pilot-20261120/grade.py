@@ -7,6 +7,8 @@
     python3 grade.py report RUN [RUN ...]      one table over finished runs
     python3 grade.py variant CASE NAME DEST    write the case's reference delivery or one named defect into DEST
     python3 grade.py visible CASE OUT.json     which calibrated defects the case's held-out grader can see at all
+    python3 grade.py second RUN [RUN ...]      as snapshots, with the case's second held-out grader (RUN/hidden2.json)
+    python3 grade.py tree KIND WORK COMMIT OUT.json   one grader on one commit of a work folder no Ratchet run made
 
 snapshots  exports the commit ratchet.py made after each stage (build-N, fix-N, green-N, final) and runs the case's
            held-out checks on the copy, with the graders round 4 to 6 of the structure study used
@@ -79,22 +81,28 @@ def hidden(kind, copy, folder):
         return {"observed": bool(result.get("observed")), "reason": result.get("reason"),
                 "passed": [row["id"] for row in rows if row.get("pass")],
                 "failed": {row["id"]: row.get("note") for row in rows if not row.get("pass")}}
-    if kind == "grokbot":  # the browser yardstick beside the scenario; it starts and stops the product itself
-        driver = HERE / "scenarios" / "grokbot-local" / "grokbot_accept.cjs"
+    if kind in ("grokbot", "grokbot2"):  # a browser yardstick beside the scenario; it starts and stops the product itself
+        scenario = HERE / "scenarios" / "grokbot-local"
+        driver = scenario / ("grokbot_accept.cjs" if kind == "grokbot" else "grokbot_accept2.cjs")
         out = Path(folder) / "grokbot-observation"
         env = dict(os.environ, PLAYWRIGHT_NODE_PATH=os.environ.get("PLAYWRIGHT_NODE_PATH", PLAYWRIGHT),
                    BROWSER_EXECUTABLE_PATH=os.environ.get("BROWSER_EXECUTABLE_PATH", BROWSER))
         env.pop("PROVIDER_TOKEN", None)
         try:
-            subprocess.run(["node", str(driver), str(copy), str(out)], env=env, capture_output=True, text=True, timeout=1800, check=False)
+            subprocess.run(["node", str(driver), str(copy), str(out), str(scenario / "fixture")], env=env, capture_output=True, text=True,
+                           timeout=1800, check=False)
             seen = json.loads((out / "observation.json").read_text())
         except (OSError, ValueError, subprocess.SubprocessError) as error:
             return {"observed": False, "reason": f"{type(error).__name__}: {error}"[:300]}
-        keep = Path(folder).parent / f"grokbot-observation-{Path(folder).name}.json"
-        keep.write_text(json.dumps(seen, indent=1) + "\n")
-        return {"observed": bool(seen.get("observed") and seen.get("complete")), "reason": seen.get("error"),
-                "passed": [row["id"] for row in seen["checks"] if row["pass"]],
-                "failed": {row["id"]: row.get("note") for row in seen["checks"] if not row["pass"]}, "notes": seen.get("notes")}
+        result = {"observed": bool(seen.get("observed") and seen.get("complete")), "reason": seen.get("error"),
+                  "passed": [row["id"] for row in seen["checks"] if row["pass"]],
+                  "failed": {row["id"]: row.get("note") for row in seen["checks"] if not row["pass"]}, "notes": seen.get("notes")}
+        if kind == "grokbot2":  # the second yardstick counts what the request states apart from what is my reading of it
+            result["tiers"] = {row["id"]: row.get("tier") for row in seen["checks"]}
+            for tier in ("stated", "implied"):
+                result[tier] = {"passed": sum(1 for row in seen["checks"] if row.get("tier") == tier and row["pass"]),
+                                "of": sum(1 for row in seen["checks"] if row.get("tier") == tier)}
+        return result
     if kind == "stand-in":  # the harness's own strong and boundary tests for the orders module, never shown to a session
         root = E2E / "fixtures" / "stand-ins" / "stand-in-rules"
         passed, failed = [], {}
@@ -133,14 +141,14 @@ def grade_tree(kind, work, commit, scratch):
         shutil.rmtree(folder, ignore_errors=True)
 
 
-def snapshots(run):
+def snapshots(run, second=False):
     run = Path(run).resolve()
     record, case = case_of(run)
-    kind = case.get("hidden")
+    kind = case.get("hidden2" if second else "hidden")
     if not kind:
-        print(f"{run.name}: the case has no held-out grader")
+        print(f"{run.name}: the case has no {'second ' if second else ''}held-out grader")
         return
-    out = run / "hidden.json"
+    out = run / ("hidden2.json" if second else "hidden.json")
     report = json.loads(out.read_text()) if out.exists() else {}
     scratch = run / "grade-work"
     scratch.mkdir(exist_ok=True)
@@ -163,8 +171,25 @@ def snapshots(run):
         out.write_text(json.dumps(report, indent=1) + "\n")
         row = report[label]
         print(f"{run.name:<34}{label:<12}passed {len(row.get('passed') or []):>2}  failed {sorted(row.get('failed') or {})}"
+              + (f"  stated {row['stated']['passed']} of {row['stated']['of']}, implied {row['implied']['passed']} of {row['implied']['of']}"
+                 if row.get("stated") else "")
               + ("  (not observed: " + str(row.get("reason")) + ")" if not row.get("observed") else ""), flush=True)
     shutil.rmtree(scratch, ignore_errors=True)
+
+
+def tree(kind, work, commit, out):
+    """One delivered tree that no Ratchet run made (the ShipLoop arm's work folder): KIND's checks at COMMIT of WORK."""
+    scratch = Path(tempfile.mkdtemp(prefix="ratchet-tree-"))
+    try:
+        result = grade_tree(kind, Path(work).resolve(), commit, scratch)
+    finally:
+        shutil.rmtree(scratch, ignore_errors=True)
+    resolved = subprocess.run(["git", "-C", str(work), "rev-parse", commit], capture_output=True, text=True, check=False).stdout.strip()
+    Path(out).write_text(json.dumps(dict(result, kind=kind, work=str(Path(work).resolve()), commit=resolved), indent=1) + "\n")
+    print(f"{Path(work).resolve().parent.name:<34}{kind:<12}passed {len(result.get('passed') or []):>2}  failed {sorted(result.get('failed') or {})}"
+          + (f"  stated {result['stated']['passed']} of {result['stated']['of']}, implied {result['implied']['passed']} of {result['implied']['of']}"
+             if result.get("stated") else "")
+          + ("  (not observed: " + str(result.get("reason")) + ")" if not result.get("observed") else ""), flush=True)
 
 
 # ------------------------------------------------------------------ the frozen suite against calibrated variants
@@ -362,13 +387,18 @@ def main(argv=None):
         print(f"{argv[1]}: the held-out checks see {len(report['visible'])} of {len(report['defects'])} defects; "
               f"cannot see: {', '.join(report['invisible']) or 'none'}; not observed: {', '.join(report['not_observed']) or 'none'}")
         return None
-    if len(argv) < 2 or argv[0] not in ("snapshots", "strength", "report"):
+    if len(argv) == 5 and argv[0] == "tree":  # tree KIND WORK COMMIT OUT.json
+        return tree(argv[1], argv[2], argv[3], argv[4])
+    if len(argv) < 2 or argv[0] not in ("snapshots", "second", "strength", "report"):
         raise SystemExit(__doc__)
     verb, runs = argv[0], argv[1:]
     if verb == "report":
         return report(runs)
     for run in runs:
-        (snapshots if verb == "snapshots" else strength)(run)
+        if verb == "second":
+            snapshots(run, second=True)
+        else:
+            (snapshots if verb == "snapshots" else strength)(run)
 
 
 if __name__ == "__main__":
