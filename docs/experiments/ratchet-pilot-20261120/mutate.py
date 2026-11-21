@@ -17,7 +17,8 @@ checks that the file still parses, and runs
 
 A command counts as failing when it fails twice in a row. A fault is caught by a suite when a command of that suite
 fails on it that passes on the untouched copy; a command that already fails on the untouched copy is left out and
-listed. A fault whose file no longer parses is invalid and not counted; a run that does not end is counted apart.
+listed with the end of its output, and a suite with no command left is "not measured", never 0 caught. A fault whose
+file no longer parses is invalid and not counted; a run that does not end is counted apart.
 """
 import concurrent.futures
 import difflib
@@ -36,6 +37,7 @@ sys.path.insert(0, str(REPO / "test" / "shiploop_e2e"))
 import quality  # the harness's fault catalog
 
 SECONDS = 300
+NOT_MEASURED = "not measured"
 NOT_PRODUCT = ["acceptance", "ratchet", "docs", "scripts", "testdata", ".shiploop-improve"]
 
 
@@ -68,6 +70,18 @@ def fails(command, folder, temp):
     if second == 0:
         return False
     return None if first is None or second is None else True
+
+
+def output_tail(command, folder, temp):
+    """The end of one more run's output, kept as the reason a command was left out."""
+    env = {key: value for key, value in os.environ.items() if key != "PORT"}
+    env["TMPDIR"] = str(temp)
+    try:
+        done = subprocess.run(command, shell=True, cwd=str(folder), env=env, capture_output=True, text=True, errors="replace",
+                              stdin=subprocess.DEVNULL, timeout=SECONDS, check=False)
+    except subprocess.TimeoutExpired:
+        return f"did not end in {SECONDS} s"
+    return f"exit {done.returncode}\n" + (done.stdout + done.stderr)[-3000:]
 
 
 def changed_lines(tree, fixture, name):
@@ -110,10 +124,12 @@ def one(tree, scratch, number, name, site, manifest, skip):
         if run(f"node --check {json.dumps(name)}", folder, temp) != 0:
             return dict(row, invalid=True)
         for suite, commands in suites(folder, manifest).items():
+            usable = [command for command in commands if command not in skip]
+            if not usable:
+                row[suite] = NOT_MEASURED  # every command of this suite fails on the untouched copy
+                continue
             verdict = False
-            for command in commands:
-                if command in skip:
-                    continue
+            for command in usable:
                 result = fails(command, folder, temp)
                 if result is None:
                     verdict = None
@@ -148,6 +164,7 @@ def main(argv=None):
     clean = copy_tree(tree, scratch, "clean")
     temp = Path(tempfile.mkdtemp(prefix="tmp-clean-", dir=scratch))
     skip = sorted(command for commands in suites(clean, manifest).values() for command in commands if fails(command, clean, temp) is not False)
+    reasons = {command: output_tail(command, clean, temp) for command in skip}
     targets = quality.targets(clean, NOT_PRODUCT)
     per_file = {}
     for name in sorted(targets):
@@ -164,20 +181,23 @@ def main(argv=None):
     shutil.rmtree(scratch, ignore_errors=True)
     valid = [row for row in rows if not row.get("invalid")]
     report = {"label": label, "tree": str(tree), "sites_on_changed_lines": len(order), "files": {name: len(found) for name, found in per_file.items()},
-              "sampled": len(chosen), "invalid": len(rows) - len(valid), "commands_failing_on_the_untouched_copy": skip, "faults": rows}
+              "sampled": len(chosen), "invalid": len(rows) - len(valid), "commands_failing_on_the_untouched_copy": skip, "untouched_failures": reasons, "faults": rows}
     for suite in (["own", "acceptance"] if manifest else ["own"]):
         caught = sum(1 for row in valid if row.get(suite) is True)
         survived = sum(1 for row in valid if row.get(suite) is False)
         report[suite] = {"caught": caught, "survived": survived, "did_not_end": sum(1 for row in valid if row.get(suite) is None),
+                         "not_measured": sum(1 for row in valid if row.get(suite) == NOT_MEASURED),
                          "share": round(caught / (caught + survived), 3) if caught + survived else None}
     if manifest:
-        caught = sum(1 for row in valid if row.get("own") is True or row.get("acceptance") is True)
-        survived = sum(1 for row in valid if row.get("own") is False and row.get("acceptance") is False)
+        both = [[row.get("own"), row.get("acceptance")] for row in valid]
+        caught = sum(1 for verdicts in both if True in verdicts)
+        survived = sum(1 for verdicts in both if True not in verdicts and None not in verdicts and False in verdicts)
         report["either"] = {"caught": caught, "survived": survived, "share": round(caught / (caught + survived), 3) if caught + survived else None}
     out.write_text(json.dumps(report, indent=1) + "\n")
     print(f"{label}: {len(order)} fault sites on changed lines in {len(per_file)} files; {len(chosen)} sampled, {report['invalid']} invalid; "
-          + "; ".join(f"{suite} {report[suite]['caught']} caught, {report[suite]['survived']} survived"
-                      + (f" ({report[suite]['share']:.0%})" if report[suite]["share"] is not None else "")
+          + "; ".join((f"{suite} not measured" if report[suite].get("not_measured") else
+                       f"{suite} {report[suite]['caught']} caught, {report[suite]['survived']} survived"
+                       + (f" ({report[suite]['share']:.0%})" if report[suite]["share"] is not None else ""))
                       for suite in ("own", "acceptance", "either") if suite in report)
           + (f"; {len(skip)} command(s) left out because they fail on the untouched copy" if skip else ""))
 

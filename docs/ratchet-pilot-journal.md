@@ -511,3 +511,43 @@ Limits known before the runs: one run an arm; a yardstick calibrated on the arms
 the ticket cases' calibration and is said with every result; no arm is given a browser, each may use what it finds on
 the machine; the ShipLoop arm releases and reviews as ShipLoop does, the other two stop at a product; a long run is
 started detached and a ShipLoop run that stops is resumed with the harness's own resume.
+
+## 13. Registered 2026-11-20 22:32, before any judge has answered: an independent read of what the closing looks added
+
+Question. The closing looks of the four finished whole-loop runs (chess, shared expenses, ticket assignment at high
+and at medium) added 59 requirements (55 clauses, 4 use cases) and reported that the product did not keep to 23 of
+them. Are these requirements that the request carries, or work the loop made for itself? R2.3 measures a part of this
+by machine (does an added clause's test fail on a correct reference). It cannot say whether a clause that passes on
+the reference is still a free choice, and three of the four runs have no reference to run. This read asks judges
+about the requirement itself.
+
+Method (`docs/experiments/ratchet-pilot-20261120/judge.py`). One packet of 42,327 characters (sha256
+`e610bf5a27b2a551dbccbc90db06f7add1f0d38fd82a664b36fe0553ab2ea7df`): the three requests verbatim; for the ticket case
+the existing product's `README.md`, `docs/api.md` and `docs/operations.md`, because that request changes an existing
+product; then every added requirement with how it would be observed, in one fixed shuffled order (seed 20261120),
+grouped by request. A judge does not see the run, the cycle, whether the product kept to the requirement, or what the
+closing look wrote about it. Each item gets one label:
+
+| Label | Meaning | Side |
+|---|---|---|
+| R, required | the request's words, their plain implication, or the existing product's documented behaviour require it | belongs |
+| E, expected | not required, but a user would meet a real defect without it | belongs |
+| C, choice | the request is silent and another behaviour would be as correct | does not |
+| X, excess or wrong | scope the request does not ask for, or against the request | does not |
+
+A judge unsure between two labels is told to take the one further down, so the read leans against "belongs".
+
+Judges. The clauses were written by `gpt-6.2-sol`. Two judges come from other families: the latest Claude Opus and
+the newest Grok, each asked once through the ask runners, with no tools, in an empty folder. A third answer from Sol
+6.1, the author's family, is reported apart and decides nothing.
+
+Readings (exploratory; section 6 registered no bar for them):
+
+- J1: of the 59, how many both outside judges say belong, how many both say do not, and how many split them.
+- J2: the same for the 23 the product did not keep to: a real gap found, against work the loop made for itself.
+- J3: agreement between the two outside judges: the share on the same side, and Cohen's kappa on the side. Under 0.4
+  the labels are too unsteady to read J1 and J2 as more than a direction.
+- J4: J1 by cycle, to see whether later looks add more that does not belong.
+
+Limits: models as judges, one answer each; a judge sees documents and not code; the two ticket-assignment runs can
+add the same requirement twice, and it is then counted twice.
