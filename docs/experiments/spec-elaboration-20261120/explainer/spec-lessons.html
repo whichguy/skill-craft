@@ -168,9 +168,10 @@ svg text{font-family:var(--body)}
     <li><div><b>More elaboration did not hold up.</b> On a test bench, longer and more searching spec prompts covered
     more of a hidden checklist. The gains were mostly points the released text already touched, plus limits nobody
     asked for. ShipLoop's prompt was not changed.</div></li>
-    <li><div><b>The bench was not the real stage.</b> It made the stage write many times what it writes in real runs
-    (11 to 17 times on Sol). Reading 31 real deliveries found the real gap: on Sol, builders pick limits and never write them down.
-    Sonnet writes them into the spec and tests them.</div></li>
+    <li><div><b>The bench and the real runs differ in three ways.</b> Bench specs were many times longer (11 to 17
+    times on Sol). But the bench gave one sentence where real cases give a page, had no repository, and its sessions
+    read ShipLoop's reference guides, which real builders almost never open. Real deliveries also showed a gap of
+    their own: on Sol, builders pick limits and never write them down.</div></li>
     <li><div><b>Leaving a point open beat deciding it.</b> In the Ratchet session, a text that marks undecided points
     <span class="open-tag">Open:</span> wrote a quarter of the clauses, fewer of them failed on a correct product, and its
     first builds of the due-times case passed all 8 held-out checks where texts that decide had passed 2 or 3.</div></li>
@@ -241,7 +242,7 @@ svg text{font-family:var(--body)}
 
 <section class="thread" aria-labelledby="t2">
   <div class="thread-head"><span class="num" aria-hidden="true">2</span><div>
-    <p class="eyebrow">Journal section 26 · one hour, no model</p>
+    <p class="eyebrow">Journal sections 26 and 38 · no model</p>
     <h2 id="t2">What 31 real deliveries show</h2></div></div>
   <p>Before concluding, this session read deliveries that had already run on the latest ShipLoop: 26 on Sol and 5 on
   Sonnet, across five cases. No model was called. Two things stood out.</p>
@@ -264,9 +265,28 @@ svg text{font-family:var(--body)}
   it, and tests both sides of the line; none of the 10 Sol expenses services has a cap. A Sol chat app had nine limits
   its builder chose (64 KB requests, 80-character names, 8,000-character messages and more). None is in its spec,
   knowledge files or README, and no test sends a value that is too long.</p>
+  <div class="note">
+    <h3>Three differences, not one (added 21 November, late morning)</h3>
+    <p>Figure 3 was first read as the bench distorting the stage. A second look found the two differ in three
+    things at once. The bench's requests are 7 to 15 words; the real cases' are 76 to 322. The bench has no
+    repository. And the reference guides, which state what a specification should consider, were read on the bench
+    and are not read in real runs.</p>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Opened the requirements guide</th><th>Sessions</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">Bench, guides beside the session</th><td>116 to 120 of 120</td></tr>
+      <tr><th scope="row">Real deliveries, Sol</th><td>0 of 26</td></tr>
+      <tr><th scope="row">Real deliveries, Sonnet</th><td>0 of 9</td></tr>
+      <tr><th scope="row">Real delivery, Grok (opened all 39 guides)</th><td>1 of 1</td></tr>
+    </tbody></table></div>
+  <p>So your case, a vague one-sentence request, was only ever run on the bench, and there the released stage with
+  its guides read touched at least 89% of every category of the checklist. In real runs the guides are named in
+  every packet and left unopened, so today they cannot be doing much for the specification.</p>
   <div class="verdict"><span class="pill">Concluded</span><div><p><b>No template change</b> (07:16, 21 November, at your
-  word). The released spec stage is not missing an elaboration step. The one real difference is between the drivers:
-  on Sol, a limit nobody stated is chosen silently or not built.</p></div></div>
+  word). For detailed requests the released stage writes a short, complete specification. Whether it is full enough
+  for a one-sentence request in a real run is not tested. One real difference between the drivers stands: on Sol,
+  a limit nobody stated is chosen silently or not built.</p></div></div>
 </section>
 
 <section class="thread" aria-labelledby="t3">
@@ -397,6 +417,9 @@ svg text{font-family:var(--body)}
 <section class="thread" aria-labelledby="t7">
   <h2 id="t7">Still open, and yours to decide</h2>
   <ul class="open-list">
+    <li><div><b>Do the reference guides make real specifications fuller?</b> On the bench, where sessions read them,
+    the released stage was broad. In real runs they are not opened. The cheapest test is one real run on a short
+    request that is made to take in the two spec guides, beside one that is not.</div></li>
     <li><div><b>Try "open in the spec, answered in the plan" in ShipLoop?</b> Nothing is proposed yet. It would need your
     word, a candidate build and real end-to-end deliveries, and it is untested where one session writes the plan, the
     tests and the product in turn.</div></li>
