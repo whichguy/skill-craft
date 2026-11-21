@@ -499,3 +499,62 @@ The recursive form more than doubles what Sol at medium covers (29 to 64) and br
 Sonnet at high. For a harness that runs on both, that is the more useful half of the result.
 
 Three of the eight clean Sol sessions searched the web, as before.
+
+## 10. Round 5's subject calls; a refused listing stops the queue; the held-out checklist was never reached (2026-11-20)
+
+**Round 5 ran**: 24 calls (F-guarded, L-lenses-once, P-shiploop-spec on both drivers), all exit 0, after a passing
+pre-flight. Its leak check then flagged 1 of 24 and stopped the queue a second time.
+
+**What the flag was.** `gym-waitlist__P-shiploop-spec__sonnet-high` issued one shell command that, among other
+things, listed its round's folder (`ls ~/e2e-runs/spec-elaboration-20261120/round-5/`). The host refused the whole
+command ("requires approval"), so nothing ran and nothing was read. The check had counted any existing path under
+the real home, folders included.
+
+**The question it raised is the right one, so it was answered in full before going on.** The judges' working
+folders hold `checklist.json`, the held-out nuances of a case, and they live beside the subjects' folders. A
+subject that climbed out of its own folder with `../` could have read one, and the check as written resolved only
+absolute paths. All 80 subject streams of rounds 1 to 5 were scanned for every tool call that climbs above its
+working directory and for any that names the checklist, a verdict, the cases file, or a judge or audit folder:
+- 42 tool calls climb. 34 do nothing but look for an `AGENTS.md` in the folders above (none exists). 6 are P-arm
+  Sol sessions writing `KNOWLEDGE/spec.md` with links to `../GUIDES/...`, inside their own folder.
+  **2 listed the names in their round's folder** (`ls -la ..`:
+  round 1 `gym-waitlist__A-single__sol-medium`, round 5 `grokbot-salesforce__L-lenses-once__sol-medium`), which
+  shows the names of the other sessions' folders, arm names included, and no file's contents. In both rounds the
+  judges had not started, so no judge folder was there to list.
+- **No tool call in any session names the checklist, a verdict, the cases file, or a judge or audit folder.** The
+  three places those words appear are the sessions' own specification text ("status checklist",
+  "audit-retention rules").
+- So the statement in section 1, that no subject can read the held-out checklist, was true of what happened in
+  all 80 sessions and was never enforced by anything. It is now checked.
+
+**The check, restated and made stricter where it matters.** A leak is a file that exists under the real home
+outside the session's own folder and profile, named absolutely, with `~`, or by climbing with `../` (resolved
+against the working directory); or any tool call naming the held-out material. A folder named outside and a path
+that does not exist are reported and do not count. Re-run on every round: round 1, 8 of 16; round 2, 4 of 8;
+round 3, 4 of 8; round 4, 7 of 16 (every one a Sol session reading a user-level skill); **round 4c, 0 of 8;
+round 5, 0 of 24**; and no session in any round named the held-out material.
+- Loosening a check right after it fires deserves suspicion. What was loosened: a folder's name no longer counts,
+  only a file that could be read. What was added: climbs are resolved, and the held-out material is searched for
+  by name. The one session it had flagged was refused by the host before anything ran.
+- Still open: nothing stops a subject from reading a sibling's folder or a judge's; the check finds it afterwards.
+  Subjects of a round all finish before that round's judges start, which is why no judge folder was reachable in
+  the round being run, but earlier rounds' judge folders sit two levels up. A round that fails this check is not
+  used.
+
+**Round 5's cost, before any verdict** (`evidence/round-5/cost.txt`; clean sessions, per case):
+
+| arm | Sonnet: minutes | output tokens | words | Sol: minutes | output tokens | words |
+| --- | --- | --- | --- | --- | --- | --- |
+| A-single | 2.1 | 15,317 | 3,508 | 2.9 | 7,951 | 3,537 |
+| L-lenses-once | 2.9 | 21,484 | 4,497 | 3.8 | 10,381 | 6,469 |
+| P-shiploop-spec (the released stage) | 5.7 | 43,342 | 8,546 | 5.1 | 12,273 | 5,459 |
+| D-enumerated-only | 7.3 | 57,787 | 6,817 | 6.6 | 18,039 | 7,311 |
+| F-guarded | 5.5 | 43,379 | 5,712 | 7.1 | 18,594 | 8,156 |
+
+- **R9's cost side is met on both drivers**: the one-pass arm takes 52% of the iterating arm's minutes on Sonnet
+  (50% of its output tokens) and 54% on Sol (56%). Sonnet's one-pass sessions made 2.0 writes or edits a case
+  against 21 for the iterating arm, so they did write once.
+- The released stage run alone costs about what the recursive arms cost: 5.7 minutes and 43,000 output tokens a
+  case on Sonnet. It opened 4 to 12 of the skill's guides a session, wrote an `architecture.md` beside the
+  specification in 5 of 8 sessions, and both Grokbot sessions opened the skill's Salesforce card, which is
+  recorded so that their platform score can be read as partly the card's.

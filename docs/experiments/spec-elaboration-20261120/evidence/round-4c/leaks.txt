@@ -1,10 +1,10 @@
-clean csv-user-import__A-single__sol-medium   (system paths referenced: 0)
-clean csv-user-import__D-enumerated-only__sol-medium   (system paths referenced: 0)
-clean grokbot-salesforce__A-single__sol-medium   (system paths referenced: 0)
-clean grokbot-salesforce__D-enumerated-only__sol-medium   (system paths referenced: 0)
-clean gym-waitlist__A-single__sol-medium   (system paths referenced: 0)
-clean gym-waitlist__D-enumerated-only__sol-medium   (system paths referenced: 0)
-clean invoice-reminders__A-single__sol-medium   (system paths referenced: 0)
-clean invoice-reminders__D-enumerated-only__sol-medium   (system paths referenced: 0)
+clean csv-user-import__A-single__sol-medium   (system paths: 0; named a folder outside its own: /Users/dadleet, /Users/dadleet/e2e-runs, /Users/dadleet/e2e-runs/spec-elaboration-20261120, /Users/dadleet/e2e-runs/spec-elaboration-20261120/round-4c)
+clean csv-user-import__D-enumerated-only__sol-medium   (system paths: 0; looked for and absent: 2)
+clean grokbot-salesforce__A-single__sol-medium   (system paths: 0; named a folder outside its own: /Users/dadleet/e2e-runs/spec-elaboration-20261120/round-4c)
+clean grokbot-salesforce__D-enumerated-only__sol-medium   (system paths: 0; looked for and absent: 2)
+clean gym-waitlist__A-single__sol-medium   (system paths: 0; looked for and absent: 4)
+clean gym-waitlist__D-enumerated-only__sol-medium   (system paths: 0; named a folder outside its own: /Users/dadleet/e2e-runs/spec-elaboration-20261120/round-4c; looked for and absent: 3)
+clean invoice-reminders__A-single__sol-medium   (system paths: 0; named a folder outside its own: /Users/dadleet, /Users/dadleet/e2e-runs, /Users/dadleet/e2e-runs/spec-elaboration-20261120, /Users/dadleet/e2e-runs/spec-elaboration-20261120/round-4c)
+clean invoice-reminders__D-enumerated-only__sol-medium   (system paths: 0)
 
-0 of 8 sessions referenced a path under the real HOME outside their own working directory and throwaway profile
+0 of 8 sessions read a file under the real home outside their own working directory and throwaway profile, or named the held-out material

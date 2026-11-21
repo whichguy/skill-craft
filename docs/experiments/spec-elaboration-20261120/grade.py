@@ -7,9 +7,11 @@ re-reading is a new set of verdicts beside the first, never an edit of it).
   counts ROUND        Script-only metrics of every kept spec.md: use cases, clauses, the mix of Source kinds, words,
                       numbering gaps, clauses that bundle two behaviours behind "and", the passes an arm recorded,
                       minutes, cost and the tools the session used. Writes evidence/<round>/counts.json.
-  leaks ROUND         Script-only check of every subject stream for a path under the real HOME outside the session's
-                      own working directory and throwaway profile (a user-level skill, memory or config that reached
-                      the subject). Writes evidence/<round>/leaks.txt and exits 1 when any session leaked.
+  leaks ROUND         Script-only check of every subject stream: a file that exists under the real HOME outside the
+                      session's own working directory and throwaway profile (a user-level skill, memory or config
+                      that reached the subject), named absolutely, with ~ or by climbing with ../; or any tool call
+                      naming the checklist, a verdict, the cases file, or a judge or audit folder. Writes
+                      evidence/<round>/leaks.txt and exits 1 when any session leaked.
   judge ROUND         One headless judge session per kept spec, reading that spec and that case's held-out nuance
                       checklist, and writing a verdict per nuance: covered, partial or absent, the clause that states
                       it, and a quote. Writes grades/<round>/<slot>.json.
@@ -258,38 +260,57 @@ def session_texts(stream):
 
 
 def cmd_leaks(round_name, _flags):
-    """Did any subject session reach outside its own working directory and throwaway profile?"""
+    """Did any subject session read a file outside its own working directory and throwaway profile, or reach for the
+    held-out checklist?
+
+    A leak is a FILE that exists, under the real home, outside the session's own directory and profile, named by a
+    tool call (absolute, with ~, or by climbing with ../), or any tool call that names the checklist, a verdict, the
+    cases file, or a judge or audit folder. A folder named outside (a listing shows names, not contents) and a path
+    that does not exist (looked for, nothing read) are reported and do not count."""
     real_home = str(Path.home())
+    held_out = re.compile(r"checklist\.json|verdict\.json|cases\.json|(?:judge|audit)(?:-\w+)?-[\w.-]+__[\w.-]+__")
     lines, leaking = [], 0
     for slot in slots(round_name):
         meta = json.loads((slot / "meta.json").read_text()) if (slot / "meta.json").is_file() else {}
         workdir = meta.get("workdir") or ""
         own = [workdir, str(Path(workdir).parent / ".homes")] if workdir else []
-        outside, absent, system = defaultdict(int), defaultdict(int), 0
+        files, folders, absent, system, reached = defaultdict(int), defaultdict(int), defaultdict(int), 0, []
         for text in session_texts(slot / "stream.jsonl") if (slot / "stream.jsonl").is_file() else []:
+            if held_out.search(text):
+                reached.append(re.sub(r"\s+", " ", text)[:160])
             found = re.findall(r"(/(?:Users|home|private|tmp|etc|var|opt|usr|Library)/[^\s'\"\\);|&<>]*)", text)
             if meta.get("host") == "claude":
                 found += [real_home + part[1:] for part in re.findall(r"(?<![\w/])(~/[^\s'\"\\);|&<>]*)", text)]
+            if workdir:    # a climb out of the working directory, resolved against it
+                found += [os.path.normpath(os.path.join(workdir, part))
+                          for part in re.findall(r"(?<![\w./])((?:\.\./)+[\w.*-]*|\.\.(?=[\s'\";|&)]|$))", text)]
             for path in found:
-                if any(path.startswith(prefix) for prefix in own if prefix):
-                    continue
                 path = path.rstrip(";,")
+                if any(path == prefix or path.startswith(prefix + "/") for prefix in own if prefix):
+                    continue
                 if not path.startswith(real_home):
                     system += 1
-                elif os.path.exists(path):
-                    outside[path] += 1
+                elif os.path.isfile(path):
+                    files[path] += 1
+                elif os.path.isdir(path):
+                    folders[path] += 1
                 else:
-                    absent[path] += 1    # looked for and not there: nothing was read
-        if outside:
+                    absent[path] += 1
+        if files or reached:
             leaking += 1
             lines.append(f"LEAK  {slot.name}")
-            lines.extend(f"        {count}x {path}" for path, count in sorted(outside.items()))
+            lines.extend(f"        read  {count}x {path}" for path, count in sorted(files.items()))
+            lines.extend(f"        named the held-out material: {text}" for text in reached[:3])
         else:
-            lines.append(f"clean {slot.name}   (system paths referenced: {system}"
-                         + (f"; looked for and absent: {len(absent)}" if absent else "") + ")")
+            notes = [f"system paths: {system}"]
+            if folders:
+                notes.append("named a folder outside its own: " + ", ".join(sorted(folders)))
+            if absent:
+                notes.append(f"looked for and absent: {len(absent)}")
+            lines.append(f"clean {slot.name}   ({'; '.join(notes)})")
     lines.append("")
-    lines.append(f"{leaking} of {len(slots(round_name))} sessions referenced a path under the real HOME outside their own "
-                 f"working directory and throwaway profile")
+    lines.append(f"{leaking} of {len(slots(round_name))} sessions read a file under the real home outside their own working "
+                 f"directory and throwaway profile, or named the held-out material")
     text = "\n".join(lines) + "\n"
     target = HERE / "evidence" / round_name
     target.mkdir(parents=True, exist_ok=True)

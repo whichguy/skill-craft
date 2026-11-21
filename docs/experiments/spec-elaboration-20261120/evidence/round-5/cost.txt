@@ -1,0 +1,27 @@
+COST AND SHAPE, clean sessions only (round 5; A and D from round 4 on Sonnet and round 4c on Sol), per case
+
+arm                driver         min  out tok     $  words   C-n   R-n  edits  web other docs  guides
+A-single           sonnet-high    2.1    15317  0.25   3508    45     0    1.2   0/4        0.0     0.0
+L-lenses-once      sonnet-high    2.9    21484  0.35   4497    55     0    2.0   0/4        0.0     0.0
+P-shiploop-spec    sonnet-high    5.7    43342  0.93   8546     0    14    8.0   1/4        1.0     5.2
+D-enumerated-only  sonnet-high    7.3    57787  0.95   6817    92     0   21.5   0/4        0.0     0.0
+F-guarded          sonnet-high    5.5    43379  0.76   5712    77     0   21.0   0/4        0.0     0.0
+
+A-single           sol-medium     2.9     7951  0.00   3537    56     0    1.0   1/4        0.0     0.0
+L-lenses-once      sol-medium     3.8    10381  0.00   6469    93     0    0.0   1/4        0.0     0.0
+P-shiploop-spec    sol-medium     5.1    12273  0.00   5459     0     4    0.0   2/4        0.5     9.2
+D-enumerated-only  sol-medium     6.6    18039  0.00   7311   120     0    0.0   2/4        0.0     0.0
+F-guarded          sol-medium     7.1    18594  0.00   8156   132     0    0.0   2/4        0.0     0.0
+
+R9's cost side, sonnet-high: L takes 52% of F's minutes and 50% of its output tokens
+R9's cost side, sol-medium: L takes 54% of F's minutes and 56% of its output tokens
+
+P sessions, guides opened:
+  csv-user-import__P-shiploop-spec__sol-medium     8 guides; also wrote []; salesforce card: False
+  csv-user-import__P-shiploop-spec__sonnet-high    4 guides; also wrote ['architecture.md']; salesforce card: False
+  grokbot-salesforce__P-shiploop-spec__sol-medium  12 guides; also wrote ['architecture.md']; salesforce card: True
+  grokbot-salesforce__P-shiploop-spec__sonnet-high 5 guides; also wrote ['architecture.md']; salesforce card: True
+  gym-waitlist__P-shiploop-spec__sol-medium        8 guides; also wrote []; salesforce card: False
+  gym-waitlist__P-shiploop-spec__sonnet-high       6 guides; also wrote ['architecture.md']; salesforce card: False
+  invoice-reminders__P-shiploop-spec__sol-medium   9 guides; also wrote ['architecture.md']; salesforce card: False
+  invoice-reminders__P-shiploop-spec__sonnet-high  6 guides; also wrote ['architecture.md']; salesforce card: False

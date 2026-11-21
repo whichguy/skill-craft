@@ -1,0 +1,854 @@
+{
+ "csv-user-import__F-guarded__sol-medium": {
+  "use_cases": 13,
+  "clauses": 118,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 46,
+   "implied": 83,
+   "request": 2
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 7042,
+  "bundled_and": 2,
+  "bundled_examples": [
+   "The import accepts LF and CRLF as record endings",
+   "Ordinary creation and import share the same uniqueness decision"
+  ],
+  "words_judged": 7042,
+  "seconds": 393.8,
+  "rc": 0,
+  "arm": "F-guarded",
+  "driver": "sol-medium",
+  "case": "csv-user-import",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 16610,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 26,
+   "web_search": 2
+  },
+  "also": [],
+  "passes_recorded": 10,
+  "passes_words": 589
+ },
+ "csv-user-import__F-guarded__sonnet-high": {
+  "use_cases": 11,
+  "clauses": 70,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 29,
+   "implied": 49,
+   "request": 3
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 5393,
+  "bundled_and": 12,
+  "bundled_examples": [
+   "The import page is reachable by admins and offers a single-file upload",
+   "The import page states the accepted format and the limits",
+   "The first record is the header and columns are matched by name, in any"
+  ],
+  "words_judged": 5393,
+  "seconds": 275.2,
+  "rc": 0,
+  "arm": "F-guarded",
+  "driver": "sonnet-high",
+  "case": "csv-user-import",
+  "cost_usd": 0.6103698000000001,
+  "turns": 25,
+  "output_tokens": 35388,
+  "tools": {
+   "Bash": 7,
+   "Edit": 14,
+   "Read": 1,
+   "Write": 2
+  },
+  "also": [],
+  "passes_recorded": 8,
+  "passes_words": 782
+ },
+ "csv-user-import__L-lenses-once__sol-medium": {
+  "use_cases": 8,
+  "clauses": 86,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 34,
+   "implied": 58,
+   "request": 2
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 5444,
+  "bundled_and": 3,
+  "bundled_examples": [
+   "The import accepts LF and CRLF as record separators.",
+   "Operator-visible outcomes distinguish completed creation, confirmed re",
+   "Existing users retain their account and sign-in state across import av"
+  ],
+  "words_judged": 5444,
+  "seconds": 199.5,
+  "rc": 0,
+  "arm": "L-lenses-once",
+  "driver": "sol-medium",
+  "case": "csv-user-import",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 8585,
+  "tools": {
+   "agent_message": 3,
+   "command_execution": 6
+  },
+  "also": []
+ },
+ "csv-user-import__L-lenses-once__sonnet-high": {
+  "use_cases": 9,
+  "clauses": 53,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 17,
+   "implied": 42,
+   "request": 3
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 4249,
+  "bundled_and": 11,
+  "bundled_examples": [
+   "An admin can reach the import page and upload form",
+   "Columns other than `email`, `name` and `role` are ignored and reported",
+   "A name is required and at most 200 characters"
+  ],
+  "words_judged": 4249,
+  "seconds": 182.0,
+  "rc": 0,
+  "arm": "L-lenses-once",
+  "driver": "sonnet-high",
+  "case": "csv-user-import",
+  "cost_usd": 0.4100184,
+  "turns": 5,
+  "output_tokens": 25453,
+  "tools": {
+   "Bash": 2,
+   "Write": 2
+  },
+  "also": []
+ },
+ "csv-user-import__P-shiploop-spec__sol-medium": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 4,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 5342,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 5342,
+  "seconds": 250.8,
+  "rc": 0,
+  "arm": "P-shiploop-spec",
+  "driver": "sol-medium",
+  "case": "csv-user-import",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 9756,
+  "tools": {
+   "agent_message": 3,
+   "command_execution": 11,
+   "web_search": 1
+  },
+  "also": [],
+  "guides_opened": [
+   "README.md",
+   "behavioral-requirements.md",
+   "current-system-baseline.md",
+   "platforms/ui.md",
+   "project-knowledge.md",
+   "requirements-definition.md",
+   "service-discovery.md",
+   "testing-and-documentation.md"
+  ]
+ },
+ "csv-user-import__P-shiploop-spec__sonnet-high": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 13,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 6742,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 7300,
+  "seconds": 350.4,
+  "rc": 0,
+  "arm": "P-shiploop-spec",
+  "driver": "sonnet-high",
+  "case": "csv-user-import",
+  "cost_usd": 0.9160749999999999,
+  "turns": 22,
+  "output_tokens": 45689,
+  "tools": {
+   "Bash": 11,
+   "Edit": 3,
+   "Grep": 2,
+   "Read": 2,
+   "Write": 3
+  },
+  "also": [
+   "architecture.md"
+  ],
+  "guides_opened": [
+   "README.md",
+   "behavioral-requirements.md",
+   "project-knowledge.md",
+   "service-discovery.md"
+  ]
+ },
+ "grokbot-salesforce__F-guarded__sol-medium": {
+  "use_cases": 9,
+  "clauses": 134,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 62,
+   "implied": 78,
+   "request": 3
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 7419,
+  "bundled_and": 1,
+  "bundled_examples": [
+   "Transient connection and provider service errors are shown as temporar"
+  ],
+  "words_judged": 7419,
+  "seconds": 388.7,
+  "rc": 0,
+  "arm": "F-guarded",
+  "driver": "sol-medium",
+  "case": "grokbot-salesforce",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 17056,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 15,
+   "web_search": 6
+  },
+  "also": [],
+  "passes_recorded": 11,
+  "passes_words": 689
+ },
+ "grokbot-salesforce__F-guarded__sonnet-high": {
+  "use_cases": 18,
+  "clauses": 86,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 27,
+   "implied": 72,
+   "request": 5
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 7238,
+  "bundled_and": 37,
+  "bundled_examples": [
+   "A person with the user permission set finds and opens the bot from the",
+   "Sending a message shows the user's message and then Grok's reply, in t",
+   "While a request is in flight the screen shows a waiting indicator and "
+  ],
+  "words_judged": 7238,
+  "seconds": 435.9,
+  "rc": 0,
+  "arm": "F-guarded",
+  "driver": "sonnet-high",
+  "case": "grokbot-salesforce",
+  "cost_usd": 1.0153604999999999,
+  "turns": 34,
+  "output_tokens": 57096,
+  "tools": {
+   "Bash": 9,
+   "Edit": 17,
+   "Read": 2,
+   "Write": 5
+  },
+  "also": [],
+  "passes_recorded": 8,
+  "passes_words": 846
+ },
+ "grokbot-salesforce__L-lenses-once__sol-medium": {
+  "use_cases": 15,
+  "clauses": 108,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 32,
+   "implied": 90,
+   "request": 1
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 7949,
+  "bundled_and": 4,
+  "bundled_examples": [
+   "External and guest users cannot invoke the bot.",
+   "Salesforce's Apex callout payload ceiling constrains request and respo",
+   "Installation preserves pre-existing navigation and integrations."
+  ],
+  "words_judged": 7949,
+  "seconds": 297.4,
+  "rc": 0,
+  "arm": "L-lenses-once",
+  "driver": "sol-medium",
+  "case": "grokbot-salesforce",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 13586,
+  "tools": {
+   "agent_message": 3,
+   "command_execution": 5,
+   "web_search": 6
+  },
+  "also": []
+ },
+ "grokbot-salesforce__L-lenses-once__sonnet-high": {
+  "use_cases": 12,
+  "clauses": 67,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 17,
+   "implied": 58,
+   "request": 4
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 6004,
+  "bundled_and": 32,
+  "bundled_examples": [
+   "A user without the chat permission is refused in the interface and at ",
+   "A user can read only their own conversations and messages",
+   "The xAI API key is held as a secret and is never readable after it is "
+  ],
+  "words_judged": 6004,
+  "seconds": 222.0,
+  "rc": 0,
+  "arm": "L-lenses-once",
+  "driver": "sonnet-high",
+  "case": "grokbot-salesforce",
+  "cost_usd": 0.4243261,
+  "turns": 5,
+  "output_tokens": 26946,
+  "tools": {
+   "Edit": 3,
+   "Write": 1
+  },
+  "also": []
+ },
+ "grokbot-salesforce__P-shiploop-spec__sol-medium": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 5,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 5858,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 6679,
+  "seconds": 419.0,
+  "rc": 0,
+  "arm": "P-shiploop-spec",
+  "driver": "sol-medium",
+  "case": "grokbot-salesforce",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 14806,
+  "tools": {
+   "agent_message": 3,
+   "command_execution": 13,
+   "web_search": 8
+  },
+  "also": [
+   "architecture.md"
+  ],
+  "guides_opened": [
+   "README.md",
+   "behavioral-requirements.md",
+   "current-system-baseline.md",
+   "delivery-authority.md",
+   "environment-lifecycle.md",
+   "platforms/salesforce.md",
+   "platforms/ui.md",
+   "project-knowledge.md",
+   "requirements-definition.md",
+   "research-loop.md",
+   "service-discovery.md",
+   "testing-and-documentation.md"
+  ]
+ },
+ "grokbot-salesforce__P-shiploop-spec__sonnet-high": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 21,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 10288,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 12016,
+  "seconds": 491.4,
+  "rc": 0,
+  "arm": "P-shiploop-spec",
+  "driver": "sonnet-high",
+  "case": "grokbot-salesforce",
+  "cost_usd": 1.3364687450000003,
+  "turns": 39,
+  "output_tokens": 58071,
+  "tools": {
+   "Agent": 1,
+   "Bash": 12,
+   "Edit": 13,
+   "Read": 4,
+   "ToolSearch": 1,
+   "WebFetch": 7,
+   "WebSearch": 5,
+   "Write": 2
+  },
+  "also": [
+   "architecture.md"
+  ],
+  "guides_opened": [
+   "behavioral-requirements.md",
+   "platforms/salesforce.md",
+   "platforms/ui.md",
+   "requirements-definition.md",
+   "service-discovery.md"
+  ]
+ },
+ "gym-waitlist__F-guarded__sol-medium": {
+  "use_cases": 30,
+  "clauses": 141,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 68,
+   "implied": 101,
+   "request": 2
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 9525,
+  "bundled_and": 8,
+  "bundled_examples": [
+   "A new join after a successful withdrawal creates a new entry if the oc",
+   "An occurrence\u2019s waitlist status for its member distinguishes waiting, ",
+   "Unused capacity returns to ordinary booking when the queue has no acti"
+  ],
+  "words_judged": 9525,
+  "seconds": 435.6,
+  "rc": 0,
+  "arm": "F-guarded",
+  "driver": "sol-medium",
+  "case": "gym-waitlist",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 19444,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 36
+  },
+  "also": [],
+  "passes_recorded": 9,
+  "passes_words": 613
+ },
+ "gym-waitlist__F-guarded__sonnet-high": {
+  "use_cases": 13,
+  "clauses": 66,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 11,
+   "implied": 64,
+   "request": 4
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 4490,
+  "bundled_and": 3,
+  "bundled_examples": [
+   "Leaving costs nothing and carries no penalty",
+   "Lowering capacity does not remove anyone and gives no places",
+   "Class details, capacity and times are shown as before"
+  ],
+  "words_judged": 4490,
+  "seconds": 219.9,
+  "rc": 0,
+  "arm": "F-guarded",
+  "driver": "sonnet-high",
+  "case": "gym-waitlist",
+  "cost_usd": 0.4572724999999999,
+  "turns": 15,
+  "output_tokens": 27881,
+  "tools": {
+   "Bash": 2,
+   "Edit": 8,
+   "Write": 4
+  },
+  "also": [],
+  "passes_recorded": 7,
+  "passes_words": 820
+ },
+ "gym-waitlist__L-lenses-once__sol-medium": {
+  "use_cases": 13,
+  "clauses": 90,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 22,
+   "implied": 79,
+   "request": 2
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 6481,
+  "bundled_and": 5,
+  "bundled_examples": [
+   "A confirmed booking for the same member and session prevents a waitlis",
+   "The same member cannot have both an active wait and a confirmed bookin",
+   "The waitlist closes at the earlier of the existing booking cutoff and "
+  ],
+  "words_judged": 6481,
+  "seconds": 205.9,
+  "rc": 0,
+  "arm": "L-lenses-once",
+  "driver": "sol-medium",
+  "case": "gym-waitlist",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 9809,
+  "tools": {
+   "agent_message": 3,
+   "command_execution": 6
+  },
+  "also": []
+ },
+ "gym-waitlist__L-lenses-once__sonnet-high": {
+  "use_cases": 10,
+  "clauses": 49,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 8,
+   "implied": 45,
+   "request": 6
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 3512,
+  "bundled_and": 20,
+  "bundled_examples": [
+   "A full class offers a join-waitlist control to a signed-in member who ",
+   "A class that is not full offers no join-waitlist control, and a join r",
+   "A successful join creates exactly one waitlist entry for that member i"
+  ],
+  "words_judged": 3512,
+  "seconds": 130.4,
+  "rc": 0,
+  "arm": "L-lenses-once",
+  "driver": "sonnet-high",
+  "case": "gym-waitlist",
+  "cost_usd": 0.25630709999999995,
+  "turns": 3,
+  "output_tokens": 15138,
+  "tools": {
+   "Bash": 1,
+   "Write": 1
+  },
+  "also": []
+ },
+ "gym-waitlist__P-shiploop-spec__sol-medium": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 5,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 4505,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 4505,
+  "seconds": 346.0,
+  "rc": 0,
+  "arm": "P-shiploop-spec",
+  "driver": "sol-medium",
+  "case": "gym-waitlist",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 14830,
+  "tools": {
+   "agent_message": 3,
+   "command_execution": 10
+  },
+  "also": [],
+  "guides_opened": [
+   "README.md",
+   "behavioral-requirements.md",
+   "current-system-baseline.md",
+   "platforms/ui.md",
+   "project-knowledge.md",
+   "requirements-definition.md",
+   "service-discovery.md",
+   "testing-and-documentation.md"
+  ]
+ },
+ "gym-waitlist__P-shiploop-spec__sonnet-high": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 13,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 7113,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 7596,
+  "seconds": 291.2,
+  "rc": 0,
+  "arm": "P-shiploop-spec",
+  "driver": "sonnet-high",
+  "case": "gym-waitlist",
+  "cost_usd": 0.8062526,
+  "turns": 28,
+  "output_tokens": 39067,
+  "tools": {
+   "Bash": 11,
+   "Edit": 5,
+   "Read": 8,
+   "Write": 3
+  },
+  "also": [
+   "architecture.md"
+  ],
+  "guides_opened": [
+   "behavioral-requirements.md",
+   "current-system-baseline.md",
+   "platforms/ui.md",
+   "project-knowledge.md",
+   "requirements-definition.md",
+   "service-discovery.md"
+  ]
+ },
+ "invoice-reminders__F-guarded__sol-medium": {
+  "use_cases": 16,
+  "clauses": 134,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 73,
+   "implied": 75,
+   "request": 2
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 8637,
+  "bundled_and": 4,
+  "bundled_examples": [
+   "The automatic schedule has three occurrences at 1, 7, and 14 calendar ",
+   "Reminder observation exposes the invoice occurrence and its dispositio",
+   "The account setting and current operational availability can be distin"
+  ],
+  "words_judged": 8637,
+  "seconds": 487.1,
+  "rc": 0,
+  "arm": "F-guarded",
+  "driver": "sol-medium",
+  "case": "invoice-reminders",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 21266,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 19
+  },
+  "also": [],
+  "passes_recorded": 10,
+  "passes_words": 694
+ },
+ "invoice-reminders__F-guarded__sonnet-high": {
+  "use_cases": 18,
+  "clauses": 86,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 33,
+   "implied": 68,
+   "request": 3
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 5727,
+  "bundled_and": 7,
+  "bundled_examples": [
+   "Send time and time zone",
+   "Settings changes apply to later evaluations and are recorded",
+   "Delivery failure and retry"
+  ],
+  "words_judged": 5727,
+  "seconds": 388.3,
+  "rc": 0,
+  "arm": "F-guarded",
+  "driver": "sonnet-high",
+  "case": "invoice-reminders",
+  "cost_usd": 0.9391218,
+  "turns": 43,
+  "output_tokens": 53150,
+  "tools": {
+   "Bash": 6,
+   "Edit": 30,
+   "Read": 2,
+   "Write": 4
+  },
+  "also": [],
+  "passes_recorded": 8,
+  "passes_words": 786
+ },
+ "invoice-reminders__L-lenses-once__sol-medium": {
+  "use_cases": 10,
+  "clauses": 88,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 32,
+   "implied": 64,
+   "request": 2
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 6002,
+  "bundled_and": 5,
+  "bundled_examples": [
+   "Evaluation uses the currently effective due date and billing zone",
+   "Reminder content is limited to the intended invoice and its payment co",
+   "A reminder preserves the existing access rules for linked invoice and "
+  ],
+  "words_judged": 6002,
+  "seconds": 213.9,
+  "rc": 0,
+  "arm": "L-lenses-once",
+  "driver": "sol-medium",
+  "case": "invoice-reminders",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 9544,
+  "tools": {
+   "agent_message": 3,
+   "command_execution": 7
+  },
+  "also": []
+ },
+ "invoice-reminders__L-lenses-once__sonnet-high": {
+  "use_cases": 11,
+  "clauses": 51,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 20,
+   "implied": 39,
+   "request": 3
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 4222,
+  "bundled_and": 18,
+  "bundled_examples": [
+   "The owner can turn reminders on and off for the whole account",
+   "The default schedule is -3, 0, 7 and 14",
+   "A schedule has between 1 and 10 offsets inclusive"
+  ],
+  "words_judged": 4222,
+  "seconds": 152.8,
+  "rc": 0,
+  "arm": "L-lenses-once",
+  "driver": "sonnet-high",
+  "case": "invoice-reminders",
+  "cost_usd": 0.3016116,
+  "turns": 3,
+  "output_tokens": 18399,
+  "tools": {
+   "Bash": 1,
+   "Write": 1
+  },
+  "also": []
+ },
+ "invoice-reminders__P-shiploop-spec__sol-medium": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 3,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 5059,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 5311,
+  "seconds": 210.8,
+  "rc": 0,
+  "arm": "P-shiploop-spec",
+  "driver": "sol-medium",
+  "case": "invoice-reminders",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 9701,
+  "tools": {
+   "agent_message": 3,
+   "command_execution": 12
+  },
+  "also": [
+   "architecture.md"
+  ],
+  "guides_opened": [
+   "README.md",
+   "behavioral-requirements.md",
+   "carry-forward.md",
+   "current-system-baseline.md",
+   "project-knowledge.md",
+   "requirements-definition.md",
+   "research-loop.md",
+   "service-discovery.md",
+   "testing-and-documentation.md"
+  ]
+ },
+ "invoice-reminders__P-shiploop-spec__sonnet-high": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 9,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 6825,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 7273,
+  "seconds": 238.1,
+  "rc": 0,
+  "arm": "P-shiploop-spec",
+  "driver": "sonnet-high",
+  "case": "invoice-reminders",
+  "cost_usd": 0.6511032999999999,
+  "turns": 16,
+  "output_tokens": 30539,
+  "tools": {
+   "Bash": 5,
+   "Edit": 1,
+   "Read": 7,
+   "Write": 2
+  },
+  "also": [
+   "architecture.md"
+  ],
+  "guides_opened": [
+   "README.md",
+   "behavioral-requirements.md",
+   "current-system-baseline.md",
+   "platforms/ui.md",
+   "requirements-definition.md",
+   "service-discovery.md"
+  ]
+ }
+}
