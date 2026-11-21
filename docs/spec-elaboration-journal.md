@@ -2758,6 +2758,13 @@ Owner, 2026-11-21, to "Should I plan a small real-ShipLoop test of the spec guid
 "Yes, plan it". This section is the plan. Nothing in it has been run with a model. It changes nothing under
 `skills/`; the variant lives in a built copy of the plugin. Running it needs the owner's word.
 
+> **Not to be run as written (2026-11-21, 12:25).** The review at maximum effort (`review/guides-test-review.md`)
+> returned "fix first" with nine findings of the first rank: the sentence tests a reminder and not the material;
+> the driver can pick the wrong run and the wrong revision of the specification, and its stop does not freeze what
+> it reads; a heading in the stream is not proof that a guide was read; the dollar cap can remove the samples that
+> read more; the small base changes which checklist items are needed; and the bar and the predictions can pass
+> for the wrong reason. The amended design and what was checked of the review follow in section 40.
+
 **The question.** Section 38 left two things that no run has shown. In a real ShipLoop run that starts from one
 sentence: (1) how full is the specification the released spec stage writes, and (2) is it fuller when the stage
 has read the reference material written for it? "Fuller" is the owner's word and means breadth: more of what a
