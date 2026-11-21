@@ -270,3 +270,34 @@ draw of both), R14 (the better of F and L is 12 or more above P). R7 reads clean
 draws with the skills shown; a move over 6 supersedes them. The main effect repeated at +31 on Sonnet and +18 on
 Sol within round 4. "The enumeration rule: +12 on Sol" is superseded: +10 against the mean of D's two draws, not
 shown. `evidence/round-4/readings.txt`; journal section 8.
+
+## The draft, and the one arm past the stop rule (2026-11-20, before round 6 ran)
+
+The four answers are in (journal section 12): the gain is real and comes from the lenses; one pass, not
+iteration; the one-pass form adds no scope; and it beats the released stage clearly on Sol at medium (+19) and
+not shown on Sonnet at high (+6). That is the outcome "fold in the lenses as one pass".
+
+The plan to conclude said no further arm. One is added, because the fold-back is not any arm that ran: L and P are
+alternatives, and the change proposed for ShipLoop is P with the lenses in it. Putting a text to the owner without
+having run it, when the instrument to run it exists, would be asking for a decision on a guess.
+
+- `Q-shiploop-spec-lenses` = `P-shiploop-spec` with one block inserted into duty 2, after its first paragraph:
+  386 words, the five lenses as things to think through once before writing the requirements, the scope guard in
+  the stage's own terms ("inside the approved scope: add no feature the request's intent does not cover"), and
+  the rule that a named dimension lists its members and a named limit gives its value or is recorded as
+  unresolved under duty 6. It defers to duty 10 for the source of a platform rule. The block is in
+  `arms/Q-shiploop-spec-lenses.insert.txt`; a diff of the two arm files shows nothing else.
+- **Round 6**: Q, and a second draw of P, on both drivers, all four cases. 16 calls.
+- **R15, the draft against the released stage.** Read against the mean of P's two draws at the same band of 12:
+  the draft adds to the stage on a driver at Q minus P of 12 or more; 8 to 11 is interim; inside 8 nothing is
+  shown, and a proposal to fold it in would then rest on round 5's L alone and has to say so; at -12 or worse the
+  draft hurts and is not proposed. Reported beside it: Q's minutes, output tokens and words against P's, which is
+  what the change would cost in every run, and Q against L, which says whether the lenses lose anything by being
+  set inside the full duty text.
+- **R13 on the deciding rounds.** The second judge (gpt-6.2-astra at high) read only round 4. It now reads rounds
+  4c, 5 and 6 as well, beside the registered verdicts: do L over P, and Q over P, keep their sign and rough size
+  under a judge of another family.
+
+```sh
+sh queue-5.sh          # round 6, then the second judge on rounds 4c, 5 and 6
+```

@@ -690,3 +690,44 @@ extra.
    17%). The iterating forms do (20 to 27%).
 4. **Does it add to the stage ShipLoop ships?** On Sol at medium, clearly (+19). On Sonnet at high, not shown
    (+6), and what it adds there is mostly the operator's work, which a strict reader calls scope.
+
+## 13. The draft, registered before it runs (2026-11-20)
+
+**The outcome the four answers give** is the second of the plan's three: fold in the lenses as one pass. Its size,
+stated as measured: a large gain for Sol at medium (+19 over the released stage), not shown for Sonnet at high
+(+6), no added scope, about a minute more than the single pass.
+
+**Why one more arm, against section 6's stop rule.** The rule said no further arm, and the reason for it was to
+stop the experiment growing sideways. But no round has run the thing that would be proposed. L is the lenses with
+this experiment's own layout and none of the stage's duties; P is the stage with none of the lenses. The fold-back
+is P with the lenses set into it, and whether they still do their work there, inside 1,181 words of other duties
+and a different layout, is not something L and P can say between them. Asking the owner to decide on that text
+unrun, with the instrument standing ready, would be asking for a decision on a guess. So one arm is added, it is
+the deliverable itself, and nothing else is.
+
+**The draft** (`arms/Q-shiploop-spec-lenses.insert.txt`): one block of 386 words inserted into duty 2 of the
+released stage, after its first paragraph. Choices made in writing it, each for a reason on record:
+- **One pass, said so.** "Think through what the request leaves unsaid, in one pass." Section 12: iterating shows
+  no gain and is where the scope comes from.
+- **Lines to think along, not an instruction to find gaps.** The five lenses are named questions with named
+  answers (who meets it and how; what each sentence takes for granted; where the parts meet; the runtime's rules;
+  what must hold and what must never be true). The owner's own note on prompts says open-ended "find gaps"
+  instructions overbuild and instructions with a standard to check against do not.
+- **The scope guard in the stage's own words**, and first: what a line turns up goes "inside the approved scope:
+  add no feature the request's intent does not cover". Duty 4 already says "keep approved scope".
+- **The people who run it are in the first lens**, since the operator's work is the released stage's weakest
+  category on both drivers (2 and 3 of 9). Section 12 found that this is also where a strict reader sees scope;
+  the guard sits in the same paragraph for that reason, and where the line falls is the owner's judgement.
+- **It defers where the stage already rules.** A platform rule's source is item 10's business (the stage's
+  condition is stricter than anything this experiment's arms asked). A limit with no value is "recorded as
+  unresolved (item 6)", because duty 6 says to invent no bound; the arms' "state your own decided value" is not
+  carried over.
+- **A named dimension lists its members.** Kept from arm D. Not shown to help on its own (section 8), not shown to
+  hurt, and the partials of section 3 are its reason.
+- **Set inside duty 2 instead of as a new duty**, so that no duty is renumbered: the stage's code and the other
+  duties refer to duties by number.
+
+**What is registered** (README, "The draft, and the one arm past the stop rule"): round 6 runs Q and a second draw
+of P on both drivers; R15 reads Q against the mean of P's two draws at the band of 12, with Q's cost against P's
+and Q against L beside it; and the second judge reads rounds 4c, 5 and 6, so that the deciding comparisons have
+two families' verdicts. `queue-5.sh`.

@@ -1,0 +1,26 @@
+The block arms/Q-shiploop-spec-lenses.md adds to arms/P-shiploop-spec.md, and so the change this experiment
+proposes for the released spec stage: inserted into duty 2 of DUTIES['spec'] in
+skills/shiploop/scripts/shiploop_prompts.py, after its first paragraph. Nothing else differs between the arms.
+
+   Before you write them, think through what the request leaves unsaid, in one pass, along each of these lines.
+   What a line turns up becomes a requirement, or an acceptance line under the R-<n> it bounds, inside the approved
+   scope: add no feature the request's intent does not cover.
+   - Everyone who meets this and every way they meet it: the ordinary use; the same use at its edges (the first
+     time, the repeated time, the empty case, the largest case); its unhappy paths (wrong input, a refused action,
+     a limit reached, something it depends on failing); and the people who run it (turning it on and knowing it
+     worked, configuring it, turning it off for everyone or for one case, seeing what went wrong, carrying on with
+     the data that exists, undoing a mistake, going back to the version before).
+   - What each sentence of the request, and then each requirement you have written, takes for granted: that the
+     thing it names exists, is found somehow, may be seen by this person, is one and not none or many. Follow each
+     answer down until it is a fact about the world and no longer about this product.
+   - Where the parts meet: each use, piece of state, outside system and existing feature against the others: two
+     at once, one during the other, one undone while the other runs, one arriving late, one arriving twice.
+   - The runtime's own rules that the behaviour cannot escape: what it forbids, caps, times out, will not do while
+     the person waits, and requires before this runs at all or ships beyond a development environment. State the
+     behaviour each rule forces, with its number; item 10 asks for its source.
+   - What exists today and must still hold, and what must never be true however this is built: someone seeing what
+     they may not, a thing done twice that should happen once, data lost on the way, a rule enforced on one path
+     and not another.
+   A requirement that names a dimension (the states that stop something, the fields a record holds, the controls
+   an operator has, the conditions that refuse an action) lists its members, or says which it leaves out and why.
+   One that names a limit gives the limit's value, or records it as unresolved (item 6).
