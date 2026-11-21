@@ -1,0 +1,63 @@
+[
+ {
+  "run": "/Users/dadleet/e2e-runs-sdlc10/20261120/grok-46-xhigh-due-1/.shiploop-runs/work-20261121-110832-72a862/run",
+  "folder": "/Users/dadleet/e2e-runs-sdlc10/20261120/grok-46-xhigh-due-1",
+  "option": "stage",
+  "status": "done",
+  "host": "grok",
+  "model": "grok-4.6",
+  "effort": "xhigh",
+  "case": "ticket-due-times",
+  "kind": null,
+  "seeded": false,
+  "asked": false,
+  "passed": true,
+  "checks": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "hidden": null,
+  "first": "2026-11-21T11:08:33Z",
+  "seconds": {
+   "intake": 157.73799991607666,
+   "discovery": 180.8619999885559,
+   "research": 113.91100001335144,
+   "spec": 88.11600017547607,
+   "review:spec": 712.3209998607635,
+   "test-strategy": 575.6689999103546,
+   "review:test-strategy": 686.8040001392365,
+   "plan": 415.9029998779297,
+   "review:plan": 570.6220002174377,
+   "prepare": 150.22399997711182,
+   "step-plan": 1079.8899998664856,
+   "review:step-plan": 1139.3090000152588,
+   "test-spec": 517.4969999790192,
+   "implement": 468.0570001602173,
+   "test": 875.7669999599457,
+   "document": 456.4889998435974,
+   "review:document": 672.6549999713898,
+   "carry-forward": 385.44600009918213,
+   "review:carry-forward": 1109.5699999332428,
+   "system-test-author": 522.2070000171661,
+   "review:system-test-author": 576.5910000801086,
+   "system-test": 314.80999994277954,
+   "product-acceptance": 116.1930000782013,
+   "release-plan": 430.6749999523163,
+   "review:release-plan": 941.9930000305176,
+   "release-check": 187.739000082016,
+   "release": 243.92899990081787,
+   "release-verify": 161.53399991989136,
+   "operations": 176.58100008964539,
+   "handoff": 350.19799995422363
+  },
+  "down": {
+   "system-test": 0.5160000324249268
+  }
+ }
+]

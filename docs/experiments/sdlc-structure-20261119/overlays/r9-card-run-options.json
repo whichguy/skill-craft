@@ -1,0 +1,18 @@
+{
+ "about": "Round 9 arm C: three edits to skills/shiploop/SKILL.md in a build copy, so that the card says whose choice a run option is and what the default of --planning-review is (R70, R76: Sol 6.2 passed `none` unasked in 5 of 15 deliveries). Applied by card_patch.py; test/shiploop_e2e/overlay.py edits scripts only. Written against ShipLoop 2.4.0 (4693c1a3).",
+ "file": "skills/shiploop/SKILL.md",
+ "edits": [
+  {
+   "old": "- [Run options](references/run-options.md): choosing `--delegation`, `--lint` or `--planning-review`, or switching one mid-run.",
+   "new": "- [Run options](references/run-options.md): when the user's request asks for `--delegation`, `--lint` or `--planning-review`, or to switch one mid-run."
+  },
+  {
+   "old": "# Optional (required with --planning-review none): select the exact actual Improve skill at initialization.",
+   "new": "# Optional: select the exact actual Improve skill at initialization (a user who asks for --planning-review none must)."
+  },
+  {
+   "old": "Run options are recorded at `workspace start` or `init` and refused on a saved run without them:\n`--delegation inline|ask-agent` (default `inline`: this conversation executes every assignment),\n`--lint fix|report|off` and `--planning-review stage|none` ([run options](references/run-options.md)).",
+   "new": "Run options are the user's to set: pass one only when the user's request asks for it, and otherwise pass none, so\nthe defaults apply. They are recorded at `workspace start` or `init` and refused on a saved run without them:\n`--delegation inline|ask-agent` (default `inline`: this conversation executes every assignment),\n`--lint fix|report|off` and `--planning-review stage|none` (default `stage`: every planning result is reviewed)\n([run options](references/run-options.md))."
+  }
+ ]
+}

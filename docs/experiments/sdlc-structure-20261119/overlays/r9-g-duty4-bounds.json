@@ -1,0 +1,12 @@
+{
+ "about": "Round 9 arm G: the spec-elaboration session's arm G (docs/experiments/spec-elaboration-20261120/arms/G-shiploop-spec-duty4-bounds.insert.txt), the independent review's seven sentences in place of one sentence of spec duty 4, word for word, here applied to ShipLoop's own prompt in a build copy so that it can be read on the real case. The wording is that session's. Written against ShipLoop 2.4.0 (4693c1a3).",
+ "edits": [
+  {
+   "module": "shiploop_prompts.py",
+   "constant": "DUTIES",
+   "key": "spec",
+   "old": "Mark each unresolved prerequisite or user\n   decision as an open gap under its R-<n> in KNOWLEDGE/spec.md.",
+   "new": "Mark unresolved prerequisites and decisions that require the user as open gaps under their R-<n> in\n   KNOWLEDGE/spec.md. Use applicable bounds from the request or preserved contract. Introduce a functional limit the\n   request leaves unstated only where the requested behaviour cannot work correctly or safely without it. When only\n   its value is open, take the best reversible default supported by the available evidence and applicable runtime\n   limits (item 10). If the basis for such a default is missing, keep the bound open under its R-<n>. State the\n   observable behaviour at and beyond the effective bound and label any chosen value as a default in its acceptance\n   line. Record that value, its basis, alternatives and revalidation condition as an assumption for that R-<n> in\n   `summary`."
+  }
+ ]
+}

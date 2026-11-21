@@ -1875,17 +1875,21 @@ the request did not state.
 ### Findings
 
 - **F42 (firm for these two requests; 21 reviews).** On Sol 6.2 medium the five removed reviews are a
-  formality, and removing them buys nothing. None changed a file or a result. They cost about a minute to a
+  formality, and removing them buys nothing. (Corrected 2026-11-21 after review: what is shown is that no saving
+  appeared in this round; it does not bound what removing them could save.) None changed a file or a result. They cost about a minute to a
   minute and a half of a delivery (9%), and the run pays the first review's reading time whichever review comes
   first (R61). The saving the option can reach is under the 15% this study can read, and in one cell L was
   slower for reasons the removed reviews do not explain.
-- **F43 (firm for the three planning reviews on these requests; interim for the other two).** On Sonnet 5.5 high
+- **F43 (firm for the three planning reviews on these requests; interim for the other two. "Earn their place"
+  in this round is the registered edit-yield rule, not a measured benefit to a delivery: F45).** On Sonnet 5.5 high
   the reviews of `spec`, `test-strategy` and `plan` are real editing: 9 of 9 changed content that both judges
   call substantive, and nearly all of it completes what was already required. The `step-plan` review made one
   wording edit in 3. The `system-test-author` review is 2 of 4. Round 1's recommendation 4 was read on terra,
   where the `plan` review was 2 to 3% substantive and the `system-test-author` review edited anything in 4%
   (R8); it does not transfer to Sonnet.
-- **F44 (interim; the registered measure was lost).** What lean would buy on Sonnet is 4 to 5 minutes of a
+- **F44 (interim; the registered measure was lost. Qualified 2026-11-21 after review: this is an accounting
+  estimate, not a measured saving, and the plans' different work-item counts may themselves be an effect of the
+  reviews).** What lean would buy on Sonnet is 4 to 5 minutes of a
   40-minute delivery, 10 to 12%: the planning window is 4.0 minutes shorter and the removed reviews' own
   seconds are 5.0 minutes. The 23% at the milestone overstates it, because the S runs also planned more work
   items.
@@ -1901,7 +1905,8 @@ the request did not state.
   five other hosts (R60). Round 3 saw the same class in 7 of 108 reader sessions (R21). ShipLoop's text says
   nothing about how a run stops a process it started, and the same command can reach processes that are not
   ShipLoop's.
-- **F48 (apparatus; likely, not shown).** Eight runs of one fixture at once is too many. Besides the kill, one
+- **F48 (apparatus; likely, not shown. Qualified 2026-11-21 after review: four at once is a precaution, not a
+  measured threshold).** Eight runs of one fixture at once is too many. Besides the kill, one
   run's own release check measured its tests as unstable while the others were running and found nothing to
   reproduce later (R62), and one base-test verdict was lost to a reset (the exposure of R55). Fewer at once
   lowers the exposure; it does not remove it.
@@ -2157,7 +2162,8 @@ folders of rounds 4 to 7, one rehearsal does.
 ### Findings
 
 - **F51 (interim; four against four).** Sol 6.2 high made the planning choice that fails the held-out probes as
-  often as medium did: half the time. Higher effort is not what moves it.
+  often as medium did: half the time. Higher effort is not what moves it. (Corrected 2026-11-21 after review: no
+  improvement was shown; three or four in six cannot show that effort has no effect.)
 - **F52 (firm in direction; two requests).** High costs minutes for the same held-out results: about a sixth
   more on the planning-heavy request and two thirds more on the small one. On the ticket request planning takes
   the same time at both efforts and the extra is in the build.
@@ -2176,7 +2182,8 @@ folders of rounds 4 to 7, one rehearsal does.
    same held-out results, and 16 to 66% more minutes. If that failure was the reason for the switch, effort is
    not the lever. The two that could be are unchanged from round 7: the spec stage saying how existing data gets
    its new field (the spec-elaboration session's work), and what the yardstick accepts.
-2. **One sentence in the skill card would stop the unasked `none`** (F53): say in the start section that
+2. **One sentence in the skill card would stop the unasked `none`** (corrected 2026-11-21 after review: a candidate
+   remedy to be tested in round 9; the cause is not shown) (F53): say in the start section that
    `stage` is the default and that `none` is for a user who asks for it. It is smaller than round 7's pin and it
    treats the cause. It is a ShipLoop text change: the owner's go-ahead, a change note, the packet tests and an
    E2E round.
@@ -2266,8 +2273,41 @@ folders, twice each (`sol-high-expenses-p1`, `sol-medium-expenses-p1`).
 - F53's count is now 5 of 15.
 
 Recommendation 1 of this round, restated on these numbers: on this evidence Sol 6.2 medium is the better
-driver for these two requests, faster by a third or more and no worse on the held-out checks. The switch to
+driver for these two requests, faster by a third or more (corrected 2026-11-21 after review: medium takes 28% and
+40% less time than high; it is high that takes 38% and 66% more) and no worse on the held-out checks. The switch to
 high is the owner's to keep or reverse.
+
+### Results: the Grok delivery (run 2026-11-21 after 195fbf1d760dae26c0b65fa5a99b5cfa777f1ef5)
+
+**R80. The run** (`runs-grok/census.json`). One whole delivery of `ticket-due-times` on Grok `grok-4.6` at
+`xhigh`, ShipLoop 2.4.0 with no overlay: every harness verdict, 8 of 8 held-out checks, 240.6 minutes, $67.90,
+732 turns. The session ended once, at `system-test`, and the harness resumed it at once. The paired Sol runs of
+R73 ran beside its first hour. The plan held 12 criteria in one step; two commands were refused, both in `test`.
+
+**R81. Where the four hours went.**
+
+| Part | Minutes | Share |
+|---|---|---|
+| planning stages (intake to prepare) | 28.0 | 12% |
+| the four planning reviews | 51.8 | 22% |
+| step plan and test spec | 26.6 | 11% |
+| implement | 7.8 | 3% |
+| test | 14.6 | 6% |
+| document | 7.6 | 3% |
+| the step review | 11.2 | 5% |
+| carry-forward, and its review | 6.4, 18.5 | 3%, 8% |
+| system tests, and their review | 13.9, 9.6 | 6%, 4% |
+| acceptance to handoff, and the release-plan review | 27.8, 15.7 | 12%, 7% |
+
+All eight reviews: 106.8 minutes, 45% of the run. Building the item (implement, test, document) took 30 minutes.
+
+**R82. What the reviews changed, from their pass logs.** Seven of the eight changed something: spec (193 lines),
+test-strategy (71), step-plan (51), the step (8), carry-forward (108), system-test-author (73) and release-plan
+(15). The plan review changed nothing. Not yet judged; the registered judges read them next.
+
+**For context only (R65, another ShipLoop version):** the three recorded deliveries of the same request on the
+same model took 339 to 364 minutes and $89 to $96, in plans of 8 to 11 steps. This one took about a third less
+time and a quarter less money, in one step. One run, and the version is not the only thing that differs.
 
 ## Round 9 (2026-11-21): from findings to changes: what is settled, and small tests first
 
@@ -2348,6 +2388,70 @@ written; its report is added when it returns.
    (`docs/spec-elaboration-journal.md`, section 24), eight samples a wording, read blind.
 5. Whole deliveries only for what survives 2 and 4.
 
+### Owner decision, 2026-11-21: the release fills the data file when it starts
+
+Asked "For the ticket request, should the release fill the data file itself when it starts?", the owner
+answered "Yes, fill at start". So the held-out probes of `ticket-due-times` stand as they are, and the seven
+Sol 6.2 deliveries that make an operator run a migration first were wrong, not merely different. R62's and F46's
+"the request allows it" is settled against that reading, round 7's recommendation 6 is closed, and the first P0
+of the review above is answered: B is a ShipLoop question.
+
+### The max-effort review, received
+
+`review-r9/sol-max-review.md`, word for word; the brief is `review-r9/sol-max-brief.txt`. Sol at maximum effort,
+read-only, 17 minutes; the runner's `sol` target calls `gpt-6.1-sol`. Its verdict: "Ship A1, A2 and A3. Pilot B
+after narrowing its wording." Each pointer below was checked against the code it cites.
+
+- **A1 is text only.** Not round 7's pin, which would also override a user who asks for `none`, and not a
+  navigator refusal: nothing `new_state` receives says who asked. Its sentence is the one used.
+- **A2 goes in `STAGE_RULES`** (`shiploop_prompts.py`), beside the scratch-folder rule, because every producer
+  packet prints it. A hook is a separate decision (host coverage, quoting, indirect commands), and stopping by
+  process id is not cleanup of a process's children. So this session's second P0 is withdrawn: the text now, the
+  hook as its own question.
+- **B needs its own wording.** The spec-elaboration session's arm G is about limits and "does not clearly
+  address" a manual step. A wording must name it and must not become "never add a refusal". Arm N is narrowed
+  to that.
+- **E1** uses the harness's own `run.py --stop-after-start`, keeps the first attempted start command, and runs a
+  fresh control beside the candidate.
+- **E2** stops after the spec's review, keeps the spec as written and as accepted, runs a fresh control, sorts
+  each spec into four classes with a quoted clause, and looks for a safeguard given up. The counts and the rule
+  for going further are fixed before the first sample.
+- **Eight statements of rounds 7 and 8 claimed more than their evidence.** Each is corrected or qualified in
+  place: F42, F43's "earn their place", F44, F48, F51, F53, round 8's recommendation 2 and the closing
+  recommendation of the paired redo, whose "a third or more" had the wrong denominator.
+
+### Registered design: two small tests (written and committed before any counted sample)
+
+**Builds.** ShipLoop 2.4.0 from a clean detached worktree of `main`, three copies: plain; arm C, with
+`overlays/r9-card-run-options.json` applied to its `SKILL.md` by `card_patch.py`; and arms N and G, each with its
+overlay on the spec duty (`overlays/r9-n-no-added-manual-step.json`, `overlays/r9-g-duty4-bounds.json`).
+
+**E1: does the card wording change the first command?** Codex `gpt-6.2-sol` at medium, where the behaviour is
+frequent enough to read (3 of 5 on file; 2 of 10 at high). Twelve fresh sessions on the plain build and twelve on
+arm C, six of each request (`shared-expenses`, `ticket-due-times`), started in mixed batches with `run.py
+--stop-after-start`. Read from each: the option of the first start command it attempted and the option the run
+recorded. A session that starts no run is counted apart.
+- *Reading*: arm C stops it if at most 1 of its 12 pass `none` and at least 4 of the 12 plain ones do. If the
+  plain arm shows 1 or fewer, the test cannot read. Anything else: no effect shown. No extension.
+
+**E2: does a duty-4 wording change what the spec decides?** `ticket-due-times` on Codex `gpt-6.2-sol` at high,
+the owner's chosen effort. Eight fresh sessions an arm: plain, N and G, started in mixed batches and ended by
+`stage_stop_samples.py` when the navigator enters `test-strategy`, so the spec's review has run where the run
+has one. Kept from each: the spec as written and as accepted.
+- *Classes*, by a reader who is not told the arm, each with the clause quoted: (1) the release prepares the
+  file itself and starts; (2) a person must run something first and the release refuses to start until then;
+  (3) unresolved or contradictory; (4) no accepted spec. An optional offline tool beside a working start is
+  class 1. The same reader notes any safeguard given up, such as serving on a file that could not be saved.
+- *Reading*: a wording changes the decision if at most 1 of its 8 is class 2 and at least 4 of the 8 plain ones
+  are. Anything else: no effect shown. No extension. A wording that gives up a safeguard is not put forward
+  whatever its count.
+- G is the other session's arm, read here on the real case because its own trial is 36 deliveries; its
+  result is reported to that session's journal by git, not acted on.
+
+**Limits known before the run.** One request for E2 and two for E1; one model; a spec is a stand-in for the
+delivery, good for this decision by R79 and for nothing else; small counts read only large effects; all Sol
+sessions are shown the owner's own skills (R72).
+
 ## Evidence (all rounds)
 
 | File | Holds |
@@ -2396,6 +2500,9 @@ written; its report is added when it returns.
 | `evidence/effort-sol-high.txt`, `effort_report.py`, `runs-effort/census.json` | round 8: the six Sol 6.2 high deliveries beside round 7's Sol 6.2 medium runs, the registered readings, and the file they are computed from (R67 to R71) |
 | `evidence/effort-sol-paired.txt`, `runs-effort-paired/census.json`, `runs-effort-paired/reruns.json` | round 8: the paired redo, medium and high started together, its readings, the file they are computed from, and the one check run again (R73 to R77) |
 | `evidence/plan-review-cuts.txt`, `plan_review_cuts.py` | round 9: how builders stop processes, by driver, and what each Sol spec of `ticket-due-times` says about tickets already on file (R78, R79) |
+| `review-r9/sol-max-brief.txt`, `review-r9/sol-max-review.md` | round 9: the brief sent for the max-effort review of the change plan, and the review word for word |
+| `overlays/r9-card-run-options.json`, `card_patch.py`, `overlays/r9-n-no-added-manual-step.json`, `overlays/r9-g-duty4-bounds.json`, `stage_stop_samples.py` | round 9: the three candidate wordings as patches to build copies, the applier for the card patch, and the driver that ends a real run once it is past the spec stage |
+| `runs-grok/census.json` | round 8: the Grok delivery's seconds by stage (R80 to R82) |
 | `removed_review_diffs.py`, `judge-reviews/packet-*.txt`, `judge-reviews/key.json` | round 7: each review of a removed stage that changed anything, as the judges saw it, and which run and driver each is |
 | `judge-reviews/out-A.jsonl`, `judge-reviews/out-B.jsonl`, `evidence/removed-review-judge-brief.txt` | round 7: each judge's label, scope and reason per packet, and the brief |
 | `evidence/removed-review-judged.txt`, `removed_review_score.py` | round 7: the judges' agreement and the substantive share by driver and reviewed stage (R64) |
