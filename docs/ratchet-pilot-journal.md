@@ -7,6 +7,44 @@ now"). Nothing under `skills/` changes in this pilot; the apparatus is `docs/exp
 Status words: **firm** (measured, registered reading), **interim** (measured once or with a known limit),
 **exploratory** (not registered), **superseded** (kept, with the date and the reason).
 
+## 0. Where it ended (2026-11-21 00:40; the readings are registered, the verdict is mine for the owner to accept or not)
+
+**Verdict: do not build Ratchet.** The half of the idea about steps held; the half about the loop did not.
+
+- **One session builds these products correctly.** Five of six whole-loop first builds passed every held-out check
+  (section 10, "P3"), and on Grokbot-local a single session with no plan passes both browser yardsticks, at low
+  effort in 6.8 minutes (section 17). Planned steps are not what made any of these deliveries correct.
+- **Failed tests drove almost nothing.** One acceptance clause failed naturally in the first five whole loops. The
+  cycles after the first build were spent on requirements the loop wrote for itself, at 7.0 times ShipLoop's time on
+  the one matched cell (R3.4), and no run stopped by itself.
+- **Most of what the closing looks added is not the request's.** Two outside judges accept 10 of 59 additions and 2
+  of 23 reported gaps (section 13); 6 of 9 tested additions fail on a correct reference (F15).
+- **Test success alone is not a safe exit.** The due-times loop ended with 316 of 316 of its own items passing and
+  5 of 8 held-out checks failing, from its first build to its last: its tests agreed with its specification's
+  reading of the request, and the reading was not the customer's (F20). A repair start went green while its product
+  got worse (F12), and one cycle's invented requirement rewrote 21 earlier tests (F21).
+- **For the E2E harness:** a held-out yardstick written before any build exists misgrades correct builds until it
+  has been calibrated on several independent builds and proven with planted defects (F18).
+
+| Registered reading | Result |
+|---|---|
+| R1.1 the test pass is valid (at most 10% of clauses fail on a correct product) | not met: 8% to 15%, and a second correct delivery fails more |
+| R1.2 the test pass is strong (80% of 37 calibrated defects) | met: 37 of 37 (first form 34) |
+| R1.3 enrichment helps the tests | not shown by its rule |
+| R2.1 the loop repairs what its tests show (80%) | not met: 6 of 8 |
+| R2.2 the closing look finds what the tests miss | could not be read: the tests missed nothing planted |
+| R2.3 closing-look clauses are sound (at most 20% fail on a correct reference) | not met: 6 of 9 |
+| R3.1 no held-out check lost | met on five whole loops, not on due times (3 of 8 throughout) |
+| R3.4 time against ShipLoop, matched cell | slower: 91.8 minutes against 13.2 |
+| P4 a wrong test, by hand | not run; one natural case was handled correctly |
+| R5.1, R6.1, R7.1 Grokbot-local is hard enough, on either yardstick, on any of three runners | not met: no headroom |
+| R5.2, R6.2 quality at the end, bare against ShipLoop | no difference shown |
+| J1 to J4 the closing looks' additions, judged blind | 10 of 59 belong; 2 of 23 gaps real; kappa 0.42 |
+
+Open when this was written: the Ratchet arm on Grokbot-local was in its third cycle (R5.5), and a measure of each
+Grokbot build's own tests against seeded faults was running. Their results are appended to section 17. The branch
+is not merged; the owner was asked.
+
 ## 1. The idea, in the owner's words (2026-11-20)
 
 1. First message: ShipLoop elaborates a request, plans, and builds step by step. "It's not by breaking it up into steps
