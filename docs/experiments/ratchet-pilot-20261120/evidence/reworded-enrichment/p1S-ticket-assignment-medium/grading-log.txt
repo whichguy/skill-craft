@@ -1,0 +1,33 @@
+== strength grading, Sonnet medium cell 10:59:36
+p1S-ticket-assignment-medium: 22 clauses and 5 use cases tested; on the correct reference 0 clauses and 0 use cases fail: none
+  control alternative: fails C-1, C-14, C-22, C-7, C-8
+  filter-or                   caught     C-17, C-22, U-3, U-5
+  filter-after-page           caught     C-18
+  no-envelope                 caught     C-22, C-3, C-4, C-5, C-6
+  conflict-as-invalid         caught     C-22, C-5
+  closed-assignable           caught     C-22, C-5
+  notify-inline               caught     C-11, C-12, C-22, U-2
+  notify-no-template          caught     C-11, C-12, U-1
+  notify-key-per-ticket       caught     C-12, C-22
+  notify-requester            caught     C-11, C-12, C-22, U-1, U-2
+  audit-bypassed              caught     C-14, C-22, U-1, U-2
+  actor-ignored               caught     C-14, C-22, U-1
+  same-agent-not-noop         caught     C-22, C-7, C-8
+  memory-only-assignee        caught     C-10, C-19, U-4
+  old-data-refused            caught     C-10
+  old-assignee-undefined      caught     C-10
+  raw-column-inserted         caught     C-20, U-5
+  cli-no-assignee             caught     C-19, U-4
+  no-unassign                 caught     C-10, C-14, C-16, C-2, C-22, C-5, C-6, C-8, U-2
+  empty-filter-ignored        caught     C-16, C-17, C-22, U-3
+  name-limit-off-by-one       caught     C-3
+  listing-hides-assignee      caught     C-10, C-15, C-16, C-19, C-9, U-4
+  update-rejects-resolved     MISSED     
+  default-limit-changed       caught     C-22
+  resolved-template-replaced  caught     C-22
+  audit-not-saved             caught     C-22
+  backoff-linear              caught     C-21
+  validate-renamed            caught     C-21
+  caught 26 of 27 calibrated defects
+strength exit: 0
+== done 11:01:32

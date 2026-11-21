@@ -1,0 +1,83 @@
+{
+ "C-1": {
+  "command": "node --test --test-reporter=spec --test-name-pattern='^C-1 ' acceptance/http.test.js"
+ },
+ "C-2": {
+  "command": "node --test --test-reporter=spec --test-name-pattern='^C-2 ' acceptance/http.test.js"
+ },
+ "C-3": {
+  "command": "node --test --test-reporter=spec --test-name-pattern='^C-3 ' acceptance/http.test.js"
+ },
+ "C-4": {
+  "command": "node --test --test-reporter=spec --test-name-pattern='^C-4 ' acceptance/http.test.js"
+ },
+ "C-5": {
+  "command": "node --test --test-reporter=spec --test-name-pattern='^C-5 ' acceptance/http.test.js"
+ },
+ "C-6": {
+  "command": "node --test --test-reporter=spec --test-name-pattern='^C-6 ' acceptance/http.test.js"
+ },
+ "C-7": {
+  "command": "node --test --test-reporter=spec --test-name-pattern='^C-7 ' acceptance/http.test.js"
+ },
+ "C-8": {
+  "command": "node --test --test-reporter=spec --test-name-pattern='^C-8 ' acceptance/http.test.js"
+ },
+ "C-9": {
+  "command": "node --test --test-reporter=spec --test-name-pattern='^C-9 ' acceptance/http.test.js"
+ },
+ "C-10": {
+  "command": "node --test --test-reporter=spec --test-name-pattern='^C-10 ' acceptance/http.test.js"
+ },
+ "C-11": {
+  "command": "node --test --test-reporter=spec --test-name-pattern='^C-11 ' acceptance/http.test.js"
+ },
+ "C-12": {
+  "command": "node --test --test-reporter=spec --test-name-pattern='^C-12 ' acceptance/http.test.js"
+ },
+ "C-13": {
+  "command": "node --test --test-reporter=spec --test-name-pattern='^C-13 ' acceptance/http.test.js"
+ },
+ "C-14": {
+  "command": "node --test --test-reporter=spec --test-name-pattern='^C-14 ' acceptance/http.test.js"
+ },
+ "C-15": {
+  "command": "node --test --test-reporter=spec --test-name-pattern='^C-15 ' acceptance/http.test.js"
+ },
+ "C-16": {
+  "command": "node --test --test-reporter=spec --test-name-pattern='^C-16 ' acceptance/http.test.js"
+ },
+ "C-17": {
+  "command": "node --test --test-reporter=spec --test-name-pattern='^C-17 ' acceptance/http.test.js"
+ },
+ "C-18": {
+  "command": "node --test --test-reporter=spec --test-name-pattern='^C-18 ' acceptance/http.test.js"
+ },
+ "C-19": {
+  "command": "node --test --test-reporter=spec --test-name-pattern='^C-19 ' acceptance/cli.test.js"
+ },
+ "C-20": {
+  "command": "node --test --test-reporter=spec --test-name-pattern='^C-20 ' acceptance/cli.test.js"
+ },
+ "C-21": {
+  "command": "node --test --test-reporter=spec --test-name-pattern='^C-21 ' acceptance/http.test.js acceptance/misc.test.js"
+ },
+ "C-22": {
+  "command": "node --test --test-reporter=spec --test-name-pattern='^C-22 ' acceptance/misc.test.js"
+ },
+ "U-1": {
+  "command": "node --test --test-reporter=spec --test-name-pattern='^U-1 ' acceptance/http.test.js"
+ },
+ "U-2": {
+  "command": "node --test --test-reporter=spec --test-name-pattern='^U-2 ' acceptance/http.test.js"
+ },
+ "U-3": {
+  "command": "node --test --test-reporter=spec --test-name-pattern='^U-3 ' acceptance/http.test.js"
+ },
+ "U-4": {
+  "command": "node --test --test-reporter=spec --test-name-pattern='^U-4 ' acceptance/cli.test.js"
+ },
+ "U-5": {
+  "command": "node --test --test-reporter=spec --test-name-pattern='^U-5 ' acceptance/misc.test.js"
+ }
+}
