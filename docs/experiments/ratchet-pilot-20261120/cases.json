@@ -1,0 +1,75 @@
+{
+ "_about": "Ratchet pilot cases (docs/ratchet-pilot-journal.md). Each request is copied verbatim from the E2E harness's own case, named in `source`; `fixture` is a folder of test/shiploop_e2e/fixtures (its docs/shiploop knowledge home, if it has one, is removed before the run: Ratchet writes its own specification); `checks` are the project's own commands the gate runs beside the acceptance tests; `hidden` names the held-out grader in grade.py, which no session is shown. Written by a one-off script from those sources on 2026-11-20.",
+ "shared-expenses": {
+  "fixture": "shared-expenses-at-step-plan",
+  "request": "Build a small shared-expenses service in Node.js (no npm dependencies). server.js listens on the port in the PORT environment variable and keeps its data in the JSON file named by the DATA_FILE environment variable, so groups and expenses survive a restart. POST /groups with {\"id\": \"<group id>\", \"members\": [\"<name>\", ...]} creates a group: 201, 409 if the id exists, and 400 unless members holds at least two distinct non-empty names. POST /groups/<id>/expenses records an expense paid by one member. {\"payer\": \"<name>\", \"cents\": <positive integer>, \"split\": \"equal\"} shares it equally among all members, with any cents left over after an even division going one each to the members listed first. {\"payer\": \"<name>\", \"cents\": <positive integer>, \"split\": \"exact\", \"shares\": {\"<name>\": <cents>, ...}} makes each member listed in shares owe that many whole cents (zero is allowed), and the shares must add up to cents. It answers 201 with {\"expense\": <n>}, where n is 1 for the group's first expense, then 2, and so on; 400 for an unknown payer or member, a non-positive or non-integer amount, an unknown split, or shares that do not add up. GET /groups/<id>/balances returns an object with each member's net cents, what they paid minus what they owe, so the balances add up to 0. GET /groups/<id>/settlements returns a JSON array of {\"from\", \"to\", \"cents\"} payments that bring every balance to 0: repeatedly the member who owes most pays the member who is owed most the smaller of the two amounts, and ties go to the member listed first. Every route under /groups/<id> answers 404 for an unknown group. Concurrent requests must never lose an expense. Cover the behaviour with node:test tests under test/ that run with `node --test`.",
+  "checks": [
+   "node --test"
+  ],
+  "hidden": "expenses",
+  "source": "test/shiploop_e2e/cases.json shared-expenses"
+ },
+ "ticket-assignment": {
+  "fixture": "node-tickets",
+  "request": "This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable, with a command-line tool in bin/. Add ticket assignment. `PUT /tickets/:id/assignee` with a JSON body `{\"assignee\": \"<agent>\"}` assigns the ticket to that agent, and `{\"assignee\": null}` unassigns it; an agent is a non-empty name of at most 64 characters. Only open and in-progress tickets can be assigned or unassigned. Assigning a ticket to the agent it already has changes nothing. Every ticket shows its `assignee` (null when unassigned). The agent a ticket is assigned to is notified that it was assigned to them. `GET /tickets` gains an `assignee` filter: `assignee=<agent>` keeps that agent's tickets and an empty `assignee=` keeps the unassigned ones; a ticket must match every filter given. The command-line listing shows each ticket's assignee. Everything the service already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones.",
+  "checks": [
+   "npm test"
+  ],
+  "hidden": "ticket-assignment",
+  "source": "test/shiploop_e2e/cases.json ticket-assignment",
+  "variants": {
+   "kind": "module",
+   "path": "test/fixtures/quality/reference_ticket_assignment.py"
+  }
+ },
+ "node-chess-engine": {
+  "fixture": "chess-node-w1",
+  "request": "Build a chess rules engine as a Node.js module src/chess.js (CommonJS, no dependencies; npm test runs node --test). A position is a FEN string. startFen() returns the standard start position. legalMoves(fen) returns an array of every legal move for the side to move in UCI form (for example e2e4, and e7e8q for a promotion), sorted alphabetically. applyMove(fen, move) returns the FEN after the move, with correct castling rights, en-passant square, halfmove clock and fullmove number, or throws IllegalMoveError (a class the module also exports) when the move is not legal. The en-passant target square is set after every two-square pawn push, whether or not a capture is possible (the FEN-spec convention). status(fen) returns ongoing, check, checkmate or stalemate for the side to move. Implement all piece moves, castling on both sides (never out of, through or into check; in UCI it is the king's two-square move: e1g1, e1c1, e8g8, e8c8), en passant, promotion to q, r, b or n, check, checkmate and stalemate. Cover the rules with node --test tests in test/: known games (fool's mate, scholar's mate), castling, en passant, promotion, stalemate and move counts from standard test positions. Keep legalMoves on a middlegame position under 50 ms and a depth-2 legal-move count of the start position under 2 seconds. npm test must pass.",
+  "checks": [
+   "npm test"
+  ],
+  "hidden": "chess",
+  "source": "test/shiploop_e2e/step_cases.json node-chess-engine"
+ },
+ "ticket-due-times": {
+  "fixture": "node-tickets",
+  "request": "This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable, with a command-line tool in bin/. The help desk is starting to promise response times. Each ticket gets a due time: the time it was created plus the response time for its priority, which is 4 hours for urgent tickets, 24 for high, 72 for normal and 168 for low, and the help desk must be able to change those hours without a code change. A ticket's due time is set once: a later change of the hours or of the ticket's priority does not move it. Every ticket shows its due time as `due`, and `GET /tickets?overdue=true` lists only the open and in-progress tickets whose due time has passed. The tickets already in the production data file get due times too, from their own creation time and priority, and keep them from then on. Due times are switched on in production only once the data file holds them: until the DUE_TIMES environment variable is `on`, the service answers exactly as it does today. If the new release misbehaves, operators must be able to go back to the current release, 1.4.0, and it must still start on the data file the new release wrote and show every ticket. Everything the service already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones.",
+  "checks": [
+   "npm test"
+  ],
+  "hidden": "due-times",
+  "source": "test/shiploop_e2e/cases.json ticket-due-times",
+  "variants": {
+   "kind": "module",
+   "path": "test/fixtures/quality/reference_due_times.py"
+  }
+ },
+ "selftest": {
+  "fixture": null,
+  "request": "Write calc.js (CommonJS): add(a, b) returns the sum of two numbers and double(a) returns twice a number.",
+  "checks": [
+   "node -e \"require('./calc.js')\""
+  ],
+  "hidden": null,
+  "source": "the apparatus's own check (selftest_fake.py); no model"
+ },
+ "stand-in-rules": {
+  "fixture": "node-orders",
+  "request": "In this Node.js project, add a new module src/orders.js exporting parseOrders(text) and total(orders). parseOrders reads one order per non-blank line; a line holds fields `key=value` joined by `;` with keys id, qty, price, status and shipped_at, and values are trimmed. It returns objects {id, qty, price, status, shippedAt}: id, qty and price are numbers, status is lower-cased, shippedAt is the shipped_at text ('' when empty). parseOrders('id=1;qty=2;price=150;status=Open;shipped_at=\\n\\nid=2;qty=1;price=99;status=shipped;shipped_at=2026-10-01') returns [{id:1,qty:2,price:150,status:'open',shippedAt:''},{id:2,qty:1,price:99,status:'shipped',shippedAt:'2026-10-01'}]. Rules, each naming the 1-based line in its message: qty must be a whole number of at least 1 and price whole cents of at least 0, else RangeError; a field with no `=`, a status other than open or shipped, or a shipped_at that is not YYYY-MM-DD throws SyntaxError; and the fields must agree: a shipped order needs a shipped_at date and an open order must not have one, else SyntaxError. A non-string argument throws TypeError. total(orders) returns the sum of qty * price in cents (399 for the example) and must call meter.tick() from src/meter.js exactly once per order: its budget is one tick per order, far below the meter's hard limit of 10,000 ticks, past which the meter throws. Cover it with node:test tests; npm test must pass.",
+  "checks": [
+   "npm test"
+  ],
+  "hidden": "stand-in",
+  "variants": {
+   "kind": "overlay",
+   "root": "test/shiploop_e2e/fixtures/stand-ins/stand-in-rules",
+   "defects": [
+    "one-rule-missing",
+    "tested-only",
+    "limit-never-trips",
+    "cross-field"
+   ]
+  },
+  "source": "test/shiploop_e2e/step_cases.json stand-in-rules; its four stand-ins are calibrated wrong implementations (test/shiploop_e2e/evaluators/e1b_subtle_stand_ins.py)"
+ }
+}
