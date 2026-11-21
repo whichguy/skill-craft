@@ -9247,3 +9247,116 @@ The harness, asked the standing three questions.
 Limits: one run a host, two cases, two hosts, no promotion or efficiency claim, no marketplace result. Evidence root
 (outside the repository, may be pruned): `/Users/dadleet/e2e-runs-sdlc8/20261120/`, with each run's `result.json`,
 `metrics.json`, native events, delivery bundle and `review-export/run-review.html`.
+
+## 2026-11-21 — Run options, stopping by PID and the spec's home: two whole deliveries on three text corrections pass every verdict and every case check (Codex Sol 6.2 high, Claude Sonnet 5.5 high)
+
+These are two full repository-harness rounds, one case each, not mocks and not a comparison. Both ran from
+`c138c061c9e7eb236a374198645362450e6f94aa` (tree `317f3f12e2510bed854d73d50ff60692fc603c09`), the commit that corrects
+three texts. The skill card and the run-options reference say a run option is the user's to set and that planning
+reviews default to on (`--planning-review stage`). The RULES printed in every producer packet gain "Record the PID of
+a background process you start and stop it by that PID, once you have confirmed it is still this run's. Never choose
+processes to stop by name or pattern (`pkill`, `killall`, a name search piped to `kill`)." One sentence of the
+requirements guide sends the spec to `KNOWLEDGE/spec.md`. Command: `test/shiploop_e2e/run.py --case <case> --host
+<host> --model <model> --effort <effort> --source checkout`, a new external output folder and baseline file, and no
+turn, timeout or resume cap; the Claude run carried `--max-budget-usd 40`. The checkout build is labelled skill-craft
+4.2.0 / ShipLoop 2.4.0 and holds this unpublished source (plugin fingerprint `7180edb8236c` in both runs), so neither
+is a marketplace or publication result. The builders received the catalog request with no coaching, and the harness
+asked for no run option. The two runs were started together and overlapped for 990 seconds on one machine (load 7.6
+at the start on 18 processors, 9.25 when the Sol run ended).
+
+| | `ticket-assignment` (brownfield) | `shared-expenses` (service from an empty repository) |
+|---|---|---|
+| Builder | Codex CLI 0.171.0, gpt-6.2-sol at high; one session, no resume | Claude Code 2.1.330, claude-sonnet-5-5 at high; one session, no resume |
+| Harness verdicts | invoked, plugin, process, shiploop, committed: all pass; engine done with its report | all pass; engine done with its report |
+| Case checks | 3 of 3 | 6 of 6 |
+| Held-out acceptance | 18 of 18 | none declared for this case |
+| Step plan | one item, 4 criteria in 2 steps: the assignment write and its notification (2 criteria, 5 source files), then the filters and the command-line listing (2 criteria, 2 source files) | W1: 11 criteria in 1 step; W2: 12 criteria in 1 step; both items come from the plan stage and none was added later |
+| Start to end | 16:02:38Z to 16:19:08Z, 16.5 minutes | 16:02:37Z to 17:25:37Z, 83.0 minutes |
+| Accepted revisions | 34 | 37 |
+| Improve reviews | 9, one pass each, none changed anything: spec, test-strategy, plan, step-plan, two step reviews, carry-forward, system-test-author, release-plan (option `stage`) | 9 in 19 passes: spec 4, test-strategy 3, plan 4, step-plan 1, two step reviews (2 and 1), carry-forward 2, system-test-author 1, release-plan 1; 6 of the 9 changed something, all but step-plan, system-test-author and release-plan (option `stage`) |
+| Refusals, all recovered in the session | 5: test-strategy twice (a layer name; no unit or component row for the command line, the worker and the service), step-plan (its loop still active), implement (the shape of `not_covered`), seeded faults at `test` (2 of 8 survived) | 9: test-strategy (no unit or component row for `server.js`); step-plan three times (a Proof naming a test file not yet written, step paths with no expectation, plan assumptions due in W2 left unsettled); implement (a step Proof that did not pass); seeded faults at `test` twice (1 of 8, 2 of 8); document (a line added to `spec.md` without the step's mark); an Improve result (`added_tests` outside a done document result) |
+| Turns, model calls | 289, 79; no dollar figure (subscription) | 510, 286; $20.48 reported |
+| Returned source | clean committed product `7cfb37762f6c0553ec4130fd24c7f10063dceedb` | clean committed product `d4fdf5bf218e8af954775e2d5427a761c306fb05` |
+| Left behind | none observed (listeners and processes) | none observed by the harness (the case declares no quality measure); `lifecycle.py cleanup` afterwards found nothing to stop in either folder |
+
+The harness counts 12 failed ShipLoop commands in the Sonnet run where this table has 9. The three more are a second
+row for the implement refusal's text, read from the event stream; an Improve pass sent back for a missing
+`Regression test:` line; and a `lint` call that ended with git's usage text (exit 129).
+
+What the rounds show about the change. A whole delivery works on the corrected texts on two hosts: both runs went
+from intake to handoff in one session and passed every verdict and every case check. None of the 14 refusals names a
+run option, the PID rule or the requirements guide. Each is a gate that also fired on the earlier text; the
+`spec.md` refusal at `document` is the write-back gate, which also fired in 5 of the 14 runs of the 2026-11-20
+review round (`/Users/dadleet/e2e-runs-sdlc9/`). Three readings of the change itself, each from the native events
+and ShipLoop's own records:
+
+- Run options. Each run's one `workspace start` command passed `--repo` and `--prompt` and nothing else, and each
+  `state.md` records the defaults: `planning_review` `stage`, `delegation` `inline`, `lint` `fix`. The 2026-11-20
+  round's Sol run had started with `none`.
+- Stopping processes. No command in either run used `pkill` or `killall`. Every line of the two event streams that
+  holds either word is the rule's own text in a printed packet (27 lines and 18), and the harness's heuristic counts
+  0 name-pattern kills in each run. The Sol session ran no shell `kill` at all: its one server was started and ended
+  inside a test file, by the id its own spawn returned. The Sonnet session stopped a server four times, each time by a
+  PID it had recorded: three times `node server.js ... & echo $! > $D/pid` and later `kill $(cat $D/pid)`, and once in
+  a smoke script that keeps `PID=$!` and ends with `kill "$PID"`. It also ran `pgrep -f "node.*server.js"` twice,
+  once to count and once to list what was left. The listing showed one server that was not the run's, and the
+  session stopped nothing. Two of its six background starts recorded no id: a mutation script started in a subshell,
+  which ends by itself.
+- The rule reached the session. It is in every producer packet of both runs: 25 of 35 packet files and 28 of 38,
+  the files without it being the nine Improve hand-offs and the final `done` packet of each run.
+- The same case on the earlier text, one run. The 2026-11-20 round's Sonnet run of `shared-expenses` (same subject and
+  effort, before the rule existed), parsed the same way: three commands stop by name
+  (`kill -TERM $(pgrep -f "node server.js" | head -1)`, `pkill -f "node --test" ; pkill -f "server.js"` and
+  `pkill -f "server.js"`), one stops by a recorded id, and five of its six background starts record no id. Here: none
+  by name, four by a recorded id, two of six starts with no id. The spec-elaboration session found this pair first
+  with its own script. It is one pair of runs: a lead, not a measured effect.
+
+Each delivery holds a tracked `docs/shiploop/spec.md` (requirements R-1 to R-4, and R-1 to R-12).
+
+What they do not show. They do not show that any of the three texts changes what a session does, and one run a host
+could not. By the counts in the fix's own commit message, 20 of 27 earlier Sol starts on the shipped text already
+passed no `none`, 18 of 25 earlier Sonnet runs used no `pkill` or `killall`, and none of 57 earlier Sol runs did. The
+card's wording was tested alone before it shipped and showed no effect (0 of 12 starts passed `none`, against 2 of
+12 as shipped). So a `stage` start and a run with no stop by name are what most runs did before the change, and the
+one pair above cannot say more than that. None of the four PID stops in the Sonnet run shows a check that the PID
+was still the run's, which is the rule's second half; a check in an earlier command is not ruled out. A name search
+still reached work outside the run: `pgrep -f` matched another project's server, and only the session's choice not
+to act on it kept that server safe. The rule forbids choosing what to stop by name and does not forbid looking.
+
+Two of the three texts were never in front of a builder. Neither session opened the requirements guide or the
+options reference, the two reference files the change corrects: no tool input of the Sonnet session names either,
+and for the Sol session this is the spec-elaboration session's reading. For those two texts the round shows only that
+nothing regressed. The card and the packet rule are the texts a builder was shown.
+
+They are not a speed or cost comparison. The baseline file has no earlier row for either case from this source, and
+the runs overlapped. The Sonnet run took 83.0 minutes where the 2026-11-20 round's run of the same case and subject
+took 48.8; one run each on different days, with different plans, is not a comparison. Where this run's time went:
+27.9 minutes in W2's `test` stage, on its seeded-fault rounds, about 5 minutes each in spec, test-strategy and plan,
+and 10.4 minutes of the planning window in its four reviews. No Grok run.
+
+Outside the change, for whoever reads the next round: the Sol run's `document` result declared a script-run check that
+has no record (the harness's fidelity line); ShipLoop's output used a retired term nine times in the Sol run
+("terminal packet", the Until Loop's record); the Sonnet run wrote one file under `/tmp` (`/tmp/_ignore`) although
+the rules send temporary files to `RUN/scratch`; and the harness counts one test-quality dodge in the Sonnet run (a
+surviving seeded fault).
+
+The harness, asked the standing three questions.
+
+1. Retain or keep state differently: the planning-review option a run chose is still only in ShipLoop's `state.md`,
+   as the 2026-11-20 entry said. Two sessions read this round and both had to open `state.md` for it;
+   `invocation.json` holds what the harness asked for (`null` here), which is not what the run chose.
+2. More to learn on later passes: how a session stops what it started is now a rule, and the harness has one
+   heuristic for it (name-pattern kills). A count beside it of stops by a recorded PID, and of name searches that
+   only look, would let the archive say whether the rule is followed; here both were read from the events by hand.
+   A like-for-like row on the previous release is still missing for both cases.
+3. More evaluation criteria: whether a PID is confirmed as the run's before it is used is measured nowhere, and
+   the rule asks for it.
+
+Limits: one run a host, two cases, two hosts, no promotion or efficiency claim, no marketplace result. A second
+session read the same two run folders against checks it had registered before reading any result
+(`docs/spec-elaboration-journal.md`, sections 32 and 33, that session's to publish). Its record of the Sol delivery
+agrees with this table; its "26 accepted" is the count of accepted stage results, and this table's 34 is the
+engine's revision counter, the measure the earlier entries use. Every value above with the file it was read from:
+`docs/experiments/sdlc-structure-20261119/evidence/ship-round-readings.txt`. Evidence root (outside the repository,
+may be pruned): `/Users/dadleet/e2e-runs-sdlc11/20261121/`, with each run's `result.json`, `metrics.json`, native
+events, delivery bundle and `review-export/run-review.html`.

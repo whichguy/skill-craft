@@ -2549,6 +2549,88 @@ keep the same rule the other way round: the service is that one writer, so it do
 - Both readers are one model; they agreed on every file.
 - All sessions were shown the owner's own skills (R72).
 
+### Owner decision, 2026-11-21: ship the three text corrections
+
+On the recommendation above the owner answered "Ship the fixes". Recommendation 1 is carried out here.
+Recommendations 2 and 3 stand as written: no spec wording is put forward.
+
+**R87. The change** (commit `c138c061c9e7eb236a374198645362450e6f94aa`). One ShipLoop commit with a patch-level change note.
+
+- The skill card and `references/run-options.md` say a run option is the user's to set, to pass one only when the
+  user asks, and that planning reviews default to on (`stage`).
+- `STAGE_RULES`, printed in every producer packet, gains the rule to record the PID of a background process and to
+  stop it by that PID once it is confirmed to be the run's still, never by name or pattern. The long form in `COMMON`
+  gives the reason: other work on the machine can match the same name. The rules block grew from 537 to 766
+  characters.
+- One sentence of `references/behavioral-requirements.md` sends the spec to `KNOWLEDGE/spec.md`; it had said the
+  result `body`.
+
+Four new assertions pin the texts: two in `test/shiploop-navigator-v4.test.py` and two test methods in
+`test/shiploop-navigator-contract.test.py`. On the change: navigator-v4 18 tests, e2e-packet-anatomy 30,
+packet-completeness 66, navigator-contract 127, and the quick tier with the changed files' suites, 33 suites, all
+passing.
+
+**R88. The E2E round** (`test/shiploop_e2e/LEARNINGS.md`, entry of 2026-11-21; `evidence/ship-round-readings.txt`).
+Two whole deliveries from a clean checkout of the commit, started together, with no run option asked for.
+
+| Delivery | Result | Case checks | Held-out | Minutes | Cost | Reviews (changed something) | Refusals, all recovered |
+|---|---|---|---|---|---|---|---|
+| `ticket-assignment`, Sol 6.2 high | pass | 3 of 3 | 18 of 18 | 16.5 | not reported | 9 (0) | 5 |
+| `shared-expenses`, Sonnet 5.5 high | pass | 6 of 6 | none declared | 83.0 | $20.48 | 9 (6) | 9 |
+
+**R89. What the round shows of the three texts.** Each session's one start command passed no run option and each
+run records `stage`. Neither session used `pkill` or `killall`. The Sol session ran no shell `kill`. The Sonnet
+session stopped a server four times, each time by a PID it had recorded, and twice ran `pgrep -f` only to look; one
+match was a server outside the run, and nothing was stopped. The rule is in every producer packet (25 of 35 files and
+28 of 38; the rest are Improve hand-offs and the `done` packet). None of the 14 refusals names a changed text.
+Neither session opened the requirements guide or the options reference, so only the card and the packet rule were in
+front of a builder.
+
+**R90. The same case on the earlier text, one run each.** The Sonnet run of `shared-expenses` in the round of
+2026-11-20 (same subject and effort, before the rule) against this round's, parsed the same way:
+
+| Run | Stops by name | Stops by a recorded id | Background starts with no id recorded |
+|---|---|---|---|
+| 2026-11-20, without the rule | 3 | 1 | 5 of 6 |
+| 2026-11-21, with the rule | 0 | 4 | 2 of 6 |
+
+The spec-elaboration session found the pair first, with its own script; these counts are from a separate parse and
+agree with its three and one.
+
+### Findings: the shipped corrections
+
+- **F61 (firm, for function).** The corrected texts break nothing on a whole delivery on two hosts: every verdict
+  and every case check pass, and the held-out set where the case has one (18 of 18).
+- **F62 (not shown; one lead).** Nothing in the round shows that a text changes what a session does. A `stage` start
+  is what 20 of 27 earlier Sol starts already did, and a run with no stop by name is what 18 of 25 earlier Sonnet
+  runs and all 57 earlier Sol runs did. The card's wording, tested alone, showed no effect (R84). The one pair in R90
+  points the way the PID rule intends (3 stops by name before, none after, on the same case and subject), and one
+  pair cannot carry more than that. Two of the three texts were not read by either builder (R89). The corrections
+  ship on the review's grounds, that the texts were wrong or missing, and not on a measured effect.
+- **F63 (observation, one run).** Looking by name still reaches other work. The Sonnet session's
+  `pgrep -f "node.*server.js"` listed a server that was not the run's; the rule forbids choosing what to stop by
+  name, and the session stopped nothing. None of its four stops shows a check that the PID was still the run's, the
+  rule's second half, and nothing measures that. Two of its six background starts recorded no id, the rule's first
+  half; both were a mutation script that ends by itself.
+
+### Limits of the round
+
+- One run a host on two small cases; no Grok run; not a comparison with the release before.
+- The Sonnet delivery took 83.0 minutes where the same case and subject took 48.8 in the round of 2026-11-20. One
+  run each on different days is not a comparison, and this journal times arms only in pairs started together.
+- The readings in R89 were made from the events by a Sonnet worker and checked here by a second parse of the Claude
+  events and by counting, in both event streams, the lines that hold `pkill` or `killall` outside the rule's text
+  (none). The Sol events were parsed once; the spec-elaboration session's own reading of that run gives the same
+  count of commands (279) and no stop.
+
+### Publication
+
+The fix was committed on the shared checkout's `main` at 08:02, and four commits of the spec-elaboration session were
+then made above it. At 08:25 the Ratchet session's merge moved the remote `main`. So the fix was published from a
+worktree cut from the remote `main` that merges the fix alone (merge `dc9922c4e9f2db0fa213408536e9909082710cca`): only this
+session's commits are in the pushed range, and the other session's entries stay its own to publish. The release that
+carries the fix, and the refresh of the hosts, are recorded below once they are done.
+
 ## Evidence (all rounds)
 
 | File | Holds |
@@ -2602,6 +2684,7 @@ keep the same rule the other way round: the service is that one writer, so it do
 | `runs-grok/census.json` | round 8: the Grok delivery's seconds by stage (R80 to R82) |
 | `evidence/e1-card-starts.txt`, `start_option_read.py` | round 9: the card test's 24 start-only samples, what each passed and recorded, and the registered reading (R84) |
 | `evidence/e2-spec-read.txt`, `spec_read_score.py`, `spec-read/` | round 9: the spec test's 24 accepted specs under shuffled names, the readers' brief, which is which, both readers' classes with quotes, the one spec its review changed as written, the sample list, and the score (R85, R86) |
+| `evidence/ship-round-readings.txt` | round 9: the E2E round on the shipped corrections: every value of the `LEARNINGS.md` entry with the file it was read from, the three readings of the change, and the same case's run on the earlier text (R88 to R90) |
 | `judge-grok/packet-*.txt`, `judge-grok/key.json`, `judge-grok/out-A.jsonl`, `judge-grok/out-B.jsonl`, `judge-grok/source/`, `evidence/grok-review-judge-brief.txt`, `evidence/grok-reviews-judged.txt`, `grok_review_score.py` | round 8: the Grok delivery's seven changed reviews and six round-7 anchors as the judges saw them, which is which, each judge's labels, the brief, the score and the script that makes it (R83) |
 | `removed_review_diffs.py`, `judge-reviews/packet-*.txt`, `judge-reviews/key.json` | round 7: each review of a removed stage that changed anything, as the judges saw it, and which run and driver each is |
 | `judge-reviews/out-A.jsonl`, `judge-reviews/out-B.jsonl`, `evidence/removed-review-judge-brief.txt` | round 7: each judge's label, scope and reason per packet, and the brief |
