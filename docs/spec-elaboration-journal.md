@@ -1157,3 +1157,10 @@ for it. Two things a reader of any later result has to know:
   in the way it is of `L-lenses-once`.
 - The `Open:` line is a new line in the specification's form. A stage that reads the specification has to know
   that an open line is not something to build or to write a test from.
+
+**Sent to the pilot's session, with predictions stated before any run of it.** The location of the arm, the list
+of changes and the two cautions above went to the Ratchet session, which had offered to put a reworded block to the
+owner as a third enrichment text. Three predictions were stated to it so that they are on record first, with no
+measurement behind any of them: against `L-lenses-once` on the same case the reworded arm writes fewer clauses,
+gets a lower share of clauses whose test fails on a correct product, and loses none of the calibrated defects
+caught. Whether it is run is the owner's.
