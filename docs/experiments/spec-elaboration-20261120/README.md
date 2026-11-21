@@ -260,3 +260,13 @@ changes: round 5 is still F, L and P, and the audits read only clean specificati
 ```sh
 sh queue-4.sh          # round 4 judged as it ran, round 4c, round 5, the judge checks, the audits
 ```
+
+## The band, measured (2026-11-20, before round 5 ran)
+
+R6: a second draw of the same arm moved by up to 6 of 89 on Sonnet (A 46 then 40; D 73 then 71), so **a difference
+between two single draws under 12 is not shown**. Every reading above registered as "8 or more" is read at 12: R8
+(F within 12 of D), R9 (iterating earns its place at F minus L of 12 or more; 8 to 11 is interim and gets one more
+draw of both), R14 (the better of F and L is 12 or more above P). R7 reads clean Sol against the mean of the two
+draws with the skills shown; a move over 6 supersedes them. The main effect repeated at +31 on Sonnet and +18 on
+Sol within round 4. "The enumeration rule: +12 on Sol" is superseded: +10 against the mean of D's two draws, not
+shown. `evidence/round-4/readings.txt`; journal section 8.

@@ -1,0 +1,145 @@
+{
+ "slot": "invoice-reminders__A-single__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.2729854,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-15, C-16",
+   "quote": "A first reminder becomes eligible on the calendar day after the invoice due date. Observable: Observe no first reminder on the due date or earlier ... An accepted reminder makes the next reminder eligible 7 calendar days after its acceptance date."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-21, C-22",
+   "quote": "Settle the invoice or apply a credit covering the amount owed before a pending reminder is handed off and observe no handoff ... draft, void, or cancelled invoices ... observe no reminder",
+   "missing": "Whether a disputed invoice or one on a payment plan stops the sequence."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-13",
+   "quote": "A reminder shows the invoice's remaining balance in its currency. Observable: Apply a partial payment before sending and observe the remaining amount shown in the invoice currency."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-55",
+   "quote": "Existing recipient restrictions for billing communications apply to reminders.",
+   "missing": "Whether a marketing opt-out/unsubscribe exempts or blocks billing reminders, and how a paused or do-not-contact customer state is treated beyond 'existing restrictions'."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-37, U-13",
+   "quote": "Repeated or concurrent evaluations do not duplicate a delivery handoff for the same reminder opportunity. ... Recipients do not receive a burst for missed dates or copies of a reminder that was already accepted."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-21, U-5",
+   "quote": "An invoice with a zero or negative balance is ineligible at delivery handoff. ... If the invoice is settled before a pending reminder is handed off, the recipient gets no further reminder"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-33, C-34, C-35, C-36",
+   "quote": "A retry after a temporary rejection is eligible no earlier than the next calendar day.",
+   "missing": "Any limit on repeated retries and escalation to a person (alert/notification) when sending keeps failing; operators can only inspect outcomes."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-39, C-40",
+   "quote": "Reminder handoffs honor the delivery service's applicable sending limit. ... Invoices deferred at a delivery limit are reconsidered once capacity returns."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "U-7, C-26",
+   "quote": "Its recipient gets a current reminder without receiving one for each missed date.",
+   "missing": "Whether reminders for all pre-existing overdue invoices are spread out rather than all sent on the first evaluation after activation."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "C-17, C-18",
+   "quote": "Reminder calendar dates use the account's billing time zone when one is set.",
+   "missing": "Sending hours, business hours, weekends and holidays; the recipient's local time (C-19 explicitly imposes no send time)."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-13",
+   "quote": "A reminder shows the invoice's remaining balance in its currency.",
+   "missing": "How the amount and currency are formatted for the recipient (locale, symbol, decimals)."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-28, C-35",
+   "quote": "no designated billing email or an invalid address and observe no reminder ... A known permanent delivery failure for an address suppresses further reminders for the affected invoice to that address."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-10",
+   "quote": "A reminder is sent to the invoice's designated billing recipient.",
+   "missing": "What happens when there are several billing contacts: whether one, all, or which of them is written to."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-32, C-43",
+   "quote": "An authorized billing operator can distinguish delivery outcomes for an affected invoice.",
+   "missing": "A per-invoice, per-step record of what was sent and when, visible on the invoice."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-12, C-13, C-14",
+   "quote": "A reminder identifies the invoice it concerns. ... shows the invoice's remaining balance ... provides access to the invoice's existing way to pay where one exists.",
+   "missing": "Whether the due date is included and whether the payment link expires."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-2, C-5, C-57",
+   "quote": "An unauthorized reminder setting change is refused. ... Existing manual invoice follow-up remains available under its existing rules.",
+   "missing": "Who may stop a reminder for a single invoice by hand; manual send permissions are deferred to unspecified existing rules."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-3, C-57",
+   "quote": "An authorized billing operator can disable reminders for their billing account.",
+   "missing": "Per-customer turn-off, preview or dry-run, and a manual resend of a reminder."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-30, C-32",
+   "quote": "An authorized billing operator can distinguish delivery outcomes for an affected invoice.",
+   "missing": "Any view of what the system will send next."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-39, C-26",
+   "quote": "Reminder handoffs honor the delivery service's applicable sending limit.",
+   "missing": "A product-defined cap on sending volume and a limit on how late a deferred or scheduled reminder may still go out."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "U-16, C-50, C-51, C-53",
+   "quote": "A reminder leaves the underlying invoice terms unchanged. ... A reminder leaves the invoice's balance unchanged. ... Invoice payments follow their existing rules."
+  }
+ ]
+}

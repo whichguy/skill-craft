@@ -1,0 +1,147 @@
+{
+ "slot": "gym-waitlist__D-enumerated-only__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.43506200000000006,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-5",
+   "quote": "A waiting member receives a confirmed booking when they become next for an available seat. No claim or response is required."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-6, C-73, C-56",
+   "quote": "the member whose join was accepted first gets it ... the operator sees a definite order that is retained for later allocation ... Operators can inspect order but cannot use the waitlist to move an entry ahead of another."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-143",
+   "quote": "The member gets the same cancellation effects as for an equivalent ordinary booking, including any applicable refunds, charges, and entitlement restoration. Existing rules and amounts are unconfirmed.",
+   "missing": "Whether a no-show or late cancellation of an auto-promoted booking (which the member may not have noticed) counts against the existing no-show/late-cancellation policy; no-shows are not mentioned."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-112",
+   "quote": "After the waiting member closes the app, an eligible release can still result in a confirmed booking. The runtime's background execution rules, scheduling cadence and execution deadline are unconfirmed.",
+   "missing": "How quickly the background allocation runs after the triggering cancellation; cadence and timeliness are left unconfirmed."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-121",
+   "quote": "If an equivalent ordinary confirmation would send a booking message, a promotion triggers the same confirmation policy. Existing channels, recipients, contents, and delivery rules are unconfirmed.",
+   "missing": "The notification channel, what the message says about the promotion, and what happens when sending fails."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-68, C-69, C-129",
+   "quote": "With several eligible people waiting and one available seat, at most one receives a booking from that release."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-130",
+   "quote": "If an ordinary booking and a promotion for the same member race, no second live confirmed booking is added for the member on that occurrence."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C-141, C-146",
+   "quote": "Applicable charges, credits, amounts, currency, and payment timing are unconfirmed. ... If an attempt ends without a seat after payment processing began, the member has no net charge",
+   "missing": "When payment is taken for a promoted booking, and whether a payment failure ends the wait, skips to the next member, or leaves the entry pending."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-14",
+   "quote": "An eligible join is accepted even with many members already waiting, subject to service availability. There is no configured maximum number of waiting members per occurrence."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-87, C-89",
+   "quote": "When ordinary booking closes, every still-waiting entry for the occurrence ends with booking closed as the reason."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-63, C-66, C-67",
+   "quote": "Increasing capacity above occupied seats while booking remains open lets an eligible waiting member receive a booking. ... Once a lower capacity takes effect, outstanding allocations cannot create a new confirmed booking beyond it."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-88",
+   "quote": "When the occurrence is canceled, every still-waiting entry ends with occurrence canceled as the reason."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-7, C-45, C-73",
+   "quote": "shows the member their status as waiting, booked through the waitlist, withdrawn, or ended without booking",
+   "missing": "The entry as a record with a stored join/acceptance time, and whether queue position is stored or derived."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-60",
+   "quote": "Exact retention duration is unconfirmed and follows the existing occurrence record lifecycle.",
+   "missing": "How long entries are kept after the class has run."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-126, C-44",
+   "quote": "A member cannot see other entries, identities, order, or outcomes through member-facing views or requests.",
+   "missing": "Whether the member is shown their own position in the queue; the spec only says status alone suffices."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-15, C-53, C-54, C-58, C-151",
+   "quote": "Operators cannot force a promotion through the waitlist view. ... An operator cannot use the waitlist view to withdraw one member's entry.",
+   "missing": "Whether operators see when each promotion happened; outcomes are shown without any time."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-11, C-12",
+   "quote": "An authorized operator can pause new waitlist joins across all occurrences with one control."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-112",
+   "quote": "No fixed waitlist-specific turnaround time is promised for this background work.",
+   "missing": "A concrete bound on how soon a promotion follows a cancellation."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-10, C-117",
+   "quote": "A member can confirm a seat through the existing booking flow when there is capacity available for direct booking ... previously confirmed seats still appear in the member's bookings with the same active status"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-17, C-118",
+   "quote": "After enablement, an otherwise eligible full occurrence created before rollout can accept a join."
+  }
+ ]
+}

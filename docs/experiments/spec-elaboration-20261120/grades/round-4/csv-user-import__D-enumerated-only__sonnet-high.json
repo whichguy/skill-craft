@@ -1,0 +1,142 @@
+{
+ "slot": "csv-user-import__D-enumerated-only__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.34090019999999993,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-36",
+   "quote": "If the import ends `rejected` for any file-level or row-level error, no user from that file exists, including the rows that were valid"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-35",
+   "quote": "Each entry shows the row number, the column (`email`, `name` or `role`; empty for whole-row errors), the reason code, and a human-readable message."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-31, C-30",
+   "quote": "equals that of any existing user, in state `invited`, `active` or `deactivated`, gets an error for column `email` with reason `already_exists`. ... every later row with the same address gets an error ... `duplicate_in_file`"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-29, C-5",
+   "quote": "a `role` value of `member` or `admin` is valid ... These are the only two roles an import can assign. / If the uploading admin has been demoted ... the import ends with status `failed`, reason `uploader_not_authorized`"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-1, C-2",
+   "quote": "A signed-in user with role `admin` and status `active` can open the import page ... A signed-in user whose role is `member`, or whose status is `deactivated`, receives HTTP 403"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-10, C-11, C-13",
+   "quote": "The first record that is not blank is the header. ... If, after matching, the header lacks `email` or lacks `name` ... `missing_required_column` ... Columns whose names are not `email`, `name` or `role` are not stored"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-78, C-8",
+   "quote": "A UTF-8 file that starts with the byte-order mark EF BB BF is read as if the mark were absent ... a field wrapped in double quotes may contain commas ... and line breaks. Records end with LF or CRLF"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-60",
+   "quote": "When an import becomes `succeeded`, each of its users is sent one email at the address in the file, not before the users exist and never for `rejected` or `failed` imports."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-20, C-21",
+   "quote": "a file of 5,242,881 bytes or more is refused with file-level reason `file_too_large` ... a file with 5,001 or more data rows ends `rejected` with file-level reason `too_many_rows`"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-18, C-19, C-37",
+   "quote": "A file of zero bytes, or one containing only blank lines, ends `rejected` with file-level reason `empty_file`. / A file that has a header and no data rows ends `rejected` with ... `no_data_rows`"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-55",
+   "quote": "Uploading a file whose users were created by an earlier import ends `rejected` with `already_exists` on every row, \"0 users created\", and no invitation email is sent."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-42, C-45",
+   "quote": "shown on the page at once with status `queued` ... the shown status is refreshed without the admin reloading, at intervals of 5 seconds or less, until a final status is shown."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-60, C-85",
+   "quote": "each of its users is sent one email ... each invitation of an import reaches delivery `sent` or `failed` within 1 hour of the import becoming `succeeded`.",
+   "missing": "Whether up to 5,000 emails are sent at once or throttled, and at what rate/pacing they go out."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-38, U-6",
+   "quote": "the status `invited` ... They open the link within 7 days, choose a password, and their status becomes `active`; they can then sign in"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-56",
+   "quote": "The uploaded file is not kept after processing ... Once an import reaches a final status, no page or address offers the original uploaded file for download."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-9",
+   "quote": "A file whose header line is `email;name;role` (or tab-separated) has no comma, so it is read as one column",
+   "missing": "Nothing states how date, number or locale-formatted values are treated; only the locale delimiter case is addressed."
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "C-57, C-38",
+   "quote": "Each entry shows the file name, the uploading admin ... the upload time, the status ... the import that created them (by import id and uploading admin)."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-36, U-3",
+   "quote": "all-or-nothing makes re-uploading a corrected file safe ... The admin fixes rows 17 and 42 in the file, uploads it again",
+   "missing": "Whether and how an admin can cancel an import that is queued or processing."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-46, C-45",
+   "quote": "an import of 5,000 valid rows goes from upload to `succeeded` within 60 seconds ... the shown status is refreshed without the admin reloading, at intervals of 5 seconds or less"
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "C-73, C-74",
+   "quote": "No import changes, deactivates, re-roles, renames, re-invites or deletes any user who existed when it was accepted",
+   "missing": "That single-user creation by hand keeps working unchanged; C-74 instead imposes the import's validation rules on other creation routes."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-41, C-80, C-27",
+   "quote": "A name such as `=HYPERLINK(\"http://x\")` ... is stored exactly as given and shown literally ... a name of 101 or more gets an error for column `name` with reason `name_too_long`."
+  }
+ ]
+}

@@ -1,0 +1,25 @@
+{
+ "round": "round-4",
+ "case": "gym-waitlist",
+ "arm": "A-single",
+ "arm_sha256_12": "1287f76eef13",
+ "driver": "sol-medium",
+ "host": "codex",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "rc": 0,
+ "seconds": 178.3,
+ "ok": true,
+ "wrote": [
+  "spec.md"
+ ],
+ "stray_files": [],
+ "workdir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/round-4/gym-waitlist__A-single__sol-medium-5fc734",
+ "usage": {
+  "input_tokens": 116580,
+  "cached_input_tokens": 94336,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 8359,
+  "reasoning_output_tokens": 1001
+ }
+}

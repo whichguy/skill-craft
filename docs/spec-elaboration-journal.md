@@ -417,3 +417,50 @@ the leaked condition of rounds 1 to 3, which gives something nobody planned: how
 with the same skills shown. Round 4c runs A and D on Sol with the skills turned off, and R7 reads that clean draw
 against both leaked ones. Round 5 (F, L, P), the two checks of the judge and the audits of the clean
 specifications follow as registered; `queue-4.sh`.
+
+## 8. Round 4: the noise floor is 6, so the band is 12; the main effect repeats at 2.5 times that (2026-11-20)
+
+Round 4 drew arms A and D a second time. Verdicts `grades/round-4/`, readings `evidence/round-4/readings.txt`.
+Recorded while round 4c was running and before any round-5 call, so that round 5 is read against a band fixed
+beforehand.
+
+| arm | driver | first draw | second draw | move | per case (csv, grokbot, gym, invoice) |
+| --- | --- | --- | --- | --- | --- |
+| A-single | Sonnet high, clean both times | 46 | 40 | -6 | -1, -4, +2, -3 |
+| D-enumerated-only | Sonnet high, clean both times | 73 | 71 | -2 | +4, +2, -5, -3 |
+| A-single | Sol medium, skills shown both times | 38 | 40 | +2 | +2, -2, +2, 0 |
+| D-enumerated-only | Sol medium, skills shown both times | 62 | 58 | -4 | 0, -1, -2, -1 |
+
+**R6, the noise floor: 6 of 89.** The same arm, the same driver and the same judge prompt moved by up to 6 pooled
+and by up to 5 on a single case. The registered rule applies: the band of 4 was too narrow, and **a difference
+between two single draws smaller than 12 is not shown**. Firm as a floor (two arms, one replicate each, so the true
+spread may be larger, not smaller).
+
+**R1 again: the main effect holds, comfortably.** Within round 4 alone, D minus A is **+31 on Sonnet and +18 on
+Sol**. On the means of two draws it is +29 and +21. The recursive form over the single pass is the one result of
+this experiment that is established: about 2.5 times the band on Sonnet, 1.75 times on Sol. Status: firm for
+Sonnet; for Sol, firm with the user-level skills shown in every draw, and round 4c will say whether it holds without.
+
+**Superseded 2026-11-20 by this measurement:**
+- Sections 4 and 5, "the enumeration rule alone: +12 on Sol", "the delta that carried Sol's gain", "difference
+  shown". Against the mean of D's two draws it is +10, under the band. **Not shown.** The rule may help Sol; one
+  draw of B and two of D cannot say so.
+- Section 5's ordering "D >= C >= B" on Sol. B, C and D are not told apart on either driver: Sonnet 72, 74, 73 and
+  71; Sol 50, 60, 62 and 58.
+- What stands from sections 4 and 5: the operator pass shows nothing (-2 and +1) and costs Sonnet minutes, so it
+  stays dropped; D stays the arm carried forward, as a choice among arms that cannot be told apart, on cost.
+
+**What this does to round 5, fixed here before it runs.** Every reading registered as "8 or more" is read at 12,
+which is the rule R6 and R14 already stated and which R8 and R9 are now held to as well:
+- **R9.** Iterating earns its place on a driver if F minus L is 12 or more. Under 12 on both drivers, with L at or
+  under 60% of F's minutes and of its output tokens, makes the one-pass form the candidate. Between 8 and 11 is
+  interim and gets one more draw of F and L.
+- **R8.** The guard costs no coverage if F is within 12 of D (the mean of its two draws on Sonnet; the clean draw
+  of round 4c on Sol).
+- **R14.** The elaboration adds to ShipLoop if the better of F and L is 12 or more above P on a driver.
+- **R7.** Clean Sol against the mean of the two draws with the skills shown (A 39, D 60): a move of more than 6
+  supersedes the earlier Sol numbers.
+
+**A limit this makes plain.** A band of 12 in 89 means one draw an arm can only show large effects. That suits the
+decision at hand, which prefers the cheaper form unless the dearer one is clearly better; it would not suit tuning
+the wording of one arm, and section 5's "which pass earns its place" could not be answered at this size.

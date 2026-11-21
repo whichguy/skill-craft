@@ -1,0 +1,23 @@
+ROUND 4: A SECOND DRAW OF THE SAME ARMS (covered of 89; per case csv, grokbot, gym, invoice)
+
+A-single           sonnet-high  first 46 [11, 16, 8, 11]   second 40 [10, 12, 10, 8]   move -6   per case [-1, -4, 2, -3]   (clean in both draws)
+A-single           sol-medium   first 38 [9, 14, 8, 7]   second 40 [11, 12, 10, 7]   move +2   per case [2, -2, 2, 0]   (user-level skills shown in both draws)
+D-enumerated-only  sonnet-high  first 73 [13, 22, 20, 18]   second 71 [17, 24, 15, 15]   move -2   per case [4, 2, -5, -3]   (clean in both draws)
+D-enumerated-only  sol-medium   first 62 [16, 19, 13, 14]   second 58 [16, 18, 11, 13]   move -4   per case [0, -1, -2, -1]   (user-level skills shown in both draws)
+
+R6, the noise floor (Sonnet, clean): the larger move is 6 of 89. Registered rule: over 4 means the band of 4
+    was too narrow, and a difference smaller than twice the larger move, 12, is re-read as not shown.
+    Sol, same skills shown in both draws, larger move: 4.
+    Largest move on a single case between two draws of one arm: 5 nuances.
+
+R1 again, within round 4 alone (D minus A): Sonnet +31, Sol +18
+
+EARLIER DIFFERENCES RE-READ AGAINST A BAND OF 12 (single draws unless a mean is named)
+  recursive over single pass, Sonnet (B - A, round 1)                 +26.0   shown
+  recursive over single pass, Sonnet (D - A, means of two draws)      +29.0   shown
+  recursive over single pass, Sol (B - A, round 1)                    +12.0   shown
+  recursive over single pass, Sol (D - A, means of two draws)         +21.0   shown
+  enumeration rule alone, Sol (D - B, round 3 against round 1)        +12.0   shown
+  enumeration rule alone, Sol (mean of D's two draws - B)             +10.0   NOT SHOWN
+  enumeration rule alone, Sonnet (mean of D's two draws - B)           +0.0   NOT SHOWN
+  operator pass alone, Sol (C - D, round 2 against round 3)            -2.0   NOT SHOWN

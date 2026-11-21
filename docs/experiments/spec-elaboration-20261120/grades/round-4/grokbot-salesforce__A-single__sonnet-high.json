@@ -1,0 +1,185 @@
+{
+ "slot": "grokbot-salesforce__A-single__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.26838460000000003,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "C-49",
+   "quote": "A user with access finds the bot by name in the Salesforce Lightning navigation and opens it in one click.",
+   "missing": "Which Lightning surface exactly (app page, tab, utility bar, record page) and what context, if any, that surface passes to the bot."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-30",
+   "quote": "Inspecting the request sent to xAI shows the user's messages, Grok's earlier replies in that conversation, and nothing read from other Salesforce records (no contacts, accounts, cases, users' names or emails)."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "C-30",
+   "quote": "nothing read from other Salesforce records (no contacts, accounts, cases, users' names or emails)",
+   "missing": "Whether field-level security is enforced on the bot's own objects/fields when reading and displaying them; no FLS or restricted-field rule is stated."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-27",
+   "quote": "The administrator assigns the bot's permission set to a user: the user can then use the bot.",
+   "missing": "Who may administer the bot (change key/model) and through which permission; only user access is defined as a permission set."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-28",
+   "quote": "User A's conversations are not in user B's list, are not readable by B by opening a link, and are not returned to B by any bot query.",
+   "missing": "Whether administrators can read users' conversations is not stated."
+  },
+  {
+   "id": "N-6",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-38",
+   "quote": "The key does not appear in any bot screen, any error message, any conversation record, any debug log, or any response to a non-administrator.",
+   "missing": "The storage mechanism (Named/External Credential or protected custom setting); C-37 says only 'the org's configuration'."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-14",
+   "quote": "the number is the platform's maximum wait for a callout from Salesforce, so no longer wait is possible",
+   "missing": "Callouts-per-transaction, heap and CPU time limits are not named; only the 120s callout timeout and 10 concurrent long-running requests (C-17) are given."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-47",
+   "quote": "no test makes a real request to xAI ... Salesforce requires 75% coverage to deploy Apex to production and forbids real callouts in tests"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-32",
+   "quote": "outbound requests from the bot only to xAI's API host. Source: implied: Salesforce requires each outbound endpoint to be authorized"
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-13",
+   "quote": "Clicking send twice in quick succession results in exactly one user message and one request to xAI.",
+   "missing": "Idempotency when a background job is retried or re-enqueued; only user double-submit is addressed."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-17",
+   "quote": "When the org has too many long-running requests in progress (Salesforce allows 10 at a time), a user whose send is refused for that reason sees a message that the bot is busy and to try again shortly."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-14, C-15, C-21",
+   "quote": "the user sees an error stating the request timed out ... xAI answers with a server error (HTTP 5xx), the user sees an error saying Grok is unavailable ... the request could not be completed"
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-16",
+   "quote": "When xAI rate-limits the request (HTTP 429), the user is told it is a rate limit ... The user sees an error that mentions that a rate limit was reached and to try again later.",
+   "missing": "Any backoff or automatic retry policy; quota exhaustion is not distinguished."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-24, C-14",
+   "quote": "the first 100,000 are shown and a notice says the reply was shortened ... If Grok has not answered 120 seconds after the send, the user sees an error stating the request timed out."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-6",
+   "quote": "Both the user's message and Grok's reply are saved in the conversation, in order",
+   "missing": "The record fields: role, status, timestamps, model identifier, token/usage counts."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-30, C-31",
+   "quote": "nothing read from other Salesforce records (no contacts, accounts, cases, users' names or emails) ... A visible statement in the bot's interface says that messages are sent to xAI's Grok service."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-4, C-25",
+   "quote": "the next message sent is answered with the 20 most recent messages (user and Grok together) taken into account. Older ones may be left out."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-7, C-10, C-11, C-12",
+   "quote": "A user who has never sent a message sees no conversations ... Sending \"\" or \"   \\n  \" shows a message that there is nothing to send ... A message of exactly 10,000 characters is sent"
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "C-40",
+   "quote": "After the administrator changes the model name in configuration, the next message is sent to xAI with that model name.",
+   "missing": "A switch to turn the bot off, and an administrator view of failed requests."
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "C-47",
+   "quote": "Salesforce requires 75% coverage to deploy Apex to production and forbids real callouts in tests, so the same package must be deployable later",
+   "missing": "How configuration and credential differ per environment, and the deployment path (scratch org/sandbox, metadata deployment)."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "C-13, C-14",
+   "quote": "After clicking send, a visible waiting indicator appears and send is unavailable until the reply or an error arrives ... If Grok has not answered 120 seconds after the send"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "C-7, C-13, C-14, C-35",
+   "quote": "sees no conversations and an input ready for typing ... a visible waiting indicator appears ... a user can tell by appearance and label which messages are theirs and which are Grok's."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-46",
+   "quote": "existing objects, fields, flows, triggers, permission sets, user assignments, and page layouts are unchanged; no existing user's access changes."
+  }
+ ]
+}

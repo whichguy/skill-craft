@@ -1,0 +1,185 @@
+{
+ "slot": "grokbot-salesforce__A-single__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.2868892,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "U-2",
+   "quote": "The user signs in to the development org, opens the bot from inside Salesforce, and sees a place to enter a prompt.",
+   "missing": "Which Salesforce surface hosts the bot (record page component, utility bar, app page, Flow, etc.) and what context, if any, that surface passes."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-40",
+   "quote": "A bot request does not retrieve Salesforce business records. ... The bot does not look up that record to answer."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-41",
+   "quote": "The record, its fields, and other business data are absent from the outbound request unless the user supplied them in the prompt."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-18",
+   "quote": "An authenticated user without bot access is denied inference."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-44",
+   "quote": "One Salesforce user cannot read another user's prompts or replies through the bot.",
+   "missing": "Whether and how an administrator can access users' prompts and replies."
+  },
+  {
+   "id": "N-6",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-24",
+   "quote": "The bot keeps the xAI credential out of user-visible output.",
+   "missing": "Where the credential is stored (Named/External Credential or protected setting) and that it never appears in code, metadata or logs."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-34",
+   "quote": "The bot resolves a request as timed out if no completed outcome is available within 120 seconds of submission.",
+   "missing": "The binding platform governor limits (callout timeout ceiling, callouts per transaction, heap, CPU time) named with their numbers."
+  },
+  {
+   "id": "N-9",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-10",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-12",
+   "quote": "The bot indicates when a request is pending. Observable: Delay the Grok reply and observe a pending state before the result is available.",
+   "missing": "The mechanism by which the interface learns the reply arrived (platform event, polling, LMS, etc.)."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-38",
+   "quote": "A failed submission is not automatically resubmitted by the bot.",
+   "missing": "Idempotency guarantee that a retried or re-enqueued async job cannot post the same reply twice."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-31",
+   "quote": "Submit a prompt while Salesforce or xAI denies processing with a reported capacity or spending restriction ... The bot reports the restriction as the reason the request could not complete.",
+   "missing": "Queue depth or concurrent-job limits and their values, and handling of a request that cannot be enqueued."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-32, C-33, C-34",
+   "quote": "The bot indicates that the prompt was rejected. ... return an HTTP 5xx error ... The user sees a failure ... The bot reports a timeout by that boundary."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-29, C-38",
+   "quote": "When xAI returns HTTP 429, the user sees that a usage limit was reached and can try again later. ... no further inference attempt is made for it until the user submits again."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-36, C-34",
+   "quote": "Return partial text accompanied by a provider truncation indication. The bot identifies the reply as incomplete. ... The bot reports a timeout by that boundary."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-7",
+   "quote": "The bot does not provide saved conversations.",
+   "missing": "Whether anything is persisted server-side and, if so, its record shape (role, text, status, timestamps, model id, usage counts)."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-7",
+   "quote": "Close the bot after a completed exchange, then reopen it. The previous exchange is not available to resume in the bot.",
+   "missing": "Retention period and removal of any stored prompts/replies, including on user deletion."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-41, C-39",
+   "quote": "The bot does not automatically transfer Salesforce business data to xAI. ... The bot communicates the transfer of submitted text to xAI before the user submits."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-6, C-54",
+   "quote": "Each request uses the current prompt independently of other prompts. ... The bot does not silently shorten the prompt submitted for inference."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "U-2, C-9, C-10",
+   "quote": "An authorized Salesforce user asks Grok a question for the first time ... rejects a prompt containing zero non-whitespace characters ... exactly 4,000 Unicode code points passes"
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "C-21",
+   "quote": "The administrator can select an available Grok text model.",
+   "missing": "A switch to turn the bot off org-wide (beyond per-user revocation or backout) and a way for the administrator to see failed requests."
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "C-52",
+   "quote": "Introducing the bot does not change a production Salesforce org.",
+   "missing": "How configuration and credentials differ per environment and the deployment method (scratch org/sandbox, metadata deployment, code-coverage requirement)."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "C-34, C-12",
+   "quote": "within 120 seconds of submission ... The bot indicates when a request is pending."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "C-9, C-12, C-28, C-33",
+   "quote": "The bot indicates that text is required ... observe a pending state ... the user can read it in the bot without it being replaced by a service error ... The user sees a failure"
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-45, C-46, C-47",
+   "quote": "Bot deployment leaves pre-existing Salesforce business data intact. ... Their effective access is unchanged. ... Its configured triggers and outcomes stay the same."
+  }
+ ]
+}

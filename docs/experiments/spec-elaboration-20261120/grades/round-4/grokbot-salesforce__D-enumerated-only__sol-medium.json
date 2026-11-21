@@ -1,0 +1,182 @@
+{
+ "slot": "grokbot-salesforce__D-enumerated-only__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.5523594,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-21",
+   "quote": "A permitted user can identify and open Grok through signed-in Salesforce Lightning navigation without a separate website, a copied URL, or a separate xAI login."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-98",
+   "quote": "It does not include Salesforce record fields, IDs, page context, user identity, permission data or Salesforce session material drawn from the org."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-98",
+   "quote": "The conversation content consists of the submitted text and the bounded prior user and assistant text. It does not include Salesforce record fields"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-26",
+   "quote": "Bot administration requires a separate administrative grant... Bot-use access alone confers none of these operations."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-99",
+   "quote": "After a view ends, there is no bot-provided way for a user or administrator to retrieve its draft, prompts, answers or pending outcomes."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-78",
+   "quote": "A synchronous record-trigger transaction cannot obtain a Grok answer by making an Apex callout inline.",
+   "missing": "The constraints (trigger, uncommitted DML in C-77) are stated, but the spec never chooses an asynchronous execution design (Queueable, future, batch, continuation); C-133 even contemplates synchronous Apex."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-97",
+   "quote": "inspect the bot page, chat browser traffic, user feedback, operator diagnostics, app logs and deployment artifacts. None receives the configured key from the bot.",
+   "missing": "Where the secret is stored (Named/External Credential or protected setting) is left conditional and undecided."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "C-71, C-73, C-75, C-76",
+   "quote": "would exceed 100 callouts... Salesforce defaults to 10 seconds... caps cumulative callout waiting per transaction at 120 seconds... 6 MB in synchronous Apex... 10,000 ms for synchronous Apex"
+  },
+  {
+   "id": "N-9",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-67",
+   "quote": "omit its outbound authorization. The smoke attempt fails before reaching xAI. Salesforce requires an approved remote site or an applicable Named Credential for the destination."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-4",
+   "quote": "After an admitted send, the user sees that a reply is pending until the turn succeeds, fails, or the conversation view is lost.",
+   "missing": "The mechanism by which the view learns the answer arrived (inline return, polling, platform event, continuation) is not decided."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-111",
+   "quote": "Complete a turn, then deliver the same answer again. The transcript has one entry for that turn, containing its submitted prompt and one answer."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-72",
+   "quote": "the org already has 20 concurrent external callouts, a new bot callout can fail without an answer.",
+   "missing": "Concurrent-callout limits are named, but no queue/async-job depth limit or behaviour for a request that cannot be enqueued is stated."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-58",
+   "quote": "For a capacity or account refusal the user can retry later or seek administrator help. For a timeout, transport, Salesforce runtime or other provider failure the user can explicitly resend or seek help."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-56",
+   "quote": "Observe no second provider inference call unless the user explicitly submits again."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-132",
+   "quote": "If the provider reports that generation reached an output ceiling before finishing, the turn fails without exposing a fragment as an answer."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-34",
+   "quote": "each consisting of the submitted user text followed by the answer text",
+   "missing": "No persisted conversation/turn shape; status, timestamps, model identifier and usage counts per turn are undefined (spec chooses no stored records, C-36)."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C-36",
+   "quote": "A conversation is available only during the lifetime of its open view... The bot has no saved transcripts or cross-device history."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-98",
+   "quote": "The bot does not automatically include Salesforce data in an inference request."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-5",
+   "quote": "supplies up to the 5 most recent successful prompt-and-answer pairs in their original order, followed by the new prompt."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-31, C-7, C-8, C-43",
+   "quote": "sees an empty transcript... Submit an empty string... A nonblank prompt of 1\u20134,000 Unicode code points, inclusive, passes... response at 12,000 code points is displayed intact."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "C-59",
+   "quote": "Attempt an operator smoke prompt in an open view. Its latest outcome identifies one of success, local access refusal, paused...",
+   "missing": "Pause (C-12) and model change (C-29) are covered, but the administrator can see only their own latest smoke outcome, not failed requests from ordinary users."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "C-84",
+   "quote": "xAI documents a 30-day default audit retention period and a Zero Data Retention option.",
+   "missing": "No Salesforce-side audit record of who asked what and what was answered; C-99 excludes chat content from logs."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "C-20, C-86",
+   "quote": "A Developer Edition org, development sandbox, or scratch org qualifies if designated... Salesforce requires at least 75% aggregate Apex coverage.",
+   "missing": "The deployment mechanism (metadata deployment vs managed package) is left conditional, and how configuration differs per environment is not stated."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "C-52",
+   "quote": "If no terminal outcome is available within 30 seconds of submission, the open, responsive view exits pending and shows a timeout."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "C-58",
+   "quote": "The open view distinguishes the actions a user can take after refusal or failure."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-90",
+   "quote": "Compare existing navigation entries, metadata, permissions and external connections unrelated to the bot... Their definitions and assignments stay unchanged by bot work."
+  }
+ ]
+}

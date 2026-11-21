@@ -1,0 +1,534 @@
+{
+ "csv-user-import__A-single__sol-medium": {
+  "use_cases": 14,
+  "clauses": 62,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 28,
+   "implied": 44,
+   "request": 4
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 3510,
+  "bundled_and": 2,
+  "bundled_examples": [
+   "Import accepts both LF and CRLF record endings",
+   "Where there is no existing email validation, a supplied email must con"
+  ],
+  "words_judged": 3510,
+  "seconds": 171.3,
+  "rc": 0,
+  "arm": "A-single",
+  "driver": "sol-medium",
+  "case": "csv-user-import",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 7852,
+  "tools": {
+   "agent_message": 3,
+   "command_execution": 6,
+   "file_change": 1
+  },
+  "also": []
+ },
+ "csv-user-import__A-single__sonnet-high": {
+  "use_cases": 15,
+  "clauses": 42,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 15,
+   "implied": 37,
+   "request": 5
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 3162,
+  "bundled_and": 9,
+  "bundled_examples": [
+   "Each row creates a user with that row's name and email",
+   "The import page states the file format and the limits",
+   "The first line is a header, and columns are found by name"
+  ],
+  "words_judged": 3162,
+  "seconds": 110.8,
+  "rc": 0,
+  "arm": "A-single",
+  "driver": "sonnet-high",
+  "case": "csv-user-import",
+  "cost_usd": 0.22503460000000003,
+  "turns": 3,
+  "output_tokens": 13229,
+  "tools": {
+   "Bash": 1,
+   "Write": 1
+  },
+  "also": []
+ },
+ "csv-user-import__D-enumerated-only__sol-medium": {
+  "use_cases": 18,
+  "clauses": 110,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 93,
+   "implied": 32,
+   "request": 3
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 7049,
+  "bundled_and": 2,
+  "bundled_examples": [
+   "CSV accepts LF, CRLF, and CR as record breaks",
+   "Outer spaces and tabs are removed from submitted email values"
+  ],
+  "words_judged": 7049,
+  "seconds": 398.1,
+  "rc": 0,
+  "arm": "D-enumerated-only",
+  "driver": "sol-medium",
+  "case": "csv-user-import",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 18152,
+  "tools": {
+   "agent_message": 6,
+   "command_execution": 21,
+   "web_search": 1
+  },
+  "also": [],
+  "passes_recorded": 10,
+  "passes_words": 537
+ },
+ "csv-user-import__D-enumerated-only__sonnet-high": {
+  "use_cases": 11,
+  "clauses": 86,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 30,
+   "implied": 62,
+   "request": 5
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 6495,
+  "bundled_and": 14,
+  "bundled_examples": [
+   "Active admins can use the import page and submit a CSV",
+   "The delimiter is a comma and quoting follows RFC 4180",
+   "The first non-blank record is the header, and header names are matched"
+  ],
+  "words_judged": 6495,
+  "seconds": 381.1,
+  "rc": 0,
+  "arm": "D-enumerated-only",
+  "driver": "sonnet-high",
+  "case": "csv-user-import",
+  "cost_usd": 0.8771529,
+  "turns": 41,
+  "output_tokens": 50799,
+  "tools": {
+   "Bash": 10,
+   "Edit": 27,
+   "Write": 3
+  },
+  "also": [],
+  "passes_recorded": 7,
+  "passes_words": 969
+ },
+ "grokbot-salesforce__A-single__sol-medium": {
+  "use_cases": 14,
+  "clauses": 54,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 12,
+   "implied": 52,
+   "request": 4
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 3440,
+  "bundled_and": 2,
+  "bundled_examples": [
+   "Bot inference is subject to the active xAI rate limits for the configu",
+   "Bot deployment preserves pre-existing access to unrelated Salesforce f"
+  ],
+  "words_judged": 3440,
+  "seconds": 179.6,
+  "rc": 0,
+  "arm": "A-single",
+  "driver": "sol-medium",
+  "case": "grokbot-salesforce",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 7338,
+  "tools": {
+   "agent_message": 3,
+   "command_execution": 6,
+   "web_search": 3
+  },
+  "also": []
+ },
+ "grokbot-salesforce__A-single__sonnet-high": {
+  "use_cases": 17,
+  "clauses": 49,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 10,
+   "implied": 52,
+   "request": 4
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 3669,
+  "bundled_and": 16,
+  "bundled_examples": [
+   "Both the user's message and Grok's reply are saved in the conversation",
+   "A user's earlier conversations are listed and can be reopened",
+   "A message of more than 10,000 characters is refused, and the text is k"
+  ],
+  "words_judged": 3669,
+  "seconds": 102.9,
+  "rc": 0,
+  "arm": "A-single",
+  "driver": "sonnet-high",
+  "case": "grokbot-salesforce",
+  "cost_usd": 0.20978229999999998,
+  "turns": 2,
+  "output_tokens": 12457,
+  "tools": {
+   "Write": 1
+  },
+  "also": []
+ },
+ "grokbot-salesforce__D-enumerated-only__sol-medium": {
+  "use_cases": 8,
+  "clauses": 139,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 109,
+   "implied": 35,
+   "request": 3
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 8242,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 8242,
+  "seconds": 437.5,
+  "rc": 0,
+  "arm": "D-enumerated-only",
+  "driver": "sol-medium",
+  "case": "grokbot-salesforce",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 19058,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 19,
+   "web_search": 6
+  },
+  "also": [],
+  "passes_recorded": 9,
+  "passes_words": 611
+ },
+ "grokbot-salesforce__D-enumerated-only__sonnet-high": {
+  "use_cases": 14,
+  "clauses": 89,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 21,
+   "implied": 76,
+   "request": 6
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 7237,
+  "bundled_and": 16,
+  "bundled_examples": [
+   "The bot has a Lightning app and tab where a person chats",
+   "Two permission sets exist and each grants a stated set of things",
+   "The request body carries these parts and no others"
+  ],
+  "words_judged": 7237,
+  "seconds": 408.4,
+  "rc": 0,
+  "arm": "D-enumerated-only",
+  "driver": "sonnet-high",
+  "case": "grokbot-salesforce",
+  "cost_usd": 0.8346586,
+  "turns": 27,
+  "output_tokens": 52537,
+  "tools": {
+   "Bash": 3,
+   "Edit": 21,
+   "Write": 2
+  },
+  "also": [],
+  "passes_recorded": 8,
+  "passes_words": 868
+ },
+ "gym-waitlist__A-single__sol-medium": {
+  "use_cases": 13,
+  "clauses": 83,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 20,
+   "implied": 74,
+   "request": 2
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 4626,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 4626,
+  "seconds": 178.3,
+  "rc": 0,
+  "arm": "A-single",
+  "driver": "sol-medium",
+  "case": "gym-waitlist",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 8359,
+  "tools": {
+   "agent_message": 3,
+   "command_execution": 4
+  },
+  "also": []
+ },
+ "gym-waitlist__A-single__sonnet-high": {
+  "use_cases": 13,
+  "clauses": 44,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 9,
+   "implied": 42,
+   "request": 6
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 3625,
+  "bundled_and": 5,
+  "bundled_examples": [
+   "A member can see their own position at any time and it is current",
+   "Leaving moves the people behind up and leaves those ahead alone",
+   "When a booked place becomes free and someone is waiting, the first wai"
+  ],
+  "words_judged": 3625,
+  "seconds": 133.0,
+  "rc": 0,
+  "arm": "A-single",
+  "driver": "sonnet-high",
+  "case": "gym-waitlist",
+  "cost_usd": 0.27332029999999996,
+  "turns": 4,
+  "output_tokens": 16321,
+  "tools": {
+   "Bash": 1,
+   "Edit": 1,
+   "Write": 1
+  },
+  "also": []
+ },
+ "gym-waitlist__D-enumerated-only__sol-medium": {
+  "use_cases": 15,
+  "clauses": 174,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 136,
+   "implied": 51,
+   "request": 2
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 8498,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 8498,
+  "seconds": 383.1,
+  "rc": 0,
+  "arm": "D-enumerated-only",
+  "driver": "sol-medium",
+  "case": "gym-waitlist",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 17130,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 20
+  },
+  "also": [],
+  "passes_recorded": 10,
+  "passes_words": 519
+ },
+ "gym-waitlist__D-enumerated-only__sonnet-high": {
+  "use_cases": 12,
+  "clauses": 93,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 23,
+   "implied": 78,
+   "request": 4
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 6901,
+  "bundled_and": 9,
+  "bundled_examples": [
+   "Joining is not booking and costs nothing",
+   "Staff can close and reopen joining for a class",
+   "Two cancellations at the same moment free two spots and promote two pe"
+  ],
+  "words_judged": 6901,
+  "seconds": 529.6,
+  "rc": 0,
+  "arm": "D-enumerated-only",
+  "driver": "sonnet-high",
+  "case": "gym-waitlist",
+  "cost_usd": 1.1505995999999998,
+  "turns": 24,
+  "output_tokens": 70652,
+  "tools": {
+   "Bash": 8,
+   "Edit": 12,
+   "Write": 3
+  },
+  "also": [],
+  "passes_recorded": 8,
+  "passes_words": 843
+ },
+ "invoice-reminders__A-single__sol-medium": {
+  "use_cases": 16,
+  "clauses": 58,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 18,
+   "implied": 54,
+   "request": 2
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 3233,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 3233,
+  "seconds": 174.3,
+  "rc": 0,
+  "arm": "A-single",
+  "driver": "sol-medium",
+  "case": "invoice-reminders",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 7804,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 7,
+   "file_change": 2
+  },
+  "also": []
+ },
+ "invoice-reminders__A-single__sonnet-high": {
+  "use_cases": 16,
+  "clauses": 46,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 15,
+   "implied": 43,
+   "request": 4
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 3576,
+  "bundled_and": 13,
+  "bundled_examples": [
+   "The default schedule has three steps, at 1, 7 and 14 days after the du",
+   "A reminder shows the invoice number, the outstanding amount with its c",
+   "A part-paid invoice keeps being reminded, and the amount shown is the "
+  ],
+  "words_judged": 3576,
+  "seconds": 155.4,
+  "rc": 0,
+  "arm": "A-single",
+  "driver": "sonnet-high",
+  "case": "invoice-reminders",
+  "cost_usd": 0.3093167,
+  "turns": 3,
+  "output_tokens": 19260,
+  "tools": {
+   "Bash": 1,
+   "Write": 1
+  },
+  "also": []
+ },
+ "invoice-reminders__D-enumerated-only__sol-medium": {
+  "use_cases": 17,
+  "clauses": 118,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 100,
+   "implied": 34,
+   "request": 1
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 7368,
+  "bundled_and": 1,
+  "bundled_examples": [
+   "Account controls support enable and pause."
+  ],
+  "words_judged": 7368,
+  "seconds": 387.7,
+  "rc": 0,
+  "arm": "D-enumerated-only",
+  "driver": "sol-medium",
+  "case": "invoice-reminders",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 17586,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 24
+  },
+  "also": [],
+  "passes_recorded": 10,
+  "passes_words": 621
+ },
+ "invoice-reminders__D-enumerated-only__sonnet-high": {
+  "use_cases": 15,
+  "clauses": 98,
+  "requirements": 0,
+  "source_mix": {
+   "choice": 35,
+   "implied": 76,
+   "request": 2
+  },
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 6634,
+  "bundled_and": 41,
+  "bundled_examples": [
+   "Turning reminders on is refused while any prerequisite is missing, and",
+   "A reminder for a step is sent no earlier than the send time on the ste",
+   "Reminders are considered only for invoices in the states Open and Part"
+  ],
+  "words_judged": 6634,
+  "seconds": 426.7,
+  "rc": 0,
+  "arm": "D-enumerated-only",
+  "driver": "sonnet-high",
+  "case": "invoice-reminders",
+  "cost_usd": 0.9355046,
+  "turns": 26,
+  "output_tokens": 57159,
+  "tools": {
+   "Bash": 7,
+   "Edit": 16,
+   "Write": 2
+  },
+  "also": [],
+  "passes_recorded": 7,
+  "passes_words": 831
+ }
+}
