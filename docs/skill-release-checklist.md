@@ -61,8 +61,9 @@ inventory and `CHANGELOG.md`.
    host as [Refreshing after a release](distribution.md#refreshing-after-a-release)
    lists. On Claude and Grok the marketplace refresh fetches the catalog only and
    a second command moves the installed plugin; on Codex the marketplace upgrade
-   is the whole refresh; Cursor's CLI re-indexes without moving the installed
-   plugin. Read each host's installed version back, because a command's exit
+   is the whole refresh, and it deletes every other installed version, so
+   [check for live runs first](distribution.md#check-for-live-runs-before-refreshing-codex-or-grok);
+   Cursor's CLI re-indexes without moving the installed plugin. Read each host's installed version back, because a command's exit
    status does not show it. Skill-directory users (`./install.sh`) track the
    checkout and need no release.
 

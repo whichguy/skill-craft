@@ -259,7 +259,7 @@ installed version back.
 | Host | Refresh the catalog | Move the installed plugin | Read back |
 |------|---------------------|---------------------------|-----------|
 | Claude Code | `claude plugin marketplace update whichguy` | `claude plugin update skill-craft@whichguy --scope user`, then restart | `claude plugin list --json` |
-| Codex | `codex plugin marketplace upgrade whichguy` | none: the installed plugin is read from the marketplace clone; start a new task | `codex plugin list --marketplace whichguy --json` |
+| Codex | `codex plugin marketplace upgrade whichguy`; it deletes every other installed version, so [check for live runs first](#check-for-live-runs-before-refreshing-codex-or-grok) | none: the installed plugin is read from the marketplace clone; start a new task | `codex plugin list --marketplace whichguy --json` |
 | Grok | `grok plugin marketplace update whichguy` | `grok plugin update skill-craft` | `grok plugin details skill-craft` |
 | Cursor | none: Cursor runs Claude Code's copy (Imported), so the Claude Code row is its refresh | a Cursor launch after `claude plugin update`; do not re-register or Add skill-craft in Cursor (a native copy pins one commit and shadows the import); a machine without Claude Code takes the native route under [Cursor](#cursor) | the Installed list's skill-craft row (version and skill count), or Claude Code's `~/.claude/plugins/installed_plugins.json` |
 
@@ -284,6 +284,59 @@ After a release that adds or changes a skill, also compare one installed skill
 directory with the published one: extract `git archive origin/main
 plugins/skill-craft/skills/<leaf>` into an empty directory and run `diff -rq`
 against each host's copy.
+
+#### Check for live runs before refreshing Codex or Grok
+
+A ShipLoop run calls its CLI by the installed plugin's path, and every packet
+repeats that path. On Codex the path names the version
+(`~/.codex/plugins/cache/whichguy/skill-craft/<version>/skills/shiploop/scripts/shiploop`),
+and `codex plugin marketplace upgrade whichguy` deletes every other version
+folder. Seen twice while processes of a run started on 3.3.0 (its viewers, and
+on the first day its observer) were live from that folder (Codex CLI 0.171.0
+when read on 2026-11-20):
+
+- 2026-11-19, refresh for 4.1.0: `3.3.0` and `4.0.0` were gone.
+- 2026-11-20, refresh for 4.2.0: `3.3.0` and `4.1.0` were gone.
+
+A run whose CLI is gone would fail its next `check` or `complete`, or the model
+would go looking and run a newer CLI against the run's files. Neither was
+observed: both times the folder was restored within about a minute, and on
+2026-11-19 the run's next `complete`, four minutes later, succeeded.
+
+The other hosts differ:
+
+- **Claude Code** keeps old version folders (36 on 2026-11-20), so its refresh
+  leaves a live run's path in place.
+- **Grok** updates one folder in place (`~/.grok/installed-plugins/skill-craft-<id>`),
+  so a live Grok run would get the new release's files mid-run. No live Grok
+  run has been refreshed, so the effect is not measured.
+- **Cursor** runs Claude Code's copy.
+
+Before the Codex or Grok refresh, list the processes that run from an installed
+plugin folder:
+
+```sh
+ps -ax -ww -o command | grep -o -E '/[^ ]*(plugins/cache|installed-plugins)/[^ ]*skill-craft[^ /]*(/[0-9][0-9.]*)?' | sort | uniq -c
+```
+
+If a run is live, refresh that host after it ends. To refresh anyway, restore
+the deleted version at once. The cache folder is exactly `plugins/skill-craft`
+of that version's release commit (`diff -rq` showed no difference for 3.3.0 and
+for 4.1.0):
+
+```sh
+version=3.3.0
+cache=~/.codex/plugins/cache/whichguy/skill-craft
+commit=$(git log origin/main -1 --format=%H --grep="^Skill-Craft-Release:.*skill-craft@${version//./\\.}")
+scratch=$(mktemp -d)
+git archive "${commit:?no release commit for $version}" plugins/skill-craft | tar -x -C "$scratch"
+[ -e "$cache/$version" ] || mv "$scratch/plugins/skill-craft" "$cache/$version"
+```
+
+Then confirm from the restored path with a command that only reads:
+`"$cache/$version/skills/shiploop/scripts/shiploop" view --run-dir <run> --status`.
+A call that failed while the folder was missing leaves no line in the run's
+`trace.jsonl`, so a clean trace does not show that nothing failed.
 
 ## Checking packages
 
