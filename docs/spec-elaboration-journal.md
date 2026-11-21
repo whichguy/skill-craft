@@ -2193,3 +2193,67 @@ Section 29 held them against the first case only. On the three cells:
 - That session's message says it is now running a further step with Sonnet 5.5 at high as the writer (R first,
   then L), registered as its amendment 10. That is later than the commit read here, which has no amendment 10, so
   it is recorded as said and not as checked. The result will be recorded here as received when it arrives.
+
+## 31. Received: the reworded text with Sonnet as the writer; the due-times misreading turns out to be one model family's (08:16, 2026-11-21)
+
+Recorded as received. The runs, instruments and findings are the Ratchet session's. Its record is the subsection
+"Amendment 10, result" in section 21 of `docs/ratchet-pilot-journal.md` at commit
+6e2f63ceb268d887f72e1cc40e95cd75f9fdf143 on its branch `ratchet-lens-08805f`, not on main. A Sonnet worker of this
+session checked the figures below against that record one by one: all ten of the figures it was given matched, and
+none was missing or differed; I read its report and spot-checked eight of them in the source myself. Section 30
+said this step was running and was "recorded as said and not as checked";
+it is now checked against that record. Nothing was re-run here.
+
+What ran: ten spec-only runs, each stopped after the specification stage, on the Claude host with
+`claude-sonnet-5-5` at high effort, one new repository a run. The cases are orders, ticket assignment, and ticket
+due times three times. Five runs used the reworded text (R, section 18's arm) and five used the lens text (L) as
+the base. Every specification was accepted on its first try. That session's cost report was 1.74 dollars for the R
+runs and 2.57 for the L runs.
+
+| its reading | Sonnet with R | Sonnet with L | Sol with R (earlier) | Sol with L (earlier) |
+| --- | --- | --- | --- | --- |
+| clauses the writer marked as its own choice | 0, 0, 2, 0, 1 (3 in five) | 10, 12, 8, 12, 9 (51 in five) | 0 in all | 14 to 25 |
+| `Open:` lines a specification | 9, 7, 12, 8, 6 (42 in five) | none | 7 to 10 | none |
+| clauses written | 21 to 32 | 39 to 80 | 26 to 43 | 82 to 197 |
+| `existing` clauses | 1 to 6 | 2 to 27 | 1 to 24 |  |
+| due-times specifications that require refusing an enabled start on an unprepared file | 0 of 3 | 0 of 3 | 0 of 3 |  |
+
+The Sol columns are that session's earlier figures, which it set beside the Sonnet ones; they are not new runs. The
+blank cells are not stated for that pairing in the record read. For the last row, that session records that Sol's
+writers chose the refusal four times in five with the two earlier texts together.
+
+The three choice clauses Sonnet wrote under R are small. Two, both about `overdue` values other than `true`, say
+the value is left unspecified, and one of them adds that a test must not assert either way. On due times, none of
+Sonnet's six specifications requires the refusal. With L all three give the missing due times at start, as clauses
+sourced to the request. With R two do the same and one leaves the timing open under an `Open:` line. A Sonnet
+subagent of that session recounted every cell of its table with a script of its own and all figures matched; that
+session's readings were made in its main session.
+
+Its limits, as its record states them: one specification of two of the cases with each text; a Claude session
+started by its pilot runs in the real home and is shown the account's own instructions, the same in both waves;
+Sonnet sometimes writes a `Source:` line that names two kinds, and the count reads only the first word; and
+nothing here is about a built product or a test.
+
+### What it adds here
+
+- R does to Sonnet what it did to Sol: almost no choice of the writer's own (3 in five specifications, against 51
+  with L) and several open lines in a specification (42 in five, against none), in shorter specifications (21 to 32
+  clauses against 39 to 80).
+- The repair R made on due times (sections 29 and 30: both first builds passing 8 of 8 held-out checks) is a repair
+  of something one model family gets wrong. On Sonnet the lens text did not make that mistake in any of three
+  specifications, so that case cannot show R's worth on Sonnet. That session says this narrows two of its own
+  findings, F24 and F30. It also narrows what sections 29 and 30 can be read as showing: the built-product result
+  is for Sol.
+- Nothing was built or tested on Sonnet. Sonnet's R specifications restate even less existing behaviour than Sol's
+  (1 to 6 `existing` clauses against 1 to 24), so the one loss section 30 recorded, a defect in existing behaviour
+  that a short specification no longer pins, is the larger risk there. That session's record says the cheapest next
+  step is one test-strength cell on Sonnet, ticket assignment with its 27 planted defects, and that it is put to
+  the owner and not run. It is not run here.
+- An observation that is not reconciled. In this experiment's own rounds (section 22 and the note under it marked
+  superseded; section 26) Sonnet's specifications settled more than Sol's under ShipLoop's released stage, and in
+  real deliveries Sonnet's specifications state limits that Sol's do not. In that session's pilot, told by the lens
+  text to decide, Sol wrote more choices than Sonnet did (Sol 14 to 25 against Sonnet 8 to 12). The frames differ:
+  a released stage on a bench with no repository here, the pilot's stage with a repository there. Neither session
+  knows how to square the two. It is recorded as an open observation and no claim is made from it.
+- This experiment's conclusion (section 28) is unchanged. No ShipLoop template was changed and none is proposed
+  here.
