@@ -2505,13 +2505,13 @@
   "case": "ticket-due-times",
   "model": "gpt-6.2-sol",
   "effort": "high",
-  "finished": false,
-  "stop": null,
-  "final_pass": null,
-  "minutes": null,
-  "sessions": 3,
-  "clauses": null,
-  "use_cases": null,
+  "finished": true,
+  "stop": "max-cycles",
+  "final_pass": true,
+  "minutes": 149.7,
+  "sessions": 13,
+  "clauses": 299,
+  "use_cases": 21,
   "kind": "whole loop",
   "tamper": 0,
   "reverted": [],
@@ -2521,14 +2521,17 @@
   ],
   "minutes_by_stage": {
    "spec": 10.8,
-   "plan": 8.1,
-   "build": 13.3
+   "plan": 18.0,
+   "build": 37.9,
+   "tests": 48.0,
+   "delta": 16.9,
+   "gates and script": 18.1
   },
   "tokens": {
-   "input": 7142177,
-   "cached": 6742912,
-   "output": 82723,
-   "reasoning": 23058
+   "input": 40135083,
+   "cached": 38621184,
+   "output": 320112,
+   "reasoning": 91912
   },
   "minutes_to_first_build": 32.3,
   "cycles": [
@@ -2538,16 +2541,148 @@
      "C-279",
      "C-280"
     ],
-    "first_gate": null,
-    "first_gate_failing": null,
+    "first_gate": "301 of 301",
+    "first_gate_failing": [],
     "fix_sessions": 0,
     "disputes": 0,
     "referee_refused": 0,
-    "delta_added": null
+    "delta_added": [
+     "C-281",
+     "C-282",
+     "C-283",
+     "C-284",
+     "C-285",
+     "C-286",
+     "C-287"
+    ],
+    "delta_keeps_no": 4,
+    "delta_keeps_yes": 3
+   },
+   {
+    "cycle": 2,
+    "plan_added": [
+     "C-288",
+     "C-289",
+     "C-290"
+    ],
+    "first_gate": "311 of 311",
+    "first_gate_failing": [],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-291",
+     "C-292",
+     "C-293",
+     "C-294"
+    ],
+    "delta_keeps_no": 1,
+    "delta_keeps_yes": 3,
+    "build_changed": {
+     "files": 14,
+     "added": 570,
+     "removed": 48
+    }
+   },
+   {
+    "cycle": 3,
+    "plan_added": [
+     "C-295"
+    ],
+    "first_gate": "316 of 316",
+    "first_gate_failing": [],
+    "fix_sessions": 0,
+    "disputes": 0,
+    "referee_refused": 0,
+    "delta_added": [
+     "C-296",
+     "C-297",
+     "C-298",
+     "C-299"
+    ],
+    "delta_keeps_no": 3,
+    "delta_keeps_yes": 1,
+    "build_changed": {
+     "files": 12,
+     "added": 409,
+     "removed": 16
+    }
    }
   ],
   "hidden": {
    "build-1": {
+    "passed": 3,
+    "failed": [
+     "cli",
+     "migrate",
+     "restart",
+     "rollback",
+     "switch"
+    ],
+    "observed": true,
+    "rerun": false
+   },
+   "green-1": {
+    "passed": 3,
+    "failed": [
+     "cli",
+     "migrate",
+     "restart",
+     "rollback",
+     "switch"
+    ],
+    "observed": true,
+    "rerun": false
+   },
+   "build-2": {
+    "passed": 3,
+    "failed": [
+     "cli",
+     "migrate",
+     "restart",
+     "rollback",
+     "switch"
+    ],
+    "observed": true,
+    "rerun": false
+   },
+   "green-2": {
+    "passed": 3,
+    "failed": [
+     "cli",
+     "migrate",
+     "restart",
+     "rollback",
+     "switch"
+    ],
+    "observed": true,
+    "rerun": false
+   },
+   "build-3": {
+    "passed": 3,
+    "failed": [
+     "cli",
+     "migrate",
+     "restart",
+     "rollback",
+     "switch"
+    ],
+    "observed": true,
+    "rerun": false
+   },
+   "green-3": {
+    "passed": 3,
+    "failed": [
+     "cli",
+     "migrate",
+     "restart",
+     "rollback",
+     "switch"
+    ],
+    "observed": true,
+    "rerun": false
+   },
+   "final": {
     "passed": 3,
     "failed": [
      "cli",
@@ -2573,6 +2708,17 @@
    "rerun": false
   },
   "hidden_start": null,
-  "hidden_final": null
+  "hidden_final": {
+   "passed": 3,
+   "failed": [
+    "cli",
+    "migrate",
+    "restart",
+    "rollback",
+    "switch"
+   ],
+   "observed": true,
+   "rerun": false
+  }
  }
 ]

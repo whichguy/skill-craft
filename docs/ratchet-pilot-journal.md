@@ -457,7 +457,7 @@ Registered readings, on the enriched arm:
 | shared expenses, high | 118.3 (22.4) | 14 | 260,499 | 106/107 then 107/107 after one fix, 116/116, 124/124 | 6 of 6 / 6 of 6 (5 of 6 after build 2, 6 again after its tests) | 9 (3), 7 (1), 3 (1) | +731 −42, +343 −49 |
 | ticket assignment, high | 132.9 (23.4) | 13 | 308,043 | 225/225, 232/232, 238/238 | 18 of 18 / 18 of 18 | 7 (4), 5 (2), 6 (3) | +536 −24, +567 −38 |
 | ticket assignment, medium | 91.8 (17.2) | 13 | 177,302 | 181/181, 188/188, 191/191 | 18 of 18 / 18 of 18 | 6 (4), 3 (1), 3 (2) | +443 −20, +213 −5 |
-| ticket due times, high | in flight | | | | 3 of 8 at the first build | | |
+| ticket due times, high | 149.7 (32.3) | 13 | 320,112 | 301/301, 311/311, 316/316 | 3 of 8 / 3 of 8 (the correct reference passes 7) | 7 (4), 4 (1), 4 (3) | +570 −48, +409 −16 |
 
 Minutes by stage (spec, plan, build, heavy tests, fix, closing looks, gates and script): chess 9.6, 14.9, 15.1, 29.8,
 0, 9.8, 5.9; shared expenses 7.1, 16.2, 26.9, 34.8, 3.0, 15.3, 15.1; ticket assignment high 9.6, 15.1, 26.9, 49.0, 0,
@@ -465,10 +465,11 @@ Minutes by stage (spec, plan, build, heavy tests, fix, closing looks, gates and 
 
 Registered readings:
 
-- **R3.1, no loss: met on the five finished runs** (every held-out check passes at the end); the due-times run is
-  read when it ends and starts from a first build that fails 5 of 8.
-- **R3.2, reported.** Every finished run's first build already passed every held-out check. The loop had nothing to
-  recover on any of them.
+- **R3.1, no loss: met on five runs, not met on the sixth.** On orders, chess, shared expenses and both
+  ticket-assignment runs every held-out check passes at the end. The due-times run fails 5 of 8 from its first
+  build to its end (F20 below).
+- **R3.2, reported.** On five runs the first build already passed every held-out check, so the loop had nothing to
+  recover. On due times the first build passed 3 of 8 and the loop recovered nothing.
 - **R3.3, reported.** A failing acceptance test led to a product change in one run of five: shared expenses, cycle 1,
   clause C-18 (a group id too long to address in a URL), repaired by one fix session of 3 minutes. Closing-look
   clauses led to product changes in every run: each second and third build changed the product (the last column).
@@ -476,8 +477,8 @@ Registered readings:
   whole delivery of the same case on the same model and effort took 13.2 minutes and 29,066 (7.0 times the time, 6.1
   times the output tokens), with the same 18 of 18 held-out checks. Ratchet's first build alone came at 17.2
   minutes. ShipLoop's delivery also released and reviewed; Ratchet stops at a product.
-- **No run converged.** All five ended at the three-cycle limit with the last closing look still adding items (1, 1,
-  3, 6, 3). The limit is the apparatus's, so "does it end by itself" is not answered; nothing seen suggests it does.
+- **No run converged.** All six ended at the three-cycle limit with the last closing look still adding items (1, 1,
+  3, 6, 3, 4). The limit is the apparatus's, so "does it end by itself" is not answered; nothing seen suggests it does.
 
 **F14 (firm on these cases).** With every first build already correct, all the work after the first gate came from
 the loop's own specification. The second and third builds added 237 to 1,103 lines a run (last column). On ticket
@@ -491,6 +492,27 @@ the bar was 20%) fail on the harness's correct reference: C-164 to C-167, C-171 
 enforces (173 clauses, 18 use cases), 25 clauses (14%) and 9 use cases (50%) fail on the reference, and the second
 correct delivery fails 12 more items. By the source the specification gave them, the 34 failing items are 18
 implied, 6 discovery, 5 existing, 3 choice and 2 request.
+
+**F20 (firm; one run, and the same reading in a second, independent specification).** Tests written from the
+loop's own specification cannot see the specification's own reading. The due-times request says "The tickets
+already in the production data file get due times too" and "Due times are switched on in production only once the
+data file holds them". The enriched specification read that as a step for an operator: a preparation command run on
+the file first, and a service that refuses to start with due times on while any ticket lacks one (U-11 to U-13). The
+held-out checks, and all eight ShipLoop builds of this request on record, read it as the new release filling the
+file in when it starts. Five held-out checks start the service on a file without due times; each fails with
+"cannot start: ... tickets[0].due (T-0001) is missing". The run's gates read 301 of 301, 311 of 311 and 316 of 316;
+the held-out checks read 3 of 8 at the first build, after every build and at the end, 149.7 minutes and 320,112
+output tokens later. The enriched specification of the test-strength run (`p1e2-ticket-due-times`) made the same
+choice, which is why the two repair starts above lost held-out checks while their gates went green.
+
+**F21 (firm; one run).** The acceptance suite does not hold across cycles. The second closing look added C-291, "the
+product must refuse a saved deadline that precedes its creation". The third build honoured it, found that 21 frozen
+items used fixtures with exactly such deadlines, left the tests alone and said so ("The exit check is blocked by 21
+frozen checks"); its gate read 290 of 311. The test session that followed may not touch the product. It rewrote the
+tests (546 lines added, 63 removed across 8 files) and the gate read 316 of 316 with the product unchanged. Each
+role kept to its rules. The result is that a requirement the loop invented in one cycle rewrote the checks of
+earlier cycles, and nothing outside the loop looked. In the other five runs no build broke an earlier test, and later
+test sessions removed 2 to 50 lines of earlier test files.
 
 Evidence: `evidence/p3/` (each run's run.json, hidden.json and closing-look reports; `summary.json` for all runs;
 `strength-ticket-assignment-medium.json`, verdicts without command output). The plans stay in the runs folder.
