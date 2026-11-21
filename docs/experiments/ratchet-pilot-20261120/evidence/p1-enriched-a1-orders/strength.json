@@ -1,0 +1,1164 @@
+{
+ "case": "stand-in-rules",
+ "graded_with": "5843de25c56556af79309c4c98f4d17028807758 (with uncommitted changes to the pilot folder)",
+ "reference": {
+  "failing": [
+   "C-12",
+   "C-13",
+   "C-14",
+   "C-18",
+   "C-20",
+   "C-26",
+   "C-36",
+   "C-38",
+   "C-61",
+   "C-62",
+   "C-63",
+   "U-4",
+   "U-8"
+  ],
+  "unstable": [],
+  "did_not_end": [],
+  "ids": [
+   "C-1",
+   "C-10",
+   "C-11",
+   "C-12",
+   "C-13",
+   "C-14",
+   "C-15",
+   "C-16",
+   "C-17",
+   "C-18",
+   "C-19",
+   "C-2",
+   "C-20",
+   "C-21",
+   "C-22",
+   "C-23",
+   "C-24",
+   "C-25",
+   "C-26",
+   "C-27",
+   "C-28",
+   "C-29",
+   "C-3",
+   "C-30",
+   "C-31",
+   "C-32",
+   "C-33",
+   "C-34",
+   "C-35",
+   "C-36",
+   "C-37",
+   "C-38",
+   "C-39",
+   "C-4",
+   "C-40",
+   "C-41",
+   "C-42",
+   "C-43",
+   "C-44",
+   "C-45",
+   "C-46",
+   "C-47",
+   "C-48",
+   "C-49",
+   "C-5",
+   "C-50",
+   "C-51",
+   "C-52",
+   "C-53",
+   "C-54",
+   "C-55",
+   "C-56",
+   "C-57",
+   "C-58",
+   "C-59",
+   "C-6",
+   "C-60",
+   "C-61",
+   "C-62",
+   "C-63",
+   "C-7",
+   "C-8",
+   "C-9",
+   "U-1",
+   "U-2",
+   "U-3",
+   "U-4",
+   "U-5",
+   "U-6",
+   "U-7",
+   "U-8"
+  ],
+  "seconds": 21.6,
+  "tails": {
+   "C-12": [
+    "    actual: undefined,",
+    "    operator: 'throws',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-13": [
+    "    actual: undefined,",
+    "    operator: 'throws',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-14": [
+    "    actual: undefined,",
+    "    operator: 'throws',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-18": [
+    "    actual: undefined,",
+    "    operator: 'throws',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-20": [
+    "    actual: undefined,",
+    "    operator: 'throws',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-26": [
+    "    actual: undefined,",
+    "    operator: 'throws',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-36": [
+    "    actual: undefined,",
+    "    operator: 'throws',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-38": [
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-61": [
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-62": [
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "C-63": [
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "U-4": [
+    "    actual: undefined,",
+    "    operator: 'throws',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "U-8": [
+    "    expected: true,",
+    "    operator: '==',",
+    "    diff: 'simple'",
+    "  }"
+   ]
+  }
+ },
+ "controls": {},
+ "raw": {
+  "one-rule-missing": {
+   "failing": [
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-20",
+    "C-26",
+    "C-29",
+    "C-30",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-4",
+    "C-5",
+    "C-59",
+    "C-61",
+    "C-62",
+    "C-63",
+    "C-8",
+    "U-1",
+    "U-2",
+    "U-4",
+    "U-7",
+    "U-8"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-45",
+    "C-46",
+    "C-47",
+    "C-48",
+    "C-49",
+    "C-5",
+    "C-50",
+    "C-51",
+    "C-52",
+    "C-53",
+    "C-54",
+    "C-55",
+    "C-56",
+    "C-57",
+    "C-58",
+    "C-59",
+    "C-6",
+    "C-60",
+    "C-61",
+    "C-62",
+    "C-63",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8"
+   ],
+   "seconds": 24.5,
+   "tails": {
+    "C-4": [
+     "    expected: [ { id: 1, qty: 2, price: 150, status: 'open', shippedAt: '' }, { id: 2, qty: 1, price: 99, status: 'shipped', shippedAt: '2026-10-01' } ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-5": [
+     "    expected: [ { id: 1, qty: 2, price: 150, status: 'open', shippedAt: '' }, { id: 2, qty: 1, price: 99, status: 'shipped', shippedAt: '2026-10-01' } ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-8": [
+     "    expected: [ { id: 1, qty: 2, price: 150, status: 'open', shippedAt: '' } ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-11": [
+     "      at Test.runInAsyncScope (node:async_hooks:226:14)",
+     "      at Test.run (node:internal/test_runner/test:1402:25)",
+     "      at Test.start (node:internal/test_runner/test:1262:17)",
+     "      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)"
+    ],
+    "C-12": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-13": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-14": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-15": [
+     "    expected: [ { id: 1, qty: 2, price: 150, status: 'open', shippedAt: '' }, { id: 1, qty: 1, price: 99, status: 'shipped', shippedAt: '2026-10-01' }, { id: 1, qty: 2, price: 150, status: 'open', shippedAt: '' } ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-16": [
+     "    expected: [ { id: 1, qty: 2, price: 150, status: 'open', shippedAt: '' }, { id: 2, qty: 1, price: 99, status: 'shipped', shippedAt: '2026-10-01' } ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-17": [
+     "    expected: 'open',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-18": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-20": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-26": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-29": [
+     "    expected: 'open',",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-30": [
+     "    expected: [ 'open', 'shipped' ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-36": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-37": [
+     "    expected: [ { id: 1, qty: 2, price: 150, status: 'open', shippedAt: '' } ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-38": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-59": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-61": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-62": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-63": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-1": [
+     "    expected: [ { id: 1, qty: 2, price: 150, status: 'open', shippedAt: '' }, { id: 2, qty: 1, price: 99, status: 'shipped', shippedAt: '2026-10-01' } ],",
+     "    operator: 'deepStrictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-2": [
+     "      at Test.runInAsyncScope (node:async_hooks:226:14)",
+     "      at Test.run (node:internal/test_runner/test:1402:25)",
+     "      at Test.start (node:internal/test_runner/test:1262:17)",
+     "      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)"
+    ],
+    "U-4": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-7": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-8": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "tested-only": {
+   "failing": [
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-18",
+    "C-20",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-26",
+    "C-36",
+    "C-38",
+    "C-61",
+    "C-62",
+    "C-63",
+    "C-9",
+    "U-4",
+    "U-8"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-45",
+    "C-46",
+    "C-47",
+    "C-48",
+    "C-49",
+    "C-5",
+    "C-50",
+    "C-51",
+    "C-52",
+    "C-53",
+    "C-54",
+    "C-55",
+    "C-56",
+    "C-57",
+    "C-58",
+    "C-59",
+    "C-6",
+    "C-60",
+    "C-61",
+    "C-62",
+    "C-63",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8"
+   ],
+   "seconds": 22.6,
+   "tails": {
+    "C-9": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-12": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-13": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-14": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-18": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-20": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-22": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-23": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-24": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-26": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-36": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-38": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-61": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-62": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-63": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-4": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-8": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "limit-never-trips": {
+   "failing": [
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-18",
+    "C-20",
+    "C-26",
+    "C-36",
+    "C-38",
+    "C-44",
+    "C-45",
+    "C-47",
+    "C-49",
+    "C-59",
+    "C-61",
+    "C-62",
+    "C-63",
+    "U-1",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-45",
+    "C-46",
+    "C-47",
+    "C-48",
+    "C-49",
+    "C-5",
+    "C-50",
+    "C-51",
+    "C-52",
+    "C-53",
+    "C-54",
+    "C-55",
+    "C-56",
+    "C-57",
+    "C-58",
+    "C-59",
+    "C-6",
+    "C-60",
+    "C-61",
+    "C-62",
+    "C-63",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8"
+   ],
+   "seconds": 23.4,
+   "tails": {
+    "C-12": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-13": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-14": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-18": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-20": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-26": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-36": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-38": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-44": [
+     "    expected: 10,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-45": [
+     "    expected: 2,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-47": [
+     "      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)",
+     "      at Test.postRun (node:internal/test_runner/test:1542:19)",
+     "      at Test.run (node:internal/test_runner/test:1467:12)",
+     "      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)"
+    ],
+    "C-49": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-59": [
+     "    expected: 0,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-61": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-62": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-63": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-1": [
+     "    expected: 2,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-4": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-5": [
+     "    expected: 2,",
+     "    operator: 'strictEqual',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-6": [
+     "      at Test.runInAsyncScope (node:async_hooks:226:14)",
+     "      at Test.run (node:internal/test_runner/test:1402:25)",
+     "      at Test.start (node:internal/test_runner/test:1262:17)",
+     "      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)"
+    ],
+    "U-7": [
+     "      at Test.runInAsyncScope (node:async_hooks:226:14)",
+     "      at Test.run (node:internal/test_runner/test:1402:25)",
+     "      at Test.start (node:internal/test_runner/test:1262:17)",
+     "      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)"
+    ],
+    "U-8": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  },
+  "cross-field": {
+   "failing": [
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-18",
+    "C-20",
+    "C-26",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-38",
+    "C-61",
+    "C-62",
+    "C-63",
+    "U-4",
+    "U-8"
+   ],
+   "unstable": [],
+   "did_not_end": [],
+   "ids": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-29",
+    "C-3",
+    "C-30",
+    "C-31",
+    "C-32",
+    "C-33",
+    "C-34",
+    "C-35",
+    "C-36",
+    "C-37",
+    "C-38",
+    "C-39",
+    "C-4",
+    "C-40",
+    "C-41",
+    "C-42",
+    "C-43",
+    "C-44",
+    "C-45",
+    "C-46",
+    "C-47",
+    "C-48",
+    "C-49",
+    "C-5",
+    "C-50",
+    "C-51",
+    "C-52",
+    "C-53",
+    "C-54",
+    "C-55",
+    "C-56",
+    "C-57",
+    "C-58",
+    "C-59",
+    "C-6",
+    "C-60",
+    "C-61",
+    "C-62",
+    "C-63",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7",
+    "U-8"
+   ],
+   "seconds": 20.6,
+   "tails": {
+    "C-12": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-13": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-14": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-18": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-20": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-26": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-34": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-35": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-36": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-38": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-61": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-62": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "C-63": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-4": [
+     "    actual: undefined,",
+     "    operator: 'throws',",
+     "    diff: 'simple'",
+     "  }"
+    ],
+    "U-8": [
+     "    expected: true,",
+     "    operator: '==',",
+     "    diff: 'simple'",
+     "  }"
+    ]
+   }
+  }
+ },
+ "items": 71,
+ "clauses": 63,
+ "use_cases": 8,
+ "fails_on_reference": [
+  "C-12",
+  "C-13",
+  "C-14",
+  "C-18",
+  "C-20",
+  "C-26",
+  "C-36",
+  "C-38",
+  "C-61",
+  "C-62",
+  "C-63",
+  "U-4",
+  "U-8"
+ ],
+ "clauses_failing_on_reference": [
+  "C-12",
+  "C-13",
+  "C-14",
+  "C-18",
+  "C-20",
+  "C-26",
+  "C-36",
+  "C-38",
+  "C-61",
+  "C-62",
+  "C-63"
+ ],
+ "use_cases_failing_on_reference": [
+  "U-4",
+  "U-8"
+ ],
+ "defects": {
+  "one-rule-missing": {
+   "caught": true,
+   "by": [
+    "C-11",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-29",
+    "C-30",
+    "C-37",
+    "C-4",
+    "C-5",
+    "C-59",
+    "C-8",
+    "U-1",
+    "U-2",
+    "U-7"
+   ]
+  },
+  "tested-only": {
+   "caught": true,
+   "by": [
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-9"
+   ]
+  },
+  "limit-never-trips": {
+   "caught": true,
+   "by": [
+    "C-44",
+    "C-45",
+    "C-47",
+    "C-49",
+    "C-59",
+    "U-1",
+    "U-5",
+    "U-6",
+    "U-7"
+   ]
+  },
+  "cross-field": {
+   "caught": true,
+   "by": [
+    "C-34",
+    "C-35"
+   ]
+  }
+ },
+ "caught": 4,
+ "pool": 4,
+ "not_judged": []
+}

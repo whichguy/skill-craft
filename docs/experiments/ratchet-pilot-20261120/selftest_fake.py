@@ -36,7 +36,8 @@ Source: request
 Observable: require('./calc.js').double(4) is 8
 Source: request
 """
-TEST = "const assert = require('node:assert');\nconst calc = require('../calc.js');\nassert.strictEqual({call}, {want});\n"
+TEST = ("const assert = require('node:assert');\nconst calc = require('../calc.js');\nassert.strictEqual({call}, {want});\n"
+        "console.log('{ident} passed');\n")
 
 
 def act(role, work, prompt, number):
@@ -68,7 +69,7 @@ def act(role, work, prompt, number):
                  if cycle == 1 else {"C-3": ("calc.negate(4)", "-4")})
         for ident, (call, want) in cases.items():
             name = ident.lower().replace("-", "") + ".test.js"
-            (tests / name).write_text(TEST.format(call=call, want=want))
+            (tests / name).write_text(TEST.format(call=call, want=want, ident=ident))
             manifest[ident] = {"command": f"node acceptance/{name}"}
         manifest_file.write_text(json.dumps(manifest, indent=1) + "\n")
         if cycle == 1:

@@ -16,7 +16,9 @@ and does four things, in this order:
   1. restore   while a frozen commit is set, any difference from it under acceptance/, ratchet/spec.md and
                ratchet/acceptance.json is put back, and each restored path is appended to .git/ratchet-tamper.log
   2. clauses   each clause's command; a failure is run once more, and a command that passes the second time is
-               recorded as unstable and counted as passing
+               recorded as unstable and counted as passing; a command that exits 0 having run no test fails
+     after the checks the frozen paths are compared again; a change made while they ran is put back and everything
+     is measured once more
   3. checks    the project's own commands, the same way
   4. syntax    `node --check` on every JavaScript file changed since the base (the pilot's stand-in for a lint pass)
 
@@ -27,6 +29,7 @@ its exit check without showing it this repository.
 import argparse
 import json
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -36,6 +39,7 @@ from pathlib import Path
 FROZEN_PATHS = ("acceptance", "ratchet/spec.md", "ratchet/acceptance.json")
 COMMAND_SECONDS = 180
 TAIL_LINES = 14
+NO_TEST_RAN = re.compile(r"^(?:\u2139|#) tests 0\s*$", re.MULTILINE)  # node:test's summary of a selection that matched nothing
 
 
 def git(work, *args, check=False):
@@ -43,9 +47,13 @@ def git(work, *args, check=False):
     return done.stdout if done.returncode == 0 else None
 
 
-def run(command, work, seconds=COMMAND_SECONDS):
-    """One shell command in `work`, in a process group of its own; {rc, seconds, tail}. rc None means it did not end."""
+def run(command, work, seconds=COMMAND_SECONDS, extra_env=None, needle=None):
+    """One shell command in `work`, in a process group of its own; {rc, seconds, tail}. rc None means it did not end.
+    A command that exits 0 after running no test at all (node:test says `tests 0`) is a failure: it decided nothing.
+    With `needle` (an item id), so is one whose output never names that id: node:test reports a file as passing when a
+    name pattern matched none of its tests, and only the test's own name in the output shows that it ran."""
     env = {key: value for key, value in os.environ.items() if key != "PORT"}
+    env.update(extra_env or {})
     began = time.time()
     proc = subprocess.Popen(command, shell=True, cwd=str(work), env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                             stdin=subprocess.DEVNULL, text=True, errors="replace", start_new_session=True)
@@ -60,17 +68,30 @@ def run(command, work, seconds=COMMAND_SECONDS):
         output, _ = proc.communicate()
         rc = None
         output = (output or "") + f"\n(did not end within {seconds} s)"
+    else:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)  # anything the command left running in its own group
+        except (ProcessLookupError, PermissionError):
+            pass
+    if rc == 0 and NO_TEST_RAN.search(output or ""):
+        rc = 1
+        output += "\n(the command ran no test: its selection matched nothing)"
+    if rc == 0 and needle and not re.search(rf"(?<![\w-]){re.escape(needle)}(?!\d)", output or ""):
+        rc = 1
+        output += f"\n(the command's output never names {needle}: no test of this item is shown to have run)"
     lines = [line for line in (output or "").splitlines() if line.strip()]
     return {"rc": rc, "seconds": round(time.time() - began, 1), "tail": lines[-TAIL_LINES:]}
 
 
-def twice(command, work):
-    """Run a command; run a failure once more. `pass` is true when either run exits 0; `unstable` when only the second did."""
-    first = run(command, work)
+def twice(command, work, extra_env=None, needle=None):
+    """Run a command; run a failure once more. `pass` is true when either run exits 0; `unstable` when only the second did.
+    `seconds` is both runs together."""
+    first = run(command, work, extra_env=extra_env, needle=needle)
     if first["rc"] == 0:
         return {"pass": True, "unstable": False, **first}
-    second = run(command, work)
-    return {"pass": second["rc"] == 0, "unstable": second["rc"] == 0, "first_rc": first["rc"], "first_tail": first["tail"], **second}
+    second = run(command, work, extra_env=extra_env, needle=needle)
+    return {"pass": second["rc"] == 0, "unstable": second["rc"] == 0, "first_rc": first["rc"], "first_tail": first["tail"],
+            **second, "seconds": round(first["seconds"] + second["seconds"], 1)}
 
 
 def restore(work, frozen):
@@ -110,39 +131,59 @@ def changed_scripts(work, base):
     return sorted(name for name in names if name.endswith((".js", ".cjs", ".mjs")) and (Path(work) / name).is_file())
 
 
-def gate(work, clauses_only=False, no_restore=False):
-    work = Path(work).resolve()
-    config_file = work / ".git" / "ratchet-gate.json"
-    config = json.loads(config_file.read_text()) if config_file.exists() else {}
-    record = {"restored": [], "clauses": {}, "checks": {}, "syntax": {}, "failing": []}
-    if config.get("frozen") and not no_restore:
-        record["restored"] = restore(work, config["frozen"])
+def measure(work, config, clauses_only, extra_env, named):
+    """Run every clause command, and unless `clauses_only` the project's checks and the syntax check."""
+    found = {"clauses": {}, "checks": {}, "syntax": {}, "failing": []}
     manifest_file = work / "ratchet" / "acceptance.json"
     manifest = json.loads(manifest_file.read_text()) if manifest_file.exists() else {}
     for ident, entry in manifest.items():
-        result = twice(entry["command"], work)
-        record["clauses"][ident] = {"command": entry["command"], **result}
+        result = twice(entry["command"], work, extra_env, ident if named else None)
+        found["clauses"][ident] = {"command": entry["command"], **result}
         if not result["pass"]:
-            record["failing"].append(ident)
+            found["failing"].append(ident)
     if not clauses_only:
         for command in config.get("checks") or []:
-            result = twice(command, work)
-            record["checks"][command] = result
+            result = twice(command, work, extra_env)
+            found["checks"][command] = result
             if not result["pass"]:
-                record["failing"].append(f"check: {command}")
+                found["failing"].append(f"check: {command}")
         for name in changed_scripts(work, config["base"]) if config.get("base") else []:
-            result = run(f"node --check {json.dumps(name)}", work, 30)
+            result = run(f"node --check {json.dumps(name)}", work, 30, extra_env)
             if result["rc"] != 0:
-                record["syntax"][name] = result
-                record["failing"].append(f"syntax: {name}")
+                found["syntax"][name] = result
+                found["failing"].append(f"syntax: {name}")
+    return found
+
+
+def gate(work, clauses_only=False, no_restore=False, config=None, extra_env=None, named=None):
+    """The whole gate. `config` is the caller's own copy of the base, the frozen commit and the checks: ratchet.py passes
+    it, so a session that edits .git/ratchet-gate.json changes only what its own runs of this script see. The frozen
+    paths are put back before the checks run and compared again after them: a file that changed while they ran is put
+    back and everything is measured once more."""
+    work = Path(work).resolve()
+    if config is None:
+        config_file = work / ".git" / "ratchet-gate.json"
+        config = json.loads(config_file.read_text()) if config_file.exists() else {}
+    frozen = None if no_restore else config.get("frozen")
+    named = bool(config.get("named")) if named is None else named  # must a clause command's output name its item
+    record = {"restored": restore(work, frozen) if frozen else [], "restored_during": []}
+    record.update(measure(work, config, clauses_only, extra_env, named))
+    if frozen:
+        during = restore(work, frozen)
+        if during:
+            record["restored_during"] = during
+            record.update(measure(work, config, clauses_only, extra_env, named))
+            if restore(work, frozen):
+                record["failing"].append("frozen: the frozen files changed while the checks ran, twice")
     record["pass"] = not record["failing"]
     return record
 
 
 def render(record):
     lines = []
-    if record["restored"]:
-        lines.append("Restored frozen files that had been changed (they are read-only here): " + ", ".join(record["restored"]))
+    if record["restored"] or record.get("restored_during"):
+        lines.append("Restored frozen files that had been changed (they are read-only here): "
+                     + ", ".join(record["restored"] + record.get("restored_during", [])))
     total = len(record["clauses"])
     held = sum(1 for row in record["clauses"].values() if row["pass"])
     lines.append(f"Acceptance clauses passing: {held} of {total}. Other checks failing: "

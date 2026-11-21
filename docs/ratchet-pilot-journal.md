@@ -283,4 +283,100 @@ under `/Users/dadleet/e2e-runs/ratchet-pilot-20261120-b6eab2/` and may be pruned
   first iteration with the gate passing; heavy tests 7.5 min; first gate 68 of 68, so no fix stage; closing look 2.9
   min, 5 new clauses (C-69 to C-73), each marked "product keeps to it: yes" in its own report: which of two errors is
   reported first, how a number rounds at the edge of its type, what the shared counter holds after a failed batch.
-  The stage used the product (its report lists the probes) and wrote down what the product does. The run continues.
+  The stage used the product (its report lists the probes) and wrote down what the product does.
+- **F3 (exploratory, the finished run).** Three cycles, 10 sessions, 38.8 minutes, final gate passing, ended by the
+  apparatus limit (`stop: max-cycles`). The three closing looks added 5, 3 and 1 clauses, all marked "product keeps to
+  it: yes"; no build after the first changed a held-out verdict and no fix stage ever ran. Held-out checks (the
+  harness's strong and boundary test files): 2 of 2 at build-1 and at every later snapshot.
+- **F4 (exploratory).** The final suite of that run against the calibrated variants: 13 of 76 clauses fail on the
+  correct reference; 4 of 4 defects caught. Of the 8 closing-look clauses that got a test (C-69 to C-76), one (C-70)
+  fails on the reference and four (C-69, C-71, C-73, C-74) are among the clauses that catch a defect. So a clause that
+  only describes this product can still catch a real defect, and one in eight rejected a correct product.
+- Evidence: `evidence/smoke-orders/` (run.json, hidden.json, strength.json, spec.md, the stage reports).
+
+### P1, orders case, the three forms side by side (one run each; Codex gpt-6.2-sol high)
+
+| Form | Clauses | Use cases | Clauses failing on the reference | Use cases failing | Defects caught | Minutes |
+|---|---|---|---|---|---|---|
+| first (`p1-stand-in-rules`) | 63 | 0 | 22 (35%) | 0 | 2 of 4 | 12.9 |
+| enriched, amendment 1 (`p1e-stand-in-rules`, exploratory cell) | 63 | 8 | 11 (17%) | 2 | 4 of 4 | 19.1 |
+| enriched, amendments 1 and 2 (`p1e2-stand-in-rules`) | 69 | 12 | 9 (13%) | 3 | 4 of 4 | 18.8 |
+
+- **F5 (interim).** Use cases, implied requirements and the plan stage took the suite from 2 to 4 of 4 defects and
+  halved the clauses that reject the reference; the loosest-choice rules took a little more off. Neither enriched form
+  meets R1.1 (10%) on this case.
+- Source of clauses: first form 30 request, 21 choice, 12 existing; amendment 1: 31 request, 19 implied, 10 existing,
+  11 choice; amendments 1 and 2: 33 request, 20 implied, 12 existing, 16 choice. Under amendment 2 no Observable fixes
+  a message spelling; two choices explicitly loosen ("one applicable validation error suffices", "no safe-integer
+  ceiling").
+- What still fails on the reference under amendment 2 is strictness the spec chose, not spelling: an unknown key, a
+  missing key or a repeated key must be refused, an id must be finite, an empty price is out of range (C-30, C-31,
+  C-32, C-36, C-37). Three items (C-67, C-68, U-12) fail only because the harness's reference for this case ships no
+  tests of its own while the request asks for them: an artifact of the reference, not of the spec.
+- The first real plan stage (`p1e-stand-in-rules`): 3.3 minutes, the Until Loop's receipt complete at iteration 2 with
+  a trivial streak of 1 (the second full pass happened), five sections, no clause added.
+- Evidence: `evidence/p1-first-orders/`, `evidence/p1-enriched-a1-orders/`, `evidence/p1-enriched-a2-orders/`.
+
+### P1, first form, the two ticket cases (one run each)
+
+| Case | Clauses (request / existing / choice) | Fail on the reference | Defects caught | Minutes (spec, tests) |
+|---|---|---|---|---|
+| ticket assignment (`p1-ticket-assignment`) | 190 (29 / 134 / 27) | 13 in the run's own gate; 16 in the first grading | 26 of 27; missed `validate-renamed` | 28.4 (7.7, 18.6) |
+| ticket due times (`p1-ticket-due-times`) | 223 (41 / 144 / 38) | 45 in the run's own gate; 52 in the first grading | 5 of 6; missed `no-backfill` | 36.4 (12.1, 21.3) |
+
+- **F6 (interim).** On an existing product the suite is strong: 31 of 33 calibrated defects on the two ticket cases.
+  Pooled with the orders case the first form catches 33 of 37 (89%), over R1.2's 80%. Most of the suite pins what the
+  product already does: 134 of 190 and 144 of 223 clauses have Source: existing.
+- **F7 (interim).** Validity fails in a second way on ticket assignment. The reference passes within the bar (13 of
+  190, 7%), but the harness's second correct delivery (`alternative`) fails 24 clauses the reference passes: 10
+  choices, 3 request clauses, 11 existing. Its PUT answers `{id, assignee}`; clause C-6 (Source: choice) says "A
+  successful assignee PUT returns the full ticket with HTTP 200", and tests of other clauses read the ticket out of
+  that answer. The same mechanism as F1, seen only because a second correct product exists. R1.1's second half is not
+  met.
+- On due times a fifth of the clauses reject the reference (45 of 223 in the run's own gate): 27 of the 52 in the
+  first grading are choices (how operators set the hours, limits on the setting, what the documents must say).
+- **Apparatus note.** The first gradings ran before the fixes of section 11. In the graded copies seven or more
+  due-times clauses failed with `fatal: not a tree object`: their tests read the base commit of the work repository,
+  which a copied variant did not have. The grader now gives each variant that history, and both ticket suites are
+  graded again; the first gradings are kept as `strength-first-grading.json` and the regraded numbers are reported
+  beside them when they exist.
+- Evidence: `evidence/p1-first-ticket-assignment/`, `evidence/p1-first-ticket-due-times/`.
+
+## 11. Amendment 3, 2026-11-20 19:45: the apparatus hardened after a second outside review (before P2, P3 and the enriched ticket runs)
+
+Sol 6.1 at max effort, read-only, 21 minutes, reviewed the apparatus for ways a result could be wrong without the
+record showing it (`review/sol-apparatus-question.txt`, `review/sol-apparatus-answer.txt`; 16 findings). I traced each
+in the code before acting. No number reported before this section depended on a fault it found, with two exceptions
+stated here: the enriched arm's share of failing "clauses" had counted use cases in both parts of the fraction
+(reported above by kind), and the first gradings of the ticket suites (apparatus note above).
+
+Fixed, with the finding it answers:
+
+| Finding | Fix |
+|---|---|
+| A session could edit `.git/ratchet-gate.json`, the file that said what is frozen (1) | The script keeps its own configuration and passes it to its gate; the file is rewritten before every script gate and only a session's own gate runs read it |
+| A frozen test changed while the checks ran would pass uncounted (2) | The gate compares the frozen paths again after the commands; a change is put back, logged as `restored_during`, and everything is measured once more |
+| An unmeasured reference scored every failing clause as a catch (3) | No defect is judged without a measured reference; an unmeasured control is "not measured"; the pool stays the registered size and unjudged defects are listed |
+| The orders defects were named in comments of the planted files (4) | `grade.py variant` writes session-facing trees without the fixture's `// stand-in:` lines |
+| A repair start was never graded, so a defect the held-out checks cannot see would count as repaired (5) | The start is graded (`frozen suite` snapshot), and `grade.py visible` lists which defects the held-out grader sees; P2 picks only from those |
+| A timed-out closing look read as "nothing to add", and a clause's meaning could change unnoticed (6) | A delta whose session did not end, left no report or left an unreadable spec ends the run as `delta-failed`; `grown` compares whole item blocks |
+| Held-out checks that run `node --test` saw the apparatus's own tests (7) | The graded copy has no `acceptance/` or `ratchet/` |
+| The rerun rule missed `(rc None)` and reported only the first result (8) | That form is matched; both results are kept and `effective_passed` is what the report counts |
+| Variants graded side by side shared a temporary folder; a command that did not end counted as a catch (9) | Each variant has its own; an unfinished command decides nothing (the defect is "not judged" unless another clause catches it) |
+| A clause command that selected no test passed (10) | The tests packet requires each test's name to start with its item id, and the gate fails a command whose output never names its item (`named_checks` in run.json; runs before this amendment are graded without it). node:test reports a file as passing when a name pattern matches none of its tests, so a count of tests does not show it |
+| The plan stage's loop was only observed (11) | The script refuses a plan without its five sections and asks again; each plan loop's status, iterations and trivial streak are recorded |
+| A referee could delete a test and turn the gate green; a dispute could go unrecorded (12) | The manifest is checked after a ruling and the tests are put back if an item lost its entry; disputes are recorded before the gate's verdict is acted on |
+| A copied suite lost file modes (13) | Suites are copied with `git archive`; a repair start records the source run and commit |
+| Clause shares counted use cases (14) | `strength.json` reports clauses and use cases apart |
+| Conduct forbade reading outside the work folder while the packet pointed at files outside it | The two folders (tools, loops) are named as the exceptions |
+
+Not fixed, and why: a session with full disk access can still learn held-out material by a path no marker names (15;
+the journal's limit in section 7 stands, and a clean scan is "no named exposure seen", not proof); the record does not
+attribute a product change to the failing test or the delta clause that caused it (16; R3.3 will be read from the
+stage commits' diffs by hand); a helper file outside the frozen paths that an acceptance test loads is not protected
+(part of 1's table; no suite so far has one).
+
+Registration changes: P2 selects defects only among those `grade.py visible` shows the held-out grader can see, and
+a start counts as repaired only if a held-out check that failed at the start passes at the end. The enriched ticket
+runs (`p1e2-ticket-*`) run amendments 1 to 3; the enriched orders run (`p1e2-stand-in-rules`) ran amendments 1 and 2,
+before the naming rule, which does not touch the spec stage.

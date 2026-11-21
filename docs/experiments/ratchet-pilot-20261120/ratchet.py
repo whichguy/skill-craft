@@ -52,7 +52,9 @@ HELD_OUT_MARKS = ("shiploop_e2e", "chess_hidden", "fixtures/quality", "due_times
 SESSION_SECONDS = 2700
 
 CONDUCT = """## Rules of conduct
-- Work only inside this folder: {work}. Nothing outside it is yours to read for this task or to change.
+- Work only inside this folder: {work}. Nothing outside it is yours to read for this task or to change, with two
+  exceptions this packet may name: the scripts under {tools} (run them, do not edit them) and the loop's own
+  contract and receipt files under {loops} (the loop script reads and writes them; you never write them).
 - Temporary files go under {tmp} (TMPDIR is set to it).
 - A server you start listens on a port that is free at that moment (ask the system for port 0, or pick a random high
   port), never a fixed default. Stop every process you started, by its process id. Never stop processes by name
@@ -155,7 +157,7 @@ about how the product is made. Never edit, reorder or remove an existing clause 
 
 ## Done when
 - `ratchet/plan.md` has the five sections, and nothing changed but it and clauses added to `ratchet/spec.md`.
-
+{problems}
 {conduct}"""
 
 BUILD_PACKET = """# Ratchet stage: build ({title})
@@ -226,6 +228,9 @@ never by what the code happens to do.
 3. Give every clause and every use case an entry in `ratchet/acceptance.json`:
    {{"C-1": {{"command": "<one shell command, run from this folder, that runs only this item's tests and exits 0 when they pass>"}}, "U-1": {{...}}, ...}}
    Each command ends within 60 seconds, uses a free port and leaves no process behind.
+   Start every test's name with its item id (`C-12 rejects ...`, `U-3 an operator ...`) and make sure the command's
+   output prints that name when the test runs: the gate fails a command whose output never names its item, because
+   a selection that matches no test otherwise looks like a pass.
 4. Run every command against the product as it stands. A test that fails because the product breaks its clause
    STAYS as it is: do not weaken it and do not fix the product. A test that fails because the test is wrong (it
    contradicts its clause) is yours to correct.{keep}
@@ -257,7 +262,9 @@ FIX_PACKET = """# Ratchet stage: fix
 Fix the product so that every check passes, the ones listed and the ones that pass today. `ratchet/spec.md` is the
 specification. The acceptance tests under `acceptance/`, `ratchet/spec.md` and `ratchet/acceptance.json` are frozen:
 the gate puts back any change to them and counts it. If you are sure a test contradicts the specification, do not work
-around it: keep the product right by the specification and name the test under Disputed.
+around it: keep the product right by the specification and name the test under Disputed. When every check that
+still fails is one you dispute, tell the loop so: report the exit as unsatisfied and continuation as blocked, and
+stop. The script then hands your dispute to the session that owns the tests.
 
 {loop}
 
@@ -429,7 +436,8 @@ class Run:
         self.record = {"case": args.case, "host": args.host, "model": args.model, "effort": args.effort,
                        "started": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "start_tree": args.start_tree,
                        "frozen_from": args.frozen_from, "build_from": args.build_from, "sessions": [], "gates": [], "snapshots": [], "cycles": [],
-                       "reverted": [], "spec_violations": [], "local_head": git(REPO, "rev-parse", "HEAD").strip()}
+                       "reverted": [], "spec_violations": [], "local_head": git(REPO, "rev-parse", "HEAD").strip(),
+                       "named_checks": True}
         self.fake = load_fake(args.fake) if args.host == "fake" else None
         self.host = self.env = None
         if not self.fake:
@@ -451,15 +459,17 @@ class Run:
             print(f"[{time.strftime('%H:%M:%S')}] {text}", flush=True)
 
     def conduct(self):
-        return CONDUCT.format(work=self.work, tmp=self.tmp)
+        return CONDUCT.format(work=self.work, tmp=self.tmp, tools=self.tools, loops=self.out / "loops")
 
     # -- the work repository
     def gate_config(self, **changes):
-        path = self.work / ".git" / "ratchet-gate.json"
-        config = json.loads(path.read_text()) if path.exists() else {"base": None, "frozen": None, "checks": self.checks}
-        config.update(changes)
-        path.write_text(json.dumps(config) + "\n")
-        return config
+        """The gate's configuration. This object holds it; the file under .git is a copy for the gate runs a session
+        starts itself, rewritten here every time, so an edit to the file never reaches the script's own gate."""
+        if not hasattr(self, "config"):
+            self.config = {"base": None, "frozen": None, "checks": self.checks, "named": True}
+        self.config.update(changes)
+        (self.work / ".git" / "ratchet-gate.json").write_text(json.dumps(self.config) + "\n")
+        return self.config
 
     def commit(self, label):
         git(self.work, "add", "-A")
@@ -483,16 +493,18 @@ class Run:
         git(self.work, "config", "user.email", "ratchet-pilot@example.invalid")
         base = self.commit("base")
         self.gate_config(base=base, frozen=None, checks=self.checks)
+        self.record["named_checks"] = self.config["named"]
         if self.args.frozen_from:
             source = Path(self.args.frozen_from).resolve() / "work"
-            for name in gate_module.FROZEN_PATHS:
-                listed = git(source, "ls-tree", "-r", "--name-only", "HEAD", "--", name).splitlines()
-                for relative in listed:
-                    target = self.work / relative
-                    target.parent.mkdir(parents=True, exist_ok=True)
-                    target.write_bytes(subprocess.run(["git", "-C", str(source), "show", f"HEAD:{relative}"],
-                                                      capture_output=True, check=True).stdout)
-            self.gate_config(frozen=self.commit("frozen suite of an earlier run"))
+            present = [name for name in gate_module.FROZEN_PATHS
+                       if subprocess.run(["git", "-C", str(source), "cat-file", "-e", f"HEAD:{name}"], capture_output=True,
+                                         check=False).returncode == 0]
+            archive = subprocess.run(["git", "-C", str(source), "archive", "HEAD", "--", *present], capture_output=True, check=True).stdout
+            subprocess.run(["tar", "-x", "-C", str(self.work)], input=archive, check=True)
+            earlier = json.loads((source.parent / "run.json").read_text())
+            self.record["frozen_suite"] = {"run": str(source.parent), "commit": git(source, "rev-parse", "HEAD").strip(),
+                                           "named_checks": bool(earlier.get("named_checks"))}
+            self.gate_config(frozen=self.commit("frozen suite of an earlier run"), named=bool(earlier.get("named_checks")))
 
     def changed(self, since):
         names = set(git(self.work, "diff", "--name-only", since, "--").splitlines())
@@ -580,6 +592,16 @@ class Run:
         }, indent=1) + "\n")
         return LOOP_BLOCK.format(runtime=self.tools / "until_loop_ephemeral.py", receipt=receipt, contract=contract, check_note=note)
 
+    def loop_state(self, name):
+        """What the Until Loop's receipt says: its status, how many iterations ran and the run of trivial reviews."""
+        receipt = self.out / "loops" / f"{name}-receipt.json"
+        try:
+            data = json.loads(receipt.read_text())
+        except (OSError, ValueError):
+            return {"loop": None}
+        progress = data.get("progress") or {}
+        return {"loop": data.get("status"), "iterations": progress.get("action_number"), "trivial_streak": progress.get("trivial_streak")}
+
     def loop_status(self, name):
         receipt = self.out / "loops" / f"{name}-receipt.json"
         try:
@@ -589,20 +611,23 @@ class Run:
 
     # -- the gate
     def gate(self, label):
-        record = gate_module.gate(self.work)
+        self.gate_config()  # put the file back as the script has it
+        record = gate_module.gate(self.work, config=dict(self.config), extra_env={"TMPDIR": str(self.tmp)})
         number = len(self.record["gates"]) + 1
         (self.out / "gates" / f"{number:02d}-{label}.json").write_text(json.dumps(record, indent=1) + "\n")
         previous = self.record["gates"][-1]["passing"] if self.record["gates"] else []
         passing = sorted(ident for ident, row in record["clauses"].items() if row["pass"])
         row = {"number": number, "label": label, "pass": record["pass"], "failing": record["failing"], "passing": passing,
                "regressions": sorted(set(previous) & set(record["failing"])), "restored": record["restored"],
+               "restored_during": record.get("restored_during", []),
                "unstable": sorted(ident for ident, r in record["clauses"].items() if r.get("unstable")),
                "clauses": len(record["clauses"]), "at": round(time.time() - self.began, 1)}
         self.record["gates"].append(row)
         self.save()
         self.say(f"gate {number} ({label}): {'PASS' if row['pass'] else 'FAIL'}; {len(passing)} of {row['clauses']} clauses pass"
                  + (f"; failing {', '.join(record['failing'][:8])}" if record["failing"] else "")
-                 + (f"; restored {len(record['restored'])} frozen file(s)" if record["restored"] else ""))
+                 + (f"; restored {len(record['restored']) + len(record.get('restored_during', []))} frozen file(s)"
+                    if record["restored"] or record.get("restored_during") else ""))
         return record
 
     # -- stages
@@ -641,7 +666,7 @@ class Run:
         loop = self.loop_block(name, work_text, "The exit check passes and the report ratchet/" + name + ".md exists.")
         self.session("build", BUILD_PACKET.format(frame=FRAME, title=title, request=self.request, what=what, acceptance_note=note,
                                                   loop=loop, cycle=cycle, conduct=self.conduct()), name)
-        self.record["cycles"][-1]["build_loop"] = self.loop_status(name)
+        self.record["cycles"][-1]["build_loop"] = self.loop_state(name)
         self.gate(f"after-{name}")  # also puts back the frozen paths
         self.commit(name)
 
@@ -709,17 +734,25 @@ class Run:
             before_failing = list(record["failing"])
             record = self.gate(f"after-{name}")
             self.commit(name)
-            if record["pass"]:
-                return True
             report = self.work / "ratchet" / f"{name}.md"
             disputes = items(section(report.read_text(), "Disputed")) if report.is_file() else []
+            self.record["cycles"][-1].setdefault("fix_loops", []).append({"name": name, **self.loop_state(name)})
             if disputes:
                 self.record["cycles"][-1].setdefault("disputes", []).extend(disputes)
+            if record["pass"]:
+                return True
+            if disputes:
                 before = git(self.work, "rev-parse", "HEAD").strip()
                 self.gate_config(frozen=None)
                 self.session("referee", REFEREE_PACKET.format(frame=FRAME, disputes="\n".join(f"- {line}" for line in disputes),
                                                               number=number, conduct=self.conduct()), f"referee-{number}")
                 self.enforce(before, ["acceptance/", "ratchet/acceptance.json", f"ratchet/referee-{number}.md"], "referee")
+                lost = self.manifest_problems(read_spec(self.work))
+                if lost:  # a ruling may correct a test, never drop one: put the tests back as they were
+                    for path in ("acceptance", "ratchet/acceptance.json"):
+                        git(self.work, "checkout", "-q", before, "--", path)
+                    self.record["cycles"][-1].setdefault("referee_refused", []).append({"number": number, "problems": lost})
+                    self.say(f"  the referee's change left items without a test ({'; '.join(lost)[:200]}): put back")
                 self.gate_config(frozen=self.commit(f"referee-{number}"))
                 record = self.gate(f"after-referee-{number}")
                 if record["pass"]:
@@ -744,28 +777,29 @@ class Run:
         return "\n".join(lines + ["  | " + line for line in row.get("tail") or []])
 
     def grown(self, stage, cycle, clauses, old_text):
-        """After a stage that may lengthen the specification: put back any change to an existing item, keep the new
-        items, and return them ({id: row})."""
+        """After a stage that may lengthen the specification: put back any change to an existing item and keep the new
+        items. Returns ({id: row} of the new items, readable): `readable` is False when the file could not be parsed,
+        in which case the old text is back and nothing was added."""
+        def same(a, b):
+            return [line.rstrip() for line in a["block"].strip().splitlines()] == [line.rstrip() for line in b["block"].strip().splitlines()]
         try:
             after = read_spec(self.work)
         except ValueError as error:
             self.record["spec_violations"].append({"stage": stage, "cycle": cycle, "problem": str(error)})
             (self.work / "ratchet" / "spec.md").write_text(old_text)
-            return {}
-        touched = [ident for ident, row in clauses.items()
-                   if ident not in after or after[ident]["statement"] != row["statement"] or after[ident]["observable"] != row["observable"]]
+            self.say(f"  the {stage} stage left a specification the script cannot read ({error}): the old one is back")
+            return {}, False
+        touched = [ident for ident, row in clauses.items() if ident not in after or not same(after[ident], row)]
         new = {ident: row for ident, row in after.items() if ident not in clauses}
         if touched:  # keep the old text and add the new items after it
             self.record["spec_violations"].append({"stage": stage, "cycle": cycle, "changed_existing": touched})
             (self.work / "ratchet" / "spec.md").write_text(old_text.rstrip("\n") + "\n\n" + "\n".join(row["block"] for row in new.values()))
             self.say(f"  the {stage} stage changed existing item(s) {', '.join(touched)}: put back, new items kept")
-        return new
+        return new, True
 
     def stage_plan(self, cycle, clauses, new):
-        """The heavy plan pass, inside an Until Loop that asks for one more full look after the first; the items it added."""
-        before = git(self.work, "rev-parse", "HEAD").strip()
-        old_text = (self.work / "ratchet" / "spec.md").read_text()
-        name = f"plan-{cycle}"
+        """The heavy plan pass, inside an Until Loop that asks for one more full look after the first; the items it added.
+        The script refuses a plan without its five sections and asks again."""
         if cycle == 1:
             title, what, append = "how to build the whole request", "Plan the build of all of it.", ""
             work_text = "Write ratchet/plan.md for the whole request, then read spec, code and plan again for a nuance you missed."
@@ -776,29 +810,57 @@ class Run:
                     "\nPlan how to build them into the product as it stands.")
             append = f" (keep what is there and add a part headed `# Cycle {cycle}` at its end)"
             work_text = "Extend ratchet/plan.md for the new items, then read spec, code and plan again for a nuance you missed."
-        loop = self.loop_block(name, work_text, "ratchet/plan.md covers the build, and a full pass after the first found nothing to add.",
-                               plan=True)
+        problems, added = "", {}
         self.gate_config(frozen=None)
-        self.session("plan", PLAN_PACKET.format(frame=FRAME, title=title, request=self.request, what=what, append=append, loop=loop,
-                                                conduct=self.conduct()), name)
-        self.enforce(before, ["ratchet/plan.md", "ratchet/spec.md"], "plan")
-        added = self.grown("plan", cycle, clauses, old_text)
-        self.record["cycles"][-1].update(plan_loop=self.loop_status(name), plan_added=list(added))
-        self.gate_config(frozen=self.commit(name))
+        for attempt in range(1, 4):
+            before = git(self.work, "rev-parse", "HEAD").strip()
+            old_text = (self.work / "ratchet" / "spec.md").read_text()
+            name = f"plan-{cycle}" if attempt == 1 else f"plan-{cycle}-r{attempt}"
+            loop = self.loop_block(name, work_text, "ratchet/plan.md covers the build, and a full pass after the first found nothing to add.",
+                                   plan=True)
+            row = self.session("plan", PLAN_PACKET.format(frame=FRAME, title=title, request=self.request, what=what, append=append,
+                                                          loop=loop, problems=problems, conduct=self.conduct()), name)
+            self.enforce(before, ["ratchet/plan.md", "ratchet/spec.md"], "plan")
+            grown, readable = self.grown("plan", cycle, clauses, old_text)
+            added.update(grown)
+            clauses = {**clauses, **grown}
+            plan = self.work / "ratchet" / "plan.md"
+            text = plan.read_text() if plan.is_file() else ""
+            missing = [title_ for title_ in ("Approach", "Decisions", "Nuances", "Build order", "How we will know")
+                       if not re.search(rf"^## {title_}\s*$", text, re.MULTILINE)]
+            loop_state = self.loop_state(name)
+            self.record["cycles"][-1].setdefault("plan_loops", []).append({"name": name, "session": row["status"], **loop_state})
+            if not missing and readable:
+                break
+            wrong = ([f"ratchet/plan.md lacks the section(s): {', '.join(missing)}"] if missing else []) + (
+                [] if readable else ["your change to ratchet/spec.md could not be read and was put back"])
+            problems = "\n## The script refused your last plan\n" + "\n".join(f"- {line}" for line in wrong) + "\n"
+            self.say(f"  plan refused: {'; '.join(wrong)}")
+            self.commit(f"{name}-refused")
+        else:
+            raise RuntimeError("no usable plan after three sessions")
+        self.record["cycles"][-1]["plan_added"] = list(added)
+        self.gate_config(frozen=self.commit(f"plan-{cycle}"))
         if added:
             self.say(f"  plan {cycle}: {len(added)} item(s) added to the specification: {', '.join(added)}")
         return added
 
     def stage_delta(self, cycle, clauses):
+        """The closing look. Returns the items it added, or None when the session did not end properly or left a
+        specification the script cannot read: that is a failed stage, never "nothing to add"."""
         before = git(self.work, "rev-parse", "HEAD").strip()
         old_text = (self.work / "ratchet" / "spec.md").read_text()
         self.gate_config(frozen=None)
-        self.session("delta", DELTA_PACKET.format(frame=FRAME, request=self.request, cycle=cycle, conduct=self.conduct()),
-                     f"delta-{cycle}")
+        row = self.session("delta", DELTA_PACKET.format(frame=FRAME, request=self.request, cycle=cycle, conduct=self.conduct()),
+                           f"delta-{cycle}")
         self.enforce(before, ["ratchet/spec.md", f"ratchet/delta-{cycle}.md"], "delta")
-        new = self.grown("delta", cycle, clauses, old_text)
+        new, readable = self.grown("delta", cycle, clauses, old_text)
         frozen = self.commit(f"delta-{cycle}")
         self.gate_config(frozen=frozen)
+        report = self.work / "ratchet" / f"delta-{cycle}.md"
+        if row["status"] != "exited" or not readable or not report.is_file():
+            self.say(f"  delta {cycle} failed: session {row['status']}, specification readable {readable}, report written {report.is_file()}")
+            return None
         self.say(f"  delta {cycle}: {len(new)} new item(s)" + (": " + ", ".join(new) if new else ""))
         return new
 
@@ -836,6 +898,9 @@ class Run:
                 break
             self.commit(f"green-{cycle}")
             new = self.stage_delta(cycle, clauses)
+            if new is None:
+                self.record["stop"] = "delta-failed"
+                break
             entry["delta_clauses"] = {ident: row["statement"] for ident, row in new.items()}
             if not new:
                 self.record["stop"] = "converged"
@@ -881,6 +946,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if bool(args.start_tree) != bool(args.frozen_from):
         raise SystemExit("--start-tree and --frozen-from go together: a repair start needs both")
+    if args.frozen_from and (args.build_from or args.stop_after):
+        raise SystemExit("a repair start (--start-tree, --frozen-from) takes neither --build-from nor --stop-after")
     return Run(args, load_case(args.case)).run()
 
 
