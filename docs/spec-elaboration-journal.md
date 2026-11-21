@@ -2751,3 +2751,110 @@ arm.
 **Limits.** A read of a passage holding no heading is missed, so a count can be low. The real requests are long, so
 a builder may have judged the guides unnecessary. One Grok delivery. The 36 are not the 31 of section 26: they add
 later runs. Nothing here measures a product.
+
+## 39. Registered before any run: a small real-ShipLoop test of the spec guides, from one sentence (12:09, 2026-11-21)
+
+Owner, 2026-11-21, to "Should I plan a small real-ShipLoop test of the spec guides on a one-sentence request?":
+"Yes, plan it". This section is the plan. Nothing in it has been run with a model. It changes nothing under
+`skills/`; the variant lives in a built copy of the plugin. Running it needs the owner's word.
+
+**The question.** Section 38 left two things that no run has shown. In a real ShipLoop run that starts from one
+sentence: (1) how full is the specification the released spec stage writes, and (2) is it fuller when the stage
+has read the reference material written for it? "Fuller" is the owner's word and means breadth: more of what a
+correct product needs is raised and settled, without capability nobody asked for.
+
+**The two arms.** A is ShipLoop as it is on `main` at this section's commit. B is the same build with one
+sentence, 26 words, at the head of the spec stage's first duty (`overlays/guides-read.json`): "Before you write,
+open and read the guide sections this packet lists as Behavior-model guidance, Behavior traceability guidance,
+State and data assessment and Requirements definition guide." The packet already lists those four by file and
+section; the sentence only says to open them. Nothing else differs: intake with its twelve key questions,
+discovery, research, the spec stage and its review all run as released, with no run option passed.
+
+**The request and where it runs.** "Let admins upload a CSV to bulk-create users." It is the bench's
+`csv-user-import` sentence, so its 21-item checklist, the two outside sorters' labels (18 needed, 1 beyond the
+request, 2 unsorted) and six bench draws a driver already exist for it. A real run needs a repository, and this
+sentence presupposes users, so it starts in the catalog's small user service (`fixtures/node-base`, 11 files: an
+in-memory user store and an HTTP server), laid down by the harness's own `brownfield.start` and handed to
+`run.py --prompt ... --continue-from`. The harness has no flag that joins a free-text request to a catalog base;
+`--continue-from` copies a folder's `work/` with its history, and nothing in `run.py` refuses it beside `--prompt`.
+I found no earlier run that used the two together, so the first pair of samples is also the check that it works.
+
+**Where each run ends.** At the first accepted `complete` that enters `test-strategy`: the spec stage and its
+Improve review are then done, and the specification is what the next stage would read. The driver writes the
+harness's own stop file (`<output>/stop`) and the harness ends the host. A sample that has not got there in 20
+minutes is stopped the same way and kept as "not reached". This is the SDLC session's method
+(`docs/experiments/sdlc-structure-20261119/stage_stop_samples.py`), whose script is tied to catalog cases on Codex.
+
+**Samples.** Ten: on Codex `gpt-6.2-sol` at medium (the owner's present setting for Sol) three of each arm; on Claude
+`claude-sonnet-5-5` at high two of each arm, each with a 6 dollar cap. They run in five waves of two, an A and a B
+of the same driver together, so the two arms of a pair see the same machine. The first wave, Sol, is the apparatus
+check: a sample is run again only if `run.py` failed before the builder's first ShipLoop command or the stop file
+was not honoured; a sample in which the builder ran and the watcher behaved is kept whatever it shows.
+
+**What is read.**
+
+- R39.1, was the material delivered: for each sample, which of the four sections' headings appear in the session's
+  stream before the spec stage was accepted, and which guides it opened at all.
+- R39.2, how full, by plain counts: words and requirement ids of the specification as its stage wrote it and as
+  accepted. Beside them, the bench's draws for the same sentence (4,357 to 6,045 words on Sol, 6,742 to 8,959 on
+  Sonnet) and real specifications from detailed requests (median 384 on Sol, 2,207 on Sonnet).
+- R39.3, breadth, by the bench's two judges and unchanged judge text, on the 18 needed items: touched, and covered.
+  The judge is given the accepted specification, then `architecture.md` if the stage wrote one and the spec
+  stage's own submission, as the bench gave it the stage's other documents.
+- R39.4, the guard: the one item both sorters call beyond the request (cancelling a running import), and a reading
+  by hand of every requirement an arm-B specification has that no arm-A one has.
+- R39.5, the cost: minutes to the stop, the spec stage's and its review's seconds, turns, and dollars on Sonnet.
+
+**The bar.** On the bench, six draws of the released stage on this sentence differ by at most 2 (registered judge)
+or 3 (second judge) of the 18 needed items covered, and by at most 1 touched. So for a driver, "broader" is shown
+when arm B's mean exceeds arm A's by at least 3 covered or at least 2 touched, and arm B's lowest sample is above
+arm A's highest, under both judges. Anything less is not shown. If arm B covers the beyond item in two more
+samples than arm A, or the hand reading finds capability nobody asked for in arm B only, that is reported beside
+any gain and counts against it.
+
+**What each outcome would say.**
+
+- Arm B did not read (fewer than four of its five samples show at least three of the four sections before the
+  spec was accepted): an instruction to read is not enough to deliver the material. Nothing is learned about the
+  material; the next form would put its questions in the packet, as a new registration.
+- Arm B read and broader is shown on a driver: the reference material, when read, makes a real specification from
+  one sentence broader on that driver, at the cost R39.5 gives. The next step would be the product: one whole
+  delivery an arm, registered separately, with the owner's word.
+- Arm B read and broader is not shown on either driver: reading the guides adds no breadth to what the stage's
+  duties already produce. The test ends there.
+- In every case R39.2 answers the first question: how full the released stage's specification is from one
+  sentence in a real run.
+
+**Predictions, written before any run.**
+
+1. Arm A opens none of the four sections before its spec is accepted in at least four of five samples.
+2. Arm B shows at least three of the four in at least four of five.
+3. Arm A's accepted specification is shorter than the bench's for the same sentence and longer than a real one
+   from a detailed request: 600 to 2,500 words on Sol, 2,500 to 6,000 on Sonnet. On Sol it touches 15 or fewer of
+   the 18 needed items in at least two of three samples (the bench: 16 or 17 every time).
+4. On Sol arm B's mean is at least 3 above arm A's on needed items covered; on Sonnet it is under 3.
+5. Arm B covers the beyond item in at most one sample more than arm A.
+6. Arm B takes at least 1.2 times arm A's minutes to the stop on both drivers.
+
+**What it will cost.** About 35 minutes of runs: a Sol sample reached this point in under 3 minutes and a Sonnet
+one in under 7 in today's deliveries of detailed requests, and one sentence may take longer. Priced: about 2 dollars
+a Sonnet sample by its share of a whole delivery's time, so 6 to 10 dollars, and about 4 for the registered judge's
+ten readings. Sol and the second judge run on subscription.
+
+**What is ready, with no model called.** `guides_test.py` (`prepare`, `run`, `collect`) and the overlay. A dry
+`prepare` from the shared checkout laid the base down (digest `8f445d24ed3c`, 11 files, one commit), built both
+arms, and showed that they differ in one file, `shiploop_prompts.py`, and that the rendered spec stage differs by
+the sentence alone (one line out, three in). `test/shiploop_e2e/overlay.py check` says the overlay applies.
+
+**How it is run, if the owner says so.** From a clean detached worktree of `main` at this section's commit, with
+outputs outside the repository under a folder with a random suffix and a baseline file of its own. No test tier
+runs beside it. Only this session's own processes are stopped. The specifications are copied into
+`results/round-11` to `round-13` (one a wave of a driver) and judged with `grade.py`; the evidence and the result
+go into this journal in the same commit.
+
+**Limits, stated before it runs.** One sentence, one small base, ten samples. The checklist is this session's own,
+frozen on 2026-11-20, and is judged by models; a covered count rewards deciding, which is why touched, the sorters'
+sets, the plain counts and a hand reading stand beside it. Codex sessions in this harness are shown the owner's
+own installed skills (section 7), alike in both arms and unlike the bench. The specification is read after its
+review. Nothing here looks at a product or at tests. The sentence is one way of delivering the material, not the
+only one.
