@@ -2639,11 +2639,14 @@ The specification, choice and `Open:` columns are ticket assignment's specificat
 specifications the record gives one choice clause each, 6 to 8 `Open:` lines, 16 to 22 clauses against 21 to 32 at
 high, under a minute to write each, and none of the three due-times ones requires the refusal. The blank cells are
 not stated in the record for that pairing; Sol's cost is recorded as not priced. The record gives the high cell 32
-clauses written and 34 tested and does not say why they differ. All three cells missed the same one defect,
-`update-rejects-resolved` (existing behaviour). At high, the two failures on the correct reference were the request's
-own "has tests" clause and an implied refusal the reference does not make. Its reading, as registered: what medium
-writes is the same, strength is kept at both efforts, and medium against high shows no difference (R12.1 to R12.3);
-its three predictions held.
+clauses written and 34 tested and does not say why they differ. (Settled 2026-11-21, 11:30, by that session: the
+first count is the specification as its stage wrote it, the second the clauses tested after the plan stage, which
+appended C-33 and C-34 in the high cell, `cycles[0].plan_added` in its `run.json`, checked here; it appended none at
+medium. Sol's 44 is 43 plus C-44 the same way.) All three cells missed the same one defect, `update-rejects-resolved`
+(existing behaviour). At high, the two failures on the correct reference were the request's own "has tests" clause
+and an implied refusal the reference does not make. Its reading, as registered: what medium writes is the same,
+strength is kept at both efforts, and medium against high shows no difference (R12.1 to R12.3); its three predictions
+held.
 
 **The cost of brevity.** Some clauses, taken from the request ("the existing tests must still pass"; "npm test runs
 the new tests"), are tested by running the product's own test suite. Defects caught only through such clauses:
