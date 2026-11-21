@@ -1116,3 +1116,58 @@ exits at once. Checked on a toy project whose seeded fault spins for ever: befor
 it and two test processes running; after it, none. What I do differently: after stopping any script of mine, list
 what still runs from its scratch folder and stop it by process id; and when the machine looks loaded, look for my
 own strays first.
+
+## 19. After the pilot ended (2026-11-21 03:15): the merge, the audit completed, and two things from another session
+
+**Merged.** The owner answered "Yes" to merging and pushing. The branch was merged, not rebased (its messages cite
+each other's hashes), in a temporary checkout cut from origin's `main`, so that only the pilot's 22 commits were
+published and another session's 16 unpushed commits on the local `main` were left alone. Before the push: the quick
+tier pinned to the base (13 suites, 160.9 s, pass), then `scripts/release-push.py` with the release-boundary,
+test-groups and marketplace-package checks. No release: nothing under `skills/` changed.
+
+**The audit, completed (my omission corrected).** Section 10's audit note examined one held-out mark. The run
+records hold five. I read each event:
+
+| Run, session | Mark | What it was |
+|---|---|---|
+| `p1e2-ticket-assignment`, tests | `skill-craft` | a process listing showing another session's ShipLoop runs (examined on 2026-11-20) |
+| `p3-ticket-assignment-sol-high`, tests | `skill-craft` | the same kind of process listing |
+| `p3-ticket-assignment-sol-high`, third closing look | `shiploop_e2e`, `skill-craft` | a process listing that showed my own `mutate.py` command line, which names the E2E fixture folder |
+| `p3-ticket-assignment-sol-medium`, tests | `skill-craft` | a `PATH` value containing `skill-craft-e2e/python` |
+| `p3-ticket-due-times-sol-high`, first build | `skill-craft` | a process listing showing another session's ShipLoop run of the same request |
+
+No session ran a command that names a path of this repository or a held-out file, so by section 6's rule every cell
+stays counted. Two of the five exist because my own analysis job ran beside a live run and showed up in its process
+listing: one more reason not to run analysis beside live runs.
+
+**Codex shows user-level skills to every session (reported by the session "Spec elaboration prompt for Shiploop",
+its journal `docs/spec-elaboration-journal.md`, section 7; not reproduced by me).** Codex 0.171.0 lists every skill
+under the account's real home to a session whatever `HOME` and `CODEX_HOME` say, the E2E harness's own isolation
+included. Every pilot run but the Sonnet one ran on Codex, so each of those sessions was shown the account's skills,
+ShipLoop among them: the "bare" arm was bare of instructions, not of available skills. None was opened: across all
+769 session event files of the pilot, the only mention of a user-level skill path is the process listing in the
+table's first row, and that session's own read-only search of the run folders found the same. This is a limit to
+read with section 7: the evidence that no skill was used is the event streams, not isolation.
+
+**A result about this pilot's enrichment text, as received and not verified by me** (same session, sent at the
+owner's word; its folder `docs/experiments/spec-elaboration-20261120/`, journal sections 11, 12, 14 and 16).
+
+- This pilot's `SPEC_PACKET` (as of e63747a3d53b342f3ddf13005ca21063806a6856, its repository-reading step removed)
+  was that experiment's control: one-sentence requests, no repository, the specification graded against 89 held-out
+  nuances by a calibrated judge. Adding five things to think through before writing, with the specification still
+  written once, raised what it covered from 40 to 64 of 89 on Sonnet high and from 29 to 62 on Sol 6.2 medium.
+- An iterating form of the same additions showed no gain over the one-pass form and took about twice the minutes and
+  tokens.
+- ShipLoop's released spec stage already reaches 80 to 87 of the 89, and the additions were not shown to help it.
+- Its own cautions: the checklist and the additions share an author; "covered" rewards deciding; a strict auditor's
+  count of clauses beyond the request rose on Sol (38 to 48); nothing there was measured through a built product.
+
+How I read it against this pilot, as my reading:
+
+- It is a limit on this pilot's findings about enrichment (R1.3, F10, F20). The pilot tested one enrichment text, and
+  on that measure the text is a weak specification writer next to ShipLoop's released stage (29 to 40 of 89 against
+  80 to 87). What I reported as the cost of enrichment is the cost of this text.
+- It does not reverse them. Its measure rewards a specification for deciding more, and what this pilot measured
+  through built products is that decided clauses are where correct products were rejected (F10) and where one was
+  made to fail (F20). More coverage on a checklist is not yet shown to make a better product.
+- Its second bullet agrees with this pilot from another side: going round again added cost and not substance.
