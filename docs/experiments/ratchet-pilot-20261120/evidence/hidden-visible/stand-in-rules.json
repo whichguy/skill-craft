@@ -1,0 +1,44 @@
+{
+ "case": "stand-in-rules",
+ "reference_passes": [
+  "boundary-tests",
+  "strong-tests"
+ ],
+ "reference_fails": [],
+ "reference_observed": true,
+ "defects": {
+  "one-rule-missing": {
+   "observed": true,
+   "fails": [
+    "strong-tests"
+   ]
+  },
+  "tested-only": {
+   "observed": true,
+   "fails": [
+    "boundary-tests",
+    "strong-tests"
+   ]
+  },
+  "limit-never-trips": {
+   "observed": true,
+   "fails": [
+    "strong-tests"
+   ]
+  },
+  "cross-field": {
+   "observed": true,
+   "fails": [
+    "strong-tests"
+   ]
+  }
+ },
+ "visible": [
+  "cross-field",
+  "limit-never-trips",
+  "one-rule-missing",
+  "tested-only"
+ ],
+ "invisible": [],
+ "not_observed": []
+}

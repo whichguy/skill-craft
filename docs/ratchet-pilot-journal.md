@@ -342,6 +342,43 @@ under `/Users/dadleet/e2e-runs/ratchet-pilot-20261120-b6eab2/` and may be pruned
   beside them when they exist.
 - Evidence: `evidence/p1-first-ticket-assignment/`, `evidence/p1-first-ticket-due-times/`.
 
+### P1, first form, the two ticket suites graded again with the corrected grader (2026-11-20 20:00)
+
+| Case | Clauses failing on the reference | Second correct delivery | Defects caught |
+|---|---|---|---|
+| ticket assignment | 13 of 190 (7%), the same as the run's own gate | fails 24 more clauses | **27 of 27** (the first grading had 26: `validate-renamed` is caught by C-75, a clause on the base's tests staying unchanged whose test reads the work repository's history) |
+| ticket due times | 45 of 223 (20%), the same as the run's own gate | none exists for this case | 5 of 6, missed `no-backfill` |
+
+- **F8 (interim).** First form, pooled: 34 of 37 defects caught (92%), R1.2 met. R1.1 not met: 35%, 7% with a second
+  correct delivery failing 24 more, and 20%.
+- `grade.py visible`: the held-out graders see 4 of 4 orders defects, 6 of 6 due-times defects and 25 of 27
+  ticket-assignment defects. They cannot see `backoff-linear` and `validate-renamed` (as the review's finding 5
+  inferred), so those two are never used as repair starts.
+- Evidence: `strength.json` beside `strength-first-grading.json` in the two ticket evidence folders;
+  `evidence/hidden-visible/`.
+
+### P2, repair starts on the orders case (enriched frozen suite of `p1e2-stand-in-rules`; one run each; `--max-cycles 1`)
+
+| Planted defect | First gate | After one fix session | Held-out, start to end | Product / frozen tests | Minutes |
+|---|---|---|---|---|---|
+| `one-rule-missing` | 62 of 81 | 81 of 81 | 1 to 2 of 2 | 2 files changed / unchanged | 5.6 |
+| `tested-only` | 67 of 81 | 81 of 81 | 0 to 2 of 2 | 2 files changed / unchanged | 5.4 |
+| `limit-never-trips` | 63 of 81 | 81 of 81 | 1 to 2 of 2 | 2 files changed / unchanged | 6.4 |
+| `cross-field` | 66 of 81 | 81 of 81 | 1 to 2 of 2 | 2 files changed / unchanged | 5.5 |
+
+- **F9 (interim: four runs, one small case).** The loop repairs what its tests show. In each start the script's
+  failing list held the planted defect's clause beside the strictness clauses the reference never met; one fix
+  session (2.3 to 3 minutes, its Until Loop complete at iteration 1) brought the gate to 81 of 81; a held-out check
+  that failed at the start passes at the end; no frozen file was touched, nothing was disputed, no held-out name
+  appears in an event stream. R2.1 on this case: 4 of 4.
+- The fix also made each product stricter where the spec had chosen strictness (unknown, missing and repeated keys
+  refused) and added the tests the request asks for: the same work in every start, 94 to 121 added lines.
+- Each start's one closing look added 1 to 3 clauses; with the limit at one cycle they got no tests, so R2.3 is not
+  read here.
+- All four defects were ones the suite catches, so these starts say nothing about R2.2 (the closing look finding
+  what the tests miss).
+- Evidence: `evidence/p2-orders/` (each start's run.json, hidden.json, fix-1.md, delta-1.md; the two chain logs).
+
 ## 11. Amendment 3, 2026-11-20 19:45: the apparatus hardened after a second outside review (before P2, P3 and the enriched ticket runs)
 
 Sol 6.1 at max effort, read-only, 21 minutes, reviewed the apparatus for ways a result could be wrong without the

@@ -1,0 +1,47 @@
+{
+ "frozen suite of an earlier run": {
+  "observed": true,
+  "passed": [],
+  "failed": {
+   "strong-tests": "  }",
+   "boundary-tests": "  }"
+  },
+  "tree": "a2349576d58c290ab0d6b87818ccaf743acbd71b",
+  "label": "frozen suite of an earlier run",
+  "at": 0.2
+ },
+ "fix-1": {
+  "observed": true,
+  "passed": [
+   "strong-tests",
+   "boundary-tests"
+  ],
+  "failed": {},
+  "tree": "b33d2847d475aa22f2fb9c4a094a1ebc8f7b8a97",
+  "label": "fix-1",
+  "at": 195.0
+ },
+ "green-1": {
+  "observed": true,
+  "passed": [
+   "strong-tests",
+   "boundary-tests"
+  ],
+  "failed": {},
+  "tree": "b33d2847d475aa22f2fb9c4a094a1ebc8f7b8a97",
+  "label": "green-1",
+  "at": 195.0,
+  "same_tree_as": "fix-1"
+ },
+ "final": {
+  "observed": true,
+  "passed": [
+   "strong-tests",
+   "boundary-tests"
+  ],
+  "failed": {},
+  "tree": "3a7c008cada9348da92db5d96580872c5f221b1f",
+  "label": "final",
+  "at": 325.4
+ }
+}
