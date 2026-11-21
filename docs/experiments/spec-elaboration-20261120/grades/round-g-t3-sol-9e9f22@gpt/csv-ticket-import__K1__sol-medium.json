@@ -1,0 +1,150 @@
+{
+ "slot": "csv-ticket-import__K1__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1c",
+   "quote": "HTTP tests include invalid data after a valid row and confirm no ticket, audit, notification or ID is consumed."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1c",
+   "quote": "Errors identify the first failing CSV record (header is 1) where available.",
+   "missing": "The response identifies only the first failing record. The specification does not say whether it explains the reason for that failure."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-2c",
+   "quote": "successful repeated uploads create additional tickets.",
+   "missing": "The repeat-upload rule leaves the handling of an individual row matching an existing ticket and of identical rows within one file unspecified."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1b",
+   "quote": "fields use the existing create rules",
+   "missing": "The specification does not say whether the service checks each supplied value against that particular importer's permission to set it on a single ticket."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-2c",
+   "quote": "Existing internal access applies, with no extra role system.",
+   "missing": "The specification gives no import-specific permission or eligibility check independent of single-ticket creation access."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1a, R-1c",
+   "quote": "a required case-sensitive header naming title and requester and optionally priority, in any order. \u2026 unknown or duplicate columns"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-1a",
+   "quote": "Quoted fields, embedded commas, doubled quotes, LF or CRLF separators, a leading BOM and an optional final newline are supported.",
+   "missing": "The text does not specify how to treat a newline inside a quoted field."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-1c",
+   "quote": "HTTP tests include invalid data after a valid row and confirm no ticket, audit, notification or ID is consumed."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements, R-1c",
+   "quote": "Use the established MAX_BODY_BYTES ceiling \u2026 bodies over the configured limit return the existing 400 invalid envelope."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1c, R-1b",
+   "quote": "empty or header-only files, invalid ticket fields and bodies over the configured limit return the existing 400 invalid envelope. \u2026 A valid upload with one or more data records returns 201"
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-2c",
+   "quote": "successful repeated uploads create additional tickets.",
+   "missing": "The duplicate-creation outcome is explicit, but the specification gives no reason for treating a repeat upload as a new import."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "Scope, R-1b",
+   "quote": "The CSV workflow adds a synchronous HTTP operation. \u2026 A valid upload with one or more data records returns 201 with an items array of the newly opened tickets in CSV order.",
+   "missing": "The HTTP response signals completion. The specification provides no background processing or later completion signal for large files."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-2a",
+   "quote": "queues one normal notification per requester. The worker still owns delivery.",
+   "missing": "The worker's delivery rate and whether it may send all notifications from one import at once are unspecified."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1b",
+   "quote": "newly opened tickets in CSV order. IDs use the existing sequence, fields use the existing create rules, and absent or blank priority is normal.",
+   "missing": "The initial assignee and the timestamps assigned to each ticket are unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2b, R-2c",
+   "quote": "No staging survives the request. \u2026 Upload bytes are held only for the request. \u2026 Request bodies and row data are excluded from error messages and logs, apart from normal persisted ticket/audit/outbox records."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-2a",
+   "quote": "A successful upload records one ticket.created audit entry per ticket with the existing X-Actor convention \u2026 Confirm audit actor, action and order via the audit route",
+   "missing": "The specification does not say that the audit records the time of import."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2b",
+   "quote": "Test an existing data file, an induced save failure, a corrected retry, and restart.",
+   "missing": "The retry concerns a failed batch save. The specification does not define cancellation during processing or a way to retry just the failed rows."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "No graphical surface, new persistence schema, operational SLA or deployed acceptance is in scope.",
+   "missing": "The specification excludes an operational SLA and gives neither a maximum processing time at the file size limit nor a way to see progress during the request."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "Scope, R-1b",
+   "quote": "Preserve the single-ticket API, lifecycle, audit semantics, notification delivery, version-1 data files and read-only CLI/report \u2026 an items array of the newly opened tickets in CSV order. IDs use the existing sequence"
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

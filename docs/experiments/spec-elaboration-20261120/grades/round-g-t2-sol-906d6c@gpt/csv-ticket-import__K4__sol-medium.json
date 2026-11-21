@@ -1,0 +1,146 @@
+{
+ "slot": "csv-ticket-import__K4__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "A valid first row followed by an invalid priority must create zero tickets and leave the next ID unchanged."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Identify the 1-based CSV record in errors tied to a record.",
+   "missing": "Whether the response lists every failing record and gives the specific reason for each failure."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Each accepted request creates new tickets.",
+   "missing": "Whether a row matching an existing ticket or another row in the file is accepted as a separate new ticket, skipped, or rejected."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Existing field and actor contracts are in docs/api.md under Create a ticket and Conventions.",
+   "missing": "Whether each row's fields and values must pass the same authorization checks for the importing actor as a single-ticket create."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Let agents upload a CSV to bulk-create tickets.",
+   "missing": "Which agents have import permission and whether that permission is granted separately from single-ticket creation."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Reject wrong media type, invalid UTF-8, malformed CSV, missing or duplicate headers, unknown headers, wrong field counts, invalid ticket values, empty batches and oversized bodies using the 400 error envelope."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Accept a UTF-8 BOM, LF or CRLF, quoted cells, doubled quotes and columns in any order."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Record each ticket's existing ticket.created audit and queued requester receipt. A single batch survives restart with all corresponding entries. A failed persistence save leaves the live ticket state, sequence, audit and outbox unchanged."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Honor MAX_BODY_BYTES, 65536 bytes by default, and report oversized requests through the existing envelope."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Reject wrong media type, invalid UTF-8, malformed CSV, missing or duplicate headers, unknown headers, wrong field counts, invalid ticket values, empty batches and oversized bodies using the 400 error envelope.",
+   "missing": "The empty-batch rule covers zero data rows. The specification leaves acceptance of a header plus exactly one valid data row implicit."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Each accepted request creates new tickets."
+  },
+  {
+   "id": "N-12",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Record each ticket's existing ticket.created audit and queued requester receipt.",
+   "missing": "Whether queued receipts are sent in a burst or paced, and what delivery rate applies."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "In a fresh service the IDs are T-0001 and T-0002, both open, with high and normal priorities.",
+   "missing": "The default assignee and the timestamps assigned to each imported ticket."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The request body is transient and is never saved separately or included in errors."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Record each ticket's existing ticket.created audit and queued requester receipt.",
+   "missing": "Whether the audit identifies the importer, records the import time, and links the tickets created by the same import."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "Scope and R-1",
+   "quote": "The read-only CLI and existing single-ticket routes keep their contracts from README.md and docs/api.md. \u2026 Each accepted request creates new tickets."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

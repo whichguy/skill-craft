@@ -1,0 +1,149 @@
+{
+ "slot": "csv-ticket-import__K2__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.19347519999999996,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "all-or-nothing is the selected batch failure behavior."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1 C-2",
+   "quote": "with 400 in the existing JSON envelope. Report the source line for record-specific failures.",
+   "missing": "Whether every failing row is reported or only the first, and how the reason per row is expressed."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-2 C-5",
+   "quote": "A repeated successful request is a new creation, as with POST /tickets.",
+   "missing": "What happens when a row matches an existing ticket, and how duplicate rows within one file are treated."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1 C-1",
+   "quote": "It requires title and requester headers and accepts optional priority, in any order. ... returns HTTP 201 and {\"items\":[...]} in CSV order with open tickets.",
+   "missing": "Whether values such as priority are checked against the importer's own authority to set them on a single ticket."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "Non-functional requirements / Behavior model",
+   "quote": "Ticket data follows the existing store and access boundary. ... There is no migration, new role, separate data retention rule, or import job.",
+   "missing": "Who is permitted to import, and whether import permission is separate from single-ticket creation."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1 C-1, C-2",
+   "quote": "It requires title and requester headers ... Reject empty uploads, header-only files, unknown or duplicate headers, wrong-width data"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1 C-1, C-2",
+   "quote": "UTF-8 CSV file, with optional BOM and LF or CRLF ... Quoted fields support commas and doubled quotes ... Embedded line breaks parse as CSV syntax"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2 C-4, C-5",
+   "quote": "The worker owns delivery after commit. ... A rejected upload or failed save leaves tickets, audit, outbox and ID allocation intact."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1 C-3",
+   "quote": "Bound uploaded bytes by MAX_BODY_BYTES. Verify at the exact limit and one byte over with the existing error envelope."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1 C-2",
+   "quote": "Reject empty uploads, header-only files",
+   "missing": "Behaviour for a single-row file is not stated."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2 C-5",
+   "quote": "A repeated successful request is a new creation, as with POST /tickets."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "Non-functional requirements / Behavior model",
+   "quote": "The upload stays in the current request lifecycle, with no retained CSV file. ... Mutations commit synchronously in one process. ... no ... import job."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-2 C-4",
+   "quote": "enqueue one existing requester notification ... The worker owns delivery after commit.",
+   "missing": "Whether many notifications go out at once and any pacing or throttling of delivery."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1 C-1",
+   "quote": "Blank or omitted priority defaults to normal. A successful upload returns HTTP 201 and {\"items\":[...]} in CSV order with open tickets.",
+   "missing": "Assignee when not given, and the timestamps the created tickets are stamped with."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "Non-functional requirements / Behavior model",
+   "quote": "The upload stays in the current request lifecycle, with no retained CSV file. ... The upload is transient request state."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-2 C-4",
+   "quote": "For each committed row, ... write one ticket.created audit entry attributed to X-Actor (or system)"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "Behavior model F-2 / R-2",
+   "quote": "The old store stays visible and a corrected retry may proceed.",
+   "missing": "Cancellation of an in-flight import is not addressed; retry of only failed rows is implied moot by all-or-nothing but not stated."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "No performance SLA is established by the request.",
+   "missing": "Any progress visibility while an upload is processed."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-1 C-3",
+   "quote": "Keep JSON creation behavior as documented and run its existing tests.",
+   "missing": "That the import never modifies existing tickets is not stated."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1 C-2",
+   "quote": "Reject ... invalid ticket fields ... ticket fields must obey the existing single-line validation rules.",
+   "missing": "Handling of spreadsheet formula-injection values, and an explicit field length limit."
+  }
+ ]
+}

@@ -1,0 +1,36 @@
+guides_test.py sets --rule t1-sol,t2-sol,t3-sol ..., 2026-11-21 15:23 PST: the second case (the ticket service), three sets, the rule of journal sections 46 and 48.
+
+set t1-sol  (counted in the rule)
+  A: 629 words; covered 10/7 of 15; instructions [100, 102]; references [18, 58]; block [0, 81]; guide lines it opened none; delivered True
+  R: 590 words; covered 9/8 of 15; instructions [102, 102]; references [55, 57]; block [0, 81]; guide lines it opened {'before the spec packet': {'requirements-definition.md': 21}}; delivered True
+  C: 634 words; covered 12/8 of 15; instructions [104, 104]; references [9, 61]; block [0, 81]; guide lines it opened none; delivered True
+  X: 547 words; covered 7/7 of 15; instructions [177, 187]; references [7, 59]; block [81, 81]; guide lines it opened none; delivered True
+  X over A: net -2 (higher [], lower ['N-4', 'N-6'])
+  X over C: net -3 (higher [], lower ['N-3', 'N-4', 'N-6'])
+  R over A: net 0 (higher ['N-3'], lower ['N-4'])
+  C over A: net 1 (higher ['N-3'], lower [])
+  on 19 items (the 15 and ['N-5', 'N-14', 'N-15', 'N-19']): X over A net -2; X over C net -3; R over A net -1; C over A net 1
+  capability the reader verified in one arm alone: none
+set t2-sol  (counted in the rule)
+  A: 445 words; covered 8/7 of 15; instructions [101, 102]; references [49, 56]; block [0, 81]; guide lines it opened none; delivered True
+  R: 634 words; covered 10/8 of 15; instructions [101, 102]; references [56, 56]; block [0, 81]; guide lines it opened {'before the spec packet': {'requirements-definition.md': 21}}; delivered True
+  C: 358 words; covered 7/7 of 15; instructions [94, 104]; references [6, 54]; block [0, 81]; guide lines it opened none; delivered True
+  X: 531 words; covered 7/7 of 15; instructions [177, 187]; references [8, 53]; block [81, 81]; guide lines it opened none; delivered True
+  X over A: net 0 (higher ['N-7'], lower ['N-4'])
+  X over C: net -1 (higher [], lower ['N-20'])
+  R over A: net 1 (higher ['N-7'], lower [])
+  C over A: net 0 (higher ['N-7'], lower ['N-10'])
+  on 19 items (the 15 and ['N-5', 'N-14', 'N-15', 'N-19']): X over A net 1; X over C net 0; R over A net 2; C over A net 0
+  capability the reader verified in one arm alone: none
+set t3-sol  (counted in the rule)
+  A: 484 words; covered 10/7 of 15; instructions [102, 102]; references [9, 58]; block [0, 81]; guide lines it opened none; delivered True
+  R: 533 words; covered 10/6 of 15; instructions [99, 102]; references [57, 57]; block [0, 81]; guide lines it opened {'before the spec packet': {'requirements-definition.md': 21}}; delivered True
+  C: 449 words; covered 9/6 of 15; instructions [102, 104]; references [8, 56]; block [0, 81]; guide lines it opened none; delivered True
+  X: 888 words; covered 9/7 of 15; instructions [186, 187]; references [9, 58]; block [81, 81]; guide lines it opened none; delivered True
+  X over A: net 0 (higher [], lower [])
+  X over C: net 0 (higher [], lower [])
+  R over A: net 0 (higher [], lower [])
+  C over A: net 0 (higher [], lower [])
+  on 19 items (the 15 and ['N-5', 'N-14', 'N-15', 'N-19']): X over A net 0; X over C net 1; R over A net 0; C over A net 0
+  capability the reader verified in one arm alone: none
+over the sets counted in the rule ['t1-sol', 't2-sol', 't3-sol']: {'X over A': 'not shown', 'X over C': 'the opposite', 'R over A': 'not shown', 'C over A': 'not shown'}  (nets {'X over A': [-2, 0, 0], 'X over C': [-3, -1, 0], 'R over A': [0, 1, 0], 'C over A': [1, 0, 0]})

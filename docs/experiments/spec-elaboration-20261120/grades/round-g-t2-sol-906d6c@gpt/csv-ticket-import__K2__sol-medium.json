@@ -1,0 +1,148 @@
+{
+ "slot": "csv-ticket-import__K2__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "all-or-nothing is the selected batch failure behavior."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1, C-2",
+   "quote": "Report the source line for record-specific failures.",
+   "missing": "The response must identify a source line, but the text leaves open whether it lists every failing row and explains the reason for each failure."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-2, C-5",
+   "quote": "A repeated successful request is a new creation, as with POST /tickets.",
+   "missing": "The replay rule covers a whole request. The builder still needs a rule for an individual row matching an existing ticket and for matching rows within one file."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "Behavior model, F-1",
+   "quote": "An agent sends CSV to the internal HTTP API.",
+   "missing": "The text identifies the actor but leaves open which agents have import permission and whether single-ticket creation permission alone grants it."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1, C-1 and C-2",
+   "quote": "It requires title and requester headers and accepts optional priority, in any order. \u2026 Reject empty uploads, header-only files, unknown or duplicate headers"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1, C-1 and C-2",
+   "quote": "UTF-8 CSV file, with optional BOM and LF or CRLF. \u2026 Quoted fields support commas and doubled quotes. \u2026 Embedded line breaks parse as CSV syntax but ticket fields must obey the existing single-line validation rules."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2, C-4 and C-5",
+   "quote": "The worker owns delivery after commit. \u2026 A rejected upload or failed save leaves tickets, audit, outbox and ID allocation intact. Verify an invalid later row"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1, C-3",
+   "quote": "Bound uploaded bytes by MAX_BODY_BYTES. Verify at the exact limit and one byte over with the existing error envelope."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1, C-1 and C-2; R-2, C-4",
+   "quote": "A successful upload returns HTTP 201 and {\"items\":[...]} in CSV order with open tickets. \u2026 Reject empty uploads, header-only files \u2026 For each committed row, allocate an ID in normal sequence"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2, C-5",
+   "quote": "A repeated successful request is a new creation, as with POST /tickets."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "Non-functional requirements; R-1, C-1",
+   "quote": "The upload stays in the current request lifecycle, with no retained CSV file. \u2026 A successful upload returns HTTP 201",
+   "missing": "The agent learns of completion through the HTTP response. The specification chooses synchronous processing for all accepted sizes and provides no background processing or completion signal for a background import."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-2, C-4",
+   "quote": "enqueue one existing requester notification. \u2026 The worker owns delivery after commit.",
+   "missing": "The builder still needs to know whether the worker may deliver all notifications at once or must pace them, and at what rate."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1, C-1",
+   "quote": "Blank or omitted priority defaults to normal. A successful upload returns HTTP 201 and {\"items\":[...]} in CSV order with open tickets.",
+   "missing": "The initial assignee, the timestamps set on creation, and the values used for those timestamps are unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "Non-functional requirements; Behavior model",
+   "quote": "The upload stays in the current request lifecycle, with no retained CSV file. \u2026 The upload is transient request state."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-2, C-4",
+   "quote": "For each committed row, allocate an ID in normal sequence and write one ticket.created audit entry attributed to X-Actor (or system)",
+   "missing": "The text requires actor attribution per creation but leaves open how the audit records when the import occurred or identifies creations belonging to the same import."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2, C-5; Behavior model, F-2",
+   "quote": "A rejected upload or failed save leaves tickets, audit, outbox and ID allocation intact. \u2026 The old store stays visible and a corrected retry may proceed.",
+   "missing": "The text permits retry after a full rollback. It leaves cancellation during processing and any way to select just the failing rows for retry unspecified."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "No performance SLA is established by the request.",
+   "missing": "The specification gives neither a completion-time bound for a maximum-size upload nor a rule for showing progress during the request."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-1, C-3; R-2, C-5",
+   "quote": "Keep JSON creation behavior as documented and run its existing tests. \u2026 A rejected upload or failed save leaves tickets, audit, outbox and ID allocation intact.",
+   "missing": "The preservation guarantee for stored tickets covers rejection and save failure. The text does not explicitly extend it to every pre-existing ticket after a successful import."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

@@ -1,0 +1,146 @@
+{
+ "slot": "csv-ticket-import__K3__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.2046644,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "The request either creates every row with X-Actor attribution and a normal creation audit entry and outbox event, or leaves all existing records and counters intact."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Record-specific failures include a CSV row number, counting the header and ignoring empty physical lines.",
+   "missing": "Whether the 400 response lists every failing row or only the first, and the shape in which each row's reason is reported."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Repeating a successful upload creates new tickets. No draft, deduplication key or separate upload record is retained."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Unknown and duplicate column names are errors. ... complete, open tickets ... Titles, requesters and explicit priorities follow existing create validation."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "An agent with existing internal API access can send raw UTF-8 text/csv to POST /tickets/import.",
+   "missing": "Whether bulk import needs a permission separate from single-ticket creation; the spec ties it to existing access and does not separate the two."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The first nonempty record is a header with title and requester, and optionally priority, in any order. Unknown and duplicate column names are errors."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "C-1 confirms a reordered, BOM-prefixed CRLF upload that contains a quoted comma and an escaped quote. The parser also accepts LF",
+   "missing": "Whether quoted fields that contain embedded newlines are accepted."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Ticket creation still owns sequence IDs, audit and one pending notification per record. ... the worker owns subsequent delivery. ... or leaves all existing records and counters intact."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Bounded processing under MAX_BODY_BYTES (default 65,536 bytes). A documented 100-ticket import cap ... C-4 checks exact limits and first rejection beyond each."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Missing/empty required values, invalid priority, invalid UTF-8, bad header or quotes, inconsistent cell counts and no data each produce 400 invalid."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Repeating a successful upload creates new tickets. No draft, deduplication key or separate upload record is retained."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "A documented 100-ticket import cap is the synchronous operation's chosen default"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Ticket creation still owns sequence IDs, audit and one pending notification per record. ... the worker owns subsequent delivery.",
+   "missing": "Whether up to 100 notifications go out at once and any pacing or throttling of their delivery."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "containing complete, open tickets in input order. Priority defaults to normal when its column is omitted or its cell is blank.",
+   "missing": "The assignee of an imported ticket and the timestamps it is stamped with."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "No draft, deduplication key or separate upload record is retained. Import data follows existing ticket access and retention."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "creates every row with X-Actor attribution and a normal creation audit entry and outbox event"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "C-3 injects a failed save and observes unchanged state and a successful retry with consecutive IDs.",
+   "missing": "Whether a running import can be cancelled; retrying failed rows is only implied by the all-or-nothing design, not stated."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Bounded processing under MAX_BODY_BYTES (default 65,536 bytes).",
+   "missing": "A time bound for a maximum-size file and any progress indication while it runs."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The existing JSON creation and read APIs retain their contracts."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1 / R-2",
+   "quote": "Titles, requesters and explicit priorities follow existing create validation. ... Error messages refer to column/row rules and do not echo cells.",
+   "missing": "Handling of spreadsheet-formula values (e.g. leading =, +, -, @) and an explicit maximum field length."
+  }
+ ]
+}

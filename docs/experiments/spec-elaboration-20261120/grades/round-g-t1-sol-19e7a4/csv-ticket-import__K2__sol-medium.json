@@ -1,0 +1,147 @@
+{
+ "slot": "csv-ticket-import__K2__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.2220996,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A complete batch is committed as one mutation; bad input or a failed save leaves tickets, counters, audit and outbox as they were."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1.b",
+   "quote": "Identify the first erroneous CSV record by one-based index (header is 1) where applicable. Do not echo CSV cell contents in errors.",
+   "missing": "Only the first failing record is named; whether the error states which field/reason failed, and whether all failing rows are reported, is not decided."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1.a / R-2",
+   "quote": "one ordinary open ticket per data row in input order ... the same file can intentionally create another batch."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1.a / R-1.b",
+   "quote": "A header with `title`, `requester`, and optional `priority` ... Reject ... unknown headers ... invalid ticket values ... invalid actor",
+   "missing": "Columns are limited and created tickets are ordinary open ones, but the spec does not state that file values are checked against the importer's own single-create authority."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1.a / Non-functional requirements",
+   "quote": "An agent on the existing internal API posts ... Operate within the existing internal network trust boundary and attribute with X-Actor (system default).",
+   "missing": "No import-specific permission is defined; whether import ability is distinct from single-ticket creation is not addressed."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1.a / R-1.b",
+   "quote": "A header with `title`, `requester`, and optional `priority` accepts columns in any order. ... Reject an empty file, header-only file, missing, duplicate or unknown headers, wrong field counts"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-1.a",
+   "quote": "An optional UTF-8 BOM is accepted. ... Accept LF and CRLF, quoted commas, doubled quotes and an optional final newline.",
+   "missing": "Whether quoted fields containing embedded newlines are accepted is not stated."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "one standard creation outbox event. The worker retains asynchronous delivery ... A complete batch is committed as one mutation; bad input or a failed save leaves tickets, counters, audit and outbox as they were."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Reuse the existing configured MAX_BODY_BYTES budget (65536 default). An input at the configured boundary is eligible and one beyond it gets the standard 400."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1.b / R-1.a",
+   "quote": "Reject an empty file, header-only file ... Return 201 with {\"items\":[...]}, one ordinary open ticket per data row in input order."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Successful uploads are independent writes. ... A lost success response requires checking for already-created tickets before retry, since the same file can intentionally create another batch."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1.a",
+   "quote": "Return 201 with {\"items\":[...]}, one ordinary open ticket per data row in input order.",
+   "missing": "Processing is implicitly synchronous, but the spec never deliberately states there is no background processing or how completion is learned for large files."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "one standard creation outbox event. The worker retains asynchronous delivery and retry ownership.",
+   "missing": "Whether many requester notifications go out at once and any pacing/throttling for a bulk batch is not decided."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1.a / R-2",
+   "quote": "one ordinary open ticket per data row ... Empty or omitted priority is normal. ... Each imported ticket receives the next sequential ID",
+   "missing": "Assignee default and the timestamps stamped on created tickets are not stated."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Retain only ordinary ticket/audit/outbox records. Do not retain the uploaded file or add a new logging sink."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Each imported ticket receives the next sequential ID, one `ticket.created` audit entry with the shared request actor"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Clients can correct and retry rejected input.",
+   "missing": "Cancelling a running import is not addressed."
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1 / R-1.c",
+   "quote": "Preserve the single-ticket JSON endpoint and its response ... Preserve the JSON create, ticket reads, CLI/report format and existing operations; verify with the full suite."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1.b",
+   "quote": "Reject ... invalid ticket values ... or over-limit input with 400 ... Do not echo CSV cell contents in errors.",
+   "missing": "Spreadsheet formula-injection values are not addressed, and no explicit maximum field length is stated."
+  }
+ ]
+}

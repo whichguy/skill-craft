@@ -1,0 +1,149 @@
+{
+ "slot": "csv-ticket-import__K1__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Validation or failed save leaves tickets, IDs, audit, outbox and durable state at their previous values."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Row errors name the first failing CSV record (header is row one).",
+   "missing": "Only the first failing row is identified. The response need not list every failing row or explain why each failed."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "A repeat of a successful upload creates new tickets.",
+   "missing": "The repeat-upload rule addresses one kind of match. The specification gives no matching rule or explicit treatment for a row matching another existing ticket or a duplicate row within the same file."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Each row obeys normal ticket creation validation.",
+   "missing": "It does not say whether validation checks that the particular importer may set each supplied value, such as the requested priority."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "This adds an HTTP surface for the existing agent client role and X-Actor convention.",
+   "missing": "The agent role is named, but the specification does not say whether bulk import needs an authorization distinct from single-ticket creation."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "with a header and at least one data row. Headers title and requester are required, priority is optional, order is flexible, and duplicate and unknown headers are invalid."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Accept BOM, LF or CRLF, optional terminal line break, quoted commas and escaped doubled quotes.",
+   "missing": "It does not say whether a newline inside a quoted field is accepted as part of the value."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "The service commits all imported tickets, sequential IDs, ticket.created audits with the request actor, and pending notifications as one synchronous change."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Apply existing MAX_BODY_BYTES (65536 by default) to raw bytes. Confirm exact configured limit succeeds and one extra byte fails with no changes."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "with a header and at least one data row. \u2026 empty/header-only input, malformed CSV, wrong-width rows, invalid headers, and invalid ticket fields yield HTTP 400 in the standard envelope."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A repeat of a successful upload creates new tickets."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "HTTP 201 returns { items: [...] } in row order, with each item an open ticket with its own sequential ID.",
+   "missing": "The agent learns of synchronous completion through the HTTP response. There is no background import path for large files or completion signal for such a job."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Existing worker delivery happens after enqueue; it does not determine HTTP success.",
+   "missing": "The specification delegates delivery to the worker but gives no rule for sending a batch of requester notifications all at once or pacing it."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Missing priority or an empty priority cell defaults to normal. HTTP 201 returns { items: [...] } in row order, with each item an open ticket with its own sequential ID.",
+   "missing": "The default assignee and the timestamps applied to imported tickets are unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Parsed content lives only in the request; accepted ticket, audit and event data follow usual retention.",
+   "missing": "The lifetime given is for parsed content. The specification does not say whether the original upload is retained, where or for how long, or who could download it."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "The service commits all imported tickets, sequential IDs, ticket.created audits with the request actor, and pending notifications as one synchronous change.",
+   "missing": "The audit records identify the actor and ticket creations, but no import or creation time is required in those records."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Confirm with an unchanged snapshot and successful retry after removing the failure.",
+   "missing": "Retry is described for a failed save. The specification gives no behavior for cancelling a running import or selecting only failed rows for retry."
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1 and R-2",
+   "quote": "Existing JSON creation remains as in docs/api.md, Create a ticket. \u2026 with each item an open ticket with its own sequential ID. \u2026 A repeat of a successful upload creates new tickets."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

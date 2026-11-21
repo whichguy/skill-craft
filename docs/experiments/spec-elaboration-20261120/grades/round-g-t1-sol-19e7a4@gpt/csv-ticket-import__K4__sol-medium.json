@@ -1,0 +1,148 @@
+{
+ "slot": "csv-ticket-import__K4__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2a",
+   "quote": "A rejected batch leaves tickets, audit, outbox and ID counters unchanged."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1d",
+   "quote": "Report the 1-based CSV record when applicable (header is record 1).",
+   "missing": "Whether the response identifies every failing row and gives the specific reason for each failure."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-2b",
+   "quote": "Repeating a successful request creates another batch.",
+   "missing": "How to handle an individual row matching an existing ticket outside an exact replay, and matching rows within one file."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "Behavior model, F-1",
+   "quote": "an internal agent sends the CSV bytes; the server checks media type, size, encoding, header, rows and actor",
+   "missing": "Which agents have import permission and how that permission is distinguished from permission to create one ticket."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-1a",
+   "quote": "accepts one UTF-8 CSV with a header and at least one data record. Required columns are title and requester. The optional priority column defaults to normal when absent or blank.",
+   "missing": "Whether an otherwise valid header containing an unexpected column is accepted or rejected."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1b",
+   "quote": "LF and CRLF, optional UTF-8 BOM, and standard double-quoted CSV fields with doubled quote escapes are accepted. Embedded newlines can be parsed in a quoted field, then existing single-line ticket validation applies."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2a and Behavior model, F-1",
+   "quote": "A rejected batch leaves tickets, audit, outbox and ID counters unchanged. [\u2026] Existing delivery worker subsequently consumes committed outbox events."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements and Behavior model, T-2",
+   "quote": "Reuse MAX_BODY_BYTES (default 65536 bytes) to bound buffering, including chunked uploads. [\u2026] Body or actor invalid | Returns 400. No state change."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1a and R-1d",
+   "quote": "accepts one UTF-8 CSV with a header and at least one data record. [\u2026] empty upload, unsupported media type, or invalid UTF-8 returns 400 in the existing error envelope."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2b",
+   "quote": "Repeating a successful request creates another batch. No idempotency key, preview or background-import job."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-2b and Behavior model, T-1",
+   "quote": "No idempotency key, preview or background-import job. [\u2026] Store commits the batch and returns 201.",
+   "missing": "Completion is reported in the HTTP response. The specification explicitly excludes the background processing described by the nuance."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-1c and R-2b",
+   "quote": "one queued creation notification. [\u2026] Ordinary worker behavior and the persisted schema continue.",
+   "missing": "How quickly the worker delivers a batch of notifications and whether it limits simultaneous sends."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1a and R-1c",
+   "quote": "The optional priority column defaults to normal when absent or blank. [\u2026] with normal open tickets in CSV order.",
+   "missing": "The initial assignee, which timestamps are recorded and what time each represents."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Upload contents are transient except for ordinary stored ticket fields and their audit and outbox effects."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1c",
+   "quote": "Each has a sequential ID, X-Actor audit attribution and one queued creation notification.",
+   "missing": "Whether the audit records the import time and identifies tickets created together in an import."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2a and Behavior model, T-2",
+   "quote": "A rejected batch leaves tickets, audit, outbox and ID counters unchanged. [\u2026] Correct the upload and retry.",
+   "missing": "Whether an in-flight import can be cancelled and whether the agent can select just the failed rows for resubmission."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "No independent throughput or latency target was provided.",
+   "missing": "A maximum processing time for the largest accepted file and how the agent can observe progress."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1 confirmation, R-1c and Behavior model, T-1",
+   "quote": "JSON create, ticket fields, read-only commands and the existing trust boundary continue as documented. [\u2026] Each has a sequential ID [\u2026] A repeat allocates fresh IDs."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

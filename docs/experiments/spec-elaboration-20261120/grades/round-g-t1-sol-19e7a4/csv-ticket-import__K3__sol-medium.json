@@ -1,0 +1,143 @@
+{
+ "slot": "csv-ticket-import__K3__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.21317039999999998,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Commit all rows together. An invalid upload or failed persistence leaves the prior tickets, audit, notifications and next identifiers intact."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "return 400 with the service's error envelope. Where an error belongs to a record, the message names the CSV row (header is row 1)."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Open one ticket for each row ... A successfully repeated upload creates another batch under ordinary creation semantics."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The header names `title` and `requester` are required, and `priority` is optional. ... missing, duplicate or unknown columns ... and invalid ticket fields return 400"
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "This flow uses the existing internal access and actor attribution. There is no new account, session, preview or upload history.",
+   "missing": "Whether importing needs a permission distinct from single-ticket creation; the spec ties it to existing access without addressing that separation."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Empty/header-only files, missing, duplicate or unknown columns, malformed quoting, extra or missing cells, blank records ... return 400"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Quoted fields, escaped quotes, commas inside quotes, an initial UTF-8 BOM, LF/CRLF and an optional final newline are accepted."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Commit all rows together. An invalid upload or failed persistence leaves the prior tickets, audit, notifications and next identifiers intact."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "An upload may contain 1\u2013100 data records and must fit within `MAX_BODY_BYTES` (default 65536). Reject excess with HTTP 400 and no state change."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1, R-3",
+   "quote": "Empty/header-only files ... return 400 ... An upload may contain 1\u2013100 data records"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A successfully repeated upload creates another batch under ordinary creation semantics."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-1, R-2",
+   "quote": "A successful request returns HTTP 201 and `{ \"items\": [ ... ] }` with the full created tickets ... HTTP success means creation committed."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "queue one ordinary receipt for each requester ... The worker continues to deliver receipts asynchronously using its existing retries.",
+   "missing": "Whether up to 100 receipts go out at once or are paced/throttled, and at what rate."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "An omitted or blank priority defaults to `normal` ... yields T-0001 then T-0002, both open",
+   "missing": "The assignee of an imported ticket and the timestamps it is stamped with."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "The uploaded file has request lifetime, while tickets, audit and queued receipts have the same retention and access as JSON-created tickets."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "append one ordinary `ticket.created` audit entry with the request actor"
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "No new latency SLA or dependency is required.",
+   "missing": "A time bound for a 100-row upload and any progress indication; the spec declines a bound without stating one."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The existing JSON creation contract in [API](../../docs/api.md) ... continue to apply."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1, R-3",
+   "quote": "The ordinary limits and priorities apply, including single-line title and requester. ... without echoing field values.",
+   "missing": "Handling of values that begin with formula characters (=, +, -, @) that could execute when opened in a spreadsheet."
+  }
+ ]
+}

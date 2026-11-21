@@ -1,0 +1,21 @@
+set t1-sol: items that apply here for both sorters (15): ['N-1', 'N-2', 'N-3', 'N-4', 'N-6', 'N-7', 'N-8', 'N-9', 'N-10', 'N-11', 'N-13', 'N-16', 'N-17', 'N-20', 'N-21']
+  A opus: covered 10, partly 4, absent 1
+  A astra: covered 7, partly 7, absent 1
+  R opus: covered 9, partly 5, absent 1
+  R astra: covered 8, partly 4, absent 3
+  C opus: covered 12, partly 2, absent 1
+  C astra: covered 8, partly 6, absent 1
+  X opus: covered 7, partly 6, absent 2
+  X astra: covered 7, partly 5, absent 3
+  X over C: higher under both judges []; of them newly raised []; lower ['N-3', 'N-4', 'N-6']; net -3
+  C over A: higher under both judges ['N-3']; of them newly raised []; lower []; net 1
+  X over A: higher under both judges []; of them newly raised []; lower ['N-4', 'N-6']; net -2
+  R over A: higher under both judges ['N-3']; of them newly raised []; lower ['N-4']; net 0
+  not in the rule (mixed, unclear or the sorters differ), as states under the two judges:
+    N-5: A 1/1, R 1/1, C 1/1, X 1/1
+    N-14: A 1/1, R 1/1, C 1/1, X 1/1
+    N-15: A 2/2, R 2/2, C 2/1, X 2/2
+    N-19: A 1/1, R 0/0, C 1/1, X 1/1
+  delivered as each arm intends: {'A': True, 'C': True, 'R': True, 'X': True}
+  OUTCOME (X over C): described only: no rule applies
+  OUTCOME (R over A): no signal

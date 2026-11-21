@@ -1,0 +1,146 @@
+{
+ "slot": "csv-ticket-import__K1__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.208961,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1.c",
+   "quote": "No tickets, audit entries, notifications or counters change when the upload is rejected."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1.c",
+   "quote": "Include a one-based CSV record number when the fault is tied to a record, counting the header as record 1.",
+   "missing": "Whether the 400 response lists every failing record with its reason or only the first fault found."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "Requirements (closing paragraph)",
+   "quote": "A fresh successful upload is another set of new tickets; clients verify the result before retrying an ambiguous connection failure.",
+   "missing": "How a row duplicating an existing ticket or another row in the same file is treated is not stated explicitly."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1.a / R-1.b",
+   "quote": "The first record contains exactly title, requester and optionally priority... Apply normal single-ticket field rules... initially open with sequential IDs."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1.d / Non-functional requirements",
+   "quote": "No new identity or UI is needed. ... Existing network access and notification recovery apply.",
+   "missing": "Whether import is a separate permission from single-ticket creation and who specifically may use it."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1.c",
+   "quote": "Wrong media type, invalid UTF-8, missing/duplicate/unknown headers, missing data, malformed CSV, wrong column counts... return the standard 400 invalid envelope."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1.a",
+   "quote": "Accept quoted cells, doubled quotes, LF or CRLF, an optional leading BOM and an optional final line ending."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-1.c / Requirements (closing paragraph)",
+   "quote": "A successful upload uses one synchronous commit... A save failure returns the standard 500 internal envelope with no staged records published."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1.a / R-1.c / Non-functional requirements",
+   "quote": "Bound the body by the existing configurable byte ceiling (default 65,536) and the batch by the 1,000-row product default."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1.a / R-1.c",
+   "quote": "Boundary: accept one data record ... missing/duplicate/unknown headers, missing data ... return the standard 400 invalid envelope."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "Requirements (closing paragraph)",
+   "quote": "A fresh successful upload is another set of new tickets; clients verify the result before retrying an ambiguous connection failure. No ... idempotency key ... is in scope."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-1.b / Requirements (closing paragraph)",
+   "quote": "A successful upload uses one synchronous commit... No queued import, upload history, idempotency key or change to external delivery completion is in scope."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-1.b",
+   "quote": "has one ticket.created audit entry with the request actor and one pending notification.",
+   "missing": "Whether up to 1,000 notifications are delivered at once and any pacing or rate limit for them."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1.a / R-1.b",
+   "quote": "default a missing or blank priority to normal... initially open with sequential IDs.",
+   "missing": "The initial assignee and the timestamps a created ticket is stamped with."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "Requirements (closing paragraph)",
+   "quote": "The CSV body is transient. ... No queued import, upload history ... is in scope."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-1.b",
+   "quote": "Each ticket is immediately visible via GET /tickets and has one ticket.created audit entry with the request actor"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-1.c / Requirements (closing paragraph)",
+   "quote": "No tickets, audit entries, notifications or counters change when the upload is rejected.",
+   "missing": "Cancelling an in-flight import is not addressed; retrying only failed rows is implied moot but not stated."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "No latency objective was provided.",
+   "missing": "A time bound for a maximum-size file and any progress indication."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1.d",
+   "quote": "Existing JSON POST /tickets, queries, operator tools, worker and version-1 file remain compatible. ... Confirm with the full suite and upload plus subsequent JSON creation."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1.a",
+   "quote": "Apply normal single-ticket field rules",
+   "missing": "Handling of spreadsheet-formula values is not addressed; over-long fields rely only on unstated single-ticket rules."
+  }
+ ]
+}

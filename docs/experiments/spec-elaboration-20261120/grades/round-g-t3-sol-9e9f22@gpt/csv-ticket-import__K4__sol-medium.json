@@ -1,0 +1,148 @@
+{
+ "slot": "csv-ticket-import__K4__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "All ticket, ID, audit and outbox changes for an import are committed together."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Where applicable include the first offending record number (header is 1), without echoing uploaded values.",
+   "missing": "Only the first offending record is identified. The response has no specified way to report each failed row and its particular reason."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Repeating a successful create produces new tickets.",
+   "missing": "This settles a repeat submission. It leaves matching criteria and the treatment of matching rows within a single file unspecified."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "request to let agents upload a CSV to bulk-create tickets \u2026 The existing internal network boundary applies.",
+   "missing": "The specification identifies agents and the network boundary but gives no import-specific permission rule distinguishing importers from callers who can create one ticket."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1, R-2",
+   "quote": "Require one header with title and requester and optional priority, in any order, using those exact names. \u2026 Reject empty/header-only input, missing/duplicate/unknown headings"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Support comma separation, quoted fields, doubled quotes, LF or CRLF, a UTF-8 BOM, and an optional final record terminator.",
+   "missing": "The example demonstrates an embedded comma. The specification does not say whether a line break inside quotes is retained within the same field."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "Behavior model, F-1 and F-2",
+   "quote": "The server validates every row, then stages normal ticket changes. \u2026 No ID or notification is consumed by an unsuccessful upload."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements, R-2",
+   "quote": "Existing MAX_BODY_BYTES applies (65536 by default) \u2026 body larger than MAX_BODY_BYTES with HTTP 400 and error.code invalid."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2, R-1",
+   "quote": "Reject empty/header-only input \u2026 Each data record maps to the ordinary ticket fields. \u2026 On success return HTTP 201 with a JSON object containing items, in file order."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Repeating a successful create produces new tickets. No upload/session record is held after the response."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "Behavior model, F-1",
+   "quote": "The server validates every row, then stages normal ticket changes. T-1 commits those changes and returns 201. The agent can read tickets and audit immediately.",
+   "missing": "HTTP 201 signals completion of the request. There is no background import for large files or completion signal for such a job."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-1, R-3",
+   "quote": "Each ticket queues one ticket.created event for its requester. \u2026 The existing worker delivers queued notifications asynchronously.",
+   "missing": "The delivery rate and whether a large batch can notify all requesters at once are unspecified."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "An omitted or empty priority defaults to normal. \u2026 Each item is a complete open ticket with its assigned sequential ID.",
+   "missing": "The initial assignee and the timestamps assigned to each ticket are unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "CSV is request-scoped and the original file is not retained."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "GET /tickets, GET /tickets/:id and the audit read must observe the resulting tickets and the existing actor from X-Actor (or system). \u2026 Each audit entry records dana",
+   "missing": "The audit ties created tickets to an actor. It does not specify recording the time of import."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "Behavior model, F-2 and final paragraph",
+   "quote": "The caller can correct and retry. Client disconnect prior to a complete body exits before writes. \u2026 Batch progress tracking, cancellation after submission, migrations and expiry add no state.",
+   "missing": "The specification gives no way to cancel during processing. It describes retrying a rejected upload but gives no operation for retrying selected failed rows."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements, Behavior model",
+   "quote": "No graphical surface or additional throughput/latency SLA was requested. \u2026 Batch progress tracking, cancellation after submission, migrations and expiry add no state.",
+   "missing": "There is no completion-time bound for a maximum-size file or specified way for the agent to see progress."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "Scope, R-1",
+   "quote": "Existing ticket reads, JSON creation, transitions, audit, notifications, version 1 data files, CLI and weekly report retain their documented behavior. \u2026 Each item is a complete open ticket with its assigned sequential ID."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

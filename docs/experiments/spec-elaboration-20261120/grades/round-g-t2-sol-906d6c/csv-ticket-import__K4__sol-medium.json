@@ -1,0 +1,147 @@
+{
+ "slot": "csv-ticket-import__K4__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.20283459999999998,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "A valid first row followed by an invalid priority must create zero tickets and leave the next ID unchanged."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "using the 400 error envelope. Identify the 1-based CSV record in errors tied to a record.",
+   "missing": "Whether every failing record is reported or only the first, and that the reason for each failure is included."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Each accepted request creates new tickets.",
+   "missing": "How duplicate rows within one file are treated (both created, rejected, or collapsed) is not stated explicitly."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "The header must contain title and requester and may contain priority. ... Reject ... unknown headers ... invalid ticket values",
+   "missing": "Whether values such as priority are checked against the importer's own authority as for a single create; only column set and value validity are stated."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Existing field and actor contracts are in docs/api.md under Create a ticket and Conventions.",
+   "missing": "Who is permitted to import, and whether import permission is distinct from single-ticket create permission."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The header must contain title and requester and may contain priority. ... Reject ... missing or duplicate headers, unknown headers, wrong field counts"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Accept a UTF-8 BOM, LF or CRLF, quoted cells, doubled quotes and columns in any order."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Record each ticket's existing ticket.created audit and queued requester receipt. ... A failed persistence save leaves the live ticket state, sequence, audit and outbox unchanged."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Honor MAX_BODY_BYTES, 65536 bytes by default, and report oversized requests through the existing envelope."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Reject ... missing or duplicate headers ... empty batches",
+   "missing": "The single-row file case is not addressed; empty and header-only files are rejected."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Each accepted request creates new tickets."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "returns 201 with items in that order"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Record each ticket's existing ticket.created audit and queued requester receipt.",
+   "missing": "Whether receipts for a whole batch go out at once and any pacing or rate limit for them."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "An absent or blank priority means normal. ... both open, with high and normal priorities.",
+   "missing": "Assignee when not given and the timestamps stamped on created tickets."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The request body is transient and is never saved separately or included in errors. The ticket fields, audits and outbox follow existing retention and access rules."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Record each ticket's existing ticket.created audit",
+   "missing": "Whether the audit identifies the importer and the import/batch, rather than only per-ticket creation."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "Scope; R-1",
+   "quote": "existing single-ticket routes keep their contracts ... Each accepted request creates new tickets. ... Existing single-ticket create and read paths remain covered by the full suite."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1; Non-functional requirements",
+   "quote": "Reject ... invalid ticket values ... and oversized bodies using the 400 error envelope.",
+   "missing": "Handling of spreadsheet formula-injection values and an explicit per-field length limit."
+  }
+ ]
+}

@@ -1,0 +1,148 @@
+{
+ "slot": "csv-ticket-import__K3__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1, CSV-03",
+   "quote": "An error in a later record leaves all ticket effects absent."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1, CSV-03",
+   "quote": "invalid fields return 400 invalid. Row-specific messages identify the 1-based CSV record, counting the header and physically empty lines.",
+   "missing": "The builder must decide whether to report every failing row and whether each message explains the specific reason that row failed."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "A successful upload can be repeated to create new tickets just like a single create.",
+   "missing": "Replaying a whole upload creates new tickets. The specification gives no explicit rule for an individual row matching an existing ticket or another row in the same file."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1 and CSV-02",
+   "quote": "Match the existing HTTP trust boundary, including X-Actor audit attribution. \u2026 Validate every field through the existing create contract, including single-line title and requester.",
+   "missing": "The builder must decide whether to check each requested field and value against what this particular caller may set on an individual ticket."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "An authorized network caller submits raw UTF-8 `text/csv` \u2026 Match the existing HTTP trust boundary, including X-Actor audit attribution.",
+   "missing": "The specification identifies no import-specific permission or rule distinguishing who may import from who may create one ticket."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1 and CSV-03",
+   "quote": "a header of exactly `title` and `requester`, optionally `priority`, in any order. \u2026 wrong header set or width, bad quoting and invalid fields return 400 invalid."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1, CSV-01 and CSV-02",
+   "quote": "titles `VPN, \"slow\"` and `Printer` \u2026 accept LF, CRLF, optional final line break, a UTF-8 BOM, and optional priority column. \u2026 Validate every field through the existing create contract, including single-line title and requester."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-1, CSV-03 and R-2",
+   "quote": "An error in a later record leaves all ticket effects absent. \u2026 enqueue one creation notification per requester. \u2026 The worker independently delivers the queued notifications and owns retries."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-3, CSV-07",
+   "quote": "apply the existing `MAX_BODY_BYTES` limit and accept at most 100 ticket rows. Reject over-limit input with 400 invalid and zero mutation."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1, CSV-03 and R-3, CSV-07",
+   "quote": "empty or header-only input, wrong header set or width, bad quoting and invalid fields return 400 invalid. \u2026 accept at most 100 ticket rows."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A successful upload can be repeated to create new tickets just like a single create."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1 and R-2",
+   "quote": "The import creates new, open tickets and returns 201 with `{ \"items\": [...] }` in file order. \u2026 In the same synchronous operation assign sequential IDs \u2026 There is no new cache, upload job, retained CSV",
+   "missing": "The 201 response signals completion for synchronous imports. Background processing of a large file and a way to report its later completion would need separate behavior."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "enqueue one creation notification per requester. \u2026 The worker independently delivers the queued notifications and owns retries.",
+   "missing": "The builder must decide how quickly the worker sends a batch of notifications and whether deliveries are rate-limited."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1, CSV-01",
+   "quote": "priorities `high` and `normal`, respective requesters, and open status.",
+   "missing": "The default assignee and the timestamps assigned at creation are unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Source data is transient during request processing. \u2026 There is no new cache, upload job, retained CSV, identity layer, data migration or notification channel."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-2 and CSV-04",
+   "quote": "append one `ticket.created` audit per ticket \u2026 Import two rows with `X-Actor: dana`. Confirm sequential IDs after the existing ticket, audit action/actor and matching pending notifications",
+   "missing": "The specification does not say whether the audit records the time of the import or of each creation."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "No separate latency SLA or graphical surface is specified.",
+   "missing": "There is no completion-time bound for a maximum-size import and no decision about progress updates while it runs."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1 and R-2, CSV-06",
+   "quote": "The import creates new, open tickets \u2026 existing JSON POST /tickets creates one ticket as before and the file schema remains compatible."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1, CSV-02 and CSV-03",
+   "quote": "Validate every field through the existing create contract, including single-line title and requester. \u2026 invalid fields return 400 invalid.",
+   "missing": "The text names no field-length limit beyond the referenced create contract and gives no handling rule for spreadsheet formula values."
+  }
+ ]
+}

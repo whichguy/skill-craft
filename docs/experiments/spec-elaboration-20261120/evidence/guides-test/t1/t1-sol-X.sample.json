@@ -1,0 +1,21 @@
+{
+ "name": "t1-sol-X",
+ "set": "t1-sol",
+ "arm": "X",
+ "driver": "sol",
+ "pid": 39670,
+ "started_at": 1795302449.403174,
+ "limit_minutes": 20.0,
+ "decided_at": 1795302596.6583412,
+ "watcher": "saw the acceptance",
+ "stop_written": true,
+ "seen": {
+  "run_dir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-tickets-97063b/samples/t1-sol-X/.shiploop-runs/work-20261121-230744-6a3931/run",
+  "spec_action": "nav-233ba6a699f34598881e76412d4b2fee",
+  "at": "2026-11-21T23:09:55Z",
+  "ts": 1795302595.719,
+  "spec_sha256": "0b31ba829bbb17d7f90d6a421e720e8d9155826006f9cc5ea49775f87f111bba",
+  "head": "bdd30ac0782fd512f0dda13bac14a7f40f3ae32e"
+ },
+ "returncode": 1
+}

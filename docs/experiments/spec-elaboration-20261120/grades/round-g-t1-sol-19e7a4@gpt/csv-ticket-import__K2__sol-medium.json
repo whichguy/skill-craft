@@ -1,0 +1,146 @@
+{
+ "slot": "csv-ticket-import__K2__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A complete batch is committed as one mutation; bad input or a failed save leaves tickets, counters, audit and outbox as they were."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1.b",
+   "quote": "Identify the first erroneous CSV record by one-based index (header is 1) where applicable.",
+   "missing": "The first failing record is identified, but the response need not give the specific reason it failed or identify further failing records."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1.a and R-2",
+   "quote": "one ordinary open ticket per data row in input order. \u2026 the same file can intentionally create another batch."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1.a",
+   "quote": "An agent on the existing internal API posts a raw UTF-8 file",
+   "missing": "The specification identifies agents as importers but gives no permission rule distinguishing bulk import from single-ticket creation."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1.a and R-1.b",
+   "quote": "A header with `title`, `requester`, and optional `priority` accepts columns in any order. \u2026 Reject an empty file, header-only file, missing, duplicate or unknown headers"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-1.a",
+   "quote": "An optional UTF-8 BOM is accepted. \u2026 Accept LF and CRLF, quoted commas, doubled quotes and an optional final newline.",
+   "missing": "It does not say whether a newline inside a quoted field is accepted as part of the value."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "The worker retains asynchronous delivery and retry ownership. A complete batch is committed as one mutation; bad input or a failed save leaves tickets, counters, audit and outbox as they were."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Reuse the existing configured MAX_BODY_BYTES budget (65536 default). An input at the configured boundary is eligible and one beyond it gets the standard 400."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1.a and R-1.b",
+   "quote": "Return 201 with `{\"items\":[...]}`, one ordinary open ticket per data row in input order. \u2026 Reject an empty file, header-only file"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A lost success response requires checking for already-created tickets before retry, since the same file can intentionally create another batch."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1.a",
+   "quote": "Return 201 with `{\"items\":[...]}`, one ordinary open ticket per data row in input order.",
+   "missing": "The HTTP response signals completion. The specification gives no rule for processing a large import in the background or reporting completion after the request returns."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "one standard creation outbox event. The worker retains asynchronous delivery and retry ownership.",
+   "missing": "It does not specify whether requester notifications for a batch are sent together or at a particular rate."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1.a",
+   "quote": "one ordinary open ticket per data row in input order. Empty or omitted priority is normal.",
+   "missing": "The initial assignee and the timestamps assigned to each ticket are unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Retain only ordinary ticket/audit/outbox records. Do not retain the uploaded file or add a new logging sink."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Each imported ticket receives the next sequential ID, one `ticket.created` audit entry with the shared request actor",
+   "missing": "The audit entry ties the actor to each ticket, but the specification does not require it to record when the import occurred."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "A complete batch is committed as one mutation \u2026 Clients can correct and retry rejected input.",
+   "missing": "The retry rule addresses the rejected batch. It gives no procedure for retrying just the erroneous rows or cancelling an import in progress."
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1 and R-2",
+   "quote": "Preserve the single-ticket JSON endpoint and its response \u2026 Each imported ticket receives the next sequential ID"
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

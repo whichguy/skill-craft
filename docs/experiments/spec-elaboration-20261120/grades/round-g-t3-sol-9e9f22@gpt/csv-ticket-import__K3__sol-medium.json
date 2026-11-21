@@ -1,0 +1,149 @@
+{
+ "slot": "csv-ticket-import__K3__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "The request either creates every row with X-Actor attribution and a normal creation audit entry and outbox event, or leaves all existing records and counters intact."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1 and R-2",
+   "quote": "Record-specific failures include a CSV row number, counting the header and ignoring empty physical lines. \u2026 Error messages refer to column/row rules and do not echo cells.",
+   "missing": "Whether the response identifies every failing row and its reason or stops at the first failure."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Repeating a successful upload creates new tickets. No draft, deduplication key or separate upload record is retained.",
+   "missing": "Whether matching rows within a single upload are both accepted, and whether a match to an existing ticket outside an exact replay receives the same treatment."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Titles, requesters and explicit priorities follow existing create validation.",
+   "missing": "Whether validation checks that this particular agent may set each supplied value when creating a ticket individually."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "An agent with existing internal API access can send raw UTF-8 text/csv to POST /tickets/import.",
+   "missing": "Whether bulk import requires a permission distinct from the permission to create one ticket."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The first nonempty record is a header with title and requester, and optionally priority, in any order. Unknown and duplicate column names are errors. \u2026 bad header or quotes, inconsistent cell counts and no data each produce 400 invalid."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "raw UTF-8 text/csv \u2026 C-1 confirms a reordered, BOM-prefixed CRLF upload that contains a quoted comma and an escaped quote. The parser also accepts LF and a final record without a terminator.",
+   "missing": "Whether a newline inside a quoted field is accepted as part of the value."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "the worker owns subsequent delivery. \u2026 The request either creates every row with X-Actor attribution and a normal creation audit entry and outbox event, or leaves all existing records and counters intact."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Bounded processing under MAX_BODY_BYTES (default 65,536 bytes). A documented 100-ticket import cap is the synchronous operation's chosen default \u2026 C-4 checks exact limits and first rejection beyond each."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "A successful upload returns HTTP 201 with JSON { items }, containing complete, open tickets in input order. \u2026 no data each produce 400 invalid."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A completed request is an ordinary creation operation. Repeating a successful upload creates new tickets. No draft, deduplication key or separate upload record is retained."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "Non-functional requirements and R-1",
+   "quote": "A documented 100-ticket import cap is the synchronous operation's chosen default \u2026 A successful upload returns HTTP 201 with JSON { items }, containing complete, open tickets in input order.",
+   "missing": "The HTTP response signals completion for accepted synchronous uploads. There is no background import path or completion signal for a background job."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Ticket creation still owns sequence IDs, audit and one pending notification per record. Imported records are immediately visible through existing GETs; the worker owns subsequent delivery.",
+   "missing": "Whether the worker sends requester notifications in a burst or paces delivery, and at what rate."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "containing complete, open tickets in input order. Priority defaults to normal when its column is omitted or its cell is blank.",
+   "missing": "The default assignee and the timestamps assigned to each imported ticket."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "No draft, deduplication key or separate upload record is retained. Import data follows existing ticket access and retention.",
+   "missing": "Whether the raw CSV is stored anywhere, even temporarily, how long any copy persists, and who can retrieve it."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "The request either creates every row with X-Actor attribution and a normal creation audit entry and outbox event",
+   "missing": "Whether the audit records the import time and identifies which ticket creations belonged to the same upload."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "C-3 injects a failed save and observes unchanged state and a successful retry with consecutive IDs.",
+   "missing": "Whether a running import can be cancelled and whether an agent can select just the rows that failed validation for retry."
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1 and R-2",
+   "quote": "The existing JSON creation and read APIs retain their contracts. \u2026 The request either creates every row \u2026 or leaves all existing records and counters intact. \u2026 Repeating a successful upload creates new tickets."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

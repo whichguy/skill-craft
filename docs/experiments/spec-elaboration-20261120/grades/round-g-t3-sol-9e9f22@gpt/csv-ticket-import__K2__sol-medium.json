@@ -1,0 +1,148 @@
+{
+ "slot": "csv-ticket-import__K2__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Treat each request as one committed batch. Validation failure or a data-file failure leaves earlier state and all sequences intact."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Return 400 `invalid` using the existing envelope with the CSV record number (header counts as 1) for file content errors.",
+   "missing": "Whether to report every failing record and what specific reason to return for each failure."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "A repeated successful upload creates fresh tickets.",
+   "missing": "How to handle a row matching an independently created ticket or another row in the same file."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Use the existing ticket rules.",
+   "missing": "Whether each row\u2019s field values must pass the same permission checks for the importing agent as an individual creation."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Let agents upload a CSV to bulk-create tickets.",
+   "missing": "What permission authorizes bulk import independently of permission to create one ticket."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Reject non-CSV media type, invalid UTF-8, malformed CSV, missing/unknown/duplicate headers, empty or header-only files, uneven rows, and invalid ticket fields."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Accept UTF-8 BOM, LF or CRLF, optional final newline, quoted commas and doubled quotes.",
+   "missing": "Whether a newline inside a quoted field is accepted as part of that field."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "A real HTTP test sends a valid row before an invalid row and verifies no tickets, audit entries or outbox events and no consumed ticket IDs."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "The HTTP API enforces the existing MAX_BODY_BYTES ceiling (default 65,536)"
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Reject non-CSV media type, invalid UTF-8, malformed CSV, missing/unknown/duplicate headers, empty or header-only files, uneven rows, and invalid ticket fields.",
+   "missing": "Whether a header followed by exactly one valid data row suffices for a successful import."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Uploads have the same identity and repeat-submit semantics as ordinary POST creation. A repeated successful upload creates fresh tickets."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "No new job or upload storage is needed.",
+   "missing": "The specified completion signal is the HTTP response. There is no background-processing rule for large files or completion signal for such a job."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "one normal receipt notification queued per ticket",
+   "missing": "Whether all queued receipts may be sent at once and what delivery rate applies to a large batch."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-2 and R-1",
+   "quote": "Create open tickets with sequential IDs, normal lifecycle",
+   "missing": "R-1 defaults priority to normal. The initial assignee and the timestamps assigned at creation are unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Parsed data is request-local. Exported CSV content is never stored wholesale or logged."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "one creation audit entry with `X-Actor` or default `system`",
+   "missing": "Whether the audit records the import time and identifies which tickets came from the same upload."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A repeated successful upload creates fresh tickets. No new job or upload storage is needed.\n- Preserve JSON creation, listing, transitions, the data file format, read-only tools and requester notification delivery."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

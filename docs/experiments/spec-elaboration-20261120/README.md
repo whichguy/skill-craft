@@ -733,3 +733,10 @@ five). After two sets the delivery conditions were amended and three more were r
 (section 46). Result: not shown for any of the four contrasts; described, the guide-text arm is never worse and
 covers 38 of 45 item readings against 29 for the released stage, the read-all sentence 35, the cue 30, and no
 specification of any arm leaves an applicable item out.
+
+Sections 48 and 49 are a second case, the same four arms on the help-desk ticket service (`--case tickets`: the
+sentence "Let agents upload a CSV to bulk-create tickets." on `fixtures/node-tickets`; the checklist in
+`guides-cases.json` is the first case's carried over to tickets and is not independent; `labels/here-tickets-*.json`;
+`evidence/guides-test/t1/` to `t3/` and `ticket-sets.txt`). Fifteen items apply there. Result: not shown for the
+guide text or the read-all sentence, and the opposite for the guide text against the cue; covered by both judges of
+45 item readings, released 20, cue 21, read-all 21, guide text 18. Six items are covered by no arm in any set.

@@ -1,0 +1,21 @@
+{
+ "name": "t2-sol-X",
+ "set": "t2-sol",
+ "arm": "X",
+ "driver": "sol",
+ "pid": 54922,
+ "started_at": 1795302704.917322,
+ "limit_minutes": 20.0,
+ "decided_at": 1795302851.9631,
+ "watcher": "saw the acceptance",
+ "stop_written": true,
+ "seen": {
+  "run_dir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-tickets-97063b/samples/t2-sol-X/.shiploop-runs/work-20261121-231159-d2bccd/run",
+  "spec_action": "nav-39b0ad13154d47d9bd9f13982375c4ec",
+  "at": "2026-11-21T23:14:11Z",
+  "ts": 1795302851.702,
+  "spec_sha256": "c4142185fce2b18104a6934b32abdd224f7674ec09b9ba5532f9b587f80158d5",
+  "head": "cf220c0697802b2b308aedd773ecb3616e7a0b6e"
+ },
+ "returncode": 1
+}

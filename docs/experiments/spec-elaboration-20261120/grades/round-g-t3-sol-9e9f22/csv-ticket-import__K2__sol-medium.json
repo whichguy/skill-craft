@@ -1,0 +1,145 @@
+{
+ "slot": "csv-ticket-import__K2__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.2302674,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Treat each request as one committed batch. Validation failure or a data-file failure leaves earlier state and all sequences intact."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Return 400 `invalid` using the existing envelope with the CSV record number (header counts as 1) for file content errors.",
+   "missing": "Whether every failing row is reported or only the first, and whether a per-row reason (which field, what rule) is returned."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Uploads have the same identity and repeat-submit semantics as ordinary POST creation. A repeated successful upload creates fresh tickets.",
+   "missing": "What happens to duplicate rows within one file, and explicitly that a row resembling an existing ticket is created anew rather than skipped or updated."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Use the existing ticket rules. Reject non-CSV media type, ... missing/unknown/duplicate headers, ... and invalid ticket fields."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Uploads have the same identity and repeat-submit semantics as ordinary POST creation.",
+   "missing": "Who is permitted to import; the spec ties import to ordinary creation identity and does not state any separate import permission."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Header names `title` and `requester` are required, `priority` is optional, and order is flexible. ... Reject ... missing/unknown/duplicate headers, empty or header-only files, uneven rows"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Accept UTF-8 BOM, LF or CRLF, optional final newline, quoted commas and doubled quotes.",
+   "missing": "Whether quoted fields may contain embedded newlines, and how record numbers count such multi-line records."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "A real HTTP test sends a valid row before an invalid row and verifies no tickets, audit entries or outbox events and no consumed ticket IDs."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1; Non-functional requirements",
+   "quote": "Respect the service request byte ceiling, including UTF-8 bytes. HTTP checks cover the exact ceiling and one byte over. ... enforces the existing MAX_BODY_BYTES ceiling (default 65,536)"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Reject ... empty or header-only files"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Uploads have the same identity and repeat-submit semantics as ordinary POST creation. A repeated successful upload creates fresh tickets."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-1; R-2",
+   "quote": "observes 201 with two tickets in file order ... No new job or upload storage is needed."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "one normal receipt notification queued per ticket",
+   "missing": "Whether a batch's notifications all go out at once or are paced, and at what rate."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1; R-2",
+   "quote": "Blank or omitted priority defaults to normal. ... Create open tickets with sequential IDs, normal lifecycle",
+   "missing": "The assignee of an imported ticket and the timestamps it is stamped with."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-1; R-2",
+   "quote": "Parsed data is request-local. Exported CSV content is never stored wholesale or logged. ... No new job or upload storage is needed."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "one creation audit entry with `X-Actor` or default `system` ... A real HTTP test inspects list, per-ticket audit and outbox"
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Preserve JSON creation, listing, transitions, the data file format, read-only tools and requester notification delivery. Verify with the existing suite."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1; Non-functional requirements",
+   "quote": "Use the existing ticket rules. Reject ... invalid ticket fields. ... echoes neither file contents nor invalid cell values in errors.",
+   "missing": "Handling of spreadsheet-formula values (e.g. leading =, +, -, @) and an explicit per-field length limit."
+  }
+ ]
+}

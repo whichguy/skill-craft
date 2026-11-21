@@ -1,0 +1,148 @@
+{
+ "slot": "csv-ticket-import__K4__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.19614720000000002,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2a",
+   "quote": "A rejected batch leaves tickets, audit, outbox and ID counters unchanged."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1d",
+   "quote": "returns 400 in the existing error envelope. Report the 1-based CSV record when applicable (header is record 1).",
+   "missing": "Whether every failing row is listed with its reason or only the first failing record is reported."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-2b",
+   "quote": "Repeating a successful request creates another batch. No idempotency key, preview or background-import job.",
+   "missing": "Whether a row matching an existing ticket is skipped, updated or rejected is only implied (always create); duplicate rows within one file are not addressed."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Use the existing internal trust boundary and X-Actor attribution.",
+   "missing": "Whether import is a distinct permission from single-ticket create; the spec reuses the same boundary without deciding that."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-1a, R-1d",
+   "quote": "Required columns are title and requester. The optional priority column defaults to normal... A bad header, bad quoting, incorrect column count... returns 400",
+   "missing": "Whether unexpected/unknown columns are rejected or ignored."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1b",
+   "quote": "LF and CRLF, optional UTF-8 BOM, and standard double-quoted CSV fields with doubled quote escapes are accepted. Embedded newlines can be parsed in a quoted field"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2a, Behavior model F-1",
+   "quote": "A rejected batch leaves tickets, audit, outbox and ID counters unchanged... Existing delivery worker subsequently consumes committed outbox events."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Reuse MAX_BODY_BYTES (default 65536 bytes) to bound buffering, including chunked uploads.",
+   "missing": "The response returned for a file over the limit, and whether any row-count limit applies."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1a, R-1d",
+   "quote": "accepts one UTF-8 CSV with a header and at least one data record... A bad header... empty upload... returns 400"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2b",
+   "quote": "Repeating a successful request creates another batch. No idempotency key, preview or background-import job."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2b",
+   "quote": "No idempotency key, preview or background-import job."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-1c, Behavior model F-1",
+   "quote": "Each has a sequential ID, X-Actor audit attribution and one queued creation notification... Existing delivery worker subsequently consumes committed outbox events.",
+   "missing": "Whether many notifications are sent at once or paced, and at what rate."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1a, R-1c",
+   "quote": "The optional priority column defaults to normal when absent or blank... returns {\"items\":[...]} with normal open tickets in CSV order.",
+   "missing": "Assignee default and the timestamps a created ticket receives."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Upload contents are transient except for ordinary stored ticket fields and their audit and outbox effects."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-1c",
+   "quote": "Each has a sequential ID, X-Actor audit attribution and one queued creation notification."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "Behavior model T-2",
+   "quote": "Returns 400. No state change. Correct the upload and retry.",
+   "missing": "Cancellation of a running import is not addressed."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "No independent throughput or latency target was provided.",
+   "missing": "A time bound for a maximum-size file and any progress indication."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1 Confirmation",
+   "quote": "JSON create, ticket fields, read-only commands and the existing trust boundary continue as documented."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1b",
+   "quote": "Embedded newlines can be parsed in a quoted field, then existing single-line ticket validation applies.",
+   "missing": "Handling of spreadsheet formula-injection values and explicit treatment of overlong fields."
+  }
+ ]
+}

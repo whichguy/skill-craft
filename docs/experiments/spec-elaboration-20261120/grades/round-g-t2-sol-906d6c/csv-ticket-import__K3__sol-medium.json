@@ -1,0 +1,146 @@
+{
+ "slot": "csv-ticket-import__K3__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.2083548,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2 / CSV-03",
+   "quote": "Import writes are atomic ... An error in a later record leaves all ticket effects absent."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "CSV-03",
+   "quote": "invalid fields return 400 invalid. Row-specific messages identify the 1-based CSV record, counting the header and physically empty lines."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-1 / R-2",
+   "quote": "The import creates new, open tickets ... A successful upload can be repeated to create new tickets just like a single create.",
+   "missing": "Whether rows duplicating each other within the same file are each created, rejected, or collapsed is not stated."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1 / CSV-02",
+   "quote": "a header of exactly `title` and `requester`, optionally `priority` ... The import creates new, open tickets ... Validate every field through the existing create contract"
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "An authorized network caller submits raw UTF-8 `text/csv` ... Match the existing HTTP trust boundary, including X-Actor audit attribution.",
+   "missing": "Whether import needs a permission distinct from single-ticket creation; the spec ties it to the same trust boundary without addressing separate authorization."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1 / CSV-03",
+   "quote": "wrong content type, invalid UTF-8, empty or header-only input, wrong header set or width, bad quoting and invalid fields return 400 invalid."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "CSV-01 / CSV-02",
+   "quote": "accept LF, CRLF, optional final line break, a UTF-8 BOM ... including single-line title and requester; titles `VPN, \"slow\"`"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "In the same synchronous operation ... enqueue one creation notification per requester. Store publishes the batch only after a successful save ... The worker independently delivers the queued notifications"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "CSV-07",
+   "quote": "apply the existing `MAX_BODY_BYTES` limit and accept at most 100 ticket rows. Reject over-limit input with 400 invalid and zero mutation."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "CSV-03",
+   "quote": "empty or header-only input ... return 400 invalid.",
+   "missing": "A single-row file's behaviour is not explicitly stated."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A successful upload can be repeated to create new tickets just like a single create."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2 / R-1",
+   "quote": "In the same synchronous operation ... There is no new cache, upload job, retained CSV ... returns 201 with `{ \"items\": [...] }`"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "enqueue one creation notification per requester ... The worker independently delivers the queued notifications and owns retries.",
+   "missing": "Whether up to 100 notifications go out at once or are paced, and at what rate."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1 / CSV-01",
+   "quote": "The import creates new, open tickets ... priorities `high` and `normal`",
+   "missing": "Assignee for imported tickets and the timestamps they are stamped with are not stated."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2 / Non-functional",
+   "quote": "Source data is transient during request processing ... no new cache, upload job, retained CSV ... Raw uploads and rejected field values do not enter product logs"
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-1 / R-2 / CSV-04",
+   "quote": "append one `ticket.created` audit per ticket ... Confirm ... audit action/actor ... Match the existing HTTP trust boundary, including X-Actor audit attribution."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "CSV-05",
+   "quote": "A retry after the failed save assigns the next available IDs.",
+   "missing": "Cancelling a running import is not addressed; retrying only failed rows is only implicit from atomicity."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional",
+   "quote": "No separate latency SLA or graphical surface is specified.",
+   "missing": "No time bound for a maximum-size file and no progress indication are stated."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1 / CSV-06",
+   "quote": "Existing ticket and pagination shapes remain supported ... existing JSON POST /tickets creates one ticket as before and the file schema remains compatible."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "CSV-02",
+   "quote": "Validate every field through the existing create contract, including single-line title and requester.",
+   "missing": "Spreadsheet formula injection is not addressed; field length limits are only implied via the existing create contract, not stated."
+  }
+ ]
+}

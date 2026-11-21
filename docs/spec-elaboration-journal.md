@@ -3656,3 +3656,86 @@ capability (N-12 background processing, N-18 cancel and retry) and four mixed (N
 agree on all 21. Prediction 16 holds. The six beyond the first case's nine are N-4 (fields the importer may set),
 N-8 (a row failing after notifications went out), N-13 (the requesters' notifications), N-16 (dates and numbers),
 N-17 (an audit of the import), N-20 and N-21: this base has the notifications and the audit log they are about.
+
+## 49. The second case, on the ticket service: the guide text does not help, and here it is a little behind; where the released stage is thin (15:24, 2026-11-21)
+
+**The runs.** Three sets of four runs on Sol at medium, one after another from 15:07, from a clean checkout at the
+commit that holds this case's label files. All twelve reached the spec's acceptance in 2.1 to 4.2 minutes, are
+usable, and were delivered as their arms intend: the block reached X's author whole all three times, R's sentence
+reached its author all three times, and every author was given at least nine tenths of its instructions.
+
+| Set | Arm | Words accepted | Instruction lines given | Reference lines given | Block lines given | Author, review (s) |
+|---|---|---|---|---|---|---|
+| t1 | A | 629 (624 as submitted) | 100 of 102 | 18 of 58 | 0 of 81 | 27.5, 44.5 |
+| t1 | R | 590 | 102 of 102 | 55 of 57 | 0 of 81 | 38.2, 46.8 |
+| t1 | C | 634 (614 as submitted) | 104 of 104 | 9 of 61 | 0 of 81 | 29.5, 55.5 |
+| t1 | X | 547 | 177 of 187 | 7 of 59 | 81 of 81 | 25.7, 32.3 |
+| t2 | A | 445 | 101 of 102 | 49 of 56 | 0 of 81 | 19.2, 28.8 |
+| t2 | R | 634 (611 as submitted) | 101 of 102 | 56 of 56 | 0 of 81 | 32.1, 47.9 |
+| t2 | C | 358 | 94 of 104 | 6 of 54 | 0 of 81 | 23.7, 24.3 |
+| t2 | X | 531 | 177 of 187 | 8 of 53 | 81 of 81 | 26.3, 25.7 |
+| t3 | A | 484 | 102 of 102 | 9 of 58 | 0 of 81 | 20.3, 32.7 |
+| t3 | R | 533 | 99 of 102 | 57 of 57 | 0 of 81 | 41.5, 54.5 |
+| t3 | C | 449 | 102 of 104 | 8 of 56 | 0 of 81 | 21.3, 31.7 |
+| t3 | X | 888 (843 as submitted) | 186 of 187 | 9 of 58 | 81 of 81 | 35.9, 53.1 |
+
+R's author opened `requirements-definition.md` at discovery in all three sets; no other author was given a passage
+of either spec guide from a file. With its sentence, R's author gave itself 55, 56 and 57 of about 57 reference
+lines, where the nine others gave themselves 6 to 49.
+
+**The rule of sections 46 and 48, over t1 to t3** (`evidence/guides-test/ticket-sets.txt`). Nets on the fifteen
+items both sorters said apply:
+
+| Pair | t1 | t2 | t3 | Needed in every set | Reading |
+|---|---|---|---|---|---|
+| X over A | minus 2 | 0 | 0 | 2 | not shown |
+| X over C | minus 3 | minus 1 | 0 | 1 | the opposite |
+| R over A | 0 | 1 | 0 | 1 | not shown |
+| C over A | 1 | 0 | 0 | 1 | not shown |
+
+The reader verified no capability in any of the twelve specifications.
+
+**The predictions.** 16 held (15 items apply). 17 held (the released arm leaves an applicable item absent under
+both judges in every set). 18 failed: X has 18 item readings covered by both judges against A's 20. 19 held. 20
+held. 21 failed: X's specification is the longest only in t3, and the shortest in t1.
+
+**As a description** (12 specifications, 15 items, 45 item readings an arm).
+
+- Covered by both judges: A 20, R 21, C 21, X 18. Absent for both: A 3, R 3, C 3, X 4. Mean words: A 519, C 480, R
+  586, X 655.
+- Six items are covered by every arm nearly every time: N-1 partial failure, N-6 validation of the file, N-8 a row
+  failing after notifications went out, N-9 a size limit, N-11 the same file twice, N-20 single creation preserved.
+- Six items are covered by no arm in any set, 0 of 12: N-2, what the agent gets back naming the rows that failed
+  (every specification chose all-or-nothing with the first bad record named); N-4, fields the importer may not
+  set; N-13, hundreds of requester notifications at once and their pacing; N-17, an audit of who imported what and
+  when; N-21, hostile content; and N-16, dates, numbers and locale, which is absent outright in all twelve.
+- N-3 (a ticket that already exists, and duplicates in the file) and N-7 (encoding and shape) are covered once or
+  twice by some arms; N-10 (empty file, header alone, one row) by A three times, R twice, and C and X once.
+
+**Both cases together** (32 specifications from two vague sentences).
+
+1. Guide text in the spec packet is not shown to make the specification fuller in either case, and on the richer
+   program it is the opposite against the cue alone. The first case's small lead (38 item readings against 29) did
+   not carry over (18 against 20). I read the first case's lead as chance or as wording made firmer, and I would
+   not put this text in the packet on this evidence.
+2. The sentence telling the author to read its whole packet is not shown either (35 against 29, then 21 against
+   20), but it does change what is read: with it the author gave itself the whole reference list in five runs of
+   seven where the sentence reached it, and opened the requirements guide in five of eight. Reading the pointers
+   and the guide did not make the specification fuller.
+3. The cue does nothing in either case.
+4. What the released stage leaves thin from a vague sentence is specific and is the same in every arm. On the
+   small program it is the result returned to the caller and who may use the change. On the richer program it is
+   six things: the per-row result, authority over what the file may set, the flood of notifications the program
+   will send, an audit of the import itself, hostile content, and dates and numbers. Three of those six (what the
+   file may set, the notifications, the audit) are consequences for machinery the program already has. No arm tried
+   here asks about them.
+5. So the owner's question has an answer for this host and these two cases: the reference material, whether
+   pointed to, read at discovery, or pasted into the packet, does not make a specification from a vague request
+   fuller. What is missing is not guidance on how to write requirements but particular questions nobody asks.
+
+**Limits.** Two sentences of one kind (a bulk import by file), two bases, one driver at one effort, three to five
+sets a case. The second case's checklist is the first's carried over by me and is not independent. Covered and
+partly are a judge's reading of a sentence. The rule was fixed before each case's counted sets, and the first
+case's was amended once.
+
+**Where it stops.** The registered step is done.

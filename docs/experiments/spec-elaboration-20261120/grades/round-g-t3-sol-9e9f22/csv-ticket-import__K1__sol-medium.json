@@ -1,0 +1,144 @@
+{
+ "slot": "csv-ticket-import__K1__sol-medium",
+ "case": "csv-ticket-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.21927639999999998,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1c, R-2b",
+   "quote": "HTTP tests include invalid data after a valid row and confirm no ticket, audit, notification or ID is consumed. / Tickets, IDs, audit records and notification events are one synchronous batch."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1c",
+   "quote": "return the existing 400 invalid envelope. Errors identify the first failing CSV record (header is 1) where available.",
+   "missing": "Only the first failing record is named; whether all failing rows are reported and what reason detail the response carries per row is not stated."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-2c",
+   "quote": "successful repeated uploads create additional tickets.",
+   "missing": "Treatment of an individual row that matches an existing ticket, and of duplicate rows within one file, is not stated."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1a, R-1b",
+   "quote": "required case-sensitive header naming title and requester and optionally priority ... returns 201 with an items array of the newly opened tickets ... fields use the existing create rules"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-2c",
+   "quote": "Existing internal access applies, with no extra role system."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1a, R-1c",
+   "quote": "a required case-sensitive header naming title and requester and optionally priority, in any order ... unknown or duplicate columns, incorrect record widths, empty or header-only files ... return the existing 400 invalid envelope"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1a",
+   "quote": "UTF-8 text/csv body ... Quoted fields, embedded commas, doubled quotes, LF or CRLF separators, a leading BOM and an optional final newline are supported."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-1c, R-2a",
+   "quote": "HTTP tests include invalid data after a valid row and confirm no ticket, audit, notification or ID is consumed."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1c, Non-functional requirements",
+   "quote": "bodies over the configured limit return the existing 400 invalid envelope ... Use the established MAX_BODY_BYTES ceiling and error format"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1b, R-1c",
+   "quote": "A valid upload with one or more data records returns 201 ... empty or header-only files ... return the existing 400 invalid envelope."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2c",
+   "quote": "X-Actor identifies the audit label, and successful repeated uploads create additional tickets."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "Scope, R-2b",
+   "quote": "The CSV workflow adds a synchronous HTTP operation. ... No staging survives the request."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-2a",
+   "quote": "queues one normal notification per requester. The worker still owns delivery.",
+   "missing": "Whether a large import produces a burst of notifications and any pacing or throttling of their delivery."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-1b",
+   "quote": "the newly opened tickets in CSV order. IDs use the existing sequence, fields use the existing create rules, and absent or blank priority is normal."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2c",
+   "quote": "Upload bytes are held only for the request. ... Request bodies and row data are excluded from error messages and logs"
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-2a",
+   "quote": "A successful upload records one ticket.created audit entry per ticket with the existing X-Actor convention"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-1c, R-2b",
+   "quote": "Tickets, IDs, audit records and notification events are one synchronous batch. ... Test an existing data file, an induced save failure, a corrected retry, and restart.",
+   "missing": "Cancelling an in-progress import is not addressed; retrying only failed rows is implied moot by atomicity but not stated."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "No graphical surface, new persistence schema, operational SLA or deployed acceptance is in scope.",
+   "missing": "No time bound for a maximum-size file and no statement on progress visibility while it runs."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "Scope",
+   "quote": "Preserve the single-ticket API, lifecycle, audit semantics, notification delivery, version-1 data files and read-only CLI/report"
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1c",
+   "quote": "invalid ticket fields and bodies over the configured limit return the existing 400 invalid envelope.",
+   "missing": "Spreadsheet formula injection in values is not addressed; field-length limits are only implied via existing create rules."
+  }
+ ]
+}
