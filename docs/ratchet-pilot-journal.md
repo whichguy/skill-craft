@@ -41,9 +41,11 @@ Status words: **firm** (measured, registered reading), **interim** (measured onc
 | R5.2, R6.2 quality at the end, bare against ShipLoop | no difference shown |
 | J1 to J4 the closing looks' additions, judged blind | 10 of 59 belong; 2 of 23 gaps real; kappa 0.42 |
 
-Open when this was written: the Ratchet arm on Grokbot-local was in its third cycle (R5.5), and a measure of each
-Grokbot build's own tests against seeded faults was running. Their results are appended to section 17. The branch
-is not merged; the owner was asked.
+Added 02:00: the two results that were open when this was written are in section 17. The Ratchet arm on
+Grokbot-local ended after 207.7 minutes with every check of both yardsticks passing at every stage, as at its first
+build (12.3 times a bare session's time). Each build's own tests against 60 seeded faults: ShipLoop 37, the bare
+sessions 24 to 31, the Ratchet builder 23 (F22): the one measured thing ShipLoop's extra time buys. The branch is
+not merged; the owner was asked.
 
 ## 1. The idea, in the owner's words (2026-11-20)
 
@@ -985,6 +987,7 @@ of the request. The uncalibrated numbers would have ranked the arms wrongly in b
 | ShipLoop, Sol 6.2 high | 39.5 | 85,154 | 2,415 | 49 | 23 | 5 |
 | Ratchet, Sol 6.2 high: first build, 37.5 minutes in | | | 2,960 | 49 | 23 | 5 |
 | Ratchet: first full gate (291 of 291 of its own items), 71.5 minutes in | | | | 49 | 23 | 5 |
+| Ratchet: the end, three cycles | 207.7 | 392,253 | 3,030 of source (2,271 at the first build) | 49 | 23 | 5 |
 
 The only checks that fail on the final version are the Sonnet build's. At 320 pixels its page is 332 pixels wide: the top bar,
 the layout and the conversation all measure 332. The first yardstick counts that; the second yardstick's long-word
@@ -996,13 +999,13 @@ Registered readings:
 - **R6.1, headroom on the harder yardstick: not met.** The bare build fails none of the 23 stated checks; the bar was 3.
 - **R7.1, headroom on another runner: none.** Sol 6.2 low fails no check on either; Sonnet 5.5 high fails 1 of 49 and none of the 23 stated (1 of the 5 implied). The
   bars were 5 on the first yardstick or 3 stated on the second.
-- **R5.2 and R6.2, quality at the end: no difference shown** between the bare arm and the ShipLoop arm on the same
-  model and effort (49 and 23 each). The Ratchet arm's end is not in yet.
+- **R5.2 and R6.2, quality at the end: no difference shown** between the bare arm, the ShipLoop arm and the Ratchet
+  arm on the same model and effort (49 and 23 each; the Ratchet arm's end was added at 02:00, below).
 - **R5.3 and R6.3:** the Ratchet arm's first build already passes 49 of 49 and 23 of 23, so its cycles have nothing on these
   yardsticks to recover.
 - **R5.4, cost:** on the same model and effort, the bare session took 16.9 minutes, ShipLoop 39.5 (2.3 times; it also
   released and reviewed) and Ratchet 37.5 to its first build and 71.5 to its first full gate, with two cycles to go.
-- **R5.5** (a check passing at Ratchet's first build and failing later) is read when that arm ends.
+- **R5.5** (a check passing at Ratchet's first build and failing later): none, at any of its eight graded stages.
 
 **F19 (firm for these models and this request).** Grokbot-local is one-session work. A single Sol 6.2 session at low
 effort delivers it in 6.8 minutes and passes everything both yardsticks check. Neither a plan with steps nor a loop
@@ -1046,3 +1049,39 @@ browser-backed items) is not in this table; running it once a fault would take h
 Read with F19: the builds behave alike on both yardsticks, and differ in the tests they leave behind.
 
 Evidence: `evidence/grokbot-local/seeded-faults/` (each build's 60 faults with the verdict on each, and the log).
+
+### The Ratchet arm at its end (2026-11-21 02:00)
+
+The arm stopped at the three-cycle limit after 207.7 minutes, 14 sessions and 392,253 output tokens, its final gate
+passing (280 clauses and 29 use cases). No held-out name appears in its event streams, no path was put back, no
+frozen file was changed outside its stage.
+
+| Stage (minutes in) | Its own gate | First yardstick | Second: stated / implied |
+|---|---|---|---|
+| first build (37.5) | | 49 of 49 | 23 / 5 |
+| after the first test pass (71.5) | 291 of 291 | 49 | 23 / 5 |
+| second build (100.3) | 291 of 291 | 49 | 23 / 5 |
+| after the second test pass and one fix (135.3) | 297 of 298, then 298 of 298 | 49 | 23 / 5 |
+| third build (170.5) | 298 of 298 | 49 | 23 / 5 |
+| after the third test pass (191.7) | 304 of 304 | 49 | 23 / 5 |
+| the end (207.7) | 309 of 309 | 49 | 23 / 5 |
+
+Minutes by stage: enrichment 10.1, plans 20.7, builds 50.5, test passes 60.1, closing looks 16.7, the fix 7.4, gates
+and script 42.2 (each gate runs about 300 browser-backed tests).
+
+- **R5.2, R5.3, R5.5, R6.3.** The arm ends where its first build stood: every check of both yardsticks, at every
+  stage. Its cycles recovered nothing, because nothing was missing, and broke nothing.
+- **R5.4, cost, complete.** On one model and effort: a bare session 16.9 minutes and 47,308 output tokens; ShipLoop
+  39.5 and 85,154; Ratchet 207.7 and 392,253. Ratchet took 12.3 times the bare session's time and 5.3 times
+  ShipLoop's for the same result on both yardsticks.
+- **What the cycles did.** The three closing looks added 6, 5 and 5 requirements and reported the product short of
+  13 of them (3, 5 and 5). One closing-look clause (C-265, reopening a discussion restores the reading place) failed
+  its own new test in cycle 2 and one fix session repaired it: the second naturally failing acceptance item in
+  seven whole loops. The product's source grew from 2,271 lines at the first build by 932 added and 173 removed. The
+  last look was still finding things: two servers sharing one browser profile, pasted input clipped at a field's
+  limit without a word, a steer sent while two tasks ran, a missing field shown as "null", focus lost when a
+  finished task's entry disappears. These sixteen additions were not put to the judges of section 13.
+- **Like every other whole loop, it did not stop by itself.**
+
+Evidence: `evidence/grokbot-local/ratchet/` (run.json, gates.json, the three closing looks, the fix note, the
+gradings at every stage in `final-grading.json` and `end-grading.log`, summary.json).

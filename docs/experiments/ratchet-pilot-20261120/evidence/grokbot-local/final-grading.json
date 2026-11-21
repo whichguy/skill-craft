@@ -208,6 +208,132 @@
     },
     "failed_tiers": {}
    }
+  },
+  "build-2": {
+   "yardstick 1": {
+    "observed": true,
+    "passed": 49,
+    "failed": {}
+   },
+   "yardstick 2": {
+    "observed": true,
+    "passed": 28,
+    "failed": {},
+    "stated": {
+     "passed": 23,
+     "of": 23
+    },
+    "implied": {
+     "passed": 5,
+     "of": 5
+    },
+    "failed_tiers": {}
+   }
+  },
+  "fix-1": {
+   "yardstick 1": {
+    "observed": true,
+    "passed": 49,
+    "failed": {}
+   },
+   "yardstick 2": {
+    "observed": true,
+    "passed": 28,
+    "failed": {},
+    "stated": {
+     "passed": 23,
+     "of": 23
+    },
+    "implied": {
+     "passed": 5,
+     "of": 5
+    },
+    "failed_tiers": {}
+   }
+  },
+  "green-2": {
+   "yardstick 1": {
+    "observed": true,
+    "passed": 49,
+    "failed": {}
+   },
+   "yardstick 2": {
+    "observed": true,
+    "passed": 28,
+    "failed": {},
+    "stated": {
+     "passed": 23,
+     "of": 23
+    },
+    "implied": {
+     "passed": 5,
+     "of": 5
+    },
+    "failed_tiers": {}
+   }
+  },
+  "build-3": {
+   "yardstick 1": {
+    "observed": true,
+    "passed": 49,
+    "failed": {}
+   },
+   "yardstick 2": {
+    "observed": true,
+    "passed": 28,
+    "failed": {},
+    "stated": {
+     "passed": 23,
+     "of": 23
+    },
+    "implied": {
+     "passed": 5,
+     "of": 5
+    },
+    "failed_tiers": {}
+   }
+  },
+  "green-3": {
+   "yardstick 1": {
+    "observed": true,
+    "passed": 49,
+    "failed": {}
+   },
+   "yardstick 2": {
+    "observed": true,
+    "passed": 28,
+    "failed": {},
+    "stated": {
+     "passed": 23,
+     "of": 23
+    },
+    "implied": {
+     "passed": 5,
+     "of": 5
+    },
+    "failed_tiers": {}
+   }
+  },
+  "final": {
+   "yardstick 1": {
+    "observed": true,
+    "passed": 49,
+    "failed": {}
+   },
+   "yardstick 2": {
+    "observed": true,
+    "passed": 28,
+    "failed": {},
+    "stated": {
+     "passed": 23,
+     "of": 23
+    },
+    "implied": {
+     "passed": 5,
+     "of": 5
+    },
+    "failed_tiers": {}
+   }
   }
  }
 }
