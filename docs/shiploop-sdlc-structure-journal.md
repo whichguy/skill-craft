@@ -2629,7 +2629,32 @@ The fix was committed on the shared checkout's `main` at 08:02, and four commits
 then made above it. At 08:25 the Ratchet session's merge moved the remote `main`. So the fix was published from a
 worktree cut from the remote `main` that merges the fix alone (merge `dc9922c4e9f2db0fa213408536e9909082710cca`): only this
 session's commits are in the pushed range, and the other session's entries stay its own to publish. The release that
-carries the fix, and the refresh of the hosts, are recorded below once they are done.
+carries the fix, and the refresh of the hosts, are in the next section.
+
+### Release: skill-craft 4.2.1, ShipLoop 2.4.1 (2026-11-21)
+
+- **Before the push**, on the entry's commit: the quick tier pinned to the remote base, 37 suites in 202 seconds, all
+  passing; the release boundary check; the release script's preflight (the entry comes after the fix).
+- **One guarded push** published the fix, its merge, the journal entry and the release commit
+  `62af08c43b0240f5c1ab20b4835634617951c03d` together, so no pending change note ever sat on the remote `main`. Six
+  checks ran on the release tree inside the guard: plugin views in sync, marketplace packages, the release
+  boundary against the base, the test catalogue, and the two changed suites (navigator-v4 18 tests,
+  navigator-contract 127).
+- **Hosts.** Claude Code and Grok each reported 4.2.0 to 4.2.1, and Codex lists 4.2.1 after its upgrade. On all
+  three the installed `skills/shiploop` has no file that differs from the published tree (123 files).
+- **A slip in the Codex refresh.** Codex's upgrade deletes every other version folder, and the loop that was to put
+  them back did not run: zsh does not split an unquoted variable into words, so the three versions were read as
+  one name. `3.3.0`, `4.1.0` and `4.2.0` were missing for about a minute and were then restored from their release
+  commits (425, 309 and 309 files, each the commit's own count). The documented process check had printed nothing
+  just before the upgrade, so no running process lost its folder; a run that was only paused would not show in a
+  process list.
+- **The published plugin, installed fresh** (`test/published-install-smoke.py`, no model): "PASS required published
+  clean-install checks". No live session from the marketplace was run; R88 ran the same source from the checkout.
+- **CI** on the release commit was still running when this was written: three of seven jobs done, all passing.
+  Its result is not part of this record.
+- **Still local.** The spec-elaboration session's five commits on the shared checkout's `main`. A message telling
+  that session what was published was held by it and not delivered, so this section and the merge of the remote
+  `main` into the shared checkout are how it will learn of it.
 
 ## Evidence (all rounds)
 
