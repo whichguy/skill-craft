@@ -1,0 +1,56 @@
+run                                clauses use c. request implied existing choice added refusals Open: lines minutes
+reworded:r1-chess                       56      7      28      27        1      0              0           5     4.2
+reworded:r1-grokbot                    100     15      69       8       23      0              0          18     4.6
+pilot:chess-loop                        94     15      45      40        5      4              5           0     9.6
+
+== reworded:r1-chess: Open: lines
+   C-4 [implied] Each position-taking API function operates on the standard chess position supplied as FEN.
+        Open: The requester would settle acceptance or error behavior for malformed or abbreviated FEN and for FEN that encodes inconsistent or impossible positions.
+   C-40 [request] `applyMove(fen, move)` throws `IllegalMoveError` for an illegal move expressed in UCI.
+        Open: The requester would settle whether to reject or normalize non-UCI representations such as surrounding whitespace or uppercase letters, and how to handle other out-of-domain move arguments.
+   C-53 [request] The rules suite checks known legal-move counts from multiple standard test positions.
+        Open: The requester would settle any prescribed fixture list or count depths beyond the start-position depth-2 workload. Any reasonable selection of standard positions with known counts can satisfy the coverage requirement.
+   C-55 [request] `legalMoves` takes less than 50 ms on a middlegame position.
+        Open: The requester would settle any prescribed middlegame FEN, reference machine, Node.js version or measurement protocol for the 50 ms limit.
+   C-56 [request] Counting legal move sequences two plies deep from the standard start takes less than 2 seconds.
+        Open: The requester would settle any reference machine, Node.js version or measurement protocol for the 2-second limit.
+
+== reworded:r1-grokbot: Open: lines
+   C-19 [request] A valid `PROVIDER_TOKEN` supplies a saved credential
+        Open: Credential precedence and recovery when both the environment and saved data supply credentials, including when an environment value is invalid, are for the requester to settle.
+   C-26 [request] The new-bot form creates a named bot
+        Open: How to handle missing names or name collisions among a person's bots is for the requester to settle.
+   C-29 [request] The `Conversations` navigation lets the person reopen conversations of the open bot
+        Open: Conversation button naming and whether reopening the app automatically selects a last-viewed discussion are for the requester to settle.
+   C-39 [implied] An interrupted reply leaves its submitted turn recoverable
+        Open: Whether to resume an interrupted reply or wait for `Retry` is for the requester to settle.
+   C-45 [request] `Save instruction` stores a reusable named instruction
+        Open: Whether the saved instruction library is shared among one person's bots or kept per bot is for the requester to settle.
+   C-48 [request] Saving edits under the existing instruction name updates that entry
+        Open: Whether a bot that is already using the instruction picks up edits immediately or on another `Use <name>` is for the requester to settle.
+   C-49 [request] `Delete <name>` removes the saved instruction from the library
+        Open: What happens to instructions already active on a bot when the saved entry is deleted is for the requester to settle.
+   C-50 [request] `Save task` stores a reusable named request
+        Open: Whether the saved task library is shared among one person's bots or kept per bot is for the requester to settle.
+   C-65 [request] `Proposed changes` previews the exact requested record change before approval
+        Open: For creation, whether a not-yet-assigned order ID is reserved for preview or reported as assigned at confirmation is for the requester to settle. An ID explicitly promised in a preview is part of what the person is asked to approve.
+   C-68 [request] A proposal leaves working records untouched until explicitly confirmed
+        Open: Retention, expiry and coexistence of pending proposals across turns or reloads are for the requester to settle.
+   C-69 [request] Confirmation applies the exact change the person approved when it can still be applied
+        Open: The handling of stale proposals, including whether the person must ask again or can review a refreshed proposal, is for the requester to settle.
+   C-70 [existing] Record changes remain subject to the acting person's record permissions
+        Open: Which schema-valid fields beyond the documented examples are permitted for editing is for the requester to settle within the records access rules.
+   C-83 [existing] A steering follow-up appends a step to work running in the originating conversation
+        Open: If multiple tasks can run in one conversation, how a follow-up selects one of them is for the requester to settle.
+   C-86 [request] Cancellation stops the task's remaining work when it takes effect
+        Open: Whether a step already in flight finishes, is interrupted, or has its result discarded is for the requester to settle within what the stand-in permits.
+   C-89 [implied] Restart recovery distinguishes an interrupted task from work that is executing
+        Open: Whether interrupted work resumes automatically on startup or waits for `Retry task` is for the requester to settle.
+   C-93 [request] `Since you were away` reports the person's task activity upon return
+        Open: What counts as being away and when the app considers an update seen are for the requester to settle.
+   C-95 [request] Narrow windows keep conversation reading available
+        Open: The minimum supported viewport width and which secondary areas fold away are for the requester to settle.
+   C-97 [request] The chat's visual presentation supports comfortable reading
+        Open: The visual treatment, including typography and layout details beyond readable, conversation-centered use, is left to the builder by the request.
+
+wrote /Users/dadleet/src/skill-craft/.claude/worktrees/ratchet-lens-08805f/docs/experiments/ratchet-pilot-20261120/evidence/reworded-enrichment/guard-specs.json

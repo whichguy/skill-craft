@@ -1,0 +1,36 @@
+{
+ "build-1": {
+  "observed": true,
+  "passed": [
+   "suite",
+   "pristine",
+   "migrate",
+   "restart",
+   "switch",
+   "rollback",
+   "off",
+   "cli"
+  ],
+  "failed": {},
+  "tree": "918809c417fd62bf0dfdb83ba17647626aa1f310",
+  "label": "build-1",
+  "at": 956.7
+ },
+ "final": {
+  "observed": true,
+  "passed": [
+   "suite",
+   "pristine",
+   "migrate",
+   "restart",
+   "switch",
+   "rollback",
+   "off",
+   "cli"
+  ],
+  "failed": {},
+  "tree": "b59acae90997afef4381df17cb7c87959310c8df",
+  "label": "final",
+  "at": 2058.8
+ }
+}

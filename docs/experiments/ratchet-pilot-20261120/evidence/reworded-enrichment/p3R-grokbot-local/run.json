@@ -1,0 +1,129 @@
+{
+ "case": "grokbot-local",
+ "host": "codex",
+ "model": "gpt-6.2-sol",
+ "effort": "high",
+ "started": "2026-11-21T07:12:38-0800",
+ "start_tree": null,
+ "frozen_from": null,
+ "build_from": null,
+ "bare": false,
+ "sessions": [
+  {
+   "number": 1,
+   "role": "plan",
+   "label": "plan-1",
+   "seconds": 421.3,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 421.3,
+   "held_out_marks": []
+  },
+  {
+   "number": 2,
+   "role": "build",
+   "label": "build-1",
+   "seconds": 902.0,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 902.0,
+   "held_out_marks": []
+  }
+ ],
+ "gates": [
+  {
+   "number": 1,
+   "label": "after-build-1",
+   "pass": true,
+   "failing": [],
+   "passing": [],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [],
+   "clauses": 0,
+   "at": 1330.6
+  },
+  {
+   "number": 2,
+   "label": "final",
+   "pass": true,
+   "failing": [],
+   "passing": [],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [],
+   "clauses": 0,
+   "at": 1337.6
+  }
+ ],
+ "snapshots": [
+  {
+   "label": "base",
+   "commit": "5f5f4bf294d486677fbfdb1eaf0e37b2e270c384",
+   "tree": "0a8d3db05115ff6ebd5b2a18deb45fefd6a148b6",
+   "at": 0.1
+  },
+  {
+   "label": "spec",
+   "commit": "b8868cff09e6e063b17cfa3255c7dba3f5486849",
+   "tree": "e2173e298dad6f089c27a714d0043a3139388e18",
+   "at": 0.1
+  },
+  {
+   "label": "plan-1",
+   "commit": "4156e5d2ba8065bb3d6a9a91deebaf050a8f75a0",
+   "tree": "6a6011d3695c15d68d938ef23c5d1da4657c725f",
+   "at": 421.5
+  },
+  {
+   "label": "build-1",
+   "commit": "4cdf02dd5b8af533e8d2111a1859312f8072abae",
+   "tree": "fc30b30ba26ef051f04d925d402abc34be5c3d8f",
+   "at": 1330.6
+  },
+  {
+   "label": "final",
+   "commit": "0ac79d5bfbeb378a110a39f783d607871beb1f42",
+   "tree": "fc30b30ba26ef051f04d925d402abc34be5c3d8f",
+   "at": 1337.6
+  }
+ ],
+ "cycles": [
+  {
+   "cycle": 1,
+   "clauses_at_start": 115,
+   "new_clauses": [],
+   "plan_loops": [
+    {
+     "name": "plan-1",
+     "session": "exited",
+     "loop": "complete",
+     "iterations": 3,
+     "trivial_streak": 1
+    }
+   ],
+   "plan_added": [],
+   "build_loop": {
+    "loop": "complete",
+    "iterations": 1,
+    "trivial_streak": 0
+   }
+  }
+ ],
+ "reverted": [],
+ "spec_violations": [],
+ "local_head": "80d2f064fc7cb984ad46526c5ce2948857d5d384",
+ "named_checks": true,
+ "enrich": "reworded",
+ "spec_from": "/Users/dadleet/e2e-runs/ratchet-reworded-20261121-08805f/r1-grokbot",
+ "spec_from_seconds": 276.3,
+ "stop": "stop-after-build",
+ "final_pass": true,
+ "seconds": 1337.6,
+ "clauses": 100,
+ "use_cases": 15,
+ "tamper": [],
+ "finished": "2026-11-21T07:34:56-0800"
+}

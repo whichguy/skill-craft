@@ -1,0 +1,211 @@
+{
+ "reworded:r1-chess": {
+  "case": "node-chess-engine",
+  "enrich": "reworded",
+  "clauses": 56,
+  "use_cases": 7,
+  "by_source": {
+   "request": 28,
+   "implied": 27,
+   "existing": 1
+  },
+  "added_refusals": [],
+  "open_lines": [
+   {
+    "id": "C-4",
+    "kind": "implied",
+    "statement": "Each position-taking API function operates on the standard chess position supplied as FEN.",
+    "open": "The requester would settle acceptance or error behavior for malformed or abbreviated FEN and for FEN that encodes inconsistent or impossible positions."
+   },
+   {
+    "id": "C-40",
+    "kind": "request",
+    "statement": "`applyMove(fen, move)` throws `IllegalMoveError` for an illegal move expressed in UCI.",
+    "open": "The requester would settle whether to reject or normalize non-UCI representations such as surrounding whitespace or uppercase letters, and how to handle other out-of-domain move arguments."
+   },
+   {
+    "id": "C-53",
+    "kind": "request",
+    "statement": "The rules suite checks known legal-move counts from multiple standard test positions.",
+    "open": "The requester would settle any prescribed fixture list or count depths beyond the start-position depth-2 workload. Any reasonable selection of standard positions with known counts can satisfy the coverage requirement."
+   },
+   {
+    "id": "C-55",
+    "kind": "request",
+    "statement": "`legalMoves` takes less than 50 ms on a middlegame position.",
+    "open": "The requester would settle any prescribed middlegame FEN, reference machine, Node.js version or measurement protocol for the 50 ms limit."
+   },
+   {
+    "id": "C-56",
+    "kind": "request",
+    "statement": "Counting legal move sequences two plies deep from the standard start takes less than 2 seconds.",
+    "open": "The requester would settle any reference machine, Node.js version or measurement protocol for the 2-second limit."
+   }
+  ],
+  "spec_minutes": 4.2
+ },
+ "reworded:r1-grokbot": {
+  "case": "grokbot-local",
+  "enrich": "reworded",
+  "clauses": 100,
+  "use_cases": 15,
+  "by_source": {
+   "request": 69,
+   "implied": 8,
+   "existing": 23
+  },
+  "added_refusals": [],
+  "open_lines": [
+   {
+    "id": "C-19",
+    "kind": "request",
+    "statement": "A valid `PROVIDER_TOKEN` supplies a saved credential",
+    "open": "Credential precedence and recovery when both the environment and saved data supply credentials, including when an environment value is invalid, are for the requester to settle."
+   },
+   {
+    "id": "C-26",
+    "kind": "request",
+    "statement": "The new-bot form creates a named bot",
+    "open": "How to handle missing names or name collisions among a person's bots is for the requester to settle."
+   },
+   {
+    "id": "C-29",
+    "kind": "request",
+    "statement": "The `Conversations` navigation lets the person reopen conversations of the open bot",
+    "open": "Conversation button naming and whether reopening the app automatically selects a last-viewed discussion are for the requester to settle."
+   },
+   {
+    "id": "C-39",
+    "kind": "implied",
+    "statement": "An interrupted reply leaves its submitted turn recoverable",
+    "open": "Whether to resume an interrupted reply or wait for `Retry` is for the requester to settle."
+   },
+   {
+    "id": "C-45",
+    "kind": "request",
+    "statement": "`Save instruction` stores a reusable named instruction",
+    "open": "Whether the saved instruction library is shared among one person's bots or kept per bot is for the requester to settle."
+   },
+   {
+    "id": "C-48",
+    "kind": "request",
+    "statement": "Saving edits under the existing instruction name updates that entry",
+    "open": "Whether a bot that is already using the instruction picks up edits immediately or on another `Use <name>` is for the requester to settle."
+   },
+   {
+    "id": "C-49",
+    "kind": "request",
+    "statement": "`Delete <name>` removes the saved instruction from the library",
+    "open": "What happens to instructions already active on a bot when the saved entry is deleted is for the requester to settle."
+   },
+   {
+    "id": "C-50",
+    "kind": "request",
+    "statement": "`Save task` stores a reusable named request",
+    "open": "Whether the saved task library is shared among one person's bots or kept per bot is for the requester to settle."
+   },
+   {
+    "id": "C-65",
+    "kind": "request",
+    "statement": "`Proposed changes` previews the exact requested record change before approval",
+    "open": "For creation, whether a not-yet-assigned order ID is reserved for preview or reported as assigned at confirmation is for the requester to settle. An ID explicitly promised in a preview is part of what the person is asked to approve."
+   },
+   {
+    "id": "C-68",
+    "kind": "request",
+    "statement": "A proposal leaves working records untouched until explicitly confirmed",
+    "open": "Retention, expiry and coexistence of pending proposals across turns or reloads are for the requester to settle."
+   },
+   {
+    "id": "C-69",
+    "kind": "request",
+    "statement": "Confirmation applies the exact change the person approved when it can still be applied",
+    "open": "The handling of stale proposals, including whether the person must ask again or can review a refreshed proposal, is for the requester to settle."
+   },
+   {
+    "id": "C-70",
+    "kind": "existing",
+    "statement": "Record changes remain subject to the acting person's record permissions",
+    "open": "Which schema-valid fields beyond the documented examples are permitted for editing is for the requester to settle within the records access rules."
+   },
+   {
+    "id": "C-83",
+    "kind": "existing",
+    "statement": "A steering follow-up appends a step to work running in the originating conversation",
+    "open": "If multiple tasks can run in one conversation, how a follow-up selects one of them is for the requester to settle."
+   },
+   {
+    "id": "C-86",
+    "kind": "request",
+    "statement": "Cancellation stops the task's remaining work when it takes effect",
+    "open": "Whether a step already in flight finishes, is interrupted, or has its result discarded is for the requester to settle within what the stand-in permits."
+   },
+   {
+    "id": "C-89",
+    "kind": "implied",
+    "statement": "Restart recovery distinguishes an interrupted task from work that is executing",
+    "open": "Whether interrupted work resumes automatically on startup or waits for `Retry task` is for the requester to settle."
+   },
+   {
+    "id": "C-93",
+    "kind": "request",
+    "statement": "`Since you were away` reports the person's task activity upon return",
+    "open": "What counts as being away and when the app considers an update seen are for the requester to settle."
+   },
+   {
+    "id": "C-95",
+    "kind": "request",
+    "statement": "Narrow windows keep conversation reading available",
+    "open": "The minimum supported viewport width and which secondary areas fold away are for the requester to settle."
+   },
+   {
+    "id": "C-97",
+    "kind": "request",
+    "statement": "The chat's visual presentation supports comfortable reading",
+    "open": "The visual treatment, including typography and layout details beyond readable, conversation-centered use, is left to the builder by the request."
+   }
+  ],
+  "spec_minutes": 4.6
+ },
+ "pilot:chess-loop": {
+  "case": "node-chess-engine",
+  "enrich": "single",
+  "clauses": 94,
+  "use_cases": 15,
+  "by_source": {
+   "request": 45,
+   "implied": 40,
+   "choice": 4,
+   "existing": 5
+  },
+  "added_refusals": [
+   {
+    "id": "C-11",
+    "kind": "implied",
+    "statement": "A move must start at an occupied square."
+   },
+   {
+    "id": "C-51",
+    "kind": "choice",
+    "statement": "IllegalMoveError inherits from Error."
+   },
+   {
+    "id": "C-56",
+    "kind": "implied",
+    "statement": "Lost castling rights cannot be regained."
+   },
+   {
+    "id": "C-73",
+    "kind": "choice",
+    "statement": "Malformed FEN input throws an Error."
+   },
+   {
+    "id": "C-74",
+    "kind": "choice",
+    "statement": "A FEN without exactly one king of each color throws an Error."
+   }
+  ],
+  "open_lines": [],
+  "spec_minutes": 9.6
+ }
+}

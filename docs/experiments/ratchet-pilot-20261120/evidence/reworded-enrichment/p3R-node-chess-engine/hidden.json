@@ -1,0 +1,41 @@
+{
+ "build-1": {
+  "observed": true,
+  "passed": [
+   "count-start-3",
+   "count-kiwipete-3",
+   "count-position3-4",
+   "count-position4-3",
+   "count-position5-3",
+   "count-position6-3",
+   "game-fens",
+   "status-positions",
+   "illegal-moves-throw",
+   "moves-sorted"
+  ],
+  "failed": {},
+  "tree": "db648aa6f7c0b91fb9c98a31b77a172abed496e7",
+  "label": "build-1",
+  "at": 631.7
+ },
+ "final": {
+  "observed": true,
+  "passed": [
+   "count-start-3",
+   "count-kiwipete-3",
+   "count-position3-4",
+   "count-position4-3",
+   "count-position5-3",
+   "count-position6-3",
+   "game-fens",
+   "status-positions",
+   "illegal-moves-throw",
+   "moves-sorted"
+  ],
+  "failed": {},
+  "tree": "db648aa6f7c0b91fb9c98a31b77a172abed496e7",
+  "label": "final",
+  "at": 631.7,
+  "same_tree_as": "build-1"
+ }
+}

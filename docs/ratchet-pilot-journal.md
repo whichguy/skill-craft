@@ -1737,3 +1737,49 @@ By the registered rule (no apparatus failure; the orders tests pin no open point
 Evidence: `evidence/reworded-enrichment/p1R-stand-in-rules/` (run record, `strength.json`, plan, tests report,
 manifest), `p3R-ticket-due-times-a/` and `-b/` (`build-1-hidden.json`, and the plan and build report at the first
 build's commit), `rung-2-orders-by-source-log.txt`.
+
+### The two larger cases, result (2026-11-21 07:41; amendment 9's cells), and the end of the two loops
+
+Status: firm for what was run, one run a case. These cells can only show a loss.
+
+| Case, text | Specification: clauses / use cases, choices, open lines | First build: held-out checks | Minutes to it (enrich, plan, build) | Output tokens to it |
+|---|---|---|---|---|
+| chess engine, reworded | 56 / 7, 0, 5 | 10 of 10 | 14.7 (4.2, 4.7, 5.8) | 38,371 |
+| chess engine, pilot's (section 10) | 94 / 15, 4, 0 | 10 of 10 | 20.5 | |
+| Grokbot-local, reworded | 100 / 15, 0, 18 | 49 of 49; 23 of 23 stated and 5 of 5 implied | 26.8 (4.6, 7.0, 15.0) | 71,898 |
+| Grokbot-local, pilot's (section 17) | | 49 of 49; 23 and 5 | 37.5 | |
+| Grokbot-local, one bare session at high (section 17) | none | 49 of 49; 23 and 5 | 16.9 | 47,308 |
+
+- **R10.1, chess: no loss.** The specification kept the rules the request leans on: 27 of its 56 clauses are
+  `implied` (the pilot's text wrote 40 of 94), and none is a choice. Its five open lines are about a malformed or
+  impossible position, a move not in UCI form, which test positions to use, and on what machine the two speed
+  limits are measured.
+- **R10.2, Grokbot: no loss.** All 49 checks of the first yardstick and all 28 of the second pass at the first
+  build, the five implied ones among them, where I had predicted that at most one of those would be lost. No check
+  needed a second run or a probe. The gradings ran at 07:35 to 07:37 beside three live runs.
+- Both first builds came sooner than with the pilot's text (14.7 against 20.5 minutes, 26.8 against 37.5), run
+  beside four or five other runs. A single session with no specification is still the quickest on Grokbot (16.9).
+- What this does not show: a gain. Every arm passed these cases before (F19). It shows that a specification a
+  third to a half the size, with its undecided points marked and not decided, lost nothing on a rule-dense build
+  or on a large, loosely worded one.
+
+**The two due-times loops, at their end** (`--stop-after tests`).
+
+| Loop | Its own gate after the test pass | Held-out checks, first build and end | Minutes to that gate | Output tokens |
+|---|---|---|---|---|
+| reworded, a | 41 of 42: C-31 fails | 8 of 8, 8 of 8 | 38.9 | 96,229 |
+| reworded, b | 41 of 41 | 8 of 8, 8 of 8 | 32.8 | 79,353 |
+| lens, a and b (section 20) | 184 of 184; 215 of 215 | 3 of 8; 2 of 8 | 57.8; 61.9 | 148,407; 157,262 |
+
+- Loop a's failing test is on an `existing` clause (C-31, "The raw CLI list retains its existing row layout"). The
+  test session wrote a data file by hand with a tab inside a ticket title and asserts four raw fields; the
+  formatter, which this build did not change, joins the columns with tabs and prints five. The service refuses
+  such a title at its API. So the test is stricter than the shipped product on existing behaviour: the kind of
+  clause that rejected a correct product one time in fifty in section 20's count. A full loop would have sent it
+  to a fix session.
+- With the lens text every own test was green and the product was wrong (F20's pattern). Here one own test is red
+  and the product passes every held-out check.
+
+Evidence: `evidence/reworded-enrichment/` (`r1-chess/`, `r1-grokbot/`, `p3R-node-chess-engine/`,
+`p3R-grokbot-local/` with both yardsticks' results and the grading log, `guard-specs-log.txt`; the loops' `run.json`,
+`hidden.json` and, for a, `gate-after-tests-failing.txt`).

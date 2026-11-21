@@ -1,0 +1,17 @@
+Loop a, its own gate after the test pass (gates/02-cycle-1-first.json): failing C-31
+
+C-31: node --test --test-timeout=45000 --test-reporter=spec --test-name-pattern='^C-31 ' acceptance/operations.cjs (rc 1)
+    test at acceptance/operations.cjs:158:1
+    ✖ C-31 raw CLI output has exactly four positional tab-separated fields for every selected ticket (677.755167ms)
+      AssertionError [ERR_ASSERTION]: title with a tab produced 5 raw fields
+      5 !== 4
+          at TestContext.<anonymous> (/Users/dadleet/e2e-runs/ratchet-reworded-20261121-08805f/p3R-ticket-due-times-a/work/acceptance/operations.cjs:183:10)
+          at async Test.run (node:internal/test_runner/test:1409:7)
+          at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+        generatedMessage: false,
+        code: 'ERR_ASSERTION',
+        actual: 5,
+        expected: 4,
+        operator: 'strictEqual',
+        diff: 'simple'
+      }

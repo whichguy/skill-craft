@@ -1,0 +1,52 @@
+{
+ "case": "node-chess-engine",
+ "host": "codex",
+ "model": "gpt-6.2-sol",
+ "effort": "high",
+ "started": "2026-11-21T07:07:30-0800",
+ "start_tree": null,
+ "frozen_from": null,
+ "build_from": null,
+ "bare": false,
+ "sessions": [
+  {
+   "number": 1,
+   "role": "spec",
+   "label": "spec-1",
+   "seconds": 251.2,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 251.2,
+   "held_out_marks": []
+  }
+ ],
+ "gates": [],
+ "snapshots": [
+  {
+   "label": "base",
+   "commit": "af9c86200c7f6f4cec5591b65ee24c00576b5a22",
+   "tree": "d58e3ff10e68e8e68847be97249fd68fa52c9f7a",
+   "at": 0.1
+  },
+  {
+   "label": "spec",
+   "commit": "4589666486e94bfd8db4aaee8ee1418673edf734",
+   "tree": "bab368413070629456d0a152628ab6bd8867204b",
+   "at": 251.3
+  }
+ ],
+ "cycles": [],
+ "reverted": [],
+ "spec_violations": [],
+ "local_head": "80d2f064fc7cb984ad46526c5ce2948857d5d384",
+ "named_checks": true,
+ "enrich": "reworded",
+ "spec_from": null,
+ "stop": "stop-after-spec",
+ "final_pass": null,
+ "seconds": 251.3,
+ "clauses": 56,
+ "use_cases": 7,
+ "tamper": [],
+ "finished": "2026-11-21T07:11:42-0800"
+}
