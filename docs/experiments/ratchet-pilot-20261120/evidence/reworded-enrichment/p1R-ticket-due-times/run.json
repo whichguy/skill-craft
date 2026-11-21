@@ -1,0 +1,233 @@
+{
+ "case": "ticket-due-times",
+ "host": "codex",
+ "model": "gpt-6.2-sol",
+ "effort": "high",
+ "started": "2026-11-21T07:20:52-0800",
+ "start_tree": null,
+ "frozen_from": null,
+ "build_from": "/Users/dadleet/e2e-runs/ratchet-pilot-20261120-b6eab2/refs/ticket-due-times/reference",
+ "bare": false,
+ "sessions": [
+  {
+   "number": 1,
+   "role": "plan",
+   "label": "plan-1",
+   "seconds": 273.7,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 273.7,
+   "held_out_marks": []
+  },
+  {
+   "number": 2,
+   "role": "tests",
+   "label": "tests-1-1",
+   "seconds": 889.1,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 889.1,
+   "held_out_marks": []
+  }
+ ],
+ "gates": [
+  {
+   "number": 1,
+   "label": "after-given-build",
+   "pass": true,
+   "failing": [],
+   "passing": [],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [],
+   "clauses": 0,
+   "at": 275.1
+  },
+  {
+   "number": 2,
+   "label": "cycle-1-first",
+   "pass": false,
+   "failing": [
+    "U-8",
+    "C-3",
+    "C-19",
+    "C-29"
+   ],
+   "passing": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-30",
+    "C-31",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7"
+   ],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [],
+   "clauses": 39,
+   "at": 1193.2
+  },
+  {
+   "number": 3,
+   "label": "final",
+   "pass": false,
+   "failing": [
+    "U-8",
+    "C-3",
+    "C-19",
+    "C-29"
+   ],
+   "passing": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-27",
+    "C-28",
+    "C-30",
+    "C-31",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6",
+    "U-7"
+   ],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [],
+   "clauses": 39,
+   "at": 1221.8
+  }
+ ],
+ "snapshots": [
+  {
+   "label": "base",
+   "commit": "e23e194ab7db10dd889613ee79a2823128bd75ba",
+   "tree": "99d92357c06060cc6c277e7115a92b32c1852140",
+   "at": 0.1
+  },
+  {
+   "label": "spec",
+   "commit": "e102b811d751daaad091d2274bd38863321ce33f",
+   "tree": "f23dae5b57b7140669460255461d3c565fd65dab",
+   "at": 0.2
+  },
+  {
+   "label": "plan-1",
+   "commit": "cdad1f088e3343a5ef97d68b70eb10da280837ab",
+   "tree": "9f5fdeffc5d4245e6a6222048535ce3b9247ebc4",
+   "at": 273.9
+  },
+  {
+   "label": "build-1",
+   "commit": "d1b773ec274a1c6e2a5e38a2dbb1218dbc64a9e3",
+   "tree": "0bbd12d92a8c8d19c46a624c5f72588b85b8f061",
+   "at": 275.1
+  },
+  {
+   "label": "tests-1",
+   "commit": "c4685a2e5e49e06e7ed47d36f8b767abc2caece0",
+   "tree": "882b150a7a44bc753a2d6e3834cb1c067616780b",
+   "at": 1164.3
+  },
+  {
+   "label": "final",
+   "commit": "6241b1c50b5ec3f7979b4e69be5fed184fbb8920",
+   "tree": "882b150a7a44bc753a2d6e3834cb1c067616780b",
+   "at": 1221.8
+  }
+ ],
+ "cycles": [
+  {
+   "cycle": 1,
+   "clauses_at_start": 38,
+   "new_clauses": [],
+   "plan_loops": [
+    {
+     "name": "plan-1",
+     "session": "exited",
+     "loop": "complete",
+     "iterations": 2,
+     "trivial_streak": 1
+    }
+   ],
+   "plan_added": [
+    "C-31"
+   ],
+   "first_gate_failing": [
+    "U-8",
+    "C-3",
+    "C-19",
+    "C-29"
+   ]
+  }
+ ],
+ "reverted": [],
+ "spec_violations": [],
+ "local_head": "80d2f064fc7cb984ad46526c5ce2948857d5d384",
+ "named_checks": true,
+ "enrich": "reworded",
+ "spec_from": "/Users/dadleet/e2e-runs/ratchet-reworded-20261121-08805f/r1-due-times-1",
+ "spec_from_seconds": 292.2,
+ "stop": "stop-after-tests",
+ "final_pass": false,
+ "seconds": 1221.8,
+ "clauses": 31,
+ "use_cases": 8,
+ "tamper": [],
+ "finished": "2026-11-21T07:41:14-0800"
+}

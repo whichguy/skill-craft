@@ -1783,3 +1783,108 @@ Status: firm for what was run, one run a case. These cells can only show a loss.
 Evidence: `evidence/reworded-enrichment/` (`r1-chess/`, `r1-grokbot/`, `p3R-node-chess-engine/`,
 `p3R-grokbot-local/` with both yardsticks' results and the grading log, `guard-specs-log.txt`; the loops' `run.json`,
 `hidden.json` and, for a, `gate-after-tests-failing.txt`).
+
+### Rung 3, result, and the readings of amendment 8 (2026-11-21 07:56)
+
+Status: firm for what was run: one run a cell; three test-strength cells, two loops, two larger cases; one model
+family (Codex `gpt-6.2-sol` at high) as writer, planner, builder and tester.
+
+**Test strength, reworded text against the lens text and the pilot's own** (the ticket cells graded from the
+specifications of rung 1; each cell's minutes are the specification run and the continued run added).
+
+| Case, text | Clauses / use cases tested | Clauses failing on the correct reference | Use cases failing on it | Second correct delivery, beyond the reference | Defects caught | Minutes (of which enrich) | Output tokens |
+|---|---|---|---|---|---|---|---|
+| orders, reworded | 27 / 5 | 2 (7.4%) | 1 | none exists | 4 of 4 | 18.2 (2.6) | 42,611 |
+| orders, lens | 82 / 8 | 9 (11.0%) | 1 | none exists | 4 of 4 | 23.7 (5.0) | 61,805 |
+| ticket assignment, reworded | 44 / 9 | 3 (6.8%) | 0 | 3 (2 clauses, 1 use case) | 26 of 27 | 26.9 (3.8) | 63,618 |
+| ticket assignment, lens | 153 / 11 | 13 (8.5%) | 3 | 15 (11 clauses, 4 use cases) | 26 of 27 | 38.0 (7.0) | 96,512 |
+| ticket due times, reworded | 31 / 8 | 3 (9.7%) | 1 | none exists | 6 of 6 | 25.3 (4.9) | 62,333 |
+| ticket due times, lens | 191 / 12 | 25 (13.1%) | 7 | none exists | 6 of 6 | 44.2 (8.0) | 112,503 |
+| pooled, reworded | 102 / 22 | 8 (7.8%) | 2 of 22 | | 36 of 37 | 70.4 | 168,562 |
+| pooled, lens | 426 / 31 | 47 (11.0%) | 11 of 31 | | 36 of 37 | 105.9 | 270,820 |
+| pooled, pilot's own | 499 / 44 | 59 (11.8%) | 16 of 44 | | 37 of 37 | 112.2 | 256,223 |
+
+**The readings of amendment 8.**
+
+- **R9.1, due times: avoided.** Both first builds pass 8 of 8 (recorded under "Rung 2, result").
+- **R9.2, clauses that reject a correct product: better.** Among clauses not `existing`: 8 of 64 (12.5%) against the
+  lens text's 43 of 203 (21.2%); the bar was 14.1%. Over all clauses 7.8% against 11.0%. Use cases 2 of 22 against
+  11 of 31. The second correct ticket-assignment delivery fails 3 further items where it failed 15.
+- **R9.3, strength: kept.** 36 of 37 (bar 35; lens 36; pilot's 37). The one missed is `update-rejects-resolved` on
+  ticket assignment, a defect in existing behaviour; the lens text missed `cli-no-assignee` there, which this text's
+  tests catch. Same count, different defect.
+- **R9.4, what was written and what it cost.** A quarter of the clauses (102 against 426). No choice clause in any
+  of the seven specifications written with this text (five of rung 1, chess, Grokbot). Added refusals at the end of
+  the three cells: 3 written and none rejecting (lens: 28 written, 16 rejecting). A third less time on the three
+  cells (70.4 against 105.9 minutes) and 38% fewer output tokens.
+- **R9.5, open lines after the spec stage.** 25 clauses in the three cells carry an open line; 2 of them fail on
+  the correct reference (ticket assignment C-36, due times C-19), and neither failure is about its open point.
+  C-19's test says in a comment that refusal until explicit preparation "is a supported outcome" and accepts either
+  answer. C-36 is the command-line table showing the assignee, which failed on this reference with all three texts.
+  The plan stage added 3 clauses (orders C-27, ticket assignment C-44, due times C-31); one fails on the reference
+  (C-44), and none settles an open point. Both builds list the answer taken at every open point in their reports.
+
+**What still fails on the correct reference, all eight clauses.** Four are the request's own clauses about the tests
+it asks for (orders C-25, C-26; ticket assignment C-42; due times C-29), the kind section 20 counted five of in each
+earlier text. One is the command-line table (ticket assignment C-36: on the reference "the assigned and unassigned
+rows both show "-""), failing with every text. One was added by the plan stage (C-44, a failed save leaves an
+assignment available to retry: on the reference "refused assignment changed live state"). Two are sentences of the
+request tested at an edge where the reference does not do what the sentence says: due times C-3 (with due times
+off, a ticket created
+at the last representable instant answers 500 where release 1.4.0 answers 201) and C-19 (a due time is shown before
+the data file holds it). None is an addition of the specification writer's: this text wrote none.
+
+**Predictions scored.** Mine, six: four held (fewer clauses; fewer choices and added refusals; strength kept; no
+loss on chess and at most one implied check lost on Grokbot), two did not (I said R9.2 would land between 14% and
+19%: it is 12.5%; I said R9.1 would most likely be not settled: it is avoided). The author's three (fewer clauses, a
+lower share failing on a correct product, no loss of defects caught) all held.
+
+**Findings.**
+
+- **F29 (firm: seven specifications).** The reworded text takes the writer's own decisions out of the specification:
+  no choice clause in seven of seven, and 5 to 18 open lines each, where nine earlier specifications never wrote
+  fewer than 12 choices. No second wording was needed.
+- **F30 (two builds; not blind, the text's author knew this case).** A decision left open and named was made right
+  downstream: both due-times plans chose to prepare the data file at an enabled start, where four of five
+  specification writers had chosen to refuse. The pattern of F20, every own test green over a wrong product, did not
+  recur: the gates were 41 of 42 and 41 of 41, with 8 of 8 held-out checks.
+- **F31 (firm at this size).** A quarter of the clauses kept the tests as strong (36 of 37) and removed most of
+  what rejected a correct product (12.5% against 21.2% of clauses not `existing`). What the shorter specification
+  gave up is one defect in existing behaviour that it no longer pins; what it gained is one defect the longer one
+  missed.
+- **F32 (reported).** It is cheaper at every stage: specifications in 2.6 to 4.9 minutes, the three cells a third
+  quicker with 38% fewer output tokens, first builds sooner on every case (due times 18 to 21 minutes against 28 to
+  32), loops to their gate in 33 and 39 minutes against 58 and 62.
+- **F33 (one run a case; can only show a loss).** On the two larger cases the owner named, a rule-dense one and a
+  large loosely worded one, the shorter specification lost nothing: chess 10 of 10, Grokbot 49 of 49 and 28 of 28.
+
+**Is there enough to conclude?** For the question the owner asked (run the reworded text as a third arm), yes: on
+every registered reading it is at least as good as both earlier texts and on three it is better, at lower cost, with
+no loss on the two guards. What it does not establish: that it holds for another model family (every stage here was
+Sol); that it holds on more than one case with a consequential thing left unsaid (there is one, and the text's author
+knew it); that the defaults the plan now takes and reports (names, ranges) are what a customer wants; and anything
+about ShipLoop, whose released spec stage is a different text that the other session's experiment concluded on
+without a change.
+
+**Checked twice.** At the owner's word ("use sonnet in Task() where you can") a Sonnet subagent recounted every
+figure of the table and of R9.2 to R9.5 from `strength.json` and the specifications with a script of its own, not
+`by_source.py`: all match. It also copied the evidence and drafted this subsection from the facts given to it.
+
+**Received, 07:19, from the session "Spec elaboration"** (its journal sections 26 to 28; its commit 2f4f56fe2; its
+work, not re-run here). It has concluded at the owner's word with no change to ShipLoop's templates. Two things it
+sent bear on this text. Inside ShipLoop's released spec stage, three wordings that let the writer leave a point
+open did nothing on its covered count, so it asked whether this text's writers would use `Open:` for points they
+would otherwise have settled: rung 1 answers that they do, in seven of seven specifications. And its census of 31
+real ShipLoop deliveries found limits chosen at build and written nowhere (nine in this pilot's own ShipLoop
+Grokbot delivery); in the runs above the builder still chooses such limits, and its report lists each one because
+the stage frame asks for it.
+
+**Limits.** One run a cell. The machine's load average was 7 to 8 while five or six runs were in flight, so minutes
+are loose. The comparison cells ran three to four hours earlier. One held-out mark, in loop b's test session, is a
+process listing that showed another session's command line naming the installed skill (no path of the repository
+appears in that session's record); it is read as the five marks of section 19 were, and the run is counted. The
+gradings of rung 2 and of the two larger cases ran beside live runs; the two last test-strength gradings did not.
+
+Evidence: `evidence/reworded-enrichment/` (`p1R-ticket-assignment/`, `p1R-ticket-due-times/` with each run's record,
+`strength.json`, plan, tests report, manifest and grading log; `failing-by-source-log.txt` and `.json` for the three
+cells against the lens text's; `summary.json`).

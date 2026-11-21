@@ -1,0 +1,161 @@
+{
+  "C-1": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-1 ' acceptance/api.cjs"
+  },
+  "C-2": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-2 ' acceptance/api.cjs"
+  },
+  "C-3": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-3 ' acceptance/api.cjs"
+  },
+  "C-4": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-4 ' acceptance/api.cjs"
+  },
+  "C-5": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-5 ' acceptance/api.cjs"
+  },
+  "C-6": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-6 ' acceptance/api.cjs"
+  },
+  "C-7": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-7 ' acceptance/api.cjs"
+  },
+  "C-8": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-8 ' acceptance/api.cjs"
+  },
+  "C-9": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-9 ' acceptance/api.cjs"
+  },
+  "C-10": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-10 ' acceptance/api.cjs"
+  },
+  "C-11": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-11 ' acceptance/api.cjs"
+  },
+  "C-12": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-12 ' acceptance/api.cjs"
+  },
+  "C-13": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-13 ' acceptance/api.cjs"
+  },
+  "C-14": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-14 ' acceptance/api.cjs"
+  },
+  "C-15": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-15 ' acceptance/api.cjs"
+  },
+  "C-16": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-16 ' acceptance/api.cjs"
+  },
+  "C-17": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-17 ' acceptance/api.cjs"
+  },
+  "C-18": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-18 ' acceptance/api.cjs"
+  },
+  "C-19": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-19 ' acceptance/delivery.cjs"
+  },
+  "C-20": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-20 ' acceptance/delivery.cjs"
+  },
+  "C-21": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-21 ' acceptance/delivery.cjs"
+  },
+  "C-22": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-22 ' acceptance/delivery.cjs"
+  },
+  "C-23": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-23 ' acceptance/delivery.cjs"
+  },
+  "C-24": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-24 ' acceptance/delivery.cjs"
+  },
+  "C-25": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-25 ' acceptance/delivery.cjs"
+  },
+  "C-26": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-26 ' acceptance/delivery.cjs"
+  },
+  "C-27": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-27 ' acceptance/storage.cjs"
+  },
+  "C-28": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-28 ' acceptance/storage.cjs"
+  },
+  "C-29": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-29 ' acceptance/listing.cjs"
+  },
+  "C-30": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-30 ' acceptance/listing.cjs"
+  },
+  "C-31": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-31 ' acceptance/listing.cjs"
+  },
+  "C-32": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-32 ' acceptance/listing.cjs"
+  },
+  "C-33": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-33 ' acceptance/listing.cjs"
+  },
+  "C-34": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-34 ' acceptance/listing.cjs"
+  },
+  "C-35": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-35 ' acceptance/listing.cjs"
+  },
+  "C-36": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-36 ' acceptance/listing.cjs"
+  },
+  "C-37": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-37 ' acceptance/listing.cjs"
+  },
+  "C-38": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-38 ' acceptance/listing.cjs"
+  },
+  "C-39": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-39 ' acceptance/entrypoints.cjs"
+  },
+  "C-40": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-40 ' acceptance/entrypoints.cjs"
+  },
+  "C-41": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-41 ' acceptance/entrypoints.cjs"
+  },
+  "C-42": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-42 ' acceptance/entrypoints.cjs"
+  },
+  "C-43": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-43 ' acceptance/entrypoints.cjs"
+  },
+  "C-44": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^C-44 ' acceptance/storage.cjs"
+  },
+  "U-1": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^U-1 ' acceptance/api.cjs"
+  },
+  "U-2": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^U-2 ' acceptance/api.cjs"
+  },
+  "U-3": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^U-3 ' acceptance/delivery.cjs"
+  },
+  "U-4": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^U-4 ' acceptance/listing.cjs"
+  },
+  "U-5": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^U-5 ' acceptance/listing.cjs"
+  },
+  "U-6": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^U-6 ' acceptance/api.cjs"
+  },
+  "U-7": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^U-7 ' acceptance/storage.cjs"
+  },
+  "U-8": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^U-8 ' acceptance/delivery.cjs"
+  },
+  "U-9": {
+    "command": "node --test --test-reporter=tap --test-timeout=42000 --test-name-pattern='^U-9 ' acceptance/entrypoints.cjs"
+  }
+}
