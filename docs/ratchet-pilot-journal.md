@@ -2081,6 +2081,25 @@ the specification alone and not the build. The fork, asked whether this states i
 narrowing, and that it is shown for two sessions on one request with one model, whose blind sessions took every
 name that starts or configures the product from the plan, the specification or the starting documents.
 
+> **Qualified 2026-11-21 13:17, on the fork's later results** (received 13:15, not re-run here; its journal
+> sections 13 and 15, its commits 6e1d1d4779bf76e8893962439e985166459ec673 and
+> 5212365fe6b999d08c26b310a267863043874aac on its own branch; Codex `gpt-6.2-sol` at high). The reading above holds
+> for its three small cells and needs a limit once the product has a rich page.
+>
+> - *Battleship* (a new app with a page, from an empty folder). A suite written with no build and nothing to run on
+>   passes 28 of 28 when it first meets the build, and catches 32 of 51 seeded faults against 31 for a suite written
+>   beside the build. By this pilot's first spread measure (F38) that is the same.
+> - *Grokbot-local*, from this pilot's `p3R-grokbot-local` specification, plan and first build, which it read and
+>   did not change. The suite written beside the build passes 115 of 115. The suite written with no build passes 4
+>   of 115 at first meeting, and all 111 failures have one cause in the suite's own code: it works out a button's
+>   name from the element's whole text, hidden parts included, where the build puts an avatar letter and an arrow
+>   inside each button and marks both hidden. The name the specification asks for is there; the suite does not find
+>   it. No assertion is wrong and the product is right.
+>
+> So besides the plan's answers and the names it fixes, a test writer facing a rich page needs something to try
+> its page-reading code on. Its check of how much that one correction unlocks was still running when this was
+> received.
+
 ### Amendment 11, 2026-11-21 10:52: Sonnet at medium against Sonnet at high, the small step first, then one test-strength cell at each (registered before any run)
 
 Owner, 10:49, after the test-strength cell on Sonnet had been described at their request: "Can we run this at Sonnet
