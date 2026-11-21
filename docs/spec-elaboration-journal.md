@@ -1966,6 +1966,9 @@ prompt that will actually help take an incoming, kind of vague prompt ... and ..
 1. **The released spec stage is not missing an elaboration step.** Ten rounds, twelve arms, two drivers, two
    judges. Run alone on a one-sentence request it reaches 80 to 87 of 89 held-out items; in real deliveries it
    writes a short, complete specification (section 26).
+   (Qualified 2026-11-21, 11:47, section 38: on this bench almost every session read the stage's reference guides,
+   and in real deliveries almost none does; and the real deliveries started from requests of 76 to 322 words, not
+   one sentence. "Not missing an elaboration step" is shown for the stage text with its guides read, on the bench.)
 2. **Wording that leaves the stage free to keep a point open changes nothing.** The earlier block's enumeration
    sentence (round 6), arm M (rounds 7 and 8) and the review's own text, arm G (rounds 9 and 10, where it was
    worse on Sol).
@@ -1986,6 +1989,8 @@ prompt that will actually help take an incoming, kind of vague prompt ... and ..
 - Every number here as a statement about the stage in a real run. The frame (one sentence, no repository, the
   submission folded into the specification) makes the stage write ten times as much and leave open what a real
   run never raises (section 26). The numbers compare arms inside that frame and nothing more.
+  (Qualified 2026-11-21, 11:47, section 38: the two differ in three things at once, not one: the request's length,
+  the repository, and whether the reference guides were read. "Ten times" cannot be laid on the frame alone.)
 - A covered count as a measure of quality. It credits deciding (sections 14 and 24), and half of K's gain was on
   limits two outside sorters say a correct product could do without (section 25's sort).
 
@@ -2024,7 +2029,8 @@ user's skills, and locate one real difference between the two drivers in built p
 1. **Read deliveries that already ran before building a bench.** Section 26 took an hour and no model, and showed
    both the real gap and that this experiment's frame was ten times off. It should have been section 1.
 2. **Check a bench against the real thing on a plain measure first** (here, words in the specification). A bench
-   that makes the stage write ten times as much is measuring something else.
+   that makes the stage write ten times as much is measuring something else. (Qualified 2026-11-21, 11:47, section
+   38: or it is feeding the stage something the real run does not get. Find out which before discarding it.)
 3. **A count that rewards deciding needs its items sorted by someone else** into what must be settled and what
    need not. Two cheap sorts changed the reading of every round after them.
 4. **Write the prediction down before the run.** Eight were registered in sections 20 and 25 and six held; the
@@ -2673,3 +2679,75 @@ but ticket assignment, anything built by Sonnet, and which stage would be sensit
   specification leaves the open answers to the plan and the existing behaviour to the product's own tests. A trial
   of this in ShipLoop would have to say where existing behaviour is pinned once the specification stops restating it.
 - Nothing is proposed, and this experiment's conclusion stands: no ShipLoop template was changed.
+
+## 38. Two more free readings: the real requests were not vague, and real builders do not open the spec guides (11:47, 2026-11-21)
+
+The owner, asked what he had wanted, said: fuller specifications, breadth of coverage that points the builder in a
+direction, with clarity also welcome; and asked whether the reference material added to ShipLoop to prompt the
+specification and the tests is effective. No model was called for what follows. Scripts: `guide_reads.py` in this
+experiment's folder; outputs in `evidence/readings/` (`guide-reads.txt`, `guide-reads-bench.txt`,
+`coverage-by-category.txt`).
+
+**1. The real deliveries did not start from a vague request.** The bench's four requests are 9, 15, 7 and 8 words.
+The catalog requests behind the deliveries read in section 26 are 263 words (due times), 282 (shared expenses), 181
+(ticket assignment) and 19 (hello); the catalog's 31 requests run from 19 to 322 words. So section 26 compared a
+stage given one sentence with a stage given a page, and a page needs less written around it. The owner's case, a
+vague request, is the bench's case and not the catalog's. No whole delivery from a one-sentence request has been
+read here.
+
+**2. Real builders rarely open the spec guides; bench sessions almost always did.** ShipLoop ships 39 reference
+guides, 102,283 words. A packet names the ones its stage uses by file and section (today's spec packet:
+"Behavior-model guidance: GUIDES/behavioral-requirements.md#behavior-model") and says where `GUIDES` is. A guide is
+counted as opened when a command or file read names it, or when a heading only that guide has appears in the
+session's stream.
+
+| | Sol, 26 deliveries | Sonnet, 9 | Grok, 1 | Bench, 120 sessions |
+|---|---|---|---|---|
+| `behavioral-requirements.md` (4,951 words: actors and state, sequence flows, states and transitions, traceability) | 0 | 0 | 1 | 116 to 120 |
+| `requirements-definition.md` (1,607 words: existing intent, state and data changes, non-functional requirements) | 3 | 1 | 1 | 115 to 120 |
+| a spec guide opened before the spec stage ended | 2 | 0 | 1 | 116 to 120 |
+| `testing-and-documentation.md` (9,999 words) | 3 | 0 | 1 | 63 to 70 |
+| any of the four test guides | 16 (`test-loop.md` mostly) | 1 | 1 | |
+| distinct guides opened, median (range) | 9 (6 to 20) | 4 (2 to 8) | 39 | 3.5 to 8 by arm |
+
+The 36 whole deliveries are those with a finished engine under the SDLC session's run folders
+(`/Users/dadleet/e2e-runs-sdlc4` to `-sdlc12`); the bench sessions are the 120 of rounds 5 to 10 whose arm had the
+guides beside it (P, Q, M, K, G, H). The bench's two figures are the count by command and the count by content.
+What every real delivery opens is the run's own machinery: `run-start` 36 of 36, `improve-context` 35,
+`improve-child` 31, `run-options` 28, `workspace-lifecycle` 28, `guide-map` 27. The one Grok delivery opened all 39.
+Final specification size beside it is too thin to read: on Sol 526 words in the 4 deliveries that opened a spec
+guide against 384 in the 22 that did not; on Sonnet one delivery against eight.
+
+Why the bench sessions read them, as far as the frames show: the bench's opening lines say the guides are in the
+working folder and that `GUIDES/README.md` maps each guide name to its file and section, and the folder holds
+nothing else. A real packet is about 5,500 words with the same pointers near its end, in a repository with work
+to do.
+
+**3. What the released stage reached by category, with the guides read** (the bench, registered judge, six draws a
+driver, `coverage-by-category.txt`). It touches at least 89% of the items of every category on both drivers. What
+it covers in full differs: on Sonnet 60 to 82% of every category but one; on Sol 80% of preserve, 77% of permission,
+64% of unhappy paths and 60% of interaction, then 46% of edge cases, 44% of async, 42% of data, 37% of platform and
+27% of non-functional. The exception on both is the operator's side: 22% and 24%, and all four items that both
+outside sorters call capability beyond the request are operator items. Three of the 89 were never covered by any
+arm.
+
+**What it changes.**
+
+- Section 26's "ten times" and section 28's first standing point were read as the bench's frame distorting the
+  stage. Three things differ at once between the bench and the real runs: the request (a sentence against a page),
+  the repository, and the guides (read against not read). The bench is the only place the owner's case was run,
+  and there the stage with its guides read is broad. Dated qualifications are added in section 28.
+- On the owner's question: the reference material cannot be doing much for specifications in real runs on Sol and
+  Sonnet, because it is not opened. That is a fact about delivery, not about the material. Whether the material
+  broadens a specification when read is not shown either way: the bench's breadth came with it, alongside two other
+  differences.
+- A lead, not a finding: the cheapest test of "fuller specifications from reference material" is to make a real
+  spec stage take in the two spec guides' questions (in the packet, or by a check that refuses a spec stage that
+  did not open them) on a short request, and compare the specification and the product with a run that did not.
+- What is known against fuller specifications stays: on precise requests with a correct reference, the Ratchet
+  session's fuller, deciding texts were slower and no sounder, and K invented limits. Breadth as questions
+  considered is not the same as breadth as requirements written.
+
+**Limits.** A read of a passage holding no heading is missed, so a count can be low. The real requests are long, so
+a builder may have judged the guides unnecessary. One Grok delivery. The 36 are not the 31 of section 26: they add
+later runs. Nothing here measures a product.

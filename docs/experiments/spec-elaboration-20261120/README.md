@@ -679,3 +679,12 @@ session's built products, its fork's suite overlays and the qualification evalua
 figures drawn to scale. `explainer/build.py` writes it; every figure comes from the journal (sections 1 to 36) and,
 for threads 3 and 4, from the Ratchet session's record as the journal has it. It adds no finding of its own.
 
+## Two later readings (2026-11-21, journal section 38)
+
+`guide_reads.py RUNS_ROOT...` lists which of ShipLoop's reference guides a finished delivery's builder opened, and at
+which stage; `--bench BENCH_ROOT` does the same for this bench's sessions. No model. Result: the spec guides are
+opened in almost no real delivery on Sol or Sonnet and in almost every bench session, and the real deliveries
+started from requests of 76 to 322 words where the bench's are 7 to 15. Read the "ten times" comparison above with
+both in mind. `evidence/readings/coverage-by-category.txt` gives what the released stage reached in each of the
+checklist's ten categories.
+

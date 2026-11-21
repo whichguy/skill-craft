@@ -1,0 +1,22 @@
+Coverage of the hidden checklist by category. Registered judge (Opus). The released spec stage alone (arm P):
+mean share of items covered, and touched (covered or partly covered), over its draws in rounds 5 to 10.
+Sorter labels: items both outside sorters call capability beyond the request (X3).
+
+category | items | Sonnet covered | Sonnet touched | Sol covered | Sol touched | beyond the request (both sorters) | never covered by any arm
+interaction | 12 | 69% | 97% | 60% | 94% | 0 | 2
+edge | 12 | 82% | 100% | 46% | 99% | 0 | 0
+unhappy | 12 | 69% | 100% | 64% | 96% | 0 | 0
+async | 11 | 64% | 98% | 44% | 100% | 0 | 0
+data | 10 | 62% | 92% | 42% | 90% | 0 | 0
+permission | 8 | 69% | 100% | 77% | 100% | 0 | 0
+operator | 9 | 22% | 89% | 24% | 89% | 4 | 0
+platform | 5 | 60% | 100% | 37% | 100% | 0 | 1
+nonfunctional | 5 | 63% | 100% | 27% | 100% | 0 | 0
+preserve | 5 | 67% | 97% | 80% | 90% | 0 | 0
+
+draws of the released stage per driver: {'sonnet-high': 6, 'sol-medium': 6}
+items never covered by any arm on either driver in rounds 4c to 10: 3
+  grokbot-salesforce N-6 [platform] The model call is an external callout, so it cannot run synchronously from a trigger and cannot follow DML in the same transaction: the design is asyn
+  gym-waitlist N-3 [interaction] A person on the waitlist for two classes that overlap in time: promoting one must resolve the other.
+  invoice-reminders N-4 [interaction] An existing do-not-contact, paused or unsubscribed state on the customer, and whether a billing notice is exempt from a marketing opt-out.
+X3 (beyond the request, both sorters): [('csv-user-import', 'N-18'), ('gym-waitlist', 'N-17'), ('gym-waitlist', 'N-18'), ('invoice-reminders', 'N-17')]
