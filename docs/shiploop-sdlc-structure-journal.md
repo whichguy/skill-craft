@@ -1508,7 +1508,8 @@ snapshot: 7 of 7 in all eight, both arms, so no later stage had anything to repa
 never saw. `test` refused, per slice: Sonnet baseline 4 and 6 against F1 1 and 1; Sol 6.2 baseline 3 and 2
 against F1 1 and 2.
 
-**R55. An apparatus fault, found and corrected: the ticket service's own test run sometimes does not end.**
+**R55. A known apparatus exposure, met again and corrected for: a check built on the ticket fixture's own
+tests sometimes loses its verdict.**
 In the first grading three checks ended at `base_tests.py`'s 120-second ceiling with no test result: `pristine`
 at a Sol 6.2 baseline's last `implement` snapshot, `pristine` at a Sonnet baseline's step commit, and `suite`
 at the end of one Sonnet F1 slice, which made that slice read 7 of 8 at its end
@@ -1519,6 +1520,17 @@ is in the fixture's test run, about one run in forty on this machine, and says n
 `regrade_timeouts.py` runs again any check whose note is that timeout, up to three times, and keeps the first
 note beside the rerun (`reran` in `slices-guard/snapshots.json`): all three pass at the first rerun
 (`evidence/slices-guard-regrade.txt`). Both arms were hit, two baseline marks and one F1 mark of 98 graded.
+
+Corrected the same day, after the first write-up called this a new fault: it is not new.
+`docs/experiments/brownfield-flake-20261101/README.md` measured it on 2026-11-01 (32 of 928 concurrent runs of
+the base's tests failed). The base's tests listen on the IPv6 wildcard and connect to 127.0.0.1, where another
+project's server on this machine can hold the same port number, so a test reaches the wrong server. The
+calibration suite was hardened then (26728eddd587930f5da3f6600e5d7ab4017d8acc,
+8c5b4d4ec776dc9a06445c1054e9d4802558a649); the live check `base_tests.py` was left unchanged, because a retry
+there could hide a delivery whose own server resets, and the choice was left with the owner. That study's rule
+for a lost verdict is the one followed here: run the check again on the saved work, keep the first result,
+report both. What this round adds is the form it took (three runs that never ended, where that study saw
+resets and wrong answers) and the rerun applied to graded snapshots.
 
 ### Guard round: registered readings
 
@@ -1551,10 +1563,12 @@ note beside the rerun (`reran` in `slices-guard/snapshots.json`): all three pass
 - **F39 (interim, two slices a cell).** The saving shrinks as the item grows: 10% on Sonnet here against 19 to
   44% on the small items, because two steps of five files are each larger than the five steps they replace.
   `test` refusals still fall, from 4 and 6 to 1 and 1.
-- **F40 (apparatus, firm).** `checks/base_tests.py` reports a test run that did not end as a failed check, and
-  the node-tickets base's run does not end about one time in forty here. Any hidden check built on it (`suite`
-  and `pristine` of every ticket case) can read as a product failure for that reason alone. Rounds 4 to 6 used
-  the acceptance module for their ticket yardstick and saw no such failure.
+- **F40 (apparatus; known since 2026-11-01, met again).** A hidden check built on the ticket fixture's own
+  tests (`suite` and `pristine` of every ticket case, through `checks/base_tests.py`) can lose its verdict to
+  another project's server on the same port (R55). Here it took the form of a test run that did not end, three
+  times in 98 graded marks and twice in 80 repeats, and `base_tests.py` reports that as a failed check. One of
+  the three would have failed this guard had it not been run again. Rounds 4 to 6 used the acceptance module
+  for their ticket yardstick and saw no such failure.
 - **F41 (not measured).** A full Grok run of a large item under F1; an item of thousands of lines; long runs
   and a cleared context; what a coarser step history costs later.
 
@@ -1566,9 +1580,12 @@ note beside the rerun (`reran` in `slices-guard/snapshots.json`): all three pass
    If the owner adopts the wording, it is adopted as "one step unless the planner sees a layer boundary worth
    cutting at", not as a size limit. A script-checked limit is not recommended: E-SIZE1's gate never fired in
    40 samples, and nothing here shows the one-step versions doing worse.
-2. **Fix the harness fault before more ticket cases are graded (F40):** make `base_tests.py` tell "did not end"
-   from "failed" (run again, or report the check as not measured), and find the base test that hangs. It is an
-   E2E apparatus change, separate from this study.
+2. **The harness exposure is the owner's standing call, not a new proposal (F40).** The two options recorded
+   on 2026-11-01 are still open: a retry in `base_tests.py`, or binding the base's tests to 127.0.0.1 in the
+   pinned fixture. This round is one more reason to choose: a graded verdict was lost three times in 98, and
+   once it would have failed a registered reading. Until then the rule stands: run a lost base-test verdict
+   again before reading a bar, keep the first result, report both (`regrade_timeouts.py` does it for graded
+   snapshots).
 3. **Still unmeasured where it matters most for Grok:** a full Grok run of a large item under F1 (F41). The
    plan alone says two steps against three; the slice-length limit here kept the build out of reach.
 
