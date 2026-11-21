@@ -5,6 +5,7 @@
     python3 grade.py strength RUN [RUN ...]    the run's frozen acceptance suite against a correct reference, a valid
                                                alternative and each calibrated defect of the case
     python3 grade.py report RUN [RUN ...]      one table over finished runs
+    python3 grade.py variant CASE NAME DEST    write the case's reference delivery or one named defect into DEST
 
 snapshots  exports the commit ratchet.py made after each stage (build-N, fix-N, green-N, final) and runs the case's
            held-out checks on the copy, with the graders round 4 to 6 of the structure study used
@@ -243,6 +244,11 @@ def report(runs):
 
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
+    if len(argv) == 4 and argv[0] == "variant":  # variant CASE NAME DEST: write one reference or defect delivery
+        cases = json.loads((HERE / "cases.json").read_text())
+        Path(argv[3]).mkdir(parents=True, exist_ok=False)
+        print(build_variant(cases[argv[1]], argv[2], Path(argv[3])))
+        return None
     if len(argv) < 2 or argv[0] not in ("snapshots", "strength", "report"):
         raise SystemExit(__doc__)
     verb, runs = argv[0], argv[1:]

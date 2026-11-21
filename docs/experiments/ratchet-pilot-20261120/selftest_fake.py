@@ -6,6 +6,7 @@
 
 It plays every stage on a two-function calculator and misbehaves on purpose, once in each way the script guards:
 
+  plan N    writes the plan
   build 1   builds `add` wrongly (so the tests have something to find) and writes an acceptance file it must not write
   tests 1   writes the acceptance tests, and edits the product, which the test owner may not do
   fix 1     fixes `add`, and weakens a frozen acceptance test
@@ -18,6 +19,14 @@ import sys
 from pathlib import Path
 
 SPEC = """# Specification
+
+## Use cases
+
+### U-1: a caller adds two numbers and doubles the sum
+Flow: double(add(2, 3)) gives 10
+Source: request
+
+## Clauses
 
 ### C-1: add(a, b) returns the sum of two numbers
 Observable: require('./calc.js').add(2, 3) is 5
@@ -38,6 +47,9 @@ def act(role, work, prompt, number):
     cycle = int(found.group(1)) if found else 1
     if role == "spec":
         (ratchet / "spec.md").write_text(SPEC)
+    elif role == "plan":
+        with (ratchet / "plan.md").open("a") as handle:
+            handle.write("## Approach\none file\n## Decisions\nnone\n## Nuances\nnone\n## Build order\ncalc.js\n## How we will know\nrun it\n")
     elif role == "build" and cycle == 1:
         (work / "calc.js").write_text("exports.add = (a, b) => a - b;\nexports.double = (a) => a * 2;\n")
         (work / "acceptance").mkdir(exist_ok=True)
@@ -52,7 +64,8 @@ def act(role, work, prompt, number):
         tests.mkdir(exist_ok=True)
         manifest_file = ratchet / "acceptance.json"
         manifest = json.loads(manifest_file.read_text()) if manifest_file.exists() else {}
-        cases = {"C-1": ("calc.add(2, 3)", "5"), "C-2": ("calc.double(4)", "8")} if cycle == 1 else {"C-3": ("calc.negate(4)", "-4")}
+        cases = ({"C-1": ("calc.add(2, 3)", "5"), "C-2": ("calc.double(4)", "8"), "U-1": ("calc.double(calc.add(2, 3))", "10")}
+                 if cycle == 1 else {"C-3": ("calc.negate(4)", "-4")})
         for ident, (call, want) in cases.items():
             name = ident.lower().replace("-", "") + ".test.js"
             (tests / name).write_text(TEST.format(call=call, want=want))
@@ -79,21 +92,21 @@ def verify(out):
     out = Path(out)
     record = json.loads((out / "run.json").read_text())
     roles = [row["label"] for row in record["sessions"]]
-    expect = ["spec-1", "build-1", "tests-1-1", "fix-1", "delta-1", "build-2", "tests-2-1", "delta-2"]
+    expect = ["spec-1", "plan-1", "build-1", "tests-1-1", "fix-1", "delta-1", "plan-2", "build-2", "tests-2-1", "delta-2"]
     assert roles == expect, roles
-    assert record["stop"] == "converged" and record["final_pass"] is True and record["clauses"] == 3, record
+    assert record["stop"] == "converged" and record["final_pass"] is True and record["clauses"] == 3 and record["use_cases"] == 1, record
     assert any("sneaky.test.js" in line for line in record["tamper"]), record["tamper"]
     assert any("c2.test.js" in line for line in record["tamper"]), record["tamper"]
     assert {"role": "tests", "paths": ["calc.js"]} in record["reverted"], record["reverted"]
-    assert record["spec_violations"] == [{"cycle": 1, "changed_existing": ["C-1"]}], record["spec_violations"]
-    assert record["cycles"][0]["first_gate_failing"] == ["C-1"], record["cycles"][0]
+    assert record["spec_violations"] == [{"stage": "delta", "cycle": 1, "changed_existing": ["C-1"]}], record["spec_violations"]
+    assert record["cycles"][0]["first_gate_failing"] == ["C-1", "U-1"], record["cycles"][0]
     assert record["cycles"][1]["first_gate_failing"] == [] and record["cycles"][1]["new_clauses"] == ["C-3"], record["cycles"][1]
     spec = (out / "work" / "ratchet" / "spec.md").read_text()
     assert "returns the sum of two numbers" in spec and "### C-3" in spec, spec
     assert "weakened" not in (out / "work" / "acceptance" / "c2.test.js").read_text()
     assert not (out / "work" / "acceptance" / "sneaky.test.js").exists()
     labels = [row["label"] for row in record["snapshots"]]
-    assert labels[:3] == ["base", "spec", "build-1"] and labels[-1] == "final", labels
+    assert labels[:4] == ["base", "spec", "plan-1", "build-1"] and labels[-1] == "final", labels
     print(f"selftest ok: {len(roles)} sessions, {len(record['gates'])} gates, {len(record['snapshots'])} snapshots")
 
 

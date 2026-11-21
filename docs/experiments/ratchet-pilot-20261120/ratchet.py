@@ -7,8 +7,12 @@
 This is an experiment apparatus (docs/ratchet-pilot-journal.md), not a released skill. The script owns the order of
 the stages and writes every prompt; a model session does one stage and sees only the files. The stages:
 
-  spec    one session turns the request into numbered clauses a test can decide (ratchet/spec.md)
+  spec    (enrich) one session turns the request into use cases and numbered clauses a test can decide, with the
+          requirements the request only implies (ratchet/spec.md)
   then, cycle after cycle:
+  plan    one session plans how to build it, without cutting it into steps: approach, decisions, the nuances a quick
+          build gets wrong, a build order (ratchet/plan.md), inside an Until Loop that asks for one more full look
+          after the first; it may add clauses
   build   one session builds the whole request (cycle 1), or whatever does not yet match the longer specification
           (later cycles), inside an Until Loop whose exit check is this pilot's gate
   tests   another session, which did not build, writes acceptance tests for every clause and runs them; the script
@@ -42,7 +46,7 @@ RUNTIME = REPO / "skills" / "improve" / "runtime" / "until-loop" / "scripts"
 sys.path.insert(0, str(HERE))
 import gate as gate_module
 
-CLAUSE = re.compile(r"^### (C-\d+): *(.+)$", re.MULTILINE)
+ITEM = re.compile(r"^### ((?:C|U)-\d+): *(.+)$", re.MULTILINE)
 HELD_OUT_MARKS = ("shiploop_e2e", "chess_hidden", "fixtures/quality", "due_times_probe", "ticket_assignment_accept",
                   "expense_service.py", "skill-craft")
 SESSION_SECONDS = 2700
@@ -57,36 +61,94 @@ CONDUCT = """## Rules of conduct
 - You run unattended. Ask no questions: where you must choose, choose, and write the choice where this packet says.
 """
 
-FRAME = ("You are one stage of a loop that a script runs: a specification, a build, a heavy test pass, fixes until every "
-         "check passes, then a look at what was learned, which may lengthen the specification and start the next "
-         "cycle. A different session does each stage and knows only what the files say.")
+FRAME = ("You are one stage of a loop that a script runs: the request enriched into a specification, a plan, a build of "
+         "all of it in one pass, a heavy test pass, fixes until every check passes, then a look at what was learned, which "
+         "may lengthen the specification and start the next cycle. A different session does each stage and knows only what "
+         "the files say.")
 
-SPEC_PACKET = """# Ratchet stage: spec
+SPEC_PACKET = """# Ratchet stage: enrich (the request, made complete)
 
-{frame} This stage writes the specification. Write no product code and no tests.
+{frame} This stage turns the incoming request into the enriched specification that everything after it is planned,
+built and tested from. Write no product code and no tests.
 
-## The request
+## The incoming request
 {request}
 
 ## What to do
 1. Read what is here: the README, the documents, the code and its tests, as far as the request touches them. In an
    existing product the rules it already follows (how it answers errors, how it stores data, what its documents
    promise) bind the change too.
-2. Write `ratchet/spec.md`: the request as numbered clauses that a test can decide. Each clause has exactly this form:
+2. Find the use cases: everyone who will meet this change, and every way they meet it. The ordinary use the request
+   describes. The same use at its edges: the first time, the repeated time, the empty case, the largest case. The
+   unhappy paths: wrong input, a refused action, a limit reached. What an operator does: start, restart, configure,
+   carry on with the data that exists today, go back to the version before. And where the change touches features
+   that already exist.
+3. Find the implied requirements. For each use case ask what must be true for it to work that the request never
+   says, and what the request's own sentences take for granted. Each becomes a clause.
+4. Write `ratchet/spec.md` in exactly this form, use cases first:
+
+## Use cases
+
+### U-<n>: <who> <does what, to get what>
+Flow: <the steps they take and what they see, with the exact values where the request gives them>
+Source: <request | implied: <by which sentence or situation> | existing: <the file that describes it>>
+
+## Clauses
 
 ### C-<n>: <one statement of one behaviour, complete in itself>
 Observable: <what someone outside the code does and sees when it holds, with the exact values>
-Source: <request | existing: <the file that states the rule> | choice: <why, where the request is silent>>
+Source: <request | implied: <by which use case or sentence> | existing: <the file that states the rule> | choice: <why, where the request is silent>>
 
-Cover every sentence of the request; every limit, boundary and error case it states or implies, with its exact
-number; every existing rule the change must keep (one clause each, Source: existing); and what must not change. Where
+The clauses cover every sentence of the request; every implied requirement; every limit, boundary and error case,
+with its exact number; every existing rule the change must keep (one clause each); and what must not change. Where
 the request is silent and a builder would have to guess, decide and say so (Source: choice). Add no feature the
-request does not ask for. Number the clauses C-1, C-2, ... with no gaps. One behaviour a clause: a statement joined by
-"and" is two clauses.
+request's intent does not cover. Number use cases U-1, U-2, ... and clauses C-1, C-2, ... with no gaps. One behaviour
+a clause: a statement joined by "and" is two clauses.
 
 ## Done when
 - `ratchet/spec.md` exists in that form and is the only file you changed.
 {problems}
+{conduct}"""
+
+PLAN_PACKET = """# Ratchet stage: plan ({title})
+
+{frame} This stage plans how to build it. It does not cut the work into steps for others: right after you, one
+session builds all of it in one pass. The plan is the thinking that pass needs done first, above all where the
+nuance is.
+
+## The incoming request
+{request}
+
+## The enriched specification
+`ratchet/spec.md` holds the use cases (U-n) and the clauses (C-n). {what}
+
+## What to do
+Write `ratchet/plan.md`{append} with these five sections:
+
+## Approach
+how the change fits what exists: the parts it touches, the data and the interfaces
+## Decisions
+each design choice a builder would otherwise make by accident: the choice, the reason, the alternative you rejected
+## Nuances
+what a quick build would get wrong. Look where clauses meet each other, where the change meets behaviour that exists,
+and at state, order, limits, error paths, restart, existing data and going back. For each: the clause or use case it
+bears on, what goes wrong, what to do about it.
+## Build order
+the order to build in, within the one pass, so that each part can be checked as it lands
+## How we will know
+for each use case, what to run or observe to see it work, and what a test of this change must not forget
+
+Look more than once: after a first full plan, read the specification, the code and your plan again for a nuance you
+missed, and stop when a full pass finds nothing that would change the build.
+If planning shows that the specification lacks something a use case needs, add it at the end of `ratchet/spec.md` as a
+clause with the next number and `Source: implied: <what showed it>`. Never edit, reorder or remove an existing clause
+or use case. Write no product code and no tests.
+
+{loop}
+
+## Done when
+- `ratchet/plan.md` has the five sections, and nothing changed but it and clauses added to `ratchet/spec.md`.
+
 {conduct}"""
 
 BUILD_PACKET = """# Ratchet stage: build ({title})
@@ -100,6 +162,11 @@ BUILD_PACKET = """# Ratchet stage: build ({title})
 `ratchet/spec.md` holds the request as numbered clauses (C-1, C-2, ...). {what}
 Where the code you find disagrees with the specification, the specification wins. Where the specification is silent,
 decide, and report the decision as a discovery (below).
+
+## The plan
+`ratchet/plan.md` is the plan a session wrote for this pass: its approach, its decisions, the nuances a quick build
+gets wrong and a build order. Build by it. Where you find it wrong, do what the specification needs and say so under
+Discoveries.
 
 ## Everything this pass owes
 - The product code for every clause.
@@ -141,11 +208,14 @@ never by what the code happens to do.
    every number or limit a clause states, test the last value that must be accepted and the first that must be
    refused. Test what a clause implies without saying it: the empty case, the repeated case, and the case after a
    restart where data is kept.
+   For every use case (U-n) write one scenario test that walks its whole flow as that user would, start to end.
+   `ratchet/plan.md` (How we will know, Nuances) and the Discoveries in `ratchet/build-*.md` name scenarios worth a
+   test: add those, and any other scenario the specification implies.
 2. Reach the product only as its users do: its HTTP interface, its command line, the module interface the request
    names, a data file the request names. Never its internal functions: another correct implementation must pass the
    same tests.
-3. Give every clause an entry in `ratchet/acceptance.json`:
-   {{"C-1": {{"command": "<one shell command, run from this folder, that runs only this clause's tests and exits 0 when they pass>"}}, ...}}
+3. Give every clause and every use case an entry in `ratchet/acceptance.json`:
+   {{"C-1": {{"command": "<one shell command, run from this folder, that runs only this item's tests and exits 0 when they pass>"}}, "U-1": {{...}}, ...}}
    Each command ends within 60 seconds, uses a free port and leaves no process behind.
 4. Run every command against the product as it stands. A test that fails because the product breaks its clause
    STAYS as it is: do not weaken it and do not fix the product. A test that fails because the test is wrong (it
@@ -159,7 +229,7 @@ two readings, behaviour next to the change that surprised you. One a line, or "n
 - <the statement the specification should carry> | Observable: <how to see it> | Why: <what you met>
 
 ## Done when
-- every clause has tests and an entry, and you changed nothing outside `acceptance/`, `ratchet/acceptance.json` and
+- every clause and every use case has tests and an entry, and you changed nothing outside `acceptance/`, `ratchet/acceptance.json` and
   `ratchet/tests-{cycle}.md`.
 {problems}
 {conduct}"""
@@ -226,17 +296,20 @@ specification should state, whether or not the product already keeps to it?
 
 ## What to weigh
 - The reports of the stages before you: `ratchet/build-*.md`, `ratchet/tests-*.md`, `ratchet/fix-*.md` and
-  `ratchet/referee-*.md`, above all their Discoveries, Not done and Disputed sections.
+  `ratchet/referee-*.md`, above all their Discoveries, Not done and Disputed sections; and `ratchet/plan.md`, for a
+  nuance it named that no clause carries.
 - The product itself. Start it and use it as its users and operators would: the request's own examples, values at
   and just past each limit, wrong and odd input, the features next to the change, a restart, what its documents
   promise. Use it; do not only read it.
 - The request, read once more for what it implies and the specification does not state.
 
 ## What to do
-For each real finding add a clause at the end of `ratchet/spec.md`, in the form the others have, with the next number
-and `Source: discovery: <what showed it>`. A finding is real when a user or operator would care, the request's intent
+Decide whether the specification needs another level: a use case nobody wrote down, an implied requirement that
+only shows now that the product runs, a limit or an interaction the first pass did not reach.
+For each real finding add a clause at the end of `ratchet/spec.md` (or a use case, for a way of using the product
+that nobody wrote down), in the form the others have, with the next number and `Source: discovery: <what showed it>`. A finding is real when a user or operator would care, the request's intent
 covers it and a test could show it. It is not a new feature, a matter of taste or an existing clause said again.
-Never edit, reorder or remove an existing clause.
+Never edit, reorder or remove an existing clause or use case.
 Write `ratchet/delta-{cycle}.md`: what you used and tried; then each clause you added with
 "product keeps to it: yes | no | not checked"; or the single line "No delta." when you add nothing.
 Change neither the product nor any test.
@@ -255,9 +328,11 @@ the exit check itself. RUN it now, once, before any work:
 Then follow each instruction it prints: do the work, then run the `done` command it gives you with your report, and
 again, until it says the run is complete or stopped. Never write or edit the receipt file. If the receipt already
 exists and says the run is active, run its `next_argv` instead of starting again.
-The exit check is `python3 {gate} {work}`: it runs every acceptance check there is, the project's own checks
-({checks}) and a syntax check of the files you changed, and exits 0 only when nothing fails. You may run it yourself
-at any time."""
+{check_note}"""
+
+GATE_NOTE = ("The exit check is `python3 {gate} {work}`: it runs every acceptance check there is, the project's own checks "
+             "({checks}) and a syntax check of the files you changed, and exits 0 only when nothing fails. You may run it "
+             "yourself at any time.")
 
 
 # ------------------------------------------------------------------ small helpers
@@ -269,29 +344,33 @@ def git(work, *args, check=True):
 
 
 def read_spec(work):
-    """{clause id: {statement, observable, source, block}} in file order, or raises ValueError saying what is wrong."""
+    """The specification's items in file order, {id: {statement, observable, source, block}}: clauses (C-n, with an
+    Observable line) and use cases (U-n, with a Flow line; `observable` holds its first line). Raises ValueError
+    saying what is wrong."""
     path = Path(work) / "ratchet" / "spec.md"
     if not path.is_file():
         raise ValueError("ratchet/spec.md does not exist")
-    text = path.read_text()
-    parts = CLAUSE.split(text)
-    clauses = {}
+    parts = ITEM.split(path.read_text())
+    found = {}
     for index in range(1, len(parts), 3):
         ident, statement, body = parts[index], parts[index + 1].strip(), parts[index + 2]
-        if ident in clauses:
-            raise ValueError(f"clause {ident} appears twice")
-        observable = re.search(r"^Observable: *(.+)$", body, re.MULTILINE)
+        body = re.split(r"^## ", body, maxsplit=1, flags=re.MULTILINE)[0]  # a section heading ends the item
+        if ident in found:
+            raise ValueError(f"{ident} appears twice")
+        need = "Observable" if ident.startswith("C-") else "Flow"
+        shown = re.search(rf"^{need}: *(.*)$", body, re.MULTILINE)
         source = re.search(r"^Source: *(.+)$", body, re.MULTILINE)
-        if not observable or not source:
-            raise ValueError(f"clause {ident} lacks its Observable or Source line")
-        clauses[ident] = {"statement": statement, "observable": observable.group(1).strip(), "source": source.group(1).strip(),
-                          "block": f"### {ident}: {statement}{body.rstrip()}\n"}
-    if not clauses:
+        if not shown or not source:
+            raise ValueError(f"{ident} lacks its {need} or Source line")
+        found[ident] = {"statement": statement, "observable": shown.group(1).strip(), "source": source.group(1).strip(),
+                        "block": f"### {ident}: {statement}{body.rstrip()}\n"}
+    for kind, name in (("C-", "clauses"), ("U-", "use cases")):
+        numbers = [int(ident[2:]) for ident in found if ident.startswith(kind)]
+        if numbers != list(range(1, len(numbers) + 1)):
+            raise ValueError(f"{name} are not numbered {kind}1 to {kind}{len(numbers)} in order")
+    if not any(ident.startswith("C-") for ident in found):
         raise ValueError("ratchet/spec.md holds no clause of the form '### C-<n>: <statement>'")
-    numbers = [int(ident[2:]) for ident in clauses]
-    if numbers != list(range(1, len(numbers) + 1)):
-        raise ValueError(f"clauses are not numbered C-1 to C-{len(numbers)} in order: {', '.join(clauses)}")
-    return clauses
+    return found
 
 
 def section(text, title):
@@ -456,26 +535,38 @@ class Run:
         self.say(f"  ended {row['status']} after {row['seconds']} s")
         return row
 
-    def loop_block(self, name, work_text, exit_text):
+    def loop_block(self, name, work_text, exit_text, plan=False):
+        """Write an Until Loop contract and return the packet's loop block. A build or fix loop exits on the gate; a plan
+        loop exits when the plan exists and one full pass after the first found nothing to add."""
         contract = self.out / "loops" / f"{name}-contract.json"
         receipt = self.out / "loops" / f"{name}-receipt.json"
-        command = f"python3 {self.tools / 'gate.py'} {self.work}"
+        if plan:
+            check = {"id": "plan", "clause": "ratchet/plan.md exists and is not empty", "command": "test -s ratchet/plan.md"}
+            note = ("The exit check only sees that `ratchet/plan.md` exists. The loop also asks for one full pass, after the "
+                    "first, that finds nothing to add: report that pass as trivial only when it changed nothing that matters.")
+            scope = f"ratchet/plan.md, and clauses added at the end of ratchet/spec.md, in {self.work}. No product code, no tests."
+            authority = "Write ratchet/plan.md; add clauses at the end of ratchet/spec.md. Nothing else. No commits, no pushes."
+        else:
+            check = {"id": "gate", "clause": "every check the script runs passes",
+                     "command": f"python3 {self.tools / 'gate.py'} {self.work}"}
+            note = GATE_NOTE.format(gate=self.tools / "gate.py", work=self.work, checks=", ".join(self.checks) or "none")
+            scope = f"The product in {self.work}. Never acceptance/, ratchet/spec.md or ratchet/acceptance.json: they are frozen."
+            authority = ("Edit product files, their tests and documents in the workspace. No commits, no pushes, nothing "
+                         "installed from the network, no process stopped by name.")
         contract.write_text(json.dumps({
             "workspace": str(self.work), "work": work_text, "exit_condition": exit_text,
-            "repeat_condition": "Repeat while the exit check fails and a change to the product can still make it pass. "
-                                "Stop incomplete when every remaining failure is a test you dispute, or you are blocked.",
+            "repeat_condition": ("Repeat while a full pass still finds a nuance that would change the build." if plan else
+                                 "Repeat while the exit check fails and a change to the product can still make it pass. "
+                                 "Stop incomplete when every remaining failure is a test you dispute, or you are blocked."),
+            **({"required_trivial_reviews": 1} if plan else {}),
             "context": {
-                "request": self.request,
-                "scope": f"The product in {self.work}. Never acceptance/, ratchet/spec.md or ratchet/acceptance.json: they are frozen.",
-                "authority": "Edit product files, their tests and documents in the workspace. No commits, no pushes, nothing "
-                             "installed from the network, no process stopped by name.",
+                "request": self.request, "scope": scope, "authority": authority,
                 "environment": f"Run commands in {self.work}. Temporary files under {self.tmp}. Servers on a free port only.",
-                "resources": [{"purpose": "the specification, as numbered clauses", "locator": str(self.work / "ratchet" / "spec.md")},
-                              {"purpose": "the exit check", "locator": str(self.tools / "gate.py")}]},
-            "exit_checks": [{"id": "gate", "clause": "every check the script runs passes", "command": command}],
+                "resources": [{"purpose": "the specification: use cases and numbered clauses", "locator": str(self.work / "ratchet" / "spec.md")},
+                              {"purpose": "the plan for the build pass", "locator": str(self.work / "ratchet" / "plan.md")}]},
+            "exit_checks": [check],
         }, indent=1) + "\n")
-        return LOOP_BLOCK.format(runtime=self.tools / "until_loop_ephemeral.py", receipt=receipt, contract=contract,
-                                 gate=self.tools / "gate.py", work=self.work, checks=", ".join(self.checks) or "none")
+        return LOOP_BLOCK.format(runtime=self.tools / "until_loop_ephemeral.py", receipt=receipt, contract=contract, check_note=note)
 
     def loop_status(self, name):
         receipt = self.out / "loops" / f"{name}-receipt.json"
@@ -529,9 +620,9 @@ class Run:
         else:
             listing = "\n".join(f"- {ident}: {row['statement']}" for ident, row in new.items())
             title = "continue: build what does not yet match the longer specification"
-            what = ("The specification has grown since the product was built. These clauses are new:\n" + listing +
+            what = ("The specification has grown since the product was built. These items are new:\n" + listing +
                     "\nBased on the specification as it now stands and the code as it is, build whatever does not yet match it. "
-                    "A new clause the product already keeps needs no change: say so in the report.")
+                    "A new item the product already keeps to needs no change: say so in the report.")
             note = ("- `acceptance/` holds the acceptance tests another session wrote; read and run them, never edit them: "
                     "the gate puts back any change and counts it.")
             work_text = "Build whatever the product lacks against the specification as it now stands, keeping every passing check passing."
@@ -555,9 +646,9 @@ class Run:
         for attempt in range(1, 4):
             before = git(self.work, "rev-parse", "HEAD").strip()
             if cycle == 1:
-                scope, keep = "For every clause of `ratchet/spec.md`", ""
+                scope, keep = "For every clause (C-n) of `ratchet/spec.md`", ""
             else:
-                scope = ("The specification has grown. For each of these new clauses of `ratchet/spec.md` (" + ", ".join(new) +
+                scope = ("The specification has grown. For each of these new items of `ratchet/spec.md` (" + ", ".join(new) +
                          "), and for any older clause you find weakly tested,")
                 keep = "\n   The acceptance tests already here stay: add to them and strengthen them, never weaken or remove one."
             self.session("tests", TESTS_PACKET.format(frame=FRAME, request=self.request, scope=scope, keep=keep, cycle=cycle,
@@ -640,6 +731,52 @@ class Run:
         lines = [head] + ([f"command: {row['command']}"] if row.get("command") else [])
         return "\n".join(lines + ["  | " + line for line in row.get("tail") or []])
 
+    def grown(self, stage, cycle, clauses, old_text):
+        """After a stage that may lengthen the specification: put back any change to an existing item, keep the new
+        items, and return them ({id: row})."""
+        try:
+            after = read_spec(self.work)
+        except ValueError as error:
+            self.record["spec_violations"].append({"stage": stage, "cycle": cycle, "problem": str(error)})
+            (self.work / "ratchet" / "spec.md").write_text(old_text)
+            return {}
+        touched = [ident for ident, row in clauses.items()
+                   if ident not in after or after[ident]["statement"] != row["statement"] or after[ident]["observable"] != row["observable"]]
+        new = {ident: row for ident, row in after.items() if ident not in clauses}
+        if touched:  # keep the old text and add the new items after it
+            self.record["spec_violations"].append({"stage": stage, "cycle": cycle, "changed_existing": touched})
+            (self.work / "ratchet" / "spec.md").write_text(old_text.rstrip("\n") + "\n\n" + "\n".join(row["block"] for row in new.values()))
+            self.say(f"  the {stage} stage changed existing item(s) {', '.join(touched)}: put back, new items kept")
+        return new
+
+    def stage_plan(self, cycle, clauses, new):
+        """The heavy plan pass, inside an Until Loop that asks for one more full look after the first; the items it added."""
+        before = git(self.work, "rev-parse", "HEAD").strip()
+        old_text = (self.work / "ratchet" / "spec.md").read_text()
+        name = f"plan-{cycle}"
+        if cycle == 1:
+            title, what, append = "how to build the whole request", "Plan the build of all of it.", ""
+            work_text = "Write ratchet/plan.md for the whole request, then read spec, code and plan again for a nuance you missed."
+        else:
+            listing = "\n".join(f"- {ident}: {row['statement']}" for ident, row in new.items())
+            title = "how to build what the longer specification adds"
+            what = ("The specification has grown since the product was built. These items are new:\n" + listing +
+                    "\nPlan how to build them into the product as it stands.")
+            append = f" (keep what is there and add a part headed `# Cycle {cycle}` at its end)"
+            work_text = "Extend ratchet/plan.md for the new items, then read spec, code and plan again for a nuance you missed."
+        loop = self.loop_block(name, work_text, "ratchet/plan.md covers the build, and a full pass after the first found nothing to add.",
+                               plan=True)
+        self.gate_config(frozen=None)
+        self.session("plan", PLAN_PACKET.format(frame=FRAME, title=title, request=self.request, what=what, append=append, loop=loop,
+                                                conduct=self.conduct()), name)
+        self.enforce(before, ["ratchet/plan.md", "ratchet/spec.md"], "plan")
+        added = self.grown("plan", cycle, clauses, old_text)
+        self.record["cycles"][-1].update(plan_loop=self.loop_status(name), plan_added=list(added))
+        self.gate_config(frozen=self.commit(name))
+        if added:
+            self.say(f"  plan {cycle}: {len(added)} item(s) added to the specification: {', '.join(added)}")
+        return added
+
     def stage_delta(self, cycle, clauses):
         before = git(self.work, "rev-parse", "HEAD").strip()
         old_text = (self.work / "ratchet" / "spec.md").read_text()
@@ -647,22 +784,10 @@ class Run:
         self.session("delta", DELTA_PACKET.format(frame=FRAME, request=self.request, cycle=cycle, conduct=self.conduct()),
                      f"delta-{cycle}")
         self.enforce(before, ["ratchet/spec.md", f"ratchet/delta-{cycle}.md"], "delta")
-        try:
-            after = read_spec(self.work)
-        except ValueError as error:
-            self.record["spec_violations"].append({"cycle": cycle, "problem": str(error)})
-            (self.work / "ratchet" / "spec.md").write_text(old_text)
-            after = clauses
-        touched = [ident for ident, row in clauses.items()
-                   if ident not in after or after[ident]["statement"] != row["statement"] or after[ident]["observable"] != row["observable"]]
-        new = {ident: row for ident, row in after.items() if ident not in clauses}
-        if touched:  # the spec only grows: keep the old text and add the new clauses after it
-            self.record["spec_violations"].append({"cycle": cycle, "changed_existing": touched})
-            (self.work / "ratchet" / "spec.md").write_text(old_text.rstrip("\n") + "\n\n" + "\n".join(row["block"] for row in new.values()))
-            self.say(f"  the delta stage changed existing clause(s) {', '.join(touched)}: put back, new clauses kept")
+        new = self.grown("delta", cycle, clauses, old_text)
         frozen = self.commit(f"delta-{cycle}")
         self.gate_config(frozen=frozen)
-        self.say(f"  delta {cycle}: {len(new)} new clause(s)" + (": " + ", ".join(new) if new else ""))
+        self.say(f"  delta {cycle}: {len(new)} new item(s)" + (": " + ", ".join(new) if new else ""))
         return new
 
     # -- the whole run
@@ -682,6 +807,9 @@ class Run:
             repair_start = cycle == 1 and bool(self.args.frozen_from)
             self.cycle_start_frozen = git(self.work, "rev-parse", "HEAD").strip()
             if not repair_start:
+                added = self.stage_plan(cycle, clauses, new)
+                if added:
+                    clauses, new = read_spec(self.work), {**new, **added}
                 if cycle == 1 and self.args.build_from:
                     self.given_build()
                 else:
@@ -707,12 +835,15 @@ class Run:
         final = self.gate("final")
         self.commit("final")
         tamper = self.work / ".git" / "ratchet-tamper.log"
-        self.record.update(final_pass=final["pass"], seconds=round(time.time() - self.began, 1), clauses=len(read_spec(self.work)),
+        ids = list(read_spec(self.work))
+        self.record.update(final_pass=final["pass"], seconds=round(time.time() - self.began, 1),
+                           clauses=sum(1 for ident in ids if ident.startswith("C-")),
+                           use_cases=sum(1 for ident in ids if ident.startswith("U-")),
                            tamper=tamper.read_text().splitlines() if tamper.exists() else [],
                            finished=time.strftime("%Y-%m-%dT%H:%M:%S%z"))
         self.save()
         self.say(f"run ended: {self.record.get('stop')}; final gate {'PASS' if final['pass'] else 'FAIL'}; "
-                 f"{self.record['clauses']} clauses; {len(self.record['sessions'])} sessions; {self.record['seconds']} s")
+                 f"{self.record['clauses']} clauses, {self.record['use_cases']} use cases; {len(self.record['sessions'])} sessions; {self.record['seconds']} s")
         return 0
 
 

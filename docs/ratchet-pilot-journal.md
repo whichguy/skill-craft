@@ -188,6 +188,45 @@ repository (the audit looks for held-out file names in its event stream) is repo
 - Sessions run with the harness's usual permissions (Codex in a throwaway HOME with full disk access), so secrecy of
   the held-out checks rests on prompts that name no repository path and on the audit, not on a sandbox.
 
-## 8. Results
+## 8. Amendment 1, 2026-11-20 19:15: a rich enrichment stage and a heavy plan stage (before any counted run of them)
+
+Owner, fifth message, while the smoke run and the first three P1 runs were in flight: the value is in reflecting after
+the first tests pass and deciding "whether or not the specification needs to take another level"; the elaboration of
+the prompt "should actually be quite rich", looking for "implied requirements, use cases"; and the sequence is the
+incoming prompt, the enriched prompt, then planning, "which should be, again, fairly heavy. Not really break up the
+steps", then build, build the tests, run them, "determine learnings and implicit spec elaborations", turn that into
+another enriched prompt, repeat. "Once you're given the elaborated spec, you really want to look for the nuance,
+iteratively look for the nuance [...] that needs to be considered to then go build."
+
+What changed in `ratchet.py` (the first form is the registration commit 05224b48127a50dd5981706beb3aa28fd1c8bb85):
+
+- **spec becomes enrich.** The stage first finds the use cases (ordinary use, its edges, the unhappy paths, the
+  operator's work, where the change meets existing features), then the requirements each use case needs that the
+  request never states. `ratchet/spec.md` now holds use cases (`### U-n`, with a Flow line) before clauses, and a clause
+  may have `Source: implied: ...`.
+- **plan, a new stage before every build.** One session writes `ratchet/plan.md`: Approach, Decisions, Nuances (what a
+  quick build would get wrong, and where), Build order within the one pass, How we will know. It does not cut the work
+  into steps. It runs inside an Until Loop that asks for one more full pass after the first that finds nothing to add
+  (`required_trivial_reviews: 1`). It may add clauses; the script refuses a changed one.
+- **build** follows the plan and reports where it was wrong. **tests** write one scenario test per use case as well as
+  the tests per clause, and take scenarios from the plan and the build's discoveries. **delta** is asked whether the
+  specification needs another level and may add use cases as well as clauses.
+- The dry run (`selftest_fake.py`) now records 10 sessions with the two plan stages and passes; the given-build path
+  runs spec, plan, tests.
+
+What changes in the registration:
+
+- **P1 gains a second arm.** The three P1 runs already in flight keep the first, plainer spec form (no use cases, no
+  plan). The same three cases run again in the enriched form (enrich, plan, the reference as the build, tests). Same
+  instrument, same 37 defects.
+  - R1.3 **enrichment helps the tests** if the enriched suites catch at least 4 more of the 37 defects, pooled, and
+    fail no more clauses on the correct reference in proportion. Within 3 either way reads as no difference shown. One
+    run a cell, so this reading is interim whatever it shows.
+  - R1.1 and R1.2 are read on the enriched arm, the design under test; the first-form arm is reported beside it.
+- **P2 and P3 run the enriched form.** P2 starts from the enriched arm's frozen suites.
+- The smoke run in flight is the first form; a second smoke is not run: the plan stage's only new machinery is the
+  Until Loop's review count, which the first counted run with a plan stage shows or fails to show (reported).
+
+## 9. Results
 
 (none yet)
