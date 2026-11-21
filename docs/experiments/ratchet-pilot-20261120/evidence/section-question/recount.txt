@@ -1,0 +1,174 @@
+== table (clauses from the spec commit's ratchet/spec.md)
+run	clauses	usecases	request	implied	existing1st	existing_any	choice	other	Open:	sec_entries	entries_file	has_section	cl_existing_tests	cl_new_tests	cl_both_strict	cl_both_loose	cl_tests_total	spec_seconds
+earlier	22	5	13	6	2	8	1	0	8	-	-	no	1	1	0	0	2	46.5
+q-base-1	21	5	13	7	1	10	0	0	9	-	-	no	1	1	0	1	2	53.7
+q-base-2	24	5	13	5	5	10	1	0	10	-	-	no	1	1	0	0	2	47.1
+q-plan-1	20	6	14	4	2	8	0	0	6	-	-	no	2	1	1	1	2	63.2
+q-plan-2	22	6	13	2	5	12	2	0	8	-	-	no	2	1	1	1	2	48.7
+q-spec-1	21	6	12	5	4	9	0	0	9	-	-	no	1	1	0	0	2	51.2
+q-spec-2	22	6	14	3	5	15	0	0	8	-	-	no	2	1	1	1	2	57.9
+q-sec-1	26	5	12	7	6	11	1	0	7	11	10	yes	1	1	1	1	1	63.8
+q-sec-2	24	5	11	10	2	8	1	0	9	10	8	yes	0	0	0	0	0	74.0
+q-sec-3	25	5	13	6	5	12	1	0	7	11	11	yes	1	1	1	1	1	72.9
+
+(checks) clause Source first-word sum equals clause count: earlier=True, q-base-1=True, q-base-2=True, q-plan-1=True, q-plan-2=True, q-spec-1=True, q-spec-2=True, q-sec-1=True, q-sec-2=True, q-sec-3=True
+(checks) existing-anywhere case-insensitive differs from case-sensitive: none
+
+== preserved-behaviour section
+earlier: no '## Preserved behaviour' heading
+q-base-1: no '## Preserved behaviour' heading
+q-base-2: no '## Preserved behaviour' heading
+q-plan-1: no '## Preserved behaviour' heading
+q-plan-2: no '## Preserved behaviour' heading
+q-spec-1: no '## Preserved behaviour' heading
+q-spec-2: no '## Preserved behaviour' heading
+q-sec-1: section present; 11 entries starting '- '; 10 name a file or folder; 0 indented sub-bullets
+    entry with no path found: - Whether status transitions of an assigned ticket (e.g. resolved, closed) should clear the assignee is not settled by the existing files; C-18 keeps it.
+    'not settled' in section: - The data file format version 1 and its checks; a closed ticket cannot be changed (PATCH 409): src/persistence.js, src/store.js. Whether a data file with an invalid `assignee` is refused at start is not settled here.
+    'not settled' in section: - Whether status transitions of an assigned ticket (e.g. resolved, closed) should clear the assignee is not settled by the existing files; C-18 keeps it.
+q-sec-2: section present; 10 entries starting '- '; 8 name a file or folder; 0 indented sub-bullets
+    entry with no path found: - `GET /health`, `GET /admin/outbox`, request body limit, unknown-field refusal.
+    entry with no path found: - Not settled by what is here: whether `show` on the command line should display the assignee, and whether the CLI `list` gets an `--assignee` filter. Neither is asked; they are left as they are today.
+    'not settled' in section: - Not settled by what is here: whether `show` on the command line should display the assignee, and whether the CLI `list` gets an `--assignee` filter. Neither is asked; they are left as they are today.
+q-sec-3: section present; 11 entries starting '- '; 11 name a file or folder; 0 indented sub-bullets
+    'not settled' in section: - Not settled by what is here: whether the shape of a ticket stored in the data file is relied upon by outside tools (the mail relay reads NOTIFY_FILE lines, whose shape is unchanged); docs/api.md, README.md and CHANGELOG.md are not required by the request to be updated.
+
+== item 3: the request's sentences about tests (clause heading or Observable)
+--- earlier (p1S-ticket-assignment-medium)
+existing-tests-passing clauses: 1 (C-21); new-tests-by-npm-test clauses: 1 (C-22); one clause holding both (strict: existing tests pass/unmodified AND new tests/npm test): no; loose (clause names existing tests anywhere in heading/Observable AND new tests/npm test): no
+  C-21: The existing behaviour and the existing tests are unchanged
+    Observable: The tests in `test/` that exist now pass without being edited. `PATCH /tickets/:id` still takes only `title` and `priority`, and an `assignee` field in a PATCH or POST /tickets body is still refused as an unknown field (400).
+  C-22: New node:test tests cover the new behaviour and run under `npm test`
+    Observable: `npm test` runs the new test files under `test/` along with the existing ones, and they pass.
+  wording elsewhere (not a flagged clause's heading/Observable):
+    [U-5 field Flow, section 'Use cases'] Flow: Existing requests, the weekly report, saved data files and the existing tests behave as before.
+--- q-base-1 (q-base-1)
+existing-tests-passing clauses: 1 (C-20); new-tests-by-npm-test clauses: 1 (C-21); one clause holding both (strict: existing tests pass/unmodified AND new tests/npm test): no; loose (clause names existing tests anywhere in heading/Observable AND new tests/npm test): yes: C-21
+  C-20: Existing API behaviour is unchanged by the change
+    Observable: `PATCH /tickets/:id` still refuses `assignee` as an unknown field (400) — assignment is only through the new endpoint; creating a ticket still refuses `assignee` in the body; all the existing tests in `test/` pass unmodified; existing error codes, ids, audit and outbox behaviour for create, update, transition are as documented in docs/api.md, apart from the added `assignee` field.
+  C-21: New tests under `test/` cover the new behaviour and run with `npm test`
+    Observable: `npm test` runs node:test files in `test/` covering assignment, unassignment, the refusals, the no-op, notification, the filters and the command-line listing, together with the existing tests, and exits 0.
+  wording elsewhere (not a flagged clause's heading/Observable):
+    [C-16 field Open, section 'Clauses'] Open: none for the rule itself. Note for builders: the current `matchesFilters` in src/tickets/query.js keeps a ticket that matches any one filter; the documented and requested rule is all of them. The existing test files only exercise single filters.
+    [C-20 field Source, section 'Clauses'] Source: request ("its existing tests must still pass as they are"); existing: docs/api.md
+--- q-base-2 (q-base-2)
+existing-tests-passing clauses: 1 (C-23); new-tests-by-npm-test clauses: 1 (C-24); one clause holding both (strict: existing tests pass/unmodified AND new tests/npm test): no; loose (clause names existing tests anywhere in heading/Observable AND new tests/npm test): no
+  C-23: Existing behaviour and tests are preserved
+    Observable: Every test in test/ that exists now passes unchanged; the endpoints, error envelope, ids, pagination, audit and notifications of creating and resolving tickets behave as in docs/api.md, apart from the added `assignee` field on tickets.
+  C-24: New behaviour has node:test tests under test/, run by `npm test`
+    Observable: `npm test` runs the new test files together with the existing ones and passes; no package is added to package.json.
+  wording elsewhere (not a flagged clause's heading/Observable):
+    [U-5 field Flow, section 'Use cases'] Flow: Existing endpoints, the data file, the weekly report and the existing tests behave as before, apart from what the request changes.
+    [C-17 field Open, section 'Clauses'] Open: The current `matchesFilters` in `src/tickets/query.js` passes a ticket matching any one filter, which contradicts docs/api.md and this request; the request's "must match every filter" is taken as binding for all filters. The existing tests do not exercise two filters at once, so they stay passing.
+--- q-plan-1 (q-plan-1)
+existing-tests-passing clauses: 2 (C-19, C-20); new-tests-by-npm-test clauses: 1 (C-20); one clause holding both (strict: existing tests pass/unmodified AND new tests/npm test): yes: C-20; loose (clause names existing tests anywhere in heading/Observable AND new tests/npm test): yes: C-20
+  C-19: Existing behaviour is preserved
+    Observable: Everything else in docs/api.md behaves as before: PATCH still refuses an `assignee` field (400 unknown field); status and priority filters, validation errors, pagination, transitions, the resolved notification and the created notification are unchanged; the existing tests under `test/` pass unmodified.
+  C-20: New behaviour has node:test tests under `test/`
+    Observable: `npm test` (`node --test`) runs new test files or cases under `test/` covering the assignment endpoint, the filter and the command-line listing, together with the existing tests, and all pass.
+  wording elsewhere: none
+--- q-plan-2 (q-plan-2)
+existing-tests-passing clauses: 2 (C-21, C-22); new-tests-by-npm-test clauses: 1 (C-22); one clause holding both (strict: existing tests pass/unmodified AND new tests/npm test): yes: C-22; loose (clause names existing tests anywhere in heading/Observable AND new tests/npm test): yes: C-22
+  C-21: Existing behaviour and tests are preserved
+    Observable: Every test in `test/` that exists now passes unmodified; PATCH of title/priority, transitions, creation notifications, resolved notifications, the audit log, pagination, errors and the data file behave as documented. `PATCH` does not accept `assignee` (unknown field, 400).
+  C-22: New tests cover the new behaviour and run under `npm test`
+    Observable: New `node:test` files under `test/` cover assignment, unassignment, validation, state refusal, no-op, notification, the listing filters (including combination) and the command-line column; `npm test` runs them with the existing tests and all pass.
+  wording elsewhere: none
+--- q-spec-1 (q-spec-1)
+existing-tests-passing clauses: 1 (C-20); new-tests-by-npm-test clauses: 1 (C-21); one clause holding both (strict: existing tests pass/unmodified AND new tests/npm test): no; loose (clause names existing tests anywhere in heading/Observable AND new tests/npm test): no
+  C-20: Existing behaviour is unchanged
+    Observable: The existing tests in test/ pass unmodified. Create, `PATCH` (title and priority only; an `assignee` field there is still refused as unknown), transition, audit, error envelope, pagination, the `status` and `priority` filters (including `invalid` for a bad value), `/health`, `/admin/outbox`, the creation and resolution notifications to requesters, and the data file behave as in docs/api.md.
+  C-21: New tests cover the new behaviour and run with `npm test`
+    Observable: `npm test` runs new node:test files under test/ together with the existing ones, and they pass.
+  wording elsewhere: none
+--- q-spec-2 (q-spec-2)
+existing-tests-passing clauses: 2 (C-21, C-22); new-tests-by-npm-test clauses: 1 (C-22); one clause holding both (strict: existing tests pass/unmodified AND new tests/npm test): yes: C-22; loose (clause names existing tests anywhere in heading/Observable AND new tests/npm test): yes: C-22
+  C-21: What the service already does keeps working
+    Observable: The existing tests under test/ pass without being edited. Creating, changing, transitioning, reading, auditing, the outbox, notifications of "received" and "resolved" (to the requester), the error envelope and codes, the data file and `GET /health` behave as documented in docs/api.md and docs/operations.md. Creating or changing a ticket without assignment sends no assignment notification.
+  C-22: New tests for the new behaviour run with `npm test`
+    Observable: `npm test` runs node:test files under test/ that cover the new behaviour (assign, unassign, the refusals, the notification, the filter, the command-line column), together with the existing tests, and exits 0 when they all pass. No dependency is added to package.json.
+  wording elsewhere (not a flagged clause's heading/Observable):
+    [C-17 field Open, section 'Clauses'] Open: None, but note: today `matchesFilters` in src/tickets/query.js lists a ticket that matches any one of several filters (it contradicts docs/api.md). The request requires every filter; the existing tests check only single filters and keep passing.
+--- q-sec-1 (q-sec-1)
+existing-tests-passing clauses: 1 (C-26); new-tests-by-npm-test clauses: 1 (C-26); one clause holding both (strict: existing tests pass/unmodified AND new tests/npm test): yes: C-26; loose (clause names existing tests anywhere in heading/Observable AND new tests/npm test): yes: C-26
+  C-26: Existing behaviour and tests stay as they are
+    Observable: every test under `test/` that exists now passes unmodified; the new tests are in new or added files (`node:test`, under `test/`), run by `npm test`, using no dependency.
+  wording elsewhere: none
+--- q-sec-2 (q-sec-2)
+existing-tests-passing clauses: 0 (none); new-tests-by-npm-test clauses: 0 (none); one clause holding both (strict: existing tests pass/unmodified AND new tests/npm test): no; loose (clause names existing tests anywhere in heading/Observable AND new tests/npm test): no
+  wording elsewhere (not a flagged clause's heading/Observable):
+    [no block field -, section 'Preserved behaviour'] Each of these must not change (the existing tests in `test/` keep passing unmodified):
+--- q-sec-3 (q-sec-3)
+existing-tests-passing clauses: 1 (C-24); new-tests-by-npm-test clauses: 1 (C-24); one clause holding both (strict: existing tests pass/unmodified AND new tests/npm test): yes: C-24; loose (clause names existing tests anywhere in heading/Observable AND new tests/npm test): yes: C-24
+  C-24: Existing tests pass unchanged and the new behaviour has tests
+    Observable: `npm test` passes with every file already in test/ unmodified, and with new `node:test` files under test/ covering the clauses above.
+  wording elsewhere (not a flagged clause's heading/Observable):
+    [no block field -, section 'Preserved behaviour'] - `/health`, `/admin/outbox` unchanged (docs/api.md). Existing tests (test/*.test.js) must pass as they are.
+
+== item 4: sentences with PATCH/changed/updated together with a ticket status (open, in progress, resolved, closed)
+--- earlier (p1S-ticket-assignment-medium)
+  [C-5 Observable] (names-resolved,names-closed) For a ticket in status `resolved` or `closed`, a request that would assign a different agent or unassign answers 409 `conflict` in the error envelope, and the ticket's `assignee` and `updated` are unchanged.
+  supplement, whole lines with PATCH/patching and resolved/closed (0):
+--- q-base-1 (q-base-1)
+  [C-5 Observable] (names-resolved,names-closed) For a ticket whose status is `resolved` or `closed`, a PUT with a valid agent or with null answers 409 `conflict` in the error envelope, and the ticket's `assignee` and `updated` stay as they were.
+  [C-7 Observable] (-) `{"assignee": null}` on an open or in-progress ticket with no assignee answers 200 with the ticket unchanged, `updated` unchanged, no audit entry.
+  [C-7 heading] (-) Unassigning an unassigned open or in-progress ticket changes nothing
+  supplement, whole lines with PATCH/patching and resolved/closed (0):
+--- q-base-2 (q-base-2)
+  [C-7 Observable] (-) `PUT` with `{"assignee": null}` on an unassigned open ticket answers 200 with `assignee` null, `updated` unchanged, no audit entry, no notification.
+  [C-7 heading] (-) Unassigning an already unassigned open or in-progress ticket changes nothing
+  supplement, whole lines with PATCH/patching and resolved/closed (0):
+--- q-plan-1 (q-plan-1)
+  [C-1 Observable] (-) For an `open` or `in_progress` ticket T-0001, `PUT /tickets/T-0001/assignee` with `{"assignee":"dana"}` answers 200 with the whole ticket, `assignee` `"dana"`, `updated` set to the time of the change;
+  [C-5 Observable] (names-resolved,names-closed) For a ticket whose status is `resolved` or `closed`, `PUT` of an agent name and `PUT` of `null` each answer 409 `conflict` in the error envelope, and the ticket's `assignee`, `updated`, audit history and outbox are unchanged.
+  [C-5 Observable] (names-resolved) Applies even when the request would change nothing (null on an unassigned resolved ticket).
+  supplement, whole lines with PATCH/patching and resolved/closed (2):
+    line 60: Observable: Every ticket in `POST /tickets` (201), `GET /tickets/:id`, `GET /tickets` items, `PATCH` and `transition` responses has an `assignee` field: null for a new ticket and for any ticket never assigned (including tickets loaded from a data file saved before this change); otherwise the agent's name. Moving a ticket to `resolved` or `closed`, or patching its title or priority, leaves its `assignee` as it was.
+    line 108: Observable: Everything else in docs/api.md behaves as before: PATCH still refuses an `assignee` field (400 unknown field); status and priority filters, validation errors, pagination, transitions, the resolved notification and the created notification are unchanged; the existing tests under `test/` pass unmodified.
+--- q-plan-2 (q-plan-2)
+  [C-21 Observable] (names-resolved) PATCH of title/priority, transitions, creation notifications, resolved notifications, the audit log, pagination, errors and the data file behave as documented.
+  supplement, whole lines with PATCH/patching and resolved/closed (1):
+    line 118: Observable: Every test in `test/` that exists now passes unmodified; PATCH of title/priority, transitions, creation notifications, resolved notifications, the audit log, pagination, errors and the data file behave as documented. `PATCH` does not accept `assignee` (unknown field, 400).
+--- q-spec-1 (q-spec-1)
+  [C-5 Observable] (names-resolved,names-closed) `PUT /tickets/:id/assignee` on a `resolved` or `closed` ticket, with a name or with null, answers 409 `conflict` in the error envelope, and the ticket's assignee, `updated` and audit are unchanged.
+  supplement, whole lines with PATCH/patching and resolved/closed (0):
+--- q-spec-2 (q-spec-2)
+  [C-5 Observable] (names-resolved,names-closed) For a ticket with status `resolved` or `closed`, `PUT /tickets/:id/assignee` (an agent, or `null`) is answered 409 `conflict` in the error envelope, and the ticket is unchanged (assignee, `updated`, no audit entry, no notification).
+  [C-8 Observable] (-) `PUT` with `{"assignee": null}` on an open or in-progress ticket with no assignee answers 200 with the ticket as it was: `updated` is unchanged, no audit entry, no notification.
+  supplement, whole lines with PATCH/patching and resolved/closed (0):
+--- q-sec-1 (q-sec-1)
+  [C-8 Observable] (-) `{"assignee":null}` on an unassigned open ticket answers 200, `updated` unchanged, no audit entry, no notification.
+  [C-18 Observable] (names-resolved) after assigning `dana`, `PATCH` of the title or a transition to `in_progress` or `resolved` keeps `assignee` `"dana"`.
+  [Preserved behaviour entry] (names-closed) a closed ticket cannot be changed (PATCH 409): src/persistence.js, src/store.js.
+  [C-8 heading] (-) Unassigning an already unassigned open or in-progress ticket changes nothing
+  supplement, whole lines with PATCH/patching and resolved/closed (2):
+    line 98: Observable: after assigning `dana`, `PATCH` of the title or a transition to `in_progress` or `resolved` keeps `assignee` `"dana"`.
+    line 145: - The data file format version 1 and its checks; a closed ticket cannot be changed (PATCH 409): src/persistence.js, src/store.js. Whether a data file with an invalid `assignee` is refused at start is not settled here.
+--- q-sec-2 (q-sec-2)
+  [C-6 Observable] (names-resolved,names-closed) A `PUT` that would change the assignee of a `resolved` or `closed` ticket (assign to an agent other than the current one, or unassign an assigned ticket) gets 409 `conflict` in the error envelope, and the ticket's `assignee` and `updated` are unchanged.
+  [C-6 Open] (names-resolved,names-closed) What a `PUT` that would change nothing (same agent, or null on an unassigned ticket) does on a resolved or closed ticket: 200 unchanged, or 409.
+  [C-8 Observable] (-) `{"assignee": null}` on an open or in-progress ticket with `assignee` null answers 200, `updated` is unchanged and no audit entry is added.
+  [C-23 Observable] (names-resolved,names-closed) `PATCH` (title/priority) and `transition` on an assigned ticket (including to `resolved` or `closed`, and reopening) keep `assignee` as it was;
+  [Preserved behaviour entry] (names-resolved,names-closed) `PATCH` rules (closed ticket 409, no-op changes nothing) and the lifecycle `open→in_progress→resolved→closed`, `resolved→open` (src/tickets/states.js).
+  [C-8 heading] (-) Unassigning an already unassigned open or in-progress ticket changes nothing
+  supplement, whole lines with PATCH/patching and resolved/closed (2):
+    line 122: Observable: `PATCH` (title/priority) and `transition` on an assigned ticket (including to `resolved` or `closed`, and reopening) keep `assignee` as it was; `PATCH` with an `assignee` field is still 400 (unknown field).
+    line 137: - `PATCH` rules (closed ticket 409, no-op changes nothing) and the lifecycle `open→in_progress→resolved→closed`, `resolved→open` (src/tickets/states.js).
+--- q-sec-3 (q-sec-3)
+  [C-23 Observable] (names-closed) `POST /tickets`, `PATCH /tickets/:id` (a closed ticket still 409), `POST /tickets/:id/transition`, audit and outbox behave as in docs/api.md;
+  [Preserved behaviour entry] (names-closed) PATCH refuses closed tickets (docs/api.md).
+  supplement, whole lines with PATCH/patching and resolved/closed (2):
+    line 122: Observable: `POST /tickets`, `PATCH /tickets/:id` (a closed ticket still 409), `POST /tickets/:id/transition`, audit and outbox behave as in docs/api.md; creating still notifies the requester (`ticket.created`) and resolving still notifies the requester (`ticket.resolved`). Transitioning or patching an assigned ticket leaves its assignee as it is, and `PATCH` still refuses an `assignee` field (unknown field, 400): assignment goes only through the new endpoint.
+    line 142: - Lifecycle table (src/tickets/states.js) and closed being final; PATCH refuses closed tickets (docs/api.md).
+
+== item 5: run.json
+earlier: spec_session_seconds=46.5 (spec_from_seconds) preserve=None spec_commit=5abbf067cedf6cdcb11db2308ded5568e056c8e6
+q-base-1: spec_session_seconds=53.7 preserve=none spec_commit=9ed29eea9c775575d0bff8cf5a3efd2aefba1ffa
+q-base-2: spec_session_seconds=47.1 preserve=none spec_commit=e68beb19c89586e937d434ea574c949e28e15dbc
+q-plan-1: spec_session_seconds=63.2 preserve=plan spec_commit=abc963298f472025d47e400e803475e78a76a7b6
+q-plan-2: spec_session_seconds=48.7 preserve=plan spec_commit=f3004190c98d11a0ca74ca9148e0520ae177aa77
+q-spec-1: spec_session_seconds=51.2 preserve=spec spec_commit=b745984838d3523af8c97bcad445f7606f7781de
+q-spec-2: spec_session_seconds=57.9 preserve=spec spec_commit=3906d5fa33d9464cfaaaafa7f52f29562404b682
+q-sec-1: preserve=spec-section model=claude-sonnet-5-5 effort=medium spec_session_seconds=[63.8] cost_usd=[0.3102579] held_out_marks(union)=[] spec_violations=[] tamper=[] reverted=[] local_head=18f8a815d7a2e55adeef4358265f4ab5efff4645 spec_commit=1eba230ebee04aa8cd44d0d4bc53d1f41a92adf7
+q-sec-2: preserve=spec-section model=claude-sonnet-5-5 effort=medium spec_session_seconds=[74.0] cost_usd=[0.3001255] held_out_marks(union)=[] spec_violations=[] tamper=[] reverted=[] local_head=18f8a815d7a2e55adeef4358265f4ab5efff4645 spec_commit=e57778c955e35204950e30e2ac22737cd132df4c
+q-sec-3: preserve=spec-section model=claude-sonnet-5-5 effort=medium spec_session_seconds=[72.9] cost_usd=[0.31313329999999995] held_out_marks(union)=[] spec_violations=[] tamper=[] reverted=[] local_head=18f8a815d7a2e55adeef4358265f4ab5efff4645 spec_commit=436919d9ad8ea57f7889491e56fbb1c76c33aa8d

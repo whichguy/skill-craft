@@ -1,0 +1,3 @@
+[14:29:34] session 1: spec-1
+[14:30:46]   ended exited after 72.9 s
+[14:30:47] run ended: stop-after-spec; final gate none run; 25 clauses, 5 use cases; 1 sessions; 73.2 s

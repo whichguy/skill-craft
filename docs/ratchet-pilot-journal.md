@@ -2670,3 +2670,93 @@ mixed, step B's question arm puts its question in the plan, where it was answere
 **Limits known before the runs.** One case, one model at one effort, three runs. The specification alone: nothing
 here says what tests or products do with a section. The paragraph is the plan's with two phrases changed, and both
 changes are mine. The seven specifications it is read against were written two hours earlier.
+
+### Amendment 13, result (2026-11-21 14:36; three specification runs, 14:29 to 14:31)
+
+Status: firm for what was run: three runs of the spec stage alone on ticket assignment, Claude host,
+`claude-sonnet-5-5` at medium; each specification accepted on its first try; no held-out mark; nothing put back by
+the script; 0.92 dollars. Read beside the seven specifications on file from amendment 12, each as its spec stage
+left it.
+
+**Table. Ten specifications of the same request.** "`existing` first" and "anywhere" as in amendment 12. "Section"
+is the number of entries of a `## Preserved behaviour` section and, in brackets, how many name a file. "Test
+clauses" is the number of clauses that carry the request's two sentences about tests (the existing tests still
+pass; new tests run under `npm test`).
+
+| Run | The question | Clauses | `existing` first | anywhere | choice | `Open:` | Section | Test clauses | Seconds |
+|---|---|---|---|---|---|---|---|---|---|
+| earlier | none | 22 | 2 | 8 | 1 | 8 | none | 2 | 47 |
+| `q-base-1` | none | 21 | 1 | 10 | 0 | 9 | none | 2 | 54 |
+| `q-base-2` | none | 24 | 5 | 10 | 1 | 10 | none | 2 | 47 |
+| `q-plan-1` | none yet | 20 | 2 | 8 | 0 | 6 | none | 2 | 63 |
+| `q-plan-2` | none yet | 22 | 5 | 12 | 2 | 8 | none | 2 | 49 |
+| `q-spec-1` | an instruction | 21 | 4 | 9 | 0 | 9 | none | 2 | 51 |
+| `q-spec-2` | an instruction | 22 | 5 | 15 | 0 | 8 | none | 2 | 58 |
+| `q-sec-1` | a section to fill | 26 | 6 | 11 | 1 | 7 | 11 (10) | 1 | 64 |
+| `q-sec-2` | a section to fill | 24 | 2 | 8 | 1 | 9 | 10 (8) | 0 | 74 |
+| `q-sec-3` | a section to fill | 25 | 5 | 12 | 1 | 7 | 11 (11) | 1 | 73 |
+
+**The readings of amendment 13.**
+
+- **R14.1, the first reading: the form decides.** All three specifications hold the section, with 11, 10 and 11
+  entries of which 10, 8 and 11 name a file (the bar was 5). Each also says what the repository does not settle
+  (for example whether a data file with an invalid assignee is refused, and whether `show` prints the assignee).
+  The two specifications written with the same question as an instruction hold no list.
+- **R14.2, do the answers become clauses: not shown.** Clauses sourced `existing`: 6, 2 and 5, against 1 to 5 on
+  file. The bar was 7 in two runs. The specifications are a little longer all the same (26, 24 and 25 clauses
+  against 20 to 24), with no one kind of source accounting for it.
+- **R14.3, harm, my reading.** No `existing` clause decides something new. Those about the new feature apply a rule
+  the documents state for every request or every change (unknown fields are refused, an unknown ticket is 404,
+  every change is on the audit record). One section says of the very point F41's clause decided, a data file with
+  an invalid assignee, that it is not settled. Choice clauses: 1 in each. What reading them did turn up is below.
+- **R14.4, the one defect.** None of the three says that a resolved ticket can still be changed, and none of the
+  seven on file does. All three sections give the rule from the refusing side only ("a closed ticket cannot be
+  changed (PATCH 409)"; "PATCH refuses closed tickets"), which a product that also refuses a resolved one
+  satisfies.
+
+**Not registered, found by reading: with a section to fill, requirements left the clauses.** The request's two
+sentences about tests are two clauses in each of the seven specifications on file. With the section they are one
+clause holding both in `q-sec-1` (C-26) and `q-sec-3` (C-24), and no clause in `q-sec-2`, where "the existing tests
+in `test/` keep passing unmodified" is the section's opening line and the sentence on new tests under `npm test` is
+nowhere in the specification. Three of three against none of seven. Only clauses and use cases are given tests, and
+amendment 12 found that on this case those two clauses carry most of what is caught in existing behaviour. No
+test stage ran here, so what a test session would make of a section is not known.
+
+**Predictions scored.** "All three answer, with 8 to 15 entries naming a file": held (10, 8, 11). "`existing`
+clauses between 4 and 8, 7 or more in at most one run": the second half held; one run wrote 2. "The
+resolved-ticket clause in at most one run": held, in none. "At most one clause decides something new under an
+`existing` source": held, none by my reading. That the section would draw requirements away from the clauses I did
+not predict.
+
+**Findings.**
+
+- **F43 (firm for what was run: three runs; with amendment 12, five of five against none of two).** A question
+  from ShipLoop's catalog is answered when there is a section to fill, at the specification stage as at the plan
+  stage. At the specification stage, where both forms were run, the form decides: three of three with a section,
+  none of two without. The plan was run only with one. So F39's difference was the form, as far as these runs go.
+- **F44 (three runs).** At the specification stage the answer stays a list. The plan's entries became clauses (5
+  and 4 added, and one of them caught the defect no short specification had caught); the specification's did not
+  (R14.2), and none of the three lists says the one thing that defect needs.
+- **F45 (three of three; no test stage run).** A section is also somewhere else to put a requirement. With one in
+  the specification, a request sentence that had always been a clause became part of the list. A list that is
+  not tested must point at the clause that carries each entry, or it takes from the tests what it adds to the
+  page.
+
+**Is there enough to conclude?** For what this amendment asked, yes: the form decides. For the design of what
+follows: a catalog question can be put to the specification stage as a section, as registered, and by F45 the
+section's entries must name the clause that states each of them; where entries are meant to become requirements,
+the plan is the stage that made them so. Not established: what a test session does with a section; any other
+question of the catalog; another case or model.
+
+**Checked twice, and who decided what.** The readings and findings are the main session's. A Sonnet subagent
+copied the evidence, ran the registered script and recounted every figure with a script of its own, quoting each
+clause on tests and each line on changing a ticket by status; its counts match the script's on all ten
+specifications (the earlier baseline's specification time apart, as before), and its quotes are what the readings
+of R14.4 and of the test clauses rest on.
+
+**Limits.** One case, one model at one effort, three runs. The specification alone. The seven on file were written
+two hours earlier from the same text. The count of test clauses was not registered; it is exact (a clause either
+carries a sentence or does not) and was made twice.
+
+Evidence: `evidence/section-question/` (a folder for each of the three runs with its record, specification and
+log; `specs-log.txt` and `.json`; `recount.txt`).
