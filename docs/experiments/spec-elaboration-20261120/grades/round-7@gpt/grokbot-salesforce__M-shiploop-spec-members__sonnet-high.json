@@ -1,0 +1,186 @@
+{
+ "slot": "grokbot-salesforce__M-shiploop-spec-members__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "AD-7, F-1",
+   "quote": "LWC `grokBotChat` exposes `lightning__Tab`; `CustomTab` `GrokBot` \u2026 `CustomApplication` `GrokBot` lists the tab. \u2026 send(conversationId?, text)"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "AD-1, F-1",
+   "quote": "Apex runs in **user mode** (`WITH USER_MODE` queries, `AccessLevel.USER_MODE` DML) inside `with sharing` classes \u2026 if conversationId: read history in user mode (R-9)"
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-9",
+   "quote": "A user without FLS on a field never receives that field's value (the call fails with `ACCESS_DENIED` rather than returning blanks that look valid).",
+   "missing": "How encrypted values are read or masked when the user can access the field but has limited access to its plaintext."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "AD-8",
+   "quote": "`GrokBot_User`: tab and app visibility, Apex class access \u2026 read and edit on `GrokBot_Setting__mdt` is a Setup right \u2026 the admin role is documentation of who sets the key and settings"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "U1's list contains only U1's conversations \u2026 a user holding View All / Modify All on the objects through their profile sees all conversations"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-5",
+   "quote": "Apex may not make a callout in a transaction that already holds uncommitted DML. \u2026 Synchronous callout from `@AuraEnabled`",
+   "missing": "The spec orders DML after the callout. It gives no trigger restriction or design for executing the callout in a separate asynchronous transaction."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AD-2, R-7",
+   "quote": "Named Credential `GrokBot_xAI` (endpoint base `https://api.x.ai`) references External Credential `GrokBot_xAI_Cred` \u2026 never visible to users, the browser, deployed metadata, source control, stored records, configuration, or logs."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "AD-5, S-6",
+   "quote": "one callout per request, within the 100-callout and 120 s limits. \u2026 callout 120 s cumulative, heap",
+   "missing": "The applicable Apex heap-size and CPU-time limits need numeric values."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "NFR-7, R-6",
+   "quote": "every changed Apex method has an Apex test with the Grok call mocked (a test class never makes a real callout) \u2026 for each row above a mock returns/raises the member"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "Named Credential `GrokBot_xAI` (endpoint base `https://api.x.ai`) references External Credential `GrokBot_xAI_Cred` \u2026 Callers reach it by `callout:GrokBot_xAI/...`."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "F-1, R-8",
+   "quote": "S-->>W: ok, conversationId, both messages \u2026 the UI re-reads the list and the open transcript from the org",
+   "missing": "The UI learns success from the original response. The re-read handles transport errors, but there is no completion signal for a job that finishes later."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "NFR-2, R-12",
+   "quote": "no automatic retry (avoids duplicate charges and duplicate pairs); manual retry only. \u2026 Two clicks on Send in one tab produce one request",
+   "missing": "How the server recognizes an already completed request and suppresses a second reply when the same work runs twice."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "Grok could not accept this request. Ask your administrator to check the model setting. \u2026 Grok is having trouble right now. Try again. \u2026 Grok did not answer within {seconds} seconds. Try again."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-6, NFR-2",
+   "quote": "`RATE_LIMITED` | HTTP 429 | `Grok is rate limiting requests. Wait a moment and try again.` \u2026 no automatic retry (avoids duplicate charges and duplicate pairs); manual retry only."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-6",
+   "quote": "none returns a partial reply \u2026 Grok did not answer within {seconds} seconds. Try again.",
+   "missing": "How to detect a successful HTTP response containing nonempty text cut short by the output limit, and what the user sees in that case."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "AD-3",
+   "quote": "`Last_Message_At__c` (datetime) \u2026 `GrokBot_Message__c`: master-detail to the conversation \u2026 `Role__c` (restricted picklist `User` | `Assistant`), `Content__c` (long text area, 32768). \u2026 Tokens, model id and raw response body are deliberately **not** stored",
+   "missing": "Only conversation-level last activity is specified. The turn schema lacks a stated status and timestamp, and explicitly omits the model identifier and usage counts."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "S-2, R-10",
+   "quote": "owner delete (cascade); no expiry (none requested) \u2026 The owner can delete a conversation, removing it and all its messages",
+   "missing": "What happens to retained conversations when the owning user account is removed."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "F-1, S-2, G-7",
+   "quote": "read history in user mode (R-9) \u2026 ONE request (system + window + new) \u2026 personal data: user text and Grok replies \u2026 proceed in a development org only; do not load real customer data"
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "With 22 stored (11 turns), the oldest 2 are dropped: request = system + stored #3..#22 + new = 22 entries.",
+   "missing": "The 20-message window fixes the order and count. It leaves open how much history to drop if those messages and the new prompt still exceed the selected model\u2019s context capacity."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-4, R-5",
+   "quote": "With 0 stored (new conversation) the request is system + new = 2 entries. \u2026 4000 \u00d7 `a` accepted; 4001 \u00d7 `a` rejected \u2026 a single space, `\\n\\n` and a tab rejected as empty"
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-11, AD-10",
+   "quote": "The model, system prompt, timeout, message and window bounds \u2026 are read from configuration on every send \u2026 Apex writes one `System.debug` line per failed send with error code, HTTP status and conversation Id",
+   "missing": "How an administrator intentionally disables the bot org-wide. Model edits and failure diagnostics are specified, but the settings provide no explicit off state."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "R-8, S-2, NFR-5",
+   "quote": "Each successful send stores the user message and the reply together \u2026 the creating user; org database \u2026 owner delete (cascade); no expiry (none requested) \u2026 No dashboards, alerts or audit trail",
+   "missing": "The owner-attributed transcript lasts until deletion. The spec explicitly omits an audit trail and gives no retention rule for an audit record."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "F-5, AD-2, NFR-7",
+   "quote": "validate \u2192 deploy \u2192 admin sets key \u2192 admin assigns permission set \u2026 The secret value is entered by an administrator in Setup after deploy \u2026 a production deploy requires 75% overall",
+   "missing": "How metadata moves from a development or test org into production, and which model settings and credential values are used in each environment."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "NFR-1, R-13",
+   "quote": "total wait is bounded by Timeout_Ms (default 60000, config max 120000 \u2026 while pending, Send is disabled, a `Grok is thinking` status (role `status`, `aria-live`) is shown"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "NFR-8, R-6, R-13",
+   "quote": "empty (heading, one sentence of help, composer), loading (`Grok is thinking` row plus skeleton list), error (inline alert with Retry) \u2026 Grok could not accept this request. Ask your administrator to check the model setting."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-1, AD-3, R-12",
+   "quote": "alters no existing org item \u2026 default **Private**, so only the owner reads it. \u2026 a successful send writes the conversation (if new), the user message and the reply in one transaction"
+  }
+ ]
+}

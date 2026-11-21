@@ -1,0 +1,146 @@
+{
+ "slot": "gym-waitlist__P-shiploop-spec__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.37628520000000004,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "PD-2",
+   "quote": "Promotion is **automatic**: when a spot opens, the first eligible waitlisted member is booked immediately, no offer to accept."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "PD-1, R-6, Out of scope",
+   "quote": "Waitlist order is first come, first served by the time the join was accepted. ... simultaneous joins ... resolve as if executed in some serial order ... Out of scope: ... paid or priority tiers"
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "PD-4, PD-5",
+   "quote": "Waitlisting overlapping classes is allowed. ... If the head of the waitlist is no longer eligible to book when a spot opens, that entry is removed",
+   "missing": "Whether promotion into one class removes or otherwise resolves the member's entry in an overlapping class; overlap eligibility is left to G-6."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "PD-2",
+   "quote": "a member may be booked into a class they no longer want and must cancel under the normal cancellation rules.",
+   "missing": "The existing late-cancel/no-show policy is unknown (G-1); whether cancelling right after a late promotion incurs a penalty is not decided."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4, Service boundary contracts",
+   "quote": "in the same atomic operation the first eligible entry is removed from the waitlist and booked ... join, leave and cancel complete synchronously, including promotion."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "A notification is attempted through the channel chosen under G-3 stating class, date and time. ... a delivery failure never undoes the booking and is recorded",
+   "missing": "The notification channel (and final wording) is left open under G-3."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-4, R-6",
+   "quote": "One spot promotes exactly one member. k spots promote the first k eligible entries in order. ... No member is promoted twice and no spot is double-assigned."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "T-5, R-6, I-3",
+   "quote": "direct book | not booked to booked if free | `CLASS_FULL` offers waitlist; `ALREADY_BOOKED`; `ALREADY_WAITLISTED` ... resolve as if executed in some serial order"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "PD-9",
+   "quote": "Joining the waitlist costs nothing and holds no credit or payment; any charge happens only at promotion, exactly as a normal booking would.",
+   "missing": "What happens when the charge at promotion fails (skip to next entry, remove, retry) is not stated; payment model unknown (G-6)."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "G-4, NFR-10",
+   "quote": "Waitlist cap (per class, per member) unspecified. No bound is invented. ... Treated as unbounded in the spec",
+   "missing": "Whether there is a cap and what a member sees when the waitlist is full remain open."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "PD-6",
+   "quote": "The waitlist closes at class start. Promotion happens up to class start; no earlier cutoff."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-4.A6",
+   "quote": "conditional on G-7: S-4, capacity 3 raised to 5, booked A, B, C, waitlist D, E, F, G: D and E are promoted",
+   "missing": "Lowering capacity while a waitlist exists is not addressed, and raising is conditional on the capability existing."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "If the class is cancelled (existing staff action, G-7), all entries are removed and members notified together with booked members as today."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "State and data assessment, PD-1, R-2",
+   "quote": "Waitlist entry (class, member, join order, status) ... Member-surface display state (position, pending) | the client, transient | derived"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "at class start the waitlist is closed and its entries removed ... Left out: retaining history of waitlist entries beyond class start."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "PD-7, R-8",
+   "quote": "A member sees only their own position and the list length is not shown. ... A member never receives another member's identity, the other entries or the total length"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "G-8, Out of scope",
+   "quote": "Staff view of a waitlist (names, order) is not requested. ... Out of scope: staff-side waitlist management or roster",
+   "missing": "The topic is named but explicitly excluded; no staff view, manual promote/remove, or promotion audit view is specified."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "in the same atomic operation the first eligible entry is removed from the waitlist and booked"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "booking a class with a free spot, cancelling a booking, listing classes and the capacity limit work as they do today."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "State and data assessment",
+   "quote": "Migration: waitlist entries are a new record; no existing record is migrated.",
+   "missing": "Whether classes already full at launch gain a waitlist (and how) is not stated explicitly."
+  }
+ ]
+}

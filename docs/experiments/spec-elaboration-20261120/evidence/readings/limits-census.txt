@@ -1,0 +1,241 @@
+31 deliveries with a work tree and a final report
+limits = candidate lines the run added that were not in the product before (by number: in spec / in a test / in the report);
+a number match is loose for small numbers, so the lines themselves are listed below for reading
+case             model         eff    out    spec@spec gaps assum  limits(in spec/test/report)  assumptions-in-report  run
+shared-expenses  claude-sonnet high   PASS      2207w    0     4    8 (2/2/2)                 0   e2e-runs-sdlc8/20261120/shared-expenses-sonnet-high
+ticket-assignmen gpt-6.2-sol   medium PASS       356w    0     0    0 (0/0/0)                 0   e2e-runs-sdlc8/20261120/ticket-assignment-sol-medium
+hello            gpt-6.2-sol   medium PASS       120w    0     0    0 (0/0/0)                 0   e2e-runs-sdlc9/20261120/rehearsal-L-sol-medium-hello
+hello            gpt-6.2-sol   medium PASS       199w    0     0    0 (0/0/0)                 0   e2e-runs-sdlc9/20261120/rehearsal-S-sol-medium-hello
+ticket-due-times gpt-6.2-sol   medium FAILED     373w    0     0    0 (0/0/0)                 0   e2e-runs-sdlc9/20261120/sol-medium-due-L-1
+ticket-due-times gpt-6.2-sol   medium FAILED     368w    0     0    1 (0/1/0)                 0   e2e-runs-sdlc9/20261120/sol-medium-due-L-2
+ticket-due-times gpt-6.2-sol   medium FAILED     358w    0     0    1 (0/0/0)                 1   e2e-runs-sdlc9/20261120/sol-medium-due-S-1
+ticket-due-times gpt-6.2-sol   medium PASS       468w    0     0    1 (0/0/0)                 1   e2e-runs-sdlc9/20261120/sol-medium-due-S-2
+shared-expenses  gpt-6.2-sol   medium PASS       306w    0     0    1 (1/1/1)                 0   e2e-runs-sdlc9/20261120/sol-medium-expenses-L-1
+shared-expenses  gpt-6.2-sol   medium PASS       270w    0     0    1 (1/1/1)                 1   e2e-runs-sdlc9/20261120/sol-medium-expenses-L-2
+shared-expenses  gpt-6.2-sol   medium PASS       390w    0     0    1 (1/1/1)                 1   e2e-runs-sdlc9/20261120/sol-medium-expenses-S-1
+shared-expenses  gpt-6.2-sol   medium PASS       320w    0     0    1 (1/1/1)                 0   e2e-runs-sdlc9/20261120/sol-medium-expenses-S-2
+ticket-due-times claude-sonnet high   PASS      1718w    0     3    1 (1/1/1)                 2   e2e-runs-sdlc9/20261120/sonnet-high-due-L-1
+ticket-due-times claude-sonnet high   FAILED    2288w    1     1    1 (1/1/1)                10   e2e-runs-sdlc9/20261120/sonnet-high-due-L-2
+ticket-due-times claude-sonnet high   PASS      2214w    1     1    1 (1/1/1)                10   e2e-runs-sdlc9/20261120/sonnet-high-due-S-1
+ticket-due-times claude-sonnet high   PASS      2067w    1     3    1 (1/1/1)                 6   e2e-runs-sdlc9/20261120/sonnet-high-due-S-2
+ticket-due-times gpt-6.2-sol   high   PASS       373w    0     0    1 (1/1/1)                 0   e2e-runs-sdlc10/20261120/sol-high-due-1
+ticket-due-times gpt-6.2-sol   high   PASS       457w    0     0    0 (0/0/0)                 2   e2e-runs-sdlc10/20261120/sol-high-due-2
+ticket-due-times gpt-6.2-sol   high   FAILED     379w    0     0    0 (0/0/0)                 0   e2e-runs-sdlc10/20261120/sol-high-due-3
+ticket-due-times gpt-6.2-sol   high   FAILED     443w    0     0    1 (0/0/0)                 0   e2e-runs-sdlc10/20261120/sol-high-due-4
+shared-expenses  gpt-6.2-sol   high   PASS       499w    0     0    1 (1/1/1)                 0   e2e-runs-sdlc10/20261120/sol-high-expenses-1
+shared-expenses  gpt-6.2-sol   high   PASS       412w    0     0    1 (1/1/1)                 0   e2e-runs-sdlc10/20261120/sol-high-expenses-2
+ticket-due-times gpt-6.2-sol   high   FAILED     505w    0     0    0 (0/0/0)                 1   e2e-runs-sdlc10/20261121-paired/sol-high-due-p1
+ticket-due-times gpt-6.2-sol   high   FAILED     668w    0     0    0 (0/0/0)                 0   e2e-runs-sdlc10/20261121-paired/sol-high-due-p2
+shared-expenses  gpt-6.2-sol   high   PASS       566w    0     1    1 (1/1/1)                 2   e2e-runs-sdlc10/20261121-paired/sol-high-expenses-p1
+shared-expenses  gpt-6.2-sol   high   PASS       442w    0     0    1 (1/1/1)                 0   e2e-runs-sdlc10/20261121-paired/sol-high-expenses-p2
+ticket-due-times gpt-6.2-sol   medium FAILED     393w    0     0    1 (0/0/0)                 0   e2e-runs-sdlc10/20261121-paired/sol-medium-due-p1
+ticket-due-times gpt-6.2-sol   medium FAILED     255w    0     0    1 (0/1/1)                 0   e2e-runs-sdlc10/20261121-paired/sol-medium-due-p2
+shared-expenses  gpt-6.2-sol   medium PASS       361w    0     0    1 (1/1/1)                 1   e2e-runs-sdlc10/20261121-paired/sol-medium-expenses-p1
+shared-expenses  gpt-6.2-sol   medium PASS       422w    0     0    1 (1/1/1)                 0   e2e-runs-sdlc10/20261121-paired/sol-medium-expenses-p2
+grokbot-local    gpt-6.2-sol   high   PASS       731w    0     0    9 (0/4/1)                 1   e2e-runs/ratchet-pilot-20261120-b6eab2/g-shiploop-sol-high
+
+== e2e-runs-sdlc8/20261120/shared-expenses-sonnet-high  (shared-expenses, claude-sonnet-5-5 high, PASS)
+   spec at the spec stage: 2207 words; limit lines in it: 15
+      spec: - Boundary: `package.json`, if present, has no `dependencies`. Confirmed by a test reading it (or its absence).
+      spec: - Boundary: DATA_FILE missing at startup means an empty store, and the file is created on the first mutation. Confirmed by integration test with a non-existent path.
+      spec: - Boundary: exactly two members is accepted; a whitespace-only name such as `" "` is non-empty and is accepted (assumption: names are not trimmed). Confirmed by HTTP test
+      spec: - Boundary: of concurrent `POST /groups` with the same id exactly one answers 201 and the rest 409. Confirmed by HTTP test with 10 parallel requests.
+      spec: - Boundary: `cents` of 1 is accepted.
+      spec: - Boundary: even division (90 over 3 gives 30 each, no remainder); `cents` smaller than the member count (group of 3, 2 cents: shares 1,1,0); the payer is not necessarily
+   code lib/app.js: * discarded (so the client can finish sending and read the 413) and reported as `tooLarge`.   [value None; in request None, spec None, test None, report None]
+   code lib/app.js: * method (405), body read (413) and parse (400), validation (400), then the mutation.   [value None; in request None, spec None, test None, report None]
+   code lib/app.js: /** Read and parse the JSON object body, answering 413 / 400 itself, then call `next(body)` synchronously. */   [value None; in request None, spec None, test None, report None]
+   code lib/app.js: if (raw.tooLarge) return sendError(res, 413, `request body exceeds ${BODY_LIMIT_BYTES} bytes`, { connection: 'close' });   [value None; in request None, spec None, test None, report None]
+   code lib/config.js: const MAX_PORT = 65535;   [value 65535; in request False, spec True, test True, report True]
+   code lib/store.js: if (!Array.isArray(members) || members.length < 2) return 'members must list at least two names';   [value 2; in request True, spec True, test True, report True]
+   code support/scenarios.js: /** R-12: invalid JSON 400, 1 MiB + 1 byte answers 413 (not a reset), the server keeps answering. */   [value None; in request None, spec None, test None, report None]
+   code support/scenarios.js: assert.equal(res.status, 413);   [value None; in request None, spec None, test None, report None]
+   report: 15322 words; open items []; 'limit' words 12
+== e2e-runs-sdlc8/20261120/ticket-assignment-sol-medium  (ticket-assignment, gpt-6.2-sol medium, PASS)
+   spec at the spec stage: 356 words; limit lines in it: 2
+      spec: The assignment request of 2026-11-20 and docs/api.md define the HTTP contract. PUT /tickets/:id/assignee accepts a single assignee field. A nonempty name up to 64 charact
+      spec: Use the existing terminal table alignment and preserve TSV delimiters by applying single-line field validation. Verify readable headers and machine-readable output with r
+   report: 3074 words; open items []; 'limit' words 4
+== e2e-runs-sdlc9/20261120/rehearsal-L-sol-medium-hello  (hello, gpt-6.2-sol medium, PASS)
+   spec at the spec stage: 120 words; limit lines in it: 1
+      spec: The 2026-11-20 request specifies a local script named `hello.py`. Running `python3 hello.py` from the repository root exits successfully and writes exactly `Hello, world!
+   report: 2252 words; open items []; 'limit' words 0
+== e2e-runs-sdlc9/20261120/rehearsal-S-sol-medium-hello  (hello, gpt-6.2-sol medium, PASS)
+   spec at the spec stage: 199 words; limit lines in it: 2
+      spec: - From the repository root, `python3 hello.py` exits successfully and writes exactly `Hello, world!\n` to stdout on the local target. Missing punctuation, additional text
+      spec: The command has no interactive interface, styling, persistent data or network access. Exact output is the observable compatibility requirement. No separate timing bound w
+   report: 2065 words; open items []; 'limit' words 0
+== e2e-runs-sdlc9/20261120/sol-medium-due-L-1  (ticket-due-times, gpt-6.2-sol medium, FAILED)
+   spec at the spec stage: 373 words; limit lines in it: 0
+   code src/app.js: function createApp({ store, clock = systemClock, dueTimes = false, maxBodyBytes = 64 * 1024, log, logRequests = false }) {   [value 65536; already in the product before the run; in request False, spec False, test True, report False]
+   report: 2844 words; open items []; 'limit' words 1
+== e2e-runs-sdlc9/20261120/sol-medium-due-L-2  (ticket-due-times, gpt-6.2-sol medium, FAILED)
+   spec at the spec stage: 368 words; limit lines in it: 0
+   code src/app.js: function createApp({ store, maxBodyBytes = 64 * 1024, log, logRequests = false, dueTimes = false }) {   [value 65536; already in the product before the run; in request False, spec False, test False, report False]
+   code src/config.js: const MAX_DUE_HOURS = 1_000_000;   [value 1000000; in request False, spec False, test True, report False]
+   code src/store.js: list({ filters = {}, limit = 20, after = null, overdue = false } = {}) {   [value 20; already in the product before the run; in request False, spec False, test True, report False]
+   report: 3514 words; open items []; 'limit' words 1
+== e2e-runs-sdlc9/20261120/sol-medium-due-S-1  (ticket-due-times, gpt-6.2-sol medium, FAILED)
+   spec at the spec stage: 358 words; limit lines in it: 1
+      spec: Preserve single-writer atomic file replacement and recoverable retries via the existing persistence boundary. Validate with disposable production-shaped files, including 
+   code src/app.js: function createApp({ store, maxBodyBytes = 64 * 1024, log, logRequests = false, dueTimes = false }) {   [value 65536; already in the product before the run; in request False, spec False, test False, report True]
+   code src/config.js: wholeNumber(env, 'DUE_HOURS_' + priority.toUpperCase(), hours, { min: 1, max: 1_000_000_000 }),   [value 1000000000; in request False, spec False, test False, report False]
+   code src/store.js: list({ filters = {}, limit = 20, after = null, overdue = false } = {}) {   [value 20; already in the product before the run; in request False, spec True, test False, report True]
+   report: 3216 words; open items ['A2']; 'limit' words 0
+== e2e-runs-sdlc9/20261120/sol-medium-due-S-2  (ticket-due-times, gpt-6.2-sol medium, PASS)
+   spec at the spec stage: 468 words; limit lines in it: 1
+      spec: Maintain single-writer atomic state replacement and existing access, audit and notification boundaries. Tests use a temporary file and real loopback server. No new networ
+   code src/app.js: function createApp({ store, maxBodyBytes = 64 * 1024, log, logRequests = false, dueTimes = false }) {   [value 65536; already in the product before the run; in request False, spec False, test False, report False]
+   code src/config.js: priority, wholeNumber(env, `SLA_HOURS_${priority.toUpperCase()}`, hours, { max: 1_000_000 }),   [value 1000000; in request False, spec False, test False, report False]
+   code src/store.js: list({ filters = {}, limit = 20, after = null, overdue = false } = {}) {   [value 20; already in the product before the run; in request False, spec True, test False, report True]
+   report: 3442 words; open items ['A3']; 'limit' words 0
+== e2e-runs-sdlc9/20261120/sol-medium-expenses-L-1  (shared-expenses, gpt-6.2-sol medium, PASS)
+   spec at the spec stage: 306 words; limit lines in it: 0
+   code server.js: if (uniqueMembers.length < 2) throw new BadRequest('Expected two distinct members');   [value 2; in request True, spec True, test True, report True]
+   report: 3112 words; open items []; 'limit' words 0
+== e2e-runs-sdlc9/20261120/sol-medium-expenses-L-2  (shared-expenses, gpt-6.2-sol medium, PASS)
+   spec at the spec stage: 270 words; limit lines in it: 0
+   code server.js: if (!Array.isArray(members) || members.length < 2 || !members.every(isName) ||   [value 2; in request True, spec True, test True, report True]
+   report: 3184 words; open items ['A2']; 'limit' words 1
+== e2e-runs-sdlc9/20261120/sol-medium-expenses-S-1  (shared-expenses, gpt-6.2-sol medium, PASS)
+   spec at the spec stage: 390 words; limit lines in it: 1
+      spec: The 2026-11-20 shared-expenses request defines these greenfield requirements. Verify each through the local HTTP boundary with `node --test`.
+   code server.js: if (uniqueMembers.length < 2) throw new InvalidRequest('Expected at least two distinct members');   [value 2; in request True, spec True, test True, report True]
+   report: 3079 words; open items ['A3']; 'limit' words 0
+== e2e-runs-sdlc9/20261120/sol-medium-expenses-S-2  (shared-expenses, gpt-6.2-sol medium, PASS)
+   spec at the spec stage: 320 words; limit lines in it: 0
+   code server.js: if (!Array.isArray(members) || !members.every(isName) || new Set(members).size < 2) {   [value 2; in request True, spec True, test True, report True]
+   report: 2392 words; open items []; 'limit' words 0
+== e2e-runs-sdlc9/20261120/sonnet-high-due-L-1  (ticket-due-times, claude-sonnet-5-5 high, PASS)
+   spec at the spec stage: 1718 words; limit lines in it: 11
+      spec: Product: the IT help desk's ticket service (HTTP API, audit log, outbox, data file, operator command line). Requirements are R-<n>. Basis of the due-time requirements: th
+      spec: - Boundary: default priority (omitted) stamps the normal hours (72). Confirmed by an HTTP test.
+      spec: Request: S3 ("the help desk must be able to change those hours without a code change"). The hours come from the environment variables DUE_HOURS_URGENT (4), DUE_HOURS_HIGH
+      spec: - Boundary: 1 and 100000 are accepted. Open assumption A3 (variables rather than a file; spec owner records it; nothing blocks).
+      spec: - Boundary: a PATCH that changes nothing leaves everything as today. Observed at: HTTP, data file, audit endpoint.
+      spec: - Failure/boundary: n/a: a ticket always has a due once the service has started (R-6).
+   code src/app.js: function createApp({ store, maxBodyBytes = 64 * 1024, log, logRequests = false, dueTimes = false }) {   [value 65536; already in the product before the run; in request False, spec False, test True, report True]
+   code src/config.js: const MAX_DUE_HOURS = 100000;   [value 100000; in request False, spec True, test True, report True]
+   code src/store.js: list({ filters = {}, limit = 20, after = null, overdue = false } = {}) {   [value 20; already in the product before the run; in request False, spec True, test True, report True]
+   report: 20625 words; open items ['A1', 'A2']; 'limit' words 16
+== e2e-runs-sdlc9/20261120/sonnet-high-due-L-2  (ticket-due-times, claude-sonnet-5-5 high, FAILED)
+   spec at the spec stage: 2288 words; limit lines in it: 7
+      spec: - A1.4 Failure: n/a, a create that is valid always gets a due. Boundary: a ticket created at 23:59:59.999 on a month end
+      spec: nothing; `overdue=true&limit=1` pages through the overdue tickets with `next` and `cursor` as ever. Confirmed by an HTTP
+      spec: test with three overdue tickets and limit 2.
+      spec: - A5.4 Failure/boundary: no overdue ticket gives `{ "items": [], "next": null }`. Confirmed by an HTTP test.
+      spec: - A8.4 Known limit, documented in docs/operations.md: 1.4.0 drops `due` when it saves. Moving forward again re-derives every
+      spec: data file's tickets hold `due`, switch on; rollback and its limit) and a new decision record `0009` (indexed in
+   code src/app.js: function createApp({ store, dueTimes = false, maxBodyBytes = 64 * 1024, log, logRequests = false }) {   [value 65536; already in the product before the run; in request False, spec False, test True, report True]
+   code src/store.js: list({ filters = {}, limit = 20, after = null, overdue = false } = {}) {   [value 20; already in the product before the run; in request False, spec True, test True, report True]
+   code src/tickets/due.js: const MAX_DUE_HOURS = 87_600;   [value 87600; in request False, spec True, test True, report True]
+   report: 12239 words; open items ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10']; 'limit' words 15
+== e2e-runs-sdlc9/20261120/sonnet-high-due-S-1  (ticket-due-times, claude-sonnet-5-5 high, PASS)
+   spec at the spec stage: 2214 words; limit lines in it: 16
+      spec: - A1.2 boundary: a ticket created without `priority` is `normal` and gets +72 h. Confirmed: HTTP test.
+      spec: Basis: "the help desk must be able to change those hours without a code change". Interface: `DUE_HOURS_URGENT`, `DUE_HOURS_HIGH`, `DUE_HOURS_NORMAL`, `DUE_HOURS_LOW`: a w
+      spec: - A2.3 boundary: an empty or unset variable takes the default; surrounding spaces are ignored (as `wholeNumber` does). Confirmed: config test.
+      spec: - A3.3 boundary: transition, reopen (`resolved` to `open`) and a no-op patch leave `due` unchanged; `due` is never part of an audit entry. Confirmed: store test.
+      spec: - A4.2 boundary: `GET /tickets/:id/audit` and `GET /admin/outbox` bodies are unchanged. Confirmed: HTTP test comparing to the switch-off body.
+      spec: Basis: "lists only the open and in-progress tickets whose due time has passed". Rule: a ticket is overdue when its status is `open` or `in_progress` and its `due` is befo
+   code src/app.js: function createApp({ store, dueTimes = false, maxBodyBytes = 64 * 1024, log, logRequests = false }) {   [value 65536; already in the product before the run; in request False, spec True, test True, report True]
+   code src/config.js: const MAX_DUE_HOURS = 365 * 24;   [value 8760; in request False, spec True, test True, report True]
+   code src/store.js: list({ filters = {}, overdue = false, limit = 20, after = null } = {}) {   [value 20; already in the product before the run; in request False, spec True, test True, report True]
+   report: 13030 words; open items ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10']; 'limit' words 17
+== e2e-runs-sdlc9/20261120/sonnet-high-due-S-2  (ticket-due-times, claude-sonnet-5-5 high, PASS)
+   spec at the spec stage: 2067 words; limit lines in it: 7
+      spec: out) `2025-09-04T08:00:00.000Z`, low `2025-09-08T08:00:00.000Z`. Confirmed at the store boundary and, with
+      spec: - Boundary: the due time is created + hours exactly, in milliseconds, with no rounding and no calendar or daylight-saving
+      spec: - Combines with the other parameters by AND: `?overdue=true&status=resolved` lists nothing; `limit` and `cursor` page the
+      spec: - Known limit, documented: 1.4.0 does not know `due` and drops it at its next save; the next upgrade backfills again
+      spec: (go back to 1.4.0, which starts on the file and shows every ticket, with the limit of R-8); a decision record
+      spec: - **Compatibility** (hard bound): the data file format version stays 1 and 1.4.0 can read it (R-8); the existing tests
+   code src/app.js: function createApp({ store, maxBodyBytes = 64 * 1024, log, logRequests = false, dueTimes = false }) {   [value 65536; already in the product before the run; in request False, spec False, test True, report True]
+   code src/config.js: const MAX_DUE_HOURS = 8760;   [value 8760; in request False, spec True, test True, report True]
+   code src/store.js: list({ filters = {}, limit = 20, after = null, overdue = false } = {}) {   [value 20; already in the product before the run; in request False, spec True, test True, report True]
+   code src/tickets/query.js: *   GET /tickets?status=open&priority=high&limit=20&cursor=<next of the previous page>&overdue=true   [value 20; already in the product before the run; in request False, spec True, test True, report True]
+   report: 16052 words; open items ['A1', 'A2', 'A3', 'A4', 'A5', 'A7']; 'limit' words 18
+== e2e-runs-sdlc10/20261120/sol-high-due-1  (ticket-due-times, gpt-6.2-sol high, PASS)
+   spec at the spec stage: 373 words; limit lines in it: 0
+   code src/store.js: list({ filters = {}, limit = 20, after = null, overdue = false } = {}) {   [value 20; already in the product before the run; in request False, spec False, test False, report False]
+   code src/tickets/due.js: const MAX_DUE_HOURS = 8.64e15 / HOUR_MS;   [value 8; in request False, spec True, test True, report True]
+   report: 3301 words; open items []; 'limit' words 0
+== e2e-runs-sdlc10/20261120/sol-high-due-2  (ticket-due-times, gpt-6.2-sol high, PASS)
+   spec at the spec stage: 457 words; limit lines in it: 0
+   code src/app.js: function createApp({ store, maxBodyBytes = 64 * 1024, log, logRequests = false, dueTimes = false }) {   [value 65536; already in the product before the run; in request False, spec False, test False, report False]
+   code src/store.js: list({ filters = {}, limit = 20, after = null, overdue = false } = {}) {   [value 20; already in the product before the run; in request False, spec True, test False, report True]
+   report: 3794 words; open items ['A3', 'A4']; 'limit' words 2
+== e2e-runs-sdlc10/20261120/sol-high-due-3  (ticket-due-times, gpt-6.2-sol high, FAILED)
+   spec at the spec stage: 379 words; limit lines in it: 1
+      spec: With exact DUE_TIMES=on, ticket JSON contains an ISO UTC due field. Check creation, list, detail, update and transition responses. overdue=true restricts the existing lis
+   code src/app.js: function createApp({ store, dueTimes = false, maxBodyBytes = 64 * 1024, log, logRequests = false }) {   [value 65536; already in the product before the run; in request False, spec False, test True, report False]
+   code src/store.js: list({ filters = {}, limit = 20, after = null, overdue = false } = {}) {   [value 20; already in the product before the run; in request False, spec False, test False, report False]
+   report: 3486 words; open items []; 'limit' words 1
+== e2e-runs-sdlc10/20261120/sol-high-due-4  (ticket-due-times, gpt-6.2-sol high, FAILED)
+   spec at the spec stage: 443 words; limit lines in it: 0
+   code src/app.js: function createApp({ store, maxBodyBytes = 64 * 1024, log, logRequests = false, dueTimes = false }) {   [value 65536; already in the product before the run; in request False, spec False, test True, report False]
+   code src/store.js: list({ filters = {}, limit = 20, after = null, overdue = false } = {}) {   [value 20; already in the product before the run; in request False, spec True, test False, report True]
+   code src/tickets/due.js: const MAX_DUE_HOURS = 8_640_000_000_000_000 / HOUR_MS;   [value 8640000000000000; in request False, spec False, test False, report False]
+   report: 3408 words; open items []; 'limit' words 1
+== e2e-runs-sdlc10/20261120/sol-high-expenses-1  (shared-expenses, gpt-6.2-sol high, PASS)
+   spec at the spec stage: 499 words; limit lines in it: 0
+   code server.js: if (!Array.isArray(members) || members.length < 2 ||   [value 2; in request True, spec True, test True, report True]
+   report: 3806 words; open items []; 'limit' words 0
+== e2e-runs-sdlc10/20261120/sol-high-expenses-2  (shared-expenses, gpt-6.2-sol high, PASS)
+   spec at the spec stage: 412 words; limit lines in it: 1
+      spec: One server process owns a data file. A response acknowledges a mutation after the full JSON snapshot has been replaced. The application does not require accounts or an ex
+   code server.js: if (!Array.isArray(members) || members.length < 2 ||   [value 2; in request True, spec True, test True, report True]
+   report: 3933 words; open items []; 'limit' words 1
+== e2e-runs-sdlc10/20261121-paired/sol-high-due-p1  (ticket-due-times, gpt-6.2-sol high, FAILED)
+   spec at the spec stage: 505 words; limit lines in it: 0
+   code src/store.js: list({ filters = {}, limit = 20, after = null, overdue = false } = {}) {   [value 20; already in the product before the run; in request False, spec False, test True, report True]
+   report: 4361 words; open items ['A3']; 'limit' words 1
+== e2e-runs-sdlc10/20261121-paired/sol-high-due-p2  (ticket-due-times, gpt-6.2-sol high, FAILED)
+   spec at the spec stage: 668 words; limit lines in it: 0
+   code src/store.js: list({ filters = {}, limit = 20, after = null, overdue = false } = {}) {   [value 20; already in the product before the run; in request False, spec False, test True, report False]
+   report: 4549 words; open items []; 'limit' words 1
+== e2e-runs-sdlc10/20261121-paired/sol-high-expenses-p1  (shared-expenses, gpt-6.2-sol high, PASS)
+   spec at the spec stage: 566 words; limit lines in it: 1
+      spec: Basis S12. Run `node --test` in the repository. Discover tests under `test/` and exercise the normal HTTP and process boundaries using only built-in modules.
+   code server.js: if (!Array.isArray(members) || !members.every(isName) || new Set(members).size < 2) {   [value 2; in request True, spec True, test True, report True]
+   report: 4054 words; open items ['A2', 'A3']; 'limit' words 0
+== e2e-runs-sdlc10/20261121-paired/sol-high-expenses-p2  (shared-expenses, gpt-6.2-sol high, PASS)
+   spec at the spec stage: 442 words; limit lines in it: 1
+      spec: Basis is the Nov 21, 2026 request S3 and S10. Confirm at the real HTTP boundary. Creating a group with a nonblank string ID and at least two distinct nonblank string memb
+   code server.js: && body.members.length >= 2 && body.members.every(isName)   [value 2; in request True, spec True, test True, report True]
+   report: 3974 words; open items []; 'limit' words 1
+== e2e-runs-sdlc10/20261121-paired/sol-medium-due-p1  (ticket-due-times, gpt-6.2-sol medium, FAILED)
+   spec at the spec stage: 393 words; limit lines in it: 1
+      spec: Basis: November 2026 help desk response-time request and docs/api.md. When enabled all ticket responses carry an ISO due. Only literal overdue=true restricts the listing 
+   code src/config.js: wholeNumber(env, `DUE_HOURS_${priority.toUpperCase()}`, hours, { min: 1, max: 2_400_000_000 }),   [value 2400000000; in request False, spec False, test False, report False]
+   code src/store.js: list({ filters = {}, limit = 20, after = null, overdue = false } = {}) {   [value 20; already in the product before the run; in request False, spec False, test False, report False]
+   report: 2865 words; open items []; 'limit' words 0
+== e2e-runs-sdlc10/20261121-paired/sol-medium-due-p2  (ticket-due-times, gpt-6.2-sol medium, FAILED)
+   spec at the spec stage: 255 words; limit lines in it: 2
+      spec: New tickets store creation plus their priority's configured elapsed hours, defaulting to urgent 4, high 24, normal 72 and low 168. Runtime environment overrides require n
+      spec: Enabled overdue=true limits the legacy match set to open and in_progress tickets with due strictly earlier than the request clock, applied before cursor pagination. Verif
+   code src/app.js: function createApp({ store, maxBodyBytes = 64 * 1024, log, logRequests = false, dueTimes = false }) {   [value 65536; already in the product before the run; in request False, spec False, test False, report False]
+   code src/config.js: const max = 8.64e15 / HOUR_MS;   [value 8; in request False, spec False, test True, report True]
+   code src/store.js: list({ filters = {}, limit = 20, after = null, overdue = false } = {}) {   [value 20; already in the product before the run; in request False, spec False, test False, report False]
+   report: 2727 words; open items []; 'limit' words 1
+== e2e-runs-sdlc10/20261121-paired/sol-medium-expenses-p1  (shared-expenses, gpt-6.2-sol medium, PASS)
+   spec at the spec stage: 361 words; limit lines in it: 0
+   code server.js: if (!Array.isArray(members) || !members.every(isName) || new Set(members).size < 2) {   [value 2; in request True, spec True, test True, report True]
+   report: 3058 words; open items ['A2']; 'limit' words 1
+== e2e-runs-sdlc10/20261121-paired/sol-medium-expenses-p2  (shared-expenses, gpt-6.2-sol medium, PASS)
+   spec at the spec stage: 422 words; limit lines in it: 1
+      spec: Treat names as case-sensitive identities and reject blanks. Keep exact arithmetic within JavaScript's safe integer range at the JSON boundary. Support one process per dat
+   code server.js: if (!isName(id) || !Array.isArray(members) || members.length < 2 ||   [value 2; in request True, spec True, test True, report True]
+   report: 3107 words; open items []; 'limit' words 0
+== e2e-runs/ratchet-pilot-20261120-b6eab2/g-shiploop-sol-high  (grokbot-local, gpt-6.2-sol high, PASS)
+   spec at the spec stage: 731 words; limit lines in it: 0
+   code lib/chat.js: const name = requiredText(input.name, kind === 'instruction' ? 'Instruction name' : 'Task name', 80);   [value 80; in request False, spec False, test True, report False]
+   code lib/chat.js: const text = requiredText(input.text, kind === 'instruction' ? 'Instruction text' : 'Task request', 8000);   [value 8000; in request False, spec False, test False, report False]
+   code lib/chat.js: else item.text = requiredText(input.text, 'Memory text', 8000);   [value 8000; in request False, spec False, test False, report False]
+   code lib/chat.js: const bot = makeBot(requiredText(input.name, 'Bot name', 80));   [value 80; in request False, spec False, test True, report False]
+   code lib/chat.js: bot.name = requiredText(input.name, 'Bot name', 80);   [value 80; in request False, spec False, test True, report False]
+   code lib/chat.js: const messageId = requiredText(input.messageId, 'Message identifier', 100);   [value 100; in request False, spec False, test True, report False]
+   code lib/chat.js: const text = requiredText(request, 'Message', 8000);   [value 8000; in request False, spec False, test False, report False]
+   code lib/chat.js: conversation.title = line.length > 44 ? line.slice(0, 43) + '…' : line;   [value 44; in request False, spec False, test False, report False]
+   code server.js: if (length > 64 * 1024) throw new RequestError(413, 'The request is too large.');   [value 65536; in request False, spec False, test False, report True]
+   report: 5221 words; open items ['A3']; 'limit' words 0

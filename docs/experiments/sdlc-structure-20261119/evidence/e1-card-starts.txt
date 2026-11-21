@@ -1,0 +1,30 @@
+sample              arm    request           recorded  first start command passed        route
+e1-card-due-10      card   ticket-due-times  stage     not passed                        workspace
+e1-card-due-11      card   ticket-due-times  stage     not passed                        workspace
+e1-card-due-12      card   ticket-due-times  stage     not passed                        workspace
+e1-card-due-7       card   ticket-due-times  stage     not passed                        workspace
+e1-card-due-8       card   ticket-due-times  stage     not passed                        workspace
+e1-card-due-9       card   ticket-due-times  stage     not passed                        workspace
+e1-card-exp-1       card   shared-expenses   stage     not passed                        workspace
+e1-card-exp-2       card   shared-expenses   stage     not passed                        workspace
+e1-card-exp-3       card   shared-expenses   stage     not passed                        workspace
+e1-card-exp-4       card   shared-expenses   stage     not passed                        workspace
+e1-card-exp-5       card   shared-expenses   stage     not passed                        workspace
+e1-card-exp-6       card   shared-expenses   stage     not passed                        workspace
+e1-plain-due-10     plain  ticket-due-times  stage     not passed                        workspace
+e1-plain-due-11     plain  ticket-due-times  stage     not passed                        workspace
+e1-plain-due-12     plain  ticket-due-times  stage     not passed                        workspace
+e1-plain-due-7      plain  ticket-due-times  stage     None                              workspace
+e1-plain-due-8      plain  ticket-due-times  none      none, with --improve-skill        workspace
+e1-plain-due-9      plain  ticket-due-times  stage     not passed                        workspace
+e1-plain-exp-1      plain  shared-expenses   none      none, with --improve-skill        workspace
+e1-plain-exp-2      plain  shared-expenses   stage     not passed                        workspace
+e1-plain-exp-3      plain  shared-expenses   stage     not passed                        workspace
+e1-plain-exp-4      plain  shared-expenses   stage     not passed                        workspace
+e1-plain-exp-5      plain  shared-expenses   stage     not passed                        workspace
+e1-plain-exp-6      plain  shared-expenses   stage     not passed                        workspace
+
+plain: 12 sessions; passed none: 2; started no run: 0; shared-expenses 1 of 6; ticket-due-times 1 of 6
+card: 12 sessions; passed none: 0; started no run: 0; shared-expenses 0 of 6; ticket-due-times 0 of 6
+
+the registered reading (the card stops it if at most 1 of its 12 pass none and at least 4 of the 12 plain ones do; it cannot read if the plain arm shows 1 or fewer): no effect shown

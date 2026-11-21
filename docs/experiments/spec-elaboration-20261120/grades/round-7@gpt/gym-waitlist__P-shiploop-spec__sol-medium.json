@@ -1,0 +1,153 @@
+{
+ "slot": "gym-waitlist__P-shiploop-spec__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1.a",
+   "quote": "joining creates no reservation and an eligible seat will be booked automatically under the disclosed booking terms."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-3.a",
+   "quote": "the booking authority gives it to the earliest eligible active waiter by committed join order.",
+   "missing": "Commit order handles joins with the same clock time if the commits are sequenced. No fallback is given for indistinguishable order values, and membership-tier exceptions and staff priority remain unresolved."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-1, Rules left by the request and open gaps",
+   "quote": "The product and booking owners must establish how membership, overlapping classes, booking caps, fees, credits and cancellation terms apply at join and promotion.",
+   "missing": "The spec does not say what happens to the other overlapping waitlist entry when one promotion commits."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-2, State and data",
+   "quote": "if allocation wins, the existing booking remains subject to normal cancellation.",
+   "missing": "Ordinary cancellation applies after automatic booking. The spec gives no rule for whether declining late or missing that booking incurs a penalty."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-3.a",
+   "quote": "Promotion creates a normal confirmed booking and consumes that entry as one consistent change. The promoted member sees **Booked** on the next successful current read, even if their app was closed at allocation.",
+   "missing": "Cancellation triggers allocation independently of the member's session, but there is no deadline for completing it."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-3.a",
+   "quote": "The promoted member sees **Booked** on the next successful current read, even if their app was closed at allocation.",
+   "missing": "The spec defines the status shown when the member returns. It provides no promotion message to send and no handling for failed delivery."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-3.b",
+   "quote": "Concurrent releases, promotions, and ordinary booking attempts produce no oversubscription, duplicate booking or promotion after the booking window closes."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-1.a",
+   "quote": "If a released seat is owed to the queue and allocation is pending, the class still presents as unavailable for direct booking."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-1, Rules left by the request and open gaps",
+   "quote": "The product and booking owners must establish how membership, overlapping classes, booking caps, fees, credits and cancellation terms apply at join and promotion.",
+   "missing": "When to charge for the promoted booking and what happens to the booking, entry and seat if payment fails are open."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "Non-functional requirements, Workload, latency and runtime ceilings",
+   "quote": "queue and retention capacity, execution time, and cost limits are unresolved.",
+   "missing": "The spec identifies queue capacity as an operating concern. It sets no per-occurrence entry limit or member-facing behavior when that limit is reached."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-3.c",
+   "quote": "At booking close, occurrence cancellation or start, whichever makes booking unavailable first, the authority ends active entries and stops allocation.",
+   "missing": "Promotion stops at an existing booking cutoff if one applies. The spec establishes no pre-start cutoff for a class whose booking window stays open until start."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-3, Rules left by the request and open gaps",
+   "quote": "The booking owner must inventory other legitimate vacancy sources, including applicable capacity edits, bulk cancellations and alternate booking channels. Each supported route that releases generally allocatable capacity while booking is open must respect the same priority.",
+   "missing": "Newly released capacity follows queue priority. The spec leaves handling of capacity reductions open, including edits below current enrollment or while an allocation is pending."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-3.c",
+   "quote": "At booking close, occurrence cancellation or start, whichever makes booking unavailable first, the authority ends active entries and stops allocation. The member sees the applicable unavailable state on read-back."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-4, Lifecycle and placement",
+   "quote": "Persist only the existing member reference, occurrence and entry references, and the order and outcome metadata needed to allocate, reconcile and safely reject duplicates or stale work.",
+   "missing": "The record has ordering and state information, but the spec does not require a join timestamp or say whether queue position is stored or computed."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-4, Lifecycle and placement",
+   "quote": "An ended entry stops being an active member record. Terminal or retry metadata needed for safe reconciliation is authority-only, bounded by the approved retention window, and purged through the existing deletion process.",
+   "missing": "Active entries end by class start. The duration of retention for the remaining metadata is unresolved."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-1, State and data",
+   "quote": "Other members receive neither a roster nor peer identity or queue-position data.",
+   "missing": "Peer identities are hidden. Members can see their own waiting status, but the spec's default omits their own position."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-4.c",
+   "quote": "Authorized operations can distinguish an accepted join or leave, promotion, rejection, ending of the queue, and failed or recovered allocation through the existing approved diagnostic destination.",
+   "missing": "Diagnostics distinguish promotion events. The spec excludes staff queue management and provides neither a staff roster with manual controls nor a history identifying who was promoted when."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements, Workload, latency and runtime ceilings",
+   "quote": "Allocation completion and freshness budgets, concurrent demand on a popular class, cross-class throughput, queue and retention capacity, execution time, and cost limits are unresolved.",
+   "missing": "The maximum elapsed time from a committed cancellation to promotion is unspecified."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "TC-01",
+   "quote": "C102 has 0/1 and no waiters, so T-7 can admit M20 there. M20 sees one waiting status for C101 and one confirmed booking for C102. M01 sees their C101 booking."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1.a",
+   "quote": "An eligible unbooked member viewing a full occurrence sees **Join waitlist**",
+   "missing": "The general join rule covers full occurrences during operation. The spec leaves rollout open, including how occurrences already full at launch acquire a waitlist."
+  }
+ ]
+}

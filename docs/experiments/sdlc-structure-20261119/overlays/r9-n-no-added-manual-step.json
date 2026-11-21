@@ -1,0 +1,12 @@
+{
+ "about": "Round 9 arm N (docs/shiploop-sdlc-structure-journal.md): two sentences added to spec duty 4, after the owner ruled on 2026-11-21 that for ticket-due-times the release fills the data file itself when it starts. Narrowed as the max-effort review asked (review-r9/sol-max-review.md): scrutiny of a manual step or refusal the writer introduces, with those that correctness or safety needs kept, not a ban. General, not about one request. Applied to a build copy only. Written against ShipLoop 2.4.0 (4693c1a3).",
+ "edits": [
+  {
+   "module": "shiploop_prompts.py",
+   "constant": "DUTIES",
+   "key": "spec",
+   "old": "Mark each unresolved prerequisite or user\n   decision as an open gap under its R-<n> in KNOWLEDGE/spec.md.",
+   "new": "Mark each unresolved prerequisite or user\n   decision as an open gap under its R-<n> in KNOWLEDGE/spec.md. Where you would add a step a person must perform\n   before the product works, or a refusal that neither the request nor the preserved contract states, first look for a\n   behaviour that meets the request without it, the product doing the work itself. Specify that behaviour where it\n   exists, and keep the added step or refusal only where correctness or safety needs it, saying which."
+  }
+ ]
+}

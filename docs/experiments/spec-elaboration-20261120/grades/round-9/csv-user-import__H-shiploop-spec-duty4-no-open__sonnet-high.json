@@ -1,0 +1,140 @@
+{
+ "slot": "csv-user-import__H-shiploop-spec-duty4-no-open__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.44662300000000005,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "PD-1",
+   "quote": "An import is all-or-nothing: any error anywhere in the file means no user is created."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "`row_errors` are ordered by row then field (`email` before `name`); each is `{row, field, code}` plus `first_row` for `duplicate_in_file`"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "A row repeating a normalized email already present on an earlier row ... \u2192 `duplicate_in_file` carrying `first_row`; a row whose normalized email belongs to an existing user \u2192 `email_taken`. Existing users are never changed (PD-5)."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "The import never grants administrator rights, sets a password, or sends an email or invitation."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "the import API accepts a request only from an authenticated principal the product currently treats as an administrator.",
+   "missing": "Whether the import ability is distinct from, and not implied by, permission to create a single user; finer-grained permissions are explicitly left out."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Required columns are `email` and `name`; their order is free. ... (6) header (missing, unknown, duplicate columns are all reported together)"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "UTF-8 (a leading byte-order mark is ignored), comma-delimited, RFC 4180 quoting (... a quoted field may contain commas and line breaks), records separated by LF or CRLF."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "AC-6.3",
+   "quote": "F-A with the store made to fail while inserting the second of three rows \u2192 500 `import_failed` (R-8) and `ada@`, `grace@`, `alan@` all absent."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "content of 524,289 bytes or more \u2192 413 `file_too_large`; 1,001 or more data rows \u2192 422 `too_many_rows` carrying `limit` 1000 and `found`"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "no non-blank record \u2192 422 `empty_file`; ... header only \u2192 422 `no_data_rows`. ... F-A-UPPERHDR \u2192 201 created 1"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "AC-6.4",
+   "quote": "re-posting F-A after AC-6.1 changes nothing: 422 `email_taken` for rows 2, 3 and 4, count stays 6 (a retry never duplicates)."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "AD-1",
+   "quote": "the import runs inside one HTTP request. The response is returned only after the outcome is durable. No queue, worker, job record or status endpoint."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "PD-7",
+   "quote": "No passwords in the CSV, no emails sent."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "a created user has the same role, status and credential state as a user created through the product's existing single-user admin path ... If ... no single-user admin path, ... non-admin with no credential, able to sign in only through ... account-recovery flow"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "the file's bytes exist only for the duration of one request. No copy survives the request ... no endpoint returns a past import's file, rows or report (PD-6)."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "other delimiters (the semicolon files some locales export are rejected, with a header error that shows it), other encodings"
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-11",
+   "quote": "writes one structured log event `user_import` ... with: `import_id` ..., acting admin's id, `outcome` ... an operator can answer who imported, when, and what happened"
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-12",
+   "quote": "cancelling an in-flight import (cancelling the page request would not undo a server effect)"
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-14",
+   "quote": "Unresolved bound: no latency target was requested and none is invented; the numeric time limit of the deployed runtime is not known here.",
+   "missing": "A numeric time bound for a maximum-size file; progress is only a busy indicator with no progress figure."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "PD-5",
+   "quote": "A row whose email already exists is an error. Existing users are never updated, skipped or merged."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-13",
+   "quote": "file content is parsed in memory ... never executed or interpreted as formulas or markup; cell values beginning `=`, `+`, `-`, `@` are stored verbatim (R-4); rendered text is escaped"
+  }
+ ]
+}

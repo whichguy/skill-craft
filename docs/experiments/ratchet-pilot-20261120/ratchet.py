@@ -278,7 +278,7 @@ a clause depends on a bound, state the bound and what happens at it, taking the 
 exists, or from the runtime's own documentation. Invent no bound: one that none of those supplies is an `Open:`
 line.
 
-## How to get there
+{preserve}## How to get there
 
 First read what is here: the README, the documents, the code and its tests, as far as the request touches them. In an
 existing product the rules it already follows (how it answers errors, how it stores data, what its documents
@@ -323,6 +323,22 @@ really two. A clause that a builder could leave out with nothing missing, which 
 # "reworded" is that experiment's arms/R-lenses-reworded.md, ported the same way; it adds an `Open:` line under a clause.
 ENRICH = {"single": SPEC_PACKET, "lenses": SPEC_PACKET_LENSES, "reworded": SPEC_PACKET_REWORDED}
 
+# One question taken word for word from ShipLoop's intake catalog (skills/shiploop/scripts/shiploop_prompts.py,
+# DUTIES["intake"] item 9, K2), to be answered in writing either by the spec stage or by the plan stage (--preserve).
+PRESERVE_K2 = "Scope and preserved behaviour: what is in and out, and what existing behaviour must not change?"
+PRESERVE_SPEC = ("**One question is answered in writing.** It is a key question ShipLoop asks of every request: \"" + PRESERVE_K2 +
+                 "\" Answer it from what is\nhere (the code, its tests and its documents), not from memory. Each thing that must not "
+                 "change is a clause\nstating what the product does today, with `Source: existing: <the file that shows it>`. "
+                 "Where what is here does\nnot settle whether something stays as it is, that is an `Open:` line on the clause it "
+                 "bears on. Where there is no\nexisting product, the question does not apply and you write nothing for it.\n\n")
+PRESERVE_PLAN = ("\n**One question the plan answers in writing.** It is a key question ShipLoop asks of every request: \"" + PRESERVE_K2 +
+                 "\" Answer it\nfrom what is here (the code, its tests and its documents), not from memory, in a sixth section of "
+                 "`ratchet/plan.md`,\n`## Preserved behaviour`: each thing that must not change, with the file that shows it. "
+                 "Where the specification has\nno clause for one of them, add it at the end of `ratchet/spec.md` as a clause with the "
+                 "next number, stating what the\nproduct does today, with `Source: existing: <the file that shows it>`. Where what is "
+                 "here does not settle whether\nsomething stays as it is, say so in that section. Where there is no existing product, "
+                 "write `none` in it.\n")
+
 # What every later stage is told about an `Open:` line, in runs whose enrichment text can write one.
 OPEN_NOTE = (" In this run a clause of the specification may carry an `Open:` line. It marks a point the request does not "
              "settle and says who would settle it. The clause above the line is the requirement; the open point is not one. "
@@ -363,7 +379,7 @@ missed, and stop when a full pass finds nothing that would change the build.
 If planning shows that the specification lacks something a use case needs, add it at the end of `ratchet/spec.md` as a
 clause with the next number and `Source: implied: <what showed it>`, stating what a user needs to be true and nothing
 about how the product is made. Never edit, reorder or remove an existing clause or use case. Write no product code and no tests.
-
+{preserve}
 {loop}
 
 ## Done when
@@ -698,7 +714,7 @@ class Run:
                        "started": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "start_tree": args.start_tree,
                        "frozen_from": args.frozen_from, "build_from": args.build_from, "bare": bool(args.bare), "sessions": [], "gates": [], "snapshots": [], "cycles": [],
                        "reverted": [], "spec_violations": [], "local_head": git(REPO, "rev-parse", "HEAD").strip(),
-                       "named_checks": True, "enrich": args.enrich, "spec_from": args.spec_from,
+                       "named_checks": True, "enrich": args.enrich, "spec_from": args.spec_from, "preserve": args.preserve,
                        "tests_blind_from": args.tests_blind_from, "plan_from": args.plan_from}
         self.fake = load_fake(args.fake) if args.host == "fake" else None
         self.host = self.env = None
@@ -904,7 +920,8 @@ class Run:
         problems = ""
         for attempt in range(1, 4):
             before = git(self.work, "rev-parse", "HEAD").strip()
-            self.session("spec", ENRICH[self.args.enrich].format(frame=self.frame, request=self.request, problems=problems, conduct=self.conduct()),
+            self.session("spec", ENRICH[self.args.enrich].format(frame=self.frame, request=self.request, problems=problems, conduct=self.conduct(),
+                                                                 preserve=PRESERVE_SPEC if self.args.preserve == "spec" else ""),
                          f"spec-{attempt}")
             self.enforce(before, ["ratchet/spec.md"], "spec")
             try:
@@ -1117,7 +1134,8 @@ class Run:
             loop = self.loop_block(name, work_text, "ratchet/plan.md covers the build, and a full pass after the first found nothing to add.",
                                    plan=True)
             row = self.session("plan", PLAN_PACKET.format(frame=self.frame, title=title, request=self.request, what=what, append=append,
-                                                          loop=loop, problems=problems, conduct=self.conduct()), name)
+                                                          loop=loop, problems=problems, conduct=self.conduct(),
+                                                          preserve=PRESERVE_PLAN if self.args.preserve == "plan" else ""), name)
             self.enforce(before, ["ratchet/plan.md", "ratchet/spec.md"], "plan")
             grown, readable = self.grown("plan", cycle, clauses, old_text)
             added.update(grown)
@@ -1281,6 +1299,9 @@ def main(argv=None):
     run.add_argument("--bare", action="store_true", help="no loop: one session is given the request and builds; a comparison arm")
     run.add_argument("--enrich", choices=("single", "lenses", "reworded"), default="single",
                      help="the enrichment text of the spec stage: the pilot's own, the one-pass lens form, or its reworded form")
+    run.add_argument("--preserve", choices=("none", "spec", "plan"), default="none",
+                     help="with --enrich reworded: ShipLoop's key question on preserved behaviour is answered in writing by the "
+                          "spec stage, by the plan stage, or not asked")
     run.add_argument("--max-cycles", type=int, default=3, help="apparatus limit: cycles before the run is stopped (reported)")
     run.add_argument("--max-fixes", type=int, default=4, help="apparatus limit: fix sessions per cycle (reported)")
     run.add_argument("--max-budget-usd", type=float, default=None, help="per session, on hosts that price a session")
@@ -1301,6 +1322,8 @@ def main(argv=None):
                            or args.bare):
         raise SystemExit("--plan-from goes with --build-from and --stop-after tests and none of --spec-from, --tests-blind-from, "
                          "--frozen-from, --bare")
+    if args.preserve != "none" and args.enrich != "reworded":
+        raise SystemExit("--preserve goes with --enrich reworded")
     if args.spec_from or args.tests_blind_from or args.plan_from:
         source = json.loads((Path(args.spec_from or args.tests_blind_from or args.plan_from) / "run.json").read_text())
         if source.get("case") != args.case or source.get("enrich", "single") != args.enrich:

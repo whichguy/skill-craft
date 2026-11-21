@@ -1,0 +1,182 @@
+{
+ "slot": "grokbot-salesforce__G-shiploop-spec-duty4-bounds__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.46256400000000003,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1.a / AD-1",
+   "quote": "an assigned user can open the deployed Grok Bot entry in Lightning Experience ... Use a Lightning Web Component on an activated Lightning App Page with an App Launcher entry ... A record page would tie the feature to record context"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-4.a",
+   "quote": "the product sends the current prompt and required inference parameters only. No earlier turn, Salesforce records, Salesforce user identifiers or browser session tokens accompany the prompt."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "Apex does not read or mutate business records, so record sharing, CRUD and FLS for runtime business-data access are inapplicable."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1.c / AD-2",
+   "quote": "the org administrator installs and activates the bot and grants access only to designated existing users ... map app entry, Apex class access and external-credential principal access to bot-specific permissions for existing users"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4.a / R-4.c",
+   "quote": "the page shows the submitted prompt, matched reply and safe feedback only to the submitting session/page ... the application creates no saved transcript, storage-backed draft or provider history to retrieve"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-3 / Non-functional requirements",
+   "quote": "The browser can wait asynchronously while a Salesforce transaction makes the foreground HTTP call. No queued inference ... For each admitted send use one outbound inference call and no record writes",
+   "missing": "The spec chooses a synchronous imperative callout and avoids DML, but never states the platform constraint (no callouts from triggers or after uncommitted DML) that a builder must respect, nor an async design."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-4.b / AD-2",
+   "quote": "provision, rotate and remove the inference credential through protected org configuration ... the key stays off the browser, deployable source, application logs and handoff output."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "The documented synchronous HTTP payload ceiling is 6 MB per request or response, with the payload charged against heap. The documented maximum callout time is 120 seconds, and Developer Edition specifically has a 20-concurrent-external-callout ceiling.",
+   "missing": "Callouts-per-transaction, heap size and CPU time limits are not stated with numbers."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "Behavior model / C-4",
+   "quote": "The controlled provider is a test dependency with independently captured incoming requests and injected outcomes. It provides no live Grok evidence.",
+   "missing": "Does not state that Apex tests cannot make real callouts or require an HttpCalloutMock-style mock in Apex unit tests."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "Use a modern Named Credential and Custom External Credential with a named principal for the xAI inference host."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "Service boundaries / R-3 State and data",
+   "quote": "UI Send is pending until Salesforce returns the result for that attempt ... There is no promised remote cancellation, durable queue, background completion, SSE, polling, or offline resumption"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-3.b / R-3 State and data / C-5",
+   "quote": "default of zero automatic retries ... Correlate completion to the attempt and page instance to suppress late delivery after failure, navigation or supersession."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3.a / Non-functional requirements",
+   "quote": "default of one active send per page instance. While waiting, a second activation of Send starts zero additional provider calls and there is no queued send ... Developer Edition specifically has a 20-concurrent-external-callout ceiling.",
+   "missing": "What the user sees when the org-wide concurrent callout ceiling is reached and the send cannot be admitted."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-3.b / C-4",
+   "quote": "show a persistent, safe explanation and next action for each observable class: access denied, integration unavailable or misconfigured ..., rate limited, provider or network unavailable, timeout, input too large, or unusable response."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-3.b",
+   "quote": "default of zero automatic retries. ... For quota rejection suggest waiting."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2.c / R-3.c",
+   "quote": "when the provider reports an incomplete reply ... show a size/incomplete failure ... on a callout timeout, leave waiting and show a retryable timeout with no Grok reply."
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-4.c / R-4 State and data",
+   "quote": "the application creates no saved transcript, storage-backed draft or provider history to retrieve ... No bot-created Salesforce records, client storage, cached replies or saved provider conversation."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-4.c / R-4 State and data",
+   "quote": "page state is discarded when the page instance ends. Provider audit retention follows the verified team policy ... xAI documents automatic removal of default audit copies after 30 days"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-4.a / R-4 Open gaps",
+   "quote": "No earlier turn, Salesforce records, Salesforce user identifiers or browser session tokens accompany the prompt. ... the disclosure explicitly asks for synthetic text"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2 State and data / R-2.b",
+   "quote": "Conversation memory ... outside the specified text exchange. ... If the provider rejects an admitted prompt for its context limit, show a shorten-and-resubmit error with the original prompt available."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-2.b / R-4.c",
+   "quote": "empty or whitespace-only text gets a prompt-required validation cue and sends zero requests. Boundary \u2014 accept text at the effective input maximum ... a fresh page begins empty.",
+   "missing": "The concrete maximum prompt and answer lengths and their units are left open."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-1.c / R-4 State and data",
+   "quote": "withhold user activation or withdraw it ... Record only operational categories for bot-side admission, denial, completion and failure",
+   "missing": "Whether and how an administrator changes the configured model is not stated."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "R-4 State and data",
+   "quote": "Exclude prompt, reply, secrets, raw errors and Salesforce identifiers from application diagnostics. ... xAI documents automatic removal of default audit copies after 30 days",
+   "missing": "No in-org audit record of who asked what and what was answered; only provider-side audit copies and contentless diagnostics."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-1 State and data / F-1",
+   "quote": "No Salesforce record import, object/field creation, record sharing changes, or production deployment is in scope. ... Admin reads the target inventory, deploys, obtains final status and reads back the revision",
+   "missing": "Per-environment configuration/credential differences, deployment mechanism (scratch org/sandbox, metadata deploy) and the production code-coverage requirement."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "R-3.a / R-3.c",
+   "quote": "an accepted send displays the submitted prompt and an accessible waiting status until that send completes or fails ... default callout window is Salesforce's 10 seconds"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "Non-functional requirements / R-3.b",
+   "quote": "Give empty, waiting, error and success states designed copy and layout. ... For access or setup errors direct the user to the org administrator."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-1 State and data",
+   "quote": "the scoped change preserves existing org assets and records. ... No Salesforce record import, object/field creation, record sharing changes, or production deployment is in scope."
+  }
+ ]
+}

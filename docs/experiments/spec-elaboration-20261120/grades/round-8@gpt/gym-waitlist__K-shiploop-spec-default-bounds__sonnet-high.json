@@ -1,0 +1,143 @@
+{
+ "slot": "gym-waitlist__K-shiploop-spec-default-bounds__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "A-2",
+   "quote": "the head of the queue is booked at once when a spot opens. No accept/decline step and no hold timer."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "A-4, R-2, \u00a79 (R-10)",
+   "quote": "**first-come-first-served** by the server's join time; ties break by entry creation order. \u2026 priority tiers or paid skip-the-line \u2026 a new staff roster/reordering view). They are out of scope until requested."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "A-9, G-2",
+   "quote": "with no limit on the number of sessions waited for. \u2026 overlap is handled by the booking rules at promotion.",
+   "missing": "The first promotion has no stated effect on the other waitlist entry. The overlap rule that would govern its later promotion is unconfirmed."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "A-2, R-6, R-11",
+   "quote": "No accept/decline step and no hold timer. \u2026 Can't make it? Cancel from My bookings. \u2026 The existing eligibility, credit and cancellation-window rules stay authoritative",
+   "missing": "Automatic booking eliminates the decline step. The spec leaves unstated whether missing the promoted class or cancelling late incurs the usual attendance penalty."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "F-2",
+   "quote": "Cancelling member \u2192 Server `cancel`; \u2026 Server serialises on the session, removes the booking, runs the promotion procedure (head \u2192 booking + PROMOTED, or SKIPPED), records notices, commits, and answers the canceller (synchronous)."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "A-6, R-6, R-6.b",
+   "quote": "**channel the app already uses for booking confirmations**, else an in-app notice. \u2026 booked into {class name} on {date} at {time}. \u2026 failure never undoes a promotion \u2026 a delivery retry does not create a second record"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-9, R-9.b",
+   "quote": "confirmed never exceeds capacity; each opened spot goes to exactly one member \u2026 Alice and Bob cancel simultaneously \u2192 W1 and W2 promoted, each once."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "(book, cancel, join, leave, capacity change, close) behave as if executed one at a time. \u2026 no member holds two entries or an entry plus a booking for the same session \u2026 if run second"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2, AD-2",
+   "quote": "taking payment or a credit at join time. \u2026 Promotion writes a normal confirmed booking through the same booking creation path as a direct booking (including its rules).",
+   "missing": "Charging at join is excluded. The spec leaves the charge timing for a promoted booking and the disposition of the entry and seat after a declined charge unspecified."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1, R-2",
+   "quote": "the 10th entry is accepted; the 11th is refused \u2026 `Waitlist full` disabled | `Class full \u00b7 10 on waitlist`"
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "A-3, R-5",
+   "quote": "If the existing app has an earlier booking cutoff (G-3) the waitlist uses it. \u2026 a spot opened at `now >= start` promotes nobody.",
+   "missing": "The default permits promotion until class start. A cutoff strictly before start depends on the existing booking window, whose closing time is unconfirmed."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "staff raise the capacity (opens k = new \u2212 old spots). A reduced capacity or a raised one that leaves the session still full opens nothing. \u2026 k spots promote at most k members."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "when a session is cancelled, all its WAITING entries become CLOSED(class_cancelled) with the CLOSED notice (R-6)."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "AD-2, AD-3",
+   "quote": "a new waitlist-entry record (member, session, state, join time, state-change time, reason). \u2026 Position and waiting count are derived, never stored \u2026 position = 1 + WAITING entries with earlier join order; computed on read."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "T-8, R-10",
+   "quote": "WAITING \u2192 CLOSED(class_started); no notice | reported CLOSED even before stored \u2026 Terminal entries are deleted 90 days after session start (A-7)."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-3.c",
+   "quote": "no response contains another member's name, ID or email, only the caller's position and the count."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-10",
+   "quote": "a waitlist entry holds member ID, session ID, state, join time, state-change time and reason. \u2026 staff access follows the existing staff access to bookings (no new staff view is added, out of scope).",
+   "missing": "Staff read access is inherited. The spec gives no staff action for manually promoting or removing a waiting member and no defined way for staff to review who was promoted when."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "F-2, NFR-2",
+   "quote": "records notices, commits, and answers the canceller (synchronous). \u2026 the cancel response already includes the promotion result, so the promoted booking is visible on the next read after the cancel response"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1, NFR-6",
+   "quote": "the existing class list/detail, capacity display and Book action for classes that are not full \u2026 existing booking records and flows are unchanged"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-1, R-1.a, R-2",
+   "quote": "wherever a class is shown with its booking action (list and detail) \u2026 `Join waitlist` and `Class full \u00b7 no waitlist yet` \u2026 A successful join creates a WAITING entry at the back of the queue"
+  }
+ ]
+}

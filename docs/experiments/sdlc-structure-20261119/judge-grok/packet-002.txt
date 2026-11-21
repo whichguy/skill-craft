@@ -1,0 +1,54 @@
+PACKET 2
+Reviewed stage: system-test-author
+
+== The request the delivery was built from ==
+This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable, with a command-line tool in bin/. The help desk is starting to promise response times. Each ticket gets a due time: the time it was created plus the response time for its priority, which is 4 hours for urgent tickets, 24 for high, 72 for normal and 168 for low, and the help desk must be able to change those hours without a code change. A ticket's due time is set once: a later change of the hours or of the ticket's priority does not move it. Every ticket shows its due time as `due`, and `GET /tickets?overdue=true` lists only the open and in-progress tickets whose due time has passed. The tickets already in the production data file get due times too, from their own creation time and priority, and keep them from then on. Due times are switched on in production only once the data file holds them: until the DUE_TIMES environment variable is `on`, the service answers exactly as it does today. If the new release misbehaves, operators must be able to go back to the current release, 1.4.0, and it must still start on the data file the new release wrote and show every ticket. Everything the service already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones.
+
+== What the review changed in the files ==
+diff --git a/test/system-due.test.js b/test/system-due.test.js
+index 7b17693..c697a01 100644
+--- a/test/system-due.test.js
++++ b/test/system-due.test.js
+@@ -18,10 +18,14 @@ const ROOT = path.join(__dirname, '..');
+ const HOUR = 60 * 60 * 1000;
+ 
+-/** Start the service with `env` over a clean environment; resolves to { port, get, post, stop } once it listens. */
+-async function start(env) {
++/**
++ * Start the service with `env` over a clean environment; resolves to { port, get, post, stop } once it listens. The test's
++ * `t` kills the process whatever happens, so a failed assertion cannot leave a server running and the run hanging.
++ */
++async function start(t, env) {
+   const child = spawn(process.execPath, [path.join(ROOT, 'src/server.js')], {
+     env: { PATH: process.env.PATH, PORT: '0', WORKER_INTERVAL_MS: '0', ...env },
+     stdio: ['ignore', 'ignore', 'pipe'],
+   });
++  t.after(() => child.kill('SIGKILL'));
+   let log = '';
+   const exited = new Promise((resolve) => child.once('exit', (code) => resolve(code)));
+@@ -77,5 +81,5 @@ describe('rolling out due times on a data file written before them', () => {
+ 
+     // Step 1 of docs/operations.md: deploy with DUE_TIMES off. The service answers as 1.4.0 did and saves the due times.
+-    const off = await start({ DATA_FILE: file });
++    const off = await start(t, { DATA_FILE: file });
+     const before = await off.get('/tickets');
+     assert.equal(before.body.items.length, 4);
+@@ -90,5 +94,5 @@ describe('rolling out due times on a data file written before them', () => {
+ 
+     // Step 2: switch DUE_TIMES on.
+-    const on = await start({ DATA_FILE: file, DUE_TIMES: 'on' });
++    const on = await start(t, { DATA_FILE: file, DUE_TIMES: 'on' });
+     const shown = await on.get('/tickets');
+     assert.deepEqual(shown.body.items.map((ticket) => ticket.due), saved.tickets.map((ticket) => ticket.due));
+@@ -102,10 +106,10 @@ describe('rolling out due times on a data file written before them', () => {
+   test('ST-2 a restart with other hours keeps the due times of the tickets and applies the hours to the next ones', async (t) => {
+     const file = path.join(folder(t), 'tickets.json');
+-    const first = await start({ DATA_FILE: file, DUE_TIMES: 'on' });
++    const first = await start(t, { DATA_FILE: file, DUE_TIMES: 'on' });
+     const made = await first.post('/tickets', { title: 'VPN drops', requester: 'maria@example.com', priority: 'urgent' });
+     assert.equal(Date.parse(made.body.due) - Date.parse(made.bo
+[... cut here: 454 more characters ...]
+
+
+== What the review changed in the stage's recorded result ==
+(the result did not change)

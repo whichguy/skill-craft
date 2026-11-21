@@ -1,0 +1,146 @@
+{
+ "slot": "gym-waitlist__K-shiploop-spec-default-bounds__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "use automatic enrollment in first-in, first-out order. \u2026 The waitlist has no claim window or additional checkout step."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1, R-3.A, R-4",
+   "quote": "concurrent distinct admissions are ordered by authoritative admission \u2026 fill available seats with the earliest currently eligible entries in strict admission order. \u2026 No public position, roster, staff reprioritization, or class-series waitlist."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-1.B, R-3.B",
+   "quote": "a member may be on waitlists for distinct occurrences if ordinarily eligible. \u2026 a definitively ineligible entry is removed, and the next eligible entry can receive the seat.",
+   "missing": "The next allocation rechecks eligibility, but the spec does not say what happens to an overlapping entry when the first class books the member."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "The waitlist has no claim window or additional checkout step. Existing consent, payment, waivers, entitlement, scheduling conflicts and booking/cancellation limits still govern.",
+   "missing": "Automatic booking eliminates an offer to decline. The spec does not say whether missing the automatically booked class or cancelling it late incurs the ordinary penalty."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-3.A, AD-1",
+   "quote": "through a confirmed cancellation or another existing vacancy-producing operation \u2026 including when neither member has the app open. \u2026 The affected booking and queue changes must share a commitment boundary"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-5.A, R-5.B, R-5",
+   "quote": "An authoritative read after promotion shows **Booked** on the class and the ordinary confirmed booking surface. \u2026 If the read fails, keep recovery actionable. \u2026 In-app status is the feedback channel. This feature adds no push, SMS or email."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "TC-07 (R-3.A\u2013C)",
+   "quote": "Each occupant releases their own booking, so R-3.A/C produces B then C as the promoted members with total occupancy two, regardless of which original seat is freed first."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-3.C",
+   "quote": "an ordinary booking competes for residual capacity after queued allocations. \u2026 Each successful decision leaves occupancy within effective capacity and at most one booking per member per class."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "discover any mandatory interactive consent or payment and any release path that cannot participate in the same authoritative decision. These could conflict with the proposed automatic allocation or rollback rule.",
+   "missing": "When to charge the promoted member and what a failed charge does to their entry and the newly available seat."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1.C",
+   "quote": "with 20 active entries, a new distinct entrant sees **Waitlist full** and the queue is unchanged."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "Scope and basis, R-3.B",
+   "quote": "**Cutoff** is the earlier of the class start and any existing booking close applicable to that class. \u2026 at or after cutoff, or for a cancelled occurrence, no promotion occurs"
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "TC-06 (R-3.A\u2013C)",
+   "quote": "With all queued views closed, O increases capacity from one to three. R-3.A/B removes B and books C then D.",
+   "missing": "Whether staff may reduce capacity below confirmed occupancy and how a reduction affects bookings and waiting entries."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-4.C",
+   "quote": "remove closed or cancelled class entries through class lifecycle cleanup. \u2026 a cleanup failure leaves terminal entries inaccessible and ineligible while the maintenance owner retries cleanup."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1, R-4",
+   "quote": "admission creates one active entry keyed to that pair with an entry identity and a strict admission order. \u2026 needs only the existing member and class references, entry identity and ordering.",
+   "missing": "The spec requires admission order but leaves open whether it records a join timestamp and whether current position is stored or derived from surviving entries."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-4.C, R-4",
+   "quote": "remove closed or cancelled class entries through class lifecycle cleanup. \u2026 identify the cleanup owner, physical deletion cadence and runtime limits before dependent data and compatibility work.",
+   "missing": "How long physically stored entries may remain after the class closes."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "The member sees their own status and actions. The client receives neither the private roster nor the ordering data."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-4, Service contracts (Owned outcomes, R-3\u2013R-5)",
+   "quote": "No public position, roster, staff reprioritization, or class-series waitlist. \u2026 Exclude raw member identifiers, contact details, credentials and payloads from added diagnostics.",
+   "missing": "Staff reprioritization is ruled out. The spec does not define staff access to a roster, manual promotion or removal, or a history showing who was promoted and when."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-3, AD-1",
+   "quote": "The affected booking and queue changes must share a commitment boundary that establishes the R-3 invariant."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1, Service contracts (Incremental state, R-1\u2013R-4)",
+   "quote": "Preserve class discovery, ordinary booking for an available seat and existing identity, eligibility and capacity rules. \u2026 A successful join leaves confirmed occupancy unchanged. \u2026 Preserve unrelated classes, members' bookings and the relative order of unaffected entries."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1.A, R-3",
+   "quote": "can choose **Join waitlist** for a full, booking-open class \u2026 Older confirmed bookings count toward occupancy and are eligible sources of vacancies.",
+   "missing": "Whether already-full occurrences expose Join waitlist immediately at rollout or require an activation or initialization step."
+  }
+ ]
+}

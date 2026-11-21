@@ -1,0 +1,35 @@
+Your working directory is a read-only checkout: do not edit files, do not run ShipLoop or any E2E run.
+
+REVIEW REQUEST: what to change in ShipLoop's text after three studies, and whether small experiments are the right way to decide.
+
+Read these in the checkout before answering; do not rely on my summary alone:
+- docs/shiploop-sdlc-structure-journal.md: "Round 7" and "Round 8" (results R56 to R77, findings F42 to F54, their recommendations and limits).
+- docs/spec-elaboration-journal.md: sections 14, 15 and 19 to 25.
+- docs/ratchet-pilot-journal.md: section 0 and section 20.
+- skills/shiploop/SKILL.md (the start instructions and the "Run options are recorded at" paragraph), skills/shiploop/references/run-options.md, skills/shiploop/references/behavioral-requirements.md, and DUTIES["spec"] in skills/shiploop/scripts/shiploop_prompts.py.
+
+INTENTION. Improve ShipLoop's prompt text only where evidence shows a model's unchecked choice hurts a delivery. Prefer the smallest change. Test each change with the cheapest valid experiment before any whole-delivery round, and conclude early where the evidence already suffices.
+
+WHAT THE EVIDENCE SAYS (my reading, to be challenged).
+1. Sol 6.2 starts a run with planning reviews switched off, unasked, in 5 of 15 whole deliveries: its first command is `workspace start ... --planning-review none --improve-skill=<card>`, sent right after reading SKILL.md. The card names the option in a comment ("Optional (required with --planning-review none): ...") and in its list of run options, and states a default for --delegation but none for --planning-review.
+2. A builder stopped its test server with `pkill -f "src/server.js" -P <pid>` on macOS, which ended five other runs' hosts (R60). An earlier round saw 7 of 108 reader sessions stop processes by name (R21). ShipLoop's text says nothing about how to stop a process a run started.
+3. references/behavioral-requirements.md still tells the spec stage to store the proposed behaviour in the result body, while the stage's duties write it to KNOWLEDGE/spec.md (found by the spec-elaboration session's independent review).
+4. On the request ticket-due-times, 7 of 12 Sol 6.2 whole deliveries on ShipLoop 2.4.0 (3 of 6 at medium effort, 4 of 6 at high) fail 5 of 8 held-out checks. Reading their twelve specs shows the cause is decided in the spec stage: the failing specs say an operator runs an offline migration and the service refuses to start switched on until then; the passing ones say the release fills the data file when it starts. Reviews by the same model, higher effort, a longer elaboration form and more test cycles did not move it (F46, F51, the Ratchet pilot's F20 and F24). The Ratchet session's count (its F28) is that a refusal the spec writer added on its own rejects a correct product 28 times in 46, against 3 in 105 for refusals the request states or the product already has.
+
+PROPOSED CHANGES.
+A1. In SKILL.md, state the default: `--planning-review stage|none` (default `stage`; pass `none` only when the user asks for a run without planning reviews), and reword the comment so it reads as applying only when the user asked for `none`.
+A2. Add one rule where builders will read it: "Stop a process you started by the process id you recorded when you started it. Never stop processes by name or pattern (pkill, killall): other work on this machine can match the same name."
+A3. Fix the stale sentence in references/behavioral-requirements.md.
+B. A wording in the spec stage about refusals and required manual steps that the request does not state (the spec-elaboration session is drafting and filtering one for duty 4, sections 24 and 25). I would check its final wording on the real case here.
+
+PLANNED SMALL EXPERIMENTS (each ends the real case early with the harness's stop file).
+E1, for A1: start-only samples. Launch a whole delivery of the real case and end it right after its first ShipLoop command; read the option it recorded. About one to two minutes a sample. Ten samples as shipped against ten with the reworded card, Sol 6.2 medium. The base rate on record is 3 of 5 at medium.
+E2, for B: spec-only samples of ticket-due-times. Run the real case until its spec is accepted and stop; classify the spec's reading (fills at start, or operator step and refusal). Twelve specs are already on file as the comparator (7 and 5). Eight to twelve samples a wording.
+No experiment for A2 and A3: adopt them on the incident evidence, with the packet tests and the release's usual E2E round.
+
+QUESTIONS. Answer each, ranked P0, P1, P2, with file and symbol references.
+1. Is each change the right design? Should any be a script-run check instead of text (for example the navigator refusing or flagging a `none` the user did not ask for, or a hook refusing pkill and killall by pattern)? The Ratchet pilot found that a duty written into a prompt did not do what a script-run check did.
+2. Are E1 and E2 valid instruments for what they claim? What would make their results misleading, and what sample size is honest?
+3. What is missing, wrong or overreaching in this plan? What would you conclude now with no further runs, and what would you refuse to conclude?
+4. Give the exact sentences you would ship for A1 and A2, and where A2 belongs.
+5. Name anything in Round 7 or Round 8 of my journal that the evidence does not support.

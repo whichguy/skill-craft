@@ -1,0 +1,148 @@
+{
+ "slot": "gym-waitlist__H-shiploop-spec-duty4-no-open__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-4.a",
+   "quote": "When a confirmed cancellation releases a seat or a supported capacity change opens one, the booking authority automatically awards each available seat to the earliest active, currently eligible waitlisted customer."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-4.a",
+   "quote": "First-come, first-served by authoritative join acceptance order is the default. Concurrent joins get a definite order within the occurrence.",
+   "missing": "Acceptance order establishes the default priority, but the spec leaves exceptions for existing membership priorities or staff overrides unconfirmed."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-4, Bounds and prerequisites",
+   "quote": "It neither bypasses payments, waivers, conflicts or other preconditions nor assumes that join consent authorizes a new charge or obligation.",
+   "missing": "The spec does not say when promotion into one class changes the member\u2019s entry for an overlapping class or what state that entry takes."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-3, State and data",
+   "quote": "An already committed booking remains governed by its own cancellation policy.",
+   "missing": "The rule covers cancellation after automatic booking. It does not say whether missing the promotion incurs a no-show or late-cancellation penalty."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-3",
+   "quote": "A cancels at **09:01:00 UTC**. Model T-4 committing, then interrupt T-5 before booking. \u2026 B left the UI after joining and sees an ordinary confirmed booking after returning.",
+   "missing": "Cancellation triggers allocation while the customer is away, but there is no maximum time for completing it."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-4.a",
+   "quote": "Show the ordinary confirmed booking on the next successful customer read.",
+   "missing": "The in-app view shows that the seat is confirmed. The spec defines no promotion message with delivery-failure handling."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-4.b",
+   "quote": "Interrupted or duplicate release handling converges on the same valid allocation. \u2026 There is at most one confirmed booking or one active entry per customer and occurrence. This feature creates no booking beyond capacity."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-4.b",
+   "quote": "Direct booking, waitlist allocation, withdrawal and booking closure respect one authoritative order for the affected occurrence. \u2026 There is at most one confirmed booking or one active entry per customer and occurrence."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-4, Bounds and prerequisites",
+   "quote": "If the existing rules require a new payment or separate confirmation when a seat opens, the product owner must decide the affected consent or acceptance flow before automatic booking is enabled there.",
+   "missing": "Charge timing and the disposition of the seat and waitlist entry after a failed charge are unresolved."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1, Bounds and prerequisites",
+   "quote": "No new roles, group enrollment, or per-customer or per-class queue cap is introduced.",
+   "missing": "The chosen policy has no queue cap, so it specifies neither a finite limit nor a member-facing full-waitlist state."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-5.a",
+   "quote": "The default effective close is the earlier of the existing booking cutoff, if any, and scheduled start, or immediately on class cancellation. At and after close, no join or promotion can commit."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-5, R-4.b",
+   "quote": "makes two seats available. Under T-5, B's entry ends and C and E book in that order. \u2026 A supported capacity decrease preserves existing bookings \u2026 New allocation waits until confirmed occupancy falls below configured capacity."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-6",
+   "quote": "If an authorized class cancellation instead closes the class at **09:01:00 UTC**, T-6 ends the queue at that instant, and the pre-existing app cancellation contract determines the booking outcome."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1, State and data",
+   "quote": "Each active entry belongs to the booking scope, occurrence, and customer and carries the minimum information to prove opt-in and determine authoritative acceptance order.",
+   "missing": "The spec requires recoverable membership and order but does not require a join timestamp or say whether position is stored or derived."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-5.b",
+   "quote": "closure deletes the entry from the active queue. \u2026 Remove residual waitlist participation data once it is no longer needed to settle those intents, subject to established retention and deletion obligations."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-2.a",
+   "quote": "The default customer view reveals only their own participation and ordinary class availability. Other customers' entries, identities, queue size and exact position stay off this client, including response data and errors.",
+   "missing": "Other members\u2019 identities are hidden, but the spec explicitly omits the member\u2019s own position."
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-4.a",
+   "quote": "When a confirmed cancellation releases a seat or a supported capacity change opens one, the booking authority automatically awards each available seat to the earliest active, currently eligible waitlisted customer.",
+   "missing": "The trigger is defined, but no upper bound runs from cancellation to confirmed promotion."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1.a; R-1, State and data",
+   "quote": "Below capacity, use normal booking if a place is unallocated after applying R-4. \u2026 After acceptance there is one, with existing bookings and other classes unaffected."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

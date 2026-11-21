@@ -1,0 +1,148 @@
+{
+ "slot": "gym-waitlist__M-shiploop-spec-members__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Automatic, first-come-first-served promotion is the proposed product default. \u2026 For each admission, create an ordinary confirmed booking and end its active entry as **Promoted** as one business outcome."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-3, R-1",
+   "quote": "Automatic, first-come-first-served promotion \u2026 Simultaneous joins by distinct members acquire a unique order as accepted by the booking authority, even when timestamps coincide. \u2026 Manual queue overrides, special priority tiers, \u2026 are outside this scope."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Promotion uses the existing booking identity and terms. \u2026 A later ordinary cancellation of the promoted booking does not rejoin the queue.",
+   "missing": "Promotion is automatic, so there is no offer to decline. The text does not say whether missing the class or cancelling late after automatic promotion incurs the existing penalty."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Cancellation of a confirmed booking, a capacity increase, or any other supported change that makes seats allocatable serves the earliest still-eligible entries first. \u2026 its effect must be recoverable without either member's client",
+   "missing": "How soon allocation must finish after a cancellation if the seat release commits first."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-3, R-5",
+   "quote": "A fresh read shows **Booked** in class details and the booking area even if the member's app was closed. \u2026 No new accounts, public roster, or off-app message delivery is required.",
+   "missing": "The member can see the result on a read. There is no specified delivery or failure behavior for a promotion notice sent to the member."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Simultaneous leaves, releases, bookings, and closure resolve in one authoritative order for the occurrence. \u2026 Duplicate or stale release processing cannot issue extra bookings, reuse a released seat, re-promote a terminal entry, or restore an older status."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "An ordinary booking competing for a released seat can succeed only after the eligible queue receives its priority and capacity remains.",
+   "missing": "What the direct booking request returns when its own member has just been promoted, and how a second booking for that member is prevented if another seat remains."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "If an ordinary booking requires a fresh member choice, payment authorization, or terms acceptance, automatic promotion for that class type is unready.",
+   "missing": "When to authorize or collect payment and what happens to the booking, queue entry and seat if payment fails."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "The request supplies no active-entry count limit. If the runtime needs one, product must decide the applicable bound and the Join behavior at it before that path is planned.",
+   "missing": "Whether there is a cap, its value if imposed, and what the member sees when it is reached."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "T-5, R-4",
+   "quote": "Existing cutoff or scheduled start, whichever comes first, or authorized cancellation. \u2026 Before the cutoff an open occurrence can admit or promote under R-1 and R-3. At the cutoff and later it cannot."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "a capacity increase, or any other supported change that makes seats allocatable serves the earliest still-eligible entries first. \u2026 If the baseline permits an over-capacity state through a capacity decrease, promotion stops until there is allocatable capacity."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "On occurrence cancellation, end them with **Class canceled**. Clear rank and remove the actionable Join and Leave controls for ended entries."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1, T-1",
+   "quote": "The booking authority owns active membership and its ordering for the existing member \u00d7 occurrence identity. \u2026 Reads derive current rank from committed active order. \u2026 Append once to active order and return current own Waitlisted status.",
+   "missing": "Whether each entry records its join time alongside its state and ordering information."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-4, R-5",
+   "quote": "At the cutoff, end remaining active entries with **Waitlist closed**. \u2026 Cleanup removes expired terminal and replay information under the existing retention and deletion policy.",
+   "missing": "The retention period or expiry event for terminal entries after the class runs."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A current authorized read shows the member's one-based rank among active entries. \u2026 A member without an active entry receives no rank, and no read exposes another member's identity."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-3, R-5",
+   "quote": "Manual queue overrides, special priority tiers, timed offers, penalties, and a new outbound notification system are outside this scope. \u2026 Operational access stays within existing roles and purpose.",
+   "missing": "Manual overrides are excluded. The text does not establish a staff queue view or a staff-accessible history identifying each promoted member and the promotion time."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements, Performance and quotas (R-1 through R-5)",
+   "quote": "Open bounds are supported occurrence and queue sizes, per-occurrence contention and independent-occurrence load, service or storage quotas, mutation/read freshness, and allocation/reconciliation delay. No numeric target was supplied.",
+   "missing": "The maximum elapsed time from a committed cancellation to promotion."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1, R-3",
+   "quote": "Below capacity, normal booking applies subject to R-3. \u2026 Existing bookings are not displaced to create a seat."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

@@ -1,0 +1,41 @@
+89 items, sorted by claude-opus-5-5 (high) and gpt-6.2-astra (high), blind to arms and verdicts
+same `kind` label: 74 of 89; same on set-or-limit against neither: 74
+same `scope` label: 82 of 89
+scope, opus by astra: {"beyond/beyond": 4, "beyond/mixed": 1, "beyond/needed": 1, "mixed/mixed": 4, "mixed/needed": 2, "needed/beyond": 1, "needed/mixed": 2, "needed/needed": 74}
+kind, opus by astra: {"both/both": 2, "limit/limit": 13, "neither/both": 1, "neither/limit": 4, "neither/neither": 52, "neither/set": 10, "set/set": 7}
+
+target   22  by category: async 3, edge 7, interaction 3, nonfunctional 5, platform 1, unhappy 3
+needed   74  by category: async 11, data 7, edge 11, interaction 11, nonfunctional 5, operator 1, permission 6, platform 5, preserve 5, unhappy 12
+beyond    4  by category: operator 4
+X1       22  by category: async 3, edge 7, interaction 3, nonfunctional 5, platform 1, unhappy 3
+X2       53  by category: async 8, data 7, edge 5, interaction 8, operator 1, permission 6, platform 4, preserve 5, unhappy 9
+X3        4  by category: operator 4
+
+items both sorters call beyond (capability the request did not ask for):
+  gym-waitlist N-17 [operator] Staff can see the waitlist, promote or remove someone by hand, and see who was promoted when.
+  gym-waitlist N-18 [operator] The feature can be turned off, or enabled per class or class type.
+  invoice-reminders N-17 [operator] Turning it off globally and per customer, previewing or dry-running it, and resending by hand.
+  csv-user-import N-18 [operator] Cancelling an import that is running, and retrying only the rows that failed.
+items in X1 (set-or-limit, not agreed beyond):
+  grokbot-salesforce N-8 [platform] (limit/limit) Governor limits that bind this design are named with their numbers: callout timeout ceiling, [...]
+  grokbot-salesforce N-13 [async] (limit/limit) Queue depth or concurrent-job limits, and what happens to a request that cannot be enqueued.
+  grokbot-salesforce N-14 [unhappy] (set/set) The model API refusing (4xx), failing (5xx) and timing out each have a distinct, stated user- [...]
+  grokbot-salesforce N-20 [edge] (limit/limit) A conversation outgrowing the model's context window: what is trimmed or summarised, and at [...]
+  grokbot-salesforce N-21 [edge] (both/both) The first use (no history), an empty question, and an answer or question at the maximum [...]
+  grokbot-salesforce N-25 [nonfunctional] (limit/limit) A latency target or bound for an answer, and truthful in-progress feedback in the interface [...]
+  grokbot-salesforce N-26 [nonfunctional] (set/set) A deliberately designed interface: states for empty, loading, error and refused, not unstyled [...]
+  gym-waitlist N-10 [edge] (limit/limit) A cap on the waitlist itself, and what a person sees when even the waitlist is full.
+  gym-waitlist N-11 [edge] (limit/limit) A cut-off before class start after which no promotion happens.
+  gym-waitlist N-19 [nonfunctional] (limit/limit) A bound on how soon a promotion follows a cancellation.
+  invoice-reminders N-1 [interaction] (limit/limit) The schedule: how many reminders and at what offsets from the due date, including whether any [...]
+  invoice-reminders N-2 [interaction] (set/set) Every condition that stops the sequence: paid, part-paid, voided, credited, disputed, or on a [...]
+  invoice-reminders N-4 [interaction] (set/set) An existing do-not-contact, paused or unsubscribed state on the customer, and whether a [...]
+  invoice-reminders N-8 [async] (limit/limit) The sending provider's rate limit and how a large batch is paced within it.
+  invoice-reminders N-10 [edge] (both/both) Time zone and sending hours: the customer's local time, business hours, weekends and holidays.
+  invoice-reminders N-19 [nonfunctional] (limit/limit) A bound on sending volume or on how late a scheduled reminder may go out.
+  csv-user-import N-6 [unhappy] (set/set) Validation of the file itself: required columns, unexpected or missing columns, a missing [...]
+  csv-user-import N-7 [unhappy] (set/set) File encoding and shape: a byte-order mark, line endings, quoted fields containing commas or [...]
+  csv-user-import N-9 [edge] (limit/limit) A limit on file size or row count, and what happens to a file above it.
+  csv-user-import N-10 [edge] (set/set) An empty file, a file with only a header, and a single-row file.
+  csv-user-import N-13 [async] (limit/limit) The new users' invitation or welcome mail: whether hundreds go out at once, and the pacing if so.
+  csv-user-import N-19 [nonfunctional] (limit/limit) A bound on how long a file of the stated maximum size takes, and visible progress while it runs.

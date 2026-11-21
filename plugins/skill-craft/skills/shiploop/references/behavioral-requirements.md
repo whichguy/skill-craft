@@ -360,7 +360,7 @@ Keep lasting accepted intent outside this run's model; preserve the current
 protocol's existing freeze/revision rules rather than silently altering its baseline.
 
 At `spec`, retrieve the incoming prompt, discovery and research results
-in bounded sections. Store the proposed product behavior in the result `body`:
+in bounded sections. Store the proposed product behavior in `KNOWLEDGE/spec.md`:
 a requirement index, sequence flows, state inventory, transition ledger, and
 case mapping. Use compact Markdown tables and Mermaid diagrams where they make
 ordering or state changes clearer. Use consistent IDs and terminology across

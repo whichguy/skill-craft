@@ -1,0 +1,633 @@
+{
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "cost_usd": null,
+ "prompt_sha256": "9f0dff37de374da04039479706c7545bfbc2a3cca36fd2f5818556f3c491f06d",
+ "missing": [],
+ "unknown_labels": [],
+ "labels": [
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-1",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Choosing an invocation surface and the context it supplies defines how a Salesforce user asks the bot a question."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-2",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Every answer must preserve the asking user's existing record visibility."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-3",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "The bot must apply existing field permissions and masking rules when reading data and displaying answers."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-4",
+   "kind": "set",
+   "scope": "needed",
+   "why": "The specification must identify which callers may use the bot and which may administer it."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-5",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Conversation isolation requires an access rule and an explicit decision about administrator access."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-6",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "The transaction constraints determine where the asynchronous callout belongs in the bot's execution flow."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-7",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "The integration needs a secure location for the credential and a rule that keeps it out of logs and source."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-8",
+   "kind": "limit",
+   "scope": "needed",
+   "why": "The applicable timeout, callout count, heap and CPU ceilings constrain what each bot job can do."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-9",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "A mock callout lets the Apex tests exercise the integration under the runtime's test restrictions."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-10",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Registering the endpoint is a deployment prerequisite for the bot's callout to succeed."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-11",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "The interface needs a delivery mechanism for an answer that arrives after the initiating transaction."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-12",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "A retry must preserve the one-reply-per-request rule."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-13",
+   "kind": "limit",
+   "scope": "needed",
+   "why": "The queue or concurrency ceiling determines when the bot must handle an enqueue failure."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-14",
+   "kind": "set",
+   "scope": "needed",
+   "why": "The interface needs distinct outcomes for provider refusal, server failure and timeout."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-15",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "The bot needs a recovery and feedback policy for provider throttling or exhausted quota."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-16",
+   "kind": "set",
+   "scope": "needed",
+   "why": "A partial answer and an absent answer require distinguishable outcomes for the user."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-17",
+   "kind": "neither",
+   "scope": "beyond",
+   "why": "A persistent transcript schema with model and usage metadata adds a record store to a bot that can answer without it."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-18",
+   "kind": "limit",
+   "scope": "needed",
+   "why": "Conversation data needs a retention period and a removal policy covering expiry and user deletion."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-19",
+   "kind": "set",
+   "scope": "needed",
+   "why": "The prompt policy must identify eligible org data and the treatment of personal data within the caller's access rights."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-20",
+   "kind": "limit",
+   "scope": "needed",
+   "why": "The context size at which the bot trims or summarises history determines how it handles long conversations."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-21",
+   "kind": "both",
+   "scope": "needed",
+   "why": "First use and empty questions need explicit handling, as do questions and answers at the length ceiling."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-22",
+   "kind": "neither",
+   "scope": "mixed",
+   "why": "Operators need visibility into failed requests, while turning the bot off and switching models add administrator controls."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-23",
+   "kind": "limit",
+   "scope": "mixed",
+   "why": "Audit data needs a retention period, while storing the full question and answer for audit adds a transcript store."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-24",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Environment-specific credentials, configuration and deployment steps make the bot reproducible in the target org."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-25",
+   "kind": "limit",
+   "scope": "needed",
+   "why": "The answer-time target sets a measurable bound, and the interface needs to show when a reply is still pending."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-26",
+   "kind": "set",
+   "scope": "needed",
+   "why": "The bot interface must distinguish an empty conversation, a pending answer, an error and a refusal."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-27",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Installing the bot must preserve existing sharing, records and automation."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-1",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "The main decision is how an open spot becomes a booking, with an acceptance deadline if an offer is used."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-2",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Promotion requires an ordering rule that resolves ties and says whether priority exceptions exist."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-3",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Promoting someone into one class must reconcile their overlapping waitlist entry to avoid a booking conflict."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-4",
+   "kind": "set",
+   "scope": "needed",
+   "why": "The existing penalty policy needs to identify which declined or missed promotions count against a member."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-5",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "The booking flow needs a background trigger that starts promotion promptly after a cancellation."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-6",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "A promoted member needs notice through a chosen channel, with defined handling if delivery fails."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-7",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Concurrent openings must preserve class capacity and prevent duplicate promotions."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-8",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "A direct booking racing with a promotion needs one consistent booking outcome."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-9",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "A promotion into a paid class must integrate with charging and resolve a failed payment."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-10",
+   "kind": "limit",
+   "scope": "needed",
+   "why": "A maximum queue length determines when another member cannot join and what they see."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-11",
+   "kind": "limit",
+   "scope": "needed",
+   "why": "The promotion deadline defines how close to class start an opening can still be offered."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-12",
+   "kind": "set",
+   "scope": "needed",
+   "why": "Capacity increases and decreases require distinct handling of waiting members and available spots."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-13",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Cancelling the class requires a disposition for everyone still waiting."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-14",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Serving the queue requires an entry representation that supports ordering and tracks each member's status."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-15",
+   "kind": "limit",
+   "scope": "needed",
+   "why": "Past entries need a post-class disposition and a retention period."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-16",
+   "kind": "neither",
+   "scope": "mixed",
+   "why": "The waitlist must protect other members' identities, while displaying an exact queue position adds a member-facing feature."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-17",
+   "kind": "neither",
+   "scope": "beyond",
+   "why": "Staff queue views, manual promotion and removal, and a promotion history add management features."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-18",
+   "kind": "neither",
+   "scope": "beyond",
+   "why": "Global and per-class switches add configuration controls beyond joining and serving a waitlist."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-19",
+   "kind": "limit",
+   "scope": "needed",
+   "why": "The maximum delay from cancellation to promotion defines how quickly an available spot must be used."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-20",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "The waitlist must preserve direct booking for available classes and honour existing reservations."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-21",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Rollout needs a rule for joining the waitlist of a class that was already full."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-1",
+   "kind": "limit",
+   "scope": "needed",
+   "why": "The number of sends and their due-date offsets define when reminders start, recur and end."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-2",
+   "kind": "set",
+   "scope": "needed",
+   "why": "The scheduler must identify every invoice state that stops further reminders."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-3",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "A reminder for a partially paid invoice needs a rule for which balance it displays."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-4",
+   "kind": "set",
+   "scope": "needed",
+   "why": "The sender must distinguish customer contact restrictions and identify which ones suppress a billing notice."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-5",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Retries, deployments and concurrent schedulers must preserve one send per reminder step."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-6",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Rechecking payment status immediately before sending prevents a stale reminder."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-7",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Failed delivery requires a recovery path and a person responsible for persistent failures."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-8",
+   "kind": "limit",
+   "scope": "needed",
+   "why": "Batch pacing must respect the provider's sending-rate ceiling."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-9",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Activation needs a backlog policy so overdue invoices do not trigger every missed send at once."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-10",
+   "kind": "both",
+   "scope": "needed",
+   "why": "Local sending hours define a time window, and weekends and holidays require an eligibility rule."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-11",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "The amount and currency must be rendered unambiguously for the recipient."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-12",
+   "kind": "set",
+   "scope": "needed",
+   "why": "Bounced addresses, invalid addresses and missing contacts need explicit delivery outcomes."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-13",
+   "kind": "set",
+   "scope": "needed",
+   "why": "Recipient eligibility must identify which billing contacts receive a reminder when several are on file."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-14",
+   "kind": "neither",
+   "scope": "mixed",
+   "why": "The sender needs a per-step delivery record for tracing and deduplication, while displaying it on the invoice adds a view."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-15",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "The message needs accurate invoice and payment details and a decision about the validity of any payment link."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-16",
+   "kind": "set",
+   "scope": "mixed",
+   "why": "The specification must identify who may configure the schedule, while manual sending and stopping add separate reminder controls."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-17",
+   "kind": "neither",
+   "scope": "beyond",
+   "why": "Global and customer switches, interactive previews and manual resends add operator controls to the automatic sequence."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-18",
+   "kind": "neither",
+   "scope": "mixed",
+   "why": "Operators need to see delivery failures for follow-up, while a view of upcoming sends adds a preview feature."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-19",
+   "kind": "limit",
+   "scope": "needed",
+   "why": "A volume ceiling or maximum lateness defines a measurable boundary for scheduled delivery."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-20",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Adding reminder delivery must preserve the existing invoice creation, payment and recording flows."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-1",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "The importer needs a transaction policy that tells admins whether valid rows survive another row's failure."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-2",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "A row-level result lets the admin identify failed user creations and their causes."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-3",
+   "kind": "set",
+   "scope": "needed",
+   "why": "Matches against existing users and duplicates within the upload are distinct conflict cases."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-4",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Each imported role assignment must preserve the importing admin's authority boundary."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-5",
+   "kind": "set",
+   "scope": "needed",
+   "why": "The specification must identify which admins have bulk-import permission independently of single-user creation."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-6",
+   "kind": "set",
+   "scope": "needed",
+   "why": "File validation must identify required columns and distinguish unknown columns, missing columns and absent headers."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-7",
+   "kind": "set",
+   "scope": "needed",
+   "why": "The parser contract must cover encoding and line-ending variants as well as quoted separators and newlines."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-8",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "A late row failure needs a recovery rule that accounts for invitations already sent for earlier rows."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-9",
+   "kind": "limit",
+   "scope": "needed",
+   "why": "The upload needs a byte or row ceiling and a defined outcome for oversized files."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-10",
+   "kind": "set",
+   "scope": "needed",
+   "why": "Empty, header-only and single-row inputs are distinct cases whose outcomes the importer must define."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-11",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Repeated uploads need a consistent rule for preventing or explaining repeated effects."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-12",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Background processing needs a completion signal so the admin can obtain the import outcome."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-13",
+   "kind": "limit",
+   "scope": "needed",
+   "why": "Bulk creation must define the sending pace if the existing user workflow issues invitations or welcome mail."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-14",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Creating a usable account requires an initial status, credential policy and path through the existing sign-in flow."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-15",
+   "kind": "limit",
+   "scope": "mixed",
+   "why": "Personal data needs secure handling and a retention period, while re-downloading an upload adds a retrieval feature."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-16",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "The import contract needs an unambiguous parsing rule for dates and numbers across locales."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-17",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "An audit record makes bulk account creation traceable to the initiating admin and import time."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-18",
+   "kind": "neither",
+   "scope": "beyond",
+   "why": "Cancelling a running job and selectively retrying failed rows add separate job-management actions."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-19",
+   "kind": "limit",
+   "scope": "needed",
+   "why": "A maximum-size upload needs a completion-time bound and progress feedback during processing."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-20",
+   "kind": "neither",
+   "scope": "needed",
+   "why": "Bulk creation must preserve manual account creation and the contents of existing user records."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-21",
+   "kind": "both",
+   "scope": "needed",
+   "why": "Formula-like values require safe result rendering, and overlength fields must be handled at the destination column's size limit."
+  }
+ ]
+}

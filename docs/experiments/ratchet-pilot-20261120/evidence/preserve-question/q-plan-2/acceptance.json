@@ -1,0 +1,98 @@
+{
+  "C-1": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-1 ' acceptance/checks-api.js"
+  },
+  "C-2": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-2 ' acceptance/checks-api.js"
+  },
+  "C-3": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-3 ' acceptance/checks-api.js"
+  },
+  "C-4": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-4 ' acceptance/checks-api.js"
+  },
+  "C-5": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-5 ' acceptance/checks-api.js"
+  },
+  "C-6": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-6 ' acceptance/checks-api.js"
+  },
+  "C-7": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-7 ' acceptance/checks-api.js"
+  },
+  "C-8": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-8 ' acceptance/checks-api.js"
+  },
+  "C-9": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-9 ' acceptance/checks-api.js"
+  },
+  "C-10": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-10 ' acceptance/checks-api.js"
+  },
+  "C-11": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-11 ' acceptance/checks-api.js"
+  },
+  "C-12": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-12 ' acceptance/checks-api.js"
+  },
+  "C-13": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-13 ' acceptance/checks-api.js"
+  },
+  "C-14": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-14 ' acceptance/checks-api.js"
+  },
+  "C-15": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-15 ' acceptance/checks-api.js"
+  },
+  "C-16": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-16 ' acceptance/checks-api.js"
+  },
+  "C-17": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-17 ' acceptance/checks-api.js"
+  },
+  "C-18": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-18 ' acceptance/checks-api.js"
+  },
+  "C-19": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-19 ' acceptance/checks-cli.js"
+  },
+  "C-20": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-20 ' acceptance/checks-cli.js"
+  },
+  "C-21": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-21 ' acceptance/checks-api.js acceptance/checks-misc.js"
+  },
+  "C-22": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-22 ' acceptance/checks-misc.js"
+  },
+  "C-23": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-23 ' acceptance/checks-api.js"
+  },
+  "C-24": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-24 ' acceptance/checks-api.js"
+  },
+  "C-25": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-25 ' acceptance/checks-cli.js"
+  },
+  "C-26": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^C-26 ' acceptance/checks-api.js"
+  },
+  "U-1": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^U-1 ' acceptance/checks-api.js"
+  },
+  "U-2": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^U-2 ' acceptance/checks-api.js"
+  },
+  "U-3": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^U-3 ' acceptance/checks-api.js"
+  },
+  "U-4": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^U-4 ' acceptance/checks-api.js"
+  },
+  "U-5": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^U-5 ' acceptance/checks-cli.js"
+  },
+  "U-6": {
+    "command": "node --test --test-timeout=50000 --test-name-pattern='^U-6 ' acceptance/checks-misc.js"
+  }
+}

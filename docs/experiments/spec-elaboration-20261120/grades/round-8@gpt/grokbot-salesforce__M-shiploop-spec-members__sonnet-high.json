@@ -1,0 +1,183 @@
+{
+ "slot": "grokbot-salesforce__M-shiploop-spec-members__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "AD-1, R-7(b,e)",
+   "quote": "one Lightning web component (provisional bundle `grokBotChat`) hosted on a custom tab inside a custom Lightning app. \u2026 the bot reads no records \u2026 the client can only send message text and prior turns"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "AD-6",
+   "quote": "both Apex classes declared `with sharing`; the product runs no SOQL/DML on org data",
+   "missing": "The sharing mode is specified. Answering from records visible to the caller would require a rule for selecting those records as sources."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-7(c,d)",
+   "quote": "**Object CRUD and (d) field-level security:** not applicable by design: no SOQL/DML on org data.",
+   "missing": "The specification excludes record reads. It gives no field-permission check or rule for omitting or masking encrypted or restricted values in record-derived answers."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "AD-4, F-5, Actors, channels, state owners",
+   "quote": "the permission set `Grok_Bot_User` grants, in one place, the tab, the app, the Apex classes and the external-credential principal. \u2026 Org administrator (person) | Setup: enters the xAI key, edits settings, assigns the access grant"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-8, State and information lifecycle",
+   "quote": "Transcript and history | the open component, memory | only that user's page; never sent to another user's client"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-2, AD-6",
+   "quote": "Apex makes one synchronous HTTPS callout per user message \u2026 No DML precedes the callout",
+   "missing": "The design avoids uncommitted DML. It gives no trigger restriction or asynchronous job path for a trigger-initiated request."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AD-3",
+   "quote": "Credential in a Named Credential backed by an External Credential (custom header), never in code or data \u2026 Apex never reads, builds or logs the key. \u2026 not deployable or retrievable as metadata"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "AD-7",
+   "quote": "one callout's timeout ranges from 1 ms to 120,000 ms, default 10 s; at most 100 callouts per transaction. Heap limit for synchronous Apex (6 MB) **[U]**.",
+   "missing": "The Apex CPU-time ceiling is unspecified. The specification also flags its heap figure as unverified."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "AD-9",
+   "quote": "Apex tests use `HttpCalloutMock`; a mock proves the parse/classify/request-shape logic, not xAI's behavior or the credential."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-3",
+   "quote": "Named Credential `Grok_API` (URL `https://api.x.ai`) + External Credential `Grok_API_Credential` \u2026 Apex addresses the endpoint as `callout:<NamedCredential>/<path>`."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "AD-7, A-10.1",
+   "quote": "the component calls `sendMessage` imperatively and awaits the promise. \u2026 after resolve with \"ok\" the pending row is replaced by the reply",
+   "missing": "Promise resolution signals completion of the original request. No mechanism delivers the result of work that finishes after that request returns."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-5, Service boundary contracts",
+   "quote": "a successful retry replaces the \"not sent\" marking with the normal turn. \u2026 the server has no dedupe, a repeat call is a new billable call by design",
+   "missing": "User-initiated retry reuses the transcript entry. There is no message identity or deduplication rule for redelivery of the same job."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-5 (A-5.1, A-5.3, A-5.4), shared error classes",
+   "quote": "Each class has its own visible text \u2026 E-TIMEOUT and E-NET respectively, both with Retry. \u2026 mock 500 -> E-UPSTREAM with Retry; mock 404 and 400 -> E-BAD without Retry."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-5 (A-5.2), PD-4",
+   "quote": "mock 429 shows the E-RATE text and a Retry button. \u2026 No automatic retry of a failed send. The user retries explicitly."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "AD-2, R-10, A-5.3",
+   "quote": "whether an `incomplete` status exists. \u2026 if the call never returns, the platform timeout (R-9) ends it as E-TIMEOUT \u2026 produces E-TIMEOUT and E-NET respectively, both with Retry.",
+   "missing": "The timeout has a visible outcome. The specification leaves open how to recognize and label a truncated response that contains usable text."
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "\"New chat\" empties the transcript and history and returns to Empty. Leaving the page, reloading, or closing the tab ends the conversation permanently; nothing is stored in the org or in browser storage."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-7(b), R-3, R-12",
+   "quote": "the bot reads no records \u2026 each request carries the system prompt, then the most recent history, then the new user message \u2026 users should not enter information they may not share with that provider."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "The window is `History_Window` messages (default 20, PD-3). \u2026 the oldest **complete turns** (a user message with its reply) are dropped from the request until the count is at most the window"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "T-1a, R-4, A-4.3",
+   "quote": "Empty; composer enabled; notice shown \u2026 a message that is empty or only whitespace is not sent \u2026 a message of 4,000 `a` characters is accepted (count 1); 4,001 `a` characters is rejected (count 0)"
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-9, R-18",
+   "quote": "admin changes the model by editing one record \u2026 failures are diagnosable from the single diagnostic line of R-12 plus the platform's own debug log",
+   "missing": "The specification gives no deliberate org-wide on/off control or shutdown procedure that keeps the bot installed."
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-13",
+   "quote": "target is a development org only (a Developer Edition, sandbox or scratch org). A production org is refused \u2026 Deploy, key entry, and access-grant assignment are three separate steps",
+   "missing": "The development deployment is defined. There is no environment-by-environment configuration and credential policy or production code-coverage requirement."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "R-9, R-10",
+   "quote": "`Timeout_Ms` (default 60,000) \u2026 a pending reply row with an accessible status \"Grok is thinking\". The pending state ends only when the call returns or fails, never on a timer"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "R-14, A-5.1",
+   "quote": "**designed empty, loading, error, not-ready and success states** \u2026 the five states render with distinct designed treatments \u2026 The UI shows the E-AUTH text, no Retry"
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-13, A-7.4",
+   "quote": "pre-existing components, fields, automation and access in that org are unchanged. \u2026 the Apex source contains no `SELECT` against org data objects and no DML keyword"
+  }
+ ]
+}

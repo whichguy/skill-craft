@@ -1,0 +1,188 @@
+{
+ "slot": "grokbot-salesforce__M-shiploop-spec-members__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-01, C-09, AD-1",
+   "quote": "Lightning Web Component exposed through an actual custom tab, with App Launcher visibility for authorized users \u2026 the prompt and current chat context go to xAI \u2026 Never attach Salesforce records, user identifiers, browser session credentials or unrelated context."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-09, AD-2",
+   "quote": "No Salesforce record data access is needed, so record sharing, object access and field-level access are inapplicable to the invocation as scoped.",
+   "missing": "The bot excludes records entirely. It gives no rule for answering from records under the asking user's sharing permissions."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "C-09, AD-2",
+   "quote": "No Salesforce record data access is needed, so record sharing, object access and field-level access are inapplicable to the invocation as scoped.",
+   "missing": "There is no field-permission check or rule for reading or displaying encrypted or restricted field values if records are used."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-02, AD-1, R-1 (State and data)",
+   "quote": "Use a dedicated, maintainable permission-set assignment for the intended cohort and require effective server class and outbound principal access. \u2026 The org admin controls the development org's bot entry, application access and access assignments."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-10, R-4 (State and data)",
+   "quote": "The current signed-in user reads them. \u2026 No shared store, persisted transcript or cross-device recovery. \u2026 Only safe category, timing and an opaque per-attempt correlation value may be exposed through authorized diagnostics."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-03, AD-2",
+   "quote": "Use an imperative, non-cacheable invocation from the component to Apex. The Apex entry checks admission and validates the text request, then makes one HTTPS callout to the authorized xAI endpoint.",
+   "missing": "The design specifies a direct callout. It gives no asynchronous job design or transaction boundary for a trigger or preceding DML."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-09, AD-2, R-4 (State and data)",
+   "quote": "Salesforce Named Credential for the destination and a linked External Credential \u2026 Salesforce resolves the bearer header from the admin-provisioned encrypted parameter. \u2026 Consumers, client code, product source, error reports and application logs never receive the key."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-07/C-08, Operating conditions, capacity and cost",
+   "quote": "Salesforce documents a maximum cumulative callout timeout of 120 seconds and a Developer Edition cap of 20 concurrent external callouts.",
+   "missing": "The numerical limits for callouts per transaction, Apex heap and CPU time are unspecified. The concurrency cap measures a different limit."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C-04",
+   "quote": "Capture the outbound messages under a controlled service.",
+   "missing": "The controlled service provides a test boundary, but the specification does not require a mock implementation for Apex tests or state their restriction on real callouts."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-01, C-09, AD-2",
+   "quote": "If configuration is missing, an assigned user who can open the tab receives a safe setup-unavailable outcome on Send. \u2026 Use a modern Salesforce Named Credential for the destination"
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-03, C-07, AD-3",
+   "quote": "request a foreground non-streaming response \u2026 Return only safe outcome fields to the component.",
+   "missing": "The interface receives the foreground invocation result. No notification or status mechanism delivers an answer after a background job completes."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-07, C-10 (T-5)",
+   "quote": "Current pending attempt receives usable completed text before deadline \u2192 commit one pair and clear pending/draft. Foreign, stale or already terminal attempts have no UI effect.",
+   "missing": "The guard prevents duplicate completion of one page attempt. There is no message-level idempotency rule across job retries or re-enqueues."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-08",
+   "quote": "Configuration/provider auth or entitlement failures direct the user to the org admin. Rate limit or transient service failure offers a later manual Send. An offline, disconnected or timed-out attempt reports that a reply could not be obtained."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-07, C-08",
+   "quote": "The app issues no automatic retry. \u2026 Configuration/provider auth or entitlement failures direct the user to the org admin. Rate limit or transient service failure offers a later manual Send."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-08",
+   "quote": "An offline, disconnected or timed-out attempt reports that a reply could not be obtained. \u2026 Incomplete, nonterminal, malformed, blank, refusal-only or otherwise unusable replies show that Grok did not return a usable answer."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-03, C-07, R-2 (State and data)",
+   "quote": "It holds only completed pairs in their original order, plus at most one editable draft or pending attempt.",
+   "missing": "The page represents speaker text and pending or completed turns. There is no stored conversation and turn schema with timestamps, model identifier and usage counts."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-10, R-4 (State and data)",
+   "quote": "Refresh, teardown or detected session loss discards app-held state. \u2026 Provider-controlled audit or contractual retention is independent of UI clearing.",
+   "missing": "The specification gives no user-account deletion rule for an open chat or for copies retained by the provider."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-09",
+   "quote": "the prompt and current chat context go to xAI and that only synthetic, non-sensitive data belongs in this development bot. \u2026 Never attach Salesforce records, user identifiers, browser session credentials or unrelated context."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "C-06",
+   "quote": "Context overflow sends nothing and offers **New chat**. \u2026 Never silently omit history. \u2026 The unit and values are open.",
+   "missing": "The builder still needs the context limit and its unit to determine exactly when to block Send."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-03, C-05, C-06",
+   "quote": "First Send has empty history. \u2026 Empty and whitespace-only drafts trigger no outbound request. \u2026 Accept an otherwise valid message and accumulated context at their respective configured inclusive input bounds."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "C-02, C-08, AD-2, Service contracts (Owned event coverage)",
+   "quote": "Recheck the next Send after the admin removes the grants. \u2026 Configure a fixed permitted model server-side. \u2026 Bot-owned call result categories cover success, configuration/auth, rate limit, provider error, timeout and unusable response.",
+   "missing": "The specification assigns access removal to the admin and defines failure categories, but leaves the administrator's model-change procedure and access to individual failure diagnostics unspecified."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "C-09, R-4 (State and data)",
+   "quote": "Neither prompt/answer content nor the API key is written to application storage, logs or error output. \u2026 S6 describes default audit deletion after 30 days.",
+   "missing": "The provider audit has a stated default lifetime, but no audit record links the asking user to the prompt and reply. The app explicitly excludes that content from its logs."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "C-01, C-02 (T-1), AD-2",
+   "quote": "Use nonsecret config for environment differences. \u2026 operator deploys eligible metadata \u2192 org admin enables scoped access only after terminal success and read-back.",
+   "missing": "The target org type, credential differences across environments and production deployment coverage requirement are unspecified."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "C-07, C-08, R-3 (Open gap)",
+   "quote": "An eligible Send shows the pending user turn and **Waiting for Grok** \u2026 The implementer and product owner must settle the response and client deadlines with the target limits and an approved model.",
+   "missing": "The user-visible pending state is defined, but there is no adopted end-to-end answer deadline or latency target."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "C-01, C-07, C-08, Interaction and accessibility checks",
+   "quote": "The empty state explains how to start \u2026 **Waiting for Grok** \u2026 Error persists beside the composer with the recovery action. \u2026 refusal-only or otherwise unusable replies show that Grok did not return a usable answer."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-01, C-02, R-1 (Basis and delta)",
+   "quote": "Preserve existing identities, access assignments, unrelated metadata, automation and records."
+  }
+ ]
+}

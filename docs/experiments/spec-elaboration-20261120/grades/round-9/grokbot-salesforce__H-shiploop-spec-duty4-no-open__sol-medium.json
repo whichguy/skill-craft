@@ -1,0 +1,183 @@
+{
+ "slot": "grokbot-salesforce__H-shiploop-spec-duty4-no-open__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.5211466,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1.A; R-3.A",
+   "quote": "an invited signed-in user finds Grok Bot under App Launcher \u2192 All Items and opens an empty chat ... No Salesforce records, record context, user identifiers ... or selected page contents are automatically included."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1 State and recovery",
+   "quote": "The bot performs no business record reads or writes, so record sharing, object CRUD and field-level access checks for business data are inapplicable."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1 State and recovery",
+   "quote": "The bot performs no business record reads or writes, so record sharing, object CRUD and field-level access checks for business data are inapplicable."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "AD-1; R-1 State and recovery",
+   "quote": "A feature permission set grants tab visibility, Apex class access and use of the outbound credential principal to designated users.",
+   "missing": "Administration is assigned to 'an authorized administrator' without stating which permission or permission set confers the right to administer the bot."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-3.B",
+   "quote": "A different Salesforce user or view cannot read another view's state via the feature. ... No app-owned durable content, history or payload logging."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-1; Service boundaries",
+   "quote": "The component calls a non-cacheable Apex server action imperatively on Send. ... The Apex action has no record query or mutation",
+   "missing": "The design is synchronous; it does not state the trigger/callout-after-DML constraint or adopt an asynchronous (Queueable/future) execution model."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AD-2; R-3.C",
+   "quote": "Use an enhanced Salesforce Named Credential ... linked to a Custom External Credential with a named principal. ... The key and Authorization header never appear in browser output or application logs."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "NFR Compatibility and runtime envelope",
+   "quote": "For synchronous Apex these include 100 callouts, 120 seconds cumulative callout timeout and 6 MB heap and single HTTP message limits.",
+   "missing": "CPU time limit is not named or quantified."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "State transitions and acceptance cases",
+   "quote": "A controlled response uses a simulated provider at the callout boundary and never establishes xAI entitlement or a live org deployment."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "Use an enhanced Salesforce Named Credential for the HTTPS xAI inference host"
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "AD-1; R-2.D",
+   "quote": "The component calls a non-cacheable Apex server action imperatively on Send. ... Default wait deadline is 60 seconds from accepted send.",
+   "missing": "The UI relies on the inline return of the imperative call; no platform event, polling or message-service notification mechanism is specified."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2.B; R-2.D",
+   "quote": "A second activation while pending makes no second call. ... No raw provider errors or automatic retries. ... Ignore any subsequently observed completion from that attempt."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-2.B; R-2 State and recovery",
+   "quote": "Distinct views can submit independent prompts subject to provider limits. ... No callback, queue, offline submission or automatic retry is required.",
+   "missing": "Salesforce-side concurrency limits on long-running synchronous requests and the outcome when a request cannot be admitted are not stated."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-2.D",
+   "quote": "401/403 or missing credential shows Grok access is unavailable... 429 shows Grok is busy... 5xx ... shows Grok couldn\u2019t reply. ... resolve as Grok took too long. Try again."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2.D",
+   "quote": "429 shows Grok is busy. Try again later. ... No raw provider errors or automatic retries."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2.C; R-2.D",
+   "quote": "For an incomplete provider response, including one cut off by the cap, show Grok\u2019s reply was cut short... Display no partial text. ... resolve as Grok took too long. Try again."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-3 State and recovery",
+   "quote": "The feature creates no history, cache, CRM objects, or writes to browser storage.",
+   "missing": "No stored conversation/turn record shape is defined (role, status, timestamps, model identifier, usage counts); the spec deliberately stores nothing."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-3.B; R-3 State and recovery",
+   "quote": "No app-owned durable content, history or payload logging. ... xAI documents default audit retention of 30 days and team-level zero-data-retention if enabled."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-3.A",
+   "quote": "Use synthetic, non-sensitive text. Your message is sent to xAI. Submit only the entered text ... No Salesforce records, record context, user identifiers, earlier prompt or answer ... are automatically included."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2.A; Assumptions R-2.A",
+   "quote": "Default 8,192 UTF-8 bytes bounds one billable prompt ... and is well below the selected model's documented context capacity."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-1.A; R-2.A; R-2.C",
+   "quote": "Empty or all Unicode whitespace input is rejected with Enter a message. ... maximum is 8,192 UTF-8 bytes inclusive ... Default requested output cap is 1,024 tokens."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "AD-2; R-3 State and recovery",
+   "quote": "Use non-secret org configuration for the selected model, with scope for an admin to update it. ... On a failed rotation, leave the integration disabled",
+   "missing": "No explicit admin off switch beyond grant/credential removal, and no way for an admin to see failed requests (diagnostics exclude content, no log sink)."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "R-3 State and recovery",
+   "quote": "Salesforce owns its platform access logs and xAI owns its billing/retention; neither is a transcript store for the bot. xAI documents default audit retention of 30 days",
+   "missing": "No app audit record of who asked what and what was answered; only provider-side audit retention is referenced."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "Scope and basis; R-1 State and recovery",
+   "quote": "The requested scope does not include ... production ... A metadata deployment and a grant assignment are distinct effects.",
+   "missing": "Per-environment configuration/credential differences, scratch org vs sandbox, and the production code-coverage requirement are not stated."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "R-2.B; R-2.D",
+   "quote": "locks the composer and Send for that view, and announces Waiting for Grok\u2026 until that attempt ends. ... Default wait deadline is 60 seconds from accepted send."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "NFR Interface quality and appearance",
+   "quote": "Design the empty state, waiting state, response and persistent inline error with appropriate recovery."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-1 Basis and delta",
+   "quote": "Preserve unrelated org metadata, access, automation and business records."
+  }
+ ]
+}

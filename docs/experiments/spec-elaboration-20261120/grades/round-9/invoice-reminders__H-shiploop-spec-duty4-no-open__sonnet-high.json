@@ -1,0 +1,138 @@
+{
+ "slot": "invoice-reminders__H-shiploop-spec-duty4-no-open__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.4396434,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "D-3",
+   "quote": "Default schedule = reminder offsets (days relative to the due date) -3, 0, 7, 14; send time 09:00"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Draft, paid, void, zero-balance and negative-balance (credit) invoices are never reminded. ... Left out (bounded by this R): partial-payment policies beyond \"reminder shows the remaining balance\"; disputed or on-hold statuses",
+   "missing": "Disputed invoices and invoices on a payment plan are explicitly left out, so whether they stop the sequence is undecided (R-4 also leaves out disputes and payment plans)."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "The message shows the *current* outstanding balance. ... AC-4.3 Balance drops from 250.00 to 100.00 ... the 12-10 message states \"Outstanding balance: 100.00 USD\"."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "D-10",
+   "quote": "No per-invoice or per-customer pause, no public unsubscribe link; the only stop controls are the global `enabled` switch, `dry-run` mode, and the invoice leaving the unpaid state.",
+   "missing": "Whether an existing do-not-contact/unsubscribed flag on the customer in the host system is honoured, and whether billing reminders are exempt from a marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "for each (invoice, offset) in live mode at most one claim can ever exist, including when two evaluations run at the same moment, an evaluation is repeated with the same `as-of`, or a crash happens"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "immediately before a message is claimed for sending, the invoice is re-read from the source. If it is no longer eligible (R-1) nothing is sent and the step is recorded `skipped:no-longer-unpaid`."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "D-7",
+   "quote": "at most 3 attempts per step within one evaluation, waits of 60 s then 300 s between them, retrying only definitive not-accepted answers; ... `unknown` is never retried",
+   "missing": "No escalation to a person when sends keep failing or the provider is down: failures only appear on screens, and operator notifications are left out (R-8); provider failover is left out."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "NF-3",
+   "quote": "Unresolved bound, not invented. Missing evidence: the real number of unpaid invoices, and the email provider's sending quota (OG-1).",
+   "missing": "The provider rate limit and how a large batch is paced within it; R-6 explicitly leaves out per-provider rate shaping."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "D-6",
+   "quote": "when reminders become *enabled and live*, `live_since` = that account-local date; steps dated before it are skipped, never sent."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "the local date uses the account time zone ... Left out: weekend/holiday shifting, per-customer send windows"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "`Outstanding balance: {amount} {currency}` ... The amount uses the currency's standard number of decimal places."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "empty billing address \u2192 step `skipped:no-recipient`; syntactically invalid address ... \u2192 `skipped:invalid-recipient`; neither calls the provider."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "D-2",
+   "quote": "one recipient per invoice: the invoice's billing contact address. No cc/bcc."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "Each invoice has a Reminder history listing every configured step with its step date and its state: *Scheduled* (no row yet), *Sent* (time), *Failed* / *Unknown* (reason, attempts), *Skipped* (reason)"
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "`This is a reminder about invoice {number}.` / `Outstanding balance: {amount} {currency}` / `Due date: {due_date}` ... `Pay online: {payment_link}` only when a payment link exists",
+   "missing": "Whether the payment link expires and what happens if it has expired by the time a reminder is sent."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "an operator can view and save Reminder settings ... A request from anyone who is not an authenticated operator is denied and returns no settings."
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "D-10",
+   "quote": "No per-invoice or per-customer pause ... the only stop controls are the global `enabled` switch, `dry-run` mode, and the invoice leaving the unpaid state."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "the Reminder settings screen shows ... the last evaluation (time, status, counts of sent / failed / unknown / skipped by reason ...), and the next scheduled instant."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Result: at most one message per invoice per evaluation and, since offsets are unique, at most one per invoice per local date.",
+   "missing": "No overall sending-volume cap (NF-3 leaves throughput unresolved) and no maximum lateness after which a caught-up reminder is dropped rather than sent."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "Domain contract",
+   "quote": "The reminders read invoices from the invoicing system of record; they never create or edit invoices."
+  }
+ ]
+}

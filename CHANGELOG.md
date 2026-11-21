@@ -2,6 +2,16 @@
 
 Written by scripts/release.py.
 
+## 2026-11-21
+
+### skill-craft 4.2.1
+
+- Skills: shiploop 2.4.1
+
+### shiploop 2.4.1
+
+- The skill card now says that run options are the user's to set and that planning reviews default to on (`stage`). Every stage packet tells the session to stop a background process by the process id it recorded, never by name or pattern. The requirements guide points the spec stage at `KNOWLEDGE/spec.md`.
+
 ## 2026-11-20
 
 ### skill-craft 4.2.0

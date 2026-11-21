@@ -81,6 +81,7 @@ pass).
 
 `--planning-review stage|none` at `init` or `workspace start` records the run option
 `planning_review` (default `stage`): which planning results start an Improve stage.
+The option is the user's choice: pass `none` only when the user asks to run without planning reviews.
 `stage` starts one after each of `spec`, `test-strategy`, `plan` and `step-plan`;
 `step-plan` is reviewed only for the first work item and for an item that was sent
 back, and later items follow the pattern that review set (rule `first-item`,

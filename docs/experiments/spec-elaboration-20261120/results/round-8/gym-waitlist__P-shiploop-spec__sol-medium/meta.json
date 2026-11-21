@@ -1,0 +1,26 @@
+{
+ "round": "round-8",
+ "case": "gym-waitlist",
+ "arm": "P-shiploop-spec",
+ "arm_sha256_12": "3c76e967971f",
+ "driver": "sol-medium",
+ "host": "codex",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "rc": 0,
+ "seconds": 255.5,
+ "ok": true,
+ "wrote": [
+  "spec.md"
+ ],
+ "stray_files": [],
+ "workdir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/round-8/gym-waitlist__P-shiploop-spec__sol-medium-863cab",
+ "user_skills_turned_off": 11,
+ "usage": {
+  "input_tokens": 521700,
+  "cached_input_tokens": 473600,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 10951,
+  "reasoning_output_tokens": 768
+ }
+}

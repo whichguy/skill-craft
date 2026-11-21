@@ -1,0 +1,141 @@
+{
+ "slot": "invoice-reminders__K-shiploop-spec-default-bounds__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3799562,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "`offsets` (default `[-3, 0, 7, 14]`, days relative to the invoice due date; negative = before) ... Boundaries: 1 to 5 offsets, each a distinct integer from -30 to +90 inclusive"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "only an invoice that is issued, not void, not paused (R-9), with outstanding balance greater than zero receives reminders ... unknown statuses are excluded as the safe default",
+   "missing": "Credited invoices (credit notes) and invoices on a payment plan are not addressed; disputes are only handled by a manual per-invoice pause."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2 L2",
+   "quote": "INV-2004 total 500.00, paid 200.00 so balance 300.00, receives reminders and the message states 300.00."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "Transition ledger (Exclusions)",
+   "quote": "Exclusions: bounce handling and unsubscribe (G-4, G-5).",
+   "missing": "Whether an existing customer-level do-not-contact/unsubscribe state suppresses reminders, and whether billing notices are exempt from a marketing opt-out; only per-invoice pause exists."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "At most one message is ever handed to the mail provider per key, across repeated runs, parallel runs and restarts."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "immediately before each claim the run re-reads, from authority and not from the selection snapshot: policy `enabled`, invoice status and balance, invoice pause flag, due date, customer e-mail."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "a transient failure ... moves the record to `retry-wait`; the next runs retry it while `target <= now < window_end`, with `window_end = min(target + 24 hours, target of the next offset's step)`",
+   "missing": "Escalation to a person when sending keeps failing: failures only appear in S-hist and alerting thresholds are unresolved (G-7)."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "NFR-2",
+   "quote": "provider rate/daily quota are unknown. Not invented. A run that meets a provider quota treats it as a transient failure (R-7).",
+   "missing": "How a large batch is paced within the provider's rate limit."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-3 L3 / D-1",
+   "quote": "INV-1004 (issued 2026-10-01, due 2026-11-01, unpaid) has all four targets before the floor, so the first run after enabling records 4 `skipped/before-eligibility` and sends 0"
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1 / A-3",
+   "quote": "a fixed send time of 09:00 in the account time zone (UTC when the account has none, A-3)",
+   "missing": "The customer's local time zone, and avoidance of weekends and holidays, are not addressed."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-6 / R-6 L2",
+   "quote": "outstanding balance as `{CURRENCY} {amount}` using the ISO 4217 minor-unit count ... a zero-decimal currency (`JPY`, balance 5000) shows `JPY 5000`, not `JPY 50.00`."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-5 L4 / R-7",
+   "quote": "empty, no `@`, more than one `@`, or empty local part: record `skipped/no-recipient`, owner sees it in S-hist, no message ... permanent rejection ... `recipient-rejected` at once ... later bounces are not tracked"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "one message per reminder, to the invoice's customer e-mail only"
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "list that account's reminder records: invoice number, due date, offset, scheduled local date, status, reason, attempts, recipient, last change instant. Newest first, 50 per page (A-8), on an account-wide list and on each invoice."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-6",
+   "quote": "Body: customer name, invoice number, outstanding balance ... due date as `YYYY-MM-DD`, the account display name, the payment/view link only when the invoice has one",
+   "missing": "Whether the payment link expires and what happens if it has."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-1 L3 / R-9",
+   "quote": "a user with the manage-settings permission in acct-1 saves acct-1's policy ... a user who may edit invoices can pause reminders on an invoice",
+   "missing": "Who may send a reminder by hand (manual sending is neither specified nor excluded)."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1 / R-9",
+   "quote": "The owner can view it, edit offsets, enable and disable ... a user who may edit invoices can pause reminders on an invoice",
+   "missing": "Per-customer off switch, preview or dry-run, and manual resend are not addressed."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-8",
+   "quote": "Each decision (sent, skipped with reason, failed, failed-unconfirmed) is a record in S-hist",
+   "missing": "A view of what the system will send next (upcoming reminders) is not specified."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-3 / A-4",
+   "quote": "Runs happen at least once every 60 minutes (A-4), so on a healthy system a due, eligible step is handed to the mail provider by the first run at or after its target, at most 60 minutes late."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "State and data assessment",
+   "quote": "no existing resource is modified except two additive invoice fields and the new policy and record stores"
+  }
+ ]
+}

@@ -135,7 +135,9 @@ def give_guides(cwd):
 
 
 # What an arm needs in its working directory before the session starts.
-ARM_SETUP = {"P-shiploop-spec": give_guides, "Q-shiploop-spec-lenses": give_guides}
+ARM_SETUP = {"P-shiploop-spec": give_guides, "Q-shiploop-spec-lenses": give_guides,
+             "M-shiploop-spec-members": give_guides, "K-shiploop-spec-default-bounds": give_guides,
+             "G-shiploop-spec-duty4-bounds": give_guides, "H-shiploop-spec-duty4-no-open": give_guides}
 OWN_FOLDERS = ("GUIDES", ".codex-home", ".tmp")
 
 

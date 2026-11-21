@@ -1,0 +1,146 @@
+{
+ "slot": "csv-user-import__P-shiploop-spec__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3313236,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "A7",
+   "quote": "Any invalid row, conflict, lost authority before commit, or definite failure before a successful batch commit rejects the whole batch. No user from that batch is left created"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "A10",
+   "quote": "A definitive rejection shows zero created and a file-level reason or actionable row numbers and reasons, as applicable."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "A8",
+   "quote": "A duplicate within the file or a collision at creation time rejects the whole batch. ... Flag all rows in an in-file duplicate group. For directory collisions, use the generic row reason"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "A5",
+   "quote": "Password, credential, role and scope columns are unsupported by this file contract."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "A1",
+   "quote": "An authenticated administrator permitted to create users in the target scope can open Import users in Users.",
+   "missing": "The spec ties import to single-user create authority and leaves open 'whether an import permission already exists'; it does not state that import is a distinct ability not implied by create authority."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "A5",
+   "quote": "Reject a missing or wrong header or a header with repeated or extra columns as a file error. A wrong-width data record, missing or invalid email produces a row error."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "A4",
+   "quote": "Accept an optional initial UTF-8 BOM, LF or CRLF record endings, and an optional final record ending. Quoted fields support commas, doubled quotes and embedded record endings."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "A7",
+   "quote": "No user from that batch is left created and no creation side effects are issued for a rejected batch."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "A6",
+   "quote": "If either cap is exceeded, provide a file-limit error with zero writes. ... Each cap is inclusive.",
+   "missing": "The numeric byte and row caps are not set (left open to the environment owner)."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "A5",
+   "quote": "A zero-byte file reports an empty file, an empty-record-only file reports a missing header, and a header-only file reports no data rows. Each creates zero users. One valid data row is allowed."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "A8",
+   "quote": "Resubmitting a committed file against those same identities creates no additional users and leaves original IDs intact."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-4 State and data",
+   "quote": "The contract supplies no independent background completion guarantee, persistent import history, or status-sharing channel.",
+   "missing": "Whether a large file is processed synchronously or in the background is left open ('whether safe direct completion fits the file envelope'), and there is no completion notification for an admin who has left."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3 Open gaps",
+   "quote": "confirm ... standard activation, invitations or other creation side effects. ... If onboarding triggers external effects, confirm their timing and recovery before promising the same behavior for bulk input.",
+   "missing": "Whether invitations are sent and how a large batch's mail is paced is not decided."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3 State and data / Open gaps",
+   "quote": "The CSV adds no way to supply or read passwords, secrets or elevated privileges. ... confirm ... required user status, default entitlements, and standard activation",
+   "missing": "Whether created users are active or pending and how they first sign in is left open."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2 State and data; A12",
+   "quote": "They can be read by authorized import processing only and are released on completion, rejection or operation expiry. ... No raw upload, cell contents, filename ... in ... durable import history."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "A13",
+   "quote": "Operators authorized by product policy can retrieve an import completion, rejection, operational failure or access denial signal ... with a safe correlation reference and outcome class.",
+   "missing": "The event is not stated to record which admin imported, which accounts, and when; mandatory audit behavior is left open."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "Behavior model; R-3 State and data",
+   "quote": "Once submitted, there is no cancel or undo action in this scope. ... A correction is a full resubmission from a fresh validation state."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements; A10",
+   "quote": "Show a pending state while waiting for an authoritative outcome. ... Numeric caps, deadlines and workload are open under R-2/R-4. No latency, availability or cost target is implied",
+   "missing": "No time bound for a maximum-size file, and no progress beyond a generic pending state."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "Non-functional requirements; A7",
+   "quote": "Normal user-management and individual creation paths retain their behavior. ... Existing users, permissions and accounts outside the batch are unaffected by bulk create."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "A5; R-2 State and data",
+   "quote": "Each field is treated as data. ... Raw cell contents and unrelated user records stay off the result and out of logs.",
+   "missing": "No rule for spreadsheet formula injection, and no explicit maximum field length or handling of overlong fields beyond the normal email rules."
+  }
+ ]
+}

@@ -1,0 +1,187 @@
+{
+ "slot": "grokbot-salesforce__P-shiploop-spec__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "AD-1, AD-2",
+   "quote": "Use a Lightning Web Component in an explicitly deployed Custom Tab \u2026 Send ordered text inputs with user and assistant roles from the current view. There is no trusted Salesforce record context in the request."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1, state and service contract",
+   "quote": "No Salesforce business-record read or write is in scope, so record sharing, object CRUD and field permissions are inapplicable to chat data access.",
+   "missing": "The bot preserves visibility by excluding records. The spec gives no rule for answering from records under the asking user\u2019s sharing context."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-1, state and service contract",
+   "quote": "No Salesforce business-record read or write is in scope, so record sharing, object CRUD and field permissions are inapplicable to chat data access.",
+   "missing": "The spec excludes all business-record fields. It gives no field-level access or masking rule for reading or displaying encrypted or restricted fields."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1 B, AD-1, R-4 A",
+   "quote": "The explicitly granted user can invoke the bot. \u2026 Use additive metadata and scoped permission sets for access. \u2026 the integration administrator can rotate or revoke the key through approved administrative channels."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-3, state assessment; R-4 C",
+   "quote": "Only that view's current user reads the rendered copy. \u2026 Names, prompt/response text, secrets, raw provider bodies and headers stay out of app-owned telemetry"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-2",
+   "quote": "Use an imperative, non-cacheable Lightning-to-Apex request for each accepted send. \u2026 A server transaction allows one inference callout per send.",
+   "missing": "The spec calls xAI from the send transaction. It specifies neither asynchronous Apex execution nor the restrictions on trigger invocation and callouts following DML."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AD-2, R-4 A",
+   "quote": "Use an enhanced Salesforce Named Credential over HTTPS with a Custom External Credential \u2026 Provision the secret separately via authorized admin setup \u2026 No provider credential in product source, browser artifacts, chat display, app-owned logs or handoff."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "AD-2",
+   "quote": "Salesforce documents a maximum of 100 callouts and 120 seconds cumulative callout time per transaction, and a synchronous maximum request or response size of 6 MB with heap use also accounted for.",
+   "missing": "The numeric Apex heap and CPU-time ceilings are unspecified. The 6 MB figure bounds request or response size."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2 C",
+   "quote": "Controlled delayed, distinct successes and failure fixtures verify displayed text, status, submitted prompts and call count.",
+   "missing": "The spec leaves open how Apex tests substitute mock responses for live callouts. It names neither the live-callout restriction nor the required mock implementation."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-2, R-4 A",
+   "quote": "Use an enhanced Salesforce Named Credential over HTTPS \u2026 Use the xAI Responses API, `POST https://api.x.ai/v1/responses` \u2026 A missing, disabled or rejected credential produces an actionable setup error"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "AD-2, R-2 C",
+   "quote": "Use an imperative, non-cacheable Lightning-to-Apex request for each accepted send. \u2026 When the latest active request returns a completed nonempty reply, commit the pair once and announce completion."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "AD-3, R-2 D; R-2 D/R-3 B walkthrough",
+   "quote": "Identify sends with a view generation and operation identity. \u2026 Ignore late or duplicate completion after settlement \u2026 T-4 invalidated the first operation, so the two outbound calls produce exactly one pair"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "AD-2, R-2 state and service contract",
+   "quote": "verify the target's concurrent-callout limit \u2026 No cached replies, durable queue, provider continuity ID, subscription, cursor or incremental synchronization.",
+   "missing": "The spec addresses concurrency for direct calls. It defines neither a job capacity nor the outcome of a failed enqueue."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-2 C, R-4 A",
+   "quote": "show an actionable, sanitized message. \u2026 Check credential failure, 429, 5xx, network failure, timeout, invalid body and incomplete/empty output. \u2026 A missing, disabled or rejected credential produces an actionable setup error",
+   "missing": "Credential rejection has a setup error. The messages or recovery actions that distinguish other 4xx refusals, 5xx failures and timeouts for the user are unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-2 C, R-2 B\u2013C/R-3 A walkthrough",
+   "quote": "No automatic retry or duplicate send while pending. \u2026 Send P2 with a 429: the second outbound attempt ends under T-4, leaving one pair and draft P2.",
+   "missing": "Retry is manual. The spec leaves open what the rate-limit or quota message tells the user about when to retry or when quota needs administrative attention."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2 C, R-2 B\u2013C/R-3 A walkthrough",
+   "quote": "timeout or malformed/incomplete result, remove pending state, keep prior pairs, restore the draft and show an actionable, sanitized message. \u2026 No partial text appears."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "AD-3, AD-2",
+   "quote": "Keep drafts, completed turns, appearance selection and pending state in the current component's memory. \u2026 Send ordered text inputs with user and assistant roles from the current view.",
+   "missing": "The view holds turns, roles, text and status in memory. No conversation or turn record schema specifies timestamps, per-turn model identity or usage counts."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-3 B, R-4 state and data assessment",
+   "quote": "Leaving the chat, refresh, sign-out or identity change ends that view's state. \u2026 xAI documents default audit retention of 30 days and a team-level zero-data-retention option",
+   "missing": "The spec describes local chat lifetime and provider retention. It leaves the effect of deleting a Salesforce user on an open chat or a provider-held copy unspecified."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-4 B, AD-2",
+   "quote": "tells users to use synthetic/non-sensitive text \u2026 No Salesforce record lookup, Salesforce user identifiers or attachments in the inference payload. \u2026 Send ordered text inputs with user and assistant roles from the current view."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-2 B, R-3 A",
+   "quote": "Do not silently clip user input or retained context. \u2026 A context-limit rejection lets the user clear chat or shorten the draft where that fits the budget.",
+   "missing": "Oversized context is rejected intact. The model-specific size limit and counting rule remain open."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-3 A, R-2 B",
+   "quote": "A fresh view begins with no prior context. \u2026 Empty, whitespace-only or over-budget input starts no provider call. \u2026 Accept exactly the configured limit under a documented counting rule and reject the first value above it."
+  },
+  {
+   "id": "N-22",
+   "state": "covered",
+   "where": "R-1 state and service contract, R-4 state and data assessment, R-4 C",
+   "quote": "the responsible admin withdraws bot access \u2026 The integration administrator owns the secret and non-secret route/model configuration \u2026 Authorized operators can distinguish successful completion, provider rejection by safe category, timeout and invalid response"
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-4 state and data assessment, R-1 C",
+   "quote": "route/model configuration scoped to this bot and target org. \u2026 Provision separately from deployable configuration. \u2026 Release operators confirm the candidate reached terminal success, read back the candidate and authorized configuration",
+   "missing": "The spec scopes configuration and secret provisioning to the development org and verifies deployment. It leaves scratch-org versus sandbox selection, cross-environment promotion and production code coverage unspecified."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "R-2 C, non-functional requirements for R-2 and R-3",
+   "quote": "Show the pending message and an accessible progress status as soon as a valid send starts. \u2026 A finite wait ends in success or recoverable failure, including a lost connection.",
+   "missing": "The wait must end, but the spec gives no elapsed-time target or numeric upper bound for the user to receive an answer or timeout."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "Non-functional requirements for R-1 through R-3, R-1 B",
+   "quote": "airy composition, tonal rounded surfaces and visible hierarchy within Salesforce conventions. \u2026 Design the empty, loading, success and persistent error states. \u2026 A platform denial or a safe access message is acceptable."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-1, basis and delta; R-1, state and service contract",
+   "quote": "Preserve unrelated navigation, settings, access, automation and business data. \u2026 Afterward, only the agreed bot metadata/configuration and explicit assignments differ. \u2026 No Salesforce business-record read or write is in scope"
+  }
+ ]
+}

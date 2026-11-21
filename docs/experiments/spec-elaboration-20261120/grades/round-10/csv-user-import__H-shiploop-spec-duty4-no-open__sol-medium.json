@@ -1,0 +1,146 @@
+{
+ "slot": "csv-user-import__H-shiploop-spec-duty4-no-open__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.38082039999999995,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "TC-5",
+   "quote": "Default to partial success after definitive row rejection."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "TC-5",
+   "quote": "rejects that row with its starting physical line, field when applicable and reason. That row creates zero accounts."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "TC-6",
+   "quote": "Later field-valid rows with the same identity yield \u201cDuplicate in this file.\u201d Existing identities and losing writes in a race yield \u201cIdentity unavailable\u201d with no stored account details."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "This import cannot set scope, secrets or roles or mutate preexisting accounts."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Add an import entry point for admins with current user-creation authority in their managed scope.",
+   "missing": "Import is tied to ordinary create authority; whether import needs a distinct permission not implied by single-user creation is not decided."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "TC-3",
+   "quote": "The required header contains `email` and optionally `name`, in either order. ... a missing or invalid header, duplicate or unsupported columns ... produce a file error and zero writes"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "TC-3",
+   "quote": "UTF-8 comma-separated text with an optional single leading UTF-8 BOM and LF or CRLF separators. ... Fields may be quoted to contain separators or line breaks"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "TC-7",
+   "quote": "Committed accounts remain after a later failure or interrupted interaction. A still-authorized admin can reload the directory and resubmit."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "TC-4",
+   "quote": "Default maximum 65,536 file bytes inclusive ... A file above the cap is rejected with the limit and zero creates."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "TC-3",
+   "quote": "Zero bytes ... produce a file error and zero writes ... A valid header with no data records yields \u201cNo user rows\u201d and zero writes."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "TC-6",
+   "quote": "resubmit `mixed.csv` under T-8. Under T-4, lines 2 and 6 now also reject as identity unavailable. ... zero created and six rejected, and there are no new records or ordinary effects."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "Submission R-3, R-4",
+   "quote": "Use one interaction with authoritative completion or an unconfirmed outcome and directory reconciliation. ... A durable result or independent background operation would need evidence of a workload or recovery requirement"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Identity keys, uniqueness domain, validation, initial role, activation and notifications are ordinary account rules left unstated in the request.",
+   "missing": "Whether many invitations go out at once and any pacing or throttling of that mail."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "TC-5",
+   "quote": "its privileges, activation and ordinary effects match direct creation.",
+   "missing": "Concrete initial state (active vs pending), password presence, and how the imported user first signs in are deferred to unstated ordinary rules."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "held transiently for the active operation. Release them and remove any transient copies at completion or abandonment. There is no retained upload or downloadable file."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "TC-3",
+   "quote": "Default format is UTF-8 comma-separated text",
+   "missing": "No statement on locale-dependent values (dates, numbers, locale separators); only encoding and comma separator are fixed."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "Service boundaries",
+   "quote": "Diagnostics include a safe correlation reference, outcome category and counts when known. ... Reconcile any mandatory audit obligation with the target before connecting writes.",
+   "missing": "Whether an audit record of who imported what and when is kept, and its contents."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "TC-7",
+   "quote": "If a response was lost after commit, retry encounters the authoritative conflict and can create identities that did not commit. Closing the view does not promise cancellation or background completion.",
+   "missing": "No cancel action for a running import is defined; retry is whole-file resubmission rather than retrying only failed rows."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "With valid input through the effective cap, expose pending then an authoritative final or unconfirmed outcome. ... No SLA, throughput target or concurrency quota was supplied.",
+   "missing": "A time bound for a max-size file and progress beyond a pending state."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Add a batch path that follows the ordinary authorized account-creation rules. Preserve field validation, identity uniqueness, privileges ... This import cannot set scope, secrets or roles or mutate preexisting accounts."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "TC-5",
+   "quote": "a field rejected by ordinary creation rejects that row with its starting physical line, field when applicable and reason.",
+   "missing": "Formula-injection values are not addressed, and no maximum field length is stated beyond deferring to ordinary rules."
+  }
+ ]
+}

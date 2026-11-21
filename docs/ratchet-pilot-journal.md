@@ -1926,3 +1926,640 @@ may be well under Sol's 14 to 25.
 **Limits known before the runs.** A Claude session started by the pilot runs in the real home, so it is shown the
 account's own instructions, as Codex is shown its skills (section 19); the same in both waves. Minutes are not
 compared with Sol's.
+
+### Amendment 10, result (2026-11-21 08:12; ten spec-only runs with Sonnet as the writer, 08:03 to 08:10)
+
+Status: firm for what was run: five specifications with each text, one of orders and of ticket assignment and three
+of due times; the Claude host with `claude-sonnet-5-5` at high; every specification accepted on its first try, no
+held-out mark, nothing put back by the script; 1.74 dollars for the reworded wave and 2.57 for the lens wave.
+
+| Specification, text | Clauses | Use cases | request | implied | existing | choice | `Open:` lines | Minutes |
+|---|---|---|---|---|---|---|---|---|
+| orders, reworded | 21 | 4 | 18 | 2 | 1 | 0 | 9 | 1.0 |
+| ticket assignment, reworded | 32 | 6 | 16 | 10 | 6 | 0 | 7 | 2.0 |
+| due times 1, reworded | 22 | 6 | 12 | 5 | 3 | 2 | 12 | 1.4 |
+| due times 2, reworded | 28 | 6 | 18 | 4 | 6 | 0 | 8 | 2.6 |
+| due times 3, reworded | 22 | 6 | 12 | 3 | 6 | 1 | 6 | 1.6 |
+| orders, lens | 39 | 7 | 23 | 4 | 2 | 10 | 0 | 1.7 |
+| ticket assignment, lens | 79 | 13 | 24 | 19 | 24 | 12 | 0 | 3.2 |
+| due times 1, lens | 57 | 9 | 20 | 11 | 17 | 8 | 0 | 3.1 |
+| due times 2, lens | 66 | 9 | 21 | 12 | 21 | 12 | 0 | 2.6 |
+| due times 3, lens | 80 | 13 | 28 | 16 | 27 | 9 | 0 | 3.5 |
+| *Sol, reworded (rung 1)* | *26; 43; 30, 34, 34* | | | | | *0 in all* | *8; 7; 10, 8, 9* | |
+| *Sol, lens (base table)* | *82; 151; 190, 170, 197* | | | | | *20; 14; 19, 25, 24* | *0* | |
+
+The Sonnet rows are counted by the first word of each clause's `Source:` line; one clause of the lens specification
+due times 1 has a `Source:` outside the four kinds (C-38, the runtime's own rule), so its row adds to 56 of 57. The Sol
+rows are as recorded under "Rung 1, result" and in the base table; their other columns are not repeated here.
+
+- **R11.1, the mechanism: holds.** The five reworded specifications write 0, 0, 2, 0 and 1 choice clauses and 9, 7,
+  12, 8 and 6 open lines. The bar was at most 2 choices and at least one open line in each.
+- **R11.2, the due-times start: none of the three requires the refusal.** One has a start with due times off, and
+  a stop, leave the file holding them, and marks as open whether an operator must run a separate step instead (due
+  times 1, C-11: "When the file is written. The loosest reading is that the file holds them after the service has
+  started and stopped normally ... The requester decides if an operator has to run a separate step instead"). One
+  states the request's sentence without a mechanism and adds that a start on a file release 1.4.0 has
+  since written gives the missing ones (due times 2, C-20 and C-24). One states giving due times at start as what the
+  request says (due times 3, C-8).
+- **R11.3, the base.** With the lens text Sonnet writes 10, 12, 8, 12 and 9 choice clauses and no open line, in
+  specifications of 39 to 80 clauses. None of its three due-times specifications requires the refusal either: all
+  three give the missing due times at start, as clauses sourced to the request (C-28; C-26 and C-29; C-37).
+
+**Predictions scored.** For the reworded text all held: 0 to 2 choices, several open lines, and at most one of three
+due-times specifications requiring the refusal (none did). For the base I had said I did not know and that it might
+be well under Sol's 14 to 25: it is 8 to 12.
+
+**Findings.**
+
+- **F34 (firm: ten specifications of a second model).** The reworded text takes the writer's own decisions out of the
+  specification on Sonnet as it did on Sol: 3 choice clauses in five specifications against 51 with the lens text, 42
+  open lines against none, 21 to 32 clauses against 39 to 80. Two of the three choices it did write, both on
+  `overdue` values other than `true`, say the value is left unspecified, one adding that a test must not assert
+  either way; the third keeps the existing audit and notification output and leaves recording `due` there open.
+- **F35 (firm: six Sonnet specifications against five of Sol's; it narrows F24 and F30).** The due-times
+  misreading is Sol's, not every model's. Sonnet reads "the tickets already in the production data file get due
+  times" as giving them at start with either text: none of six specifications requires the refusal, where Sol's
+  writers chose it four times in five with the two earlier texts. So what the reworded text repaired on due times is
+  a decision one model family gets wrong. On Sonnet there was nothing to repair, and that case cannot show the
+  text's worth there.
+
+**What to watch.** Sonnet's reworded specifications restate even less existing behaviour than Sol's (1, 6, 3, 6 and
+6 `existing` clauses; Sol's 1, 24, 13, 15 and 17), so the risk F31 named, a defect in existing behaviour that
+nothing pins, is larger on Sonnet and is not measured.
+
+**Is there enough to conclude?** For the question asked (does another model also stop deciding), yes. Not
+established: anything about a product built or tests written on Sonnet. The cheapest next step would be one
+test-strength cell, ticket assignment with its 27 planted defects, from the Sonnet reworded specification; its
+sessions are priced and it takes about twenty minutes, so it is put to the owner and not run.
+
+**Checked twice, and who decided what.** The readings above were made in the main session, at the owner's word
+("Use this context session for any judgment calls that are material"). A Sonnet subagent copied the evidence,
+recounted every cell of the table with a script of its own (all match) and searched the six due-times
+specifications for a clause that refuses a start on a file without due times: none in any of the six.
+
+**Limits.** One specification of two of the cases with each text. A Claude session started by the pilot runs in the
+real home and is shown the account's own instructions, the same in both waves. Sonnet sometimes writes a `Source:`
+line that names two kinds ("request; existing: ..."), which the count reads by its first word, and one clause of one
+lens specification has a `Source:` outside the four kinds. Added refusals were not read here because Sonnet adds few
+with either text (6, 4, 2, 3, 1 with the lens text; 0, 2, 0, 1, 1 with the reworded).
+
+Evidence: `evidence/reworded-enrichment/` (`s1-*/` and `s1L-*/` with each run's `run.json` and `spec.md`;
+`sonnet-specs-log.txt` and `.json`).
+
+### Received from this session's fork: a suite is written against one product's answers (2026-11-21 08:18)
+
+Status: received, not re-run here; the reading of what it does to R9.5 and F31 is mine.
+
+The owner forked this conversation at 08:00 to ask whether Ratchet's stages can run at once, with a catch-up. That
+session, "Ratchet (fork)", works in a worktree and branch of its own (`ratchet-parallel-6f54fb`, cut from this
+branch at e16be4938; its commits 810cbe5135358b4614f2bf210f63699bae271789 and
+164edda800ebbeac4eca1bdcc025357e5e469fde; its journal `docs/ratchet-parallel-journal.md`) and reads this
+amendment's run folders without changing them.
+
+**What it found**, with no model, by laying one run's frozen suite over another run's product (its `overlay.py`,
+as `grade.py` does for a variant), on due times:
+
+| Suite | On loop a's build | On loop b's build | On the correct reference |
+|---|---|---|---|
+| loop a's (42 items) | 39 in its exported copy; 41 at this run's own gate | 38 | 29 or 31 |
+| loop b's (41 items) | 41 | 41 at its own gate | 29 or 31 |
+| the test-strength cell's (39 items) | 31 | 31 | 35 |
+
+> **Superseded 2026-11-21 09:10** (the fork's own correction; its commit
+> d610919065c98e9eedcb96755362034b2e7848fb): four cells of this table were wrong. Its tool made its copies under
+> the system's temporary folder, which on macOS is a symbolic link, and a test that watches `npm test` by file path
+> then sees no test run. Measured again in a plain folder, with the copy a clone of the product's repository, the
+> tool reproduces the runs' own gates (loop a's suite on its own build 41 of 42, loop b's 41 of 41) and gives:
+>
+> | Suite | On loop a's build | On loop b's build | On the correct reference |
+> |---|---|---|---|
+> | loop a's (42 items) | 41 | 39 | 30 |
+> | loop b's (41 items) | 41 | 41 | 31 |
+> | the test-strength cell's (39 items) | 32 | 32 | 35 |
+>
+> Its readings stand, it says: a suite carries between products that took the same answers, and loses 10 to 12
+> items against the reference, all of them about how the product is driven or about its own tests.
+
+(It gives the two loops' results on the reference as "29 and 31" without saying which is which.) Every cross
+failure, it reports, is about how a test drives the product at an open point (one `RESPONSE_HOURS` setting against
+four `DUE_HOURS_*` ones; how the data file is prepared) or about the product's own tests. None is about what a
+clause asserts.
+
+**What that does to the readings above.** R9.5 stands as it was read: no test asserts an answer to an open point. But
+it said too little. A suite is written against one product, drives it through the answers that product took, and so
+does not carry to another correct product that answered differently: a loop's suite fails 10 to 13 of its items on the
+reference (*corrected 09:10: 10 to 12, by the table above*). R9.2 could not show this, because in a test-strength cell
+the tests are written with the reference as the product in front of them, for every text alike. So F31's "removed most
+of what rejected a correct product" holds for what a clause asserts and not for how its test reaches the product. With
+the earlier texts the specification fixed a control's name and a correct product that named it otherwise failed; with
+this text nothing fixes it, and the test takes it from the product at hand. A second correct product still needs the
+plan's answers, or tests that find a product's controls from its documents.
+
+**Two notes on the apparatus.** The fork's exported copy of loop a's own build counts 39 of 42 where this run's
+gate counted 41 (C-33 and U-8, both about `npm test`): not examined, and the same kind of difference as loop b's
+`suite` check in section 20, a copy without Git history. And for about a minute (08:03 to 08:04:43), before it knew
+it was the fork, it had left one untracked file in this worktree: the launch guards here read a clean tree at
+08:03:08 and at 08:06:59, and no commit of this branch holds it.
+
+> **Superseded 2026-11-21 09:10:** "a copy without Git history" was my guess at the 39 against 41 and it was wrong.
+> The fork found the cause, the temporary folder above; in a plain folder its copy counts 41 of 42, as the gate
+> did. `grade.py strength` makes its copies under the run folder and is not affected. Loop b's `suite` check in
+> section 20 is a different case, read there in the test's own output (`git archive` of release 1.4.0).
+
+**The fork's first run, received 09:08** (its commit d610919065c98e9eedcb96755362034b2e7848fb, its journal section
+6; the owner's word to it was "Yes, run it"; Codex `gpt-6.2-sol` at high; not re-run here). Two test sessions
+started from this amendment's two loop specifications and plans and the starting product, with no build present.
+Their suites pass 42 of 42 and 41 of 41 on the two loop builds, which they never saw, and on each other's. It
+had predicted 4 to 10 failing. The sessions were not cheaper (15.9 and 19.7 minutes against 16.7 and 13.4, on a
+loaded machine). Not measured: whether such a suite catches the planted defects.
+
+What that adds to the reading above, in my words: it is the other half of the same thing. A suite fails on a
+product that took other answers, and passes on a product it never saw that took the same ones. So with the
+reworded text the plan is where a product's answers to the open points are fixed. What a second product, or a
+test written somewhere else, has to share is those answers and the names the plan fixes: not the whole plan, not
+the specification alone and not the build. The fork, asked whether this states its finding, agreed and added that
+narrowing, and that it is shown for two sessions on one request with one model, whose blind sessions took every
+name that starts or configures the product from the plan, the specification or the starting documents.
+
+> **Qualified 2026-11-21 13:17, on the fork's later results** (received 13:15, not re-run here; its journal
+> sections 13 and 15, its commits 6e1d1d4779bf76e8893962439e985166459ec673 and
+> 5212365fe6b999d08c26b310a267863043874aac on its own branch; Codex `gpt-6.2-sol` at high). The reading above holds
+> for its three small cells and needs a limit once the product has a rich page.
+>
+> - *Battleship* (a new app with a page, from an empty folder). A suite written with no build and nothing to run on
+>   passes 28 of 28 when it first meets the build, and catches 32 of 51 seeded faults against 31 for a suite written
+>   beside the build. By this pilot's first spread measure (F38) that is the same.
+> - *Grokbot-local*, from this pilot's `p3R-grokbot-local` specification, plan and first build, which it read and
+>   did not change. The suite written beside the build passes 115 of 115. The suite written with no build passes 4
+>   of 115 at first meeting, and all 111 failures have one cause in the suite's own code: it works out a button's
+>   name from the element's whole text, hidden parts included, where the build puts an avatar letter and an arrow
+>   inside each button and marks both hidden. The name the specification asks for is there; the suite does not find
+>   it. No assertion is wrong and the product is right.
+>
+> So besides the plan's answers and the names it fixes, a test writer facing a rich page needs something to try
+> its page-reading code on. Its check of how much that one correction unlocks was still running when this was
+> received.
+
+### Amendment 11, 2026-11-21 10:52: Sonnet at medium against Sonnet at high, the small step first, then one test-strength cell at each (registered before any run)
+
+Owner, 10:49, after the test-strength cell on Sonnet had been described at their request: "Can we run this at Sonnet
+medium to see if we get different behavior than we would if we ran this at high?" My reading: run that cell at
+both efforts and say whether what Sonnet does differs between them. Medium is also what this account's Sonnet
+sessions use when no effort is given, so it is the setting a day-to-day run would have.
+
+**How the effort reaches a session.** The harness's Claude host puts `--effort <level>` on the command line
+(`test/shiploop_e2e/hosts.py`), and the installed `claude` accepts low, medium, high, xhigh and max there. Amendment
+10's ten runs went out with `--effort high`. A correction to a limit stated there: I wrote that a Claude session
+started by the pilot "runs in the real home and is shown the account's own instructions". The launcher also passes
+`--setting-sources project,local`, which leaves the user-level settings out; what else that leaves out I have not
+checked by a run. The limit was stated more broadly than I knew.
+
+**Rungs.**
+
+| Rung | What runs | About |
+|---|---|---|
+| 1, small | the spec stage alone with the reworded text at `--effort medium`: `sm-orders`, `sm-ticket-assignment`, `sm-due-times-1`, `-2`, `-3`; compared with amendment 10's five at high | 3 minutes |
+| 2 | the test-strength cell on ticket assignment at each effort, each from that effort's own specification (`--spec-from`), the correct reference laid in as the build, plan and heavy test pass at that effort, `--stop-after tests`, then `grade.py strength`: `p1S-ticket-assignment-high` (from `s1-ticket-assignment`) and `p1S-ticket-assignment-medium` (from `sm-ticket-assignment`) | 20 minutes and the grading |
+
+Rung 2 runs whatever rung 1 shows, unless the medium ticket-assignment specification is not accepted by the script.
+Each session of rung 2 is capped at 6 dollars, each of rung 1 at 3.
+
+**Readings.**
+
+- **R12.1, what medium writes.** *Different* if any of the five medium specifications writes more than 2 choice
+  clauses or no `Open:` line (R11.1's bar, which all five at high met), or if any of the three due-times ones
+  requires that an enabled start refuse a data file without due times (none at high did). Otherwise the same on
+  this reading. Reported beside it: clauses, `existing` clauses, minutes and cost.
+- **R12.2, strength at each effort.** Calibrated defects caught of 27: *kept* at 25 or more (Sol with this text:
+  26). Reported: clauses failing on the correct reference, items the second correct delivery fails beyond it, which
+  defects are missed and of what kind, minutes and cost.
+- **R12.3, medium against high.** *Different* if the two caught counts differ by 2 or more, or if one is kept and
+  the other is not. Otherwise no difference shown.
+
+**What it cannot show.** One run a cell at each effort, and no measure of Sonnet's run-to-run spread, so one defect
+either way is nothing. Whole cells are compared (specification, plan and tests all at one effort), so a difference
+would not say which stage made it. Nothing is built on Sonnet. If a cell is not kept, it does not say whether the
+short specification or Sonnet's way of writing tests is the cause: the lens text on Sonnet in the same cell would,
+and it is not registered here.
+
+**Predictions.** The medium specifications meet R11.1's bar and are a little shorter than the high ones. Both cells
+are kept, and medium catches as many as high or one fewer. I hold these loosely: this pilot has no record of
+Sonnet writing a plan or tests.
+
+### Amendment 11, result (2026-11-21 11:12; Sonnet at medium against Sonnet at high)
+
+Status: firm for what was run: five specifications at medium beside the five at high of amendment 10; one
+test-strength cell on ticket assignment at each effort; one run a cell; Claude host, `claude-sonnet-5-5`; every
+specification accepted on its first try; no held-out mark in any session; 1.48 dollars for the five medium
+specifications, 2.03 for the high cell's two sessions and 1.05 for the medium cell's.
+
+**Table 1. The specifications** (each cell is medium / high; the high ones are amendment 10's reworded row).
+
+| Specification | Clauses, medium / high | Use cases | choice | `Open:` lines | `existing` | Seconds to write |
+|---|---|---|---|---|---|---|
+| orders | 19 / 21 | 4 / 4 | 1 / 0 | 7 / 9 | 0 / 1 | 39 / 61 |
+| ticket assignment | 22 / 32 | 5 / 6 | 1 / 0 | 8 / 7 | 2 / 6 | 47 / 118 |
+| due times 1 | 19 / 22 | 6 / 6 | 1 / 2 | 7 / 12 | 1 / 3 | 56 / 84 |
+| due times 2 | 20 / 28 | 4 / 6 | 1 / 0 | 8 / 8 | 3 / 6 | 45 / 153 |
+| due times 3 | 16 / 22 | 6 / 6 | 1 / 1 | 6 / 6 | 1 / 6 | 51 / 95 |
+
+**Table 2. The test-strength cell on ticket assignment** (Sol's two rows are as recorded under "Rung 3, result").
+
+| Cell | Clauses / use cases tested | Clauses failing on the correct reference | Second correct delivery, beyond the reference | Defects caught of 27 | The one missed | Caught only through the product's own tests | Minutes (enrich + the rest) | Cost |
+|---|---|---|---|---|---|---|---|---|
+| Sonnet medium | 22 / 5 | 0 | 5 | 26 | `update-rejects-resolved` | 5 | 5.8 (0.8 + 5.0) | 1.37 dollars |
+| Sonnet high | 34 / 6 | 2 | 8 (5 clauses, 3 use cases) | 26 | `update-rejects-resolved` | 3 | 14.2 (2.0 + 12.3) | 2.45 dollars |
+| Sol high, reworded | 44 / 9 | 3 | 3 | 26 | `update-rejects-resolved` | 1 | 26.9 (3.8 + 23.1) | not priced |
+| Sol high, lens | 153 / 11 | 13 | 15 | 26 | `cli-no-assignee` | 0 | 38.0 (7.0 + 31.0) | not priced |
+
+*Added 2026-11-21 11:31, after the session "Spec elaboration" found two figures here unexplained:* table 1
+counts each specification as its spec stage wrote it, and table 2 counts the clauses tested, after the plan stage.
+In the high cell the plan stage appended two clauses (C-33 and C-34, both passing on the reference), so its 32
+became 34. In the medium cell it appended none, so 22 stands in both tables. Sol's 44 is the 43 of rung 1's table
+and the one its plan appended (C-44).
+
+**The readings of amendment 11.**
+
+- **R12.1, what medium writes: the same on this reading.** Every medium specification writes one choice clause and 6
+  to 8 open lines; none of the three due-times ones requires the refusal. What differs is size and time: 16 to 22
+  clauses against 21 to 32, under a minute each, and still less existing behaviour restated (0 to 3 `existing`
+  clauses against 1 to 6). *Qualified 2026-11-21 13:11 (amendment 12, F38):* on ticket assignment five medium
+  specifications written from this text hold 1 to 5 `existing` clauses, so 2 against 6 on that case is not shown
+  to be a difference.
+- **R12.2, strength at each effort: kept at both.** 26 of 27 at each; the bar was 25.
+- **R12.3, medium against high: no difference shown.** The same count and the same defect missed.
+
+**What did differ, reported.** At high Sonnet wrote more (34 clauses against 22), took two and a half times as long
+(14.2 minutes against 5.8) and cost 1.8 times as much (2.45 dollars against 1.37). Its tests fail on the correct
+reference for two clauses: the request's own "has tests" clause (C-32) and an implied refusal the reference does not
+make (C-5, "A name that is not a single line of text is refused": the reference answers 200 to an assignee
+holding a control character where the clause says 400, the added refusal of F28 again). Medium's tests fail on
+none. The second correct delivery fails 8 of the high cell's items against 5 of the medium cell's.
+
+**How much of the catch is the suite's own** (reported, not registered). Some clauses, taken from the request ("the
+existing tests must still pass"; "npm test runs the new tests"), are tested by running the product's own test suite.
+Defects caught only through them: 5 of 26 at medium (22 clauses), 3 of 26 at high (34), 1 of 26 for Sol with this
+text (44), none for Sol with the lens text (153). So the shorter the specification, the more of the existing
+behaviour is covered by the product's tests and not by tests the session wrote. That is the risk amendment 10
+named, visible and small, and it follows the specification's length across four cells.
+
+*Qualified 2026-11-21 13:11 (amendment 12: F38 and "The first reading's instrument").* Three runs of the shortest of
+these four cells give 5, 3 and 0 on this count, the whole range of the four, and the count leaves out clauses it
+should take in. Four single runs therefore do not show that it follows the specification's length.
+
+**Predictions scored.** All three held: the medium specifications meet the bar and are a little shorter; both cells
+are kept; medium catches as many as high.
+
+**Findings.**
+
+- **F36 (firm at this size: three cells, two models, two efforts).** What the shorter specification costs is the same
+  one defect each time. Sol at high, Sonnet at high and Sonnet at medium all catch 26 of 27 and all miss
+  `update-rejects-resolved`, a defect in existing behaviour that none of the three specifications pins and that the
+  product's own tests do not catch. The lens text on Sol, with about a hundred `existing` clauses, caught it and
+  missed another. *Extended 2026-11-21 13:11 (amendment 12):* three runs of the medium cell caught 26, 24 and 26,
+  so 26 is not a constant of the text; the defect is missed by eight of nine cells under it.
+- **F37 (one run a cell; no measure of spread).** On Sonnet the effort changed length, time and cost, not the
+  registered outcomes. Medium wrote the shortest specification of any cell (22 clauses), caught as many defects,
+  rejected the correct reference on nothing, and did it in 5.8 minutes for 1.37 dollars, against 14.2 minutes and
+  2.45 dollars at high and 26.9 minutes for Sol at high. *Spread measured 2026-11-21 13:11 (amendment 12, F38):*
+  three runs at medium caught 24 to 26.
+
+**Received with this round.** The session "Spec elaboration" pointed out that the stage frame already told the test
+session that a test "must pass whichever reasonable answer a build took" at an open point, and that the fork's
+overlays show the suites did not manage it across builds that answered differently. That is a duty written into a
+prompt that the sessions did not meet, as F22 was.
+
+**Is there enough to conclude?** For the owner's question (does Sonnet behave differently at medium than at high),
+yes on these readings: it does not, and medium is cheaper. Not established: Sonnet's run-to-run spread; any case but
+ticket assignment; anything built by Sonnet; which stage would be sensitive to effort if one were.
+
+**Checked twice, and who decided what.** The readings against the registered rules were made in the main session; a
+Sonnet subagent copied the evidence, recounted the figures with a script of its own and drafted this subsection from
+the facts given to it. Its recount matches every count; it found two roundings of mine, corrected above (84
+seconds for one specification, 14.2 minutes for the high cell, where the owner had been told 85 and 14.3). It also
+searched the three medium due-times specifications for a clause that refuses a start on a file without due times:
+none.
+
+**Limits.** One run a cell and no measure of spread, so one defect either way would have been nothing. Whole cells
+are compared. The calibrated defects are partly caught through the product's own tests, for every text. The gradings
+ran one after another with no other run of mine live; the medium cell's grading overlapped the high cell's test
+session.
+
+Evidence: `evidence/reworded-enrichment/` (`sm-*/`, `p1S-ticket-assignment-high/` and `-medium/`,
+`sonnet-effort-specs-log.txt` and `.json`; and `spec-final.md` added to the five `p1R-*` and `p3R-*` folders, whose
+records had no final specification).
+
+## 22. Amendment 12, 2026-11-21 12:02: one question from ShipLoop's own catalog, on preserved behaviour, answered in the specification or in the plan (registered before any run)
+
+Owner, 11:39: "how much we might be able to leverage existing ShipLoop reference material in Ratchet ... If we know
+key categories or key questions that need to be considered, that might actually help give us better breadth and
+coverage (possibly even better depth) for when we elaborate the incoming prompt or we're trying to elaborate the
+spec." He also asked that this be coordinated with the session "Spec elaboration". Asked whether to start the first
+small experiment (six cells on Sonnet at medium, about 25 minutes and 9 dollars), he answered at 11:59: "Yes, start
+it".
+
+**What was found before designing anything.**
+
+- *In ShipLoop's text.* A helper listed, with quotes, every place ShipLoop tells a session what to consider; I read
+  the passages. Two lists of this kind are in text a session is handed: the intake's twelve key questions K1 to K12
+  (`skills/shiploop/scripts/shiploop_prompts.py`, `DUTIES["intake"]` item 9), each with a route (inspect, research,
+  experiment, default, person), a default and what it blocks; and the plan's fifteen concerns
+  (`skills/shiploop/scripts/shiploop_concerns.py`), each a row or "applies: no" with a reason. The reference guides
+  hold more (an audit of event families, a non-functional list).
+- *From the session "Spec elaboration"* (its journal, section 38, and its answers to five questions; its work, not
+  re-run here). Real builders do not open the guides: `references/behavioral-requirements.md` was opened in none of
+  26 Sol and none of 9 Sonnet deliveries, and in nearly all sessions of its bench, where the folder's first lines
+  point at them. K1 to K12 has run at intake in every real delivery since 2026-10-31, and on Sol its routes collapse
+  to "inspect": default and person go unused and 26 real specifications hold no open gap. Of its 89 checklist items
+  two outside sorters call 74 needed and 4 beyond the request, all four operator features; K1 to K12 has no operator
+  question. A category list must not be judged by a covered count over the specification, which it always wins.
+  It checked this amendment's reasoning before the owner saw it and corrected one sentence of mine (both long
+  specifications caught the existing-behaviour defect, not only the lens one).
+- *From this pilot.* What the short reworded specification gives up is existing behaviour: three cells on two
+  models miss the same defect, and catches that rest only on the product's own tests rise as the specification
+  shortens (F36; 0, 1, 3, 5). Clauses that restate existing behaviour almost never reject a correct product (F25),
+  while the writer's own decisions do (F26, F28). The owner told that session he wants fuller specifications. So
+  fuller should mean more existing behaviour pinned and more points raised, with nothing decided by the writer.
+
+**The ladder.** Three rungs; only the first is registered here.
+
+1. One question, K2 word for word: "Scope and preserved behaviour: what is in and out, and what existing behaviour
+   must not change?", answered in writing by the spec stage or by the plan stage, each answer a clause sourced to a
+   file, or an open point.
+2. Not registered: all twelve questions, each ending as a clause with its source, an `Open:` line, or "does not
+   apply" with a reason that can be checked; no choice clause.
+3. Not registered: the fifteen concerns as rows in the plan.
+
+**The text** (`ratchet.py`: `PRESERVE_SPEC`, `PRESERVE_PLAN`, chosen by `--preserve spec` or `--preserve plan` with
+`--enrich reworded`). Only the question is ShipLoop's. In the specification text it sits above "How to get there",
+outside the questions that text calls aids to thinking, and says the answer is written: each thing that must not
+change is a clause "stating what the product does today, with `Source: existing: <the file that shows it>`", and
+what the repository does not settle is an `Open:` line. In the plan text it asks for a sixth section, `## Preserved
+behaviour`, and for a clause at the end of the specification wherever the specification has none. With the option
+off both packets render byte for byte as before (checked against the committed script); the standing self-test
+passes for all three settings; the paragraph appears only in the prompt of the stage it is set for.
+
+**Cells.** The test-strength cell on ticket assignment (spec, plan, the correct reference laid in as the build, heavy
+test pass, `--stop-after tests`, then `grade.py strength`), each one run from the request, Claude host,
+`claude-sonnet-5-5` at medium, 6 dollars a session at most:
+
+- `q-base-1`, `q-base-2`: the reworded text as it is. With amendment 11's medium cell that makes three baseline runs.
+- `q-spec-1`, `q-spec-2`: `--preserve spec`.
+- `q-plan-1`, `q-plan-2`: `--preserve plan`.
+
+**Readings.**
+
+- **R13.1, the first reading: catches that rest only on the product's own tests.** Defects caught only through
+  clauses that are checked by running the product's test suite (`by_source.py`, `RUNS_PRODUCT_TESTS`, now counted by
+  the script; it reproduces 0, 1, 3 and 5 for the four cells on record). A placement *helps* if both of its runs
+  are below the lowest of the three baseline runs. It *does not* if either is at or above the highest. Otherwise
+  not shown.
+- **R13.2, strength.** Calibrated defects caught of 27, kept at 25 or more, and whether `update-rejects-resolved` is
+  caught, a run at a time. One defect in one run is nothing; caught in both runs of a placement and in no baseline
+  run is worth saying.
+- **R13.3, harm.** Clauses failing on the correct reference: *no harm shown* if neither run of a placement exceeds
+  the worst baseline run by more than 2. Choice clauses written stay at 2 or fewer in each.
+- **R13.4, spread.** For the three baseline runs, the range of each reading: this pilot's first measure of
+  run-to-run spread, on Sonnet at medium.
+- Reported: clauses and `existing` clauses written, clauses the plan added, items the second correct delivery fails
+  beyond the reference, minutes and cost.
+
+**Predictions.** Baseline: 25 to 27 caught, 3 to 6 resting only on the product's own tests. In the specification:
+`existing` clauses rise from 2 to between 8 and 20, the first reading falls to between 2 and 4, the missed defect is
+caught in at most one of two runs, failing clauses stay at 0 to 2. In the plan: 3 to 8 clauses added, a smaller
+effect, most likely not shown.
+
+**Limits known before the runs.** One case, two runs a placement, one model at one effort. The first reading is a
+word match. Only the question is ShipLoop's; the sentences around it are mine and were written knowing which
+defect the short specifications miss, which is why the question was taken unchanged and the sentences name no
+behaviour. Every request in this pilot is precise (180 to 280 words); nothing here reads the vague request the owner
+has in mind, for which this pilot has no instrument yet.
+
+### Amendment 12, result (2026-11-21 13:11; the question on preserved behaviour, in the specification or in the plan)
+
+Status: firm for what was run: six cells on ticket assignment, one run each, read beside amendment 11's medium cell
+as the third baseline run ("earlier" below); Claude host, `claude-sonnet-5-5` at medium; every specification accepted
+on its first try; no held-out mark in any session; nothing put back by the script; 8.58 dollars for the eighteen
+sessions. The six cells ran at the same time (12:02 to 12:22) and their gradings overlapped (12:22 to 13:01), so
+minutes are not compared between cells.
+
+**Table 1. The specifications as the spec stage left them.** The plan cells get the question in the plan stage
+only, so their specifications are written from the baseline text: five specifications without the question, two
+with it. "`existing` first" counts clauses whose source begins with that word, which is how `by_source.py` sorts
+them; "`existing` anywhere" counts clauses whose source cites an existing file at all.
+
+| Run | The question | Clauses | Use cases | `existing` first | `existing` anywhere | choice | `Open:` | Seconds |
+|---|---|---|---|---|---|---|---|---|
+| earlier | none | 22 | 5 | 2 | 8 | 1 | 8 | 47 |
+| `q-base-1` | none | 21 | 5 | 1 | 10 | 0 | 9 | 54 |
+| `q-base-2` | none | 24 | 5 | 5 | 10 | 1 | 10 | 47 |
+| `q-plan-1` | none yet (it comes in the plan) | 20 | 6 | 2 | 8 | 0 | 6 | 63 |
+| `q-plan-2` | none yet (it comes in the plan) | 22 | 6 | 5 | 12 | 2 | 8 | 49 |
+| `q-spec-1` | in the specification | 21 | 6 | 4 | 9 | 0 | 9 | 51 |
+| `q-spec-2` | in the specification | 22 | 6 | 5 | 15 | 0 | 8 | 58 |
+
+**Table 2. The graded cells.** "Plan added" is the number of clauses the plan stage added; "Fails on reference" the
+clauses failing on the correct reference; "Second delivery" the items the second correct delivery fails beyond
+those; "Caught" is of the 27 planted defects; "First reading" is R13.1 as the script counts it.
+
+| Cell | Clauses / use cases | Plan added | Fails on reference | Second delivery | Caught | First reading | Dollars |
+|---|---|---|---|---|---|---|---|
+| earlier | 22 / 5 | 0 | 0 | 5 | 26 | 5 | 1.37 |
+| `q-base-1` | 21 / 5 | 0 | 0 | 5 | 24 | 3 | 1.18 |
+| `q-base-2` | 24 / 5 | 0 | 0 | 4 | 26 | 0 | 1.18 |
+| `q-spec-1` | 21 / 6 | 0 | 0 | 4 | 25 | 4 | 1.44 |
+| `q-spec-2` | 22 / 6 | 0 | 0 | 5 | 25 | 2 | 1.93 |
+| `q-plan-1` | 25 / 6 | 5 | 1 (C-20) | 3 | 23 | 0 | 1.36 |
+| `q-plan-2` | 26 / 6 | 4 | 0 | 3 | 26 | 0 | 1.48 |
+
+| Cell | Defects missed |
+|---|---|
+| earlier | `update-rejects-resolved` |
+| `q-base-1` | `update-rejects-resolved`, `backoff-linear`, `validate-renamed` |
+| `q-base-2` | `update-rejects-resolved` |
+| `q-spec-1` | `update-rejects-resolved`, `filter-after-page` |
+| `q-spec-2` | `update-rejects-resolved`, `filter-after-page` |
+| `q-plan-1` | `default-limit-changed`, `resolved-template-replaced`, `backoff-linear`, `validate-renamed` |
+| `q-plan-2` | `update-rejects-resolved` |
+
+**Table 3. The six defects planted in what the product already did, and the items that caught each.** `+` marks a
+clause the plan stage added. The other 21 defects are in the new feature.
+
+| Defect | earlier | `q-base-1` | `q-base-2` | `q-spec-1` |
+|---|---|---|---|---|
+| `update-rejects-resolved` | missed | missed | missed | missed |
+| `default-limit-changed` | C-22 | C-21 | C-23, C-24, U-5 | C-21 |
+| `resolved-template-replaced` | C-22 | C-21 | C-23, C-24, U-5 | C-20, C-21, U-6 |
+| `audit-not-saved` | C-22 | C-21 | C-22, C-23, C-24, U-5 | C-21 |
+| `backoff-linear` | C-21 | missed | C-23 | C-20 |
+| `validate-renamed` | C-21 | missed | C-23 | C-20 |
+
+| Defect | `q-spec-2` | `q-plan-1` | `q-plan-2` |
+|---|---|---|---|
+| `update-rejects-resolved` | missed | C-23+ | missed |
+| `default-limit-changed` | C-18, C-22 | missed | C-21, C-22 |
+| `resolved-template-replaced` | C-22, U-6 | missed | C-21, C-22, U-6 |
+| `audit-not-saved` | C-14, C-22 | C-25+ | C-21, C-22, C-25+, U-6 |
+| `backoff-linear` | C-21 | missed | C-21 |
+| `validate-renamed` | C-21 | missed | C-21 |
+
+**The readings of amendment 12.**
+
+- **R13.1, the first reading: not shown for either placement, and the count did not hold up as an instrument.** By
+  the script, defects caught only through clauses it takes as running the product's own tests: baseline 5, 3 and 0;
+  with the question in the specification 4 and 2; in the plan 0 and 0. The rule asked for both runs of a placement
+  to be below the lowest baseline run. The lowest is 0, so no placement could meet it; none is at or above the
+  highest, 5. Not shown. The registered count stands as counted and no other count replaces it here; what is wrong
+  with it is under "The first reading's instrument".
+- **R13.2, strength: not shown.** Caught of 27: baseline 26, 24 and 26; in the specification 25 and 25; in the plan
+  23 and 26. The bar of 25 is missed by one baseline run and one plan run, so it separates nothing.
+  `update-rejects-resolved` is caught once, in the first plan run, by a clause the plan stage added; the rule counts
+  one catch in one run as nothing.
+- **R13.3, harm: none shown by the rule.** Clauses failing on the correct reference: 0 in every run but the first
+  plan run, which has 1, inside the allowance of 2 over the worst baseline run. That one is the request's own "has
+  tests" clause (C-20), not a clause the plan added. Choice clauses: 0 to 2 in each specification.
+- **R13.4, the spread of three baseline runs** (one text, case, model and effort): 24 to 26 defects caught; 0 to 5
+  on the first reading; no clause failing on the reference in any; 4 to 5 items the second correct delivery fails;
+  21 to 24 clauses, 1 to 5 of them `existing`; 1.18 to 1.37 dollars.
+
+**The first reading's instrument.** Three things are wrong with the count, found by reading the graded runs.
+
+- *It matches words, and the wording varies.* Every run has the same two clauses from the request: the existing
+  tests still pass as they are, and the new tests run under `npm test`. The script takes a clause as one of the two
+  when its text holds "npm test", "node:test", "existing tests" or "tests in `test/`". Two runs word the first of
+  them "Every test in `test/` that exists now passes" (`q-base-2` C-23, `q-plan-2` C-21), which matches none of
+  those, so the script reads 0 for both. With those two clauses taken in, the helper's recount gives 2 and 3.
+- *It counts a clause whole.* The test of "existing behaviour is unchanged" runs the product's tests in some runs
+  and in others also makes requests of its own (`q-base-2` C-23 creates, changes, pages and resolves tickets
+  itself). The grading records which clause failed, not which of its tests, so "caught through the product's own
+  tests" cannot be told from "caught by a test the session wrote" inside such a clause.
+- *Across three runs of one text it ranges from 0 to 5*, the whole range of the four cells (0, 1, 3 and 5) from
+  which amendment 11 read that it follows the specification's length. That sentence is qualified in place.
+
+**What moves the count of 27 on this case** (reported). Twenty-one defects are in the new feature and six in what
+the product already did. Five runs catch all 21; the two specification runs both miss `filter-after-page`. Of the
+six, `update-rejects-resolved` is caught only by a clause that says a resolved ticket can still be changed, which
+the product's own tests do not check. The other five are caught through the request's two clauses where their
+tests work, and Table 3 shows where they do not:
+
+- `q-base-1` (24) and `q-plan-1`: nothing in their suites compares `test/` with the base commit, as the suites of
+  the five other runs do, so the two defects that edit a base test along with the code (`backoff-linear`,
+  `validate-renamed`) pass.
+- `q-plan-1` (23), besides: **its runs of the product's tests run nothing.** Both are started from inside the
+  acceptance run (`node --test test/` and `npm test`) with the environment as it is. Node's test runner marks its
+  children with `NODE_TEST_CONTEXT`, and a `node --test` started with that mark set exits 0 without running a test.
+  Checked on a scratch copy of one defect tree (`default-limit-changed`, Node 26.12.1): started plainly,
+  `node --test test/` exits 1 with 3 of 121 tests failing; with the mark set it exits 0 having printed only a
+  warning that it skipped the files; `npm test` likewise. That loses `default-limit-changed` and
+  `resolved-template-replaced`, and would have lost `audit-not-saved` but for a clause the plan added. The other
+  six runs drop the mark in at least one nested run and catch all three there; in two of them (the earlier
+  baseline's C-21, `q-spec-1`'s C-20) one nested run keeps the mark and runs nothing, and the other clause runs the
+  tests for real. A heavy test pass against a correct build cannot notice: a run of nothing and a run of 121
+  passing tests both exit 0. This run's "has tests"
+  clause also fails on the reference (its test looks in the new test files for words about the command line that
+  the reference's file does not use), so it counts for nothing either way.
+- The two specification runs (25 and 25): `filter-after-page` cuts the page before it filters, so a filtered page
+  can come back short while the pages together still hold the right tickets. Both specifications say of the new
+  filter "paged as before", as the other five do. One suite never pages the filtered listing with a limit; the
+  other asks for a page of two where the agent's tickets are the first two, which the defect also returns in full.
+  The question was in the specification's prompt only and the clause is worded as elsewhere, so no path from the
+  question to the miss is visible, and two runs cannot tell chance from an effect. It is recorded because it is
+  both runs of one placement and none of the other five.
+
+So on this case the count moves with how the test session treats two clauses of the request, and by at most one
+defect with what the specification says of existing behaviour.
+
+**What the question produced** (reported).
+
+- *In the plan.* Both plans hold the section asked for, `## Preserved behaviour`, with 14 and 10 entries. All but
+  the last of each name the file that shows the behaviour (13 and 9); the last lists what the repository does not
+  settle (whether `list --raw` may gain a column, whether `show` prints the assignee) with the answer the plan
+  takes. No other plan has such a section. The plan stage then added 5 and 4 clauses, 8 of the 9 sourced
+  `existing`; none fails on the reference. In `q-plan-1`, whose runs of the product's tests run nothing, two added
+  clauses are the only catch of a defect: C-23, "A resolved ticket can still be patched; only assignment is refused
+  for resolved", catches `update-rejects-resolved`, which the other eight ticket-assignment cells graded under the
+  reworded text miss (five of these six, amendment 11's two on Sonnet, and Sol's at high); C-25 (`show` and the audit
+  entries print as before) catches `audit-not-saved`. In `q-plan-2` no added clause is a sole catch.
+  One of the nine decides something new under an `existing` source. C-24 of `q-plan-1`, "A data file whose ticket
+  carries an unusable assignee is refused at load", cites the loader's strictness for a field that did not exist.
+  The reference does refuse; the second correct delivery starts, and fails the clause.
+  The plan session took 126 and 118 seconds and 52 and 50 cents, against 93 to 111 seconds and 41 to 50 cents for
+  the five plans written without the question.
+- *In the specification.* No countable trace: 21 and 22 clauses, 4 and 5 `existing` by first word and 9 and 8 open
+  lines, against 20 to 24, 1 to 5 and 6 to 10 for the five specifications written without the question. Both
+  answer inside the one clause every specification has (C-20 "Existing behaviour is unchanged", C-21 "What the
+  service already does keeps working": a list of what stays), not with a clause for each thing. One of the two
+  cites an existing file in 15 clauses, against 8 to 12 elsewhere, and writes one clause on what stays (C-18: the
+  limits and the default page size) that catches `default-limit-changed` by a test of its own.
+
+**Predictions scored.** Baseline, "25 to 27 caught, 3 to 6 on the first reading": one of the two new runs is outside
+each (24 caught; 0 by the script). In the specification, "`existing` clauses rise to between 8 and 20": wrong, 4
+and 5; "the first reading falls to between 2 and 4": 4 and 2, with the baseline at 5, 3 and 0, so no fall; "the
+missed defect caught in at most one run": held, in neither; "failing clauses 0 to 2": held, none. In the plan, "3
+to 8 clauses added": held, 5 and 4; "a smaller effect, most likely not shown": held.
+
+**Findings.**
+
+- **F38 (firm for what was run; this pilot's first measure of run-to-run spread).** Three runs of one text on one
+  case, model and effort differ by two defects caught (24, 26, 26), by five on the first reading and by four
+  `existing` clauses. At one run a cell a difference of that size between two texts is not a difference. Two
+  sentences of amendment 11 that rested on single runs of that size are qualified in place.
+- **F39 (firm for what was run: two runs a placement).** A question taken from ShipLoop's catalog is answered when
+  the stage is given a place to put the answer, and leaves no trace when it is one more instruction in the text.
+  In the plan, with a section to fill, both runs list what must not change with the file that shows it and add 4
+  to 5 sourced clauses. In the specification, with no section, both write what the five specifications without
+  the question write. The placements differ in stage and in form together; which of the two decides is not
+  separated. It agrees with what the session "Spec elaboration" read in real deliveries (the guides are not opened;
+  on Sol the intake's routed questions leave no open gap on record). ShipLoop's fifteen plan concerns already have
+  the form that was answered here: a row, or "applies: no" with a reason.
+- **F40 (not shown, and why this case cannot show it).** Neither placement moved a registered reading. On this
+  case none could have by more than one defect: of the 27, one is caught only by a clause on existing behaviour,
+  and the rest of the count turns on the test session's handling of two request clauses. That one defect was
+  caught once, by a clause the question produced. By the registered rule that is nothing; it is recorded as the
+  intended mechanism seen once in two runs.
+- **F41 (one clause of nine; the harm F26 and F28 describe).** Asking what must not change let one decision in
+  under an `existing` source: an existing rule carried over to a new field. The reference agrees with it and
+  another correct delivery does not.
+- **F42 (firm; a hazard of the apparatus and of any check written this way).** A check that runs the product's
+  tests from inside a test run passes without running them unless it drops the runner's mark from the child's
+  environment. One of seven sessions did not, in either of its checks, and lost two defects by that alone (a third
+  was saved by a clause the plan's question added); two more did not in one check and were covered by the other.
+  A check that also requires some test to have run is safe from it; three of the seven sessions wrote one, reading
+  a count of tests from the output. No packet of this pilot asks for it, and the gate applies that rule only to its
+  own commands.
+- **F36, extended.** `update-rejects-resolved` is now missed by eight of the nine ticket-assignment cells graded
+  under the reworded text, on two models; the ninth catches it by a clause the plan's question added. "26 of 27"
+  is not a constant of the text (F38); the missed defect is.
+
+**Is there enough to conclude?** For this rung, yes, and it ends here: the question is answered where there is a
+section to fill and not where there is none; neither placement moved a reading; on this case no placement could
+move one by more than a defect. Not established: whether pinning existing behaviour catches more defects (the pool
+holds one that can show it); whether the section or the stage is what gets the question answered; anything on Sol,
+on another case, or for a vague request. More runs of this cell would not settle the first of these. Proposed,
+not registered, for the owner to choose from:
+
+1. *Form or stage.* The same question in the specification text with a section to fill, spec stage only: about a
+   minute and 25 cents a run, and no grading is needed to see whether the list appears.
+2. *An instrument that can see what a question is for.* Either more planted defects in existing behaviour that the
+   product's own tests do not catch, or, for the vague request the owner has in mind, a request with its stated
+   details taken out one at a time, read for whether the specification raises the missing detail as an open
+   point, decides it, or passes over it. Neither exists yet.
+3. Rungs 2 and 3 of the ladder would be read on the present instrument and could show no more than this rung did;
+   they wait for 1 and 2.
+
+**Checked twice, and who decided what.** The readings against the registered rules, the reading of the tests and
+the findings were made in the main session. A Sonnet subagent copied the evidence, ran the registered script,
+recounted every figure with a script of its own and drafted the tables. Its recount matches the script on every
+count but three: the two clauses the word match misses, which it found independently, and the earlier baseline's
+specification time, which that run's record holds under another key (the table uses it).
+
+**Limits.** One case, one model at one effort, two runs a placement and three of the baseline. The six cells ran
+together and the gradings overlapped: fourteen results across the seven gradings failed once and passed when run again
+(counted as passing, as the grader does; no catch rests on one), and minutes are not compared. Only the question is
+ShipLoop's; the sentences around it are mine. The two placements differ in form as well as in stage. The reading of
+why each defect was missed is mine, from the test code; the nested-run check was made on one defect tree. Every
+request here is precise.
+
+Evidence: `evidence/preserve-question/` (a folder for each of the six cells with the run record, the grading, the
+specification as the spec stage left it and as it ended, the plan and the grading log; `by-source-log.txt` and
+`.json`, `specs-log.txt` and `.json`, `recount.txt`, `nested-test-run-check.txt`).

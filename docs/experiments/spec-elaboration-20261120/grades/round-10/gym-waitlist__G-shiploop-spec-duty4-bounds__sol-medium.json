@@ -1,0 +1,149 @@
+{
+ "slot": "gym-waitlist__G-shiploop-spec-duty4-bounds__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3224036,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "R-2 Open gaps; TC-13",
+   "quote": "whether the member must actively claim or may agree to automatic booking. ... If the chosen model reserves a place for a claim, a finite claim deadline is required ... The value ... open.",
+   "missing": "Whether promotion is automatic or an offer to accept, and the length of any acceptance window."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2 Open gaps; R-1 Open gaps",
+   "quote": "who gets the next opportunity, including ties and ordinary-booking competition ... visible queue position, staff overrides ... are outside the specified delta. / Membership tiers and eligibility exceptions come from the existing booking policy.",
+   "missing": "The serving order (e.g. join time) and the tie-break rule; whether a tier can jump the queue."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "F-2 T-3; R-2 State, authority and recovery",
+   "quote": "T-3 Existing authority makes capacity bookable. ... If processing continues after the initiating response, the app owns recovery without depending on the member keeping the view open.",
+   "missing": "Which cancellation events trigger promotion (left to discovery), and how quickly the background promotion must run."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "TC-5; R-2 Open gaps",
+   "quote": "The affected member can see their actual outcome in the app. ... External notification channels ... are outside the specified delta.",
+   "missing": "What a promotion notice says and how a promoted member learns of it in time; what happens if delivery fails."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "TC-6",
+   "quote": "Duplicate or delayed inputs and competing ordinary bookings or waitlist allocations cannot commit conflicting places. ... For one remaining place, at most one new booking consumes it, across all booking paths."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "TC-6",
+   "quote": "competing ordinary bookings or waitlist allocations cannot commit conflicting places. The final state cannot report confirmed enrollment in both the booking and active waitlist for the same pair."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2 Open gaps",
+   "quote": "Automatic booking must have an authorized consent basis given possible fees ... Discovery must establish ... current consent/payment effects ... new booking or billing policies are outside the specified delta.",
+   "missing": "When payment for a promoted booking is taken and what happens to the promotion if payment fails."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1 Open gaps; TC-12",
+   "quote": "There is no basis for a product waitlist-length cap. ... At or beyond the effective ceiling, report that enrollment is unavailable and create no entry. ... The ceiling is open.",
+   "missing": "Whether a cap exists and what its value is."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "TC-5; R-1 Open gaps",
+   "quote": "At the effective close and afterward there is no new waitlist allocation. ... Use the effective existing booking deadline if it covers the waitlist safely."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "F-2 T-3; R-2 Open gaps",
+   "quote": "T-3 Existing authority makes capacity bookable. ... Discovery must establish which existing events actually reopen capacity",
+   "missing": "Whether a staff capacity increase promotes waiters, and what happens to the waitlist or bookings when capacity is lowered."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "TC-9",
+   "quote": "On class cancellation or reaching the effective close, active entries stop participating in allocation. The next authorized read reflects the closed or canceled state and provides no join action."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3 State, privacy and lifecycle; R-1 State",
+   "quote": "The app owns active enrollment keyed to the booking identity and occurrence. ... Before withdrawal the entry is active. After withdrawal, conversion, close, or cancellation it grants no further allocation right.",
+   "missing": "That the entry records its join time, and whether a position is stored or derived."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "TC-11; R-3 Open gaps",
+   "quote": "Personal waitlist data is deleted or de-identified at the applicable retention boundary. ... The applicable period and scope are open below.",
+   "missing": "How long entries are kept after the class runs (retention period)."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "TC-9; R-2 Open gaps",
+   "quote": "Members see only their own waitlist status for the occurrence. Another member's entry or identifiers do not appear ... visible queue position ... outside the specified delta.",
+   "missing": "Whether a member sees their own position; the spec excludes it, so the nuance is not met."
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Supported load, numerical latency, cost, and runtime quotas are open. No product SLA or numerical cap is supplied.",
+   "missing": "A time bound between a cancellation and the resulting promotion."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1 Basis; TC-1",
+   "quote": "Preserve ordinary booking when a place is bookable ... At the last bookable place before any waitlist allocation, ordinary booking applies. ... Joining leaves the confirmed booking count unchanged."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

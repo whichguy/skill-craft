@@ -1,0 +1,184 @@
+{
+ "slot": "grokbot-salesforce__G-shiploop-spec-duty4-bounds__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.5637352,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "an assigned user opens a \"Grok Bot\" entry from the Lightning App Launcher and sees a chat panel ... no other entry point (record pages, mobile app, Experience Cloud) is in scope."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "Sharing, object CRUD and field-level security are not applicable because the product reads and writes no org records (recorded as an exclusion with this reason"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "Sharing, object CRUD and field-level security are not applicable because the product reads and writes no org records"
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-9",
+   "quote": "only users granted the access grant (a permission set deployed with the product) can open the panel and invoke the server-side operation",
+   "missing": "Administration (configuring, entering the key, assigning the grant) is given only to an 'Org admin' actor, not to a named permission set or equivalent; who assigns the grant is left open (G-6)."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "context lives only in the open panel (browser memory); reload, navigating away or closing the tab ends it; nothing is stored in the org (see R-8)."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-1",
+   "quote": "Apex makes a single synchronous HTTP callout to xAI and returns a DTO ... No queue, Continuation or middle tier.",
+   "missing": "The callout-after-DML rule appears only in Evidence limits, not as a design constraint; the design is synchronous rather than asynchronous, and the long-running-request concern is left to a probe."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "the xAI API key exists only in the org's secret-credential facility (AD-3): never in source, metadata files, custom settings, the browser, Apex return values, debug logs or the transcript."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-6",
+   "quote": "the callout waits at most 60 seconds (Timeout_Seconds). The bot makes exactly one callout per submission (platform ceiling: 100 callouts per transaction, 120 s cumulative).",
+   "missing": "CPU time limit is not named; heap is stated (NFR-5, 10 MB), but the CPU time ceiling is not given."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "AD-8",
+   "quote": "Apex tests with `HttpCalloutMock` capturing the request (remote tests, TAP reporter, run in the org)"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-3",
+   "quote": "a Named Credential pointing at the xAI base URL with a custom header `Authorization: Bearer <key>` (formula header; key never in the URL)"
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "AD-1",
+   "quote": "A Lightning web component chat panel calls one Apex `@AuraEnabled` operation imperatively; Apex makes a single synchronous HTTP callout to xAI and returns a DTO",
+   "missing": "The interface relies on the call returning inline; no async notification mechanism (platform event, polling, LMS) is specified, and whether inline return holds under long-running request limits is left to a probe."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "Service boundary: xAI Grok",
+   "quote": "retry is user-initiated, duplicates are possible and accepted (no idempotency key; stated in the timeout message).",
+   "missing": "No idempotency on the request or message; duplicate processing is explicitly accepted rather than prevented."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "AD-1",
+   "quote": "revisit only if concurrent long-running request limits bite (a documented note says callout time is not counted toward the 5 s long-running threshold; confirm by probe).",
+   "missing": "The concurrent-request limit value and what the user sees when a request is refused because of it are not stated."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "auth | xAI HTTP 401 or 403 ... upstream | xAI HTTP 5xx | \"Grok is unavailable (error <status>). Try again.\" | timeout | no response within Timeout_Seconds (60 s)"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "rate-limited | xAI HTTP 429 | \"Grok is rate-limited right now. Wait a moment and try again.\" ... no automatic retry"
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "a reply cut off by the cap is shown with the visible note \"Reply was cut off at the length limit\" ... A reply arriving at 60 s or later is not shown (R-7 timeout)."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "Submission (D-persist)",
+   "quote": "D-persist no conversation persistence (R-3, R-8); basis: request asks for no history, avoids personal-data storage; alternative: custom object per user",
+   "missing": "No stored shape; the in-memory transcript has role and failed status, but timestamps, model identifier and token/usage counts are not recorded anywhere."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "Chat content is not stored in the org and not written to logs"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "No Salesforce record data is read or sent; only text the user types and the configured system instruction leave the org."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "keep at most 20 messages (Max_History_Messages, including the new message) and at most 100,000 characters total (Max_Context_Chars); drop the oldest whole exchange repeatedly until both hold"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "the trimmed message must be 1..Max_Message_Chars characters ... Max_Message_Chars = 4,000. Exactly 4,000 accepted; 4,001 rejected."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-10",
+   "quote": "these values are deployed with the product as configuration and changed without code change: model id, system instruction",
+   "missing": "No explicit admin off switch; failed requests are visible only as debug-log lines (NFR-7), and there is no admin view of failures."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "NFR-7",
+   "quote": "A persistent audit/log object is excluded: a development org used by one or a few admins, and content logging would conflict with R-8.",
+   "missing": "No record of who asked what and what was answered; only an outcome-class debug line, with no stated retention."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-12",
+   "quote": "the product deploys additively to the chosen dev org with the Salesforce CLI",
+   "missing": "How configuration and credential differ between dev and production, and the production code-coverage requirement (NFR-8 defers to the org's effective test level, read at plan)."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "NFR-1",
+   "quote": "no numeric Grok latency target is invented (not controllable). Bound: Timeout_Seconds = 60 (B-5); observable: pending state is visible from the moment of submit until the call settles"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "NFR-9",
+   "quote": "States designed: empty (short greeting with three example prompts), loading (pending indicator, R-11), error (inline, Retry, R-7), not-configured, denied; trimmed-context divider."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-12",
+   "quote": "it adds only its own components (tab, app or tab-in-existing-app, permission set, Apex, web component, configuration, credential shell) and changes no existing org metadata."
+  }
+ ]
+}

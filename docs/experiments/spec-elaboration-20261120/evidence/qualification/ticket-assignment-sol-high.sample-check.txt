@@ -1,0 +1,49 @@
+run ticket-assignment-sol-high
+A1 checkout HEAD c138c061c9e7eb236a374198645362450e6f94aa | tree 317f3f12e2510bed854d73d50ff60692fc603c09
+A1 checkout status lines 0
+A1 recorded versions {"local_head": "c138c061c9e7eb236a374198645362450e6f94aa", "plugin_sha256": "7180edb8236c", "plugin_version": "4.2.0", "shiploop_version": "2.4.0", "source": "checkout"}
+A1 built skill against the checkout's: differing entries 0
+A2 installed skill against the built one: differing entries 0
+A2 card sentence ["195:Run options are the user's to set: pass one only when the user asks for it; otherwise pass none and the defaults"]
+A2 events carrying the PID rule 27 of 573 | first [10]
+A3 host codex | codex-cli 0.171.0 | model gpt-6.2-sol
+A3 effort high | case ticket-assignment
+A3 sessions 1 | resumes 0
+A3 request equals the catalog's True | characters 1162
+B1 pass True | PASS | every verdict passed
+B1 verdict invoked True 
+B1 verdict plugin True 
+B1 verdict process True {'status': 'exited', 'returncode': 0, 'stop': 'end_turn'}
+B1 verdict shiploop True {'status': 'done'}
+B1 verdict committed True 
+B2 case checks 3 of 3
+B2 held-out acceptance 18 of 18 | not passed []
+B3 recorded head 7cfb37762f6c0553ec4130fd24c7f10063dceedb | recorded uncommitted []
+B3 product HEAD 7cfb37762f6c0553ec4130fd24c7f10063dceedb | status lines 0
+C1 option recorded by the harness at launch (invocation.planning_review) None
+C1 state.md ['"planning_review": "stage",']
+C1 Improve reviews 9 | edited 0 | ['carry-forward', 'document', 'document', 'plan', 'release-plan', 'spec', 'step-plan', 'system-test-author', 'test-strategy']
+C2 commands and edits the builder made 279
+C2 tools called {'run_terminal_command': 272, 'search_replace': 7}
+C2 events from inside a subagent, included in the scan 0
+C2 stops through a host tool []
+C1 first start call: event 9 | run option flags in it []
+C1 calls passing a run option flag []
+C2 calls with kill, pkill, killall or fuser as a word 1
+C2   event 420: …rvice.pid && service.exitCode === null && service.signalCode === null) {         process.kill(-service.pid, 'SIGTERM');       }       await closed;     } finally {       fs.rmSync…
+C2 calls that look like a background start []
+C2 calls that search processes by name or port (pgrep, lsof) []
+C2 shell stops that name a number, a variable or a file []
+C2 calls that record $! []
+C2 left behind {"observed": true, "reaped": [], "survived": []}
+C3 reference files named in the builder's calls ['carry-forward.md', 'execution-planning.md', 'guide-map.md', 'improve-child.md', 'improve-context.md', 'improve-stages.md', 'inner-loop.md', 'run-start.md', 'test-loop.md', 'testing-and-documentation.md', 'workspace-lifecycle.md']
+C3 events carrying the requirements guide's corrected sentence 0
+C3 spec docs/shiploop/spec.md 3582 bytes | requirement ids 4 ['R-1', 'R-2', 'R-3'] …
+C3 added by 68ab996 2026-11-21 08:05:22 -0800 docs(shiploop): record skill-craft-shiploop-this-directory-is-d031e0 knowledge after spec
+C4 refused ShipLoop commands 5 | naming the changed text 0
+C4   test-strategy | complete | test_layers[1].layer is one of unit, component, e2e
+C4   test-strategy | complete | test_layers gives CLI, worker and complete service no unit or component row. All code the run writes is tested below the e2e layer: add its unit or co
+C4   step-plan | complete | the step-plan loop is still active: run the receipt's next_argv once, follow each instruction it returns until its status is complete or stopped, then
+C4   implement | check | not_covered is [{"behaviour": "<what this step added that no test case covers>", "reason": "<why>"}], each nonblank, or []; then run the same command 
+C4   test | check | ShipLoop mutation check: test is not done. 2 of 8 mutants of this item's changed product lines survived the focused tests, with no disposition: - src/
+D elapsed seconds 992.3 | returncode 0 | stop end_turn

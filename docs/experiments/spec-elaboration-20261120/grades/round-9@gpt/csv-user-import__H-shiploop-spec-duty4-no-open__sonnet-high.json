@@ -1,0 +1,143 @@
+{
+ "slot": "csv-user-import__H-shiploop-spec-duty4-no-open__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "when the whole file passes every check, every row becomes a user, and the store changes in one step: afterwards either all rows exist or none do."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-12",
+   "quote": "each error with its row number and a message mapped from its code"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "A row repeating a normalized email already present on an earlier row [\u2026] \u2192 `duplicate_in_file` carrying `first_row`; a row whose normalized email belongs to an existing user \u2192 `email_taken`."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "The import never grants administrator rights [\u2026] F-UNKNOWNCOL (`role` column set to `admin`) \u2192 422 `unknown_column`; no user is created and none is an administrator."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "the import API accepts a request only from an authenticated principal the product currently treats as an administrator.",
+   "missing": "The admin role is required. The specification does not distinguish bulk-import authority from the permission to create one user within that role."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "The header is the first non-blank record; header names are trimmed and compared case-insensitively. Required columns are `email` and `name`; their order is free. [\u2026] header (missing, unknown, duplicate columns are all reported together)"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "UTF-8 (a leading byte-order mark is ignored), comma-delimited [\u2026] a quoted field may contain commas and line breaks), records separated by LF or CRLF."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-6, R-9",
+   "quote": "a failure mid-way leaves the store as before [\u2026] The import never grants administrator rights, sets a password, or sends an email or invitation."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "content of 524,289 bytes or more \u2192 413 `file_too_large`; 1,001 or more data rows \u2192 422 `too_many_rows` [\u2026] Neither creates a user or validates rows."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "F-A-UPPERHDR \u2192 201 created 1 [\u2026] F-EMPTY and F-BLANKS \u2192 422 `empty_file`; F-HEADERONLY \u2192 422 `no_data_rows`"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "re-posting F-A after AC-6.1 changes nothing: 422 `email_taken` for rows 2, 3 and 4, count stays 6 (a retry never duplicates)."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-3, AD-1",
+   "quote": "The response is returned only after the outcome is durable. No queue, worker, job record or status endpoint.",
+   "missing": "The response tells the admin when an accepted file finishes. Larger files must be split, and the specification provides no background processing or later completion notice for them."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "The import never grants administrator rights, sets a password, or sends an email or invitation."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-9",
+   "quote": "a created user has the same role, status and credential state as a user created through the product's existing single-user admin path",
+   "missing": "The single-user defaults are unknown, so active versus pending status and the usual first sign-in method are unspecified. Account recovery is prescribed only for the fallback where no single-user admin path exists."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-10, State lifecycle",
+   "quote": "the import request, memory | that request only [\u2026] freed at request end, never written (R-10) [\u2026] no endpoint returns a past import's file, rows or report"
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-11",
+   "quote": "acting admin's id, `outcome` (`created`, `rejected`, `failed`), data-row count when determinable, `created` count [\u2026] an operator can answer who imported, when, and what happened, without seeing personal data."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-12",
+   "quote": "the admin can fix the file and choose it again. [\u2026] cancelling an in-flight import (cancelling the page request would not undo a server effect)",
+   "missing": "Cancellation is explicitly excluded. The recovery flow resubmits the corrected file. No behavior is specified for selecting and retrying just the reported rows after an atomic rejection."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-14, R-12",
+   "quote": "the numeric time limit of the deployed runtime is not known here. [\u2026] shows a busy indicator with no invented progress figure",
+   "missing": "The maximum completion time still needs a value. The busy indicator shows that work is underway without showing how much has finished."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-9, R-5",
+   "quote": "preserves, by reference, whatever the existing single-user creation does [\u2026] Existing users are never changed (PD-5)."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-13, R-4",
+   "quote": "spreadsheet-export safety of stored names beginning `=` (a later export feature must neutralize them; no export is in scope). [\u2026] F-NAME101 \u2192 422 row 2 `name_too_long`; F-EMAIL254 \u2192 201; F-EMAIL255 \u2192 422 row 2 `email_invalid`."
+  }
+ ]
+}

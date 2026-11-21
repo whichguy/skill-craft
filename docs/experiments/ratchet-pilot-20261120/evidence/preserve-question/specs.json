@@ -1,0 +1,498 @@
+{
+ "base:earlier": {
+  "case": "ticket-assignment",
+  "enrich": "reworded",
+  "clauses": 22,
+  "use_cases": 5,
+  "by_source": {
+   "request": 13,
+   "implied": 6,
+   "existing": 2,
+   "choice": 1
+  },
+  "added_refusals": [
+   {
+    "id": "C-4",
+    "kind": "implied",
+    "statement": "A body that is not `{\"assignee\": <string or null>}` is refused"
+   }
+  ],
+  "open_lines": [
+   {
+    "id": "C-3",
+    "kind": "request",
+    "statement": "An agent is a non-empty name of at most 64 characters",
+    "open": "Whether the name is trimmed first, so that `\"  \"` counts as empty and `\" dana \"` is stored as `dana`, and whether control characters are refused, as the existing `requester` check does. The existing checks in `src/tickets/validate.js` trim and refuse them, but the request does not say so for agents. The requester settles it. Tests use only plain names with no surrounding spaces and no control characters."
+   },
+   {
+    "id": "C-5",
+    "kind": "request",
+    "statement": "Only open and in-progress tickets can be assigned or unassigned",
+    "open": "What a repeat request on a resolved or closed ticket answers when it asks for the value the ticket already has (the same agent, or `null` on an unassigned ticket). Tests check only a request that would change the assignee."
+   },
+   {
+    "id": "C-11",
+    "kind": "request",
+    "statement": "The agent a ticket is assigned to is notified that it was assigned to them",
+    "open": "The type name and the wording of the notification, which the requester settles. Tests check `to`, the ticket id and that it is delivered, not the wording."
+   },
+   {
+    "id": "C-13",
+    "kind": "choice",
+    "statement": "Unassigning notifies nobody",
+    "open": "Whether the previous agent should be told that the ticket was taken from them. The request does not ask for it, and the requester settles it."
+   },
+   {
+    "id": "C-14",
+    "kind": "implied",
+    "statement": "Each change of assignee is recorded in the audit log",
+    "open": "The `action` name of the entry (docs/api.md lists the actions so far). Tests do not check it."
+   },
+   {
+    "id": "C-15",
+    "kind": "request",
+    "statement": "`GET /tickets?assignee=<agent>` keeps only that agent's tickets",
+    "open": "Whether the name is matched case-sensitively, which the request does not say. Tests use names that differ by more than case."
+   },
+   {
+    "id": "C-19",
+    "kind": "request",
+    "statement": "The command-line listing shows each ticket's assignee",
+    "open": "The column's title, its place in the table, and the placeholder for no assignee, which the requester settles. Tests check that the name appears in the ticket's row and that an unassigned ticket's row does not show another ticket's name."
+   },
+   {
+    "id": "C-20",
+    "kind": "existing",
+    "statement": "`list --raw` keeps its columns in the positions they have",
+    "open": "Whether `--raw` shows the assignee at all. The request names \"the command-line listing\", and the requester settles whether that includes raw output. Tests check only that the first four columns are unchanged."
+   }
+  ],
+  "spec_minutes": 0.0
+ },
+ "base:q-base-1": {
+  "case": "ticket-assignment",
+  "enrich": "reworded",
+  "clauses": 21,
+  "use_cases": 5,
+  "by_source": {
+   "request": 13,
+   "implied": 7,
+   "existing": 1
+  },
+  "added_refusals": [
+   {
+    "id": "C-4",
+    "kind": "implied",
+    "statement": "A body that is not a valid assignee request is refused with 400 `invalid`"
+   },
+   {
+    "id": "C-13",
+    "kind": "implied",
+    "statement": "Unassigning, no-op requests and refused requests send no assignment notification"
+   },
+   {
+    "id": "C-17",
+    "kind": "implied",
+    "statement": "An `assignee` filter with no matching ticket gives an empty list, not an error"
+   }
+  ],
+  "open_lines": [
+   {
+    "id": "C-3",
+    "kind": "request",
+    "statement": "An agent name is a non-empty string of at most 64 characters; 64 is accepted, 65 is refused",
+    "open": "Whether the name is trimmed first, whether a whitespace-only name counts as empty, and whether control characters are refused (existing `title`/`requester` fields trim and refuse control characters) is not stated; the requester decides. Tests should use plain names without surrounding spaces and treat only `\"\"` as certainly invalid."
+   },
+   {
+    "id": "C-5",
+    "kind": "request",
+    "statement": "Only open and in-progress tickets can be assigned or unassigned; other tickets answer 409 `conflict`",
+    "open": "When a request is both for a resolved/closed ticket and repeats the ticket's current assignee (or null on an unassigned ticket), whether the answer is 409 or a 200 no-op is not stated; the requester decides. Tests check 409 only for a change of assignee."
+   },
+   {
+    "id": "C-8",
+    "kind": "request",
+    "statement": "Every ticket shows its `assignee`, null when unassigned",
+    "open": "Whether resolving or closing a ticket should clear its assignee is not stated; this spec keeps it (the request does not ask for clearing)."
+   },
+   {
+    "id": "C-10",
+    "kind": "implied",
+    "statement": "Changing the assignee is recorded in the ticket's audit history",
+    "open": "The entry's `action` string is not stated (a new value such as `ticket.assigned` is expected); the requester decides. Tests check `changes`, not the action name."
+   },
+   {
+    "id": "C-11",
+    "kind": "request",
+    "statement": "Assigning a ticket to an agent notifies that agent that it was assigned to them",
+    "open": "The notification type name and wording are not stated; the requester decides. The agent name is used as the recipient as given."
+   },
+   {
+    "id": "C-16",
+    "kind": "request",
+    "statement": "A ticket is listed only when it matches every filter given",
+    "open": "none for the rule itself. Note for builders: the current `matchesFilters` in src/tickets/query.js keeps a ticket that matches any one filter; the documented and requested rule is all of them. The existing test files only exercise single filters."
+   },
+   {
+    "id": "C-18",
+    "kind": "request",
+    "statement": "The command-line `list` shows each ticket's assignee",
+    "open": "The column's position, heading and the unassigned marker are not stated; the requester decides. Tests check that an assigned ticket's row contains the name."
+   },
+   {
+    "id": "C-19",
+    "kind": "existing",
+    "statement": "`list --raw` keeps its existing columns in their positions",
+    "open": "Whether `--raw` also gives the assignee (as a fifth column, after the title) is not stated; the requester decides. If added, it must be after column 4."
+   },
+   {
+    "id": "C-20",
+    "kind": "request",
+    "statement": "Existing API behaviour is unchanged by the change",
+    "open": "Whether `POST /tickets` may accept an initial assignee is not asked for; this spec does not allow it."
+   }
+  ],
+  "spec_minutes": 0.9
+ },
+ "base:q-base-2": {
+  "case": "ticket-assignment",
+  "enrich": "reworded",
+  "clauses": 24,
+  "use_cases": 5,
+  "by_source": {
+   "request": 13,
+   "existing": 5,
+   "implied": 5,
+   "choice": 1
+  },
+  "added_refusals": [
+   {
+    "id": "C-11",
+    "kind": "implied",
+    "statement": "Unassigning, a repeated assignment and a refused request send no notification"
+   }
+  ],
+  "open_lines": [
+   {
+    "id": "C-3",
+    "kind": "request",
+    "statement": "An agent is a non-empty name of at most 64 characters",
+    "open": "Whether surrounding whitespace is trimmed, whether a whitespace-only or control-character name counts as empty, and whether length counts characters or UTF-16 units are not stated; the existing fields (`requester`, `src/tickets/validate.js`) trim, refuse control characters and count `.length`. The requester decides. Tests use plain names of 1, 64 and 65 characters and the empty string only."
+   },
+   {
+    "id": "C-5",
+    "kind": "request",
+    "statement": "Only open and in-progress tickets can be assigned or unassigned",
+    "open": "Whether a no-op request (same assignee, or null on an already unassigned ticket) on a resolved or closed ticket answers 409 or 200 is not stated. Tests check only the case where the assignee would change."
+   },
+   {
+    "id": "C-10",
+    "kind": "request",
+    "statement": "The assigned agent is notified that the ticket was assigned to them",
+    "open": "The channel for reaching an agent by name is not stated; the existing notifier takes `to` as an opaque string (requesters are emails), so the agent name is used as `to`. The requester of the service decides if agents need an address mapping. Tests check `to` equals the agent name and the text mentions the ticket id."
+   },
+   {
+    "id": "C-11",
+    "kind": "implied",
+    "statement": "Unassigning, a repeated assignment and a refused request send no notification",
+    "open": "Whether the previous assignee should be told they were unassigned is not requested and is not done."
+   },
+   {
+    "id": "C-12",
+    "kind": "implied",
+    "statement": "A reassignment to a different agent notifies the new agent even while an earlier assignment notification is still pending",
+    "open": "Whether the earlier pending notification to `dana` is still delivered or withdrawn is not stated; tests require only that `lee` is notified."
+   },
+   {
+    "id": "C-13",
+    "kind": "implied",
+    "statement": "Each change of assignee is recorded in the audit log",
+    "open": "The action name of the entry is not stated; tests check the `changes` only."
+   },
+   {
+    "id": "C-17",
+    "kind": "request",
+    "statement": "A ticket must match every filter given",
+    "open": "The current `matchesFilters` in `src/tickets/query.js` passes a ticket matching any one filter, which contradicts docs/api.md and this request; the request's \"must match every filter\" is taken as binding for all filters. The existing tests do not exercise two filters at once, so they stay passing."
+   },
+   {
+    "id": "C-18",
+    "kind": "choice",
+    "statement": "An `assignee` filter value is not validated against a name rule",
+    "open": "Whether a filter value longer than 64 characters is `invalid` or an empty list is not stated; tests do not check it."
+   },
+   {
+    "id": "C-19",
+    "kind": "request",
+    "statement": "The command-line `list` table shows each ticket's assignee",
+    "open": "The placeholder text for unassigned (`-`, empty, `null`) is not stated; tests check only that an assigned ticket's row contains its agent's name and that the header names the assignee."
+   },
+   {
+    "id": "C-20",
+    "kind": "existing",
+    "statement": "`list --raw` keeps its existing columns in their positions",
+    "open": "Whether `--raw` also shows the assignee (and in which column, if so only after the title) is not stated. A build may append it after the title or leave it out; tests check only columns 1 to 4."
+   }
+  ],
+  "spec_minutes": 0.8
+ },
+ "spec:q-spec-1": {
+  "case": "ticket-assignment",
+  "enrich": "reworded",
+  "clauses": 21,
+  "use_cases": 6,
+  "by_source": {
+   "request": 12,
+   "existing": 4,
+   "implied": 5
+  },
+  "added_refusals": [],
+  "open_lines": [
+   {
+    "id": "C-3",
+    "kind": "request",
+    "statement": "An assignee is a non-empty name of at most 64 characters",
+    "open": "Whether surrounding whitespace is trimmed or a whitespace-only name counts as empty, and whether control characters are refused, is not stated. The existing `requester` field trims, refuses blank and refuses control characters (src/tickets/validate.js); the requester of the request decides whether an assignee follows it. Tests check only names with no surrounding whitespace or control characters."
+   },
+   {
+    "id": "C-5",
+    "kind": "request",
+    "statement": "Only open and in-progress tickets can be assigned or unassigned",
+    "open": "Whether a no-op request on a resolved or closed ticket (null on an unassigned one, or the name it already has) is answered 409 or 200 is not stated; the request says only open and in-progress tickets can be assigned or unassigned. Tests for no-ops use open or in-progress tickets only."
+   },
+   {
+    "id": "C-10",
+    "kind": "request",
+    "statement": "The assigned agent is notified that the ticket was assigned to them",
+    "open": "What an agent's notification address is (the request names agents only by name, and the outbox's `to` is a free string) and the wording of the message are not stated. The name is used as `to`; the requester of the request decides if a mapping to addresses is wanted."
+   },
+   {
+    "id": "C-12",
+    "kind": "implied",
+    "statement": "Unassigning and no-op requests notify no one",
+    "open": "Whether the previous assignee should be told they were unassigned or replaced is not asked for; none is required."
+   },
+   {
+    "id": "C-13",
+    "kind": "implied",
+    "statement": "A change of assignee is on the audit record",
+    "open": "The entry's `action` name is not stated; tests accept any non-empty action."
+   },
+   {
+    "id": "C-14",
+    "kind": "request",
+    "statement": "`GET /tickets?assignee=<agent>` keeps that agent's tickets",
+    "open": "Whether the name match ignores case is not stated; tests use names that differ by more than case."
+   },
+   {
+    "id": "C-17",
+    "kind": "request",
+    "statement": "A ticket must match every filter given",
+    "open": "Today `matchesFilters` in src/tickets/query.js keeps a ticket that matches any one filter, contradicting the docs; the request requires all, which is taken here."
+   },
+   {
+    "id": "C-18",
+    "kind": "request",
+    "statement": "The command-line listing shows each ticket's assignee",
+    "open": "The column's title, position and the marker for unassigned are not stated."
+   },
+   {
+    "id": "C-19",
+    "kind": "existing",
+    "statement": "The raw listing keeps its columns by position",
+    "open": "Whether `list --raw` should also show the assignee is not stated; if it does, it must come after the title."
+   }
+  ],
+  "spec_minutes": 0.9
+ },
+ "spec:q-spec-2": {
+  "case": "ticket-assignment",
+  "enrich": "reworded",
+  "clauses": 22,
+  "use_cases": 6,
+  "by_source": {
+   "request": 14,
+   "existing": 5,
+   "implied": 3
+  },
+  "added_refusals": [],
+  "open_lines": [
+   {
+    "id": "C-3",
+    "kind": "request",
+    "statement": "An agent is a non-empty name of at most 64 characters",
+    "open": "Whether other characters are allowed. A control character (tab, line break) is refused as for the other text fields, because the command line is tab-separated (README.md \"Command line\"). The requester would settle whether any other character or form of name is restricted."
+   },
+   {
+    "id": "C-11",
+    "kind": "request",
+    "statement": "Assigning a ticket to an agent notifies that agent",
+    "open": "The wording of the subject and body, and the notification's type name, are not fixed by the request. A test checks only that it reaches the agent and names the ticket. Whether the notification is sent when an assignment follows an earlier, still undelivered one to the same agent (as in assign `dana`, unassign, assign `dana` within one worker interval) is not settled; the requester decides."
+   },
+   {
+    "id": "C-12",
+    "kind": "request",
+    "statement": "Unassigning or a no-op assignment sends no notification",
+    "open": "Whether the previous assignee should be told they were unassigned or replaced is not asked for; the requester would decide. None is required."
+   },
+   {
+    "id": "C-13",
+    "kind": "existing",
+    "statement": "An assignment change is on the ticket's audit record",
+    "open": "The `action` name of the entry is not settled; a test must not check it."
+   },
+   {
+    "id": "C-15",
+    "kind": "request",
+    "statement": "`GET /tickets?assignee=<agent>` lists that agent's tickets",
+    "open": "Whether the case of the name matters (`Dana` and `dana`) is not stated; the requester decides. A test must use names that differ by more than case."
+   },
+   {
+    "id": "C-17",
+    "kind": "request",
+    "statement": "A ticket must match every filter given",
+    "open": "None, but note: today `matchesFilters` in src/tickets/query.js lists a ticket that matches any one of several filters (it contradicts docs/api.md). The request requires every filter; the existing tests check only single filters and keep passing."
+   },
+   {
+    "id": "C-19",
+    "kind": "request",
+    "statement": "The command-line table shows each ticket's assignee",
+    "open": "The column's place in the table, its exact heading and the mark for unassigned are not fixed; a test looks for the agent's name in the row of that ticket and not in the rows of the others."
+   },
+   {
+    "id": "C-20",
+    "kind": "existing",
+    "statement": "`list --raw` keeps its first four columns in place",
+    "open": "Whether `--raw` also shows the assignee is not stated (\"the command-line listing\" may mean the table only). A fifth column after the title is allowed and so is none; the requester decides. A name with tabs cannot occur (C-3)."
+   }
+  ],
+  "spec_minutes": 1.0
+ },
+ "plan:q-plan-1": {
+  "case": "ticket-assignment",
+  "enrich": "reworded",
+  "clauses": 20,
+  "use_cases": 6,
+  "by_source": {
+   "request": 14,
+   "implied": 4,
+   "existing": 2
+  },
+  "added_refusals": [
+   {
+    "id": "C-4",
+    "kind": "implied",
+    "statement": "A body that is not a usable assignment is refused as `invalid`"
+   }
+  ],
+  "open_lines": [
+   {
+    "id": "C-3",
+    "kind": "request",
+    "statement": "An agent is a non-empty name of at most 64 characters",
+    "open": "Whether surrounding whitespace is trimmed before the 64-character count, whether a whitespace-only name counts as empty, and whether control characters are refused (existing `requester` and `title` trim and refuse both, in src/tickets/validate.js) are not stated by the request; the requester decides. Tests check only the bounds above with plain names."
+   },
+   {
+    "id": "C-5",
+    "kind": "request",
+    "statement": "Only open and in-progress tickets can be assigned or unassigned",
+    "open": "When a request is both invalid (C-3, C-4) and aimed at a resolved or closed ticket, which error wins (400 or 409) is not stated; the requester decides. Tests use a valid body for the 409 case and an open ticket for the 400 case."
+   },
+   {
+    "id": "C-9",
+    "kind": "implied",
+    "statement": "A real change of assignee is written to the audit log",
+    "open": "The entry's `action` name is not fixed by the request; any non-empty string is acceptable and tests do not check it."
+   },
+   {
+    "id": "C-12",
+    "kind": "implied",
+    "statement": "A pending notification never swallows a different assignment's notification",
+    "open": "Whether assigning to dana, unassigning and assigning to dana again while the first notification is still pending yields one or two notifications to dana is not stated; either is acceptable and tests do not check it."
+   },
+   {
+    "id": "C-17",
+    "kind": "request",
+    "statement": "The command-line `list` table shows each ticket's assignee",
+    "open": "The column's header, its position in the table and the placeholder text for \"unassigned\" are not stated; the requester decides. Tests check only that an assigned ticket's line contains the name and that an unassigned ticket's line has no agent name in that place."
+   },
+   {
+    "id": "C-18",
+    "kind": "existing",
+    "statement": "`list --raw` keeps its first four columns in place",
+    "open": "Whether `list --raw` also carries the assignee (as a further column after the title) is not stated; \"the command-line listing\" most plausibly means the table. Tests check only columns 1 to 4."
+   }
+  ],
+  "spec_minutes": 1.1
+ },
+ "plan:q-plan-2": {
+  "case": "ticket-assignment",
+  "enrich": "reworded",
+  "clauses": 22,
+  "use_cases": 6,
+  "by_source": {
+   "request": 13,
+   "existing": 5,
+   "implied": 2,
+   "choice": 2
+  },
+  "added_refusals": [
+   {
+    "id": "C-18",
+    "kind": "choice",
+    "statement": "The assignee filter accepts any text and does not by itself make the request invalid"
+   }
+  ],
+  "open_lines": [
+   {
+    "id": "C-3",
+    "kind": "request",
+    "statement": "An agent is a non-empty name of at most 64 characters",
+    "open": "Whether surrounding whitespace is trimmed, whether a whitespace-only name counts as empty, and whether control characters are refused is not stated; the existing `requester` field trims, rejects empty-after-trim and refuses control characters, which a builder may follow. Settled by the requester. Tests check only the clear cases above."
+   },
+   {
+    "id": "C-5",
+    "kind": "request",
+    "statement": "Only open and in-progress tickets can be assigned or unassigned",
+    "open": "Order of checks when the body is invalid and the ticket is resolved/closed (400 or 409) is not stated; tests should not depend on it."
+   },
+   {
+    "id": "C-10",
+    "kind": "request",
+    "statement": "The agent a ticket is assigned to is notified that it was assigned to them",
+    "open": "The notification's wording and subject, its `type` name, and how a mail relay maps a name to an address (the outbox `to` is the agent name as given) are not stated; the requester settles them."
+   },
+   {
+    "id": "C-11",
+    "kind": "implied",
+    "statement": "Each distinct assignment is notified, even close together",
+    "open": "Whether the first agent is told it was taken off, and whether `dana` twice in a row while pending is one notification or two, is not stated; the requester settles it. Tests should not assert either."
+   },
+   {
+    "id": "C-13",
+    "kind": "existing",
+    "statement": "An assignment change is audited",
+    "open": "The entry's `action` name is not stated; the requester settles it. Tests should not depend on it."
+   },
+   {
+    "id": "C-15",
+    "kind": "request",
+    "statement": "`GET /tickets?assignee=<agent>` lists only that agent's tickets",
+    "open": "Whether the match is case-sensitive is not stated; tests use names that differ by more than case."
+   },
+   {
+    "id": "C-19",
+    "kind": "request",
+    "statement": "The command-line `list` table shows each ticket's assignee",
+    "open": "The placeholder for unassigned and the column's position in the table are not stated; the requester settles them."
+   },
+   {
+    "id": "C-20",
+    "kind": "existing",
+    "statement": "The command-line `list --raw` output keeps its existing columns in place",
+    "open": "Whether `--raw` also shows the assignee (e.g. as a fifth field) is not stated; the request says \"the command-line listing\". The requester settles it. Tests check only fields 1\u20134."
+   }
+  ],
+  "spec_minutes": 0.8
+ }
+}

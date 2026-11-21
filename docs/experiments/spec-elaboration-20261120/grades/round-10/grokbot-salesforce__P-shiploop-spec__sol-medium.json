@@ -1,0 +1,184 @@
+{
+ "slot": "grokbot-salesforce__P-shiploop-spec__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.4340402,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "AD-1",
+   "quote": "Use a Lightning Web Component in a Lightning component tab and place that tab in one operator-approved Lightning app."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Salesforce holds prompt and reply data in request scope and performs zero bot-related CRM record operations."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "AD-1",
+   "quote": "CRM row sharing, object CRUD and field permissions are inapplicable to bot data processing because the action neither reads nor mutates CRM records."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "AD-1",
+   "quote": "Use a narrowly assigned permission set for entry visibility, Apex class access, bot custom permission and access to the one external credential principal."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-3 3a",
+   "quote": "A separate tab, user or later session starts empty and cannot retrieve someone else's inputs or results."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-2",
+   "quote": "Use a synchronous Salesforce server callout for one foreground `POST https://api.x.ai/v1/responses` per accepted submission.",
+   "missing": "The spec chooses a synchronous callout and never states the trigger/DML-before-callout constraint or an asynchronous (Queueable/future) design."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-3 state table",
+   "quote": "Keep the key out of client payloads, source, logs and handoff."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "AD-2",
+   "quote": "Salesforce documents a cumulative callout deadline ceiling of 120 seconds, a per-transaction callout count ceiling of 100 and a synchronous request/response size ceiling of 6 MB that also counts toward heap.",
+   "missing": "CPU time limit is not named, and the heap limit itself is not given as a number."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2 open gaps",
+   "quote": "Deterministic fixture checks can proceed without them.",
+   "missing": "It never says Apex tests cannot make real callouts or that tests need a mock callout implementation (e.g. HttpCalloutMock)."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "A modern Named Credential points to the approved inference endpoint and an External Credential with Custom authentication and a named principal provides the bearer header"
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "There is no durable bot job, callback, polling, replay or incremental result sync because each prompt is independent.",
+   "missing": "The spec relies on the call returning inline. It names no asynchronous notification mechanism (platform event, polling, LMS) for when the answer arrives."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2 2c",
+   "quote": "A repeat activation while pending sends nothing. There is no automatic retry."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "NFR Bounded work",
+   "quote": "confirm edition-specific concurrency and team allowance",
+   "missing": "No concurrency limit value, and nothing on what happens to a request rejected because of a concurrent-request limit."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-2 2c",
+   "quote": "On timeout or connection loss, say that no reply was received... On throttling, ask the user to wait and retry. For unavailable credentials/configuration or access to the model, direct the user to the admin."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2 2c",
+   "quote": "On throttling, ask the user to wait and retry. ... There is no automatic retry."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2 2b",
+   "quote": "A provider-declared refusal, nonterminal or incomplete result, missing or blank reply, invalid response, or non-success response never becomes a successful reply."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Salesforce holds prompt and reply data in request scope and performs zero bot-related CRM record operations.",
+   "missing": "The spec deliberately stores nothing. It defines no conversation/turn record shape with role, status, timestamps, model ID or usage counts."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-3 3a",
+   "quote": "Reload, closing the view or ending its Salesforce session discards local bot state."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-2 2b",
+   "quote": "Only the current prompt is sent. No prior questions, answers, CRM records, user identifiers, attachments or tool instructions accompany it."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2 2b",
+   "quote": "Only the current prompt is sent. No prior questions, answers, CRM records, user identifiers, attachments or tool instructions accompany it."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-2 2a",
+   "quote": "The maximum accepted input is inclusive. A valid multibyte prompt within the limit retains its text. The exact production bound and counting unit are open.",
+   "missing": "The actual maximum input length and counting unit, and the output cap and maximum answer length, are left open."
+  },
+  {
+   "id": "N-22",
+   "state": "covered",
+   "where": "R-3 state table",
+   "quote": "approved admins alone change configuration/access. ... Remove the bot's scoped grants and resources on decommissioning."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "R-3 state table",
+   "quote": "For bot-owned outcomes, reuse scoped Salesforce tracing in the dev org for outcome category, timing and opaque attempt reference, with no prompt, reply, key or provider error body.",
+   "missing": "There is no audit record of what was asked and answered. Long-term product auditing is excluded, so who asked what is not recorded with a defined retention."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-1 1a",
+   "quote": "The recorded org identity and deployed candidate must match the delivery target. Production is outside scope.",
+   "missing": "Nothing on how configuration and credentials differ between environments, scratch org vs sandbox, or the production code-coverage requirement."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "NFR Bounded work",
+   "quote": "No latency percentile, load SLA or spend target was supplied.",
+   "missing": "No latency target or timeout value. Pending feedback is specified, but no bound is given for an answer."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "NFR Interface quality",
+   "quote": "Review empty, pending, reply and persistent error states in both themes on the rendered org surface."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "the same org must contain the intended revision with unrelated configuration and CRM objects, fields, records and automation intact."
+  }
+ ]
+}

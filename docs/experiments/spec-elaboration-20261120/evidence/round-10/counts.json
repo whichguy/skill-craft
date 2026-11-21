@@ -1,0 +1,876 @@
+{
+ "csv-user-import__G-shiploop-spec-duty4-bounds__sol-medium": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 4,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 5471,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 5471,
+  "seconds": 275.7,
+  "rc": 0,
+  "arm": "G-shiploop-spec-duty4-bounds",
+  "driver": "sol-medium",
+  "case": "csv-user-import",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 11517,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 10,
+   "file_change": 1
+  },
+  "also": [],
+  "guides_opened": [
+   "README.md",
+   "behavioral-requirements.md",
+   "carry-forward.md",
+   "consumer-delivery.md",
+   "current-system-baseline.md",
+   "improve-stages.md",
+   "platforms/ui.md",
+   "requirements-definition.md",
+   "service-discovery.md",
+   "testing-and-documentation.md"
+  ]
+ },
+ "csv-user-import__G-shiploop-spec-duty4-bounds__sonnet-high": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 8,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 5902,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 6297,
+  "seconds": 401.8,
+  "rc": 0,
+  "arm": "G-shiploop-spec-duty4-bounds",
+  "driver": "sonnet-high",
+  "case": "csv-user-import",
+  "cost_usd": 1.0198401000000001,
+  "turns": 30,
+  "output_tokens": 53069,
+  "tools": {
+   "Bash": 13,
+   "Edit": 9,
+   "Read": 4,
+   "Write": 3
+  },
+  "also": [
+   "architecture.md"
+  ],
+  "guides_opened": [
+   "behavioral-requirements.md",
+   "platforms/ui.md",
+   "service-discovery.md"
+  ]
+ },
+ "csv-user-import__H-shiploop-spec-duty4-no-open__sol-medium": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 4,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 5018,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 5018,
+  "seconds": 413.3,
+  "rc": 0,
+  "arm": "H-shiploop-spec-duty4-no-open",
+  "driver": "sol-medium",
+  "case": "csv-user-import",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 18234,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 14
+  },
+  "also": [],
+  "guides_opened": [
+   "AGENTS.md",
+   "README.md",
+   "behavioral-requirements.md",
+   "current-system-baseline.md",
+   "platforms/ui.md",
+   "project-knowledge.md",
+   "requirements-definition.md",
+   "research-loop.md",
+   "service-discovery.md",
+   "testing-and-documentation.md"
+  ]
+ },
+ "csv-user-import__H-shiploop-spec-duty4-no-open__sonnet-high": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 13,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 9669,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 9669,
+  "seconds": 449.5,
+  "rc": 0,
+  "arm": "H-shiploop-spec-duty4-no-open",
+  "driver": "sonnet-high",
+  "case": "csv-user-import",
+  "cost_usd": 1.0835179,
+  "turns": 26,
+  "output_tokens": 60243,
+  "tools": {
+   "Bash": 16,
+   "Edit": 6,
+   "Read": 1,
+   "Write": 2
+  },
+  "also": [],
+  "guides_opened": [
+   "README.md",
+   "behavioral-requirements.md",
+   "current-system-baseline.md",
+   "plan-record.md",
+   "platforms/ui.md",
+   "project-knowledge.md",
+   "requirements-definition.md",
+   "service-discovery.md"
+  ]
+ },
+ "csv-user-import__P-shiploop-spec__sol-medium": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 5,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 6003,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 6536,
+  "seconds": 371.8,
+  "rc": 0,
+  "arm": "P-shiploop-spec",
+  "driver": "sol-medium",
+  "case": "csv-user-import",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 14798,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 13,
+   "web_search": 1
+  },
+  "also": [
+   "architecture.md"
+  ],
+  "guides_opened": [
+   "README.md",
+   "behavioral-requirements.md",
+   "current-system-baseline.md",
+   "delivery-authority.md",
+   "platforms/ui.md",
+   "project-knowledge.md",
+   "requirements-definition.md",
+   "research-loop.md",
+   "service-discovery.md",
+   "testing-and-documentation.md"
+  ]
+ },
+ "csv-user-import__P-shiploop-spec__sonnet-high": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 12,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 8551,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 9327,
+  "seconds": 384.5,
+  "rc": 0,
+  "arm": "P-shiploop-spec",
+  "driver": "sonnet-high",
+  "case": "csv-user-import",
+  "cost_usd": 0.9974980000000001,
+  "turns": 26,
+  "output_tokens": 51014,
+  "tools": {
+   "Bash": 15,
+   "Edit": 5,
+   "Read": 2,
+   "Write": 3
+  },
+  "also": [
+   "architecture.md"
+  ],
+  "guides_opened": [
+   "behavioral-requirements.md",
+   "requirements-definition.md"
+  ]
+ },
+ "grokbot-salesforce__G-shiploop-spec-duty4-bounds__sol-medium": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 3,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 5045,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 5513,
+  "seconds": 338.7,
+  "rc": 0,
+  "arm": "G-shiploop-spec-duty4-bounds",
+  "driver": "sol-medium",
+  "case": "grokbot-salesforce",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 13115,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 9,
+   "file_change": 2,
+   "web_search": 6
+  },
+  "also": [
+   "architecture.md"
+  ],
+  "guides_opened": [
+   "README.md",
+   "behavioral-requirements.md",
+   "current-system-baseline.md",
+   "delivery-authority.md",
+   "platforms/salesforce.md",
+   "platforms/ui.md",
+   "project-knowledge.md",
+   "requirements-definition.md",
+   "service-discovery.md",
+   "testing-and-documentation.md"
+  ]
+ },
+ "grokbot-salesforce__G-shiploop-spec-duty4-bounds__sonnet-high": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 11,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 7547,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 8548,
+  "seconds": 326.4,
+  "rc": 0,
+  "arm": "G-shiploop-spec-duty4-bounds",
+  "driver": "sonnet-high",
+  "case": "grokbot-salesforce",
+  "cost_usd": 0.9092897,
+  "turns": 24,
+  "output_tokens": 40181,
+  "tools": {
+   "Bash": 7,
+   "Edit": 4,
+   "Read": 5,
+   "ToolSearch": 1,
+   "WebSearch": 4,
+   "Write": 2
+  },
+  "also": [
+   "architecture.md"
+  ],
+  "guides_opened": [
+   "README.md",
+   "current-system-baseline.md",
+   "platforms/salesforce.md",
+   "platforms/ui.md",
+   "service-discovery.md"
+  ]
+ },
+ "grokbot-salesforce__H-shiploop-spec-duty4-no-open__sol-medium": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 4,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 6280,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 7449,
+  "seconds": 375.6,
+  "rc": 0,
+  "arm": "H-shiploop-spec-duty4-no-open",
+  "driver": "sol-medium",
+  "case": "grokbot-salesforce",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 15882,
+  "tools": {
+   "agent_message": 3,
+   "command_execution": 14,
+   "web_search": 6
+  },
+  "also": [
+   "architecture.md"
+  ],
+  "guides_opened": [
+   "README.md",
+   "behavioral-requirements.md",
+   "current-system-baseline.md",
+   "delivery-authority.md",
+   "platforms/salesforce.md",
+   "platforms/ui.md",
+   "project-knowledge.md",
+   "requirements-definition.md",
+   "research-loop.md",
+   "service-discovery.md",
+   "testing-and-documentation.md"
+  ]
+ },
+ "grokbot-salesforce__H-shiploop-spec-duty4-no-open__sonnet-high": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 13,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 5767,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 6893,
+  "seconds": 268.6,
+  "rc": 0,
+  "arm": "H-shiploop-spec-duty4-no-open",
+  "driver": "sonnet-high",
+  "case": "grokbot-salesforce",
+  "cost_usd": 0.7630800000000001,
+  "turns": 29,
+  "output_tokens": 31830,
+  "tools": {
+   "Bash": 10,
+   "Edit": 8,
+   "Read": 2,
+   "ToolSearch": 1,
+   "WebSearch": 5,
+   "Write": 2
+  },
+  "also": [
+   "architecture.md"
+  ],
+  "guides_opened": [
+   "platforms/salesforce.md",
+   "requirements-definition.md"
+  ]
+ },
+ "grokbot-salesforce__P-shiploop-spec__sol-medium": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 3,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 5458,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 6265,
+  "seconds": 340.8,
+  "rc": 0,
+  "arm": "P-shiploop-spec",
+  "driver": "sol-medium",
+  "case": "grokbot-salesforce",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 13325,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 11,
+   "web_search": 7
+  },
+  "also": [
+   "architecture.md"
+  ],
+  "guides_opened": [
+   "README.md",
+   "behavioral-requirements.md",
+   "current-system-baseline.md",
+   "platforms/salesforce.md",
+   "platforms/ui.md",
+   "requirements-definition.md",
+   "service-discovery.md",
+   "testing-and-documentation.md"
+  ]
+ },
+ "grokbot-salesforce__P-shiploop-spec__sonnet-high": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 16,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 9183,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 10967,
+  "seconds": 406.3,
+  "rc": 0,
+  "arm": "P-shiploop-spec",
+  "driver": "sonnet-high",
+  "case": "grokbot-salesforce",
+  "cost_usd": 1.1459727000000002,
+  "turns": 37,
+  "output_tokens": 51636,
+  "tools": {
+   "Bash": 9,
+   "Edit": 14,
+   "Read": 6,
+   "ToolSearch": 1,
+   "WebSearch": 4,
+   "Write": 2
+  },
+  "also": [
+   "architecture.md"
+  ],
+  "guides_opened": [
+   "README.md",
+   "behavioral-requirements.md",
+   "current-system-baseline.md",
+   "platforms/salesforce.md",
+   "platforms/ui.md",
+   "requirements-definition.md",
+   "service-discovery.md"
+  ]
+ },
+ "gym-waitlist__G-shiploop-spec-duty4-bounds__sol-medium": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 3,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 4735,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 4965,
+  "seconds": 232.8,
+  "rc": 0,
+  "arm": "G-shiploop-spec-duty4-bounds",
+  "driver": "sol-medium",
+  "case": "gym-waitlist",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 9141,
+  "tools": {
+   "agent_message": 3,
+   "command_execution": 13,
+   "web_search": 1
+  },
+  "also": [
+   "architecture.md"
+  ],
+  "guides_opened": [
+   "README.md",
+   "behavioral-requirements.md",
+   "current-system-baseline.md",
+   "platforms/ui.md",
+   "requirements-definition.md",
+   "service-discovery.md",
+   "testing-and-documentation.md"
+  ]
+ },
+ "gym-waitlist__G-shiploop-spec-duty4-bounds__sonnet-high": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 17,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 6931,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 7738,
+  "seconds": 333.8,
+  "rc": 0,
+  "arm": "G-shiploop-spec-duty4-bounds",
+  "driver": "sonnet-high",
+  "case": "gym-waitlist",
+  "cost_usd": 0.8616639000000001,
+  "turns": 23,
+  "output_tokens": 44962,
+  "tools": {
+   "Bash": 9,
+   "Edit": 3,
+   "Read": 7,
+   "Write": 3
+  },
+  "also": [
+   "architecture.md"
+  ],
+  "guides_opened": [
+   "README.md",
+   "behavioral-requirements.md",
+   "current-system-baseline.md",
+   "platforms/ui.md",
+   "requirements-definition.md",
+   "service-discovery.md"
+  ]
+ },
+ "gym-waitlist__H-shiploop-spec-duty4-no-open__sol-medium": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 5,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 5903,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 5903,
+  "seconds": 315.5,
+  "rc": 0,
+  "arm": "H-shiploop-spec-duty4-no-open",
+  "driver": "sol-medium",
+  "case": "gym-waitlist",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 12220,
+  "tools": {
+   "agent_message": 3,
+   "command_execution": 15,
+   "web_search": 1
+  },
+  "also": [],
+  "guides_opened": [
+   "README.md",
+   "behavioral-requirements.md",
+   "current-system-baseline.md",
+   "delivery-authority.md",
+   "platforms/ui.md",
+   "project-knowledge.md",
+   "requirements-definition.md",
+   "research-loop.md",
+   "service-discovery.md",
+   "testing-and-documentation.md"
+  ]
+ },
+ "gym-waitlist__H-shiploop-spec-duty4-no-open__sonnet-high": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 11,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 5928,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 6376,
+  "seconds": 310.7,
+  "rc": 0,
+  "arm": "H-shiploop-spec-duty4-no-open",
+  "driver": "sonnet-high",
+  "case": "gym-waitlist",
+  "cost_usd": 0.8378245,
+  "turns": 24,
+  "output_tokens": 41035,
+  "tools": {
+   "Bash": 12,
+   "Edit": 3,
+   "Grep": 1,
+   "Read": 4,
+   "Write": 3
+  },
+  "also": [
+   "architecture.md"
+  ],
+  "guides_opened": [
+   "README.md",
+   "behavioral-requirements.md",
+   "service-discovery.md"
+  ]
+ },
+ "gym-waitlist__P-shiploop-spec__sol-medium": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 4,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 5800,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 5800,
+  "seconds": 287.2,
+  "rc": 0,
+  "arm": "P-shiploop-spec",
+  "driver": "sol-medium",
+  "case": "gym-waitlist",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 10658,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 18
+  },
+  "also": [],
+  "guides_opened": [
+   "README.md",
+   "behavioral-requirements.md",
+   "current-system-baseline.md",
+   "delivery-authority.md",
+   "platforms/ui.md",
+   "project-knowledge.md",
+   "requirements-definition.md",
+   "research-loop.md",
+   "service-discovery.md",
+   "testing-and-documentation.md"
+  ]
+ },
+ "gym-waitlist__P-shiploop-spec__sonnet-high": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 16,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 7361,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 7791,
+  "seconds": 230.9,
+  "rc": 0,
+  "arm": "P-shiploop-spec",
+  "driver": "sonnet-high",
+  "case": "gym-waitlist",
+  "cost_usd": 0.6234168999999999,
+  "turns": 18,
+  "output_tokens": 29854,
+  "tools": {
+   "Bash": 5,
+   "Edit": 2,
+   "Read": 8,
+   "Write": 2
+  },
+  "also": [
+   "architecture.md"
+  ],
+  "guides_opened": [
+   "README.md",
+   "behavioral-requirements.md",
+   "current-system-baseline.md",
+   "lint-catalog.md",
+   "platforms/ui.md",
+   "project-knowledge.md",
+   "requirements-definition.md",
+   "service-discovery.md"
+  ]
+ },
+ "invoice-reminders__G-shiploop-spec-duty4-bounds__sol-medium": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 4,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 4796,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 4796,
+  "seconds": 240.1,
+  "rc": 0,
+  "arm": "G-shiploop-spec-duty4-bounds",
+  "driver": "sol-medium",
+  "case": "invoice-reminders",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 9885,
+  "tools": {
+   "agent_message": 3,
+   "command_execution": 10,
+   "file_change": 2
+  },
+  "also": [],
+  "guides_opened": [
+   "README.md",
+   "behavioral-requirements.md",
+   "current-system-baseline.md",
+   "requirements-definition.md",
+   "research-loop.md",
+   "service-discovery.md",
+   "testing-and-documentation.md"
+  ]
+ },
+ "invoice-reminders__G-shiploop-spec-duty4-bounds__sonnet-high": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 10,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 6718,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 7227,
+  "seconds": 294.6,
+  "rc": 0,
+  "arm": "G-shiploop-spec-duty4-bounds",
+  "driver": "sonnet-high",
+  "case": "invoice-reminders",
+  "cost_usd": 0.7478605,
+  "turns": 20,
+  "output_tokens": 38549,
+  "tools": {
+   "Bash": 9,
+   "Edit": 3,
+   "Read": 4,
+   "Write": 3
+  },
+  "also": [
+   "architecture.md"
+  ],
+  "guides_opened": [
+   "README.md",
+   "behavioral-requirements.md",
+   "requirements-definition.md"
+  ]
+ },
+ "invoice-reminders__H-shiploop-spec-duty4-no-open__sol-medium": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 3,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 4754,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 4754,
+  "seconds": 262.2,
+  "rc": 0,
+  "arm": "H-shiploop-spec-duty4-no-open",
+  "driver": "sol-medium",
+  "case": "invoice-reminders",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 10504,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 11
+  },
+  "also": [],
+  "guides_opened": [
+   "README.md",
+   "behavioral-requirements.md",
+   "current-system-baseline.md",
+   "platform-discovery.md",
+   "platforms/ui.md",
+   "project-knowledge.md",
+   "requirements-definition.md",
+   "service-discovery.md",
+   "test-loop.md",
+   "testing-and-documentation.md"
+  ]
+ },
+ "invoice-reminders__H-shiploop-spec-duty4-no-open__sonnet-high": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 9,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 5659,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 5659,
+  "seconds": 255.1,
+  "rc": 0,
+  "arm": "H-shiploop-spec-duty4-no-open",
+  "driver": "sonnet-high",
+  "case": "invoice-reminders",
+  "cost_usd": 0.7035378,
+  "turns": 21,
+  "output_tokens": 34040,
+  "tools": {
+   "Bash": 16,
+   "Edit": 1,
+   "Write": 3
+  },
+  "also": []
+ },
+ "invoice-reminders__P-shiploop-spec__sol-medium": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 5,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 5602,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 5602,
+  "seconds": 279.7,
+  "rc": 0,
+  "arm": "P-shiploop-spec",
+  "driver": "sol-medium",
+  "case": "invoice-reminders",
+  "cost_usd": null,
+  "turns": null,
+  "output_tokens": 11453,
+  "tools": {
+   "agent_message": 4,
+   "command_execution": 16
+  },
+  "also": [],
+  "guides_opened": [
+   "README.md",
+   "behavioral-requirements.md",
+   "current-system-baseline.md",
+   "delivery-authority.md",
+   "glossary.md",
+   "project-knowledge.md",
+   "requirements-definition.md",
+   "service-discovery.md",
+   "testing-and-documentation.md"
+  ]
+ },
+ "invoice-reminders__P-shiploop-spec__sonnet-high": {
+  "use_cases": 0,
+  "clauses": 0,
+  "requirements": 9,
+  "source_mix": {},
+  "use_case_gaps": [],
+  "clause_gaps": [],
+  "words": 7223,
+  "bundled_and": 0,
+  "bundled_examples": [],
+  "words_judged": 7878,
+  "seconds": 357.0,
+  "rc": 0,
+  "arm": "P-shiploop-spec",
+  "driver": "sonnet-high",
+  "case": "invoice-reminders",
+  "cost_usd": 0.8969766999999998,
+  "turns": 26,
+  "output_tokens": 48552,
+  "tools": {
+   "Bash": 15,
+   "Edit": 7,
+   "Write": 3
+  },
+  "also": [
+   "architecture.md"
+  ],
+  "guides_opened": [
+   "README.md"
+  ]
+ }
+}

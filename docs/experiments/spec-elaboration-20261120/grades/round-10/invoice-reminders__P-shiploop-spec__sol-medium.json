@@ -1,0 +1,144 @@
+{
+ "slot": "invoice-reminders__P-shiploop-spec__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.348163,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Proposed policy is one opportunity per invoice, starting when the invoice is overdue in the billing account's time zone"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Suppress fully paid, zero-balance, draft, void, canceled, disputed or held invoices on the proposed policy.",
+   "missing": "Treatment of credits (listed only as an open gap) and payment plans is not decided."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A partially paid invoice qualifies for its remaining balance."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Confirm the real source and supported state mappings, including ... recipient preference or consent.",
+   "missing": "Whether do-not-contact/paused/unsubscribed states suppress reminders and whether billing notices are exempt from marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "Overlapping evaluations and repeated triggers resolve to the same opportunity. ... Restarts, due date changes, disable/re-enable, and invoice settlement/reopen do not reset an accepted opportunity"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "If the invoice becomes paid, void, removed, or otherwise ineligible, the recipient is no longer authorized, or current authority cannot be established, block the stale handoff and record why."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Permanent failure or exhausted/expired work ends automatic attempts with an operator-visible reason.",
+   "missing": "Retry intervals/limits and outage catch-up policy are left open, and no active escalation to a person is defined."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "including simultaneous due work or backlog, respect verified platform limits. With a rate limit or quota exhaustion, defer eligible work while the policy permits, expose the delay/failure, and resume without duplicates."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "including older eligible invoices when enabled. Confirm backlog treatment",
+   "missing": "Whether and how the backlog is staggered rather than sent all at once on activation."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Confirm backlog treatment, schedule precision, time zone source, holidays or quiet hours if applicable",
+   "missing": "Uses the billing account's time zone rather than the customer's; business hours, weekends and holidays are undecided."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "gives the remaining amount and currency",
+   "missing": "How currency and amounts are formatted or localized for the recipient."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Missing recipient or required content ... blocks handoff and records a safe reason. No fallback address is inferred. ... A rejection, ambiguous timeout or bounce is distinguishable from completed delivery."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Proposed channel is email using an approved sender and the current billing contact. Confirm the destination/contact policy",
+   "missing": "Behaviour when an invoice has several billing contacts and which receive the reminder."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "authorized billing operators can distinguish pending, skipped/suppressed, retryable, failed, unknown, and provider-confirmed outcomes and correlate them to the affected opportunity.",
+   "missing": "No record of what was sent shown on the invoice itself; message content is not retained."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "identifies the biller and invoice, gives the remaining amount and currency and due date, and points to the existing approved way to view or pay the invoice.",
+   "missing": "Whether the payment/view link expires."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-1, R-3",
+   "quote": "An actor with current billing configuration authority can activate or update a valid policy for their account. ... with no manual send action per invoice."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "A committed disable prevents further handoffs for the account until re-enabled under a valid policy.",
+   "missing": "Only per-account disable; no global or per-customer off, no preview/dry run, and manual resend is not provided."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "can distinguish pending, skipped/suppressed, retryable, failed, unknown, and provider-confirmed outcomes",
+   "missing": "Failures and pending work are visible, but no view of upcoming reminders the system will send next."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Retry intervals/limits, maximum sending age, outage catch-up policy ... need billing and operations decisions.",
+   "missing": "Actual volume bound and maximum lateness value are unresolved."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "Scope and source",
+   "quote": "Invoice issuance, editing, payment processing, collections escalation, new identity or sharing, and a new in-product interface are outside this slice."
+  }
+ ]
+}

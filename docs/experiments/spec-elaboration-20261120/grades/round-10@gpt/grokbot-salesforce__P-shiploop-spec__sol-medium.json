@@ -1,0 +1,186 @@
+{
+ "slot": "grokbot-salesforce__P-shiploop-spec__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-3 (AD-1), C-2 (1b), C-5 (2b)",
+   "quote": "Use a Lightning Web Component in a Lightning component tab \u2026 Approved users can invoke the bot under their current Salesforce access. \u2026 Only the current prompt is sent."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-5 (2b), AD-1",
+   "quote": "CRM row sharing, object CRUD and field permissions are inapplicable to bot data processing because the action neither reads nor mutates CRM records.",
+   "missing": "A record-based answer would need a retrieval rule enforcing the asking user's sharing context. The specified bot answers from user-entered text alone."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "C-5 (2b), AD-1",
+   "quote": "field permissions are inapplicable to bot data processing because the action neither reads nor mutates CRM records.",
+   "missing": "All CRM fields are excluded. The specification gives no field-access or masking rule for reading or displaying encrypted or restricted field values."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-2 (AD-1), C-9 (R-3)",
+   "quote": "Use a narrowly assigned permission set for entry visibility, Apex class access, bot custom permission and access to the one external credential principal. \u2026 approved admins alone change configuration/access."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-8 (3a), C-10 (R-3)",
+   "quote": "Only that document's authorized originating bot view holds its draft and most recent prompt/reply. \u2026 Grok team admins use provider usage metadata where available. \u2026 with no prompt, reply, key or provider error body."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-5, C-6 (AD-2)",
+   "quote": "Use a synchronous Salesforce server callout for one foreground `POST https://api.x.ai/v1/responses` per accepted submission.",
+   "missing": "The external callout is explicit. There is no asynchronous Apex execution path or rule for moving inference out of a trigger or a transaction that has already performed DML."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-9 (3b, AD-2, R-3 credential lifecycle)",
+   "quote": "an External Credential with Custom authentication and a named principal provides the bearer header from a protected parameter. \u2026 it is excluded from deployable metadata. \u2026 Keep the key out of client payloads, source, logs and handoff."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-6 (AD-2, bounded work)",
+   "quote": "a cumulative callout deadline ceiling of 120 seconds, a per-transaction callout count ceiling of 100 and a synchronous request/response size ceiling of 6 MB that also counts toward heap.",
+   "missing": "The callout payload ceiling is quantified. The applicable Apex heap and CPU-time limits still need their own numerical values."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C-5",
+   "quote": "The controlled service returns completed assistant text `BLUE-41`, then `GREEN-27 <b>literal</b>`.",
+   "missing": "The controlled provider fixture specifies outputs. It leaves open how Apex tests replace HTTP callouts and omits the Apex test restriction on real callouts."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C-9 (AD-2), C-7 (T-5)",
+   "quote": "A modern Named Credential points to the approved inference endpoint \u2026 Missing known configuration is a local T-7 failure with zero calls."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-5, C-7 (F-2, AD-3)",
+   "quote": "Salesforce returns a sanitized reply or outcome to the originating view (T-6 or T-7). \u2026 Scope callbacks to that view and discard invalidated content on Clear or disposal."
+  },
+  {
+   "id": "N-12",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-7 (2c)",
+   "quote": "say that no reply was received and that Grok may already have processed the prompt. \u2026 direct the user to the admin. \u2026 explain that no usable reply was received.",
+   "missing": "Timeout, credential/model rejection, and provider failure have user actions. The specification gives no distinct refusal outcome for other HTTP 4xx rejections versus 5xx failures."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-7 (2c)",
+   "quote": "On throttling, ask the user to wait and retry. \u2026 There is no automatic retry."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-7 (2b, 2c)",
+   "quote": "nonterminal or incomplete result \u2026 never becomes a successful reply. \u2026 explain that no usable reply was received. \u2026 On timeout or connection loss, say that no reply was received and that Grok may already have processed the prompt."
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-8 (3a, R-3 retention)",
+   "quote": "Reload, closing the view or ending its Salesforce session discards local bot state. \u2026 The provider documents 30-day default audit retention, with automatic deletion, and a separate team-level Zero Data Retention option.",
+   "missing": "The actual provider retention policy requires confirmation. The text does not specify what deleting a Salesforce user means for any prompt or reply still held by the provider."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-5 (2b), C-8 (3a)",
+   "quote": "Only the current prompt is sent. No prior questions, answers, CRM records, user identifiers, attachments or tool instructions accompany it. \u2026 enter synthetic, non-sensitive text only."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "C-5 (2b), C-4 (2a)",
+   "quote": "Only the current prompt is sent. \u2026 The exact production bound and counting unit are open.",
+   "missing": "History is excluded on every turn. No model-context threshold is specified for trimming or summarising an overlong conversation."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-3 (T-3), C-4 (2a)",
+   "quote": "Assigned user opens an empty view. \u2026 Send empty text and `\" \\t\\n \"` (escaped), each producing validation and zero calls. \u2026 The maximum accepted input is inclusive."
+  },
+  {
+   "id": "N-22",
+   "state": "covered",
+   "where": "C-9 (3b), C-10 (R-3)",
+   "quote": "An authorized admin provisions, rotates or removes the inference credential on the server. \u2026 Bot metadata, model configuration and effective grants \u00b7 target-org administrator \u2026 approved admins alone change configuration/access. \u2026 Match emitted categories and references to attempts"
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "C-10 (R-3 diagnostic events)",
+   "quote": "outcome category, timing and opaque attempt reference, with no prompt, reply, key or provider error body. \u2026 Turn off scoped tracing after use and let native expiry apply",
+   "missing": "The trace has a retention policy but deliberately omits the question and answer. No audit record links the asker to both texts or defines retention for such a record."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "C-1 (1a), C-9 (AD-2)",
+   "quote": "Use a dedicated development inference key \u2026 it is excluded from deployable metadata. \u2026 Verify successful terminal status for that candidate and metadata read-back before assigning Avery.",
+   "missing": "The development credential and metadata deployment are specified. The target org type, configuration differences across environments, and production deployment coverage requirement are unspecified."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "C-7 (2c, bounded work)",
+   "quote": "The accepted send shows an accessible pending status until a reply or recoverable error is known. \u2026 The selected prompt size/unit, output cap and timeout are open.",
+   "missing": "There is no chosen answer-latency target or user-visible deadline. The documented platform limit bounds callout time only."
+  },
+  {
+   "id": "N-26",
+   "state": "partial",
+   "where": "C-3, C-7 (2c)",
+   "quote": "Inspect the empty, pending, reply and error states \u2026 check both themes, target widths, focus, announcements, contrast and reduced motion. \u2026 provider-declared refusal",
+   "missing": "Refusal is tested and produces a failed send. No distinct refusal message or visual state differentiates it from other failures to produce usable text."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-1 (R-1), C-5 (R-2)",
+   "quote": "Preserve existing Salesforce records, automation and sharing. \u2026 After deployment, the same org must contain the intended revision with unrelated configuration and CRM objects, fields, records and automation intact."
+  }
+ ]
+}

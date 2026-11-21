@@ -1,0 +1,170 @@
+[
+ {
+  "file": "spec-01.md",
+  "sample": "e2-n-6",
+  "arm": "n",
+  "option": "stage",
+  "minutes": 4.0
+ },
+ {
+  "file": "spec-02.md",
+  "sample": "e2-plain-2",
+  "arm": "plain",
+  "option": "none",
+  "minutes": 2.6
+ },
+ {
+  "file": "spec-03.md",
+  "sample": "e2-plain-6",
+  "arm": "plain",
+  "option": "stage",
+  "minutes": 3.4
+ },
+ {
+  "file": "spec-04.md",
+  "sample": "e2-g-8",
+  "arm": "g",
+  "option": "stage",
+  "minutes": 3.3
+ },
+ {
+  "file": "spec-05.md",
+  "sample": "e2-plain-5",
+  "arm": "plain",
+  "option": "stage",
+  "minutes": 3.8
+ },
+ {
+  "file": "spec-06.md",
+  "sample": "e2-plain-1",
+  "arm": "plain",
+  "option": "stage",
+  "minutes": 3.9
+ },
+ {
+  "file": "spec-07.md",
+  "sample": "e2-plain-7",
+  "arm": "plain",
+  "option": "stage",
+  "minutes": 3.0
+ },
+ {
+  "file": "spec-08.md",
+  "sample": "e2-g-3",
+  "arm": "g",
+  "option": "stage",
+  "minutes": 3.2
+ },
+ {
+  "file": "spec-09.md",
+  "sample": "e2-plain-4",
+  "arm": "plain",
+  "option": "stage",
+  "minutes": 3.1
+ },
+ {
+  "file": "spec-10.md",
+  "sample": "e2-n-7",
+  "arm": "n",
+  "option": "stage",
+  "minutes": 4.7
+ },
+ {
+  "file": "spec-11.md",
+  "sample": "e2-n-1",
+  "arm": "n",
+  "option": "stage",
+  "minutes": 3.1
+ },
+ {
+  "file": "spec-12.md",
+  "sample": "e2-n-8",
+  "arm": "n",
+  "option": "stage",
+  "minutes": 3.2
+ },
+ {
+  "file": "spec-13.md",
+  "sample": "e2-g-7",
+  "arm": "g",
+  "option": "none",
+  "minutes": 3.3
+ },
+ {
+  "file": "spec-14.md",
+  "sample": "e2-n-5",
+  "arm": "n",
+  "option": "stage",
+  "minutes": 3.8
+ },
+ {
+  "file": "spec-15.md",
+  "sample": "e2-plain-8",
+  "arm": "plain",
+  "option": "stage",
+  "minutes": 3.5
+ },
+ {
+  "file": "spec-16.md",
+  "sample": "e2-g-6",
+  "arm": "g",
+  "option": "stage",
+  "minutes": 3.4
+ },
+ {
+  "file": "spec-17.md",
+  "sample": "e2-n-4",
+  "arm": "n",
+  "option": "stage",
+  "minutes": 3.2
+ },
+ {
+  "file": "spec-18.md",
+  "sample": "e2-n-2",
+  "arm": "n",
+  "option": "stage",
+  "minutes": 2.8
+ },
+ {
+  "file": "spec-19.md",
+  "sample": "e2-g-2",
+  "arm": "g",
+  "option": "stage",
+  "minutes": 3.7
+ },
+ {
+  "file": "spec-20.md",
+  "sample": "e2-n-3",
+  "arm": "n",
+  "option": "stage",
+  "minutes": 4.0
+ },
+ {
+  "file": "spec-21.md",
+  "sample": "e2-g-4",
+  "arm": "g",
+  "option": "stage",
+  "minutes": 3.5
+ },
+ {
+  "file": "spec-22.md",
+  "sample": "e2-g-5",
+  "arm": "g",
+  "option": "stage",
+  "minutes": 4.0
+ },
+ {
+  "file": "spec-23.md",
+  "sample": "e2-plain-3",
+  "arm": "plain",
+  "option": "none",
+  "minutes": 2.8
+ },
+ {
+  "file": "spec-24.md",
+  "sample": "e2-g-1",
+  "arm": "g",
+  "option": "stage",
+  "minutes": 3.6
+ }
+]

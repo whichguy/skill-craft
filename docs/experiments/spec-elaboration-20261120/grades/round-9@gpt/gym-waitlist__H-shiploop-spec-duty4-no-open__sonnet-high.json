@@ -1,0 +1,140 @@
+{
+ "slot": "gym-waitlist__H-shiploop-spec-duty4-no-open__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "A-1",
+   "quote": "when a seat opens, the head of the waitlist is booked at once. There is no offer, confirm or hold window."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "A-2, AC-8.3, A-10",
+   "quote": "by server-recorded join order. No priority tiers. \u2026 M5 and M6 join concurrently \u2192 positions 1 and 2 in some order, never both 1. \u2026 Staff get no waitlist view and no manual promotion in this change."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "A-9",
+   "quote": "A member holding a time-overlapping booking elsewhere is handled by the existing eligibility rules (P-1).",
+   "missing": "Whether promotion into one class immediately removes the member from an overlapping class\u2019s waitlist or leaves that entry for a later eligibility check."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "A-1, G-1",
+   "quote": "There is no offer, confirm or hold window. \u2026 a late-cancel or no-show penalty exists \u2026 charge and penalise exactly as for a direct booking."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "AC-3.1, AC-3.2",
+   "quote": "M1 cancels \u2192 booked [M2, M3], list [M4, M5] \u2026 promotion happens inside the cancellation operation. When the cancel request has returned, a read-back already shows M3 booked, with no polling or delay."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "AC-7.1, R-7",
+   "quote": "M3 receives `PROMOTED` carrying C1's name and time through the existing channel (P-4) \u2026 the default is in-app status only \u2026 Delivery failure of a notification does not undo a promotion, removal or expiry."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AC-8.2, R-8 (I-1)",
+   "quote": "M1 and M2 cancel concurrently \u2192 promotions are M3 then M4 in either order, final booked [M3, M4], list []. \u2026 a promotion or booking never takes booked above capacity"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-8, T-9",
+   "quote": "Concurrent operations on one class behave as if they ran one at a time in some order \u2026 direct booking on a full class or with a non-empty list | none | `CLASS_FULL` (or `ON_WAITLIST_CLASS_FULL` for a listed member)"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "G-1",
+   "quote": "it must be decided whether a promoted booking charges at promotion \u2026 charge and penalise exactly as for a direct booking.",
+   "missing": "If a charge fails after the eligibility check passes, does the system remove or retain the entry, and does it offer the seat to the next member?"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "one entry per member per class; no cap on length (A-3)."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-6, A-4",
+   "quote": "When the window closes, all entries expire and no promotion occurs, even if a seat is freed afterwards. \u2026 If the app has no explicit booking cutoff, the class start time is the cutoff."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "a capacity increase, and a staff removal of a booking where that action exists (P-3). Reducing capacity below the booked count removes no booking and promotes nobody until booked < capacity. \u2026 Promotions = min(free seats, eligible entries)."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "AC-6.2",
+   "quote": "staff cancel the class with list [M3, M4] \u2192 both get `CLASS_CANCELLED`, the list is [], and no booking is created for M3 or M4."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-1, R-9, section 4 terms, section 6 states",
+   "quote": "new waitlist entry (class, member, join order) \u2026 member identifier and join time \u2026 *Position* = 1 + the number of entries ahead. \u2026 Waiting --> Promoted"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-6, A-11",
+   "quote": "When the window closes, all entries expire and no promotion occurs \u2026 No history is retained once an entry ends."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "AC-9.1",
+   "quote": "M4's payload contains M4's own position and the total (2 of 3) and no other member's identifier."
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "AC-3.2",
+   "quote": "When the cancel request has returned, a read-back already shows M3 booked, with no polling or delay."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "Classes with open seats book exactly as before. \u2026 Cancellation, the class listing and existing notifications for non-waitlist events are unchanged. \u2026 No existing data is migrated."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-10, R-1",
+   "quote": "Existing classes start with empty waitlists. \u2026 A signed-in member viewing a full, bookable class can join its waitlist."
+  }
+ ]
+}

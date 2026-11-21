@@ -1,0 +1,139 @@
+{
+ "slot": "invoice-reminders__P-shiploop-spec__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.37079059999999997,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "D-3",
+   "quote": "Prefilled schedule: offsets \u22123, 0, +7, +14 days relative to the due date; send time 09:00 account-local."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A paid, void or draft invoice gets no reminder; reminders stop permanently once outstanding is 0. ... Left out (domain rules): late fees, interest, credit-note handling beyond outstanding balance, disputes (use pause, R-7)"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "D-4",
+   "quote": "A partial payment leaves it unpaid; the reminder states the outstanding amount."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "D-13",
+   "quote": "No customer-facing unsubscribe link in v1; replies go to the business's address. Compliance is an open person-only item (OG-4).",
+   "missing": "Whether an existing customer-level do-not-contact, paused or unsubscribed flag suppresses reminders, and whether billing notices are exempt from a marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "D-8",
+   "quote": "At most once per (invoice, offset), ever. ... a claim for an existing (invoice, offset) record is refused, so concurrent or repeated ticks never both send."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "an invoice is a candidate only while it is unpaid (D-4) at the moment of sending (the invoice source is re-read after claim and before handoff, R-5)."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "D-9",
+   "quote": "Transient provider failure: up to 3 attempts per step, one per tick; a definitive hard failure (invalid address) is not retried. ... settings page shows a count of invoices with a failed or unknown step"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "NFR-4",
+   "quote": "provider rate limit: unresolved (OG-8). Constraint without a number: a tick that cannot finish all work leaves the rest claimable by the next tick (AC-11.2), and respects provider rate limits when known.",
+   "missing": "The actual rate limit and how a large batch is paced within it."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "D-7",
+   "quote": "No backfill. A step is eligible only if its step date is on or after ... the date reminders were last enabled ... Prevents blasting a backlog of overdue customers"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "step date = due date + offset (calendar days, account zone). ... Left out: business-day calendars, holidays, per-customer time zones."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "AC-4.6",
+   "quote": "1234567.80 USD renders unambiguously with the currency code; zero-decimal currency (JPY 5000) renders without decimals."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "AC-4.4",
+   "quote": "Billing address empty or syntactically invalid at evaluation: no handoff ... at window end it resolves skipped: no-recipient. ... If the provider later reports a bounce, sent becomes bounced"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "one email to the invoice's billing address",
+   "missing": "What happens when an invoice or customer has more than one billing contact, and which are written to."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "each invoice shows its reminder history: per offset, state (sent, failed, unknown, bounced, skipped: <reason>), time, attempts, recipient address used."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Content: business name, customer name, invoice number, outstanding amount with currency, due date, days until/past due, pay link only if the host has one (OG-5)",
+   "missing": "Whether the pay link expires and what happens if it has."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "D-21",
+   "quote": "Roles: changing settings needs the host's account-admin role; viewing history needs permission to view that invoice; pausing needs permission to edit it.",
+   "missing": "Who may send a reminder by hand (manual sending is not defined at all)."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Disabling stops new sends immediately for ticks that start after the save",
+   "missing": "Per-customer off switch (only per-invoice pause exists), preview or dry-run, and manual resend."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "AC-8.2",
+   "quote": "Invoice with reminders on but nothing yet due: empty state reads that the next reminder is scheduled for 2026-12-12",
+   "missing": "A view of upcoming sends beyond an invoice's empty state (e.g. next step after the first send, or account-wide upcoming); failures are covered by R-8."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "D-5",
+   "quote": "A step (invoice \u00d7 offset) may be sent on its step date or the one following calendar day (its window). At most one reminder per invoice per calendar day"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "D-17",
+   "quote": "Reminders never change invoice status, amounts or dates."
+  }
+ ]
+}

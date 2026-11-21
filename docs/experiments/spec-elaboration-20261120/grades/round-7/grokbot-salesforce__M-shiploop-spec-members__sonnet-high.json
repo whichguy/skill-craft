@@ -1,0 +1,184 @@
+{
+ "slot": "grokbot-salesforce__M-shiploop-spec-members__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.5337852000000001,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2, AD-7",
+   "quote": "A user holding the user permission set (AD-8) can open the \"Grok Bot\" tab at `/lightning/n/GrokBot`, inside the Grok Bot app in App Launcher; ... LWC `grokBotChat` exposes `lightning__Tab`"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "Out of scope; AD-1",
+   "quote": "Out of scope ...: grounding answers in Salesforce records ... Apex runs in **user mode** (`WITH USER_MODE` queries, `AccessLevel.USER_MODE` DML) inside `with sharing` classes, so sharing, object CRUD and FLS are enforced separately"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "A user without FLS on a field never receives that field's value (the call fails with `ACCESS_DENIED` rather than returning blanks that look valid)."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "AD-8",
+   "quote": "`GrokBot_User`: tab and app visibility, Apex class access, CRUD and FLS on both objects ... the admin role is documentation of who sets the key and settings rather than a second permission set",
+   "missing": "Which permission (or permission set) actually defines who may administer the bot (set the key, edit settings); admin is left as 'documentation' rather than a named grant."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "A user can read, create and delete only their own conversations ... a user holding View All / Modify All on the objects through their profile sees all conversations: this is the platform's administrative override, accepted and documented"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-5",
+   "quote": "Apex may not make a callout in a transaction that already holds uncommitted DML. ... Synchronous callout from `@AuraEnabled` (not Continuation) ... Alternative: ... callout in Queueable (rejected",
+   "missing": "The callout-before-DML rule is handled, but the design is deliberately synchronous rather than asynchronous, and the no-callout-from-trigger constraint is not stated."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-7, AD-2",
+   "quote": "stored only in the platform's credential facility, and is never visible to users, the browser, deployed metadata, source control, stored records, configuration, or logs."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "D-4, AD-5, S-6",
+   "quote": "hard platform ceiling 120000 ms per request and per transaction ... within the 100-callout and 120 s limits ... callout 120 s cumulative, heap",
+   "missing": "Heap size and CPU time limits are not given numbers (CPU not mentioned at all)."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "NFR-7",
+   "quote": "every changed Apex method has an Apex test with the Grok call mocked (a test class never makes a real callout)"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "Named Credential `GrokBot_xAI` (endpoint base `https://api.x.ai`) references External Credential `GrokBot_xAI_Cred` ... Callers reach it by `callout:GrokBot_xAI/...`."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "Actors table / Return path",
+   "quote": "the reply returns on the same response (no push) ... Return path: the HTTP response is the only completion signal.",
+   "missing": "The design relies on the call returning inline; no event/polling mechanism, and end-to-end browser behaviour near the 60/120 s bound is left unresolved (G-8)."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "NFR-2, R-12",
+   "quote": "no automatic retry (avoids duplicate charges and duplicate pairs); manual retry only. ... Two clicks on Send in one tab produce one request (the control is disabled while pending"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "Service boundary contract",
+   "quote": "Inapplicable: event subscriptions, cursors, webhooks, caches, workers (no async work promised).",
+   "missing": "Concurrent-request limits for long-running synchronous callouts and what the user sees when a request is refused for concurrency are not stated."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "`REQUEST_REJECTED` | HTTP 400, 404, 413, 422 ... `UPSTREAM_ERROR` | HTTP 500..599 ... `TIMEOUT` | a read-timeout `CalloutException` ... `Grok did not answer within {seconds} seconds. Try again.`"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-6, NFR-2",
+   "quote": "`RATE_LIMITED` | HTTP 429 | `Grok is rate limiting requests. Wait a moment and try again.` ... one callout only (no automatic retry)"
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-6, R-8",
+   "quote": "none stores a row, none returns a partial reply ... the UI re-reads the list and the open transcript from the org and shows what is stored",
+   "missing": "A reply truncated by the 1024 output-token cap (a 200 with length-limited content) is not distinguished or signalled to the user."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "AD-3",
+   "quote": "`Role__c` (restricted picklist `User` | `Assistant`), `Content__c` (long text area, 32768) ... Tokens, model id and raw response body are deliberately **not** stored",
+   "missing": "Per-message status, timestamps, model identifier and token/usage counts are not part of the stored shape."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "S-2, NFR-4",
+   "quote": "owner delete (cascade); no expiry (none requested) ... No retention period set by us (none requested); data stays until the owner deletes it.",
+   "missing": "What happens to conversations when the owning user is deactivated/removed."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "Out of scope; Personal data",
+   "quote": "grounding answers in Salesforce records ... out of scope ... message text is shown to the owner, stored in S-2, **sent to xAI** for every send (G-7 ...), never logged."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-4, D-2",
+   "quote": "sent with earlier messages as context, bounded by the history window (D-2), oldest dropped first ... the 20 most recent stored messages before the new one are sent as context"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-4, R-5, R-2",
+   "quote": "With 0 stored (new conversation) the request is system + new = 2 entries ... group (a) \u2192 code `VALIDATION_EMPTY` ... 4000 \u00d7 `a` accepted; 4001 \u00d7 `a` rejected"
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-11, AD-10",
+   "quote": "The model, system prompt, timeout ... are read from configuration on every send ... Apex writes one `System.debug` line per failed send ... Event Monitoring or debug-log retention is not assumed.",
+   "missing": "No explicit way to turn the bot off, and no durable place where an administrator can review failed requests."
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-1, NFR-7",
+   "quote": "a validate-only deploy then a real deploy of the whole set reach terminal status `Succeeded` ... a production deploy requires 75% overall",
+   "missing": "How configuration and credential differ between the development org and other environments (sandbox/production)."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "NFR-1, R-13",
+   "quote": "total wait is bounded by Timeout_Ms (default 60000, config max 120000 ...) ... while pending, Send is disabled, a `Grok is thinking` status (role `status`, `aria-live`) is shown"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "NFR-8",
+   "quote": "States designed: empty (heading, one sentence of help, composer), loading (`Grok is thinking` row plus skeleton list), error (inline alert with Retry), saved/disabled composer states"
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "deploys into a Salesforce development org as an additive change: it creates only items whose names start with `GrokBot`/`grokBot` and alters no existing org item."
+  }
+ ]
+}

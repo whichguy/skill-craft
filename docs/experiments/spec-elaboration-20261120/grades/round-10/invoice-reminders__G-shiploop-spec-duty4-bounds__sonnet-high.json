@@ -1,0 +1,142 @@
+{
+ "slot": "invoice-reminders__G-shiploop-spec-duty4-bounds__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3958976,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "the owner defines the reminder schedule as an ordered list of integer day offsets from an invoice's due date (0 = due date, positive = days after, negative = days before)"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "If at that moment the invoice has no outstanding balance, or is void, written off, or paused, nothing is sent ... A partial payment reduces the balance that is shown and does not stop reminders",
+   "missing": "Payment plans are never mentioned, and a disputed invoice stops only if the owner pauses it by hand (R-9). The builder still has to decide whether either one stops the sequence automatically."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "AC-3.3",
+   "quote": "A balance of 100.00 on an invoice of 250.00 (partial payment) shows `100.00 USD`, never 250.00."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Out of scope: ... customer opt-out or unsubscribe handling beyond R-9's owner-side pause.",
+   "missing": "Whether a do-not-contact or unsubscribed flag the host already holds on a customer is honoured, and whether billing notices are exempt from a marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "before any email is attempted the job atomically claims `(invoice, step offset)` in the ledger. Only the claim winner sends ... re-running the job the same day, two overlapping runs, and a crash between claim and recording are all covered"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "the job re-reads the invoice immediately before each send ... the check is per send, not per run, so a payment recorded between the scan and the send stops that send."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "it is retried on each following daily run while it remains the latest eligible step ... For the last step the retry bound is open (G-3)",
+   "missing": "The retry bound for the last step is open (G-3). Escalating repeated failures to a person, by notification or alert, is left open (G-6); failures are only visible in the history."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "NFR-4",
+   "quote": "the mail provider's send quota and rate ... are unknown, so no numeric bound is stated ... if a run stops early at any runtime or provider limit, every unprocessed invoice's due steps stay unrecorded",
+   "missing": "How sends are paced to stay within the provider's rate limit. The spec only covers a run that has already stopped at a limit."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "steps scheduled before `effective_from` are never sent; a newly saved schedule does not mass-mail existing overdue invoices unless the owner sets `effective_from` back (A-3, a deliberate safeguard against an outward burst)."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "the day boundary is local midnight in the business timezone, not UTC.",
+   "missing": "Whether to use the customer's local time, and which sending hours apply: the time of day is left as a deployment setting (A-9). Weekends and holidays are only excluded in the sense that business-day and holiday calendars are out of scope (R-1)."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Out of scope: multi-currency conversion (amounts are shown in the invoice's own currency, unconverted)"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "a missing or syntactically invalid recipient address means no send; the step is recorded `skipped_no_recipient` with no retry for that step (a later step uses the then-current address)."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "each reminder is one email to the invoice's billing contact address ... Boundaries: one invoice per email; one recipient address; no CC or BCC to the owner.",
+   "missing": "Which contact gets the email when a customer has more than one billing contact."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "for any invoice the owner can see each ledger row: step offset, scheduled date, state ... attempt count, last-attempt timestamp, the mail provider's accepted-message identifier when present."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "It states: business name, invoice number, outstanding balance with currency, due date (`YYYY-MM-DD`) ... If the host exposes a payment link for the invoice it is included, otherwise the message omits it.",
+   "missing": "Whether the payment link expires, and how an expired link is handled."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "NFR-3",
+   "quote": "Only the owner role can read history, change the schedule, or pause an invoice."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "NFR-5",
+   "quote": "Rollback: disabling the feature is clearing the schedule (R-1), which stops all sends from the next run",
+   "missing": "A preview or dry run. Manual resend is excluded (R-8, 'no edit or manual resend') and so is customer-level pause (R-9), so there is no per-customer off switch."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-8",
+   "quote": "`unknown` and `failed` rows are distinguishable at a glance and can be listed across invoices.",
+   "missing": "A way to see which reminders the system will send next."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "strictly increasing (so at most one step per invoice per calendar day, which is the only per-day volume bound this feature introduces)",
+   "missing": "An overall cap on sending volume, which is unresolved (NFR-4, G-5), and a limit on how late a missed step may still go out."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "State and data assessment",
+   "quote": "Invoice records (balance, status, due date, contact) | host invoicing system (G-1) | observed only | never written by this feature; reads always fresh"
+  }
+ ]
+}

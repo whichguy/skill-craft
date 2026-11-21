@@ -1,0 +1,28 @@
+covered, by set (judge: claude-opus-5-5)
+round      arm                      driver           X1 /22     X2 /53      X3 /4    all /89
+round-7    K-shiploop-spec-default-bounds sol-medium           14         37          1         55
+round-7    K-shiploop-spec-default-bounds sonnet-high          17         38          1         61
+round-7    M-shiploop-spec-members  sol-medium            8         32          1         45
+round-7    M-shiploop-spec-members  sonnet-high          13         36          0         55
+round-7    P-shiploop-spec          sol-medium            7         32          1         42
+round-7    P-shiploop-spec          sonnet-high          13         36          0         55
+round-8    K-shiploop-spec-default-bounds sol-medium           12         37          2         55
+round-8    K-shiploop-spec-default-bounds sonnet-high          14         36          0         56
+round-8    M-shiploop-spec-members  sol-medium            8         34          1         47
+round-8    M-shiploop-spec-members  sonnet-high          13         33          0         51
+round-8    P-shiploop-spec          sol-medium            8         32          1         47
+round-8    P-shiploop-spec          sonnet-high          12         33          1         53
+covered, by set (judge: gpt-6.2-astra)
+round      arm                      driver           X1 /22     X2 /53      X3 /4    all /89
+round-7    K-shiploop-spec-default-bounds sol-medium           14         30          0         47
+round-7    K-shiploop-spec-default-bounds sonnet-high          16         36          0         58
+round-7    M-shiploop-spec-members  sol-medium            5         31          0         37
+round-7    M-shiploop-spec-members  sonnet-high          11         31          0         46
+round-7    P-shiploop-spec          sol-medium            6         28          1         36
+round-7    P-shiploop-spec          sonnet-high          12         30          0         48
+round-8    K-shiploop-spec-default-bounds sol-medium           11         26          0         41
+round-8    K-shiploop-spec-default-bounds sonnet-high          13         33          0         53
+round-8    M-shiploop-spec-members  sol-medium            9         28          1         41
+round-8    M-shiploop-spec-members  sonnet-high          12         31          0         47
+round-8    P-shiploop-spec          sol-medium            6         25          0         34
+round-8    P-shiploop-spec          sonnet-high          11         30          0         46

@@ -1,0 +1,146 @@
+{
+ "slot": "csv-user-import__P-shiploop-spec__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.40312980000000004,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "A-4 / R-2",
+   "quote": "All-or-nothing: if anything in the file is invalid or conflicts, no user is created and every problem is reported at once. Chosen over per-row partial creation"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "every row is checked, and all problems are returned in one response ... `row_errors` 422 with `total`, `invalid`, `created=0` and one entry per bad row."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "A-5 / R-5",
+   "quote": "an email that already belongs to a user is an error, never an update or skip. ... A row is `duplicate_in_file` when an earlier row has the same email"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "A-3 / R-7",
+   "quote": "The CSV carries no password and no role. Imported users get the same default role and initial state as a user made through single-create. ... a role column is a privilege-escalation path."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "the import is available only to an authenticated user who holds the administrator role at the moment the request is processed.",
+   "missing": "Whether import is a distinct permission from single-user create, i.e. that being able to create one user does not by itself grant bulk import."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "a header row. Header names are trimmed and case-insensitive; exactly `email` and `name`, each once, in any order, and no other column."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "UTF-8 (an optional leading BOM is ignored), comma-delimited, with LF or CRLF line ends, quoted fields per RFC 4180 (commas, doubled quotes and line breaks inside quotes)"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "effects that leave the system ... happen only after the whole import has been durably committed, and never for users of a rejected import. A failure of such an effect does not undo any user"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-3 / G-5",
+   "quote": "at `IMPORT_MAX_BYTES` accepted, one byte over refused; at `IMPORT_MAX_ROWS` accepted, one row over refused.",
+   "missing": "The actual byte and row limit values; G-5 leaves them as configuration with no default."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-3 / FX-8a-8c / AC-3.1",
+   "quote": "FX-8a / 8b / 8c | zero bytes / `email,name\\n` only / ... | `empty_file` / `no_rows` / valid with 1 row"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "The same file submitted twice is not a special case: the second submission finds every email taken."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "A-7 / AD-5",
+   "quote": "The import runs synchronously in one request, bounded by configured row and byte limits (G-5). No numeric bound is invented here; a larger scale would need an asynchronous design",
+   "missing": "No background processing or completion notification is specified; whether large files are supported depends on undecided limits and a deferred async redesign."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "AC-7.2 / Service boundaries",
+   "quote": "exactly one message is queued per created user, none before the commit ... delivery is asynchronous and owned by the existing mechanism",
+   "missing": "Whether hundreds of messages may go out at once and any pacing or throttling of them."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-7 / G-4",
+   "quote": "an imported user is indistinguishable from one made through single-create in role, initial state and effects ... No password is read from or written to the file",
+   "missing": "The actual initial state (active/pending) and first sign-in method; deferred to G-2/G-4."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "The uploaded bytes live only for the request and any temporary copy is removed when the request ends, on success, failure or client disconnect."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "each import attempt by an authenticated user writes one audit record: actor, time, sanitised file name, total rows if known, created count, outcome"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "A-4 / NFR-2",
+   "quote": "a corrected file can be re-uploaded whole ... no durable import record or resume is provided (A-8) because the all-or-nothing rule makes a resume unnecessary.",
+   "missing": "Whether and how a running import can be cancelled."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "NFR-1 / R-9",
+   "quote": "The latency target and the limit values are unresolved (G-5) ... text \"Importing\u2026\" with no invented progress figure",
+   "missing": "A concrete time bound for a maximum-size file and any visible progress beyond a busy indicator."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2 / R-5",
+   "quote": "Preserved: single-user creation behaviour is unchanged by this work. ... Existing users are never changed."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-4 / AC-9.3",
+   "quote": "`value_too_long` (a limit identical to single-create; the field is named) ... the echoed value is rendered as literal text, no script executes",
+   "missing": "Handling of values that become spreadsheet formulas (e.g. leading =, +, -, @) when results are opened in a spreadsheet."
+  }
+ ]
+}

@@ -1,0 +1,143 @@
+{
+ "slot": "csv-user-import__K-shiploop-spec-default-bounds__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.35730799999999996,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "Scope and basis; R-3",
+   "quote": "The product default is a create-only, all-or-nothing batch in the currently authorized user scope."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Within the first failing row-validation stage, report the lowest affected logical row with its reason."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3 Reject duplicate identities",
+   "quote": "A repeated key in the CSV or a key already reserved by the authority at the commit boundary rejects the whole batch. Report the later logical row for a repeat and the matching row for an existing-account conflict"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-2 Validate account fields; R-3 Persist new users",
+   "quote": "Credential, role and scope columns are unknown columns and cause rejection even when blank. ... Raw input cannot assign passwords, privileges, or scope."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The defaults are to require both admin status and existing create authority in the active scope, with fresh permission at commit."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2 Parse file and schema",
+   "quote": "The first record is the header. It contains `email` exactly once and may include `name` exactly once... Reject ... missing or repeated header, unknown column, or a nonblank record with a different field count"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2 Parse file and schema",
+   "quote": "valid UTF-8 CSV with an optional initial UTF-8 BOM, LF or CRLF line endings, and optional final line ending... Support quoted fields, commas and line breaks inside quotes, and doubled quotes"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-3 Domain rules",
+   "quote": "The default is ordinary non-privileged provisioning with no import-specific invitations or credentials... If mandatory provisioning exposes partial accounts or effects that the authority cannot make consistent with the batch promise, record the conflict"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2 Apply file limit / Apply record limit",
+   "quote": "Reject a file of 1,048,577 bytes or more and report the file-size limit. No users are created. ... Reject 1,001 or more data records with a row-limit error."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2 Parse file and schema / Apply record limit",
+   "quote": "Reject an empty or undecodable file... Reject zero data records with a no-users-to-import error... A single valid record is allowed."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-3 Reject duplicate identities",
+   "quote": "Retrying an unchanged committed file yields conflicts with zero extra users."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-4 State, UI, and service contract; Pending and completion",
+   "quote": "After submission, show and announce pending status until there is an authoritative result... No new remote service, webhook or background queue is required by this behavior."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3 Domain rules",
+   "quote": "Confirm the exact uniqueness key and scope, reserved states, ordinary role/status, required provisioning and side effects... The default is ordinary non-privileged provisioning with no import-specific invitations or credentials.",
+   "missing": "Whether ordinary creation sends welcome/invitation mail for each of up to 1,000 users at once, and any pacing or throttling of it."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3 Domain rules; Scope and basis",
+   "quote": "Ordinary user creation remains the authority for the account fields and lifecycle it actually supports... no import-specific invitations or credentials.",
+   "missing": "Whether created users are active or pending, have a password, and how they first sign in."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2 State and data",
+   "quote": "The application holds uploaded bytes and parsed row values only as long as needed for that attempt... The application neither stores a durable upload copy nor includes filenames, raw rows or field values in logs."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-4 Observe owned outcomes safely",
+   "quote": "provides a safe correlation ID, outcome category and created count for known outcomes... Preserve any separately mandated audit obligation as an open compatibility question.",
+   "missing": "An audit record of which actor imported which users and when; the spec defers audit as open."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "Flows and transitions; R-4 End or resume interaction",
+   "quote": "Scheduled processing, subscriptions, automatic retry, and import cancellation are outside the selected interaction... Closing the UI, losing access, or disconnecting does not promise cancellation or rollback."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional: Capacity and compatibility",
+   "quote": "There is no stipulated latency, throughput, concurrency, cost or availability target. Those operating bounds... and tolerable request duration are unresolved.",
+   "missing": "A time bound for a 1 MiB/1,000-row file and any progress beyond a pending indicator."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3 Persist new users; R-3 Resolve simultaneous changes",
+   "quote": "Preserve pre-existing users, their IDs, fields, and access. ... Ordinary user creation competes under the same uniqueness rule."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-2 State and data; R-2 Domain rules",
+   "quote": "There is no saved draft or rejected-row export... identify the actual syntax, length and omitted-value behavior.",
+   "missing": "Handling of formula-like values (e.g. leading =,+,-,@) and a concrete per-field length limit for overlong values."
+  }
+ ]
+}

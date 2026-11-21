@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__M-shiploop-spec-members__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.33301040000000004,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "A-2",
+   "quote": "The import is **all-or-nothing**: if any row is invalid, no user is created and every problem is reported at once."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "every response (any status) is JSON: `{ importId?, status: \"completed\" | \"rejected\", total, created, errors: [ { row, column, code, message } ] }`"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "A row whose email equals an earlier row's in the same file gets `duplicate_in_file` ... A row whose email belongs to an existing user gets `already_exists`. Existing users are never modified."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "role `member` (the product's non-admin default; OG-3)"
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "the endpoint and the page run only for an authenticated user who is an admin at the time of the request (A-1).",
+   "missing": "Whether bulk import is a separate permission from single-user creation, i.e. that the ability is not implied by being able to create one user."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "header lacks `email` or `name` (`missing_column`, `column` names it); an unknown column such as `role` (`unknown_column`); a repeated column (`duplicate_column`); header only (`no_rows`)"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "UTF-8 (a leading BOM is ignored), comma-separated, RFC 4180 quoting (double quote doubles to escape, quoted fields may contain commas), CRLF or LF line ends."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "A-4",
+   "quote": "Nothing is emailed by this feature."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "A file over the size limit gives 413 `file_too_large` ... more than the row maximum gives 422 `too_many_rows`. In both, the whole file is rejected",
+   "missing": "The numeric maximum file size and row count (OG-6 leaves S and L undecided)."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "0-byte file (`empty_file`) ... header only (`no_rows`); R-5.B: a file with one row (`solo@example.com,Solo Sam`) gives `total: 1`, `created: 1`"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "Repeating a successful upload yields 422 with `already_exists` on every row and creates nothing new."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "A-7",
+   "quote": "Processing is synchronous request/response (AD-1). | OG-6 shows volumes that cannot finish within one request.",
+   "missing": "Whether a maximum-size file can finish within one request; no background path or completion notification is defined if it cannot."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "A-4",
+   "quote": "Nothing is emailed by this feature."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "A-4",
+   "quote": "Imported users are created in a `pending` state with no password and cannot sign in until activated by a mechanism outside this spec (OG-4).",
+   "missing": "How a pending user first gets credentials and signs in (OG-4 open)."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "Uploaded file bytes: held in request memory only; never written to disk or the datastore, deleted when the request ends"
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "Import audit record (one per request that passed R-1): `importId`, admin id, UTC timestamp, sanitised original file name ... `total`, `created`, outcome"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "Recovery: nothing to repair after failure; the admin fixes the file and re-uploads.",
+   "missing": "Whether a running import can be cancelled; retry is only a whole-file re-upload."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "NFR-2",
+   "quote": "The bound on response time at L rows **is unresolved** (missing decision: L and an acceptable duration).",
+   "missing": "The time bound itself; progress is only a generic 'Uploading' indicator (R-8 state 3)."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Existing users are never modified.",
+   "missing": "That single-user creation by hand keeps working unchanged."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "NFR-1",
+   "quote": "no cell is evaluated or executed, and stored values are kept verbatim ... Spreadsheet-formula neutralisation matters on any future export and is out of scope here."
+  }
+ ]
+}

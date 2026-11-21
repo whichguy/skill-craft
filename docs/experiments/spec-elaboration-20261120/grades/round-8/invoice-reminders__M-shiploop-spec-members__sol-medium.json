@@ -1,0 +1,142 @@
+{
+ "slot": "invoice-reminders__M-shiploop-spec-members__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3471622,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "for a due date of D, the default opportunity starts at 09:00 UTC on D+1 and ends at 00:00 UTC on D+2 ... This is one reminder per invoice, with no repeat series."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "zero or negative balance, fully paid, unissued/draft, void, canceled, deleted, written-off/uncollectible, or collection held (including disputed invoices on hold) produce zero releases ... Scope excludes installments with separate due schedules, escalation, late fees and payment promises.",
+   "missing": "How an invoice on a payment plan or with a payment promise is treated: payment plans are only excluded from scope, with no stated suppression behaviour."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "It identifies the sender, invoice reference, due date, and remaining balance and currency, using the values authorized at release."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "missing, invalid, ambiguous, cross-account, suppressed or revoked destinations ... prevent submission ... Billing and delivery owners must identify the actual authorized sender, address selection and suppression rules",
+   "missing": "Which customer states count as suppression (do-not-contact, paused, unsubscribed), and whether a billing reminder is exempt from a marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "overlapping evaluations, rediscovery after restart and duplicated results converge on one logical reminder and at most one accepted handoff ... a lost acknowledgment alone never permits retry."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "release uses current policy, authoritative invoice revision ... a payment to zero, a hold, a due-date change out of window ... effective before release takes precedence over queued work."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "a definitively unaccepted transient first attempt gets one automatic retry ... if truth cannot be established, keep the hold and surface it for authorized operational investigation.",
+   "missing": "Who is notified or escalated to when sends fail terminally or stay unresolved, and the response window; the spec leaves the owner open."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Map ... submissions and result lookups to delivery quotas ... No numeric capacity or service-level promise is set here.",
+   "missing": "The provider's rate limit and how a large batch is paced or throttled within it."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A background evaluation can release during that window if the start is at or after the current activation instant ... there is no catch-up if the activation is after opening"
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "starts at 09:00 UTC on D+1 ... Confirm how due timestamps, business time zones and any existing grace policy map to the provisional UTC rule.",
+   "missing": "Use of the customer's local time, and handling of business hours, weekends and holidays."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "remaining balance and currency ... Customer locale and custom copy are outside the default policy.",
+   "missing": "How the amount and currency are formatted for the recipient (symbol, decimals, locale conventions)."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "missing, invalid, ambiguous, cross-account, suppressed or revoked destinations, or unavailable required message data, prevent submission and produce an operator-visible reason."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "exactly one designated destination qualifies ... The reminder does not add CC, BCC, alternate recipients"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "an authorized operator can distinguish ... pending handoff, accepted by delivery, retry pending, failed/expired, and outcome unknown. Show the attempt time and a safe invoice/attempt reference",
+   "missing": "Whether the record shows what was sent and whether it appears on the invoice itself; history omits bodies and the status surface is left open."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "invoice reference, due date, and remaining balance and currency ... Include an approved way for the recipient to resolve the invoice, using the existing payment instructions or billing contact route once verified.",
+   "missing": "Whether a payment link is included and whether it expires."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "current, account-scoped management permission governs policy reads and changes ... The background actor records the intent before any external submission and is the only authorized release actor."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "an actor currently authorized to manage reminders for the target billing account can enable the default policy ... a confirmed disable prevents any new release for that account",
+   "missing": "A global off switch, preview or dry-run of reminders, and manual resend."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "an authorized operator can distinguish configuration off, ineligible or suppressed (with reason), pending handoff, accepted by delivery, retry pending, failed/expired, and outcome unknown.",
+   "missing": "A view of upcoming reminders, meaning what the system will send next and when."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Failure \u2014 evaluations outside the window produce no release. Boundary \u2014 09:00 is included, midnight is excluded ... there is no catch-up"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "Scope and basis",
+   "quote": "This specification does not change invoice balances, payment processing, contact maintenance, or collection policy."
+  }
+ ]
+}

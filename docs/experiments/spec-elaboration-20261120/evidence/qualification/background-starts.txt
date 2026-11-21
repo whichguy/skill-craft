@@ -1,0 +1,14 @@
+A line qualcheck.py gained after the round's own checkout had been removed, so the three committed outputs beside this
+file could not be regenerated with it: "C2 calls that start a shell job in the background, heredoc bodies left out
+(event, records $!)". Printed here for each run from the script's own patterns (builder_calls, HEREDOC, SHELL_JOB).
+It corrects a count in journal section 34: the Sonnet run has two background starts that record no id, not one.
+
+ticket-assignment-sol-high (this round)
+   []
+   starts: 0 | recording an id: 0 | not: 0
+shared-expenses-sonnet-high (this round)
+   [(1435, False), (1483, True), (1528, True), (1604, False), (1871, True)]
+   starts: 5 | recording an id: 3 | not: 2
+shared-expenses-sonnet-high (previous round, the text without the rule)
+   [(820, False), (1055, False), (1167, False), (1278, False), (1385, False), (1402, True)]
+   starts: 6 | recording an id: 1 | not: 5

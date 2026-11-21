@@ -1,0 +1,186 @@
+{
+ "slot": "grokbot-salesforce__P-shiploop-spec__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.5094154,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "AD-1",
+   "quote": "Expose a Lightning Web Component (LWC) through a Salesforce custom tab labeled Grok Bot. Put it in an existing suitable Lightning app's navigation"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "AD-1",
+   "quote": "Set sharing explicitly and perform no business-record queries or writes."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-09",
+   "quote": "The bot does not automatically add Salesforce user identifiers, CRM fields, or secrets to the request."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "AD-1",
+   "quote": "Keep the tab access, Apex class permission and external credential principal mapping in a dedicated least-privilege permission set."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-08",
+   "quote": "No user sees another user's draft, result or operation status."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "Service boundaries",
+   "quote": "Inapplicable service concerns include cache invalidation, delta cursors, subscriptions, durable queues and background job recovery for chat, since each send is a bounded request/response with a transient view.",
+   "missing": "The callout-after-DML and no-callout-from-trigger constraints are never stated, and the design is synchronous, not asynchronous (Queueable/future/batch)."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "The underlying secret is entered only via approved administrative credential setup, stored in protected server-side custody... The browser and product source, logs and handoff never contain credential values."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Non-functional requirements (latency and capacity)",
+   "quote": "Salesforce documents a 120-second cumulative Apex callout ceiling and a 6 MB synchronous callout request/response ceiling with heap implications.",
+   "missing": "Numbers for callouts per transaction, heap size and CPU time."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "AD-2",
+   "quote": "Use controlled fixtures that vary model output and failure shape",
+   "missing": "That Apex tests cannot make real callouts and need a mock callout implementation (HttpCalloutMock)."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "AD-2",
+   "quote": "Use an enhanced Salesforce Named Credential linked to a Custom External Credential with a named principal.",
+   "missing": "That the api.x.ai host must be registered as the Named Credential URL or Remote Site, or the callout is refused."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "AD-3",
+   "quote": "associate each promise with the active view and attempt so late results cannot rehydrate conversation state",
+   "missing": "The reply comes back inline from an imperative Apex promise. No async notification mechanism (platform event, polled status, LMS) is given."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-07",
+   "quote": "Retry resubmits that prompt once with the same completed context and reuses its visible message. ... No automatic retry and no fabricated reply."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3 Open gap",
+   "quote": "The integration owner must establish the supported attempt deadline and overload behavior on the chosen model and target runtime before live readiness.",
+   "missing": "Concrete concurrent-request limits and what the user sees when a request cannot be accepted because of capacity."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-07",
+   "quote": "A timeout, network loss, throttle, upstream service failure or unusable response shows a persistent, sanitized error with Retry available. Invalid or missing configuration shows a contact-admin action.",
+   "missing": "Timeout and 5xx get the same user outcome. A generic 4xx refusal (e.g. 400/content rejection) is not separately specified."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-07",
+   "quote": "A timeout, network loss, throttle... shows a persistent, sanitized error with Retry available... No automatic retry"
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-03",
+   "quote": "A failed, nonterminal, incomplete or empty upstream response produces no assistant message and follows R-3."
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "Prompt and reply text are displayed only to the current user and held in active view memory plus request processing. The bot neither stores them durably"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-09",
+   "quote": "The provider receives only the submitted text and permitted in-view context plus model/request controls... instructs them to use synthetic, non-sensitive content."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "C-04",
+   "quote": "If the context exceeds the confirmed budget, decline the send before dispatch and offer Clear conversation to start fresh.",
+   "missing": "The size of the context budget. It is left open."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "C-05",
+   "quote": "Empty or whitespace-only text shows a validation cue and triggers no outbound call... Numeric limits remain open below.",
+   "missing": "The maximum accepted question/answer length."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "C-10",
+   "quote": "An authorized operator can distinguish a successful completion, local rejection, access/configuration failure, timeout, throttling and upstream failure",
+   "missing": "An explicit admin control to turn the bot off, and how an admin changes the model (the model is only server-selected deployable config)."
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-1 Open gaps",
+   "quote": "Org creation, production deployment and general staff access are outside this request.",
+   "missing": "How configuration and credentials differ per environment, and the production code-coverage requirement."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "Non-functional requirements (latency and capacity)",
+   "quote": "Pending always reaches reply or actionable failure within the confirmed request deadline.",
+   "missing": "The deadline/latency value itself. It is left open."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "Non-functional requirements (interface)",
+   "quote": "Both themes share consistent type and spacing scales, semantic palettes, one icon set and designed empty, pending, error and reply states."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "No domain records, object permissions, field permissions or sharing rules are changed."
+  }
+ ]
+}

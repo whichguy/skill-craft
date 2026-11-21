@@ -1,0 +1,143 @@
+{
+ "slot": "gym-waitlist__P-shiploop-spec__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "PD-1",
+   "quote": "Promotion is **automatic**: when a place frees, the first eligible waiting member is booked without a further confirmation step."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "first accepted, first served \u2026 Two joins arriving together get distinct sequences, decided by the order the service commits them. \u2026 **Left out:** priority/tier ordering, manual reordering by staff."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "**Left out (domain rules the request does not state):** waitlisting for several overlapping classes",
+   "missing": "There is no rule for what happens to the other overlapping entry when one class promotes the member."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "a \"decline this offer\" step (G-4); penalties or fees for late cancellation (existing rule, preserved, unknown).",
+   "missing": "Automatic promotion has no decline step. The spec leaves open whether missing or cancelling an automatic booking counts under the existing penalty policy."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "T-5 (R-5)",
+   "quote": "cancel(B) | **atomic:** B cancelled; first eligible waiting entry \u2192 promoted + booking created"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "informed they are now booked, class name and start \u2026 the in-app status changes \u2026 an outbound channel (email/push/SMS), the same message goes through it \u2026 notification delivery failure never reverses the promotion \u2026 the failure is logged"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-5, AC-5.3",
+   "quote": "ana and ben cancel at the same time with W=[cy] \u2026 after both cancels cy is promoted exactly once, booked {cy}, count 1, one place free, W empty, I-1\u2026I-5 hold"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-9, I-2",
+   "quote": "(book, cancel, join, leave, promote, capacity change, expiry) are serialised so that I-1\u2026I-5 hold after each commit \u2026 a member has at most one of {booked booking, waiting entry} per class"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "G-3",
+   "quote": "Does promotion charge the member? | PD-7: reuse ordinary booking rules; skip ineligible",
+   "missing": "The spec leaves the timing of a charge open and does not say whether a failed charge skips the waiter, triggers a retry, or aborts the transaction."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "PD-4",
+   "quote": "The waitlist has **no product-imposed length cap**."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "G-5",
+   "quote": "latest moment before start at which promotion is allowed (e.g. N minutes before) | Until start (PD-5)",
+   "missing": "The interim rule allows promotion right up to class start. The lead time for an earlier cutoff is unresolved."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "the first (C\u2032\u2212booked) eligible waiting members are promoted, one place each, in order. \u2026 Lowering capacity below the current booked count keeps the existing rule of the app (unknown); it never creates or removes waiting entries."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-8, AC-8.3",
+   "quote": "staff cancels class with W=[cy,dee] \u2192 both `closed`, both informed"
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-11, Domain model",
+   "quote": "waitlist entries (member id, class id, sequence, status, timestamps) \u2026 monotonic per class, assigned at accept time \u2026 1 + number of `waiting` entries with a smaller sequence. Derived, never stored independently"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-8, R-11",
+   "quote": "at the class start time every `waiting` entry becomes `expired` \u2026 Terminal entries are retained only for as long as and in the same manner as the existing app retains booking history for that class; no longer."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "a member can read only their own waiting entry (status, position) and the **number** of people waiting on a class. They cannot read another member's identity, sequence or status."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "G-7, R-3",
+   "quote": "Do staff need a waitlist roster or removal capability? | Not provided \u2026 **Left out:** priority/tier ordering, manual reordering by staff.",
+   "missing": "The spec leaves staff roster access and removal open. It gives staff no action for manual promotion or view identifying who was promoted and when."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "AD-2 (R-5)",
+   "quote": "promotion happens in the same request/transaction as the event that frees a place"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2, R-16",
+   "quote": "otherwise the unchanged booking action is shown. Booking a class that is not full never creates a waiting entry. \u2026 additive data change only, deployable and roll-back-able without losing bookings"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-1, State \u00d7 event audit",
+   "quote": "an authenticated member viewing a *full*, *scheduled*, *not-yet-started* class, in which they hold neither a booking nor a waiting entry, can join its waitlist. \u2026 *migration* n/a (new records only, no existing data changed"
+  }
+ ]
+}

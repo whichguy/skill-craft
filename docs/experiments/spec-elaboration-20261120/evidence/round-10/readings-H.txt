@@ -1,0 +1,30 @@
+H-shiploop-spec-duty4-no-open against P-shiploop-spec, same-round pairs in round-9, round-10
+bands (the largest move between two draws of one arm, fixed before these rounds): {'N1': 2, 'O1': 2, 'X2': 7, 'X3': 2, 'all': 7}
+
+== sonnet-high
+   the target: limits that must exist (6 items, band 2): opus: 4 vs 3 (+1), 4 vs 3 (+1), mean +1.0; astra: 4 vs 4 (+0), 4 vs 2 (+2), mean +1.0  => interim
+   the other needed items (53 items, band 7): opus: 44 vs 36 (+8), 38 vs 38 (+0), mean +4.0; astra: 38 vs 32 (+6), 34 vs 35 (-1), mean +2.5  => interim
+      item by item, opus: H covers 11 item-cells P does not, and fails to cover 3 that P does
+      item by item, astra: H covers 12 item-cells P does not, and fails to cover 7 that P does
+   capability not asked for (4 items, band 2): opus: 3 vs 0 (+3), 0 vs 1 (-1), mean +1.0; astra: 0 vs 0 (+0), 0 vs 0 (+0), mean +0.0  => nothing shown
+   limits that need not exist (6 items, band 2): opus: 4 vs 5 (-1), 4 vs 4 (+0), mean -0.5; astra: 4 vs 5 (-1), 4 vs 3 (+1), mean +0.0  => nothing shown
+   the whole checklist (89 items, band 7): opus: 69 vs 56 (+13), 57 vs 58 (-1), mean +6.0; astra: 60 vs 54 (+6), 52 vs 50 (+2), mean +4.0  => interim
+   R19 the 24 items the released stage covered in neither earlier draw: opus: 10 vs 4, 3 vs 3; astra: 5 vs 5, 4 vs 2
+   words: 35104 vs 29357, 28597 vs 35963  mean ratio 1.00
+   requirements: 49 vs 43, 46 vs 53  mean ratio 1.00
+   output_tokens: 225578 vs 156581, 167148 vs 181056  mean ratio 1.18
+
+== sol-medium
+   the target: limits that must exist (6 items, band 2): opus: 4 vs 1 (+3), 4 vs 3 (+1), mean +2.0; astra: 5 vs 1 (+4), 5 vs 3 (+2), mean +3.0  => shown
+   the other needed items (53 items, band 7): opus: 29 vs 33 (-4), 38 vs 33 (+5), mean +0.5; astra: 28 vs 28 (+0), 30 vs 28 (+2), mean +1.0  => nothing shown
+      item by item, opus: H covers 9 item-cells P does not, and fails to cover 8 that P does
+      item by item, astra: H covers 10 item-cells P does not, and fails to cover 8 that P does
+   capability not asked for (4 items, band 2): opus: 0 vs 1 (-1), 0 vs 2 (-2), mean -1.5; astra: 0 vs 0 (+0), 0 vs 0 (+0), mean +0.0  => nothing shown
+   limits that need not exist (6 items, band 2): opus: 2 vs 0 (+2), 2 vs 0 (+2), mean +2.0; astra: 2 vs 0 (+2), 0 vs 1 (-1), mean +0.5  => interim
+   the whole checklist (89 items, band 7): opus: 43 vs 45 (-2), 54 vs 49 (+5), mean +1.5; astra: 41 vs 37 (+4), 40 vs 39 (+1), mean +2.5  => nothing shown
+   R19 the 42 items the released stage covered in neither earlier draw: opus: 8 vs 7, 9 vs 7; astra: 10 vs 5, 7 vs 9
+   words: 21843 vs 20255, 23124 vs 24203  mean ratio 1.02
+   requirements: 16 vs 17, 16 vs 17  mean ratio 0.94
+   output_tokens: 53248 vs 40288, 56840 vs 50234  mean ratio 1.23
+
+DECISION RULE: the target is shown on a driver and no harm reading fails -> it goes forward.

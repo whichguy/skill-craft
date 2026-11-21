@@ -14,7 +14,10 @@ user's own skill folders (Codex lists those to every session: 6c9055f1672a61ec43
 
 Then, per request, the registered readings: high against the medium arm S runs at 15%, and the counts.
 
-Usage: python3 -I effort_report.py BASE.json NEW.json [MODEL]
+With `-` for BASE.json only NEW.json is read: the paired redo, where medium and high started together and the medium
+runs carry no arm letter. Then the medium cell is the medium runs of NEW.json.
+
+Usage: python3 -I effort_report.py BASE.json|- NEW.json [MODEL]
 """
 import json
 import pathlib
@@ -102,6 +105,8 @@ def shown(value, digits=1):
 def main(base_path, new_path, model="gpt-6.2-sol"):
     rows = []
     for path in (base_path, new_path):
+        if path == "-":
+            continue
         for run in json.loads(pathlib.Path(path).read_text()):
             name = pathlib.Path(run["folder"] or "").name
             if run.get("model") == model and not run.get("seeded") and not name.startswith("rehearsal"):
@@ -122,7 +127,9 @@ def main(base_path, new_path, model="gpt-6.2-sol"):
 
     print("\n== the registered readings, by request ==")
     for case in sorted({r["case"] for r in rows}):
-        medium = [r for r in rows if r["case"] == case and r["effort"] == "medium" and r["arm"] == "S"]
+        base_arm = "-" if base_path == "-" else "S"
+        medium = [r for r in rows if r["case"] == case and r["effort"] == "medium" and r["arm"] == base_arm and r["done"]
+                  and (base_arm == "S" or r["option"] == "stage")]
         medium_all = [r for r in rows if r["case"] == case and r["effort"] == "medium"]
         high = [r for r in rows if r["case"] == case and r["effort"] == "high"]
         if not high:
@@ -131,9 +138,10 @@ def main(base_path, new_path, model="gpt-6.2-sol"):
         unfinished = [r["name"] for r in high if not r["done"]]
         if unfinished:
             print(f"  not finished when this was made: {', '.join(unfinished)}")
-        apart = [r["name"] for r in high if r["option"] != "stage"]
+        apart = [r for r in high + (medium_all if base_path == "-" else []) if r["option"] != "stage"]
         if apart:
-            print(f"  recorded an option other than stage by itself, reported apart: {', '.join(apart)}")
+            print("  recorded an option other than stage by itself, reported apart: "
+                  + ", ".join(f"{r['name']} ({r['effort']}, {shown(r['minutes'])} min)" for r in apart))
         cell = [r for r in high if r["done"] and r["option"] == "stage"]
         for key, label in (("minutes", "start to end (the registered measure)"), ("planned", "to the first step plan"),
                            ("system_test", "to the first entry into system-test")):
@@ -144,7 +152,7 @@ def main(base_path, new_path, model="gpt-6.2-sol"):
             change = statistics.mean(b) / statistics.mean(a) - 1
             word = "high is slower" if change >= 0.15 else "high is faster" if change <= -0.15 else "no readable difference"
             resumed = [r["name"] for r in medium + cell if r["starts"] > 1]
-            print(f"  minutes {label}: medium S {', '.join(shown(v) for v in a)} (mean {statistics.mean(a):.1f}); high "
+            print(f"  minutes {label}: medium {'S ' if base_arm == 'S' else ''}{', '.join(shown(v) for v in a)} (mean {statistics.mean(a):.1f}); high "
                   f"{', '.join(shown(v) for v in b)} (mean {statistics.mean(b):.1f}); change {change:+.1%}: {word}"
                   + (f"; resumed runs in this cell: {', '.join(resumed)}" if resumed and key == "minutes" else ""))
         print(f"  held-out checks: medium S {[f'{sum(r["checks"])}/{len(r["checks"])}' for r in medium]}, medium L "

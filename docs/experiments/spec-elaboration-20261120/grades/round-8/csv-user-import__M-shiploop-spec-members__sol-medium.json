@@ -1,0 +1,146 @@
+{
+ "slot": "csv-user-import__M-shiploop-spec-members__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.37207320000000005,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Rejecting a batch on any invalid or conflicting row is a product default that gives the admin a clear correction path and avoids partial imports."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2 / Record validation",
+   "quote": "Any record with the wrong number of fields, missing/blank email, or invalid value rejects the whole attempt. Report each offending logical record and an actionable reason."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3 / Conflicts",
+   "quote": "Any identity repeated in the CSV or already reserved by the authoritative create contract rejects the entire batch. Report the affected row numbers and a conflict reason... Report every occurrence of an in-file repeat."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-3 State and open prerequisites; R-2 / File profile",
+   "quote": "Imports do not assign elevated roles, set passwords, update or merge existing users... exactly one decoded field, email... extra header columns... reject the file"
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1 / Access",
+   "quote": "An admin with current user-create authority in the active user-management scope can open Import users and submit one selected CSV there.",
+   "missing": "Import is gated on admin status plus ordinary create rights; whether a distinct import permission is required beyond single-user create authority is not decided."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2 / File profile",
+   "quote": "The first nonempty logical record is the header, with exactly one decoded field, email... missing or different header, extra header columns, or zero data records reject the file with an actionable reason and zero writes."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2 / File profile",
+   "quote": "Accept UTF-8 comma-separated data, with optional leading UTF-8 BOM, LF or CRLF record separators... Separators inside quoted fields remain field content."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-3 State and open prerequisites",
+   "quote": "Any definite failure leaves the batch with zero user records and zero import-caused creation side effects."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2 / Admission limits",
+   "quote": "Exceeding either bound rejects the attempt with the applicable limit and zero writes.",
+   "missing": "The actual byte and data-record maxima are left open for the runtime owner."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2 / Admission limits; R-3 / Creation; File and rows case",
+   "quote": "At zero data records the file is rejected even when its byte length is within the limit... One data record is allowed."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-3 / Conflicts",
+   "quote": "A deliberate fresh resubmission after a successful import is evaluated against current identities."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-4 / Outcome; R-4 State and open prerequisites",
+   "quote": "Closing the view after submission does not cancel an attempt the authority already accepted... No cross-admin sharing, history screen, background notification or durable storage of the raw upload is in scope.",
+   "missing": "Whether large files are processed asynchronously is not decided (no background processing model selected); completion is learnable only in the open view via Check outcome."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3 State and open prerequisites",
+   "quote": "whether creating a record has required provisioning or notification side effects... Imports do not... introduce a separate invitation flow.",
+   "missing": "Whether mail is sent per created user and any pacing/throttling for a large batch is not stated."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3 State and open prerequisites",
+   "quote": "After commit all targets exist in the ordinary approved initial state... Imports do not assign elevated roles, set passwords",
+   "missing": "Active vs pending status and how a created user first signs in are left to an unidentified ordinary default."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2 State and open prerequisites; NFR Privacy",
+   "quote": "The authority may read the bytes only for this operation, and discards them and parsed input when processing reaches a terminal outcome... Leave no durable raw import copy."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "Service boundary contracts",
+   "quote": "Reuse normal authentication and user-creation audit coverage where it exists... check whether a mandatory audit policy conditions writes",
+   "missing": "Whether an audit record of who imported what and when is kept, and its contents, is left to existing coverage and open policy."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-4 State and open prerequisites; R-4 / Recovery",
+   "quote": "No end-user cancellation or rollback is promised after submission... After a definite failure the admin may clear, replace or intentionally resubmit."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "NFR Capacity and timeliness; UI premises",
+   "quote": "No numerical targets or platform capabilities are evidenced... Progress is indeterminate unless trustworthy progress data is available.",
+   "missing": "No time bound for a maximum-size file; progress is only an indeterminate in-progress state."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3; Service boundary contracts",
+   "quote": "Preserve canonical identity, normal allowed/default account state, and all pre-existing records... Imports do not... update or merge existing users... Preserve unrelated users/configuration."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-2 / Record validation; R-2 State and open prerequisites",
+   "quote": "apply the ordinary email and user-create input rules... Do not expose raw values in row diagnostics... downloadable error files... are outside scope.",
+   "missing": "No explicit handling of spreadsheet-formula values or a maximum field length; overlong values defer to unspecified ordinary rules."
+  }
+ ]
+}

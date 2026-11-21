@@ -1,0 +1,146 @@
+{
+ "slot": "invoice-reminders__P-shiploop-spec__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "C-1",
+   "quote": "Actual authority and activation path, scope of enablement, cadence and repeat count, local time and timezone rules, backlog on first enablement, and treatment of missed occurrences after downtime.",
+   "missing": "The overdue-only rule is proposed. The reminder count, due-date offsets and final decision on pre-due sends remain open."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C-3, C-4",
+   "quote": "Zero balance, fully paid, draft, void, or canceled invoices and opportunities before their scheduled instant produce zero dispatch attempts.",
+   "missing": "Part-paid invoices can continue on the remaining balance. The spec leaves the effect of disputes and credit adjustments open and gives no stop rule for payment plans."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C-4",
+   "quote": "Recomputed result is one submission to `billing@example.test` for `INV-101`, showing USD 60.00, the original due date and the approved instruction. A stale USD 100.00 notice fails the check."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-5",
+   "quote": "Missing, invalid, ambiguous or revoked destination, or inability to produce a valid notice, yields no submission and a scoped reason.",
+   "missing": "The spec does not say whether a customer-level do-not-contact flag, pause or unsubscribe revokes the billing destination, or whether billing notices are exempt from a marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-7, C-8",
+   "quote": "For one billing scope, invoice and logical scheduled occurrence, concurrent or repeated processing shares one reminder outcome"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C-4",
+   "quote": "Dispatch authorization uses the current eligibility, active policy, recipient and message fields at the final authorization point before submission"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "C-8",
+   "quote": "Definitive permanent rejection, retry exhaustion or policy expiry stops retries with a reason. An uncertain handoff is held for reconciliation, with no blind resubmission.",
+   "missing": "For a provider outage, the retry intervals, attempt limit and expiry are open. There is no rule for when or how repeated failure alerts a person."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Non-functional requirements, Operating limits",
+   "quote": "Work remains recoverable and excess work is deferred without bypassing eligibility or causing a duplicate. Verify under the actual runtime's quota and representative volume.",
+   "missing": "The provider's quota and time window, and the rule for releasing deferred invoices at a rate within that quota, remain unspecified."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C-2 (R-1, Rules left open)",
+   "quote": "Proposed default is explicit activation per billing scope, with no historical catch-up on initial enablement until approved."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "C-1 (R-1, Rules left open)",
+   "quote": "local time and timezone rules",
+   "missing": "The spec does not select the customer's time zone, define permitted sending hours, or say when to send a reminder that falls on a weekend or holiday."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-5",
+   "quote": "gives current outstanding amount and currency and due date",
+   "missing": "The recipient-facing format is undecided, including how to display the currency and which locale and decimal precision to use for the amount."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-5, C-9",
+   "quote": "Missing, invalid, ambiguous or revoked destination, or inability to produce a valid notice, yields no submission and a scoped reason. \u2026 A post-acceptance bounce is recorded against that attempt with no automatic resend in the proposed policy."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-5",
+   "quote": "Use the current authorized billing destination for the invoice.",
+   "missing": "An ambiguous destination suppresses sending, but contact selection is open. The spec does not say which contact takes precedence when several are authorized."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-7, C-9",
+   "quote": "Scope, invoice ID and logical occurrence identify one reminder. The reminder processor owns its durable outcome for as long as an old occurrence may be retried or replayed.",
+   "missing": "Outcomes have timestamps and scoped operations read-back. The spec does not define a history on the invoice showing what each notice contained."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-5",
+   "quote": "The notice identifies the sender and invoice reference, gives current outstanding amount and currency and due date, and explains how to resolve the invoice using an approved billing route or instruction",
+   "missing": "A contact instruction can satisfy the spec. It leaves the actual payment route and the expiration rule for any payment link undecided."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "C-2",
+   "quote": "Operations apply a policy only through existing authorized billing controls.",
+   "missing": "The specific authority for schedule changes remains open, as do the availability and permissions for manually sending or stopping an individual reminder."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-2",
+   "quote": "A disable committed before dispatch authorization suppresses pending work.",
+   "missing": "The spec leaves the scope of enablement open. It does not define separate global and customer switches, a preview or dry run, or manual resending."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-9",
+   "quote": "Authorized billing operations can retrieve a scoped outcome and reason for suppression, acceptance, reported delivery/failure, retry or unresolved handoff.",
+   "missing": "Operations can inspect failures, but the spec gives no way to see which reminder is scheduled next or when it is due."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements, Operating limits",
+   "quote": "Billing operations and integration owners must supply expected volume, dispatch lag target, service quotas, cost limits and retry/replay bounds before production capacity and timing can be accepted. No numeric target is established here.",
+   "missing": "Neither a sending-volume cap over a defined interval nor a maximum allowed delay after a reminder is due is specified."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-3 (R-2 and billing service boundary)",
+   "quote": "reminders perform no billing writes."
+  }
+ ]
+}

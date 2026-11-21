@@ -1,0 +1,146 @@
+{
+ "slot": "invoice-reminders__P-shiploop-spec__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Proposed policy is one opportunity per invoice, starting when the invoice is overdue in the billing account's time zone, including older eligible invoices when enabled."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "A partially paid invoice qualifies for its remaining balance. | Suppress fully paid, zero-balance, draft, void, canceled, disputed or held invoices on the proposed policy.",
+   "missing": "Whether a credit that leaves a positive balance or an active payment plan stops reminders."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "The proposed email identifies the biller and invoice, gives the remaining amount and currency and due date, and points to the existing approved way to view or pay the invoice."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Confirm the real source and supported state mappings, including partial payments, credits, disputes and holds, due date changes, deletion, reopen and legacy invoices, and recipient preference or consent.",
+   "missing": "Which customer contact restrictions suppress reminders and whether billing notices are exempt from a marketing unsubscribe."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "gives only one current attempt authority to hand off. Repeated triggers find the same opportunity. **T-7** records acceptance as closed to sends."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Revalidate immediately before handoff | An eligible work item uses current policy, delegation, invoice, and recipient facts at the handoff decision."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Permanent failure or exhausted/expired work ends automatic attempts with an operator-visible reason.",
+   "missing": "How often and how many times to retry, how to catch up after an outage, and when and how to notify a person of persistent failures."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "Non-functional requirements, Load, freshness and quota compliance (R-1, R-2, R-4)",
+   "quote": "For enabled accounts, including simultaneous due work or backlog, respect verified platform limits. With a rate limit or quota exhaustion, defer eligible work while the policy permits, expose the delay/failure, and resume without duplicates."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "including older eligible invoices when enabled. Confirm backlog treatment",
+   "missing": "How to stagger reminders for already-overdue invoices at activation so they do not all go out at once."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "starting when the invoice is overdue in the billing account's time zone, including older eligible invoices when enabled. Confirm backlog treatment, schedule precision, time zone source, holidays or quiet hours if applicable",
+   "missing": "Whether to use the customer's local time when it differs from the billing account's, which business hours permit sends, and how to handle weekends and holidays."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "gives the remaining amount and currency and due date",
+   "missing": "Which recipient locale and currency conventions determine the displayed amount, including precision, separators and currency symbol or code."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Missing recipient or required content, unauthorized sender, or invalid payment destination blocks handoff and records a safe reason. No fallback address is inferred.",
+   "missing": "How to handle an invalid address and what action follows a bounce beyond reporting the outcome."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "One eligible opportunity produces a reminder addressed to the current authorized billing recipient.",
+   "missing": "Which contact receives the reminder when several billing contacts are authorized."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "Keep only scoped identifiers, revisions/times, recovery references, outcomes and safe reason codes needed for operation, deduplication and authorized evidence.",
+   "missing": "How a reader viewing an invoice can see which reminder was sent at each step, what it contained and when it went out."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "The proposed email identifies the biller and invoice, gives the remaining amount and currency and due date, and points to the existing approved way to view or pay the invoice.",
+   "missing": "Whether the linked destination expires and, if so, when."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "An actor with current billing configuration authority can activate or update a valid policy for their account.",
+   "missing": "Whether anyone may manually send or stop an individual reminder and which permissions those actions require."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "A committed disable prevents further handoffs for the account until re-enabled under a valid policy.",
+   "missing": "Whether reminders can also be disabled for an individual customer, previewed or dry-run, and resent manually."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "Within their current scope, authorized billing operators can distinguish pending, skipped/suppressed, retryable, failed, unknown, and provider-confirmed outcomes and correlate them to the affected opportunity.",
+   "missing": "How an operator can identify which reminder is scheduled to go out next among upcoming sends."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Retry intervals/limits, maximum sending age, outage catch-up policy, how long unknowns remain actionable and how correction or invoice reissue affects identity need billing and operations decisions.",
+   "missing": "What maximum sending age or batch volume the system enforces."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Preserve existing invoice and payment flows by requiring a read-only reminder integration with those records."
+  }
+ ]
+}

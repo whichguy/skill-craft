@@ -1,0 +1,142 @@
+{
+ "slot": "invoice-reminders__K-shiploop-spec-default-bounds__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1, A-4",
+   "quote": "Default schedule: offsets **-3, 0, +7, +14, +30** days relative to the invoice due date (negative = before, 0 = on the due date)."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-5, R-2",
+   "quote": "Marking the invoice paid or void, or its balance reaching 0.00, stops all further reminders \u2026 Partially paid invoices are eligible and the reminder states the remaining balance.",
+   "missing": "Whether a credit, an active dispute, or a payment plan stops reminders while the invoice is still open with a positive balance."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Partially paid invoices are eligible and the reminder states the remaining balance."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-2 (scope exclusions)",
+   "quote": "per-invoice pause or customer opt-out (G-2)",
+   "missing": "Whether existing customer do-not-contact, pause, and unsubscribe flags suppress billing reminders, including whether billing notices are exempt from a marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Each `(invoice, offset)` is claimed atomically **before** sending so that two overlapping sweeps send one email. \u2026 one duplicate is possible on recovery unless the provider supports an idempotency key",
+   "missing": "How to prevent a second send after a restart between provider acceptance and recording success."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "Eligibility and the email's balance and due date are read at send time (R-2). \u2026 the status read at the moment of the claim decides"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-4, R-9",
+   "quote": "at most 3 (A-7), each at least 60 minutes after the last, never into the next account-local date \u2026 dashboards, paging and alert routing are not requested",
+   "missing": "Who receives a persistent delivery failure and how it reaches them when retries run out."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-11",
+   "quote": "a sweep processes invoices in bounded batches rather than holding all invoices in memory, and when the provider throttles, the R-4 transient-retry rules apply",
+   "missing": "What provider quota applies and how quickly to submit a large batch to stay within it."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "its step date is **on or after** the setting's `effective_from` (R-1; a save never fires reminders for dates before it)."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "the step becomes **due** at 09:00 on that date in the account time zone \u2026 business-day or holiday calendars",
+   "missing": "The account clock and calendar-day schedule are specified. A recipient-local business-hours window, including a closing time for catch-up sends and retries, is missing."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-4, A-11",
+   "quote": "money as ISO currency code plus amount, `USD 1,000.00`."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-4, G-3 (service boundaries)",
+   "quote": "permanent (provider rejects the address), no recipient (billing email missing/empty)}: transient retries; permanent fails at once with no retry; no recipient records `skipped-no-recipient` \u2026 bounces not consumed (G-3)"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-4, A-2",
+   "quote": "A reminder is one **email** to the invoice's single customer billing email address.",
+   "missing": "Which address to use when the invoice has multiple billing contacts and no single recipient is designated."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "The invoice detail screen shows a **Reminders** list for that invoice, newest first: offset, step date, status, send/attempt time (account time zone), recipient address, and attempt count for `failed`."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "business name, invoice number, remaining balance (`USD 1,000.00`), due date, days relative, and a payment link only if the product has one (G-5).",
+   "missing": "Whether the payment link expires and, if so, when. The email also has no specified payment instructions when a link is unavailable."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-1, G-2, R-4 (scope exclusions)",
+   "quote": "only admin may save \u2026 per-invoice pause/opt-out of reminders (e.g. a disputed invoice). Left out of scope \u2026 an admin can turn reminders off account-wide. \u2026 a manual \"send now\" or resend."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "G-2, R-2 and R-4 (scope exclusions)",
+   "quote": "an admin can turn reminders off account-wide. \u2026 per-invoice pause or customer opt-out (G-2) \u2026 a manual \"send now\" or resend.",
+   "missing": "Whether an operator can preview or dry-run a send. Customer opt-out and manual resend are expressly excluded."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-6 (AC-6.3)",
+   "quote": "an invoice with `failed` shows `failed` and `3 attempts`.",
+   "missing": "How an operator can see the next scheduled reminder for an invoice, including its step and send date."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-3 (AC-3.7)",
+   "quote": "If a reminder for an invoice was sent at an earlier sweep on the same local date, a later sweep that date sends nothing for it even if another step is eligible"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "State, data and lifecycle (invoice store), R-5",
+   "quote": "Invoice status, balance, due date, open date | invoice store (existing, unobserved), read-only here | as the product defines | product's own rules; read at claim time"
+  }
+ ]
+}

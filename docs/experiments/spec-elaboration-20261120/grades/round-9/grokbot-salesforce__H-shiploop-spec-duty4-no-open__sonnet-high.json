@@ -1,0 +1,183 @@
+{
+ "slot": "grokbot-salesforce__H-shiploop-spec-duty4-no-open__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.4606956,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Deploying the project to the named dev org makes a Lightning tab labelled Grok Bot, inside a Lightning app labelled Grok Bot, available."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "The Apex entry point runs `with sharing`, touches no standard or custom object other than reading its own configuration"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "therefore needs no object/field access; sharing, object permission and field permission are separate and none applies to chat content because none is stored (PD-3)."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "Access is granted by permission sets: Grok Bot User (opens the app/tab, runs the Apex entry point...) and Grok Bot Admin (everything in User plus editing the bot's configuration, R-8). Nothing is granted to any profile by default."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "The bot stores no transcript anywhere (no records, files, cache or browser storage)... admins can rely on no in-org copy existing."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "NFR-2",
+   "quote": "Each message uses one callout, no DML and no SOQL (custom-metadata reads only).",
+   "missing": "The design is a synchronous callout (AD-4 open); the callout-after-DML/trigger constraint is not stated and no asynchronous (Queueable/future) design is chosen."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "The key is not in source, metadata files, custom metadata, custom settings, records, debug logs, the UI, browser memory or test fixtures."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "timeout default 60 s, allowed range 1\u2013120 s (R-8; 120 s is the documented maximum for one callout/continuation, to be re-verified",
+   "missing": "Callouts-per-transaction, heap and CPU time limits are not named with numbers; concurrency limit left unresolved."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "AD-10",
+   "quote": "Apex tests with `HttpCalloutMock`/`Test.setMock`; the configuration reader is injectable so tests set values; LWC Jest tests mock the Apex import. No test calls xAI."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "a Named Credential for host `https://api.x.ai`... No Remote Site Setting is needed for a Named Credential callout."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "F-2",
+   "quote": "page calls the Apex entry point with message + prior successful turns (sync from the user's view; async promise in the page)",
+   "missing": "The reply is assumed to return inline from a synchronous callout; AD-4 (Continuation vs sync) is open and no event/polling mechanism is chosen for long replies."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "a second send (double click, Enter held down) makes no second callout. If the user clicks New chat while a request is outstanding... the late reply or error is discarded"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "NFR-2",
+   "quote": "Unresolved (G-4): Salesforce's cap on concurrent long-running requests (search results disagree...)",
+   "missing": "The concurrency limit value and what the user sees when a request is refused because the limit is reached."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "REQUEST_REJECTED | other xAI HTTP 4xx ... UPSTREAM_ERROR | xAI HTTP 5xx | `Grok is temporarily unavailable. Try again shortly.` TIMEOUT | ... `Grok took too long to respond. Try again.`"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "RATE_LIMITED | xAI HTTP 429 | `Grok is busy or a usage limit was reached. Try again shortly.` ... No automatic retry"
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "any failure shows an error entry, per R-5, never an empty or partial assistant message.",
+   "missing": "What is shown when a reply is truncated by the max output token limit (incomplete response with text); only never-arrives (TIMEOUT) and unreadable bodies are decided."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "PD-3",
+   "quote": "Conversation history lives only in the open page and is lost on reload.",
+   "missing": "No stored record shape; model identifier, timestamps, status and token/usage counts per turn are not recorded anywhere."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "The bot stores no transcript anywhere (no records, files, cache or browser storage)... Closing/reloading the page, or New chat, ends the transcript."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "The only content sent to xAI is the system instruction, the user's typed messages and prior bot replies... No Salesforce record data, user name, email or org identifiers are added."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "At most 10 prior turn pairs (20 messages) are sent (default; configurable, R-8). Older messages are omitted from the request but stay visible in the transcript."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "an empty (after trim) message is rejected... length 4,000 is accepted; 4,001 is rejected."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-8",
+   "quote": "An administrator changes them in Setup without a deploy; the next message uses the new values.",
+   "missing": "No kill switch to turn the bot off; failed requests are only in the Apex debug log by reference id (NFR-8), with no admin view."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "NFR-8",
+   "quote": "Failures are traceable by the reference id shown to the user and written (with category, HTTP status and elapsed ms, never content) to the Apex debug log.",
+   "missing": "No audit record of who asked what and what was answered, and no stated audit retention."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Deployment targets only the org the user names (G-1). Deploy is metadata only... a failed deploy is confirmed by the CLI terminal status... (`sf project deploy validate` dry-run)",
+   "missing": "How configuration/credential differ per environment and the production code-coverage requirement are not stated."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "NFR-1",
+   "quote": "The user's message and the indicator appear before the server call returns... A request that does not finish within the configured timeout (default 60 s, max 120 s) ends in TIMEOUT (R-5)."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "NFR-4",
+   "quote": "designed empty state (greeting + example prompts), loading state (indicator, Send disabled), error state (R-5 entry with Retry)"
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "State and data assessment",
+   "quote": "Before/after invariants: a user message leaves no record anywhere in the org (before = after for all org data)"
+  }
+ ]
+}

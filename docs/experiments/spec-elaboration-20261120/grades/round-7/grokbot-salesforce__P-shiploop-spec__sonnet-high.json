@@ -1,0 +1,183 @@
+{
+ "slot": "grokbot-salesforce__P-shiploop-spec__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.6084484000000001,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "DD-1",
+   "quote": "\"bot\" means a conversational chat page inside Salesforce for signed-in org users, opened from the App Launcher. Agentforce agents, Slack, Chatter, Experience Cloud sites, Salesforce mobile and voice are not requested and are out of scope."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "the bot reads and writes no business records, so record sharing, object CRUD and FLS requirements are `n/a: no user data records are read or written`."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "sharing, object CRUD and field-level security are each stated, not conflated: the bot reads and writes no business records, so record sharing, object CRUD and FLS requirements are `n/a`"
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-8",
+   "quote": "a permission set shipped with the product grants everything a user needs: the tab and app, the server operation, and use of the platform credential. A user without it cannot see the entry",
+   "missing": "Who may administer the bot (edit configuration, enter the key) is only 'an administrator'; no permission set or named permission defines admin rights."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "DD-2",
+   "quote": "The conversation lives only in the user's open page. The org stores no message content."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-4",
+   "quote": "Synchronous callout, no Continuation, no queueable ... the controller makes one synchronous callout with the configured timeout",
+   "missing": "The callout-after-DML and no-callout-from-trigger constraints are not stated, and the design is synchronous, not asynchronous; only 'No DML' (NFR-2) is noted."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "the key is entered once by an administrator in the org's credential facility. It is never in source files, test code, configuration records, the page, a log line, a debug statement or an error message."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "NFR-2",
+   "quote": "One callout per send (limit 100 per transaction, not approached). Callout wait time is excluded from the 5-second long-running-request limit",
+   "missing": "Heap and CPU time limits are not named or bounded; only callout count and the 120,000 ms timeout are given."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "AD-12",
+   "quote": "Apex tests use an `HttpCalloutMock` (including a throwing variant for timeout and connection failure)"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-3",
+   "quote": "a Named Credential for the xAI host references it. Apex calls `callout:<NamedCredentialName><path>`. ... No Remote Site Setting is needed."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "AD-4",
+   "quote": "the controller makes one synchronous callout ... and returns when it completes. The page awaits the promise.",
+   "missing": "No asynchronous notification mechanism (platform event, polled status, LMS); the answer is assumed to return inline from the synchronous call."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-11",
+   "quote": "At most one send is in flight per page. A second submit while one is pending (click, Enter, repeated Enter) is ignored and produces no second call."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "Service boundaries",
+   "quote": "callout time excluded from the 5-second long-running limit ... Message queues, events and cross-service transactions are not applicable."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "xAI HTTP 400, 404, 422 | `INVALID_REQUEST` ... xAI HTTP 5xx | `UPSTREAM` | `Grok is temporarily unavailable. Try again.` | Callout timeout | `TIMEOUT`"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "xAI HTTP 429 | `RATE_LIMIT` | `Grok is rate limiting requests. Try again in a moment.` ... Retry resends the same text as a new send (one callout). No automatic retry (DD-13)."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-11",
+   "quote": "Maximum wait is the configured timeout (R-9), after which `TIMEOUT` shows. ... the pending state always ends: success, error, or New chat discarding it",
+   "missing": "What happens when a reply is truncated at the 1,024-token cap (a length-limited finish) is not stated."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "DD-2",
+   "quote": "The conversation lives only in the user's open page. The org stores no message content.",
+   "missing": "No stored conversation/turn shape; model identifier and token or usage counts are not recorded anywhere (R-12 logs only code, status, elapsed)."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "no user or bot message text is written to any object, file, platform event or log line by the product. ... Closing or leaving the page discards the conversation."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Request content, in order: the configured system prompt; the bounded history (R-4); the new user message; the configured model id and output-token cap."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "At most the last 20 prior messages (DD-4) are sent. The server enforces the bound itself ... If the truncated history would begin with a bot message, that message is dropped too"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "An empty or whitespace-only message is not sent ... exactly 4,000 characters is accepted; 4,001 is rejected."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-9",
+   "quote": "the administrator can edit: model id, system prompt, history limit, maximum message length, reply token cap, callout timeout, and the xAI endpoint path.",
+   "missing": "No global switch to turn the bot off (only per-user permission-set unassignment); failed requests are visible only via debug traces."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "R-12",
+   "quote": "each send emits one log line with: outcome code ..., the xAI HTTP status when there was one, and elapsed milliseconds. ... Out of scope: persistent audit objects",
+   "missing": "No record of who asked what and what was answered, and no audit retention; the spec deliberately excludes it."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Out of scope: packaging (managed or unlocked), production deployment, sandbox refresh handling.",
+   "missing": "How configuration and credential differ per environment, and the production code-coverage requirement (AD-12 claims no threshold), are not decided."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "NFR-1",
+   "quote": "Wait is bounded by the configured callout timeout (default 60,000 ms, at most 120,000 ms ...). The in-flight indicator is visible before the server call returns (R-11)."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "NFR-11",
+   "quote": "States designed, not default: empty (greeting plus a few example prompts ...); loading (the R-11 indicator); error (R-6 messages inline with Retry); disabled and focus states for every control"
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "additive only. Nothing existing in the org is modified or removed."
+  }
+ ]
+}

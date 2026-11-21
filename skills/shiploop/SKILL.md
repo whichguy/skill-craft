@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact callback until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 2.4.0
+version: 2.4.1
 allowed-tools: all
 license: MIT
 platforms:
@@ -48,7 +48,7 @@ This card holds binding, start and recovery, ownership, the callback and authori
 purpose files; open one when its trigger holds, read it whole, once:
 
 - [Starting a run](references/run-start.md): before the first `workspace start` or `init`, and before a workspace return.
-- [Run options](references/run-options.md): choosing `--delegation`, `--lint` or `--planning-review`, or switching one mid-run.
+- [Run options](references/run-options.md): when the user asks for `--delegation`, `--lint` or `--planning-review`, or to switch one mid-run.
 - [Guides by stage](references/guide-map.md): discovery, research, spec and planning guides and the knowledge home.
 - [When Improve runs](references/improve-stages.md): which results an Improve stage reviews and how its passes end.
 - [The Improve child](references/improve-child.md): an Improve stage is current, or you recover or restart its child.
@@ -163,7 +163,7 @@ protection:
 
 ```sh
 python3 "$CLI" init --repo "$REPO" --run-dir "$RUN_DIR" --prompt='<user request>'
-# Optional (required with --planning-review none): select the exact actual Improve skill at initialization.
+# Optional: select the exact actual Improve skill at initialization; required when the user asks to run without planning reviews.
 python3 "$CLI" init --repo "$REPO" --run-dir "$RUN_DIR" \
   --improve-skill="$IMPROVE_SKILL" --prompt='<user request>'
 ```
@@ -192,9 +192,11 @@ neighboring package or host cache. An unavailable dependency remains an
 incomplete precondition; record it and follow the packet's blocked/recovery
 route rather than generating a replacement workflow.
 
-Run options are recorded at `workspace start` or `init` and refused on a saved run without them:
+Run options are the user's to set: pass one only when the user asks for it; otherwise pass none and the defaults
+apply. They are recorded at `workspace start` or `init` and refused on a saved run without them:
 `--delegation inline|ask-agent` (default `inline`: this conversation executes every assignment),
-`--lint fix|report|off` and `--planning-review stage|none` ([run options](references/run-options.md)).
+`--lint fix|report|off` and `--planning-review stage|none` (default `stage`; pass `none` only when the user asks
+to run without planning reviews) ([run options](references/run-options.md)).
 
 ## Inner stages
 

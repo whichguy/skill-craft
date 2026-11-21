@@ -1,0 +1,67 @@
+spec_by_reading.py, 2026-11-21 13:53 PST: every Codex run under /Users/dadleet/e2e-runs-sdlc8 to sdlc13 (other sessions' folders, read only); no model called.
+
+Codex runs with an accepted specification that could be pinned: 50
+
+case | effort | instruction lines given | accepted specification, words | requirement ids | how the run ended
+hello | medium | 87% | 120 | 2 | PASS
+hello | medium | 94% | 199 | 2 | PASS
+shared-expenses | high | 84% | 412 | 5 | PASS
+shared-expenses | high | 95% | 499 | 7 | PASS
+shared-expenses | high | 96% | 442 | 6 | PASS
+shared-expenses | high | 100% | 566 | 8 | PASS
+shared-expenses | medium | 15% | 306 | 6 | PASS
+shared-expenses | medium | 27% | 270 | 6 | PASS
+shared-expenses | medium | 28% | 361 | 6 | PASS
+shared-expenses | medium | 79% | 320 | 5 | PASS
+shared-expenses | medium | 87% | 390 | 7 | PASS
+shared-expenses | medium | 90% | 422 | 6 | PASS
+ticket-assignment | high | 88% | 518 | 4 | PASS
+ticket-assignment | medium | 99% | 356 | 3 | PASS
+ticket-due-times | high | 12% | 326 | 5 | STOPPED
+ticket-due-times | high | 23% | 379 | 5 | FAILED
+ticket-due-times | high | 26% | 358 | 4 | STOPPED
+ticket-due-times | high | 28% | 373 | 4 | PASS
+ticket-due-times | high | 80% | 362 | 3 | STOPPED
+ticket-due-times | high | 85% | 441 | 5 | STOPPED
+ticket-due-times | high | 88% | 633 | 5 | STOPPED
+ticket-due-times | high | 89% | 457 | 4 | PASS
+ticket-due-times | high | 89% | 517 | 5 | STOPPED
+ticket-due-times | high | 90% | 423 | 4 | STOPPED
+ticket-due-times | high | 91% | 444 | 6 | STOPPED
+ticket-due-times | high | 96% | 617 | 5 | STOPPED
+ticket-due-times | high | 97% | 443 | 5 | FAILED
+ticket-due-times | high | 97% | 479 | 4 | STOPPED
+ticket-due-times | high | 97% | 568 | 5 | STOPPED
+ticket-due-times | high | 97% | 424 | 4 | STOPPED
+ticket-due-times | high | 99% | 579 | 5 | STOPPED
+ticket-due-times | high | 100% | 674 | 4 | STOPPED
+ticket-due-times | high | 100% | 500 | 4 | STOPPED
+ticket-due-times | high | 100% | 485 | 5 | STOPPED
+ticket-due-times | high | 100% | 373 | 4 | STOPPED
+ticket-due-times | high | 100% | 586 | 4 | STOPPED
+ticket-due-times | high | 100% | 635 | 4 | STOPPED
+ticket-due-times | high | 100% | 455 | 4 | STOPPED
+ticket-due-times | high | 100% | 407 | 4 | STOPPED
+ticket-due-times | high | 100% | 519 | 4 | STOPPED
+ticket-due-times | high | 100% | 631 | 5 | STOPPED
+ticket-due-times | high | 100% | 438 | 5 | STOPPED
+ticket-due-times | high | 100% | 505 | 4 | FAILED
+ticket-due-times | high | 100% | 668 | 5 | FAILED
+ticket-due-times | medium | 6% | 255 | 5 | FAILED
+ticket-due-times | medium | 95% | 468 | 6 | PASS
+ticket-due-times | medium | 96% | 358 | 4 | FAILED
+ticket-due-times | medium | 97% | 368 | 6 | FAILED
+ticket-due-times | medium | 98% | 393 | 5 | FAILED
+ticket-due-times | medium | 100% | 373 | 4 | FAILED
+
+case | effort | instruction lines given | runs | words: median (lowest to highest) | requirement ids: median | whole deliveries that passed
+hello | medium | four fifths or more | 2 | 160 (120 to 199) | 2 | 2 of 2
+shared-expenses | high | four fifths or more | 4 | 470 (412 to 566) | 6 | 4 of 4
+shared-expenses | medium | under a third | 3 | 306 (270 to 361) | 6 | 3 of 3
+shared-expenses | medium | four fifths or more | 2 | 406 (390 to 422) | 6 | 2 of 2
+ticket-assignment | high | four fifths or more | 1 | 518 (518 to 518) | 4 | 1 of 1
+ticket-assignment | medium | four fifths or more | 1 | 356 (356 to 356) | 3 | 1 of 1
+ticket-due-times | high | under a third | 4 | 366 (326 to 379) | 4 | 1 of 2
+ticket-due-times | high | four fifths or more | 26 | 492 (362 to 674) | 4 | 1 of 4
+ticket-due-times | medium | under a third | 1 | 255 (255 to 255) | 5 | 0 of 1
+ticket-due-times | medium | four fifths or more | 5 | 373 (358 to 468) | 5 | 1 of 5

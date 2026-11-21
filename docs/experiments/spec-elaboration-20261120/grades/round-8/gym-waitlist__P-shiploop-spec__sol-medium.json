@@ -1,0 +1,148 @@
+{
+ "slot": "gym-waitlist__P-shiploop-spec__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3468498,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-4.A1",
+   "quote": "Allocate available seats to eligible active entries in accepted join order, one booking per member and occurrence. A promotion consumes its seat and ends its entry as one visible outcome."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1 Domain rules",
+   "quote": "The queue is ordered by accepted joins per occurrence, including a definite order for simultaneous admissions. No priority tiers or waitlist-size product cap are assumed."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-1.A3 / R-4 Domain rules",
+   "quote": "The same member may independently wait for distinct occurrences if allowed by existing eligibility. ... whether a waitlisted member can be booked under existing payment, waiver, credit, schedule conflict and late-cancellation terms.",
+   "missing": "Whether promotion into one of two overlapping classes ends, keeps, or skips the member's other waitlist entry."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-4 Domain rules",
+   "quote": "whether a waitlisted member can be booked under existing payment, waiver, credit, schedule conflict and late-cancellation terms ... No new charges, offer windows, penalties or priority schemes are introduced by this spec.",
+   "missing": "How existing late-cancellation/no-show rules apply to an auto-promoted booking (e.g. a promotion close to class start the member cannot attend)."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-4.A1",
+   "quote": "an effective booking cancellation that frees a seat triggers reevaluation by the booking authority with every member view closed.",
+   "missing": "The timeliness of the background promotion; latency is only to be measured and set later by owners."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2 State and data",
+   "quote": "In-app confirmation on read is the default. Background push, email, and SMS have no delivery commitment."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-4.A1 / R-4.A3",
+   "quote": "If several seats are available, process up to capacity or until the queue is exhausted. ... A stale signal cannot reopen a closed waitlist, exceed capacity, or assign two bookings for one entry."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-1 State and data / R-6.A2",
+   "quote": "Active membership and a confirmed booking are mutually exclusive for the same pair. ... Concurrent joins, bookings, withdrawals, cancellations and closure resolve in a single authoritative order for that occurrence."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-4 Domain rules",
+   "quote": "If existing terms require new permission or an interactive step, the affected join and promotion path is unready pending a product decision. No new charges ... are introduced by this spec.",
+   "missing": "When payment is taken for a promoted booking and what happens if it fails."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1 Domain rules",
+   "quote": "No priority tiers or waitlist-size product cap are assumed."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-5.A1",
+   "quote": "Close enrollment and promotion at the earlier of occurrence start or an existing earlier booking cutoff, or on class cancellation."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1 Domain rules / R-4 State and data",
+   "quote": "A lower capacity than current enrollment ... needs reconciliation with the product owner before exposing affected joins. ... Other existing changes that create available seats must honor the same priority if such routes exist.",
+   "missing": "Behaviour when capacity is lowered below enrollment with a waitlist present; the staff capacity-change route is not decided."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-5.A1",
+   "quote": "or on class cancellation. End active entries without creating bookings and show closure for a class the member can still read."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1 State and data / R-2 State and data",
+   "quote": "The booking authority owns the durable active entry and its admission order. ... Queue position and member lists are outside scope.",
+   "missing": "The entry's fields (join time, explicit state values) and whether position is stored or derived from order."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-5.A2",
+   "quote": "Retain only what is needed for the member's outcome, replay safety and established retention obligations, then remove or de-identify expired waitlist data according to the applicable policy.",
+   "missing": "The actual retention period; it is deferred to a data owner's policy."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2 State and data / R-2.A3",
+   "quote": "Only the member's own protected facts reach their client. ... Queue position and member lists are outside scope."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "Scope and basis / R-6.A3",
+   "quote": "The waitlist adds no staff workflow ... Authorized operations staff can retrieve app-owned outcomes for join, withdrawal, closure, promotion ...",
+   "missing": "No staff view of the waitlist or manual promote/remove; only operational outcome retrieval is specified."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements (Performance)",
+   "quote": "Measure read, join and seat-to-booking latency ... The booking and operations owners must establish ... acceptable latency or existing objectives.",
+   "missing": "A concrete bound on how soon promotion follows a cancellation."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1 Basis / R-1.A2",
+   "quote": "Preserve normal booking when a place is available and existing booking eligibility. ... An eligible member can book through the existing path when there is a free seat and no waiting member with priority."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "Non-functional requirements (Integrity)",
+   "quote": "Existing records preserve identity and occupancy when the feature is introduced. The booking owner must inspect data and cutover compatibility before activation, including any existing queue-like state",
+   "missing": "Whether classes already full at launch gain a waitlist and how."
+  }
+ ]
+}

@@ -1,0 +1,182 @@
+{
+ "slot": "grokbot-salesforce__K-shiploop-spec-default-bounds__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.44618139999999995,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-01",
+   "quote": "From Lightning Experience App Launcher \u2192 Grok Bot \u2192 Grok Bot navigation item, the designated authorized user reaches a page whose heading is Grok Bot"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "The application reads, queries and writes no Salesforce business records. Row sharing, object CRUD and field permissions are inapplicable to such data because the bot uses none."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "The application reads, queries and writes no Salesforce business records. Row sharing, object CRUD and field permissions are inapplicable to such data because the bot uses none."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "AD-1",
+   "quote": "A dedicated permission set and assignment control feature visibility, Apex access and use of the external credential principal. Require the bot's custom permission on each invocation"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C-07",
+   "quote": "Boundary: users never receive credentials, raw headers, raw provider envelopes or other users' text."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "Flows and transitions",
+   "quote": "The browser waits asynchronously for the user-initiated Salesforce invocation. The Salesforce-to-xAI exchange is a foreground request/response.",
+   "missing": "The spec never states the platform constraint that a callout cannot run from a trigger or after DML in the same transaction. It picks a synchronous foreground callout without saying why that is allowed."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "Use a Salesforce Named Credential with fixed origin https://api.x.ai and a linked External Credential ... Keep the configured value out of source metadata, the client, tests and logs."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "S3 documents 100 callouts and 120 seconds cumulative callout time per transaction, and lists 6 MB as the synchronous callout request/response size limit.",
+   "missing": "Heap is mentioned only as 'heap headroom' with no number, and the CPU time limit is not named."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C-03",
+   "quote": "Separately vary the request and provider result at the isolated adapter-to-UI boundary before product-acceptance.",
+   "missing": "The spec mentions isolated adapter fixtures but never says Apex tests cannot make real callouts and must use a mock callout implementation."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "Use a Salesforce Named Credential with fixed origin https://api.x.ai"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "AD-1",
+   "quote": "Invocation is imperative, non-cacheable Apex, with a single request/response per admitted Send."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "C-08",
+   "quote": "Delayed or repeated completions are ignored once the attempt terminates, expires or the view ends."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C-08",
+   "quote": "Boundary: one current attempt per mounted view",
+   "missing": "Salesforce's concurrent request limits are not named, and the spec does not say what the user sees when the platform refuses a request for capacity reasons."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-04",
+   "quote": "Timeout, no transport, upstream 5xx or platform invocation failure without a known more specific classification | \"No reply received. Send again.\"",
+   "missing": "4xx refusals get their own message, but 5xx failures and timeouts share one message. Whether those two should look different to the user is left undecided."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-04",
+   "quote": "Provider rate or quota limit | \"Grok is busy. Wait and send again.\" Resending is manual and can fail again until the provider permits it."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-04",
+   "quote": "a provider output cap reached with an incomplete response yields the incomplete status, with zero partial answer displayed. A completion exactly at the presentation deadline is late."
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "Clear, refresh, exit or observed account change empties the view. Nothing is written to browser storage, URL, Salesforce records or an application transcript."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "Salesforce attaches no CRM context or Salesforce actor identifiers. The provider may receive personal data a person manually types, so the disclosure applies before the first Send."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "The selected model has a documented 1,000,000-token context window (X2). The application sends one bounded question ... never silently truncates the question."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-05",
+   "quote": "reject missing/null, non-text, ill-formed Unicode, empty and whitespace-only input ... Boundary: 1 through 4,000 UTF-16 code units inclusive after trim"
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "C-07",
+   "quote": "Authorized maintainers can rotate/disable it without altering bot code.",
+   "missing": "There is no admin control to change the model; the model is fixed and changing it takes a decision revision. There is no app-level view of failed requests either; failure telemetry is left to Salesforce."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "xAI separately documents default encrypted abuse-audit retention for 30 days with automatic expiry",
+   "missing": "The spec keeps no Salesforce-side record of who asked what and what was answered. It says no durable audit sink is introduced, so no in-org audit or its retention is defined."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Adds a navigable Grok Bot entry in one identified non-production org",
+   "missing": "The spec does not say how configuration and credentials differ between environments, does not name the deploy route (scratch org, sandbox or metadata deployment), and does not mention the production code-coverage requirement."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "C-08",
+   "quote": "valid Send from an idle view shows the submitted question and an announced \"Waiting for Grok\u2026\" status ... Boundary: one current attempt per mounted view, with no reply at or after 30,000 ms."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "C-10",
+   "quote": "Empty, validation, waiting, answer and service error are visibly differentiated and usable."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "In the expected after state only feature-owned resources and designated grants have changed."
+  }
+ ]
+}

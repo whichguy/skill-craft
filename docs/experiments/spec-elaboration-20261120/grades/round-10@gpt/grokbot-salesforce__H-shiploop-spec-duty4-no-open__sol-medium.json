@@ -1,0 +1,184 @@
+{
+ "slot": "grokbot-salesforce__H-shiploop-spec-duty4-no-open__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C1 (T-2, AD-1)",
+   "quote": "Use a Lightning web component on a Lightning component custom tab in Lightning Experience. \u2026 Current Salesforce session and effective access. User navigates from App Launcher."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "C10\u2013C11 (service boundaries)",
+   "quote": "Existing record sharing, object permissions and field permissions are untouched. Each is inapplicable to bot data operations because the bot performs no business-record reads/writes.",
+   "missing": "The bot excludes CRM records entirely. The specification gives no rule for running record retrieval in the asking user\u2019s sharing context."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C11 (service boundaries, AD-2)",
+   "quote": "The product has no record CRUD or field access to authorize. \u2026 Inspect the runtime path for absence of business-record reads/writes and confirm the fixture is unchanged."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C10 (R-4, AD-2)",
+   "quote": "Use scoped platform grants for tab visibility, Apex class access and External Credential principal access. \u2026 Salesforce org administrator and provider team owner manage grants and service authentication."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C12",
+   "quote": "only the initiating user\u2019s active workspace displays exchange content. The bot owns no durable history or retrievable provider-side response object for the request."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C3 (AD-2)",
+   "quote": "Use an imperative, non-cacheable Apex invocation and a server-side HTTPS callout. \u2026 Use one request/response callout per send and no server-side work queue.",
+   "missing": "There is no asynchronous Apex transaction for the callout or rule separating it from trigger execution and earlier DML."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C11 (AD-2)",
+   "quote": "Use a modern Named Credential for the fixed xAI endpoint and an External Credential \u2026 configure its bearer header from a protected credential parameter. \u2026 absence of prompt, answer, raw error, credential and session material"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C4, C8 (AD-2)",
+   "quote": "A 30-second configured callout is within the documented 120-second transaction ceiling. \u2026 the documented 6 MB synchronous callout and heap ceilings",
+   "missing": "The platform\u2019s maximum callout count per transaction and its CPU time limit are unspecified."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C8",
+   "quote": "For isolated P1 attempts, supply HTTP 429, 401, 403 and 503 with empty bodies, a connection reset before headers",
+   "missing": "The controlled responses are specified, but the Apex test requirement to substitute a mock for a real HTTP callout is missing."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C11 (AD-2, AD-3)",
+   "quote": "Use a modern Named Credential for the fixed xAI endpoint \u2026 Use xAI\u2019s HTTPS Responses API at `api.x.ai`"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C7 (AD-2)",
+   "quote": "The client handles the asynchronous invocation result for its active attempt only."
+  },
+  {
+   "id": "N-12",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C7 (AD-2)",
+   "quote": "Developer Edition\u2019s edition-specific concurrent external-callout limit matters if that is the selected edition.",
+   "missing": "The limit is unquantified. There is no job queue or specified admission-failure outcome when capacity is exhausted."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C8",
+   "quote": "provider authentication/configuration (\u201cGrok is unavailable. Contact your Salesforce admin.\u201d) \u2026 timeout (\u201cGrok took too long. Try again.\u201d). Other transport/provider failures show \u201cGrok is unavailable. Try again.\u201d",
+   "missing": "Authentication and throttling have distinct messages, but other 4xx rejections share the fallback used for 5xx failures."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C8",
+   "quote": "retain the exact editable prompt and allow a fresh explicit send. \u2026 provider throttling (\u201cGrok is busy. Try again later.\u201d) \u2026 There is no automatic retry."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C6, C8",
+   "quote": "show that the answer reached its length limit and suggest a shorter requested answer. Preserve the prompt for editing and display no partial answer as success. \u2026 \u201cGrok took too long. Try again.\u201d"
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "C12",
+   "quote": "The bot owns no durable history or retrievable provider-side response object for the request. \u2026 workspace teardown discards local content; provider safety retention is governed separately by the actual account policy."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C11",
+   "quote": "directs users to enter synthetic development data only. On a successful request, only the explicitly submitted text and necessary inference parameters cross the provider boundary."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C3, C4",
+   "quote": "each exchange sends only its own prompt and starts fresh, including a second send from the same workspace. \u2026 16,384 UTF-8 bytes inclusive, measured on the submitted text before transport encoding."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C1 (T-2), C4, C6",
+   "quote": "Assigned user reaches empty workspace. \u2026 empty, or Unicode White_Space-only input shows \u201cEnter a prompt.\u201d \u2026 At 16,384 bytes the send is allowed \u2026 A completed answer at the allowance still renders"
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "C10\u2013C12 (R-4, AD-3)",
+   "quote": "Provider credential rotation and feature access removal are admin operations with observable outcomes. \u2026 Model choice remains server-owned configuration. \u2026 Operator-facing diagnostics use status class, elapsed time and an opaque attempt identifier",
+   "missing": "Grant removal and failure diagnostics are specified. Whether an administrator can disable the bot org-wide and change the configured model is unspecified."
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "C2 (AD-2, AD-6)",
+   "quote": "a development-only named principal \u2026 The deployment artifacts carry only non-secret configuration and references. \u2026 Use the target\u2019s supported Salesforce metadata deployment and status/read-back surfaces",
+   "missing": "The specification covers deployment into the development org. It leaves production credential and configuration provisioning, promotion from a scratch org or sandbox, and the production Apex coverage requirement unspecified."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "C7, C8",
+   "quote": "show a screen-reader-announced **Waiting for Grok** state \u2026 30 seconds from callout start. \u2026 This is an upstream deadline, not a browser response SLA.",
+   "missing": "There is no target or upper bound from submission to the user seeing the answer. The deadline starts at the outbound callout."
+  },
+  {
+   "id": "N-26",
+   "state": "partial",
+   "where": "C8, C10, C13 (AD-3)",
+   "quote": "Give empty, waiting and error states distinct treatments, including a persistent error with a recovery action. \u2026 Map incomplete length-limited completion distinctly from malformed, empty, refused or other incomplete content.",
+   "missing": "The workspace has designed empty, waiting and error states and an access-denied outcome. It does not specify what the user sees to distinguish a model refusal from an unusable reply."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C2, C11",
+   "quote": "Afterward, only the bot\u2019s scoped resources and named assignments have changed. \u2026 Existing record sharing, object permissions and field permissions are untouched. \u2026 the bot performs no business-record reads/writes."
+  }
+ ]
+}

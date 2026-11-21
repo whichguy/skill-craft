@@ -1,0 +1,143 @@
+{
+ "slot": "csv-user-import__P-shiploop-spec__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.43741379999999996,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "PD-1",
+   "quote": "All-or-nothing: if any row or the file is invalid, no user is created."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "a rejected row-level outcome carries error_count (the true total), truncated, and errors (at most 100, ordered by row ...), each with row, line, field when it applies, code"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "two rows of the same file whose emails are equal after normalisation \u2192 the later row is duplicate_in_file ... A row whose normalised email equals an existing user's \u2192 email_taken."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "PD-2, R-7",
+   "quote": "an attribute the admin expects to be applied (role) ... any other column is an error. / assigns no role beyond whatever the product gives a new user by default"
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1, PD-10",
+   "quote": "the import operation and the import page are available to an authenticated administrator and to no one else. / \"Admin\" means whatever the product already treats as an administrator",
+   "missing": "Whether a non-admin who can create a single user may import; the spec never says the import ability is distinct from single-user-create permission."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2, PD-2",
+   "quote": "header: missing_column (email or name absent), unknown_column, duplicate_column: all header problems are reported together"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "PD-12",
+   "quote": "an optional BOM is accepted and removed; CRLF and LF line endings are both accepted; a quoted field may contain commas, doubled quotes and line breaks as in RFC 4180."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-6, PD-8",
+   "quote": "inside one transaction ... If any insert fails, the transaction is rolled back, no user remains / The import sets no credential and sends no message"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "two configured limits apply: MAX_BYTES (file size) and MAX_ROWS ... Over either \u2192 rejected, nothing created. ... No default number is specified.",
+   "missing": "The actual maximum file size and row count values (left to OG-2)."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AL-2.3, R-6",
+   "quote": "empty \u2192 [empty_file]; header-only \u2192 [no_rows] / one row is a valid file"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-6, AL-5.1",
+   "quote": "a repeat of the same upload is safe (it succeeds if nothing was created, or is rejected row by row if it was)."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "AD-1",
+   "quote": "all within the request that carried the file. The caller receives the final outcome in the response. No job queue, no status polling, no background worker."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "PD-8, R-7",
+   "quote": "The import itself sets no password or other credential, assigns no role ... and sends no email or other message."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "an imported user is created through the same creation rules as the product's single-user creation ... sets no password ... how they sign in is not decided here (OG-4).",
+   "missing": "Whether the user is active or pending and how they first sign in."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-11",
+   "quote": "the uploaded bytes live only in the memory of the request that carried them and are discarded when it ends; they are not written to disk ... no other client can fetch the result."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "every import attempt by an authenticated user writes one audit record: actor id, time, outcome ... row_count ... created_count, error_count and byte_size."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "Section 6 forbidden events, Section 1 out of scope",
+   "quote": "cancellation, expiry and restart are n/a: the operation is one synchronous request with no retained work / importing only the valid rows of a file with errors"
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "NFR-2, R-12",
+   "quote": "No latency or size number is specified: unresolved (OG-2) / pending (the control keeps focus and announces \"Importing\u2026\"",
+   "missing": "A numeric time bound for a maximum-size file and any progress indication beyond a pending label."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-5, State inventory",
+   "quote": "Existing users are neither changed nor skipped. / this feature never changes or removes a user",
+   "missing": "That the existing single-user create flow continues to work unchanged is not stated."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "NFR-3, PD-5, R-8",
+   "quote": "Neutralising values that begin with =, +, - or @ when a later feature exports users to CSV is that feature's duty / name 1\u2013100 characters / The body never contains the contents of a cell."
+  }
+ ]
+}

@@ -1,0 +1,63 @@
+PACKET 12
+Reviewed stage: step-plan
+
+== The request the delivery was built from ==
+This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable, with a command-line tool in bin/. The help desk is starting to promise response times. Each ticket gets a due time: the time it was created plus the response time for its priority, which is 4 hours for urgent tickets, 24 for high, 72 for normal and 168 for low, and the help desk must be able to change those hours without a code change. A ticket's due time is set once: a later change of the hours or of the ticket's priority does not move it. Every ticket shows its due time as `due`, and `GET /tickets?overdue=true` lists only the open and in-progress tickets whose due time has passed. The tickets already in the production data file get due times too, from their own creation time and priority, and keep them from then on. Due times are switched on in production only once the data file holds them: until the DUE_TIMES environment variable is `on`, the service answers exactly as it does today. If the new release misbehaves, operators must be able to go back to the current release, 1.4.0, and it must still start on the data file the new release wrote and show every ticket. Everything the service already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones.
+
+== What the review changed in the files ==
+diff --git a/docs/shiploop/architecture.md b/docs/shiploop/architecture.md
+index 9128b45..3d219ce 100644
+--- a/docs/shiploop/architecture.md
++++ b/docs/shiploop/architecture.md
+@@ -115,5 +115,5 @@ Status: accepted.
+ ### AD-4 Overdue is an AND predicate beside `matchesFilters`
+ 
+-Choice: `GET /tickets?overdue=true` (flag on) keeps tickets whose status is in `ACTIVE` and whose `due` is strictly before `clock.now()`, then applies today's list filters. `matchesFilters` stays OR of the given fields. `overdue` is not a field of that function. `parseListQuery` does not learn `overdue`: a known param there is validated even when the HTTP flag is off, which would 400 `overdue=maybe` and break R-1. The app (or store.list when `dueTimes` is true) reads the raw query. Other `overdue` values are 400 `invalid`. Flag off: `overdue` is an unknown parameter and is ignored.
++Choice: `GET /tickets?overdue=true` (flag on) keeps tickets whose status is in `ACTIVE` and whose `due` is strictly before `clock.now()`, then applies today's list filters. `matchesFilters` stays OR of the given fields. `overdue` is not a field of that function. `parseListQuery` does not learn `overdue`: a known param there is validated even when the HTTP flag is off, which would 400 `overdue=maybe` and break R-1. GET `/tickets` reads the raw query when `dueTimes` is true and passes overdue into `store.list`. `store.list` applies that combined filter (overdue predicate AND `matchesFilters`) **before** `paginate`, the same order as today's status/priority filters. Filtering the already-paged `{ items, next }` would drop an overdue ticket that is not on the first page (T-0001 high not overdue, T-0002 urgent overdue, `limit=1` must still return T-0002). Other `overdue` values are 400 `invalid`. Flag off: `overdue` is an unknown parameter and is ignored.
+ 
+ Why: 1.4.0 `matchesFilters` is OR (`src/tickets/query.js`). Putting overdue inside it would make `overdue=true&priority=low` mean overdue OR low. Spec R-5 requires AND with today's filters. Equal `due` and now is not overdue. Existing `test/query.test.js` 'ignores parameters it does not know' stays true for `overdue`.
+@@ -185,5 +185,5 @@ Status: accepted.
+ ### AD-11 Due helper in store.js; public view in app.js
+ 
+-Choice: `dueFromCreated(created, hours)` lives in `src/store.js`. HTTP handlers return `publicTicket(ticket, dueTimes)` from `src/app.js`. `createApp` gains `dueTimes` (default false). `createService` passes `config.dueTimes === true` into `cre
+[... cut here: 1147 more characters ...]
+
+diff --git a/docs/shiploop/environment.md b/docs/shiploop/environment.md
+index 333cf1d..25f4071 100644
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -41,5 +41,5 @@ Suite commands below are run from the repository root on Node 22 or later. No ex
+ ### Focused (due-times cases)
+ 
+-Inclusion: `node:test` titles in which `TC-<n>` is its own word (`TC-1` … `TC-27`). New files `test/due.test.js`, `test/due-config.test.js`, `test/due-store.test.js`, `test/due-persistence.test.js`. Does not select the existing outbox/worker titles that contain the word `due`.
++Inclusion: `node:test` titles in which `TC-<n>` is its own word (`TC-1` … `TC-29`). New files `test/due.test.js`, `test/due-config.test.js`, `test/due-store.test.js`, `test/due-persistence.test.js`. Does not select the existing outbox/worker titles that contain the word `due`.
+ 
+ ```
+@@ -47,5 +47,5 @@ node --test --test-reporter spec --test-name-pattern='TC-[0-9]+'
+ ```
+ 
+-Expected cost: under 1 s once the cases exist. IDs it may print: `TC-1` through `TC-27` as in ## ID convention. Probe on 1.4.0 (no `TC-` titles yet): TAP `1..0` in each of 17 `*.test.js` files plus `test/helpers.js` (18 file-level oks, 0 matching cases), exit 0. Spec reporter on the same command: `ℹ tests 18`, `ℹ pass 18`, those 18 are the files, 0 matching leaf titles, exit 0. After those tests are authored this command must print each `TC-<n>` title; until implement, they fail (expected-failure / RED). `--test-name-pattern` is a regular expression (`node --help`).
++Expected cost: under 1 s once the cases exist. IDs it may print: `TC-1` through `TC-29` as in ## ID convention. Probe on 1.4.0 (no `TC-` titles yet): TAP `1..0` in each of 17 `*.test.js` files plus `test/helpers.js` (18 file-level oks, 0 matching cases), exit 0. Spec reporter on the same command: `ℹ tests 18`, `ℹ pass 18`, those 18 are the files, 0 matching leaf titles, exit 0. After those tests are authored this command must print each `TC-<n>` title; until implement, they fail (expected-failure / RED). `--test-name-pattern` is a regular expression (`node --help`).
+ 
+ ### Smoke (bounded preservation)
+@@ -67,5 +67,5 @@ npm test
+ ```
+ 
+-Equivalent: `node --test`. Add `--test-reporter spec` when a pass must name titles. Expected cost: about 0.3–0.5 s. Probe at 1.4.0: 117 tests, 26 suites, 117 pass, 0 fail, exit 0, duration_ms 328. After due-times tests are added the count is 117 plus those new cases; do not freeze 117. A passing run prints every execute
+[... cut here: 7163 more characters ...]
+
+
+== What the review changed in the stage's recorded result ==
+--- result as submitted
++++ result as accepted
+@@ -54,3 +54,3 @@
+    "id": "C2",
+-   "text": "Due is created plus whole hours for the ticket's priority at assignment; defaults urgent 4, high 24, normal 72, low 168; DUE_HOURS_* empty uses the default; DUE_HOURS_HIGH=nope and DUE_HOURS_URGENT=0 throw ConfigError naming the variable and the 1\u20138760 range; dueHoursLow 1 at 2025-09-01T08:15:00.000Z yields 2025-09-01T09:15:00.000Z (R-2). Confirm by: node ../run/scratch/proofs/W1-S1-proof.js then node --test --test-reporter spec --test-name-pattern='TC-[0-9]+'; pass when TC-3 stored dues are 2025-09-01T12:15:00.000Z and 2025-09-08T08:15:00.000Z, TC-4/TC-5 throw ConfigError, TC-6 due is 2025-09-01T09:15:00.000Z, and TC-27 loadConfig({}) hours are 4/24/72/168 with dueTimes false."
++   "text": "Due is created plus whole hours for the ticket's priority at assignment; defaults urgent 4, high 24, normal 72, low 168; DUE_HOURS_* empty uses the default; DUE_HOURS_HIGH=nope and DUE_HOURS_URGENT=0 throw ConfigError naming the variable and the 1\u20138760 range; dueHoursLow 1 at 2025-09-01T08:15:00.000Z yields 2025-09-01T09:15:00.000Z; withService dueHoursLow 1 POST low yields that same due through createService (R-2). Confirm by: node ../run/scratch/proofs/W1-S1-proof.js then node --test --test-reporter spec --test-name-pattern='TC-[0-9]+'; pass when TC-3 stored dues are 2025-09-01T12:15:00.000Z and 2025-09-08T08:15:00.000Z, TC-4/TC-5 throw ConfigError, TC-6 due is 2025-09-01T09:15:00.000Z, TC-28 withService dueHoursLow 1 POST low due is 2025-09-01T09:15:00.000Z, and TC-27 loadConfig({}) hours are 4/24/72/168 with dueTimes false."
+   },
+@@ -69,3 +69,3 @@
+    "id": "C5",
+-   "text": "When dueTimes is true, GET /tickets?overdue=true lists only ACTIVE tickets whose due is strictly before now, ANDed with today's filters; overdue present and not true is 400 invalid; equal due and now is empty; resolved and closed are omitted (R-5). Confirm by: node ../run/scratch/proofs/W1-S1-proof.js then node --test --test-reporter spec --test-name-pattern='TC-[0-9]+'; pass when TC-11 ids are ['T-0001'] at 12:15:00.001Z, TC-12 is 400 invalid, TC-13 at equal now is [], TC-14 overdue&priority=low is [], TC-15 in_progress is ['T-0001'], and TC-16/TC-17 resolved/closed are []."
++   "text": "When dueTimes is true, GET /tickets?overdue=true lists only ACTIVE tickets whose due is strictly before now, ANDed with today's filters; overdue present and not true is 400 invalid; equal due and now is empty; resolved and closed are omitted; overdue filter runs before paginate so limit=1 still returns an overdue ticket that is not first in id order (R-5). Confirm by: node ../run/scratch/proofs/W1-S1-proof.js then node --test --test-reporter spec --test-name-pattern='TC-[0-9]+'; pass when TC-11 ids are ['T-0001'] at 12:15:00.001Z, TC-12 is 400 invalid, TC-13 at equal now is [], TC-14 overdue&priority=low is [], TC-15 in_progress is ['T-0001'], TC-16/TC-17 resolved/closed are [], and TC-29 overdue
+[... cut here: 5831 more characters ...]
+

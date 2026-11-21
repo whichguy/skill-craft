@@ -1,0 +1,144 @@
+{
+ "slot": "csv-user-import__K-shiploop-spec-default-bounds__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.5004578,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "A-3",
+   "quote": "All-or-nothing: if any problem exists, nothing is created; otherwise every row is created in one atomic commit. ... Partial import was considered and not chosen."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "\"row_errors\": [{\"row\": n, \"column\": \"email\"|\"name\"|\"role\"|null, \"code\": c, \"message\": m, \"related_row\"?: n}], \"row_error_total\": n"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "A-4",
+   "quote": "An email that already exists, or repeats within the file, is an error. No update, skip or merge. Email comparison is case-insensitive after trimming"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "A-13",
+   "quote": "An admin may assign either role through import, the same authority as single-user creation."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "the import screen and the import operation are available only to a signed-in user whose *current* role is admin.",
+   "missing": "Whether import is a distinct permission from single-user creation, rather than implied by the admin role that also creates single users."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "the first record is the header. ... `email` and `name` must be present; `role` may be absent. ... `missing_column` ..., then `unknown_column` ..., then `duplicate_column`"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "A-6",
+   "quote": "UTF-8 with an optional BOM, comma delimiter, line ends LF or CRLF, RFC 4180 quoting with strict handling (a bare quote or lone CR is malformed)."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-12.3",
+   "quote": "if sending is not atomic with the commit, the compensation rule is a G-1 decision before this line is final.",
+   "missing": "What happens to onboarding messages already sent if the commit fails or rolls back (e.g. the R-7.3 storage fault mid-insert)."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "A-5",
+   "quote": "file at most 2,097,152 bytes (2 MiB); at most 5,000 data rows ... `file_too_large` (HTTP 413) ... `too_many_rows`, 422, nothing created"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "a 0-byte or BOM-only file is empty; ... `file_empty`, `not_utf8`, `malformed_csv`, header checks ..., `no_data_rows`; R-7: N ranges from 1 to 5,000"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "Resubmitting an already imported file creates nothing. ... second 422 with `already_exists` on rows 2, 3 and 4"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "A-14",
+   "quote": "Processing is synchronous within one request; the result is the response. ... revisited if G-3 shows the platform cannot finish within its limit (AD-1)."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-12.3",
+   "quote": "Importing the 5,000 users of FX-17a sends 5,000 onboarding messages and not more or fewer, **if** single creation sends one",
+   "missing": "Whether the messages go out all at once or are paced/throttled, and at what rate."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "A-7",
+   "quote": "Created users get exactly the initial state and onboarding that single-user creation gives them. No password or credential column",
+   "missing": "The actual initial state (active or pending) and first sign-in path; deferred to the unseen product (G-1)."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "A-10",
+   "quote": "The uploaded file is processed in memory and never persisted; the audit record holds counts and outcome only."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "every attempt that reaches the authorization decision writes one audit record: actor id ..., timestamp, outcome ..., file size in bytes when read, data-row count when parsed, `created_count`"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "A-3",
+   "quote": "No partial state to explain or repair; a fixed file can be re-uploaded whole.",
+   "missing": "Whether and how a running import can be cancelled."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-15",
+   "quote": "Numeric time bound: unresolved, because the platform and its limit are not known (G-3) ... none is invented.",
+   "missing": "The numeric time bound for a maximum-size file; progress is only an indeterminate busy indicator."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "A-4",
+   "quote": "No update, skip or merge. (Sources: where an existing behaviour must be preserved once found (single-user creation, authorization), R-7, R-12 and G-1 say so.)"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "neutralising spreadsheet-formula prefixes on later export (not stored differently; any future export owns that); R-2.5: a 2,000,000-character name ... one row error `too_long`"
+  }
+ ]
+}

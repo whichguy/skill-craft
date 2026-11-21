@@ -1,0 +1,14 @@
+The two sentences arms/K-shiploop-spec-default-bounds.md adds to arms/P-shiploop-spec.md, at the same place in duty 2
+as arms/M-shiploop-spec-members.insert.txt. Nothing else differs between the arms.
+
+The first sentence is M's. The second differs in one thing: where the request leaves a limit to choice, M records
+it as an open gap (the independent review's wording), and this arm takes the best default and records it as an
+assumption, which is what the stage's own RULES say for an unattended run ('take the best default and record it
+as an assumption; a person-only step is an open item') and what its duty 9 says for an open choice. A platform
+limit is stated from its source as duty 10 requires, and duty 6's 'Invent no bound' is left as it is. No example
+is given.
+
+   Where an acceptance line depends on a set of states, conditions or inputs, name its members, or the groups with
+   distinct observable behaviour, and explain material exclusions. Where one depends on a limit, state the bound and
+   the behaviour at it: a platform limit from its source (item 10), and a limit the request leaves to choice as the
+   best default, recorded as an assumption (RULES); a non-functional bound stays as item 6 has it.

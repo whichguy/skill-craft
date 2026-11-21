@@ -1,0 +1,37 @@
+covered, by set (judge: claude-opus-5-5)
+round      arm                      driver           X1 /22     X2 /53      X3 /4    all /89
+round-9    G-shiploop-spec-duty4-bounds sol-medium            7         27          0         37
+round-9    G-shiploop-spec-duty4-bounds sonnet-high          13         35          0         53
+round-9    H-shiploop-spec-duty4-no-open sol-medium           12         29          0         43
+round-9    H-shiploop-spec-duty4-no-open sonnet-high          15         44          3         69
+round-9    P-shiploop-spec          sol-medium            6         33          1         45
+round-9    P-shiploop-spec          sonnet-high          15         36          0         56
+round-10   G-shiploop-spec-duty4-bounds sol-medium            5         27          0         33
+round-10   G-shiploop-spec-duty4-bounds sonnet-high          13         37          0         57
+round-10   H-shiploop-spec-duty4-no-open sol-medium           12         38          0         54
+round-10   H-shiploop-spec-duty4-no-open sonnet-high          15         38          0         57
+round-10   P-shiploop-spec          sol-medium            9         33          2         49
+round-10   P-shiploop-spec          sonnet-high          14         38          1         58
+
+covered, by set (judge: gpt-6.2-astra)
+round      arm                      driver           X1 /22     X2 /53      X3 /4    all /89
+round-9    G-shiploop-spec-duty4-bounds sol-medium            5         23          0         29
+round-9    G-shiploop-spec-duty4-bounds sonnet-high          11         31          1         47
+round-9    H-shiploop-spec-duty4-no-open sol-medium           11         28          0         41
+round-9    H-shiploop-spec-duty4-no-open sonnet-high          15         38          0         60
+round-9    P-shiploop-spec          sol-medium            5         28          0         37
+round-9    P-shiploop-spec          sonnet-high          16         32          0         54
+round-10   G-shiploop-spec-duty4-bounds sol-medium            5         21          0         26
+round-10   G-shiploop-spec-duty4-bounds sonnet-high          14         30          0         48
+round-10   H-shiploop-spec-duty4-no-open sol-medium            9         30          0         40
+round-10   H-shiploop-spec-duty4-no-open sonnet-high          15         34          0         52
+round-10   P-shiploop-spec          sol-medium            7         28          0         39
+round-10   P-shiploop-spec          sonnet-high          11         35          0         50
+
+covered on N1 (6 limits that must exist) and O1 (6 that need not), round 9 then round 10, registered judge / second judge
+  N1  P: sonnet 3, 3 / 4, 2   sol 1, 3 / 1, 3
+  N1  G: sonnet 3, 3 / 3, 3   sol 1, 0 / 0, 1
+  N1  H: sonnet 4, 4 / 4, 4   sol 4, 4 / 5, 5
+  O1  P: sonnet 5, 4 / 5, 3   sol 0, 0 / 0, 1
+  O1  G: sonnet 3, 3 / 2, 5   sol 1, 0 / 0, 0
+  O1  H: sonnet 4, 4 / 4, 4   sol 2, 2 / 2, 0

@@ -1,0 +1,149 @@
+{
+ "slot": "gym-waitlist__P-shiploop-spec__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "First committed join first, with direct creation of a booking after opt-in, is the unattended default."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "the earliest committed, currently eligible active entry first access to each released seat. It defines a total commit order for simultaneous joins. \u2026 The default has one queue, no reserved categories, and no external notification."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "gaining a seat automatically creates a booking under the applicable booking and cancellation rules.",
+   "missing": "Whether a member incurs a no-show or late-cancellation penalty if they miss or try to decline an automatic booking."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Changes that may create an allocatable seat, including a valid cancellation, a permitted capacity increase, or reopening with spare capacity, trigger reconciliation. \u2026 Reconciliation runs with the member's screen closed.",
+   "missing": "How soon after cancellation the authority must promote an eligible waiter."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "A confirmed promotion appears as an ordinary booking and resolves the waiting status. \u2026 The default is in-app read-back.",
+   "missing": "The spec defines what the member sees on return. It leaves delivery and failure handling for any actively sent promotion notice unspecified."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Simultaneous openings and repeated or overlapping processing never exceed capacity or create duplicate bookings."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "An ordinary booking request cannot take a seat owed to an earlier eligible waiter while reconciliation is pending. \u2026 Simultaneous openings and repeated or overlapping processing never exceed capacity or create duplicate bookings."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Identify required downstream booking effects such as payment capture, and settle any conflict with the consent default before automatic promotion across those effects.",
+   "missing": "When to collect payment and what happens to the booking, seat and queue position if the charge fails."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "The request supplies no waitlist size limit or per-member cap across classes. Product and platform owners must resolve any required cap before capacity-dependent work.",
+   "missing": "Whether to cap each waitlist, the limit if capped, and what a member sees when it is reached."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "At the exact scheduled start, the terminal guard applies.",
+   "missing": "Whether promotion stops any interval before the scheduled start and, if so, how long before."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Changes that may create an allocatable seat, including a valid cancellation, a permitted capacity increase, or reopening with spare capacity, trigger reconciliation.",
+   "missing": "How a staff capacity decrease affects waiting members and what happens if confirmed bookings exceed the new capacity."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Cancellation of the class or arrival at its scheduled start ends every remaining active entry and makes them ineligible for allocation immediately."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "State, interaction and service contracts \u2014 Waitlist entry and position (R-1 to R-4)",
+   "quote": "The booking authority owns minimal occurrence and member references, committed order, entry state and the promotion link where applicable. \u2026 Ordinals are derived from active entries.",
+   "missing": "Whether each entry records its join timestamp. A committed order alone need only record the sequence."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Cancellation of the class or arrival at its scheduled start ends every remaining active entry \u2026 No retention duration is supplied.",
+   "missing": "How long ended entries are retained after class start and when they are purged."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "State, interaction and service contracts \u2014 Waitlist entry and position (R-1 to R-4)",
+   "quote": "Only self status and ordinal are returned to a member. Other members' records and identifiers stay off that client."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-4 and State, interaction and service contracts \u2014 Owned event coverage",
+   "quote": "staff queue management and cross-member sharing are outside this request. \u2026 The booking authority is the source for join/withdrawal outcomes, promotion/eligibility outcomes, authorization denials and release reconciliation failures/recovery.",
+   "missing": "Staff queue management is excluded. The spec gives no staff workflow for viewing the list, manually promoting or removing a member, or looking up who was promoted when."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements \u2014 Freshness, latency, load and cost",
+   "quote": "No periodic refresh, latency SLA, volume target, availability target, or budget was supplied.",
+   "missing": "The maximum elapsed time from a committed cancellation to promotion."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1 and R-2",
+   "quote": "Preserve direct booking where a seat is available, existing eligibility and access checks, and occurrence identity. \u2026 Preserve existing legitimate bookings, cancellation terms, and eligibility."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

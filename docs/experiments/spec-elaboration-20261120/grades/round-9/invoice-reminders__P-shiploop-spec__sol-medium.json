@@ -1,0 +1,146 @@
+{
+ "slot": "invoice-reminders__P-shiploop-spec__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.32473019999999997,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "R-1 Rules left open; R-2 Rules left open",
+   "quote": "Actual authority and activation path, scope of enablement, cadence and repeat count ... The product owner must confirm overdue versus pre-due coverage",
+   "missing": "Number of reminders, their offsets from the due date, and whether any is sent before the due date are all left open."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2 A; R-2 Rules left open",
+   "quote": "Zero balance, fully paid, draft, void, or canceled invoices and opportunities before their scheduled instant produce zero dispatch attempts. ... treatment of disputed/held invoices, grace periods, credit adjustments",
+   "missing": "Whether disputed/held and credited invoices stop the sequence is left open; payment plans are not mentioned."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2 A; C-1/C-4 walk",
+   "quote": "A partially paid invoice qualifies on its remaining balance if otherwise eligible ... one submission ... showing USD 60.00 ... A stale USD 100.00 notice fails the check."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-3 A; R-3 Rules left open",
+   "quote": "Missing, invalid, ambiguous or revoked destination ... yields no submission ... Product and delivery owners must confirm channel, sender, contact selection, eligibility to notify",
+   "missing": "How do-not-contact, paused or unsubscribed customer states are honoured, and whether billing notices are exempt from a marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4 A; R-5 A",
+   "quote": "For one billing scope, invoice and logical scheduled occurrence, concurrent or repeated processing shares one reminder outcome ... A stale processor or duplicate callback cannot create another authorized submission after recorded acceptance."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2 B",
+   "quote": "Dispatch authorization uses the current eligibility, active policy, recipient and message fields at the final authorization point before submission"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-5 A; R-5 Rules left open",
+   "quote": "Retry a definitively unaccepted transient attempt within the approved retry policy ... Billing operations owns retry limits/backoff, expiry, reconciliation ownership, incident handling",
+   "missing": "Retry counts/backoff values and how a person is alerted or escalated to when sends keep failing or the provider is down."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Non-functional requirements: Operating limits",
+   "quote": "recovery during billing or provider throttling. Work remains recoverable and excess work is deferred ... must supply expected volume, dispatch lag target, service quotas",
+   "missing": "The provider rate limit and the pacing rule for large batches are not set."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1 Rules left open",
+   "quote": "Proposed default is explicit activation per billing scope, with no historical catch-up on initial enablement until approved."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1 Rules left open",
+   "quote": "cadence and repeat count, local time and timezone rules",
+   "missing": "Whose time zone applies, and any sending-hours, weekend or holiday rules (not mentioned)."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-3 A; R-3 Rules left open",
+   "quote": "gives current outstanding amount and currency and due date ... language/template policy",
+   "missing": "How currency and amounts are formatted for the recipient's locale."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-3 A; R-5 B",
+   "quote": "Missing, invalid, ambiguous or revoked destination ... yields no submission and a scoped reason. ... A post-acceptance bounce is recorded against that attempt with no automatic resend"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3 Rules left open; R-3 A",
+   "quote": "Proposed channel is email to the designated billing contact. Product and delivery owners must confirm ... contact selection",
+   "missing": "Which of several billing contacts is written to (one, all, primary) is undecided."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-5 B; R-5 State and lifecycle",
+   "quote": "Authorized billing operations can retrieve a scoped outcome and reason ... Retain minimal scoped identifiers, timestamps, safe outcome/reason",
+   "missing": "Record of what was sent per step and its visibility on the invoice itself; scope excludes a new status UI."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-3 A",
+   "quote": "The notice identifies the sender and invoice reference, gives current outstanding amount and currency and due date, and explains how to resolve the invoice using an approved billing route or instruction",
+   "missing": "Whether a payment link is included and whether it expires."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-1 B; R-1 State and lifecycle",
+   "quote": "Operations apply a policy only through existing authorized billing controls ... readable and changeable only by authorized billing actors",
+   "missing": "Which roles may configure, and who may manually send or stop a reminder."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1 A/B; R-1 Rules left open",
+   "quote": "A disable committed before dispatch authorization suppresses pending work. ... scope of enablement ... Proposed default is explicit activation per billing scope",
+   "missing": "Per-customer off switch, preview/dry-run, and manual resend are not specified."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-5 B",
+   "quote": "Authorized billing operations can retrieve a scoped outcome and reason for suppression, acceptance, reported delivery/failure, retry or unresolved handoff.",
+   "missing": "A view of upcoming scheduled reminders (what will be sent next)."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements: Operating limits",
+   "quote": "must supply expected volume, dispatch lag target, service quotas, cost limits and retry/replay bounds ... No numeric target is established here.",
+   "missing": "An actual volume cap or maximum lateness after which a reminder is not sent."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2 Basis and delta; Service boundary contracts",
+   "quote": "Preserve invoice balances, due dates, currencies and payment state by observing them without mutation. ... reminders perform no billing writes."
+  }
+ ]
+}

@@ -1,0 +1,173 @@
+PACKET 5
+Reviewed stage: carry-forward
+
+== The request the delivery was built from ==
+This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable, with a command-line tool in bin/. The help desk is starting to promise response times. Each ticket gets a due time: the time it was created plus the response time for its priority, which is 4 hours for urgent tickets, 24 for high, 72 for normal and 168 for low, and the help desk must be able to change those hours without a code change. A ticket's due time is set once: a later change of the hours or of the ticket's priority does not move it. Every ticket shows its due time as `due`, and `GET /tickets?overdue=true` lists only the open and in-progress tickets whose due time has passed. The tickets already in the production data file get due times too, from their own creation time and priority, and keep them from then on. Due times are switched on in production only once the data file holds them: until the DUE_TIMES environment variable is `on`, the service answers exactly as it does today. If the new release misbehaves, operators must be able to go back to the current release, 1.4.0, and it must still start on the data file the new release wrote and show every ticket. Everything the service already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones.
+
+== What the review changed in the files ==
+diff --git a/test/due-store.test.js b/test/due-store.test.js
+index 9bddac9..83540e0 100644
+--- a/test/due-store.test.js
++++ b/test/due-store.test.js
+@@ -41,2 +41,11 @@ test('TC-29 (a) overdue default page limit is 20', () => {
+   assert.ok(page.next);
+ });
++
++test('TC-29 (b) overdue string false does not filter', () => {
++  const clock = manualClock(CREATED);
++  const store = TicketStore.open({ clock });
++  store.create({ title: 'VPN drops every hour', requester: 'maria@example.com', priority: 'urgent' }, 'dana');
++  const listed = store.list({ overdue: 'false' });
++  assert.deepEqual(listed.items.map((ticket) => ticket.id), ['T-0001']);
++  assert.deepEqual(store.list({ overdue: true }).items.map((ticket) => ticket.id), []);
++});
+diff --git a/src/store.js b/src/store.js
+index 4507104..e3377f5 100644
+--- a/src/store.js
++++ b/src/store.js
+@@ -92,9 +92,9 @@ class TicketStore {
+   list({ filters = {}, limit = 20, after = null, overdue = false } = {}) {
+     if (after !== null && parseId(after) === null) throw new InvalidError('cursor is not one this service issued');
+-    const now = overdue ? this.clock.now().getTime() : null;
++    const now = overdue === true ? this.clock.now().getTime() : null;
+     const matching = [...this.tickets.values()]
+       .filter((ticket) => {
+         if (!matchesFilters(ticket, filters)) return false;
+-        if (!overdue) return true;
++        if (overdue !== true) return true;
+         return isActive(ticket.status) && Date.parse(ticket.due) < now;
+       })
+diff --git a/test/due.test.js b/test/due.test.js
+index 64e525d..4da3f0c 100644
+--- a/test/due.test.js
++++ b/test/due.test.js
+@@ -12,4 +12,5 @@ const os = require('node:os');
+ const path = require('node:path');
+ const { manualClock } = require('../src/clock');
++const { RAW_COLUMNS, details, rawLine, table } = require('../src/format');
+ const { withService } = require('./helpers');
+ 
+@@ -42,4 +43,21 @@ async function twoOverdueSetup(api) {
+ }
+ 
++test('TC-1 (a) CLI raw table and show omit due', () => {
++  const ticket = {
++    id: 'T-0001',
++    title: VPN.title,
++    priority: 'high',
++    requester: VPN.requester,
++    status: 'open',
++    created: CREATED,
++    updated: CREATED,
++    due: DUE_HIGH,
++  };
++  assert.deepEqual(RAW_COLUMNS, ['id', 'status', 'priority', 'title']);
++  assert.equal(rawLine(ticket).includes(DUE_HIGH), false);
++  assert.equal(table([ticket]).includes(DUE_HIGH), false);
++  assert.equal(details(ticket, []).includes(DUE_HIGH), false);
++});
++
+ test('TC-1 flag off create get and list bodies have no due', async () => {
+   await withService({ clock: manualClock(CREATED) }, async (api) => {
+diff --git a/test/due-config.test.js b/test/due-config.test.js
+index 11da001..cc509be 100644
+--- a/test/due-config.test.js
++++ b/test/due-config.test.js
+@@ -20,5 +20,5 @@ test('TC-5 DUE_HOURS_URGENT 0 is ConfigError', () => {
+ });
+ 
+-test('TC-5 (a) DUE_HOURS 8761 is ConfigError', () => {
++test('TC-5 (a) DUE_HOURS 0 and 8761 are ConfigError', () => {
+   for (const [name, field] of [
+     ['DUE_HOURS_URGENT', 'dueHoursUrgent'],
+@@ -27,10 +27,17 @@ test('TC-5 (a) DUE_HOURS 8761 is ConfigError', () => {
+     ['DUE_HOURS_LOW', 'dueHoursLow'],
+   ]) {
++    assert.equal(loadConfig({ [name]: '1' })[field], 1, name);
+     assert.equal(loadConfig({ [name]: '8760' })[field], 8760, name);
++    assert.throws(() => loadConfig({ [name]: '0' }), (error) => (
++      error instanceof ConfigError
++      && error.message.includes(name)
++      && /1/.test(error.message)
++      && /8760/.test(error.message)
++    ), `${name}=0`);
+     assert.throws(() => loadConfig({ [name]: '8761' }), (error) => (
+       error instanceof ConfigError
+       && error.message.includes(name)
+       && /8760/.test(error.message)
+-    ), name);
++    ), `${name}=8761`);
+   }
+ });
+diff --git a/test/due-persistence.test.js b/test/due-persistence.test.js
+index be33b3a..d9061c1 100644
+--- a/test/due-persistence.test.js
++++ b/test/due-persistence.test.js
+@@ -18,4 +18,5 @@ const CREATED = '2025-09-01T08:15:00.000Z';
+ const DUE_URGENT = '2025-09-01T12:15:00.000Z';
+ const DUE_NORMAL = '2025-09-04T08:15:00.000Z';
++const DUE_LOW = '2025-09-08T08:15:00.000Z';
+ 
+ function folder(t) {
+@@ -108,4 +109,39 @@ test('TC-8 restart with new urgent hours leaves due', (t) => {
+ });
+ 
++test('TC-18 (a) backfill uses each ticket priority hours', (t) => {
++  const file = path.join(folder(t), 'tickets.json');
++  const document = {
++    version: 1,
++    nextNumber: 3,
++    tickets: [
++      {
++        id: 'T-0001',
++        title: 'VPN drops every hour',
++        priority: 'urgent',
++        requester: 'maria@example.com',
++        status: 'open',
++        created: CREATED,
++        updated: CREATED,
++      },
++      {
++        id: 'T-0002',
++        title: 'Printer on the 4th floor jams',
++        priority: 'low',
++        requester: 'li@example.com',
++        status: 'open',
++        created: CREATED,
++        updated: CREATED,
++      },
++    ],
++    audit: [],
++    outbox: { nextId: 1, events: [] },
++  };
++  fs.writeFileSync(file, `${JSON.stringify(document, null, 2)}\n`);
++  openStore(file);
++  const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
++  assert.equal(saved.tickets[0].due, DUE_URGENT);
++  assert.equal(saved.tickets[1].due, DUE_LOW);
++});
++
+ test('TC-18 backfill missing due saves without touching audit or outbox', (t) => {
+   const file = path.join(folder(t), 'tickets.json');
+diff --git a/docs/shiploop/architecture.md b/docs/shiploop/architecture.md
+index 8f227dd..54a0457 100644
+--- a/docs/shiploop/architecture.md
++++ b/docs/shiploop/architecture.md
+@@ -61,5 +61,5 @@ House style is in environment.md Platform facts and CONTRIBUTING.md. Due-time co
+ - Ticket changes only inside `TicketStore`.
+ - A new setting defaults when the key is missing on the `createService` object (`TEST_SETTINGS` will not grow a `dueTimes` key; existing HTTP tests skip `loadConfig`).
+-- Boolean flags compare with `===` (`dueTimes` is true only for `DUE_TIMES === 'on'`).
++- Boolean flags compare with `===` (`dueTimes` is true only for `DUE_TIMES === 'on'`; `store.list` overdue filtering is `overdue === true`, so a truthy non-boolean does not filter).
+ - `wholeNumber` for hours: min 1, max 8760, `ConfigError` names the variable (`${name} must be from ${min} to ${max}, not ${value}`).
+ - Existing files under `test/` stay unmodified; new cases go in new `test/*.test.js` files.
+@@ -116,5 +116,5 @@ Status: accepted.
+ ### AD-4 Overdue is an AND predicate beside `matchesFilters`
+ 
+-Choice: `GET /tickets?overdue=true` (flag on) keeps tickets whose status is in `ACTIVE` and whose `due` is strictly before `clock.now()`, then applies today's list filters. `matchesFilters` stays OR of the given fields. `overdue` is not a field of that function. `parseListQuery` does not learn `overdue`: a known param there is validated even when the HTTP flag is off, which would 400 `overdue=maybe` and break R-1. GET `/tickets` reads the raw query when `dueTimes` is true and passes overdue into `store.list`. `store.list` applies that combined filter (overdue predicate AND `matchesFilters`) **before** `paginate`, the same order as today's status/priority filters. Filtering the already-paged `{ items, next }` would drop an overdue ticket that is not on the first page (T-0001 high not overdue, T-0002 urgent overdue, `limit=1` must still return T-0002). Other `overdue` values are 400 `invalid`. Flag off: `overdue` is an unknown parameter and is ignored.
++Choice: `GET /tickets?overdue=true` (flag on) keeps tickets whose status is in `ACTIVE` and whose `due` is strictly before `clock.now()`, then applies today's list filters. `matchesFilters` stays OR of the given fields. `overdue` is not a field of that function. `parseListQuery` does not learn `overdue`: a known param there is validated even when the HTTP flag is off, which would 400 `overdue=maybe` and break R-1. GET `/tickets` reads the
+[... cut here: 918 more characters ...]
+
+[... not shown, for length: docs/shiploop/spec.md (4755 characters of diff); docs/shiploop/environment.md (11088 characters of diff) ...]
+
+== What the review changed in the stage's recorded result ==
+(the result did not change)

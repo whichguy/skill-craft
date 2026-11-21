@@ -1,0 +1,81 @@
+{
+ "ending": "ended by itself",
+ "usable": false,
+ "run_dir": "/Users/dadleet/e2e-runs-sdlc11/20261121/shared-expenses-sonnet-high/.shiploop-runs/work-20261121-160245-f59548/run",
+ "accepted_at": "2026-11-21T16:09:11Z",
+ "spec_action": "nav-1b52fd9bcfc947e5a5711211a35c0a38",
+ "spec_commit": "fe4850aa0a5977d7bb416a04595dfe13631b07cb",
+ "spec_commit_subject": "feat(W2/S1): W2/S1 built: lib/app.js and server.js; the real-server proof script (C1..C11), syntax \u2026",
+ "test_strategy_completed": true,
+ "spec_edited_after_its_commit": false,
+ "reviewed": true,
+ "start_head": null,
+ "case_recorded": "shared-expenses",
+ "exposure": {
+  "spec_packet_received": true,
+  "spec_packet_whole": true,
+  "spec_packet_characters": 21392,
+  "spec_packet_has_cue": false,
+  "spec_packet_has_guide_text": false,
+  "submission_found": true,
+  "guide_files_read": {
+   "before the spec packet": [],
+   "while writing the spec": [],
+   "after the submission": [
+    "requirements-definition.md"
+   ]
+  }
+ },
+ "accepted": null,
+ "submitted": {
+  "words": 2347,
+  "requirement_ids": 12
+ },
+ "spec_seconds": 301.0,
+ "spec_review_seconds": 217.2,
+ "spec_author_seconds": 83.8,
+ "turns": 510,
+ "cost_usd": 20.4834,
+ "refusals": 10
+}
+{
+ "ending": "stopped at acceptance",
+ "usable": true,
+ "run_dir": "/Users/dadleet/e2e-runs-sdlc10/20261121-e2/e2-g-1/.shiploop-runs/work-20261121-151624-5a14c0/run",
+ "accepted_at": "2026-11-21T15:19:35Z",
+ "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc",
+ "spec_commit": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0",
+ "spec_commit_subject": "docs(shiploop): record skill-craft-shiploop-this-directory-is-07beeb knowledge after spec",
+ "test_strategy_completed": false,
+ "spec_edited_after_its_commit": false,
+ "reviewed": true,
+ "start_head": null,
+ "case_recorded": "ticket-due-times",
+ "exposure": {
+  "spec_packet_received": true,
+  "spec_packet_whole": true,
+  "spec_packet_characters": 21238,
+  "spec_packet_has_cue": false,
+  "spec_packet_has_guide_text": false,
+  "submission_found": true,
+  "guide_files_read": {
+   "before the spec packet": [],
+   "while writing the spec": [],
+   "after the submission": []
+  }
+ },
+ "accepted": {
+  "words": 674,
+  "requirement_ids": 4
+ },
+ "submitted": {
+  "words": 674,
+  "requirement_ids": 4
+ },
+ "spec_seconds": 71.0,
+ "spec_review_seconds": 38.4,
+ "spec_author_seconds": 32.6,
+ "turns": null,
+ "cost_usd": null,
+ "refusals": 0
+}

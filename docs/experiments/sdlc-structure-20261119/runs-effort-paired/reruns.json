@@ -1,0 +1,10 @@
+{
+ "sol-medium-due-p1": {
+  "suite": {
+   "first": "FAIL: the delivery's own node --test: 0 pass, 0 fail (rc None); failing: no failing test named",
+   "runs": 5,
+   "passed": 5,
+   "note": "run again on the returned work with python3 \"$E2E_CHECKS/base_tests.py\" suite node-tickets"
+  }
+ }
+}

@@ -1,0 +1,187 @@
+{
+ "slot": "grokbot-salesforce__K-shiploop-spec-default-bounds__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "AD-1; R-1 Entry; service contracts (Lightning consumer \u2192 Salesforce)",
+   "quote": "Serve Grok Bot as an LWC in the existing authenticated Lightning Experience shell with an actual CustomTab metadata entry. \u2026 Server-side current authenticated role and effective feature/callout grants at admission. No bot entitlement cache or business-record read."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "AD-2",
+   "quote": "The method has no CRM object queries, sharing dependencies, FLS dependencies, DML or record permissions.",
+   "missing": "Excluding CRM reads prevents the bot from widening visibility. There is no requirement to ground answers in records under the asking user's sharing context."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "AD-2",
+   "quote": "The method has no CRM object queries, sharing dependencies, FLS dependencies, DML or record permissions.",
+   "missing": "The design avoids field access entirely. It gives no rule for checking field permissions or masking encrypted or restricted field values when reading or displaying CRM data."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "AD-2; R-4 State and data",
+   "quote": "Use permission sets for entry/class/feature and for outbound principal access so they can be revoked independently. \u2026 Salesforce admin alone provisions the encrypted secret and scoped use grants."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-3 State and data; behavior model (Org admin)",
+   "quote": "Only that view can read its application state. \u2026 **Org admin** may alter test grants and read only safe status in an isolated development org."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-2",
+   "quote": "Use an imperative, non-cacheable LWC invocation of a narrow Apex method. \u2026 Use one callout per admitted invocation with R-2's timeout.",
+   "missing": "The specification uses a direct Apex callout. It gives no trigger or post-DML callout constraint and prescribes no separate asynchronous Salesforce transaction."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "Use an extensible Named Credential at `https://api.x.ai` and an External Credential with Custom authentication. \u2026 Keep credential values out of code, UI, payload diagnostics and metadata artifacts."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "AD-2 Evidence and limit",
+   "quote": "Salesforce documents 100 callouts per transaction, 120 seconds cumulative timeout and a 6 MB synchronous request/response limit that counts toward heap.",
+   "missing": "The numeric Apex heap and CPU time ceilings are missing. The 6 MB figure given is a request/response size limit."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2 Open gaps",
+   "quote": "The system-test owner checks request/response and timeout behavior with a controlled dependency.",
+   "missing": "The controlled dependency is unspecified. There is no requirement for an Apex callout mock or statement that Apex tests cannot make real callouts."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-2; R-2 failure mapping",
+   "quote": "Use an extensible Named Credential at `https://api.x.ai` and an External Credential with Custom authentication. \u2026 Missing integration configuration, provider HTTP 401, 403 or 404 | Show that Grok is unavailable for this org"
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "AD-2; service contracts (Lightning consumer \u2192 Salesforce)",
+   "quote": "Use an imperative, non-cacheable LWC invocation of a narrow Apex method. \u2026 A returned terminal result for the active, timely attempt settles the UI.",
+   "missing": "The UI learns the result from the original invocation. There is no delivery or status-check mechanism for work completing after that invocation returns."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-3 State and data; AD-4",
+   "quote": "An attempt settles at most once in the active view. \u2026 Correlate completion to both the current conversation and attempt, including after reset, reconnection and view deadline.",
+   "missing": "Deduplication applies within the live view. There is no message- or request-level idempotency rule for a retried or re-enqueued job."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "AD-2 Evidence and limit",
+   "quote": "Salesforce also documents up to 20 concurrent external callouts for Developer Edition. \u2026 Excess capacity follows R-2 unavailable feedback or the view deadline.",
+   "missing": "This limit and fallback apply to external callouts. No async job concurrency or queue-depth limit, or enqueue-failure outcome, is specified."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-2 failure mapping",
+   "quote": "Missing integration configuration, provider HTTP 401, 403 or 404 | Show that Grok is unavailable for this org \u2026 Outbound timeout, client deadline, disconnected/failed transport or HTTP 5xx | Show that a reply could not be obtained",
+   "missing": "Timeouts and HTTP 5xx failures share a message and retry action. Separate user-visible outcomes for those two cases are missing."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2 Recover and failure mapping",
+   "quote": "No failure advances history or triggers an automatic retry. \u2026 HTTP 429 | Show that Grok is busy or rate-limited and suggest waiting before sending again."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2 Reply, Recover and failure mapping",
+   "quote": "Never promote partial text to a reply. \u2026 Ask for a shorter response or a narrower question. \u2026 Show that a reply could not be obtained and let the user send again."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "AD-3; AD-4",
+   "quote": "Send compact text messages with alternating user/assistant roles for retained pairs, then the new user prompt. \u2026 Use no persistent client store, shared memory cache, custom object or background job.",
+   "missing": "The specification defines transient role/text pairs. It supplies no conversation and turn record schema with status, timestamps, model identifier and usage counts."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-3 State and data",
+   "quote": "New chat advances the view's conversation identity and removes all previous content and error state. Reload, teardown, or detected account/session loss discards that view's data, including pending results.",
+   "missing": "View lifetime and clearing are defined, but the effect of deleting a Salesforce user on an open view or provider audit copies is unspecified."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-3 Minimize disclosure; AD-2",
+   "quote": "only synthetic text should be used, that submitted text and recent conversation go to xAI \u2026 No automatic Salesforce user or record identifiers are sent. \u2026 The method has no CRM object queries"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3 Follow up",
+   "quote": "Zero through four completed pairs can precede the new prompt. On the fifth success the oldest pair leaves the window. The sixth Send uses pairs two through five."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-1 Entry; R-2 Validate and Reply",
+   "quote": "an empty conversation and labeled prompt field. \u2026 Empty, whitespace-only, missing, non-text, malformed Unicode and over-limit input cause no outbound call. \u2026 Accept 1 through 2,000 Unicode scalar values inclusive after trimming."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-4 State and data; AD-3",
+   "quote": "If recovery fails, disable feature access and resolve configuration before re-enabling. \u2026 A different model or changed retention policy calls for spec/architecture reconciliation before live use.",
+   "missing": "Feature disablement is specified. There is no administrator operation for changing the model or inspecting individual failed requests."
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "AD-1; AD-2",
+   "quote": "Deployment, credential setup and permission assignments are separate external operations and need their own authorized actors and read-back. \u2026 The shared named principal uses a dedicated development inference key.",
+   "missing": "Development metadata deployment and credential setup are addressed. No scratch-org or sandbox promotion path, production configuration and credential mapping, or production Apex coverage requirement is stated."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "R-2 Send and Recover",
+   "quote": "immediately shows the prompt as pending and announces **Waiting for Grok**. \u2026 The waiting cue does not assert provider receipt. \u2026 The view stops waiting at 40 seconds from admission if no current result has been handled."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "R-1\u2013R-3 Interface and accessibility; R-2 failure mapping",
+   "quote": "Demonstrate deliberate empty, waiting, error and reply layouts. \u2026 Provider refusal or content-filter termination | Indicate that Grok could not answer the prompt and allow revision."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-1 Basis and delta; AD-2",
+   "quote": "Preserve unrelated org navigation, permissions, records and automation. \u2026 The method has no CRM object queries, sharing dependencies, FLS dependencies, DML or record permissions."
+  }
+ ]
+}

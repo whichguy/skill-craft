@@ -1,0 +1,145 @@
+{
+ "slot": "gym-waitlist__G-shiploop-spec-duty4-bounds__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "A-1",
+   "quote": "The oldest eligible waiter is booked the moment a spot frees; no accept/decline step and no timer."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "AD-2, R-10 (I-4)",
+   "quote": "each entry takes the next value of a per-class counter, assigned inside the join transaction. Order is ascending sequence. \u2026 promotion always takes the lowest eligible sequence."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "joining several overlapping classes' waitlists (no clash check is added)",
+   "missing": "The spec addresses joining both lists but leaves the fate of the other entry when one promotion succeeds unspecified."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "claim window / accept-decline offers (A-1); manual staff promotion; swapping places; promoting a party of several members together; refunds or penalties.",
+   "missing": "There is no offer to decline. Whether missing or cancelling an automatically booked spot incurs the existing no-show or late-cancellation penalty is unspecified."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "F-3",
+   "quote": "actor (member or staff) \u2192 existing cancel/remove/capacity operation \u2192 same atomic unit runs T-3/T-4 loop \u2192 committed \u2192 affected members see results on next read"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "Outbound notification of promotion and removal uses an existing channel if one exists (AD-7, G-4). \u2026 a failed notification send never reverses a promotion; it is logged (R-12).",
+   "missing": "The in-app booking label is specified, but the outbound channel is unresolved and the required contents of the outbound message are unspecified."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-10, R-3",
+   "quote": "all operations on one class serialize (AD-1). \u2026 marks it `Promoted`, and repeats until the class is full again or no `Waiting` entry remains."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-9.b, R-10",
+   "quote": "A member who already has a `Waiting` entry directly booking \u2192 `ALREADY_WAITLISTED`. \u2026 all operations on one class serialize (AD-1). \u2026 the cancellation promotes in its own unit, and the direct booking sees the class full."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "whether automatic promotion may do that on the member's behalf needs an owner decision \u2026 Interim: those classes are excluded from the waitlist (R-1 open gap).",
+   "missing": "Paid classes are excluded for now. If enabled, when to charge or consume credit and what happens to the entry and spot on payment failure are undecided."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "There is no length cap: the Nth member (N unbounded, \u2264 distinct members) is accepted exactly like the first."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-6.c, G-2",
+   "quote": "an operation timestamped one tick before B turns false promotes; one tick after does not. \u2026 The real B(class, now) (cut-off rules) and booking eligibility rules",
+   "missing": "The spec uses the existing booking cut-off but leaves open whether and how far before class start it occurs."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-3, R-10 (I-2)",
+   "quote": "A capacity increase of *k* promotes up to *k* entries. \u2026 booked count \u2264 capacity, except where staff lower capacity below the booked count (existing behaviour, untouched)."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-6.b",
+   "quote": "staff cancels class \u2192 `m-cat` `Removed(CLASS_CANCELLED)`; `m-dan` join \u2192 `CLASS_CANCELLED`."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-16",
+   "quote": "Waitlist entry (class, member, sequence, status, reason) \u2026 Position, waiting count | derived at read | the member | not stored",
+   "missing": "The sequence records join order, but the entry has no stated join timestamp."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-6, A-7",
+   "quote": "`Waiting` entries become `Removed(WAITLIST_CLOSED)` as soon as B(class, now) is false \u2026 while the class record exists, and shown to the member until the class's start time passes."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-11",
+   "quote": "a member sees only their own entries, their position and the anonymous waiting count \u2014 never another member's name, id or entry."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-11, R-3, R-12.a",
+   "quote": "Staff visibility of waiters is out of scope. \u2026 manual staff promotion \u2026 the sink holds one `waitlist.promoted` for C-100 with an opaque member id and no personal fields.",
+   "missing": "The spec excludes staff viewing and manual promotion, and supplies no staff action to remove a waiter or staff-accessible history showing who was promoted at what time."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "AD-3",
+   "quote": "promotion runs inside the transaction of the operation that freed capacity."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "classes that are not full, booking, cancelling a booking, capacity enforcement and the existing cut-off rules behave as before, except that cancelling/removal/capacity-increase on a class with waiters also promotes (R-3)."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

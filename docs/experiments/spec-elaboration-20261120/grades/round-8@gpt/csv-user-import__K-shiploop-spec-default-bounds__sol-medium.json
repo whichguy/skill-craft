@@ -1,0 +1,147 @@
+{
+ "slot": "csv-user-import__K-shiploop-spec-default-bounds__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "A batch moves from candidate values to either the entire durable set or no durable users from that attempt."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Within the first failing row-validation stage, report the lowest affected logical row with its reason.",
+   "missing": "Only the first failing row is identified. Reporting the other failing rows and their reasons would require an additional rule."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "A repeated key in the CSV or a key already reserved by the authority at the commit boundary rejects the whole batch."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Credential, role and scope columns are unknown columns and cause rejection even when blank."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The defaults are to require both admin status and existing create authority in the active scope, with fresh permission at commit."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "It contains `email` exactly once and may include `name` exactly once, in either order. \u2026 Reject an empty or undecodable file, malformed quoting, missing or repeated header, unknown column"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Accept comma-delimited, valid UTF-8 CSV with an optional initial UTF-8 BOM, LF or CRLF line endings, and optional final line ending. \u2026 Support quoted fields, commas and line breaks inside quotes, and doubled quotes inside quoted fields."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "If mandatory provisioning exposes partial accounts or effects that the authority cannot make consistent with the batch promise, record the conflict and obtain a supported design or product decision through the correction route.",
+   "missing": "How to prevent an invitation from being sent before commit, or handle one already sent if a later row fails, remains open."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "C4",
+   "quote": "Assert acceptance at size 1,048,576 and rejection at 1,048,577 with the byte-limit reason. Assert 1,000 distinct rows create 1,000 and 1,001 create zero with the row-limit reason."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C3, R-2",
+   "quote": "Reject zero bytes (header missing), `email\\n\\n` (zero rows) \u2026 A single valid record is allowed."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Retrying an unchanged committed file yields conflicts with zero extra users."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "A confirmed success shows the created count and a way to open the user list. \u2026 No durable import job, resumable upload, or cross-session result is offered.",
+   "missing": "The initiating screen reports completion. The spec provides no rule for sending large uploads to a background job or notifying the admin when such a job finishes."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "The default is ordinary non-privileged provisioning with no import-specific invitations or credentials.",
+   "missing": "Whether ordinary provisioning sends welcome mail for each imported account and how those messages are paced remains open."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Confirm the exact uniqueness key and scope, reserved states, ordinary role/status, required provisioning and side effects \u2026 The default is ordinary non-privileged provisioning with no import-specific invitations or credentials.",
+   "missing": "A builder still needs the ordinary account's initial status, whether it starts with a password, and how the user first signs in."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "File bytes go only to the authorized import boundary. The application holds uploaded bytes and parsed row values only as long as needed for that attempt, including abort or failure cleanup. The application neither stores a durable upload copy"
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "The responsible application boundary provides a safe correlation ID, outcome category and created count for known outcomes",
+   "missing": "The audit does not specify an importer identity, a timestamp, or a link from the operation to the accounts it created."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "Flows and transitions, R-4",
+   "quote": "Scheduled processing, subscriptions, automatic retry, and import cancellation are outside the selected interaction \u2026 manually submit a file for remaining accounts if appropriate.",
+   "missing": "Cancellation is explicitly excluded. Recovery uses a manually prepared file. There is no rule for identifying and resubmitting only failed rows from the original attempt."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-4, Capacity and compatibility",
+   "quote": "After submission, show and announce pending status until there is an authoritative result or the interface loses the ability to know it. \u2026 There is no stipulated latency, throughput, concurrency, cost or availability target.",
+   "missing": "The maximum processing time for an at-limit file is unspecified. The only progress indication required is pending status."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C7, R-3",
+   "quote": "let B create Ada through ordinary administration while A's Ada import is pending. A's later commit attempt rejects row 2 and leaves only the ordinary user's ID. \u2026 Preserve pre-existing users, their IDs, fields, and access."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Validate `email` and a supplied nonblank `name` under ordinary account creation rules. \u2026 identify the actual syntax, length and omitted-value behavior.",
+   "missing": "Field-length boundaries still depend on unconfirmed account rules. The spec excludes rejected-row export but gives no formula-handling rule for imported values later opened in a spreadsheet."
+  }
+ ]
+}

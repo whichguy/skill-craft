@@ -1,0 +1,151 @@
+{
+ "slot": "gym-waitlist__P-shiploop-spec__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "FIFO automatic booking is a default inferred from the outcome."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1; Scope and basis",
+   "quote": "The queue is ordered by accepted joins per occurrence, including a definite order for simultaneous admissions. No priority tiers or waitlist-size product cap are assumed. \u2026 The waitlist adds no staff workflow"
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-1.A3; R-4",
+   "quote": "The same member may independently wait for distinct occurrences if allowed by existing eligibility. \u2026 whether a waitlisted member can be booked under existing payment, waiver, credit, schedule conflict and late-cancellation terms.",
+   "missing": "What happens to the other overlapping entry when the first promotion commits, including when both classes have vacancies at once."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-3; R-4",
+   "quote": "Preserve existing cancellation rules for confirmed bookings. \u2026 No new charges, offer windows, penalties or priority schemes are introduced by this spec.",
+   "missing": "Whether existing no-show or late-cancellation penalties apply when a member misses or cancels an automatic booking they did not see."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-4.A1",
+   "quote": "Before cutoff, an effective booking cancellation that frees a seat triggers reevaluation by the booking authority with every member view closed.",
+   "missing": "How soon after the cancellation the authority must complete the promotion."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-2.A1; R-2; C2",
+   "quote": "In-app confirmation on read is the default. \u2026 Cal sees a confirmed booking for C101. \u2026 On a failed read, show that current status is unavailable and offer retry.",
+   "missing": "The specified retry applies to reading status. There is no proactive promotion message or failure behavior for sending one."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-4.A3",
+   "quote": "A replayed or overlapping valid seat-release signal resolves against current occurrence state and fills only real vacancies. \u2026 A stale signal cannot reopen a closed waitlist, exceed capacity, or assign two bookings for one entry."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-4.A2; R-4.A1",
+   "quote": "A new direct booking cannot claim a seat owed to a waiting entry or reserved for reconciliation. \u2026 one booking per member and occurrence. A promotion consumes its seat and ends its entry as one visible outcome."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "a rule that requires fresh consent or charges at promotion, needs reconciliation with the product owner before exposing affected joins.",
+   "missing": "When a promoted booking is charged and what happens to the seat and entry if payment fails."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "No priority tiers or waitlist-size product cap are assumed.",
+   "missing": "The default is uncapped. A capped waitlist would need a maximum size and a member-visible result when that size is reached."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-5.A1",
+   "quote": "Close enrollment and promotion at the earlier of occurrence start or an existing earlier booking cutoff, or on class cancellation. \u2026 At the exact cutoff, closure wins over a join or assignment that has yet to commit."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-4; R-1",
+   "quote": "Other existing changes that create available seats must honor the same priority if such routes exist. \u2026 A lower capacity than current enrollment \u2026 needs reconciliation with the product owner before exposing affected joins.",
+   "missing": "How a staff capacity reduction affects existing bookings, protected vacancies and waiting entries, especially when enrollment exceeds the new capacity."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-5.A1",
+   "quote": "Close enrollment and promotion at the earlier of occurrence start or an existing earlier booking cutoff, or on class cancellation. End active entries without creating bookings and show closure for a class the member can still read."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "The booking authority owns the durable active entry and its admission order.",
+   "missing": "Whether each entry records its join time and whether queue position is stored or calculated from admission order."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-5.A2",
+   "quote": "Withdrawal, ineligibility, promotion and closure remove the entry from the active queue. Retain only what is needed for the member's outcome, replay safety and established retention obligations, then remove or de-identify expired waitlist data according to the applicable policy.",
+   "missing": "The retention period or expiry rule that determines when terminal entries must be removed or de-identified."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Only the member's own protected facts reach their client. \u2026 Queue position and member lists are outside scope.",
+   "missing": "The member can see their waiting status privately. Showing their own numerical position is explicitly outside scope."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-6.A3",
+   "quote": "Authorized operations staff can retrieve app-owned outcomes for join, withdrawal, closure, promotion, authorization denial, assignment failure, and recovery using safe occurrence/operation correlation.",
+   "missing": "Staff have diagnostic outcomes. The spec supplies no roster view, manual promotion or removal controls, or history identifying which member was promoted at what time."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements, Performance, workload and recovery limits",
+   "quote": "Measure read, join and seat-to-booking latency and recovery under single-occurrence contention and independent-occurrence load.",
+   "missing": "The maximum elapsed time from an effective cancellation to a confirmed promotion."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1.A2; Non-functional requirements, Integrity, durability and privacy",
+   "quote": "An eligible member can book through the existing path when there is a free seat and no waiting member with priority. \u2026 Existing records preserve identity and occupancy when the feature is introduced."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1.A1; Non-functional requirements, Integrity, durability and privacy",
+   "quote": "An eligible signed-in member viewing a full, bookable class occurrence can choose **Join waitlist**. \u2026 The booking owner must inspect data and cutover compatibility before activation, including any existing queue-like state",
+   "missing": "How a class already full at activation receives its initial queue, including the treatment of any pre-existing waiting records."
+  }
+ ]
+}

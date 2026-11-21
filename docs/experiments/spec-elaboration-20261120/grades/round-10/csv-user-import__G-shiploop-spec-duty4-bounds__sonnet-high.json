@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__G-shiploop-spec-duty4-bounds__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.36082179999999997,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "exactly one user is created per data record, as one atomic unit: all appear or none do."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "{ outcome: \"created\"|\"rejected\"|\"failed\", created_count: <n>, errors: [{ row, field, code, first_row? }] } ... `errors` is never truncated."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "unique within the file compared case-insensitively (`duplicate_in_file`, also giving `first_row`); not already in the store, compared case-insensitively (`email_exists`)."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "A-7",
+   "quote": "No role column: created users take the host default role. Basis: a CSV must not be a privilege-escalation path."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "the import page and the import request are available only to an authenticated identity the host authorizes as admin.",
+   "missing": "Whether bulk import is a distinct permission from creating a single user; the spec only says 'admin' and leaves the admin decision to the host (G-2)."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "header errors `missing_column`, `unknown_column`, `duplicate_column` (all of them listed, with row 1 and the column name...)"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "UTF-8 with an optional leading BOM that is stripped; comma delimiter; RFC 4180 double-quote quoting; LF or CRLF; first record is a header."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "State and data assessment",
+   "quote": "Partial failure and recovery: commit is atomic, so no partial state exists to repair"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-6",
+   "quote": "Over `MAX_FILE_BYTES` the upload is rejected with 413 `file_too_large` ... more than `MAX_DATA_ROWS` data records is rejected 400 `too_many_rows`",
+   "missing": "The actual values of MAX_FILE_BYTES and MAX_DATA_ROWS; the spec deliberately chooses none (G-1)."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AC-2.4",
+   "quote": "empty body part returns 400 `file_empty`; `email,name` + LF returns 400 `no_rows`; `email,name` / `z@example.com,Zed` with no final LF returns 201 with created_count 1."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "Transition ledger",
+   "quote": "a repeated upload of an already imported file is T-3 (all `email_exists`) with no change."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "A-5",
+   "quote": "Synchronous completion, no job record. Basis: R-6's bound keeps the work to one request."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "Service boundaries",
+   "quote": "Outside this feature: no third-party or remote service is called; no outbound email."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "G-4",
+   "quote": "how imported users first obtain credentials (invitation, reset link, none) and whether they are notified. This is a product decision for the user.",
+   "missing": "Whether created users are active or pending, whether they have a password, and how they first sign in."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "Uploaded bytes live only in request memory (or a transient spool removed before the response is sent). Neither logs nor audit nor any other store retains them."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "every import attempt, including denied ones, writes one audit record: event `user_import`, actor id, UTC timestamp, outcome"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "Transition ledger",
+   "quote": "Timeout and cancellation: a client that disconnects mid-upload leaves no partial effect, because the write happens only after the full body is read and validated",
+   "missing": "Whether the admin can cancel an in-flight import from the page; retry is whole-file re-upload only, with no explicit cancel action."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "NFR-5",
+   "quote": "unresolved. The requirement is that an import of `MAX_DATA_ROWS` rows completes within the host runtime's request time limit; neither value is known (G-1). No latency target is invented.",
+   "missing": "A concrete time bound; progress is only an indeterminate indicator (R-8) with no measurable progress."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Import only creates. It never changes or replaces an existing user.",
+   "missing": "That the existing single-user creation path keeps working unchanged is not stated."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "formula-injection neutralization (values are stored verbatim after trim; any later CSV export owns that risk)",
+   "missing": "A maximum field length; name length is deferred to the unknown host model (G-3)."
+  }
+ ]
+}

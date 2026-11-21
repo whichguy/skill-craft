@@ -1,0 +1,118 @@
+PACKET 6
+Reviewed stage: system-test-author
+
+== The request the delivery was built from ==
+This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable, with a command-line tool in bin/. The help desk is starting to promise response times. Each ticket gets a due time: the time it was created plus the response time for its priority, which is 4 hours for urgent tickets, 24 for high, 72 for normal and 168 for low, and the help desk must be able to change those hours without a code change. A ticket's due time is set once: a later change of the hours or of the ticket's priority does not move it. Every ticket shows its due time as `due`, and `GET /tickets?overdue=true` lists only the open and in-progress tickets whose due time has passed. The tickets already in the production data file get due times too, from their own creation time and priority, and keep them from then on. Due times are switched on in production only once the data file holds them: until the DUE_TIMES environment variable is `on`, the service answers exactly as it does today. If the new release misbehaves, operators must be able to go back to the current release, 1.4.0, and it must still start on the data file the new release wrote and show every ticket. Everything the service already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones.
+
+== What the review changed in the files ==
+diff --git a/test/due-system.test.js b/test/due-system.test.js
+index d63694a..4fab72f 100644
+--- a/test/due-system.test.js
++++ b/test/due-system.test.js
+@@ -2,7 +2,7 @@
+ 
+ /**
+- * Process-entry system cases SYS-1–SYS-4: spawn src/server.js (loadConfig from
+- * the environment) and bin/tickets.js. Covers DUE_TIMES, due, and overdue at
+- * the npm-start boundary that withService skips.
++ * Process-entry system cases SYS-1–SYS-5: spawn src/server.js (loadConfig from
++ * the environment) and bin/tickets.js. Covers DUE_TIMES, due, overdue, and
++ * backfill at the npm-start boundary that withService skips.
+  */
+ 
+@@ -21,4 +21,7 @@ const HOUR_MS = 3600 * 1000;
+ const PAST_DUE = '2020-01-01T00:00:00.000Z';
+ const FUTURE_DUE = '2099-01-01T00:00:00.000Z';
++const CREATED = '2025-09-01T08:15:00.000Z';
++const DUE_URGENT = '2025-09-01T12:15:00.000Z';
++const DUE_LOW = '2025-09-08T08:15:00.000Z';
+ const VPN = { title: 'VPN drops every hour', requester: 'maria@example.com', priority: 'high' };
+ 
+@@ -212,5 +215,5 @@ test('SYS-3 CLI list raw and show omit due', (t) => {
+ });
+ 
+-test('SYS-4 process overdue true lists only open tickets whose due has passed', async (t) => {
++test('SYS-4 process overdue true lists open and in_progress tickets whose due has passed', async (t) => {
+   const file = path.join(folder(t), 'tickets.json');
+   writeDocument(file, [
+@@ -240,2 +243,31 @@ test('SYS-4 process overdue true lists only open tickets whose due has passed',
+   );
+ });
++
++test('SYS-5 process backfill missing due uses each ticket priority hours', async (t) => {
++  const file = path.join(folder(t), 'tickets.json');
++  writeDocument(file, [
++    ticketFields('T-0001', { priority: 'urgent', status: 'open', created: CREATED }),
++    ticketFields('T-0002', {
++      title: 'Printer on the 4th floor jams',
++      requester: 'li@example.com',
++      priority: 'low',
++      status: 'open',
++      created: CREATED,
++    }),
++  ]);
++  const { api } = await startServer(t, { DATA_FILE: file });
++  const got = await api.get('/tickets/T-0001');
++  assert.equal(got.status, 200);
++  assert.equal(Object.hasOwn(got.body, 'due'), false);
++  const overdue = await api.get('/tickets?overdue=true');
++  assert.equal(overdue.status, 200);
++  assert.deepEqual(
++    overdue.body.items.map((ticket) => ticket.id),
++    ['T-0001', 'T-0002'],
++  );
++  const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
++  assert.equal(saved.tickets[0].due, DUE_URGENT);
++  assert.equal(saved.tickets[1].due, DUE_LOW);
++  asser
+[... cut here: 100 more characters ...]
+
+diff --git a/docs/shiploop/environment.md b/docs/shiploop/environment.md
+index 46c9d4a..1f3245b 100644
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -51,5 +51,5 @@ Expected cost: under 1 s once the cases exist. IDs it may print: `TC-1` through
+ ### Focused (system process cases)
+ 
+-Inclusion: `node:test` titles in which `SYS-<n>` is its own word (`SYS-1` … `SYS-4`). File `test/due-system.test.js`. Does not copy INNER `TC-` cases. `npm test` registers this file with the others.
++Inclusion: `node:test` titles in which `SYS-<n>` is its own word (`SYS-1` … `SYS-5`). File `test/due-system.test.js`. Does not copy INNER `TC-` cases. `npm test` registers this file with the others.
+ 
+ ```
+@@ -57,5 +57,5 @@ node --test --test-reporter spec --test-name-pattern='SYS-' test/due-system.test
+ ```
+ 
+-Expected cost: under 1 s. IDs it prints: `SYS-1`, `SYS-2`, `SYS-3`, `SYS-4`. Observed at system-test-author: 4 pass, exit 0, duration_ms 700.
++Expected cost: under 1 s. IDs it prints: `SYS-1`, `SYS-2`, `SYS-3`, `SYS-4`, `SYS-5`. Observed at system-test-author: 4 pass, exit 0, duration_ms 700. Improve of that result: 5 pass, exit 0, duration_ms 813.
+ 
+ ### Smoke (bounded preservation)
+@@ -77,5 +77,5 @@ npm test
+ ```
+ 
+-Equivalent: `node --test`. Add `--test-reporter spec` when a pass must name titles. Expected cost: about 0.3–0.5 s. Probe at 1.4.0: 117 tests, 26 suites, 117 pass, 0 fail, exit 0, duration_ms 328. Observed at W1 test on the candidate: `npm test -- --test-reporter spec` 148 pass (117 existing plus TC-1–TC-29, TC-5 (a), TC-29 (a)). Observed at Improve of carry-forward: 151 pass (adds TC-1 (a), TC-18 (a), TC-29 (b)). Observed at system-test-author: 155 pass (adds SYS-1–SYS-4). Do not freeze 117. A passing run prints every executed title, including `TC-1` … `TC-29` and `SYS-1` … `SYS-4`.
++Equivalent: `node --test`. Add `--test-reporter spec` when a pass must name titles. Expected cost: about 0.3–0.5 s. Probe at 1.4.0: 117 tests, 26 suites, 117 pass, 0 fail, exit 0, duration_ms 328. Observed at W1 test on the candidate: `npm test -- --test-reporter spec` 148 pass (117 existing plus TC-1–TC-29, TC-5 (a), TC-29 (a)). Observed at Improve of carry-forward: 151 pass (adds TC-1 (a), TC-18 (a), TC-29 (b)). Observed at system-test-author: 155 pass (adds SYS-1–SYS-4). Improve of that result: 156 pass (adds SYS-5). Do not freeze 117. A passing run prints every executed title, including `TC-1` … `TC-29` and `SYS-1` … `SYS-5`.
+ 
+ R-9 discoverability (n
+[... cut here: 8327 more characters ...]
+
+
+== What the review changed in the stage's recorded result ==
+--- result as submitted
++++ result as accepted
+@@ -29,5 +29,6 @@
+     "SYS-3",
+-    "SYS-4"
++    "SYS-4",
++    "SYS-5"
+    ],
+-   "min_tests": 4,
++   "min_tests": 5,
+    "suite": "focused"
+@@ -40,5 +41,6 @@
+     "SYS-3",
+-    "SYS-4"
++    "SYS-4",
++    "SYS-5"
+    ],
+-   "min_tests": 4,
++   "min_tests": 5,
+    "suite": "regression"

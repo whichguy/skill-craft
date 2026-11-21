@@ -1,0 +1,184 @@
+{
+ "slot": "grokbot-salesforce__P-shiploop-spec__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.5728624,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "PD-1",
+   "quote": "\"Grok bot\" means an in-org chat assistant (a Lightning web component on a custom tab) ... It is not an Agentforce / Einstein Bot Builder bot, ... a Slack app or an Experience Cloud widget."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "The bot does not query or modify any standard or custom object records. Sharing, object CRUD and field-level security are therefore not applicable to bot runtime reads (there are none)"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "Sharing, object CRUD and field-level security are therefore not applicable to bot runtime reads (there are none); this is a requirement, not an omission"
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-8",
+   "quote": "Access is granted only through a permission set shipped with the bot, which grants the Grok Bot tab and app visibility, access to the Apex controller class(es), and use of the credential's principal.",
+   "missing": "Administration is assigned to a generic 'Org administrator' role; the permission needed to edit configuration or assign the set is not expressed, and who may assign it is left open (OG-6)."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "Two browser tabs or two users: independent conversations, no shared state, no cross-visibility. ... Nothing is stored by the product in Salesforce."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-13",
+   "quote": "Operating conditions: synchronous Apex invoked from the LWC (imperative, non-cacheable) ... each accepted send performs exactly one callout and zero DML",
+   "missing": "The design is deliberately synchronous, not asynchronous (Queueable/future/batch). It avoids triggers and DML before the callout, but no async execution path is specified."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "through the org's platform credential facility, which holds the xAI API key ... The API key is never in source control, never sent to or readable by the browser, and never written to any log"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-13 / EL-5",
+   "quote": "the per-call timeout never exceeds 120000 ms ... Apex: max 100 callouts per transaction; cumulative callout timeout 120 s per transaction",
+   "missing": "Heap and CPU-time limits are not given numbers (heap is mentioned only by name, CPU not at all)."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-15",
+   "quote": "the provider boundary is reachable from tests through a seam that allows a callout mock (`Test.setMock(HttpCalloutMock.class, ...)`)"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-7 / AD-3",
+   "quote": "The product never contacts a host other than the xAI API host configured in the named credential. ... avoids a separate Remote Site Setting (to verify at plan)."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-13",
+   "quote": "Unknowns (OG-10): whether Lightning's server-call transport tolerates a callout running up to 120 s from an LWC imperative call without its own timeout",
+   "missing": "The spec assumes the reply returns inline on the imperative Apex call. No platform event, polled status or message channel is specified, and the inline transport's risk is left unverified."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-6 / R-10",
+   "quote": "There is no automatic retry (avoids duplicate cost and duplicate effects). ... a second send action (double click, Enter pressed twice) results in exactly one Apex call."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-13",
+   "quote": "one user, one in-flight request per component. ... No throughput or concurrency target is invented.",
+   "missing": "The org-wide concurrency limit on long-running synchronous requests is not addressed, and neither is what a user sees when a request cannot be accepted because of it."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "`AUTH_FAILED` (HTTP 401/403 from xAI); `RATE_LIMITED` (429); `PROVIDER_ERROR` (5xx); `REQUEST_REJECTED` (other 4xx ...); `UNREACHABLE` (... including a timeout)"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "`RATE_LIMITED` (429) ... The UI shows a category-specific message in an inline, persistent banner ... offers Retry. There is no automatic retry"
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-6",
+   "quote": "`BAD_RESPONSE` (HTTP 200 but body unparsable or the reply text empty) ... A timeout is an unknown outcome: the provider may have processed the request; the message says so for `UNREACHABLE`.",
+   "missing": "A reply cut off by the output-token limit (non-empty but truncated) has no stated detection or user-visible indication."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "PD-3",
+   "quote": "A conversation is transient: held in the user's browser component, never saved in the org, ended by \"New chat\", refresh or navigation.",
+   "missing": "No stored record shape exists by deliberate decision. Role, status, timestamps, model identifier and token/usage counts are never recorded."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-14",
+   "quote": "retention period: none stored, so no deletion rule is needed."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "PD-5 / R-14",
+   "quote": "never queries or writes Salesforce records on the user's behalf and sends only what the user typed (plus the configured system prompt). ... the chat UI states this in a visible, non-dismissable one-line note"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "The history window sent to the provider is the most recent N user messages (N = configured history window, default 10) together with every assistant reply after the earliest kept user message"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-5 / R-12",
+   "quote": "rejected ... when it is empty or whitespace-only after trimming, or longer than the configured max input length (default 4000 ...). exactly max length is accepted; max+1 is rejected."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-9",
+   "quote": "holds: model name, system prompt ... Editing it in Setup changes bot behaviour on the next send with no code deploy.",
+   "missing": "No explicit off switch (only blanking the model or unassigning the permission set), and no administrator view of failed requests beyond debug-log categories."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "R-14",
+   "quote": "Excluded with reason: audit trail of who asked what: not requested, would require storing message content (contradicts PD-3 and the minimal-retention default)",
+   "missing": "The audit record is deliberately excluded, so no record of who asked what, or its retention, is specified."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-15 / Non-goals",
+   "quote": "do not assume the production-deploy threshold applies or does not apply ... Production deployment, packaging (managed or unlocked) and AppExchange release",
+   "missing": "How configuration and credential differ per environment is not stated. The org type (scratch/sandbox) and coverage gate are left open (A-1, OG-12)."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "R-13 / R-12",
+   "quote": "the product requirement is only truthful pending feedback until the timeout ... loading (pending indicator + status text \"Grok is thinking\u2026\" with an `aria-live` polite region"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "R-12",
+   "quote": "designed empty (greeting plus three starter prompts ...), loading (pending indicator ...), error (R-6 persistent banner with Retry) and setup-incomplete states"
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Deployment is additive: it creates the bot's own components and does not modify, delete or overwrite any metadata the org already holds."
+  }
+ ]
+}

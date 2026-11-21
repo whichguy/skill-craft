@@ -1,0 +1,23 @@
+The request for the ticket-due-times case lets the help desk change the hours and names no upper bound for them.
+The ceiling each delivery's product puts on an hours value, and whether its specification states one.
+
+delivery             model                  outcome  ceiling in the product (source line)                                          spec states it
+sol-high-due-1       gpt-6.2-sol high       PASS     priority, wholeNumber(env, `DUE_HOURS_${priority.toUpperCase()}`, fallback, {   no
+sol-high-due-2       gpt-6.2-sol high       PASS     const MAX_RESPONSE_HOURS = Math.floor(8.64e15 / 3_600_000); // Date's maximum   no
+sol-high-due-3       gpt-6.2-sol high       FAILED   priority, wholeNumber(env, `DUE_HOURS_${priority.toUpperCase()}`, hours, { min  no
+sol-high-due-4       gpt-6.2-sol high       FAILED   priority, wholeNumber(env, `DUE_HOURS_${priority.toUpperCase()}`, hours, { min  no
+sol-high-due-p1      gpt-6.2-sol high       FAILED   if (!/^\d+(?:\.\d+)?$/.test(text) || hours * MS_PER_HOUR > 8.64e15) {           no
+sol-high-due-p2      gpt-6.2-sol high       FAILED   wholeNumber(env, 'DUE_HOURS_' + priority.toUpperCase(), fallback, { max: Math.  no
+sol-medium-due-p1    gpt-6.2-sol medium     FAILED   wholeNumber(env, `DUE_HOURS_${priority.toUpperCase()}`, hours, { min: 1, max:   no
+sol-medium-due-p2    gpt-6.2-sol medium     FAILED   const max = 8.64e15 / HOUR_MS;                                                  no
+sol-medium-due-L-1   gpt-6.2-sol medium     FAILED   max: Math.floor(4_320_000_000_000_000 / HOUR_MS),                               no
+sol-medium-due-L-2   gpt-6.2-sol medium     FAILED   const MAX_DUE_HOURS = 1_000_000;                                                no
+sol-medium-due-S-1   gpt-6.2-sol medium     FAILED   wholeNumber(env, 'DUE_HOURS_' + priority.toUpperCase(), hours, { min: 1, max:   no
+sol-medium-due-S-2   gpt-6.2-sol medium     PASS     priority, wholeNumber(env, `SLA_HOURS_${priority.toUpperCase()}`, hours, { max  no
+sonnet-high-due-L-1  claude-sonnet-5-5 high PASS     const MAX_DUE_HOURS = 100000;                                                   yes
+sonnet-high-due-L-2  claude-sonnet-5-5 high FAILED   wholeNumber(env, `DUE_HOURS_${priority.toUpperCase()}`, DEFAULT_DUE_HOURS[prio  yes
+sonnet-high-due-S-1  claude-sonnet-5-5 high PASS     const MAX_DUE_HOURS = 365 * 24;                                                 yes
+sonnet-high-due-S-2  claude-sonnet-5-5 high PASS     const MAX_DUE_HOURS = 8760;                                                     yes
+
+Sol: 12 deliveries, 12 with a ceiling found in the product, 0 of those with one stated in the specification
+Sonnet: 4 deliveries, 4 with a ceiling found in the product, 4 of those with one stated in the specification

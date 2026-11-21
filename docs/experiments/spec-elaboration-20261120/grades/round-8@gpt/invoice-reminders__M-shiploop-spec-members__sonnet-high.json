@@ -1,0 +1,143 @@
+{
+ "slot": "invoice-reminders__M-shiploop-spec-members__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "D-2",
+   "quote": "Default schedule offsets, in calendar days relative to the invoice due date: **-3, +1, +7, +14** (negative = before due)."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "open full balance (eligible); partially paid (eligible, remaining balance used); paid / balance = 0 (not); balance < 0 (not); void (not); draft (not)",
+   "missing": "Whether a dispute or a payment plan suspends reminders on an invoice that still has a positive balance."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "AC-3.7",
+   "quote": "**Partial payment between steps:** **INV-1003** \u2192 03-17 message states USD 1000.00; 03-21 message states **USD 600.00**."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "G-10",
+   "quote": "Customer opt-out/unsubscribe, bounce handling, legal rules for collection emails",
+   "missing": "Which existing customer contact restrictions suppress reminders, including a pause or unsubscribe, and whether billing notices are exempt from a marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-12",
+   "quote": "no restart, retry or concurrency path creates a second message (R-6)"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "the invoice is re-read from the invoice source **immediately before** the claim; if it is no longer eligible (paid, void, balance \u2264 0), no message is sent"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-8",
+   "quote": "a **definite failure** (provider rejected, or error before acceptance) leaves the step due; each later daily run retries it once, up to **3 attempts** total; the third failure \u2192 `failed-final`",
+   "missing": "Whether persistent provider failures trigger an alert, who receives it, and how it reaches them."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-11",
+   "quote": "expected invoice volume per run, provider rate limits. **Missing evidence:** invoice volume (G-1), provider limits (G-2).",
+   "missing": "The applicable provider quota and how the sender spaces or defers messages to keep a large batch within it."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "AC-3.4",
+   "quote": "enabled 03-01 \u2192 **no message on 03-01**; messages on 03-04 (\"7 days overdue\") and 03-11 (\"14 days overdue\") only; steps dated 02-22 and 02-26 never send."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "D-4, D-2, R-1",
+   "quote": "**once per day at 09:00 in the account time zone** (IANA name, default `UTC`) \u2026 Weekends are not skipped. \u2026 configurable send time, other channels, business-day calendars."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "remaining balance as `<CURRENCY> <amount>` in the currency's minor units"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-8, R-5",
+   "quote": "Missing/invalid recipient \u2192 `skipped-no-recipient`, terminal for that step; later steps re-read the recipient. \u2026 **Out of scope (bounded by this R):** \u2026 unsubscribe/reply handling (G-10), bounce processing."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "to the invoice's **single** billing-contact address: exactly one `To`, **no Cc/Bcc**.",
+   "missing": "Which contact to select, or whether to skip the send, when the source supplies multiple billing contacts without designating one for the invoice."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-9",
+   "quote": "per-invoice step history \u2014 invoice number, offset, step date, outcome (R-8 set), attempts, handled date, recipient address as used \u2014 filterable by invoice number",
+   "missing": "Whether the invoice detail view itself displays or links to that invoice\u2019s reminder history."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "invoice number, remaining balance as `<CURRENCY> <amount>` in the currency's minor units, due date as `20 March 2026`, and how to pay: the invoice's payment link if the source provides one",
+   "missing": "Whether the payment link expires and, if so, when."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-10",
+   "quote": "only administrators read/change settings and read history.",
+   "missing": "Whether anyone may manually send or suppress an individual reminder before it is claimed, and which roles may do so."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "an administrator can turn reminders on/off, edit the schedule (list of day offsets) and the account time zone.",
+   "missing": "Whether an administrator can pause one customer or preview a run without sending, and whether there is a manual resend action under the one-message-per-step rule."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-8",
+   "quote": "the third failure \u2192 `failed-final` (never retried; later steps unaffected). \u2026 administrators see each outcome (R-9)",
+   "missing": "Whether an administrator can see the next scheduled reminder, including its invoice and send date."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-11",
+   "quote": "**Unresolved:** acceptable maximum run duration / time of last send after 09:00, expected invoice volume per run, provider rate limits.",
+   "missing": "A maximum total sending volume per interval or a maximum delay after a reminder\u2019s scheduled time."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "AD-3",
+   "quote": "The reminder component never writes invoice data."
+  }
+ ]
+}

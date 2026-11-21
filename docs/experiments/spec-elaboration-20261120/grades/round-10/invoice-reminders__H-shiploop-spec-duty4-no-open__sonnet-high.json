@@ -1,0 +1,144 @@
+{
+ "slot": "invoice-reminders__H-shiploop-spec-duty4-no-open__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3341636,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "an ordered list of day offsets from the due date (negative = before). Default `[0, 7, 14]`. ... Valid when: 1 to 5 offsets; each an integer from \u221230 to +90"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "eligible when its status is `open` or `partially_paid`, its outstanding balance is greater than zero ... `draft`, `paid` and `void` invoices are never reminded.",
+   "missing": "Credited invoices are not addressed; disputes and payment plans are declared out of scope, so whether they stop the sequence is left undecided."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A partially paid invoice is reminded for its outstanding balance only."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "Scope and outcome map (Out of scope)",
+   "quote": "per-customer or per-invoice schedules, mute or opt-out (R-3)",
+   "missing": "Whether an existing do-not-contact/paused/unsubscribed customer state is honoured, and whether billing notices are exempt from a marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "once a step is `sent`, `failed` or `skipped`, it is terminal and is never re-evaluated, however often runs repeat or overlap ... a run atomically claims the (invoice, step) so two overlapping runs cannot both send."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Eligibility is **re-checked immediately before each send**, so a payment, a void or a disable that happened after the run began suppresses the send."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-6",
+   "quote": "A step is retried once per later run while inside its grace window, up to 3 attempts in total (PD-5); after the third failure the step is terminal `failed`",
+   "missing": "Escalation to a person on persistent failure is excluded (staff alerts out of scope); no specific provider-outage handling beyond per-step retries."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "NF-3",
+   "quote": "Invoice volume and provider rate limits are unknown, so no run duration or throughput number is set. ... sends not completed in a run remain `pending` and continue on the next run",
+   "missing": "How sends are paced within the provider's rate limit; the limit itself is unresolved."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "A step whose window has closed unsent is **never sent** ... an outage, a re-enable (R-9) or a late import never produces a burst of old reminders"
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "PD-3",
+   "quote": "One evaluation **run per calendar date**, at 09:00 in the account time zone (UTC if none set)",
+   "missing": "Uses the account's, not the customer's, time zone; weekends and holidays are not addressed."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "Amounts keep the invoice currency and two decimals."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "No billing email \u2192 the step is skipped and logged `skipped:no-recipient` ... A syntactically invalid address counts as a failed attempt (R-6).",
+   "missing": "Bouncing addresses are not handled (bounce handling declared out of scope)."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "The recipient is the invoice's billing contact email, read at send time",
+   "missing": "What happens when an invoice or customer has more than one billing contact."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-8",
+   "quote": "For each invoice the system keeps a log of reminder attempts: step number, date, recipient email, outcome ... Message bodies are not stored.",
+   "missing": "Whether the log is visible on the invoice itself is left open (G-2: invoice view, report, API)."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "It states: account name, customer name, invoice number, the outstanding balance with its currency, the due date ... plus the invoice's pay link if the invoice has one.",
+   "missing": "Whether the pay link expires and what happens if it has."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-9",
+   "quote": "only an authorized user may change it, else denied with no effect.",
+   "missing": "Which roles may configure the schedule is unknown (G-2); manual sending or stopping of a reminder by hand is not specified."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-9",
+   "quote": "The account has an `enabled` flag ... When `enabled` is false, no reminder is sent.",
+   "missing": "Per-customer off is out of scope; preview/dry-run and manual resend are not specified."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-3 / R-8",
+   "quote": "The account can read the current schedule and the step dates it implies",
+   "missing": "No view of upcoming per-invoice sends; failures are only visible per invoice in the log, with no cross-invoice view of what failed."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "PD-4",
+   "quote": "A step may be sent only during its **grace window**: step date through step date + 2 days (3 runs)"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "State and data assessment",
+   "quote": "Invoice data (status, balance, due date, contact) | existing invoicing system | **observed only** by this feature; never modified"
+  }
+ ]
+}

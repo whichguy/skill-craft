@@ -1,0 +1,32 @@
+The target's 15 limit items, sorted by claude-opus-5-5 and gpt-6.2-astra (high), shown the requests and the items only
+same label from both: 12 of 15
+
+N1, 6 items: both say the requested behaviour cannot work correctly or safely without the limit
+  grokbot-salesforce N-8 [platform] Governor limits that bind this design are named with their numbers: callout timeout ceiling, [...]
+  grokbot-salesforce N-20 [edge] A conversation outgrowing the model's context window: what is trimmed or summarised, and at [...]
+  grokbot-salesforce N-21 [edge] The first use (no history), an empty question, and an answer or question at the maximum [...]
+  invoice-reminders N-1 [interaction] The schedule: how many reminders and at what offsets from the due date, including whether any [...]
+  invoice-reminders N-8 [async] The sending provider's rate limit and how a large batch is paced within it.
+  csv-user-import N-9 [edge] A limit on file size or row count, and what happens to a file above it.
+
+O1, 6 items: both say a correct product could have no such limit
+  grokbot-salesforce N-25 [nonfunctional] A latency target or bound for an answer, and truthful in-progress feedback in the interface [...]
+  gym-waitlist N-10 [edge] A cap on the waitlist itself, and what a person sees when even the waitlist is full.
+  gym-waitlist N-19 [nonfunctional] A bound on how soon a promotion follows a cancellation.
+  invoice-reminders N-10 [edge] Time zone and sending hours: the customer's local time, business hours, weekends and holidays.
+  invoice-reminders N-19 [nonfunctional] A bound on sending volume or on how late a scheduled reminder may go out.
+  csv-user-import N-19 [nonfunctional] A bound on how long a file of the stated maximum size takes, and visible progress while it runs.
+
+split:
+  grokbot-salesforce N-13 [async] opus necessary, astra optional | Queue depth or concurrent-job limits, and what happens to a request that [...]
+  gym-waitlist N-11 [edge] opus necessary, astra optional | A cut-off before class start after which no promotion happens.
+  csv-user-import N-13 [async] opus unclear, astra optional | The new users' invitation or welcome mail: whether hundreds go out at [...]
+
+Rounds 7 and 8 read by these sets (descriptive: those rounds ran before the sets existed). Covered, round 7 then 8,
+registered judge / second judge:
+  N1 (6)  P: sonnet 3, 3 / 3, 3   sol 1, 1 / 1, 1
+  N1 (6)  M: sonnet 4, 3 / 2, 3   sol 2, 1 / 1, 2
+  N1 (6)  K: sonnet 5, 4 / 5, 4   sol 4, 4 / 4, 4
+  O1 (6)  P: sonnet 2, 3 / 2, 3   sol 1, 2 / 1, 1
+  O1 (6)  M: sonnet 2, 3 / 2, 3   sol 0, 1 / 0, 1
+  O1 (6)  K: sonnet 4, 4 / 4, 4   sol 4, 3 / 5, 2

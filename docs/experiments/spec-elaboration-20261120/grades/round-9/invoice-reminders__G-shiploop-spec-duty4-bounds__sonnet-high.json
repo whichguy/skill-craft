@@ -1,0 +1,145 @@
+{
+ "slot": "invoice-reminders__G-shiploop-spec-duty4-bounds__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.35485279999999997,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "set the schedule: a non-empty list of distinct integer day offsets from the due date ... Until a schedule is saved, no reminder is ever sent; schedule=[-5, 0, +30] (negative, zero, positive) are accepted"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "An invoice paid (balance 0), voided, or credited before dispatch receives no reminder ... Out of scope: disputes, payment plans",
+   "missing": "Whether a disputed invoice or one on a payment plan stops the sequence; the spec explicitly leaves both out."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A partially paid invoice counts as unpaid and its reminder states the remaining balance (D-4; G-4)."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "G-9",
+   "quote": "Legal/compliance rules for payment-reminder emails (unsubscribe, consent, regional rules) \u2014 not assessed here; needs the owner's decision.",
+   "missing": "Whether a customer's do-not-contact/paused/unsubscribed state suppresses reminders, and whether billing notices are exempt from marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "at most one message is dispatched per (invoice, offset), across repeated runs, overlapping runs, restarts and retries of the same run. The record is claimed (unique on invoice+offset) before dispatch"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "the invoice's unpaid status is evaluated immediately before each dispatch, not only when the run starts."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-6",
+   "quote": "Automatic retry count and backoff are open (G-3); interim: zero automatic retries ... Alerting on failures beyond History is out of scope (G-11).",
+   "missing": "Handling of a provider outage as distinct from a single rejection, and any escalation to a person when sends keep failing."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "NFR-2",
+   "quote": "Missing: invoice volume per account and the mail provider's send quotas. Interim behaviour: a run that cannot dispatch every due step (quota or time limit) leaves the unprocessed steps unclaimed",
+   "missing": "The provider rate limit value and how a large batch is paced/throttled within it."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "enabling on a system with overdue invoices must not blast customers ... A step whose due instant is earlier than active_since is never sent (recorded SkippedInactive)"
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "D-2 / G-5",
+   "quote": "due instant is 00:00 on calendar date (invoice due date + offset) in the policy time zone ... Interim: UTC unless the account already has a business time zone",
+   "missing": "Customer local time, business sending hours, and weekend/holiday handling; time-of-day preferences are out of scope."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "It states the invoice number, the outstanding balance with currency ... Out of scope: customer-editable templates, translations/locales",
+   "missing": "How amounts and currency are formatted for the recipient's locale."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "T-7 / D-6",
+   "quote": "invoice has no billing address | record NotSentNoRecipient ... completion of delivery to the mailbox is not observed (accepted-by-provider is the recorded success",
+   "missing": "What happens when an address bounces or is invalid after acceptance; no-contact case is covered."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "by email (D-6; G-6) to the invoice's billing contact address ... Out of scope: ... multiple recipients",
+   "missing": "Which contact is written to when a customer/invoice has more than one billing contact."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "an authorised actor (G-1) can see, per invoice, every reminder record: offset, state, reason, recipient, attempted time."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "states the invoice number, the outstanding balance with currency, the due date ... How to pay (link or instructions) is included if and only if the invoicing system already has one",
+   "missing": "Whether the payment link expires and what the reminder does if it has."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "G-1",
+   "quote": "Who may configure/see reminders. Interim: the account owner/admin role only.",
+   "missing": "Who may send or stop a reminder by hand; no manual send/stop action is specified."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-9",
+   "quote": "Disabling stops all future sends immediately; existing records are untouched.",
+   "missing": "Per-customer turn-off, preview/dry-run, and manual resend are not specified."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-7 / R-6",
+   "quote": "a synchronous rejection by the mail transport sets the record Failed with a reason and the failure is visible in history (R-7)",
+   "missing": "A view of what the system will send next (upcoming reminders)."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-3 / NFR-2",
+   "quote": "only the offset with the latest due instant is sent ... After the final offset there is no further reminder ... Needs: expected volume, provider quota (G-7).",
+   "missing": "A volume cap per run/account and a maximum lateness after which a scheduled reminder is no longer sent."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "invoices are observed only; this feature never modifies an invoice."
+  }
+ ]
+}

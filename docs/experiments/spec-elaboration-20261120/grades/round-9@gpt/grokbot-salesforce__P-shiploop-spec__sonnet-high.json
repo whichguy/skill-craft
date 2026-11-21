@@ -1,0 +1,185 @@
+{
+ "slot": "grokbot-salesforce__P-shiploop-spec__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-8.b, A-4",
+   "quote": "opening it shows the chat page at the tab URL. \u2026 only what the user typed (plus admin-configured instructions and earlier turns of the same chat). It does **not** read or send Salesforce records."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "Nothing in the product reads Salesforce records on the user's behalf (A-4) \u2026 sharing: n/a (no record access)",
+   "missing": "Record-based answers are excluded. The specification gives no rule for selecting answer sources under the asking user's sharing permissions."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "object CRUD: n/a; FLS: n/a; configuration read is by trusted system code",
+   "missing": "The specification excludes CRM reads. It gives no field-level rule for reading or displaying encrypted or restricted values."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "AD-7",
+   "quote": "the *org admin* who enters the xAI key and assigns the permission set; (3) the *end user* who chats and whose permission set grants Apex class access, tab visibility and external credential principal access"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "only the person at that browser. No other user, admin or process can read it from the org by design. \u2026 a Salesforce debug log with a trace flag may capture callout request/response bodies"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-1",
+   "quote": "A synchronous callout from user-initiated Apex is allowed when no DML is pending in the transaction \u2026 The bot performs no DML",
+   "missing": "The design uses a synchronous UI call. It specifies neither the trigger restriction nor an asynchronous execution path for trigger-initiated work."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AD-3",
+   "quote": "the xAI API key lives only in an External Credential \u2026 a Named Credential references it as the callout endpoint \u2026 never appears in source, Custom Metadata, Apex, LWC, logs or test fixtures."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "AD-1",
+   "quote": "100 callouts per transaction, 120 s cumulative, per-callout timeout 1 ms to 120,000 ms",
+   "missing": "The numeric Apex heap and CPU-time limits are unspecified."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "NFR-7",
+   "quote": "all Apex tests use `HttpCalloutMock`, none hit the network"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-3, R-4",
+   "quote": "a Named Credential references it as the callout endpoint \u2026 Other `CalloutException` (named credential missing, endpoint not authorized, principal access missing) | `CALLOUT_FAILED`"
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "F-1",
+   "quote": "HTTPS call (synchronous). \u2026 on success return reply text. UI: if its request token is still current, append bot message",
+   "missing": "The UI consumes the inline server result. No mechanism delivers or detects an answer completed later by a background job."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-4.c, Service boundary: xAI API",
+   "quote": "pressing Retry re-sends the same text, and on success shows exactly one user bubble and one bot bubble for it (no duplicate). \u2026 Idempotency: none; xAI is not asked to dedupe.",
+   "missing": "Duplicate suppression covers a UI retry. No message or request identity prevents a replayed job from posting a second reply."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "Grok could not accept the request; ask an admin to check the model setting \u2026 HTTP 5xx | `UPSTREAM_ERROR` | Grok is having trouble; try again \u2026 `TIMEOUT` | Grok did not answer in time"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "HTTP 429 | `RATE_LIMITED` | Grok is busy or the key's limit is reached; try again shortly \u2026 with a **Retry** control; the product does not retry automatically."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "`TIMEOUT` | Grok did not answer in time \u2026 2xx but no assistant text parseable | `BAD_RESPONSE` | Grok returned something unreadable",
+   "missing": "The specification gives no detection or display rule for a parseable answer cut short by the provider."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-9, State inventory",
+   "quote": "the transcript exists only in the open page's memory \u2026 Message (in transcript) | Sent-answered, Not-answered (failed, retry offered), Bot reply",
+   "missing": "Only transient message states are defined. There is no conversation-and-turn record schema linking turns to timestamps, model identifiers, or usage counts."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-9",
+   "quote": "the transcript exists only in the open page's memory (AD-4); lifetime = until New chat, page reload, or navigating away from the page.",
+   "missing": "Local retention and clearing are specified. The text does not say whether deleting the user clears a transcript still open in a browser."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "A-4, R-9",
+   "quote": "only what the user typed (plus admin-configured instructions and earlier turns of the same chat). \u2026 does **not** read or send Salesforce records. \u2026 must not contain information the org's policy forbids sharing with xAI."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "default 20 non-system messages, configurable \u2026 trimmed from the oldest end until the count is <= the window and the first retained message is a `user` message."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-1.a, R-3.a, R-3",
+   "quote": "the configured system prompt first, then user `Hi` \u2026 UI shows \"Enter a message\" and no new bubble. \u2026 4,000 characters accepted; 4,001 rejected."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-7, Service boundary: xAI API",
+   "quote": "an org admin can change, in Setup and without a code deploy: the Grok model ID \u2026 Operator visibility into failures is **unresolved**",
+   "missing": "The specification provides no bot-wide off control or defined way for an administrator to inspect failed requests."
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-11.a, R-11.b, AD-3",
+   "quote": "`sf project deploy validate --target-org <alias>` exits 0 \u2026 75% org-wide is the platform deploy gate for production \u2026 The key is typed into Setup by an admin after deploy",
+   "missing": "Deployment, org-local key entry, and production coverage are specified. Which configuration values and credentials differ between development and production is unspecified."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "NFR-1, R-10",
+   "quote": "no later than the configured callout timeout plus platform overhead. \u2026 default 60,000 ms. \u2026 while a request is in flight the Send control and Enter-to-send are disabled and the indicator is shown"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "NFR-4.c, R-4",
+   "quote": "designed empty (welcome text, notice from R-9, suggested nothing-to-send state), loading (thinking indicator, disabled Send, `aria-busy`/live region), error (code-specific message with Retry) \u2026 Grok could not accept the request"
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "State and data assessment, Interaction-design assumptions, AD-1",
+   "quote": "redeploy preserves unrelated org state \u2026 never read or written \u2026 No identity, sharing or persistence is added beyond the org's own login \u2026 The bot performs no DML"
+  }
+ ]
+}

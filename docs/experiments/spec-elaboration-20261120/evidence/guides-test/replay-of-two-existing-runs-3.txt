@@ -1,0 +1,128 @@
+guides_test.py replay, 2026-11-21 13:46 PST, with the reading of what the model was given (journal section 43): two run folders that
+already exist, read as collect would read a sample; nothing is written into either.
+1. a finished Claude delivery of another session (no Codex session record, so what its author was given is not read);
+2. a Codex sample another session stopped at acceptance (ticket due times, Sol).
+
+{
+ "host_ending": "the host ended by itself",
+ "process_status": "exited",
+ "returncode": 0,
+ "host_stop": "success",
+ "resume_stop": "host is not resumable",
+ "outcome_class": "PASS",
+ "host_sessions": 1,
+ "harness_last_accepted": {
+  "stage": "handoff",
+  "action": "nav-bab7dd52adfe46698d53698ca3b60813"
+ },
+ "run_dir": "/Users/dadleet/e2e-runs-sdlc11/20261121/shared-expenses-sonnet-high/.shiploop-runs/work-20261121-160245-f59548/run",
+ "spec_action": "nav-1b52fd9bcfc947e5a5711211a35c0a38",
+ "snapshot": "the commit's text has no witness that it is the accepted text",
+ "acceptance_action": "nav-22c735cde49246bbbe382f082e08bd2d",
+ "accepted_at": "2026-11-21T16:09:11Z",
+ "accepted_ts": 1795277351.415,
+ "submitted_ts": 1795277133.826,
+ "author_submissions": 1,
+ "commands_after_acceptance": 84,
+ "spec_commits_after_acceptance": 3,
+ "spec_commit": "9bb95076bc42d627349e0ee607d63ef1db0fc18b",
+ "spec_commit_subject": "docs(spec): rewrap one R-4 line and reword one R-9 parenthetical",
+ "prompt_is_the_request": false,
+ "case_recorded": "shared-expenses",
+ "start_head": null,
+ "start_route": "workspace",
+ "planning_review": "stage",
+ "plugin_wanted": "/Users/dadleet/e2e-runs-sdlc11/20261121/shared-expenses-sonnet-high/build/plugins/skill-craft",
+ "plugin_check_passed": null,
+ "loaded_prompts_sha256": [],
+ "exposure": null,
+ "accepted": null,
+ "spec_seconds": 301.0,
+ "spec_review_seconds": 217.2,
+ "spec_author_seconds": 83.8,
+ "turns": 510,
+ "cost_usd": 20.4834,
+ "refusals": 10
+}
+{
+ "host_ending": "the stop file",
+ "process_status": "stopped",
+ "returncode": -9,
+ "host_stop": null,
+ "resume_stop": "stopped by /Users/dadleet/e2e-runs-sdlc10/20261121-e2/e2-g-1/stop",
+ "outcome_class": "STOPPED",
+ "host_sessions": 1,
+ "harness_last_accepted": {
+  "stage": "spec",
+  "action": "nav-ee14efbb9d4b44e78ea20682463020fc"
+ },
+ "run_dir": "/Users/dadleet/e2e-runs-sdlc10/20261121-e2/e2-g-1/.shiploop-runs/work-20261121-151624-5a14c0/run",
+ "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc",
+ "snapshot": "pinned",
+ "acceptance_action": "nav-0bc28e10c7454f4f9940bb388b69f093",
+ "accepted_at": "2026-11-21T15:19:35Z",
+ "accepted_ts": 1795274375.933,
+ "submitted_ts": 1795274336.655,
+ "author_submissions": 1,
+ "commands_after_acceptance": 0,
+ "spec_commits_after_acceptance": 0,
+ "spec_commit": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0",
+ "spec_commit_subject": "docs(shiploop): record skill-craft-shiploop-this-directory-is-07beeb knowledge after spec",
+ "witness": "the accepting command's own knowledge commit",
+ "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d",
+ "reviewed": true,
+ "bind_read_from": "the run folder afterwards",
+ "bind_written_after_first_submission_seconds": -0.0,
+ "as_bound_for_review": {
+  "words": 674,
+  "requirement_ids": 4
+ },
+ "packet_ts": 1795274304.915,
+ "shiploop_printed_the_whole_packet": true,
+ "prompt_is_the_request": false,
+ "case_recorded": "ticket-due-times",
+ "start_head": null,
+ "start_route": "workspace",
+ "planning_review": "stage",
+ "plugin_wanted": "/Users/dadleet/e2e-runs-sdlc10/arm-g-b5a90a/build/plugins/skill-craft",
+ "plugin_check_passed": true,
+ "loaded_prompts_sha256": [
+  "5e41ccc35d60413bfc963ccc04b259f253fa64bc1d4dcbd19e0fdf09efe36a4d"
+ ],
+ "exposure": {
+  "read_from": "the host's own session record: what the model was given",
+  "outputs_given": 16,
+  "instructions_lines_shown": [
+   106,
+   106
+  ],
+  "references_lines_shown": [
+   9,
+   56
+  ],
+  "instructions_shown_whole": true,
+  "cue_shown": false,
+  "guide_block_lines_shown": [
+   0,
+   81
+  ],
+  "guide_block_shown_whole": false,
+  "guide_lines_returned": {
+   "before the spec packet": {},
+   "while writing the spec": {},
+   "during its review": {},
+   "after the acceptance": {}
+  },
+  "guide_passage_before_acceptance": false
+ },
+ "accepted": {
+  "words": 674,
+  "requirement_ids": 4
+ },
+ "spec_seconds": 71.0,
+ "spec_review_seconds": 38.4,
+ "spec_author_seconds": 32.6,
+ "turns": null,
+ "cost_usd": null,
+ "refusals": 0
+}

@@ -1,0 +1,217 @@
+{
+ "case": "ticket-assignment",
+ "host": "claude",
+ "model": "claude-sonnet-5-5",
+ "effort": "medium",
+ "started": "2026-11-21T12:02:41-0800",
+ "start_tree": null,
+ "frozen_from": null,
+ "build_from": "/Users/dadleet/e2e-runs/ratchet-pilot-20261120-b6eab2/refs/ticket-assignment/reference",
+ "bare": false,
+ "sessions": [
+  {
+   "number": 1,
+   "role": "spec",
+   "label": "spec-1",
+   "seconds": 57.9,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 57.9,
+   "held_out_marks": [],
+   "cost_usd": 0.278852
+  },
+  {
+   "number": 2,
+   "role": "plan",
+   "label": "plan-1",
+   "seconds": 97.4,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 97.4,
+   "held_out_marks": [],
+   "cost_usd": 0.45579949999999997
+  },
+  {
+   "number": 3,
+   "role": "tests",
+   "label": "tests-1-1",
+   "seconds": 410.6,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 410.6,
+   "held_out_marks": [],
+   "cost_usd": 1.1965765
+  }
+ ],
+ "gates": [
+  {
+   "number": 1,
+   "label": "after-given-build",
+   "pass": true,
+   "failing": [],
+   "passing": [],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [],
+   "clauses": 0,
+   "at": 157.3
+  },
+  {
+   "number": 2,
+   "label": "cycle-1-first",
+   "pass": true,
+   "failing": [],
+   "passing": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [],
+   "clauses": 28,
+   "at": 720.1
+  },
+  {
+   "number": 3,
+   "label": "final",
+   "pass": true,
+   "failing": [],
+   "passing": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [
+    "C-9"
+   ],
+   "clauses": 28,
+   "at": 875.5
+  }
+ ],
+ "snapshots": [
+  {
+   "label": "base",
+   "commit": "78ae658306fb323cce3177b75aa9c0196558935b",
+   "tree": "99d92357c06060cc6c277e7115a92b32c1852140",
+   "at": 0.2
+  },
+  {
+   "label": "spec",
+   "commit": "3906d5fa33d9464cfaaaafa7f52f29562404b682",
+   "tree": "a8c599ca7793656724f7bb4c443d330570e8e90a",
+   "at": 58.2
+  },
+  {
+   "label": "plan-1",
+   "commit": "c8d9fbaf620bbb1bd58e94daa3b1d20b358fe776",
+   "tree": "79237e721a02f95ec3bd3b8f4290cb0e6f1fe629",
+   "at": 155.7
+  },
+  {
+   "label": "build-1",
+   "commit": "4949d5cf1a1eb803a67f7b20a133c7ff51843f86",
+   "tree": "7e3c54c8c84abd8c67ea315379dd818081e139f1",
+   "at": 157.3
+  },
+  {
+   "label": "tests-1",
+   "commit": "25f81c15409c02519c8a54ff54659983afbe756e",
+   "tree": "f42f164b8fbd31c0a487e9bcfd16a7e47c3b1fec",
+   "at": 568.1
+  },
+  {
+   "label": "final",
+   "commit": "2970c15fab4c83e410816fc743ecebed4c3b2015",
+   "tree": "f42f164b8fbd31c0a487e9bcfd16a7e47c3b1fec",
+   "at": 875.6
+  }
+ ],
+ "cycles": [
+  {
+   "cycle": 1,
+   "clauses_at_start": 28,
+   "new_clauses": [],
+   "plan_loops": [
+    {
+     "name": "plan-1",
+     "session": "exited",
+     "loop": "complete",
+     "iterations": 2,
+     "trivial_streak": 1
+    }
+   ],
+   "plan_added": [],
+   "first_gate_failing": []
+  }
+ ],
+ "reverted": [],
+ "spec_violations": [],
+ "local_head": "5e4fe0fb919d374b22d338a8849a2a7d1943a8d2",
+ "named_checks": true,
+ "enrich": "reworded",
+ "spec_from": null,
+ "preserve": "spec",
+ "stop": "stop-after-tests",
+ "final_pass": true,
+ "seconds": 875.6,
+ "clauses": 22,
+ "use_cases": 6,
+ "tamper": [],
+ "finished": "2026-11-21T12:17:16-0800"
+}

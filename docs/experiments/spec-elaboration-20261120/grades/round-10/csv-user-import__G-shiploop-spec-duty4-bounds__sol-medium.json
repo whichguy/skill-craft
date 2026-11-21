@@ -1,0 +1,147 @@
+{
+ "slot": "csv-user-import__G-shiploop-spec-duty4-bounds__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.4466416000000001,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3 Partial outcomes",
+   "quote": "Default After successful file-level intake, treat eligible rows independently. ... Keep earlier confirmed creations, even if a later row fails."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-4 Feedback",
+   "quote": "show counts and actionable row outcomes by logical data-row number counted from 1 after the header. Counts for a released row-level result account for all data rows as created, rejected, unattempted or outcome unknown."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3 Conflicts",
+   "quote": "If an identity already exists under the ordinary uniqueness contract, report the conflict and preserve the existing account. ... Evaluate rows in file order for within-file conflicts. The first successful creation for an identity wins."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-3 Create; R-1",
+   "quote": "Verify denied role assignments cannot be obtained through CSV input. ... Preserve every existing restriction on the actor, target scope, fields, and roles."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1 Access",
+   "quote": "An authenticated admin with user-creation authority in the active scope can reach the import action ... Unauthenticated users and non-admins cannot use the action.",
+   "missing": "Whether import is a distinct permission or merely reuses creation authority; the permission mapping is left open for the product owner."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2 Interpret",
+   "quote": "Reject invalid encoding, malformed CSV structure and a header that cannot be mapped unambiguously, including repeated or unsupported columns or missing required columns. No writes occur for these file-level failures."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-2 Interpret",
+   "quote": "Default CSV profile uses UTF-8, a header row, comma separators, double-quoted fields with doubled quotes for literal quotes, and either LF or CRLF record endings. Quoted separators and line breaks stay within one field.",
+   "missing": "How a byte-order mark is handled."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-3 Partial outcomes; R-2 Interpret",
+   "quote": "Keep earlier confirmed creations, even if a later row fails. ... Assert that a syntax error late in a file prevents earlier valid rows from producing writes."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2 Capacity",
+   "quote": "Beyond the effective bound, tell the admin the file exceeds supported capacity and how to recover by splitting it or selecting a smaller file. Reject the whole upload with zero created users. ... The values are open.",
+   "missing": "The actual size and/or row-count limit value."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2 Submit; R-3 Create",
+   "quote": "An empty file or a recognized header without user rows produces a \u201cno user rows\u201d outcome and creates zero users. ... One eligible row works"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-3 Conflicts; R-4 Recover",
+   "quote": "Retrying the same data cannot create a second account or overwrite an existing one. ... Retrying follows R-3 and only creates eligible missing identities."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-4 Recover; R-4 State",
+   "quote": "Default The feature offers no saved results page or guaranteed processing after the initiating interaction ends. ... Any runtime need to accept durable work for processing outside the view requires a separately evidenced execution and recovery contract",
+   "missing": "Whether a large file at the bound completes within the interaction, and if background processing is needed, how the admin learns it finished."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3 State and open gaps",
+   "quote": "The product owner must confirm canonical identity, uniqueness scope, account defaults and required creation effects such as activation or enrollment if the product has them.",
+   "missing": "Whether created users are active or pending, have a password, and how they first sign in."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2 State and open gaps; R-4 State",
+   "quote": "Submitted bytes, parsed rows and validation details are private to authorized processing for this attempt. ... Release any server-side input or parsed copy when processing ends or is abandoned ... No new durable result copy is required."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-4 Operate",
+   "quote": "Authorized operators can correlate intake rejections, authorization denials, confirmed and mixed results, unknown outcomes and recovery attempts using safe, opaque identifiers and minimal outcome metadata under the product's operational and audit policies.",
+   "missing": "Whether the importing actor, time and created users are recorded; audit coverage is deferred to the operator."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-4 Recover; R-4 State",
+   "quote": "submit a corrected or remaining CSV as a new attempt. ... Engineering must confirm the existing confirmation, timeout, disconnect, cancellation and read freshness behavior",
+   "missing": "Whether a running import can be cancelled and what cancellation does; no built-in retry of only failed rows."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-4 State; NFR Capacity",
+   "quote": "In-session progress has no prescribed timer or percentage. ... No latency, throughput or availability target was supplied.",
+   "missing": "A time bound for a maximum-size file and progress beyond a generic pending state."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3 Create; R-3 State; Scope",
+   "quote": "Existing and unrelated users retain their prior values. ... Import creates no second user lifecycle, permission model or record store. ... Bulk import adds a creation path."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-2 State and open gaps",
+   "quote": "There is no evidence for a byte, row, field-length, or concurrency value",
+   "missing": "Handling of over-long fields (a limit value) and of spreadsheet formula-injection values in files or results."
+  }
+ ]
+}

@@ -1,0 +1,144 @@
+{
+ "slot": "invoice-reminders__P-shiploop-spec__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "D-2",
+   "quote": "Default schedule `[-3, 0, 7, 14]`, send time `09:00`.** Offsets are days from the due date: three days before, on the due date, then 7 and 14 days after."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-3, G-3",
+   "quote": "is not void, cancelled or written off. A partly paid invoice is eligible for its outstanding balance.",
+   "missing": "The positive-balance rule covers a credit that clears the balance. The specification gives no separate rule for a credited invoice with money still owing or one on a payment plan. G-3 leaves the host\u2019s dispute and hold mapping open."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3 (AC-3.3)",
+   "quote": "The offset 0 mail states an outstanding balance of `850.00 USD`, not 1,250.00."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "N-3, G-7",
+   "quote": "Unresolved: legal or consent obligations such as an opt-out footer, and a retention period (G-7). They are not assumed either way.",
+   "missing": "Whether an existing do-not-contact flag, pause or unsubscribe suppresses a send, and whether billing reminders are exempt from a marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-6 (AC-6.3)",
+   "quote": "With a provider that honours the send identity, exactly one mail exists. With one that does not, at most one duplicate is possible and is the documented limit.",
+   "missing": "Concurrent evaluations share a single claim, but a restart after provider acceptance can still duplicate the email. The provider\u2019s deduplication guarantee or another way to prevent that duplicate remains unresolved."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "The invoice's status and balance are read from the host immediately before each send. If it became ineligible after the step was claimed, no mail is sent"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-8",
+   "quote": "Transient provider failure or an unreadable host \u2192 record `Retrying`. Later evaluations try again while the invoice stays eligible and the next step's moment has not arrived.",
+   "missing": "R-8 explicitly excludes operator alerts. It provides no human handoff for persistent failure and gives no retry cutoff for the final step, which has no next scheduled moment."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "State and information lifecycle (Quotas), G-2",
+   "quote": "The mail provider's rate and daily limits are unknown (G-2). The spec sets none and invents none.",
+   "missing": "The applicable provider quota and how to pace or defer sends when a batch exceeds it."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Turning On does not send anything for scheduled moments earlier than the save"
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "There is also a send time of day (24-hour `HH:MM`) and a timezone (IANA name).",
+   "missing": "The schedule uses a business-wide clock. There is no recipient-local business-hours window or explicit weekend or holiday policy."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "D-9",
+   "quote": "Amounts are `1,250.00 USD`."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-8",
+   "quote": "No billing email \u2192 no mail. The record is `Skipped(no_recipient)`. \u2026 Permanent rejection (invalid address, refused recipient) \u2192 `Failed(rejected)`, never retried.",
+   "missing": "The spec handles missing addresses and immediate rejection. It leaves open what a later bounce does to the recorded outcome and to future sends."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "the mail goes to the invoice's billing email and nowhere else.",
+   "missing": "This selects a designated invoice address, but gives no selection rule when several billing contacts are available and none is designated as the invoice recipient."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-9 (AC-9.1)",
+   "quote": "INV-1001's history shows exactly two rows: offset -3 `Sent` at 2026-12-07T09:00Z and offset 0 `Sent` at 2026-12-10T09:00Z, both to `ap@acme.example`. Surface: invoice history view"
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "invoice number, outstanding balance with currency, the due date \u2026 If the host's invoice already carries payment instructions or a link, they are included (G-4).",
+   "missing": "Payment details are conditional on what the host supplies. The spec gives no fallback way to pay or rule for whether the link expires and how to handle an expired link."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "D-7, R-4, R-1",
+   "quote": "Operator authority = whoever the host already lets manage billing settings. \u2026 Out of scope: a manual \"send now\" \u2026 Turning Off stops every new send from that moment. \u2026 per-customer or per-invoice switches"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1, R-4, N-6",
+   "quote": "Turning Off stops every new send from that moment. \u2026 Out of scope: a \"send backlog now\" action, and per-customer or per-invoice switches",
+   "missing": "Global disablement is defined, and individual switches and manual sending are excluded. N-6 gives the verification harness a capture sink but leaves operator preview or dry-run behavior unspecified."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-9",
+   "quote": "one row per handled step: offset, scheduled moment, outcome (`Sent`, `Retrying`, `Failed(<reason>)`, `Skipped(<reason>)`), time of last change, attempt count, and the address used.",
+   "missing": "History exposes failed sends. It does not say how an operator can see the next pending reminder or its scheduled send time."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "N-1, N-4",
+   "quote": "Missing decision: the owner's acceptable lateness (G-8). \u2026 Missing: expected volume (G-8).",
+   "missing": "No maximum delay or overall sending cap is set. The one-reminder-per-invoice rule for an evaluation does not bound total sends across invoices."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3, State and information lifecycle",
+   "quote": "Invoice data (status, balance, due date, issue time, billing email) | Host invoice system. This feature never writes it."
+  }
+ ]
+}

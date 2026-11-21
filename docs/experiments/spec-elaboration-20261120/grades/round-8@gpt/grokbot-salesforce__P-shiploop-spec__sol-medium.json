@@ -1,0 +1,186 @@
+{
+ "slot": "grokbot-salesforce__P-shiploop-spec__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "AD-1",
+   "quote": "Use a Lightning Web Component exposed through a Salesforce Lightning component tab. \u2026 Use an imperative, non-cacheable Apex operation called as the signed-in user for each Send. \u2026 no CRM data access"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "AD-1; R-1, State and domain rules",
+   "quote": "called as the signed-in user for each Send \u2026 Neither installation nor runtime reads or writes CRM records, so record sharing, object/field authorization and data migration are inapplicable to this slice.",
+   "missing": "CRM records are excluded. The specification gives no sharing-context rule for retrieving records on the asker\u2019s behalf."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-1, State and domain rules",
+   "quote": "Neither installation nor runtime reads or writes CRM records, so record sharing, object/field authorization and data migration are inapplicable to this slice.",
+   "missing": "The specification excludes all CRM fields. It gives no rule for enforcing field permissions or masking restricted or encrypted values when reading or displaying fields."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "AD-1; R-1, State and domain rules",
+   "quote": "Give the dedicated access grant the tab visibility, Apex class access and required external credential principal access. \u2026 The named org administrator or authorized delivery operator controls bot-specific metadata and configuration."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4, State, recovery and open gaps; R-3, State and domain rules",
+   "quote": "Prompt owners see their own output/error, and diagnostics go only to authorized operators. \u2026 The application writes no prompt or answer to org records, persistent client storage or logs."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-1; AD-2",
+   "quote": "A server-side callout keeps provider authentication out of the browser \u2026 Apex initiates the call synchronously while the browser waits asynchronously.",
+   "missing": "No asynchronous Apex job or transaction boundary is specified for callouts originating from a trigger or following DML."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AD-2; R-3.a",
+   "quote": "a Custom External Credential with a Named Principal \u2026 The principal holds an administrator-provisioned dedicated key \u2026 Metadata carries references and safe configuration only. \u2026 App-owned diagnostics exclude those fields and all prompt and answer text."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "AD-2",
+   "quote": "Configured limits and timeout must fit the selected model and the full Apex transaction, including request/response heap use.",
+   "missing": "The numeric callout timeout, callout count per transaction, heap ceiling and CPU-time limit are unspecified."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "Verification evidence, Failure and recovery (R-2.c, R-3.c, R-4.a)",
+   "quote": "Supply provider 401, 429, 503, no response through the configured deadline, a 200 with incomplete status, or a 200 completed body with three ASCII spaces as its only assistant text.",
+   "missing": "The fixtures specify responses to simulate. The specification does not require an Apex callout mock or explain the restriction on live callouts in Apex tests."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-2; R-3.c",
+   "quote": "Use modern Salesforce Named Credentials and a Custom External Credential with a Named Principal to call the approved xAI endpoint over HTTPS. \u2026 Missing, revoked or unusable configuration yields the safe unavailable or authorization failure"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "AD-2; R-2, Service contract; R-2.b",
+   "quote": "Apex initiates the call synchronously while the browser waits asynchronously. \u2026 Consume the original response only \u2026 A completed response with usable assistant text appears under the corresponding submitted question in Salesforce."
+  },
+  {
+   "id": "N-12",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "Verification evidence, Failure and recovery; R-2.c",
+   "quote": "401 yields setup/access, 429 rate limit, and the others a service/unusable or unconfirmed outcome as applicable. \u2026 For timeout or disconnect say the answer could not be confirmed.",
+   "missing": "The examples distinguish authentication, throttling, service failure and timeout. The user-visible result for other 4xx refusals, such as a rejected prompt, is unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-2.c",
+   "quote": "Distinguish unavailable setup/access, rate limiting, and timeout/service or unusable-response failure. \u2026 No automatic retry. Manual resend is a new request",
+   "missing": "Manual resend is allowed after throttling. There is no wait guidance for that resend or stated outcome for exhausted quota."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2.b; R-2.c; Verification evidence, Failure and recovery",
+   "quote": "incomplete result, missing or blank assistant text, or non-Grok fallback cannot count as an answer. \u2026 zero displayed answers, restored prompt and a persistent safe error. \u2026 For timeout or disconnect say the answer could not be confirmed."
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-3.a; R-3.b; R-3, State and domain rules",
+   "quote": "Org records and persistent browser storage hold no app transcript. \u2026 Reload, leaving the view, logout or account change starts a fresh empty view. \u2026 The provider documents a default 30-day encrypted audit window with automatic deletion.",
+   "missing": "Actual provider retention depends on team configuration. The specification does not say what deleting a Salesforce user does to remaining provider copies."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-2.b; R-3.a",
+   "quote": "Outbound content excludes earlier turns, Salesforce record data, Salesforce identifiers and tool requests. \u2026 Before Send the user sees that prompt text goes to xAI and is directed to use synthetic or non-sensitive text only."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-2.b; R-2, Open gaps",
+   "quote": "Each question is independent. Outbound content excludes earlier turns \u2026 sets the model-specific timeout and input/output ceilings with headroom",
+   "missing": "History is always omitted. The actual context budget and size threshold for an oversized input remain open."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-1.a; R-2.a",
+   "quote": "opens a usable empty prompt screen \u2026 Blank, whitespace-only, or oversized input is rejected with an inline correction and zero provider requests. \u2026 The confirmed prompt maximum is inclusive in the stated unit."
+  },
+  {
+   "id": "N-22",
+   "state": "covered",
+   "where": "R-3.c; AD-2; R-4.a",
+   "quote": "Removing the bot binding and disabling or deleting its dedicated key ends future use. \u2026 Keep endpoint and model selection under administrator control. \u2026 An authorized operator can distinguish app-observed completed, rejected, upstream failed and unconfirmed attempts"
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "R-4, State, recovery and open gaps",
+   "quote": "The org operator owns diagnostic access, retention and removal using the approved org facility. Events hold safe outcome class, correlation and timing only.",
+   "missing": "The diagnostic event omits the asker, question and answer. No retention duration for a content audit record is specified."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-1.a; R-1.c",
+   "quote": "Production and unrelated orgs are outside the target. \u2026 Salesforce deployment and setup surfaces \u2026 Compare named resources before and after, verify effective grants and intended navigation",
+   "missing": "The specification does not select a scratch-org or sandbox deployment path, define environment-specific configuration and credentials, or state the production Apex code-coverage requirement."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "R-2.c; Non-functional requirements, Operating envelope and cost",
+   "quote": "While waiting, show **Waiting for Grok** and disable duplicate sends in that view. \u2026 Require an explicit tested timeout within host limits and a recoverable message when exceeded.",
+   "missing": "The waiting state is defined, but neither a target answer time nor an actual maximum wait is set."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "Non-functional requirements, Designed interface and accessibility; R-2.c",
+   "quote": "Separate question, waiting indicator, reply, and persistent error with readable hierarchy and tonal grouping. Design the empty, loading, error and ready states together. \u2026 Distinguish unavailable setup/access, rate limiting, and timeout/service or unusable-response failure."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-1, Basis and delta; R-1, State and domain rules; AD-1",
+   "quote": "Preserve unrelated org assets, settings, access, and records. \u2026 Neither installation nor runtime reads or writes CRM records \u2026 Use an imperative, non-cacheable Apex operation called as the signed-in user for each Send."
+  }
+ ]
+}

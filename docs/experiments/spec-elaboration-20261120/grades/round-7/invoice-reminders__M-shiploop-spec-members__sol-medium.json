@@ -1,0 +1,144 @@
+{
+ "slot": "invoice-reminders__M-shiploop-spec-members__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3579034,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "The proposed default is one reminder occurrence per invoice for the lifetime of that invoice. ... The first eligible date is the next local calendar date."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Suppress drafts and other unissued invoices, paid or zero/credit-balance invoices, voided or canceled invoices, and invoices marked non-collectible or subject to an authoritative collections hold.",
+   "missing": "Whether disputed invoices and payment-plan invoices stop reminders is deferred to the billing owner ('holds (including any disputes or payment-plan states)' is an open gap)."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "gives the due date and current outstanding amount with currency ... A partial payment before authorization changes the balance used for the message if the invoice remains eligible."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "A missing, invalid, ambiguous, revoked, or suppressed recipient ... yields no handoff. ... The billing owner must confirm the approved contact-selection and suppression rules",
+   "missing": "Which customer states (do-not-contact, paused, unsubscribed) count as suppression, and whether a billing notice is exempt from a marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "Each account and immutable invoice pair has one logical occurrence. Overlapping evaluations, repeated triggers, and restarts converge on the same occurrence. Confirmed channel acceptance prevents a further dispatch for that occurrence."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Before dispatch authorization, use current policy, automation authority, invoice status, balance, due date and recipient. ... A stale discovery read can identify a candidate but cannot grant dispatch authority."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Definitive temporary non-acceptance can be retried within an approved retry policy ... Permanent rejection or retry exhaustion ends automated attempts with an actionable status.",
+   "missing": "Retry delays, deadline and attempt cap are left open, and nothing says how a person is alerted beyond a readable status."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Non-functional requirements (Timeliness and capacity)",
+   "quote": "Backpressure or rate limiting preserves recoverable status and applies R-4 when a retry is due. ... Open bounds are ... backlog and burst workload, delivery rate and resource quotas",
+   "missing": "The provider's rate limit and how a large batch is paced within it are not specified."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "This includes ... eligible invoices already overdue at activation. ... The maximum allowed age for catch-up and handling of very old invoices are open product decisions.",
+   "missing": "How the backlog is paced or limited so it does not all go out at once at activation."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "the billing account's local calendar date is later than that due date. The first eligible date is the next local calendar date.",
+   "missing": "Sending hours, business hours, weekends and holidays are not addressed; only the date boundary uses local time."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "gives the due date and current outstanding amount with currency",
+   "missing": "How amounts and currency are formatted for the recipient (locale, symbol, decimals)."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "A missing, invalid, ambiguous, revoked, or suppressed recipient ... yields no handoff. The authorized operator can distinguish the actionable reason. ... If the selected channel supplies an authoritative bounce report, expose it as a delivery failure"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Send to the current authorized billing contact selected for the invoice. ... A missing, invalid, ambiguous ... recipient ... yields no handoff.",
+   "missing": "The rule for choosing among multiple billing contacts is deferred ('confirm the approved contact-selection ... rules'); only the equally-applicable ambiguous case is decided (send none)."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "The automation owns the durable occurrence status, scoped identifiers, attempt identity, and bounded outcome metadata.",
+   "missing": "No record of what was sent is kept ('No separate product-side copy of the message ... is required'), and the history is not shown on the invoice."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "identifies the billing sender and customer-visible invoice reference, gives the due date and current outstanding amount with currency, and directs the recipient to review or pay through their usual billing route"
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Account operators with configuration permission can read and change it. ... The billing owner must identify the target account, authorized configuration entry point and roles",
+   "missing": "The actual roles are left open, and nothing says who may stop a single reminder by hand; manual sends are out of scope."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "An authorized operator activates reminders for a named billing account. ... Once off is committed, pending work cannot receive a new dispatch authorization.",
+   "missing": "No global off switch and no preview or dry run; manual resend is explicitly out of scope."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "An authorized operator can distinguish eligibility or pending work, a delivery-channel acceptance, and a delivery failure or unresolved result."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "The maximum allowed age for catch-up and handling of very old invoices are open product decisions.",
+   "missing": "No actual bound on sending volume or on how late a reminder may still go out; both are left as open bounds."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "Scope and basis",
+   "quote": "Invoice issuance, payment collection and allocation, invoice balances and due dates, and access to invoices remain under their existing billing rules. Reminder automation does not change those rules."
+  }
+ ]
+}

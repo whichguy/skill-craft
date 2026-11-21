@@ -1,0 +1,184 @@
+{
+ "slot": "grokbot-salesforce__H-shiploop-spec-duty4-no-open__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "AD-1; R-3.A",
+   "quote": "Use a Lightning web component exposed to a Lightning component tab \u2026 No Salesforce records, record context, user identifiers, earlier prompt or answer, or selected page contents are automatically included."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1, State and recovery",
+   "quote": "The bot performs no business record reads or writes, so record sharing, object CRUD and field-level access checks for business data are inapplicable.",
+   "missing": "Record-derived answers are outside scope. No execution rule requires record access to use the asking user's sharing context."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-1, State and recovery",
+   "quote": "The bot performs no business record reads or writes, so record sharing, object CRUD and field-level access checks for business data are inapplicable.",
+   "missing": "If fields are used in an answer, the specification gives no field-permission, masking or display rule for encrypted or restricted values."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "AD-1; R-1, State and recovery",
+   "quote": "A feature permission set grants tab visibility, Apex class access and use of the outbound credential principal to designated users. \u2026 an authorized administrator manages the scoped grants."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-3.B",
+   "quote": "A different Salesforce user or view cannot read another view's state via the feature. \u2026 No app-owned durable content, history or payload logging."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-2; Service boundaries, Salesforce \u2192 xAI",
+   "quote": "Send a single non-streamed JSON POST to `https://api.x.ai/v1/responses` per admitted prompt. \u2026 No async job, status endpoint, replay or compensation is part of this contract.",
+   "missing": "The callout is specified, but the trigger and same-transaction DML constraints and a separate asynchronous Apex transaction are missing."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AD-2; R-3.C",
+   "quote": "Use an enhanced Salesforce Named Credential \u2026 The approved Salesforce administrator provisions the secret separately from metadata \u2026 The key and Authorization header never appear in browser output or application logs."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Non-functional requirements, Compatibility and runtime envelope",
+   "quote": "For synchronous Apex these include 100 callouts, 120 seconds cumulative callout timeout and 6 MB heap and single HTTP message limits.",
+   "missing": "The numeric Apex CPU-time limit is missing."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "State transitions and acceptance cases, fixture definitions",
+   "quote": "A controlled response uses a simulated provider at the callout boundary",
+   "missing": "The specification does not require Apex tests themselves to install a callout mock or state that those tests cannot make live HTTP calls."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "Use an enhanced Salesforce Named Credential for the HTTPS xAI inference host, linked to a Custom External Credential with a named principal."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "AD-1; Service boundaries, Salesforce browser \u2192 org",
+   "quote": "The component calls a non-cacheable Apex server action imperatively on Send. \u2026 A browser acknowledgment is only pending. Apply one matching terminal result before the deadline."
+  },
+  {
+   "id": "N-12",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-2.D",
+   "quote": "401/403 or missing credential shows **Grok access is unavailable. Contact your Salesforce administrator.** \u2026 5xx, unexpected status or malformed/empty output shows **Grok couldn\u2019t reply. Try again.** \u2026 **Grok took too long. Try again.**",
+   "missing": "The specification distinguishes 401/403, 429 and timeouts, but other 4xx refusals fall under unexpected status and display the same message as 5xx failures."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2.D",
+   "quote": "429 shows **Grok is busy. Try again later.** \u2026 No raw provider errors or automatic retries. \u2026 A resend is a fresh attempt."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2.C\u2013D",
+   "quote": "show **Grok\u2019s reply was cut short. Ask for a shorter answer and try again.** Display no partial text. \u2026 resolve as **Grok took too long. Try again.**"
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-3.B; R-3, State and recovery",
+   "quote": "Browser view cleanup ends local display and does not delete provider-held audit copies \u2026 xAI documents default audit retention of 30 days and team-level zero-data-retention if enabled.",
+   "missing": "The local lifetime and provider retention policy are stated. The effect of deleting the Salesforce user on any provider-held content is unspecified."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-3.A",
+   "quote": "Use synthetic, non-sensitive text. Your message is sent to xAI. \u2026 No Salesforce records, record context, user identifiers, earlier prompt or answer, or selected page contents are automatically included."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3.A; R-2.A",
+   "quote": "No Salesforce records, record context, user identifiers, earlier prompt or answer, or selected page contents are automatically included. \u2026 maximum is 8,192 UTF-8 bytes inclusive \u2026 A prompt of 8,193 bytes or more is rejected whole."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-1.A; R-2.A; R-2.C",
+   "quote": "opens an empty chat \u2026 Empty or all Unicode whitespace input is rejected with **Enter a message.** \u2026 An otherwise valid 8,192-byte prompt can proceed. \u2026 A completed text answer at the cap is eligible to display."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-3, State and recovery; AD-2",
+   "quote": "The admin can clear or replace the org binding \u2026 Use non-secret org configuration for the selected model, with scope for an admin to update it.",
+   "missing": "The specification gives no administrative view or lookup for failed requests."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "R-3, State and recovery",
+   "quote": "Salesforce owns its platform access logs and xAI owns its billing/retention; neither is a transcript store for the bot. xAI documents default audit retention of 30 days and team-level zero-data-retention if enabled.",
+   "missing": "There is no audit record linking an identified asker to the prompt and answer, or retention period for such a record."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-1, State and recovery; AD-2; R-3, State and recovery",
+   "quote": "A metadata deployment and a grant assignment are distinct effects. \u2026 The approved Salesforce administrator provisions the secret separately from metadata \u2026 Those actors manage one dedicated development binding",
+   "missing": "Production configuration and credential separation, the route from a scratch org or sandbox to production, and the production Apex coverage requirement are unspecified."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "R-2.B; R-2.D",
+   "quote": "announces **Waiting for Grok\u2026** until that attempt ends. \u2026 wait deadline is 60 seconds from accepted send. \u2026 resolve as **Grok took too long. Try again.**"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "Non-functional requirements, Interface quality and appearance; R-2.D",
+   "quote": "Design the empty state, waiting state, response and persistent inline error with appropriate recovery. \u2026 401/403 or missing credential shows **Grok access is unavailable. Contact your Salesforce administrator.**"
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-1, Basis and delta; R-1, State and recovery",
+   "quote": "Preserve unrelated org metadata, access, automation and business records. \u2026 The bot performs no business record reads or writes"
+  }
+ ]
+}

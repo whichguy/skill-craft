@@ -1,0 +1,186 @@
+{
+ "slot": "grokbot-salesforce__M-shiploop-spec-members__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.4136002,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-01",
+   "quote": "An assigned internal user opens **Grok Bot** from the App Launcher and reaches the chat with an empty transcript and available composer."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "No Salesforce record data access is needed, so record sharing, object access and field-level access are inapplicable to the invocation as scoped. Reassess each if record access is ever requested."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "No Salesforce record data access is needed, so record sharing, object access and field-level access are inapplicable to the invocation as scoped."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "AD-1",
+   "quote": "Use a dedicated, maintainable permission-set assignment for the intended cohort and require effective server class and outbound principal access."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "The current signed-in user reads them. The active page is the sole writer... No shared store, persisted transcript or cross-device recovery."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-2",
+   "quote": "Use an imperative, non-cacheable invocation from the component to Apex. The Apex entry checks admission and validates the text request, then makes one HTTPS callout to the authorized xAI endpoint.",
+   "missing": "The callout-after-DML / no-callout-from-trigger constraint is not stated, and the sync-vs-async choice is left open pending the callout-ceiling feasibility check."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "Use a modern Salesforce Named Credential for the destination and a linked External Credential... Consumers, client code, product source, error reports and application logs never receive the key."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Salesforce documents a maximum cumulative callout timeout of 120 seconds and a Developer Edition cap of 20 concurrent external callouts. The selected org type, callout and browser deadlines, serialized payload/heap headroom... remain open.",
+   "missing": "Heap and CPU time limits with their numbers, and the callouts-per-transaction limit."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C-04",
+   "quote": "Capture the outbound messages under a controlled service.",
+   "missing": "That Apex tests cannot make real callouts and need an HttpCalloutMock-style mock implementation."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "Use a modern Salesforce Named Credential for the destination... makes one HTTPS callout to the authorized xAI endpoint."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "Service contracts",
+   "quote": "UI remains pending until the current attempt returns or expires... status polling for bot replies... inapplicable",
+   "missing": "The spec assumes the imperative call returns inline but leaves open whether the model fits the callout ceiling; there is no fallback notification mechanism if it does not."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "T-4",
+   "quote": "snapshot successful history plus new text, display pending, dispatch once. Pending ignores repeated Send."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "a Developer Edition cap of 20 concurrent external callouts",
+   "missing": "What happens to a request when the concurrency limit is hit or it cannot be admitted."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-08",
+   "quote": "Configuration/provider auth or entitlement failures direct the user to the org admin. Rate limit or transient service failure offers a later manual Send. An offline, disconnected or timed-out attempt reports that a reply could not be obtained."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-08",
+   "quote": "Rate limit or transient service failure offers a later manual Send... Observe zero automatic retries."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-08",
+   "quote": "Incomplete, nonterminal, malformed, blank, refusal-only or otherwise unusable replies show that Grok did not return a usable answer."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "No shared store, persisted transcript or cross-device recovery.",
+   "missing": "No conversation/turn record shape; model identifier, timestamps and token/usage counts are not captured anywhere."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "Refresh, teardown or detected session loss discards app-held state... S6 describes default audit deletion after 30 days. The approved team's actual terms determine the applicable retention."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-09",
+   "quote": "Never attach Salesforce records, user identifiers, browser session credentials or unrelated context... only synthetic, non-sensitive data belongs in this development bot."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "C-06",
+   "quote": "Context overflow sends nothing and offers **New chat**... Never silently omit history... The unit and values are open.",
+   "missing": "The context size limit and its unit."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "C-06",
+   "quote": "Accept an otherwise valid message and accumulated context at their respective configured inclusive input bounds... The unit and values are open.",
+   "missing": "The maximum question length value and the maximum accepted answer/output length."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "To contain a bad activation, remove only the assignments and visibility added for this bot.",
+   "missing": "An admin control to change the model (model is fixed server-side config) and an admin view of failed requests beyond generic 'authorized diagnostics'."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Provider-controlled audit or contractual retention is independent of UI clearing. S6 describes default audit deletion after 30 days.",
+   "missing": "No app-owned audit record of who asked what; only provider-side audit is referenced and its retention is left to unconfirmed terms."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "AD-2",
+   "quote": "Use nonsecret config for environment differences.",
+   "missing": "Scratch org vs sandbox approach, how credentials differ per environment, and the production code-coverage requirement."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "C-07",
+   "quote": "An eligible Send shows the pending user turn and **Waiting for Grok**... There is no response-time guarantee",
+   "missing": "A latency target or deadline value; deadlines are left open."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Verify rendered empty, pending, reply and error states with keyboard and assistive technology, both palettes"
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Preserve existing identities, access assignments, unrelated metadata, automation and records."
+  }
+ ]
+}

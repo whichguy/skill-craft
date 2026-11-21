@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__M-shiploop-spec-members__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "If and only if every row is valid, all rows are created together as one atomic unit; each becomes one user (R-8). If anything fails, no user from the file exists afterwards."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "a table of row, field, message for every row error, with a count and the reminder that nothing was created"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "every later occurrence is `DUPLICATE_IN_FILE` with `first_row`. The first occurrence is additionally flagged `ALREADY_EXISTS` if the email exists in the store. Existing users are never updated (no upsert)."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-8, R-8.2",
+   "quote": "the default non-admin role (A-3) \u2026 `FX-H2` (`role` column with value `admin`) \u2192 400; Store has no new user and no user's role changed."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "The import endpoint and page are available to a caller whose *current* role is admin. Everyone else is refused before the file is read.",
+   "missing": "The spec sets an admin-role check but does not distinguish import authority from permission to create one user manually."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "The first record is a header. \u2026 Exactly the set {email, name}; any other header, a missing required header, or a repeated header (after normalisation) is a file error."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "UTF-8 only; a leading UTF-8 byte-order mark is accepted and ignored. Lines may end in LF or CRLF. Fields follow RFC 4180 quoting (quoted fields may contain commas, doubled quotes, line breaks)."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-6, R-8",
+   "quote": "All-or-nothing applies to validation errors, commit-time conflicts and unexpected faults. \u2026 The feature sends no message."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-9",
+   "quote": "Exactly `IMPORT_MAX_ROWS` rows is accepted; one more \u2192 400 `TOO_MANY_ROWS`, nothing created, no per-row validation reported.",
+   "missing": "The production row and byte limits still need values. The numeric limits in the fixtures apply only to tests."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2, R-3, R-2.3",
+   "quote": "zero bytes or only blank lines \u2192 400 `EMPTY_FILE` \u2026 A header-only file \u2192 400 `NO_DATA_ROWS`. \u2026 (valid one-row file padded with trailing newlines to exactly 2048 bytes) \u2192 201 with 1 user"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-5.4",
+   "quote": "After `FX-OK3` succeeded (Store has 7 users), submitting the identical file again \u2192 422 with `ALREADY_EXISTS` on rows 1, 2, 3; Store still 7."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "AD-2",
+   "quote": "The HTTP response is the completion signal. Alternative considered: asynchronous job with a status endpoint \u2014 deferred",
+   "missing": "The spec defers background imports. Completion feedback is defined only for synchronous requests."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "Default: none beyond what already exists; no email sent."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-8",
+   "quote": "no usable credential (A-4) \u2026 how imported users get credentials (existing reset link, invite email on import, or admin-shared). Default: none beyond what already exists; no email sent.",
+   "missing": "The credential starts unset, but the initial account status and the particular path to first sign-in remain unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "\u00a78, File bytes",
+   "quote": "File bytes | Server request memory | The handling request only | One request = one file; independent requests do not share | At request end; nothing persisted"
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "\u00a75, Privacy / data handling",
+   "quote": "the audit entry holds admin id, timestamp, outcome, counts and error codes only (A-8).",
+   "missing": "The entry identifies the importer and time but provides no way to identify the particular file or users imported."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-6, R-7",
+   "quote": "Imports have no partial-success state (A-5). \u2026 The admin can correct and resubmit without guessing.",
+   "missing": "Recovery is defined for a corrected file as a whole. The spec gives no running-import cancellation behavior or action to retry only failed rows."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-10, \u00a75 Performance / capacity",
+   "quote": "*pending* (submit disabled, \"Importing\u2026\" status, file control locked; shown only while the request is in flight) \u2026 a maximum response time for a file at the limit are **unresolved**",
+   "missing": "The admin sees an in-flight indicator. The maximum completion time at the file limit is still open."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "**Preserved:** every existing user's data and the existing single-user creation behavior (unobserved; plan to re-check)."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "\u00a75 Security \u2014 input handling, R-4",
+   "quote": "names that begin with `=`, `+`, `-`, `@` are stored verbatim and any future CSV export must neutralise them \u2026 Email length 254 valid / 255 invalid; name length 100 valid / 101 invalid."
+  }
+ ]
+}

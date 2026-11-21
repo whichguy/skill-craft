@@ -1,0 +1,186 @@
+{
+ "slot": "grokbot-salesforce__G-shiploop-spec-duty4-bounds__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-1 (AD-1), C-8",
+   "quote": "Use a Lightning Web Component on an activated Lightning App Page in the approved development org. \u2026 the prompt and omits record data, Salesforce identity and prior content"
+  },
+  {
+   "id": "N-2",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C-1, C-2, C-9",
+   "quote": "a user with the approved execution grant can submit from the entry. \u2026 Salesforce owns bot entry/configuration and access assignments, operated on by the authorized org administrator."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-7, C-8",
+   "quote": "another view or user cannot read that interaction through the bot. \u2026 Runtime debug settings and account-specific data handling require confirmation before live use.",
+   "missing": "Whether an administrator can inspect another user's prompt or reply through diagnostics or provider audit access."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-3 (AD-2)",
+   "quote": "Use an imperative Salesforce page-to-Apex request and one foreground HTTPS callout per submission that passes the server-side guards",
+   "missing": "The specification chooses a foreground callout. It gives no trigger or post-DML transaction rule and specifies no asynchronous Apex job."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-9 (AD-2)",
+   "quote": "Store the API key as an encrypted credential parameter on a Custom authentication named principal in an External Credential. \u2026 browser responses/resources, logs, deployable source/configuration and user messages reveal no key."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-10 (S3)",
+   "quote": "The per-call timeout is configurable up to 120 seconds and the cumulative transaction callout time cannot exceed 120 seconds.",
+   "missing": "Numeric limits for callouts per transaction, total heap and CPU time. The body-size and concurrent-callout ceilings measure different things."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C-6",
+   "quote": "Inject missing configuration, HTTP 401, 429 or 503",
+   "missing": "Controlled outcomes are required, but the specification does not require an Apex callout mock or state the restriction on real callouts in Apex tests."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "C-9 (AD-2)",
+   "quote": "to the xAI Responses API at `https://api.x.ai/v1/responses`. \u2026 Link it to a Named Credential and use a formula-backed `Authorization: Bearer \u2026` header.",
+   "missing": "It names the endpoint and the credential but does not require registering the host for the callout or describe refusal when that registration is missing."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "C-3, C-4",
+   "quote": "The view shows pending while Salesforce sends the authorized inference call. The matching terminal result or deadline updates the view (T-4).",
+   "missing": "The interface uses the foreground request's result. No notification or retrieval mechanism is specified for an answer that arrives after the request returns."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-3, C-6",
+   "quote": "Late or duplicate completions cannot change a terminal view. \u2026 A manual retry may be processed or billed as a fresh request",
+   "missing": "Duplicate completions are ignored in the view, but no request identity or equivalent rule prevents a retried job from posting a second reply."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C-6",
+   "quote": "missing or rejected provider credentials, or model access failure, directs the user to the org administrator. \u2026 A provider outage or unusable response reports the failure and permits a manual retry. \u2026 a timeout or connection message"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C-6",
+   "quote": "Rate or quota rejection tells the user to try later or contact the administrator if it persists. \u2026 Every failed submission ends the pending state and generates zero automatic retries."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-6, C-10",
+   "quote": "leaves pending with a timeout or connection message and retains the prompt for an explicit retry \u2026 An over-cap answer or provider-reported truncation produces an actionable incomplete-answer message and no partial answer presented as complete."
+  },
+  {
+   "id": "N-17",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "C-7, C-8",
+   "quote": "Reload, leaving the page or sign-out discards the local prompt, answer and pending state \u2026 xAI documents 30-day audit retention by default and an account-specific Zero Data Retention option.",
+   "missing": "The effect of deleting the user on any live view and any retained provider copy is unspecified."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C-8",
+   "quote": "instructs them to use approved development data. \u2026 the actual outbound payload carries the prompt and omits record data, Salesforce identity and prior content \u2026 Free text may contain personal or secret data typed by a user."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "C-3, C-5, C-10",
+   "quote": "The second outbound request carries neither the first prompt nor first reply. \u2026 Beyond it, Send reports that the prompt must be shortened, keeps the editable draft, and makes zero calls. No silent truncation.",
+   "missing": "Turns are independent and oversized prompts are rejected. The effective context ceiling for that rejection still needs a value and unit."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C-1, C-5, C-10",
+   "quote": "Fresh page with grant opens an empty ready view. \u2026 empty or whitespace-only text is rejected with guidance and zero egress \u2026 at the inclusive effective prompt limit, a valid prompt can be sent."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "C-2, C-9",
+   "quote": "the authorized admin removes that user's effective execution grant \u2026 The administrator can replace the org's reference and revoke the old key at xAI.",
+   "missing": "An org-wide off control, the administrator's procedure for changing models, and administrator visibility into failed requests are unspecified."
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "C-1, C-9",
+   "quote": "Before applying changes, identify the org ID and instance, compare intended metadata and assignments to current state \u2026 Credential values stay outside deployable metadata.",
+   "missing": "The deployment target type, configuration and credential differences across environments, and the production code-coverage requirement are unspecified."
+  },
+  {
+   "id": "N-25",
+   "state": "partial",
+   "where": "C-3, C-10",
+   "quote": "The view announces that it is waiting. \u2026 Size/deadline cases are open until R-2's bounds are bound to concrete values and units.",
+   "missing": "The elapsed-time target or effective deadline the bot must meet."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "C-1, C-6, C-11",
+   "quote": "Empty, loading and error states each have a deliberate composition. \u2026 an unapproved or signed-out user following the entry URL gets a platform sign-in or access denial, with no usable bot controls."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C-1, C-8",
+   "quote": "Unrelated metadata and effective grants must survive. \u2026 the bot reads and writes no business records."
+  }
+ ]
+}

@@ -1,0 +1,149 @@
+{
+ "slot": "gym-waitlist__M-shiploop-spec-members__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Before they join, explain that a seat may be booked automatically if one becomes available while booking is open, and show the applicable booking consequences."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2, Source and scope",
+   "quote": "oldest eligible active entry in authority-accepted join order. \u2026 one total order per session, including simultaneous joins. \u2026 staff queue administration, priority tiers, external notifications, and new payment or penalty policies are outside this request."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-2, Open gaps",
+   "quote": "any exceptions required by existing holds, eligibility rules, payment, attendance conflicts or staff actions.",
+   "missing": "Whether booking one class ends the member\u2019s waiting entry for an overlapping class, and when that entry is resolved."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-3, R-1",
+   "quote": "leave returns the booked state and offers the existing booking cancellation route where available. \u2026 If fees, credits, waivers or penalties require consent beyond the ordinary booking flow, affected sessions are unready for enrollment until settled.",
+   "missing": "Whether cancelling an unwanted automatic booking or missing the promoted class counts under the existing late-cancellation or no-show policy."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "A confirmed cancellation or effective capacity increase that makes seats free while booking is open triggers allocation, even with all members\u2019 screens closed.",
+   "missing": "How soon the authority must process the vacancy after cancellation."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "A promotion appears in the ordinary booking view. \u2026 Open, refresh and reconnect recover from an authorized current read \u2026 No separate notification, subscription, or external delivery boundary is required by this default."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Settle up to the smaller of the number of free seats and eligible waiters \u2026 The same seat cannot be taken twice. \u2026 A commit removes one active claim and gives that same member one confirmed booking."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "If a normal booking races for capacity owed to the queue, refuse that booking while the claim is active. \u2026 A commit removes one active claim and gives that same member one confirmed booking."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2, Open gaps",
+   "quote": "The product owner must resolve any conflict between automatic enrollment and existing charges or obligations.",
+   "missing": "When to take payment for a promoted booking and what a failed payment does to the booking, queue entry and seat."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1, Open gaps",
+   "quote": "Any maximum queue length and the admission result when it is reached are unresolved.",
+   "missing": "The queue limit and what the member sees when attempting to join at that limit."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "At the booking cutoff itself closure wins. \u2026 The booking owner must establish actual closure, cancellation, reopening and clock semantics on supported clients.",
+   "missing": "Whether the booking cutoff precedes class start and by how much."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "effective capacity increase that makes seats free while booking is open triggers allocation \u2026 An authorized reduction in capacity that takes effect first leaves only the new available capacity for promotions."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "At session cancellation or when booking closes, all remaining entries stop qualifying for any future seat. Show the relevant closed or canceled outcome without a booking confirmation."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "After a successful join there is one active entry and no confirmed booking. The app keeps the member/session association and a stable ordering fact in authoritative waitlist state.",
+   "missing": "Whether the entry records its join time and whether its current position is stored or derived from the ordering data."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "A private terminal outcome may remain only as needed to explain the result or reconcile old intents, then is removed under the applicable retention policy.",
+   "missing": "The retention period or concrete deletion deadline for ended entries after class."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Other members\u2019 entries, names, contact details, order and outcomes stay off the client, including response payloads and errors.",
+   "missing": "Whether the member sees their own position in line alongside their waitlisted status."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "Source and scope, R-4",
+   "quote": "staff queue administration, priority tiers, external notifications, and new payment or penalty policies are outside this request. \u2026 The booking authority owns retrievable evidence of committed joins, leaves, promotions and terminal queue outcomes",
+   "missing": "Staff queue viewing, manual promotion and removal are outside the specified workflow. The event requirements do not establish a staff-visible history identifying each promoted member and the promotion time."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements, Performance, limits and cost",
+   "quote": "Queue length or admission limit, sustained workload, promotion/recovery latency, acceptable display freshness, retry bounds, storage/request quotas and cost caps are unresolved.",
+   "missing": "The maximum elapsed time from a cancellation that frees a seat to promotion of an eligible waiter."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Preserve existing booking rules, confirmed seats and normal booking when no queued claim exists."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-4, R-1",
+   "quote": "Existing sessions need no inferred memberships. \u2026 At capacity, join is available. \u2026 An eligible member with no confirmed booking or active entry can choose **Join waitlist**."
+  }
+ ]
+}

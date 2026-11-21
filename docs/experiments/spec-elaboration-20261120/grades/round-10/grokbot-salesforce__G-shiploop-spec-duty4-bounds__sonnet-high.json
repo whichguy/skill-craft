@@ -1,0 +1,181 @@
+{
+ "slot": "grokbot-salesforce__G-shiploop-spec-duty4-bounds__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.575253,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "opening it shows one tab containing the chat component at `/lightning/n/<TabApiName>` ... Salesforce mobile app, Experience Cloud and Utility Bar placement are out of scope ... no record context is passed to the component"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "N-1",
+   "quote": "the feature reads and writes no Salesforce object data; sharing, object and field permissions are therefore n/a by design, recorded as separate rules so a later record-grounding feature must add them."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "N-1",
+   "quote": "the feature reads and writes no Salesforce object data; sharing, object and field permissions are therefore n/a by design"
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "a user holding the Grok Bot permission set sees an app named \"Grok Bot\" ... a user without the permission set cannot see the app or open the tab.",
+   "missing": "Who may administer (edit the configuration record, enter/rotate the secret) is only called 'an admin' in Setup; no permission set or equivalent defines administrative authority."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "the transcript is readable only by the signed-in user in that browser page; a second browser tab or user has an independent transcript."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-6",
+   "quote": "One synchronous, non-cacheable Apex invocation per send ... Alternatives: Queueable/async completion with polling (adds a status record and a recovery owner with no benefit",
+   "missing": "The callout-vs-trigger and callout-after-DML transaction constraint is never stated; the design is chosen synchronous without naming that rule."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "the xAI API key exists only inside the org's credential facility (AD-2) ... never in source control, deployable metadata, Custom Metadata, records, debug output, the browser or any response to the browser."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "N-3",
+   "quote": "One callout per send (limit 100 per transaction), cumulative callout time \u2264 120 s ... bounded far below the 6 MB synchronous heap.",
+   "missing": "CPU time limit is not named with its number."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "N-8",
+   "quote": "All xAI behaviour is testable through an `HttpCalloutMock` ... no real xAI call occurs in any automated test."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "referenced by a Named Credential whose URL is `https://api.x.ai`; Apex addresses it as `callout:<NamedCredentialApiName>/<path>`."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "AD-6",
+   "quote": "The component calls an `@AuraEnabled` (non-cacheable) method imperatively; one send is one callout ... The method returns a structured result (success flag, reply, finish reason, stable error code, safe message)"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "nothing is retried automatically ... Retry sends the same text as a new request ... A late xAI answer after timeout is never shown."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "N-3",
+   "quote": "The concurrent long-running Apex request limit and Aura request size for imperative calls are **unverified** and **unresolved** (G-6): behaviour beyond them is platform-defined",
+   "missing": "The concurrent-request limit value and what the user sees when a request is refused for exceeding it are left undecided."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "`AUTH_FAILED` (xAI 401/403), `RATE_LIMITED` (xAI 429), `REQUEST_REJECTED` (other xAI 4xx ...), `SERVICE_ERROR` (xAI 5xx), `TIMEOUT` (read timeout at the configured limit)"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "`RATE_LIMITED` (xAI 429) ... nothing is retried automatically ... \"try again in a moment\" for `RATE_LIMITED`/`SERVICE_ERROR`/`TIMEOUT`"
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2, R-7",
+   "quote": "reply reaching the configured max output tokens (D-3) is shown with the notice \"Reply was cut off at the length limit\" ... at the timeout bound (D-4 elapsed) the user sees `TIMEOUT`, the pending state ends"
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "the conversation exists only in the component's memory: no Salesforce record, Custom Setting, file or cache stores a message or reply (AD-5)"
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "Retention length is a chosen default: none beyond the page session ... a page refresh, navigating away, or \"New conversation\"/Clear removes it."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Nothing else is sent: no record data, user name, email, org id or session id."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "The component sends at most the last D-2 = 10 completed exchanges plus the new message; older exchanges stay visible in the transcript but are not sent."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-6, R-9",
+   "quote": "if empty \u2192 rejected with `INVALID_INPUT` ... Maximum **D-1 = 4,000**: 4,000 accepted, 4,001 rejected ... before the first message, a designed empty state with a short description and three example prompts"
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-5, R-11",
+   "quote": "model ID, system prompt ... are read from one configuration record on every send ... each send writes one diagnostic line to the Apex debug log containing only: outcome code, HTTP status",
+   "missing": "No stated way for an administrator to turn the bot off (a kill switch or deliberate disable path)."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "R-11",
+   "quote": "each send writes one diagnostic line to the Apex debug log containing only: outcome code, HTTP status (or `none`), elapsed ms, model ID. No message text, reply text",
+   "missing": "Whether any record of who asked exists and its retention (left to 'platform-owned retention'); no audit record is defined."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-10",
+   "quote": "Deployment to an org that is not a development/sandbox/scratch org is out of scope ... Apex coverage of the controller class is \u2265 75% (the production deploy threshold",
+   "missing": "How configuration and credential values differ per environment is not stated."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "N-2, R-9",
+   "quote": "the pending state never outlasts the configured timeout D-4 = 60,000 ms ... a \"Grok is thinking\" indicator is visible, announced to assistive tech"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "R-9, N-6",
+   "quote": "designed empty, pending (thinking indicator), error (banner with action) and success states (AL-9.1, AL-9.2, AL-7.3)"
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "State and data assessment",
+   "quote": "Salesforce records (any object) | n/a | **intentionally untouched** | zero DML ... No identity, sharing or persistence is added beyond the request."
+  }
+ ]
+}

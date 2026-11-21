@@ -1,0 +1,143 @@
+{
+ "slot": "gym-waitlist__P-shiploop-spec__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "DD-2",
+   "quote": "Promotion is automatic, in first-come order**, with no claim window or hold timer."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2, R-2.4, R-1",
+   "quote": "first-come-first-served by the server's recorded join order \u2026 two joins that arrive \"simultaneously\" are totally ordered by the server's single recorded sequence \u2026 Out of scope for this R: waitlist cap (G-3), guests/group joins, paid or priority waitlists."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "promotion applies the same booking rules a direct booking would (G-1 lists them: e.g. account in good standing, credits/payment, time conflicts).",
+   "missing": "After confirming one class, should the system immediately remove the member from the overlapping waitlist or check the conflict only when the second seat opens?"
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "G-5",
+   "quote": "how credits, payment, cancellation penalties apply to a promoted booking. Assumed: same rules as a direct booking at promotion time.",
+   "missing": "Automatic promotion has no offer to decline. The spec leaves unstated whether missing the promoted class counts as a no-show, including when the member misses the notice."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4, AD-2",
+   "quote": "when a confirmed booking on a full class ends (member cancels, staff cancels it) \u2026 the code path that cancels a booking (or raises capacity) calls one shared promote-next routine inside the same transaction"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "G-6, R-6, R-6.2",
+   "quote": "the app's existing booking-confirmation channel plus in-app status \u2026 \"You're in: Spin 18:00\" \u2026 notification provider rejects the send \u2192 `cy` is still *Confirmed*; a retry later delivers exactly one notice."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-4, R-8",
+   "quote": "two freed seats promote two, in order \u2026 confirmed \u2264 capacity \u2026 each freed seat promotes at most one member exactly once even if the cancel event is retried."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-4, R-8",
+   "quote": "Direct bookers cannot take that seat ahead of the waitlist. \u2026 each member has at most one entry or booking per class \u2026 a losing concurrent request gets the normal rejection (full / already booked)"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "G-5, R-5, R-5.3",
+   "quote": "same rules as a direct booking at promotion time \u2026 A head-of-list member who fails them is removed from the waitlist with a reason, notified (R-6), and the next member is tried. \u2026 a skipped member is not charged"
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "G-3",
+   "quote": "waitlist length cap. Assumed none.",
+   "missing": "The default allows unlimited joins. If the open cap decision yields a limit, its value and the message a member sees when it is reached remain unspecified."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "no promotion occurs, once the class can no longer be booked: at the same cutoff that applies to direct bookings, or at the class start time if there is none"
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-4.3",
+   "quote": "capacity raised 2\u21924 while waitlist is `[cy, dee, eli]` and 2 confirmed \u2192 `cy` and `dee` promoted (in that order), `eli` remains position 1, count 4/4.",
+   "missing": "If staff lower capacity below the confirmed count, the builder must decide whether to reject the change or adjust bookings and what happens to queue order if members are displaced."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "If a class is cancelled or removed, all its waitlist entries end and members are notified."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "NFR-4, R-2",
+   "quote": "Waitlist entry data = member id, class id, join sequence, created-at. \u2026 Kept: until the entry ends (promoted \u2192 becomes a booking; left/removed/expired \u2192 deleted). \u2026 Positions are 1-based and contiguous."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-7, NFR-4",
+   "quote": "entries are never silently left dangling past the class's end. \u2026 Kept: until the entry ends (promoted \u2192 becomes a booking; left/removed/expired \u2192 deleted). No separate history is retained"
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "a member sees only their own position, never other members' identities"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-2, DD-5",
+   "quote": "staff views of waitlists are not requested and out of scope (G-7). \u2026 No waitlist history is kept",
+   "missing": "Staff visibility and history are explicitly excluded. The spec provides no staff workflow for choosing a member to promote or remove, or for looking up who was promoted when."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "the earliest eligible waitlisted member is given a confirmed booking for the freed seat, in the same atomic step as the seat being freed."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-9, R-9.2",
+   "quote": "everything the app does today for non-full classes, cancellations, rosters, attendance, capacity counts, billing/credits and reports is unchanged. A waitlist entry occupies no seat \u2026 a non-full class: book, cancel, rebook flows behave as before this change."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

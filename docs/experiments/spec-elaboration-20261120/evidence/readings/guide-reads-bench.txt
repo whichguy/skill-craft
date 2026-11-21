@@ -1,0 +1,28 @@
+bench sessions that had the guides beside them: 120
+each count is given twice: named in a command or file read / a heading of the guide seen in the stream
+
+arm | driver | sessions | behavioral-requirements | requirements-definition | guide files named (median, range)
+G | sol-medium | 8 | 8 / 8 | 8 / 8 | 6.5, 5 to 8
+G | sonnet-high | 8 | 8 / 8 | 8 / 8 | 4.0, 3 to 5
+H | sol-medium | 8 | 8 / 8 | 8 / 8 | 8.0, 6 to 8
+H | sonnet-high | 8 | 8 / 8 | 7 / 8 | 5.0, 2 to 7
+K | sol-medium | 8 | 8 / 8 | 8 / 8 | 7.0, 5 to 10
+K | sonnet-high | 8 | 7 / 8 | 7 / 8 | 5.0, 1 to 7
+M | sol-medium | 8 | 8 / 8 | 8 / 8 | 6.5, 5 to 11
+M | sonnet-high | 8 | 8 / 8 | 8 / 8 | 4.0, 2 to 5
+P | sol-medium | 24 | 24 / 24 | 24 / 24 | 7.5, 5 to 9
+P | sonnet-high | 24 | 22 / 24 | 22 / 24 | 5.0, 0 to 6
+Q | sol-medium | 4 | 4 / 4 | 4 / 4 | 7.0, 6 to 8
+Q | sonnet-high | 4 | 3 / 4 | 3 / 4 | 3.5, 0 to 5
+
+guide | sessions that named it / saw its content, of 120
+  behavioral-requirements | 116 / 120
+  service-discovery | 115 / 120
+  requirements-definition | 115 / 120
+  current-system-baseline | 99 / 115
+  project-knowledge | 73 / 85
+  testing-and-documentation | 63 / 70
+  research-loop | 37 / 31
+  delivery-authority | 26 / 29
+  guide-map | 2 / 5
+  consumer-delivery | 4 / 5

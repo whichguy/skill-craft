@@ -1,0 +1,228 @@
+{
+ "case": "ticket-assignment",
+ "host": "claude",
+ "model": "claude-sonnet-5-5",
+ "effort": "medium",
+ "started": "2026-11-21T12:02:41-0800",
+ "start_tree": null,
+ "frozen_from": null,
+ "build_from": "/Users/dadleet/e2e-runs/ratchet-pilot-20261120-b6eab2/refs/ticket-assignment/reference",
+ "bare": false,
+ "sessions": [
+  {
+   "number": 1,
+   "role": "spec",
+   "label": "spec-1",
+   "seconds": 48.7,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 48.7,
+   "held_out_marks": [],
+   "cost_usd": 0.2423874
+  },
+  {
+   "number": 2,
+   "role": "plan",
+   "label": "plan-1",
+   "seconds": 118.5,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 118.5,
+   "held_out_marks": [],
+   "cost_usd": 0.4967868
+  },
+  {
+   "number": 3,
+   "role": "tests",
+   "label": "tests-1-1",
+   "seconds": 852.6,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 852.6,
+   "held_out_marks": [],
+   "cost_usd": 0.7430311
+  }
+ ],
+ "gates": [
+  {
+   "number": 1,
+   "label": "after-given-build",
+   "pass": true,
+   "failing": [],
+   "passing": [],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [],
+   "clauses": 0,
+   "at": 169.2
+  },
+  {
+   "number": 2,
+   "label": "cycle-1-first",
+   "pass": true,
+   "failing": [],
+   "passing": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [],
+   "clauses": 32,
+   "at": 1039.4
+  },
+  {
+   "number": 3,
+   "label": "final",
+   "pass": true,
+   "failing": [],
+   "passing": [
+    "C-1",
+    "C-10",
+    "C-11",
+    "C-12",
+    "C-13",
+    "C-14",
+    "C-15",
+    "C-16",
+    "C-17",
+    "C-18",
+    "C-19",
+    "C-2",
+    "C-20",
+    "C-21",
+    "C-22",
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26",
+    "C-3",
+    "C-4",
+    "C-5",
+    "C-6",
+    "C-7",
+    "C-8",
+    "C-9",
+    "U-1",
+    "U-2",
+    "U-3",
+    "U-4",
+    "U-5",
+    "U-6"
+   ],
+   "regressions": [],
+   "restored": [],
+   "restored_during": [],
+   "unstable": [],
+   "clauses": 32,
+   "at": 1056.1
+  }
+ ],
+ "snapshots": [
+  {
+   "label": "base",
+   "commit": "78ae658306fb323cce3177b75aa9c0196558935b",
+   "tree": "99d92357c06060cc6c277e7115a92b32c1852140",
+   "at": 0.2
+  },
+  {
+   "label": "spec",
+   "commit": "f3004190c98d11a0ca74ca9148e0520ae177aa77",
+   "tree": "187e1751ef19b6d0da88a24213faf31df52d4383",
+   "at": 49.0
+  },
+  {
+   "label": "plan-1",
+   "commit": "6817026fdac3909177bcfb855f7071859bc44fc0",
+   "tree": "1f5ea37a90df9a0a4646f6ec37e062d111aa1ffe",
+   "at": 167.7
+  },
+  {
+   "label": "build-1",
+   "commit": "b9c57b8aff2a8053fcfa41f942b401cf7a9bae9e",
+   "tree": "dab3a05e5cbc5ca64ee5b36f34c0b43286101654",
+   "at": 169.3
+  },
+  {
+   "label": "tests-1",
+   "commit": "2dc47f260e90f475bf3971b7b625d0db0f41405d",
+   "tree": "258b89af078a4767784013fc685680ac2f39ae66",
+   "at": 1022.0
+  },
+  {
+   "label": "final",
+   "commit": "551593cd4cac3f5f12d67fb392006da90febcb0f",
+   "tree": "258b89af078a4767784013fc685680ac2f39ae66",
+   "at": 1056.1
+  }
+ ],
+ "cycles": [
+  {
+   "cycle": 1,
+   "clauses_at_start": 28,
+   "new_clauses": [],
+   "plan_loops": [
+    {
+     "name": "plan-1",
+     "session": "exited",
+     "loop": "complete",
+     "iterations": 2,
+     "trivial_streak": 1
+    }
+   ],
+   "plan_added": [
+    "C-23",
+    "C-24",
+    "C-25",
+    "C-26"
+   ],
+   "first_gate_failing": []
+  }
+ ],
+ "reverted": [],
+ "spec_violations": [],
+ "local_head": "5e4fe0fb919d374b22d338a8849a2a7d1943a8d2",
+ "named_checks": true,
+ "enrich": "reworded",
+ "spec_from": null,
+ "preserve": "plan",
+ "stop": "stop-after-tests",
+ "final_pass": true,
+ "seconds": 1056.1,
+ "clauses": 26,
+ "use_cases": 6,
+ "tamper": [],
+ "finished": "2026-11-21T12:20:17-0800"
+}

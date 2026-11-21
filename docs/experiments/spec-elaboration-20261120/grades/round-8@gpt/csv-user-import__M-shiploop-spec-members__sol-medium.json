@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__M-shiploop-spec-members__sol-medium",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "T-4",
+   "quote": "Commit all ordinary users together or fail without import effects."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2 / Record validation",
+   "quote": "Any record with the wrong number of fields, missing/blank email, or invalid value rejects the whole attempt. Report each offending logical record and an actionable reason."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3 / Conflicts",
+   "quote": "Any identity repeated in the CSV or already reserved by the authoritative create contract rejects the entire batch. Report the affected row numbers and a conflict reason, without another record\u2019s details. Report every occurrence of an in-file repeat."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1 / Basis and delta, R-2 / File profile, R-3 / State and open prerequisites",
+   "quote": "ordinary creation limits on who may create whom \u2026 exactly one decoded field, **email** \u2026 extra header columns, or zero data records reject the file \u2026 Imports do not assign elevated roles"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1 / Access",
+   "quote": "An admin with current user-create authority in the active user-management scope \u2026 Signed-out callers, non-admins, admins lacking create rights in the target scope, and callers whose rights cannot be established cannot submit."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2 / File profile",
+   "quote": "The first nonempty logical record is the header, with exactly one decoded field, **email**. \u2026 missing or different header, extra header columns, or zero data records reject the file with an actionable reason and zero writes."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2 / File profile",
+   "quote": "Accept UTF-8 comma-separated data, with optional leading UTF-8 BOM, LF or CRLF record separators and an optional final record separator. \u2026 Separators inside quoted fields remain field content."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-3 / State and open prerequisites",
+   "quote": "Any definite failure leaves the batch with zero user records and zero import-caused creation side effects. \u2026 Establish that the real authority can meet the all-or-none and revocation guarantees across the required effects"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2 / Admission limits",
+   "quote": "Allow input at the agreed inclusive file-byte and data-record bounds if all other rules pass. \u2026 Exceeding either bound rejects the attempt with the applicable limit and zero writes.",
+   "missing": "The maximum upload size in bytes and the maximum number of data records are both undecided."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2 / File profile, R-3 / Creation",
+   "quote": "missing or different header, extra header columns, or zero data records reject the file with an actionable reason and zero writes. \u2026 One data record is allowed."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "F-3 / Conflicts acceptance case",
+   "quote": "submits the identical file again as a fresh attempt. T-4 rejects record 2 and 3 on the second attempt, leaving exactly {Cora, Ann, Ben} with both original new records unchanged."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-4 / Outcome, AD-1",
+   "quote": "The view shows an in-progress state once submitted. It reports **Created** and the committed count only after authoritative confirmation. \u2026 No framework, storage engine, transport or background processing model has been selected.",
+   "missing": "The open view reports completion, but the specification leaves open whether large files require background processing and when that would apply."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3 / State and open prerequisites",
+   "quote": "whether creating a record has required provisioning or notification side effects. \u2026 Any required effect of ordinary creation remains subject to the open compatibility check.",
+   "missing": "Whether a successful import sends invitation or welcome mail to each user and, if so, whether delivery is immediate or paced."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3 / State and open prerequisites",
+   "quote": "After commit all targets exist in the ordinary approved initial state. \u2026 Imports do not assign elevated roles, set passwords, update or merge existing users, or introduce a separate invitation flow.",
+   "missing": "The actual initial account status, whether ordinary provisioning supplies credentials, and how the new user first signs in."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2 / State and open prerequisites",
+   "quote": "The import authority owns submitted bytes and derived validation state for the attempt. \u2026 The authority may read the bytes only for this operation, and discards them and parsed input when processing reaches a terminal outcome."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-4 / Lifecycle acceptance case, Service boundary contracts",
+   "quote": "Compare authorized log records from an Access denial, the rejection, the commit, and a definite write failure, including the initiating authority owner. \u2026 Correlate safe attempt references, outcome and authorized scope with suitable access and retention.",
+   "missing": "The audit fields do not require a timestamp or specify how to link the initiating admin and the affected user records to the import."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-4 / State and open prerequisites, F-2",
+   "quote": "No end-user cancellation or rollback is promised after submission. \u2026 The result shows zero created. The admin edits the source outside the product, replaces it and deliberately submits a new attempt."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-4 / Outcome, Non-functional requirements / Capacity and timeliness",
+   "quote": "The view shows an in-progress state once submitted. \u2026 No numerical targets or platform capabilities are evidenced.",
+   "missing": "The maximum processing time for a file at the supported size or record limit."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1 / Basis and delta, R-3 / Basis and delta, F-3 / Conflicts acceptance case",
+   "quote": "Preserve existing sign-in, access rules, ordinary creation limits on who may create whom \u2026 and all pre-existing records. \u2026 commit an ordinary create of Ann by Bea before Ada's batch commits. Only Ann is added"
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-2 / State and open prerequisites, R-2 / Record validation",
+   "quote": "Do not expose raw values in row diagnostics. \u2026 downloadable error files and in-product editing of the CSV are outside scope. \u2026 apply the ordinary email and user-create input rules.",
+   "missing": "The result excludes raw formula text. The specification leaves the per-field length limit and handling of an oversized field within the file-byte limit to unresolved ordinary validation rules."
+  }
+ ]
+}

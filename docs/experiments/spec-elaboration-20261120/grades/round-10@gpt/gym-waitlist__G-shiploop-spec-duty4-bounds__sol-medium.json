@@ -1,0 +1,151 @@
+{
+ "slot": "gym-waitlist__G-shiploop-spec-duty4-bounds__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "R-2, Open gaps and domain bounds",
+   "quote": "whether the member must actively claim or may agree to automatic booking.",
+   "missing": "The spec leaves the promotion mode open. If a place is held for acceptance, the builder still needs the length of the claim window."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2, Open gaps and domain bounds",
+   "quote": "who gets the next opportunity, including ties and ordinary-booking competition",
+   "missing": "Staff overrides are outside scope. The spec leaves join-time ordering, the tie-breaker, and any membership-tier priority undecided."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "TC-5 through TC-8, allocation walk",
+   "quote": "If the existing booking workflow permits `M-03` to cancel the booking at this time and that cancellation reopens capacity, T-3 has 1 newly available place and 2 eligible waiting entries.",
+   "missing": "The cancellation example establishes the reopening trigger. The spec leaves background execution conditional and gives no time by which allocation must follow that trigger."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "TC-5",
+   "quote": "The affected member can see their actual outcome in the app.",
+   "missing": "Members can look up the outcome. The spec gives no rule for sending a promotion notice, its channel or message, or recovery from a failed send."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "TC-6",
+   "quote": "Duplicate or delayed inputs and competing ordinary bookings or waitlist allocations cannot commit conflicting places."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "TC-6",
+   "quote": "Duplicate or delayed inputs and competing ordinary bookings or waitlist allocations cannot commit conflicting places.",
+   "missing": "The spec prevents conflicting bookings but leaves open whether a member's direct booking may take their offered seat and how that booking resolves the outstanding offer."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2, Open gaps and domain bounds",
+   "quote": "Discovery must establish which existing events actually reopen capacity, current consent/payment effects, current booking deadlines, and every competing capacity writer before verifying exact outcomes.",
+   "missing": "The builder still needs to know when to collect payment on promotion and what a failed payment does to the seat and the member's entry."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "TC-12",
+   "quote": "At or beyond the effective ceiling, report that enrollment is unavailable and create no entry. An authorized repeat can still read its existing status. The ceiling is open.",
+   "missing": "The full-list response is defined. Whether a ceiling applies and how many entries it permits remain open."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "TC-5",
+   "quote": "At the effective close and afterward there is no new waitlist allocation.",
+   "missing": "The spec leaves the effective close unresolved, including how far before class start promotions stop."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "T-3",
+   "quote": "Existing authority makes capacity bookable. Recheck lifecycle and eligibility, then apply the selected allocation policy.",
+   "missing": "This covers a capacity increase that frees seats. The spec gives no rule for a staff decrease, including what happens if the new capacity falls below existing bookings or reservations."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "TC-9",
+   "quote": "On class cancellation or reaching the effective close, active entries stop participating in allocation. The next authorized read reflects the closed or canceled state and provides no join action."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3, State, privacy and lifecycle",
+   "quote": "The app owns active enrollment keyed to the booking identity and occurrence.",
+   "missing": "The spec identifies the entry and its lifecycle but leaves join-time recording and storage or derivation of queue position unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "TC-11",
+   "quote": "Personal waitlist data is deleted or de-identified at the applicable retention boundary.",
+   "missing": "Entries lose allocation rights at close, but the spec gives no retention duration or rule for measuring it from class completion or another event."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "TC-9",
+   "quote": "Another member's entry or identifiers do not appear in responses, presentation, or errors visible to them.",
+   "missing": "The member can read their own status. Showing their numerical queue position is explicitly outside scope."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-2, Open gaps and domain bounds",
+   "quote": "External notification channels, visible queue position, staff overrides, and new booking or billing policies are outside the specified delta.",
+   "missing": "The spec excludes new staff access and overrides. It gives staff no workflow for viewing the roster, promoting or removing a member, or reviewing who was promoted when."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "TC-1",
+   "quote": "At the last bookable place before any waitlist allocation, ordinary booking applies. With zero bookable places and only capacity preventing booking, waitlist entry is available. Joining leaves the confirmed booking count unchanged."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

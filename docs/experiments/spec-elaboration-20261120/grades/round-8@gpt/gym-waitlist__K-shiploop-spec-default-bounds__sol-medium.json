@@ -1,0 +1,150 @@
+{
+ "slot": "gym-waitlist__K-shiploop-spec-default-bounds__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C-7",
+   "quote": "All member views close. A cancels at 10:03. Interrupt before promotion commit, then recover: the durable vacancy and [B,C] lead to one B booking."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C-3, C-5 (R-1 state and data, R-2.a and R-2 domain rules)",
+   "quote": "the earliest committed eligible entry receives the seat. \u2026 Commit order establishes precedence for simultaneous joins. \u2026 There are no manual queue overrides, seat holds, acceptance timers, or priority tiers in this scope."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "C-3",
+   "quote": "B joins Y, which has its own full fixture. \u2026 The queues are X [B,C], Y [B].",
+   "missing": "The two occurrences have the same start time. The specification allows B to join both but gives no rule for resolving the other entry when B gets a seat."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "C-6 (R-3.a)",
+   "quote": "If promotion committed first, a stale leave returns the confirmed booking, with ordinary cancellation subject to existing rules.",
+   "missing": "Whether declining a confirmed seat late or missing an automatic promotion incurs the existing late-cancellation or no-show penalty."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C-7",
+   "quote": "All member views close. A cancels at 10:03. Interrupt before promotion commit, then recover: the durable vacancy and [B,C] lead to one B booking.",
+   "missing": "The cancellation triggers allocation with the clients closed, but no deadline is given for confirming the booking."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "C-9 (R-4 UI premises)",
+   "quote": "A promotion while the view is closed is visible on the next fresh read. \u2026 B alone sees their promoted booking; E sees the full class's ordinary waitlist option.",
+   "missing": "The in-app booking view conveys confirmation. If the read that should display the promotion fails, the specification does not say what the member sees or when the client retries."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "C-5, C-7 (R-2.a\u2013b)",
+   "quote": "For multiple usable seats, repeat in order until capacity or eligible entries run out. \u2026 overlapping promotion attempts produce no repeat booking or additional seat allocation from stale capacity."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "C-5 (R-2.b)",
+   "quote": "Even if E attempts direct booking during allocation, the final bookings are {A,C,D}, queue []. \u2026 Concurrent direct bookings, joins, leaves, cutoffs and vacancy actions are resolved against one authoritative order for that occurrence.",
+   "missing": "E is a different member. The specification leaves the direct-booking result and disposition of the active entry unspecified if the person trying to book is also the promotion candidate and their direct request wins."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C-1 (R-1 domain rules)",
+   "quote": "If ordinary booking requires a separate payment or consent step, the product owner's decision on a compatible promotion policy is open for those classes.",
+   "missing": "When payment is collected and what happens to the seat and queue entry if the charge fails."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "C-1 (R-1.a and submission summary)",
+   "quote": "No additional fixed queue cap or response-time target is assumed. The platform's storage and workload limits remain open.",
+   "missing": "Whether an existing limit can make the queue full and, if so, what the member sees when that limit is reached."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C-8 (R-3.b)",
+   "quote": "A vacancy at or after cutoff produces zero promotions. When class start is the cutoff, the same rule applies at the exact start."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "C-5",
+   "quote": "O increases capacity to 3 at 10:05. T-2 removes B and books C then D.",
+   "missing": "What happens to bookings, queued members and pending allocations if staff reduce capacity, including below the current booking count."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "C-8 (R-3.b)",
+   "quote": "At effective cutoff or class cancellation, outstanding entries stop being active and are cleared. The member sees that waitlisting is closed or the class is cancelled, following the existing visibility policy."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "C-3 (R-1 state and data)",
+   "quote": "The booking authority owns active entries, with occurrence ID, existing member ID and committed queue order.",
+   "missing": "Whether the entry records a join timestamp and whether its current position is stored explicitly or calculated from the committed order of active entries."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "C-8 (R-3 state and data)",
+   "quote": "Remove active queue data when membership ends, with closure cleanup reconciled after failure. \u2026 Established retention obligations, including backup purge and account deletion, need inspection before enabling persistence.",
+   "missing": "Active entries end by class start. The specification leaves the retention period for residual copies, including backups, unresolved."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C-9 (R-4.a and R-4 UI premises)",
+   "quote": "only the current member's own queue membership, never another member's entry, identity or ordering data. \u2026 No new messaging channel, roster, numerical position, forecast or queue-management screen."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "C-10 (R-2 domain rules and R-4.c)",
+   "quote": "There are no manual queue overrides, seat holds, acceptance timers, or priority tiers in this scope. \u2026 T-6 associates each success, denial and recovery outcome with its own effect and exposes no member ID.",
+   "missing": "Manual overrides are excluded. The specification provides no staff roster or member-specific promotion history showing who received a seat and when."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "C-7 (non-functional integrity and recovery requirements)",
+   "quote": "No time-to-recovery or latency threshold is supplied.",
+   "missing": "The maximum elapsed time between a cancellation freeing a seat and the resulting promotion."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-1",
+   "quote": "B reloads at 10:02 and sees **Waitlisted**; A is still booked. \u2026 The member C opening X at 10:04 sees **Book**, books through the ordinary path and ends with {C}, queue []."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

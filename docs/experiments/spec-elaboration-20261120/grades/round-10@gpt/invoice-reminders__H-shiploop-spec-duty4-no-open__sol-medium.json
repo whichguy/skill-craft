@@ -1,0 +1,143 @@
+{
+ "slot": "invoice-reminders__H-shiploop-spec-duty4-no-open__sol-medium",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1 Due evaluation, R-3 Duplicate prevention",
+   "quote": "first eligible evaluation at or after the due instant. \u2026 allow at most one channel-accepted automatic reminder over the lifetime of one issued invoice"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-1 Due evaluation and state and domain rules",
+   "quote": "A partial payment that leaves a positive balance still qualifies. \u2026 zero or negative balance, draft, void, deleted or otherwise non-collectible state \u2026 Use the authoritative balance in invoice currency after recorded payments and credits.",
+   "missing": "Whether a dispute or payment plan suspends reminders on an invoice that still has a positive collectible balance."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2 Message",
+   "quote": "The default message omits balances, payment links, attachments and information about other invoices."
+  },
+  {
+   "id": "N-4",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-3 Duplicate prevention",
+   "quote": "allow at most one channel-accepted automatic reminder over the lifetime of one issued invoice \u2026 After overlapping evaluations or worker interruption, only one attempt may be authorized at a time"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2 Final eligibility",
+   "quote": "permits handoff only after rechecking enabled policy, due cutoff, collectible state, positive balance, recipient and sender authority. This check is ordered against changes to those facts."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-3 Recovery",
+   "quote": "A confirmed temporary non-acceptance can be retried on a later permitted evaluation after fresh eligibility and authority checks. \u2026 hold further sends for that invoice until authoritative evidence resolves the original attempt.",
+   "missing": "When repeated failures or a prolonged provider outage trigger escalation, who is alerted and how."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-3 Recovery",
+   "quote": "Respect runtime and channel admission limits. Stop submitting when the boundary denies capacity and leave eligible work discoverable for a later permitted evaluation."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-1 Due evaluation, R-3 Recovery",
+   "quote": "Include already-overdue invoices on the first eligible evaluation after activation or recovery. \u2026 Stop submitting when the boundary denies capacity",
+   "missing": "How to stagger the activation backlog if the channel has enough capacity to accept it all at once."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1 Due evaluation",
+   "quote": "A date-only due date is inclusive in the invoice source\u2019s authoritative billing time zone and the cutoff is the start of the following local day.",
+   "missing": "Whether dispatch follows the customer\u2019s local business hours and how weekends and holidays affect the send time."
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-2 Recipient, R-3 Recovery",
+   "quote": "Missing, invalid, ambiguous or unauthorized billing destination suppresses dispatch \u2026 A confirmed permanent rejection surfaces for correction and is reconsidered only after the implicated input is corrected.",
+   "missing": "How to surface and act on a delivery bounce that arrives after provider acceptance."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-2 Recipient",
+   "quote": "address the reminder by email to the single current recipient designated for billing on that invoice. \u2026 Missing, invalid, ambiguous or unauthorized billing destination suppresses dispatch"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-2 State and domain rules, R-3 Outcome reporting",
+   "quote": "Durable reminder state and operational events exclude the address, message contents and payment details. \u2026 Correlate attempts with outcomes through opaque scoped identifiers.",
+   "missing": "Whether the invoice shows the reminder step and send timestamp, and how a reader can identify what was sent from the retained record."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-2 Message",
+   "quote": "identifies the issuer and the invoice\u2019s customer-facing reference, states that payment is outstanding \u2026 The default message omits balances, payment links, attachments and information about other invoices.",
+   "missing": "Whether to show the due date or give payment instructions without a link. The default message has no payment link to expire."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-1 Activation",
+   "quote": "An authorized operator enables reminders for a defined invoice-owner scope \u2026 Disabling it prevents new dispatch authorizations from the effective change onward.",
+   "missing": "Whether operators can change the timing or manually send or stop an individual reminder, and which permissions govern those actions."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1 Activation",
+   "quote": "An authorized operator enables reminders for a defined invoice-owner scope \u2026 Disabling it prevents new dispatch authorizations from the effective change onward.",
+   "missing": "Whether there are system-wide and individual-customer controls, and how an operator can preview, dry-run or manually resend a reminder."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-3 Outcome reporting",
+   "quote": "Authorized operators can distinguish pending/held work, suppression with reason, confirmed rejection and channel acceptance.",
+   "missing": "How an operator can identify which invoice is due for the next send and when that send is expected."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-3 Duplicate prevention and Recovery",
+   "quote": "allow at most one channel-accepted automatic reminder over the lifetime of one issued invoice \u2026 Stop submitting when the boundary denies capacity",
+   "missing": "Whether to cap total sends across invoices in a time window or skip reminders once they are too late."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "Basis and scope, R-1 Basis and delta",
+   "quote": "The feature reads invoice and payment state without changing billing, collecting payment, creating invoices or replacing manual communication. \u2026 Invoice and payment records are read-only to this feature."
+  }
+ ]
+}

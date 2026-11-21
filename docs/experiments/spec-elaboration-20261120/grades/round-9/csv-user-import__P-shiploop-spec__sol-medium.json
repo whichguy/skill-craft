@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__P-shiploop-spec__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.30854139999999997,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3 Commit",
+   "quote": "Validation or known pre-commit failure leaves zero users from this submission and triggers no user-creation side effects."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2 Row and identity validation",
+   "quote": "Report the corrections found across parseable rows within the agreed limits, with offending fields when known. ... Row locations are 1-based physical start lines, with the header on line 1."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2 Row and identity validation",
+   "quote": "Reject the batch on ... duplicate canonical identity in the same CSV or any identity conflicting in the authoritative uniqueness domain. ... For file duplicates, flag each participating row."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-3 Commit",
+   "quote": "Existing users retain their prior IDs, fields and privileges. The CSV cannot set privileges or credentials."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1 Access",
+   "quote": "A signed-in admin with create-user authority in the selected scope can open the import and submit there.",
+   "missing": "Import permission is tied to create-user authority rather than stated as a distinct ability; whether single-create authority suffices is not separated."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2 File contract",
+   "quote": "Accept UTF-8 comma-delimited records with a header ... Require each mandatory header once ... Reject ... missing, unknown or repeated headers"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2 File contract",
+   "quote": "LF or CRLF separators, optional initial UTF-8 BOM, an optional final line ending, quoted commas and line breaks, and doubled quotes inside quoted cells."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-3 State and data",
+   "quote": "For definitive failure, the batch contributes no records or effects. An import never compensates by deleting an unrelated or pre-existing user."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2 File contract",
+   "quote": "Reject ... files above the published size or record limit. ... For each confirmed cap, the cap itself does not cause rejection and the first value above it does.",
+   "missing": "The actual file-size and row-count values are left to be established later."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2 File contract",
+   "quote": "A header and one data record suffice. An empty file or header-only file is rejected."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-4 Recovery",
+   "quote": "Repeating the same submission identity with the same input converges on one authoritative outcome and creates at most one batch."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-4 State and data",
+   "quote": "The processing authority owns pending work and resolves each submission once, even if the initiating view disconnects.",
+   "missing": "Whether large files run asynchronously is not decided; completion is learned only by recheck, with no notification decided."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3 Open gap",
+   "quote": "establish the actual write authority, standard account status/role and lifecycle effects, including any external identity provisioning or notifications",
+   "missing": "Whether invitation/welcome mail is sent for imported users and how bulk sending is paced."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3 Commit / Open gap",
+   "quote": "The CSV cannot set privileges or credentials. ... establish ... standard account status/role and lifecycle effects",
+   "missing": "Whether created users are active or pending, password state, and how they first sign in."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2 State and data; R-4 State and data",
+   "quote": "Uploaded bytes and decoded values are transient within the authorized operation. ... Release product-held bytes when validation/creation no longer needs them ... No new shared history or raw CSV archive is required."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-4 Audit and redaction",
+   "quote": "Authorized operators can trace submission outcomes, access denials and recovery by a safe correlation value, actor, scope where safely known, and outcome."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-4 Lifecycle boundaries; R-4 Recovery",
+   "quote": "Cancellation after submission, deletion of completed imports from the UI, and account migrations are inapplicable to this create-only flow. ... A rejected file can be corrected and sent as a fresh submission."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements: Capacity, time and cost; R-4 Outcome",
+   "quote": "Record any time budgets ... before finalizing dependent processing and recovery. No response-time SLA, throughput number or cost ceiling was supplied. ... Show processing after submission",
+   "missing": "A time bound for a maximum-size file and progress indication beyond a generic processing state."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "Non-functional requirements: Compatibility and operability; R-3 Commit",
+   "quote": "Confirm ordinary user creation and lookup still work ... with existing records and policies preserved. ... Existing users retain their prior IDs, fields and privileges."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-2 State and data",
+   "quote": "The file is treated as data, and feedback uses row positions, supported field names and reason codes or safe text. Do not echo raw cells",
+   "missing": "Explicit handling of formula-like values and maximum field lengths for over-long cells."
+  }
+ ]
+}

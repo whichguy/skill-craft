@@ -1,0 +1,149 @@
+{
+ "slot": "gym-waitlist__G-shiploop-spec-duty4-bounds__sonnet-high",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "DEC-4",
+   "quote": "A waitlisted member is **booked automatically** at promotion (no offer-and-confirm step, hence no claim timer)."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-3, AD-5, R-1, R-10",
+   "quote": "first eligible entry in join order \u2026 a monotonically increasing sequence per class, assigned by the store \u2026 priority tiers, paid waitlist places \u2026 always chosen by the service, never named by a client."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "(whatever the app applies today, e.g. credits, overlapping classes). An entry that fails is **skipped and kept** with its position",
+   "missing": "The spec only checks overlaps if direct booking already does so. It leaves the fate of the other waitlist entry undecided when the first promotion commits."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "DEC-4, R-3",
+   "quote": "no offer-and-confirm step, hence no claim timer \u2026 **Out of scope**: refunds or credits for the cancelling member, late-cancel penalties",
+   "missing": "Automatic booking eliminates declined offers. The spec does not say whether missing or cancelling an automatically booked class incurs the existing penalty."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "the first eligible entry in join order becomes a booking, once per free seat, **inside the same operation** that released the seat (AD-2). Triggers: (a) a member cancels their booking"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "**existing booking-confirmation channel** (OG-1) naming the class and start time and saying the member was moved from the waitlist and is now booked. \u2026 channel unavailable \u2192 booking stands, failure is recorded"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-9.A1",
+   "quote": "Ana and Ben cancel simultaneously \u2192 in both orders (Ana then Ben; Ben then Ana) final bookings = {Cy, Dee}, waitlist = [Eli], and booked \u2264 2 after each step."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-9",
+   "quote": "a member appears at most once in the list and never in both bookings and list \u2026 Simultaneous operations on one class behave as if applied one at a time in some order.",
+   "missing": "The spec serializes the requests but leaves the direct booking result unspecified when promotion has just booked the same member, including when a second seat is available."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "default: it behaves exactly as a booking made at that moment, so a failed charge means ineligible and skipped"
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "List length itself is uncapped; observable behaviour at any length is the same as at length 1.",
+   "missing": "The spec explicitly chooses an unlimited list. A capped list would require a maximum length and a member-facing response at that limit."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-8",
+   "quote": "from the cutoff instant (existing booking-close time, else class start, DEC-2) no member can join, and no promotion occurs.",
+   "missing": "The default allows promotion until class start. A positive lead time would need to be specified for classes without an earlier booking-close time."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-3.A3, Out of scope",
+   "quote": "staff raise C-101 capacity 2 \u2192 4 \u2192 Eli and Fay are booked in that order, Dee stays at position 1. \u2026 reducing a class's capacity below its booked count (existing behaviour, untouched).",
+   "missing": "The increase is specified. The response to a decrease below the booked count depends on undiscovered existing behavior."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "When staff cancel a class, entries are removed at once and members are told through the app's existing class-cancellation notice, if it exists"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-10, T-6, AD-5",
+   "quote": "Entry data = class ID, member ID, join order \u2026 entries are **inert** (no promotion, shown as closed) \u2026 the position shown is the entry's rank among current entries for that class, computed on read.",
+   "missing": "The spec models entry states and stores join order, but gives no requirement to retain the time a member joined."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "AD-3",
+   "quote": "Entries after cutoff are inert; physical removal is best-effort housekeeping after class end.",
+   "missing": "There is no latest deletion time or maximum retention period after class end."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "A member's client never receives other members' identity or the list length; the position number is the only derived fact"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-10, R-6, R-13",
+   "quote": "staff view/management; default none \u2026 leave-on-behalf by staff \u2026 one service log line per promotion and per notification failure carrying class ID, member ID and outcome",
+   "missing": "The default excludes staff management. There is no staff workflow to view the queue, promote or remove a member, or look up who was promoted when."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "State and data assessment (rollback)",
+   "quote": "disable the join action, leaving inert entries, with already-made promotions remaining valid bookings"
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-13",
+   "quote": "promotions never run after the response returns. \u2026 a latency target and a waitlist-size/throughput target are **not set**",
+   "missing": "Promotion has a deadline relative to the cancellation response, but there is no maximum elapsed time from cancellation request to promotion."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-11.A1",
+   "quote": "S7 (C-107, capacity 2, Ana booked): Dee books \u2192 success, bookings [Ana, Dee]."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1, State and data assessment",
+   "quote": "a signed-in member viewing an open class with no free seat can join its waitlist. \u2026 whether data is migrated (the new entity is additive",
+   "missing": "The full-class rule applies regardless of class age, but the rollout leaves open whether existing full classes need initialization or gain a list on their first join."
+  }
+ ]
+}

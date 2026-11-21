@@ -1,0 +1,100 @@
+{
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "cost_usd": null,
+ "prompt_sha256": "24b1419d9d6a08412ad21821373f2d73d0a1ac193ed50311cc7fa97e3d2551b5",
+ "missing": [],
+ "unknown_labels": [],
+ "labels": [
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-8",
+   "need": "necessary",
+   "why": "Salesforce enforces execution limits, and the bot must keep each transaction within the limits that apply to its callouts and processing."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-13",
+   "need": "optional",
+   "why": "The bot can answer with a synchronous callout, so it can work without enqueuing a job."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-20",
+   "need": "necessary",
+   "why": "Each Grok call has a finite context window, which bounds how much of the question and conversation history can be sent together."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-21",
+   "need": "necessary",
+   "why": "The model's input and output token limits bound the questions the bot can accept in one call and the answers it can return from it."
+  },
+  {
+   "case": "grokbot-salesforce",
+   "id": "N-25",
+   "need": "optional",
+   "why": "The bot can report a result or a callout failure when it occurs without promising an end-to-end answer time."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-10",
+   "need": "optional",
+   "why": "The app can keep adding people in order even when all class seats are taken, without setting a maximum waitlist length."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-11",
+   "need": "optional",
+   "why": "The app can offer an open seat right up to class start without requiring any minimum lead time."
+  },
+  {
+   "case": "gym-waitlist",
+   "id": "N-19",
+   "need": "optional",
+   "why": "The app can give the next eligible person the available seat without guaranteeing promotion within a fixed time after cancellation."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-1",
+   "need": "necessary",
+   "why": "Automation needs a rule for when an unpaid invoice triggers its first reminder and any repeats, even if reminders continue until payment."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-8",
+   "need": "necessary",
+   "why": "The sending service has finite throughput, so a large batch must adapt to the rate the service accepts."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-10",
+   "need": "optional",
+   "why": "A reminder can go out whenever it becomes due, including outside local business hours or on a holiday."
+  },
+  {
+   "case": "invoice-reminders",
+   "id": "N-19",
+   "need": "optional",
+   "why": "The app can send all pending reminders as capacity permits, checking that each invoice is still unpaid, without a volume cap or lateness deadline."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-9",
+   "need": "necessary",
+   "why": "The upload path has finite capacity, so the importer must handle files beyond what that path can accept, even if it streams rows."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-13",
+   "need": "optional",
+   "why": "Bulk creation can provision accounts without sending invitation or welcome mail, so it need not impose a mail pacing rule."
+  },
+  {
+   "case": "csv-user-import",
+   "id": "N-19",
+   "need": "optional",
+   "why": "An accepted import can finish as processing capacity becomes available without guaranteeing a maximum completion time."
+  }
+ ]
+}

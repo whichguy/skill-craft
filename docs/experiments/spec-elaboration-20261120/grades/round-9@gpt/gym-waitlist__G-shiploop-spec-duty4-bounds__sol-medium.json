@@ -1,0 +1,151 @@
+{
+ "slot": "gym-waitlist__G-shiploop-spec-duty4-bounds__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1.a",
+   "quote": "joining authorizes automatic booking if a seat opens and existing rules allow it."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2.a",
+   "quote": "Order equal-time joins by their recorded acceptance sequence.",
+   "missing": "FIFO and its tie-breaker are specified. Whether membership tiers or staff can override that order remains open."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-2.b",
+   "quote": "if promotion takes effect first, any subsequent cancellation follows the existing booking rules.",
+   "missing": "The rule covers canceling a confirmed booking. It leaves unstated whether declining or missing a promotion itself incurs a late-cancellation or no-show penalty."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-2.c",
+   "quote": "A vacancy enters fulfillment when existing booking rules make it bookable, including a cancellation that makes a seat bookable. Accepted waitlist work remains eligible for fulfillment with all clients closed.",
+   "missing": "The trigger and background behavior are specified. The maximum time to complete promotion after the seat becomes bookable is open."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-3.d",
+   "quote": "A completed promotion appears on the existing booking surface upon authoritative refresh.",
+   "missing": "The specification describes status on refresh and defers to existing notification obligations. It supplies no promotion notification channel, message content, or handling for failed delivery."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2.a",
+   "quote": "With openings and eligible entries, allocate up to the smaller of the two counts, rechecking at each commit."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2.b",
+   "quote": "Duplicate or stale work cannot create a second booking, move a different entry, or displace a committed booking. | At the last seat, a valid waiting entry takes priority over a competing direct booking."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2 (Open gaps)",
+   "quote": "If interactive confirmation, charging, or another irreversible user action is required, the product owner must decide how to allocate the seat in that flow before planning dependent fulfillment.",
+   "missing": "When to charge for a promoted booking and what happens to the seat and entry if payment fails."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1.c",
+   "quote": "When a required limit prevents a join, show that the waitlist cannot accept the request and keep all existing entries in their prior order.",
+   "missing": "Whether a cap applies, its scope, and the maximum number of active entries."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-2.c",
+   "quote": "Fulfillment runs inside the existing permitted booking window. At its effective closing boundary use the existing authority's definition of open; once closed, no promotion can commit.",
+   "missing": "When that window closes relative to class start, including whether it closes before the class starts."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2.a, R-2.c",
+   "quote": "A cancellation or capacity change that creates zero bookable seats yields zero promotions."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-3.c",
+   "quote": "When the instance ceases to support bookings permanently, end active participation. Show the applicable closed/canceled state to viewers who are still authorized."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3 (State and data)",
+   "quote": "Keep only existing identity/class references, acceptance order, and the disposition data necessary to reconcile the operation.",
+   "missing": "The record retains acceptance order and disposition without a separate position field. It is unclear whether it also records the join timestamp."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-3 (State and data)",
+   "quote": "When that policy permits removal and reconciliation no longer needs the waitlist record, remove it from persistent feature data and derived views.",
+   "missing": "Permanent closure ends active participation, but the retention period for ended entries after the class runs is unspecified."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-3.a",
+   "quote": "The default waitlist view shows only own status, with no roster or numeric position.",
+   "missing": "Other members' identities are hidden. The specified view omits the member's own queue position."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-3 (State and data)",
+   "quote": "Active waiting state belongs to the booking authority, survives client closure, and is disclosed to the booker for that entry and existing authorized service roles as required to administer booking.",
+   "missing": "Which staff can view the queue, manually promote or remove someone, and inspect a history showing who was promoted and when."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-2 (Open gaps)",
+   "quote": "The runtime owner must establish how the existing authority can complete/recover this work without an open client, including its deadline and workload limits.",
+   "missing": "The maximum elapsed time from a seat-releasing cancellation to a confirmed promotion."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "C-7",
+   "quote": "On a reset of `G18` with no joins, `E` cancels and `D` uses ordinary booking. R-2.a permits direct booking with no eligible entry; recomputed bookings `{A,D}`, queue `[]`."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1.a",
+   "quote": "An eligible booker viewing a full, bookable class instance sees a Join waitlist action",
+   "missing": "The rule applies to a full class viewed in the app. It leaves activation and initial waitlist state for classes already full at rollout unspecified."
+  }
+ ]
+}

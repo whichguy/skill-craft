@@ -1,0 +1,114 @@
+whole deliveries read: 36 (engine status done)
+
+run | case | model, effort | ShipLoop | spec words | requirements | guides opened (stage at first open)
+e2e-runs-sdlc8/shared-expenses-sonnet-high | shared-expenses | Sonnet high | 2.3.0 | 2959 | 12 | improve-child (improve), improve-context (seen in output), run-start (None)
+e2e-runs-sdlc8/ticket-assignment-sol-medium | ticket-assignment | Sol medium | 2.3.0 | 356 | 3 | coding-practices (seen in output), guide-map (intake), improve-child (improve), improve-context (test-strategy), improve-stages (improve), inner-loop (step-plan), run-options (None), run-start (None), test-loop (step-plan), workspace-lifecycle (None)
+e2e-runs-sdlc9/rehearsal-L-sol-medium-hello | hello | Sol medium | 2.4.0 | 140 | 2 | guide-map (seen in output), improve-child (seen in output), improve-context (seen in output), improve-stages (seen in output), run-options (seen in output), run-start (seen in output), workspace-lifecycle (seen in output)
+e2e-runs-sdlc9/rehearsal-S-sol-medium-hello | hello | Sol medium | 2.4.0 | 221 | 2 | guide-map (None), improve-child (improve), improve-context (improve), improve-stages (improve), inner-loop (prepare), run-options (None), run-start (None), test-loop (prepare), workspace-lifecycle (None)
+e2e-runs-sdlc9/sol-medium-due-L-1 | ticket-due-times | Sol medium | 2.4.0 | 373 | 4 | coding-practices (seen in output), guide-map (seen in output), improve-child (seen in output), improve-context (seen in output), run-options (seen in output), run-start (seen in output), workspace-lifecycle (seen in output)
+e2e-runs-sdlc9/sol-medium-due-L-2 | ticket-due-times | Sol medium | 2.4.0 | 402 | 6 | coding-practices (seen in output), current-system-baseline (seen in output), guide-map (seen in output), house-style (seen in output), improve-child (seen in output), improve-context (seen in output), improve-stages (seen in output), inner-loop (seen in output), project-knowledge (seen in output), requirements-definition (seen in output), run-options (seen in output), run-start (seen in output), service-discovery (seen in output), test-loop (seen in output), testing-and-documentation (release-plan), workspace-lifecycle (seen in output)
+e2e-runs-sdlc9/sol-medium-due-S-1 | ticket-due-times | Sol medium | 2.4.0 | 377 | 4 | backchain-planning (plan), coding-practices (seen in output), guide-map (seen in output), improve-child (seen in output), improve-context (seen in output), improve-stages (seen in output), inner-loop (step-plan), run-options (seen in output), run-start (release-check), test-loop (step-plan), workspace-lifecycle (release-check)
+e2e-runs-sdlc9/sol-medium-due-S-2 | ticket-due-times | Sol medium | 2.4.0 | 498 | 6 | coding-practices (seen in output), guide-map (None), improve-child (improve), improve-context (improve), run-options (None), run-start (None), workspace-lifecycle (None)
+e2e-runs-sdlc9/sol-medium-expenses-L-1 | shared-expenses | Sol medium | 2.4.0 | 348 | 6 | guide-map (seen in output), improve-child (document), improve-context (document), improve-stages (document), run-options (seen in output), run-start (seen in output), workspace-lifecycle (None)
+e2e-runs-sdlc9/sol-medium-expenses-L-2 | shared-expenses | Sol medium | 2.4.0 | 273 | 6 | guide-map (intake), improve-child (seen in output), improve-context (seen in output), improve-stages (seen in output), run-options (seen in output), run-start (seen in output), workspace-lifecycle (seen in output)
+e2e-runs-sdlc9/sol-medium-expenses-S-1 | shared-expenses | Sol medium | 2.4.0 | 390 | 7 | guide-map (seen in output), improve-child (seen in output), improve-context (seen in output), improve-stages (seen in output), run-options (seen in output), run-start (seen in output), workspace-lifecycle (seen in output)
+e2e-runs-sdlc9/sol-medium-expenses-S-2 | shared-expenses | Sol medium | 2.4.0 | 320 | 5 | guide-map (intake), improve-context (seen in output), run-options (None), run-start (None), service-discovery (seen in output), workspace-lifecycle (None)
+e2e-runs-sdlc9/sonnet-high-due-L-1 | ticket-due-times | Sonnet high | 2.4.0 | 2274 | 11 | coding-practices (seen in output), improve-context (seen in output), run-options (None), run-start (None)
+e2e-runs-sdlc9/sonnet-high-due-L-2 | ticket-due-times | Sonnet high | 2.4.0 | 2444 | 10 | coding-practices (seen in output), run-options (None), run-start (None), test-loop (seen in output), workspace-lifecycle (seen in output)
+e2e-runs-sdlc9/sonnet-high-due-S-1 | ticket-due-times | Sonnet high | 2.4.0 | 2702 | 10 | backchain-planning (seen in output), coding-practices (seen in output), improve-child (improve), improve-context (seen in output), improve-stages (improve), inner-loop (step-plan), run-options (None), run-start (None)
+e2e-runs-sdlc9/sonnet-high-due-S-2 | ticket-due-times | Sonnet high | 2.4.0 | 2842 | 11 | coding-practices (seen in output), improve-child (improve), improve-context (seen in output), run-start (None)
+e2e-runs-sdlc10/grok-46-xhigh-due-1 | ticket-due-times | Grok xhigh | 2.4.0 | 3137 | 9 | backchain-planning (spec), behavioral-requirements (discovery), carry-forward (carry-forward), coding-guidance (step-plan), coding-practices (plan), consumer-delivery (product-acceptance), current-system-baseline (discovery), delivery-authority (intake), environment-lifecycle (discovery), execution-planning (discovery), glossary (seen in output), graph-dry-run (seen in output), guide-map (None), host-matrix (seen in output), house-style (discovery), implement-guidance (implement), improve-child (improve), improve-context (improve), improve-stages (improve), inner-loop (step-plan), keepalive (seen in output), lint-catalog (seen in output), navigator (product-acceptance), plan-record (step-plan), planning-experiments (improve), platform-discovery (seen in output), project-knowledge (intake), repeatable-test-suites (test-strategy), requirements-definition (discovery), research-loop (research), run-options (None), run-start (None), service-discovery (discovery), state-files (seen in output), status-display (seen in output), system-tests (system-test-author), test-loop (improve), testing-and-documentation (test-strategy), workspace-lifecycle (None)
+e2e-runs-sdlc10/sol-high-due-1 | ticket-due-times | Sol high | 2.4.0 | 373 | 4 | backchain-planning (plan), coding-practices (seen in output), current-system-baseline (discovery), execution-planning (discovery), guide-map (None), improve-child (improve), improve-context (improve), improve-stages (improve), inner-loop (plan), project-knowledge (discovery), run-start (None), test-loop (plan), workspace-lifecycle (None)
+e2e-runs-sdlc10/sol-high-due-2 | ticket-due-times | Sol high | 2.4.0 | 501 | 4 | coding-practices (seen in output), guide-map (intake), improve-child (improve), improve-context (improve), improve-stages (improve), inner-loop (step-plan), run-options (None), run-start (None), test-loop (step-plan), workspace-lifecycle (None)
+e2e-runs-sdlc10/sol-high-due-3 | ticket-due-times | Sol high | 2.4.0 | 379 | 5 | backchain (step-plan), coding-guidance (plan), coding-practices (seen in output), execution-planning (None), guide-map (None), improve-child (seen in output), improve-context (seen in output), improve-stages (seen in output), inner-loop (test-strategy), run-options (None), run-start (None), test-loop (test-strategy), workspace-lifecycle (None)
+e2e-runs-sdlc10/sol-high-due-4 | ticket-due-times | Sol high | 2.4.0 | 443 | 5 | coding-practices (seen in output), guide-map (None), improve-child (spec), improve-context (spec), run-options (None), run-start (None), test-loop (spec), testing-and-documentation (step-plan), workspace-lifecycle (None)
+e2e-runs-sdlc10/sol-high-expenses-1 | shared-expenses | Sol high | 2.4.0 | 514 | 7 | guide-map (None), improve-child (improve), improve-context (improve), run-options (None), run-start (None), test-loop (test-strategy), workspace-lifecycle (None)
+e2e-runs-sdlc10/sol-high-expenses-2 | shared-expenses | Sol high | 2.4.0 | 495 | 5 | backchain-planning (test), coding-guidance (test), guide-map (None), improve-child (improve), improve-context (improve), improve-stages (test), inner-loop (test), plan-record (test), run-options (None), run-start (None), test-loop (test), workspace-lifecycle (None)
+e2e-runs-sdlc10/sol-high-due-p1 | ticket-due-times | Sol high | 2.4.0 | 556 | 4 | backchain-planning (plan), coding-guidance (plan), coding-practices (seen in output), execution-planning (discovery), guide-map (None), improve-child (improve), improve-context (improve), improve-stages (improve), inner-loop (step-plan), project-knowledge (discovery), run-options (None), run-start (None), test-loop (test-strategy), workspace-lifecycle (None)
+e2e-runs-sdlc10/sol-high-due-p2 | ticket-due-times | Sol high | 2.4.0 | 668 | 5 | backchain-planning (plan), coding-guidance (seen in output), coding-practices (seen in output), current-system-baseline (seen in output), environment-lifecycle (test), execution-planning (seen in output), guide-map (None), house-style (seen in output), improve-child (improve), improve-context (improve), improve-stages (improve), inner-loop (step-plan), planning-experiments (improve), project-knowledge (seen in output), requirements-definition (seen in output), run-options (None), run-start (None), service-discovery (seen in output), test-loop (step-plan), workspace-lifecycle (None)
+e2e-runs-sdlc10/sol-high-expenses-p1 | shared-expenses | Sol high | 2.4.0 | 649 | 8 | coding-guidance (step-plan), current-system-baseline (discovery), guide-map (intake), house-style (discovery), improve-child (improve), improve-context (improve), improve-stages (improve), inner-loop (step-plan), project-knowledge (discovery), requirements-definition (discovery), run-options (None), run-start (None), service-discovery (discovery), test-loop (step-plan), workspace-lifecycle (None)
+e2e-runs-sdlc10/sol-high-expenses-p2 | shared-expenses | Sol high | 2.4.0 | 442 | 6 | backchain-planning (plan), coding-guidance (step-plan), guide-map (None), improve-child (improve), improve-context (improve), improve-stages (improve), inner-loop (step-plan), run-options (None), run-start (None), test-loop (step-plan), workspace-lifecycle (None)
+e2e-runs-sdlc10/sol-medium-due-p1 | ticket-due-times | Sol medium | 2.4.0 | 393 | 5 | coding-practices (seen in output), guide-map (None), improve-child (improve), improve-context (improve), run-options (None), run-start (None), service-discovery (seen in output), workspace-lifecycle (None)
+e2e-runs-sdlc10/sol-medium-due-p2 | ticket-due-times | Sol medium | 2.4.0 | 273 | 5 | backchain-planning (plan), coding-practices (seen in output), guide-map (seen in output), improve-child (seen in output), improve-context (seen in output), improve-stages (seen in output), run-options (seen in output), run-start (seen in output), workspace-lifecycle (seen in output)
+e2e-runs-sdlc10/sol-medium-expenses-p1 | shared-expenses | Sol medium | 2.4.0 | 361 | 6 | guide-map (None), improve-child (document), improve-context (document), improve-stages (document), run-options (None), run-start (None), workspace-lifecycle (None)
+e2e-runs-sdlc10/sol-medium-expenses-p2 | shared-expenses | Sol medium | 2.4.0 | 480 | 6 | guide-map (seen in output), improve-child (seen in output), improve-context (seen in output), improve-stages (seen in output), inner-loop (step-plan), run-options (seen in output), run-start (seen in output), test-loop (step-plan), workspace-lifecycle (seen in output)
+e2e-runs-sdlc11/shared-expenses-sonnet-high | shared-expenses | Sonnet high | 2.4.0 | 3573 | 12 | backchain-planning (seen in output), improve-child (improve), improve-context (seen in output), improve-stages (improve), requirements-definition (improve), run-start (None)
+e2e-runs-sdlc11/ticket-assignment-sol-high | ticket-assignment | Sol high | 2.4.0 | 546 | 4 | carry-forward (carry-forward), coding-practices (seen in output), execution-planning (discovery), guide-map (discovery), improve-child (improve), improve-context (improve), improve-stages (discovery), inner-loop (step-plan), run-start (None), test-loop (step-plan), testing-and-documentation (carry-forward), workspace-lifecycle (None)
+e2e-runs-sdlc12/sonnet-high-expenses | shared-expenses | Sonnet high | 2.4.1 | 2541 | 11 | improve-context (seen in output), plan-record (seen in output), run-start (None)
+e2e-runs-sdlc12/sonnet-medium-due | ticket-due-times | Sonnet medium | 2.4.1 | 1280 | 10 | coding-practices (seen in output), improve-child (improve), improve-context (seen in output), run-start (None)
+e2e-runs-sdlc12/sonnet-medium-expenses | shared-expenses | Sonnet medium | 2.4.1 | 1058 | 11 | improve-context (seen in output), run-start (None)
+
+== Grok: 1 deliveries
+   opened any reference guide: 1 of 1
+   opened a spec guide (behavioral-requirements, requirements-definition, current-system-baseline): 1 of 1
+   ... and did so before the spec stage ended: 1 of 1
+   opened behavioral-requirements: 1 of 1
+   opened requirements-definition: 1 of 1
+   opened a test guide (testing-and-documentation, test-loop, repeatable-test-suites, system-tests): 1 of 1
+   opened testing-and-documentation: 1 of 1
+   distinct guides opened a delivery: median 39 range 39 to 39
+   final spec words with a spec guide opened: median 3137 (3137 to 3137; 1 deliveries)
+== Sol: 26 deliveries
+   opened any reference guide: 26 of 26
+   opened a spec guide (behavioral-requirements, requirements-definition, current-system-baseline): 4 of 26
+   ... and did so before the spec stage ended: 2 of 26
+   opened behavioral-requirements: 0 of 26
+   opened requirements-definition: 3 of 26
+   opened a test guide (testing-and-documentation, test-loop, repeatable-test-suites, system-tests): 16 of 26
+   opened testing-and-documentation: 3 of 26
+   distinct guides opened a delivery: median 9.0 range 6 to 20
+   final spec words with a spec guide opened: median 526 (373 to 668; 4 deliveries)
+   final spec words without: median 384 (140 to 556; 22 deliveries)
+== Sonnet: 9 deliveries
+   opened any reference guide: 9 of 9
+   opened a spec guide (behavioral-requirements, requirements-definition, current-system-baseline): 1 of 9
+   ... and did so before the spec stage ended: 0 of 9
+   opened behavioral-requirements: 0 of 9
+   opened requirements-definition: 1 of 9
+   opened a test guide (testing-and-documentation, test-loop, repeatable-test-suites, system-tests): 1 of 9
+   opened testing-and-documentation: 0 of 9
+   distinct guides opened a delivery: median 4 range 2 to 8
+   final spec words with a spec guide opened: median 3573 (3573 to 3573; 1 deliveries)
+   final spec words without: median 2492 (1058 to 2959; 8 deliveries)
+
+guide | deliveries that opened it, of 36
+  run-start | 36
+  improve-context | 35
+  improve-child | 31
+  run-options | 28
+  workspace-lifecycle | 28
+  guide-map | 27
+  improve-stages | 23
+  coding-practices | 20
+  test-loop | 18
+  inner-loop | 16
+  backchain-planning | 10
+  coding-guidance | 7
+  service-discovery | 6
+  project-knowledge | 6
+  execution-planning | 6
+  requirements-definition | 5
+  current-system-baseline | 5
+  testing-and-documentation | 4
+  house-style | 4
+  plan-record | 3
+  environment-lifecycle | 2
+  planning-experiments | 2
+  carry-forward | 2
+  delivery-authority | 1
+  behavioral-requirements | 1
+  research-loop | 1
+  repeatable-test-suites | 1
+  implement-guidance | 1
+  system-tests | 1
+  consumer-delivery | 1
+  navigator | 1
+  graph-dry-run | 1
+  status-display | 1
+  lint-catalog | 1
+  glossary | 1
+  host-matrix | 1
+  platform-discovery | 1
+  keepalive | 1
+  state-files | 1
+  backchain | 1

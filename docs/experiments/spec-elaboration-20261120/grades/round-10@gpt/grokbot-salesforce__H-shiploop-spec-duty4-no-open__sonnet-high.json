@@ -1,0 +1,185 @@
+{
+ "slot": "grokbot-salesforce__H-shiploop-spec-duty4-no-open__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1, R-7",
+   "quote": "a Lightning app and a tab (names in AD-4) that show the chat component full-width. \u2026 does not pass any org data to xAI beyond what the user typed"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "AD-1",
+   "quote": "Controller is `with sharing`, performs no SOQL and no DML.",
+   "missing": "The sharing context is explicit. Record-grounded answers would need a rule selecting records visible to the asking user."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "AD-1",
+   "quote": "Object CRUD/FLS: not applicable because no standard or custom object is read or written",
+   "missing": "The specification excludes record reads. It gives no field-level filtering or masking rule for reading or displaying restricted or encrypted values."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "NFR-SEC, State and information lifecycle",
+   "quote": "the only users able to cause a callout are holders of the permission set \u2026 Setup users with credential admin rights can replace it \u2026 Apex; admins in Setup"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "State and information lifecycle (conversation transcript)",
+   "quote": "That browser session only; sent to xAI per send (R-9); not readable by other Salesforce users or admins"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-1",
+   "quote": "a single synchronous callout fits the platform limits below \u2026 no callout after pending DML",
+   "missing": "The controller calls xAI synchronously from the chat. The specification gives no trigger restriction or asynchronous execution path for a trigger-originated request."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "NFR-SEC, R-10",
+   "quote": "API key stored only as an External Credential secret (R-11 A3 proves none in source; Setup shows the parameter masked) \u2026 No log line contains the message text, reply text, key, header or response body."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "AD-1",
+   "quote": "100 callouts/transaction, 120 s cumulative timeout, 10 s default, 120 000 ms maximum per callout",
+   "missing": "The numeric Apex heap and CPU-time limits are missing."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "AD-6, R-12",
+   "quote": "Apex: `GrokBotControllerTest`/`GrokClientTest` with `HttpCalloutMock` \u2026 none uses the real xAI endpoint."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-4, AD-1",
+   "quote": "`Grok_API` (URL `https://api.x.ai/v1`, bound to `Grok_xAI`) \u2026 `callout:Grok_API/chat/completions` \u2192 xAI."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "State and information lifecycle (in-flight request), T-2",
+   "quote": "LWC promise + one Apex transaction \u2026 Pending \u2192 Idle | success DTO | Grok bubble appended"
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-6, Service boundary (duplicates / ordering)",
+   "quote": "a **Retry** control resends that same message (no duplicate \"You\" bubble). \u2026 no idempotency key because no retry is automatic.",
+   "missing": "The retry rule prevents a duplicate user bubble. There is no message or request identity or deduplication rule for a replayed job posting an assistant reply."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "Grok rejected the credentials. Contact your administrator. \u2026 Grok could not process this request (HTTP <status>). \u2026 Grok is temporarily unavailable. Try again. \u2026 Grok took too long to answer. Try again."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-5, R-6",
+   "quote": "No automatic retry \u2026 Grok is rate-limiting requests. Try again shortly. \u2026 a **Retry** control resends that same message"
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-5, R-6",
+   "quote": "The reply length is capped by *K* = 1024 tokens \u2026 Grok took too long to answer. Try again.",
+   "missing": "The timeout message is specified. The builder still needs a rule for recognizing an incomplete or token-truncated answer and showing its status to the user."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "AD-3, State and information lifecycle",
+   "quote": "{ messages: [{role, content}] } \u2026 Conversation transcript (messages, error lines) \u2026 browser memory only",
+   "missing": "The in-memory representation covers roles, text and errors. There is no persistent conversation and turn schema with per-turn status, timestamps, model identifier and usage counts."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "State and information lifecycle (conversation transcript), R-9",
+   "quote": "New chat (R-13, F-2), page reload, navigation away: all clear it. No persistence \u2026 xAI's retention of API request data (not verified)",
+   "missing": "Local retention is specified. The text leaves open what happens to an open transcript or provider-held copies when the Salesforce user is deleted."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-7, R-9",
+   "quote": "does not pass any org data to xAI beyond what the user typed \u2026 Messages are sent to xAI. Don't enter confidential or customer data."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Only the most recent *N* = 20 messages (default; configurable per R-8) ending with the new user message are transmitted; earlier ones stay visible in the UI but are not sent."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-2 A1, R-4 A2\u2013A3",
+   "quote": "On first render the transcript shows \"Ask Grok anything.\" and no bubbles. \u2026 \"\" \u2192 Send is disabled (UI) \u2026 a 4000-character message is accepted; a 4001-character message is refused"
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-8, R-10",
+   "quote": "one configuration record holds the model id \u2026 logged at INFO with outcome code (`OK` or an errorCode), HTTP status when one exists, and elapsed milliseconds.",
+   "missing": "The specification provides model changes and failure logs. It gives no procedure for an administrator to disable the deployed bot org-wide while keeping it installed."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "R-10",
+   "quote": "logged at INFO with outcome code (`OK` or an errorCode), HTTP status when one exists, and elapsed milliseconds. No log line contains the message text, reply text, key, header or response body.",
+   "missing": "Only operational logs have a retention policy. The requested audit trail would need a user-to-exchange link, retained question and answer text, and a retention rule for those entries."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-11, P-1, AD-6",
+   "quote": "a single `sf project deploy start --target-org <alias>` \u2026 an xAI API key entered as the External Credential secret in Setup. \u2026 Org-level coverage gate for a non-dev target: unresolved",
+   "missing": "The development-org deployment and secret entry are specified. The text gives no configuration or credential differences across environments and no production Apex coverage threshold."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "NFR-PERF",
+   "quote": "pending state appears synchronously on send (A2 of R-2), a hard cap of *T* (60 s default, \u2264120 s platform cumulative limit, AD-1)"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "NFR-UI criterion 2, R-4",
+   "quote": "Designed states: empty (R-2 A1), pending (indicator, Send disabled), error (R-6 text + Retry), config-missing (R-6 CONFIG text) \u2026 \"Message is too long (max 4000 characters).\" and the draft kept."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-11, R-7",
+   "quote": "deploys additively (no deletion or overwrite of existing org metadata) \u2026 Anything already in the org stays untouched. \u2026 the bot has no action it can take in the org."
+  }
+ ]
+}

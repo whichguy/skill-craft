@@ -1,0 +1,147 @@
+{
+ "slot": "csv-user-import__P-shiploop-spec__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.306954,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C6",
+   "quote": "If the batch cannot complete, create zero accounts from it and preserve existing account contents."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "C4",
+   "quote": "A missing required value or value rejected by the account rules is reported with row number, field and correction."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "C7",
+   "quote": "Any collision within the CSV or with an existing identity rejects the whole batch. Report the implicated rows where disclosure is allowed, and preserve existing accounts."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C4",
+   "quote": "Attempts to supply a role, scope or credential column are rejected as unsupported input."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "C1",
+   "quote": "An authorized user administrator can open the import in their permitted directory and submit a file.",
+   "missing": "Which permission grants import (role model is an open gap), and whether import is a distinct ability not implied by single-user create rights."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "C3",
+   "quote": "Reject unreadable or invalid UTF-8, malformed quoting, missing or unsupported headers and incorrect field counts before any create."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-2 Proposed file contract",
+   "quote": "with an optional UTF-8 BOM, LF or CRLF record endings, and a final newline allowed. ... Quoted fields are parsed as fields, including commas within quotes and doubled quotes as a literal quote.",
+   "missing": "Whether newlines inside quoted fields are accepted and how they are treated."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-3 Domain limits and open gaps",
+   "quote": "Which existing activation, notification, billing, audit or other effects a normal create triggers is unknown.",
+   "missing": "What happens to side effects (e.g. invitations) already emitted for earlier rows when a later row fails in the atomic batch."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C5",
+   "quote": "An oversized or over-row-limit file receives a useful limit message and writes zero users.",
+   "missing": "The actual byte and row limit values, which are left open."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "C3, C6",
+   "quote": "Empty and header-only files create zero users. ... One eligible row is a valid batch."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "C8",
+   "quote": "Repeating that attempt with the same content returns its pending or terminal state without a second write. ... A fresh submission requires deliberate action and normal duplicate checks."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-4 Service boundary",
+   "quote": "The operation authority owns any processing that survives view exit and any resumption or reconciliation covered by the final design.",
+   "missing": "Whether large files run in the background, and how the admin learns of completion after leaving the view (progress notifications excluded)."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3 Domain limits and open gaps",
+   "quote": "a new activation or invitation workflow are outside scope. Which existing activation, notification, billing, audit or other effects a normal create triggers is unknown.",
+   "missing": "Whether invitation mails are sent in bulk and any pacing or throttling for them."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3 Domain limits and open gaps",
+   "quote": "Updates, merges, role assignment, password import, and a new activation or invitation workflow are outside scope.",
+   "missing": "Whether created users are active or pending, with or without a password, and how they first sign in."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2 State and data",
+   "quote": "The product discards the raw copy and parsed working data once processing finishes or is abandoned. No product copy is available to other clients, in upload history, or in diagnostic logs."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-4 Interaction and lifecycle (Operational outcomes)",
+   "quote": "Authorized operators can identify them by opaque correlation, outcome and counts where appropriate. ... any mandatory audit dependency must be settled before writes.",
+   "missing": "A durable audit record of who imported what and when; audit policy and retention are left unresolved."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "T-7, R-3",
+   "quote": "No cancellation or rollback of an already submitted write is implied. ... Atomic batch and reject-on-duplicate are proposed product defaults for predictable correction."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements (Capacity and compatibility)",
+   "quote": "Verify acceptance at the supported bounds, fail-safe rejection above each hard-facing bound, and truthful pending feedback under a controlled delay. No latency, throughput, availability or cost target is established",
+   "missing": "A time bound for a maximum-size file and progress beyond a generic in-progress status."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "Scope and evidence; R-3 State and service boundary",
+   "quote": "The requirements preserve applicable single-user creation rules, directory access and existing user records. ... Existing accounts and unrelated changes are preserved."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

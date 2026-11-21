@@ -1,0 +1,46 @@
+PACKET 5
+Reviewed stage: test-strategy
+
+== The request the delivery was built from ==
+This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable, with a command-line tool in bin/. The help desk is starting to promise response times. Each ticket gets a due time: the time it was created plus the response time for its priority, which is 4 hours for urgent tickets, 24 for high, 72 for normal and 168 for low, and the help desk must be able to change those hours without a code change. A ticket's due time is set once: a later change of the hours or of the ticket's priority does not move it. Every ticket shows its due time as `due`, and `GET /tickets?overdue=true` lists only the open and in-progress tickets whose due time has passed. The tickets already in the production data file get due times too, from their own creation time and priority, and keep them from then on. Due times are switched on in production only once the data file holds them: until the DUE_TIMES environment variable is `on`, the service answers exactly as it does today. If the new release misbehaves, operators must be able to go back to the current release, 1.4.0, and it must still start on the data file the new release wrote and show every ticket. Everything the service already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones.
+
+== What the review changed in the files ==
+diff --git a/docs/shiploop/environment.md b/docs/shiploop/environment.md
+index c7f2874..ba2370a 100644
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -180,6 +180,6 @@ grep -rhoE 'DUE-[0-9]+' test | sort -u
+ | DUE-26 | R-7 | off still stores, backfills and saves `due` |
+ | DUE-27 | R-8 | saved file is `version` 1 and keeps every 1.4.0 ticket field |
+-| DUE-28 | R-8 | the real 1.4.0 command line lists every ticket of a new-release file |
+-| DUE-29 | R-8 | the real 1.4.0 server starts on it, `GET /tickets` shows every ticket; after its save the new release backfills again |
++| DUE-28 | R-8 | the real 1.4.0 command line lists every ticket of a new-release file; first asserts the file holds `due` for each ticket, so a missing `due` fails the test (procedure: architecture.md RB-1) |
++| DUE-29 | R-8 | the real 1.4.0 server starts on it, `GET /tickets` shows every ticket, a `POST` and SIGTERM make it save (dropping `due`); the new release then backfills again from created and priority (procedure: architecture.md RB-1) |
+ | DUE-30 | R-9 | `list --raw` keeps four columns; weekly report counts unchanged |
+ | DUE-31 | R-11 | version 1.5.0, CHANGELOG 1.5.0, README settings, docs/api.md `due` and `overdue`, docs/operations.md rollback, decision 0009 and its index entry exist |
+diff --git a/docs/shiploop/architecture.md b/docs/shiploop/architecture.md
+index 3329eae..c9c377e 100644
+--- a/docs/shiploop/architecture.md
++++ b/docs/shiploop/architecture.md
+@@ -53,5 +53,17 @@ remote test. A local pass is the only pass there is here, and production is neve
+ - RB-1 (owner: implement step for rollback, DUE-28, DUE-29): the **real 1.4.0 release** (fixture tree of f3df632, run as
+   `bin/tickets.js list` and as `src/server.js` child processes with `DATA_FILE` set) reads a file the new release wrote,
+-  with the switch on and off and after backfilling, and shows every ticket; planned.
++  with the switch on and off and after backfilling, and shows every ticket; planned. Replayable procedure (each action
++  is permitted by the spec rule or the existing API named): (1) the new release's `createService` on a temporary `DATA_FILE`
++  with the manual clock at `2025-09-01T08:00:00.000Z`, `POST /tickets` twice (R-1; creating is always allowed): T-0001
++  urgent "VPN drops", T-0002 low "Printer jams"; `stop()`. (2) Guard against a vacuous pass: read the file and assert
++  `version === 1` and that both tickets have a `due` (`2025-09-01T12:00:00.000Z`, `2025-09-08T08:00:00.000Z`); the real
++  1.4.0 on a file without `due` would pass on the base, so this assertion is what makes DUE-28 and DUE-29 fail against an
++  implementation that does not write `due`. (3) DUE-28: run the fixture's `bin/tickets.js --data FILE list --raw`; expect
++  exactly the two lines `T-0001<TAB>open<TAB>urgent<TAB>VPN drops` and `T-0002<TAB>open<TAB>low<TAB>Printer jams`, exit 0.
++  (4) DUE-29: start the fixture's `src/server.js` (`PORT=0 DATA_FILE=FILE WORKER_INTERVAL_MS=0`), read the port from the
++  line `tickets listening on <port>`, `GET /tickets` expects items T-0001 and T-0002 (no `due` in 1.4.0 bodies), `POST
++  /tickets` T-0003 normal (1.4.0 allows it in any state), SIGTERM; the file now lacks `due` (1.4.0 dropped it). (5) The new
++  release's `createService` on that file backfills (R-6): T-0001 and T-0002 get the values of step 2 again (same `created`, same priority), T-0003 gets its
++  `created` plus 72 h, and the file is saved once.
+ - RB-2 (owner: implement step for API, DUE-12, DUE-25): the real HTTP server (`withService`) answers in both switch
+   positions; planned.
+
+== What the review changed in the stage's recorded result ==
+(the result did not change)

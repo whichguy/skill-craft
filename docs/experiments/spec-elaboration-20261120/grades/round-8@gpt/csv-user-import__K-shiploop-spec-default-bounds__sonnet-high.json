@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__K-shiploop-spec-default-bounds__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "A clean file creates every user atomically; any problem creates none"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-11",
+   "quote": "then a table of row, column, problem (and \"duplicates row N\" for `duplicate_in_file`); when truncated, a line `and {T-100} more`."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "A later row with the same email is `duplicate_in_file` and reports `related_row` (the owner's row number). A row whose email matches any existing user of any status is `already_exists`."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1, R-5 (A-13, G-2)",
+   "quote": "An admin may assign either role through import, the same authority as single-user creation. \u2026 If single creation restricts it, import must match"
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "the import screen and the import operation are available only to a signed-in user whose *current* role is admin.",
+   "missing": "The admin-role check is explicit. The spec does not say whether import permission can be withheld from an admin who may create users individually."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "the first record is the header. \u2026 `email` and `name` must be present; `role` may be absent. \u2026 `missing_column` (lists the missing canonical names), then `unknown_column` (lists 1-based column positions, never the cell text)"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2 (A-6), R-2.1, R-5",
+   "quote": "UTF-8 with an optional BOM, comma delimiter, line ends LF or CRLF \u2026 FX-4 creates names `Hopper, Grace` \u2026 `invalid_characters` \u2026 including tab or a line break from a quoted field"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-12.2, R-12.3",
+   "quote": "A rejected import (FX-5) sends no onboarding message and issues no token. \u2026 if sending is not atomic with the commit, the compensation rule is a G-1 decision before this line is final.",
+   "missing": "The builder still needs a rule for an invitation already sent before a later row fails, or a dispatch rule that prevents this sequence."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "exactly 5,000 data rows is accepted; 5,001 is rejected. \u2026 `too_many_rows`, 422, nothing created, no row validation performed."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2, R-4 (check order), R-7.4",
+   "quote": "a 0-byte or BOM-only file is empty \u2026 `no_data_rows`, `too_many_rows` (R-2, R-3, R-4) \u2026 `created_count` equals the number of data rows: 1 for FX-16"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-9.1",
+   "quote": "Admin A submits FX-1 twice from S0: first 201 (7 users); second 422 with `already_exists` on rows 2, 3 and 4, `row_error_total` 3; still 7 users."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-7 (A-14), R-11",
+   "quote": "Processing is synchronous within one request; the result is the response. \u2026 `{N} users created` (`1 user created` when N is 1) and a link to the user list",
+   "missing": "Even the largest accepted file runs synchronously. Background processing would need a way for the admin to receive or retrieve the result after the upload request ends."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-12.3",
+   "quote": "Importing the 5,000 users of FX-17a sends 5,000 onboarding messages and not more or fewer, **if** single creation sends one",
+   "missing": "The builder still has to decide whether those messages go out together or in batches, and at what rate."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-12",
+   "quote": "the initial status, onboarding (for example an invitation or set-password message) and any per-user audit event match what the product does for one user created by an admin. No password is read from the file.",
+   "missing": "The referenced single-user flow is unknown. The initial account status, whether a password exists at creation, and the first sign-in steps remain unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-10 (state and information lifecycle)",
+   "quote": "Uploaded bytes | the request handler's memory (A-10) | nobody else | n/a: request-scoped | request end, success or failure"
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "actor id (absent when unauthenticated), timestamp, outcome (`created`, `rejected`, `forbidden`, `error`), file size in bytes when read, data-row count when parsed, `created_count`, the file-level code or the row-error total."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-7 (A-3), R-11",
+   "quote": "a fixed file can be re-uploaded whole. \u2026 submit and file controls disabled, an indeterminate busy indication",
+   "missing": "The spec gives a whole-file retry. It does not define cancellation after submission or an action to retry only failed rows."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-11, R-15",
+   "quote": "an indeterminate busy indication and the text \"Creating users\u2026\" \u2026 **Numeric time bound: unresolved**, because the platform and its limit are not known",
+   "missing": "The busy indicator is specified. A maximum completion time for the largest accepted file is still open."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-7, R-12 (baseline), R-6 (A-4)",
+   "quote": "an existing behaviour must be preserved once found (single-user creation, authorization) \u2026 An email that already exists, or repeats within the file, is an error. No update, skip or merge."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-5, R-2.5",
+   "quote": "neutralising spreadsheet-formula prefixes on later export (not stored differently; any future export owns that). \u2026 FX-23 (a 2,000,000-character name inside the size limit): 422 with one row error `too_long` on row 2 name"
+  }
+ ]
+}

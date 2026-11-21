@@ -1,0 +1,195 @@
+guides_rehearsal.py, 2026-11-21 13:52 PST: the driver rehearsed offline with no model. The harness is a stub that lays down the records of
+an existing stopped run (/Users/dadleet/e2e-runs-sdlc10/20261121-e2/e2-g-1, read only), the host's own session record among them; the
+sorter's and the judges' sessions are replaced by functions that write made-up answers, and the reader's file is made up.
+Scratch folder: /private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-135219
+
+== prepare: the base and the three arms, built for real
+{
+ "checkout": "/Users/dadleet/src/skill-craft",
+ "head": "0f6331162354a294f9c24dc65553b6f8561b4bc9",
+ "checkout_status_lines": 5,
+ "base": {
+  "fixture": "node-base",
+  "digest": "8f445d24ed3c",
+  "start_head": "d65616230ed4b3c9ac187dcb934df88862bed378",
+  "files": 11
+ },
+ "plugins": {
+  "A": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-135219/root/arm-A/build/plugins/skill-craft",
+  "C": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-135219/root/arm-C/build/plugins/skill-craft",
+  "X": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-135219/root/arm-X/build/plugins/skill-craft"
+ },
+ "prompts_file_sha256": {
+  "A": "39ea13ebce9e4a39aa7b3e3415af7371f286fcef3772f7228875830c18913b33",
+  "C": "00dbfe2bf565b8280523ca16f493f28df9b3837ee5f42eceb332dda3ae6f050f",
+  "X": "05f24bd59dad9865896394a67cea1a39f9c9d52655b4c2d64caa3d2fe352be87"
+ },
+ "spec_prompt_sha256": {
+  "A": "1d01d54fbca2",
+  "C": "228b0eb2bcbe",
+  "X": "a89777614d40"
+ },
+ "spec_prompt_characters": {
+  "A": 8786,
+  "C": 8954,
+  "X": 15630
+ },
+ "delta_lines": {
+  "C": 2,
+  "X": 110
+ },
+ "problems": []
+}
+ok    prepare finds no problem
+== sort: the command's handling, with a made-up sorter in place of the session
+ok    refused: a mixed label that does not say which part applies (FAIL sort opus: no usable label for ['N-4']  (session folder /private/tmp/claude-501/-User)
+ok    refused: a sort that leaves an item out (FAIL sort opus: no usable label for ['N-21']  (session folder /private/tmp/claude-501/-Use)
+DONE sort opus: {'applies': 20, 'capability': 0, 'mixed': 1, 'unclear': 0}
+ok    a complete sort is kept
+ok    the label file carries the sentence, the base's digest and 21 labels
+ok    the sorter was given the registered text, the sentence, the base and the items
+ok    refused: a second sort by the same sorter (here-opus.json exists: the sort is done once)
+== the launch gate
+ok    refused: a launch with no label files (step 0 is not done: ['here-opus.json', 'here-astra.json'] missing; run `sort opus` and `so)
+ok    refused: a launch with five items that apply (only 5 items apply for both sorters; the rule is at least 8: nothing is run)
+ok    refused: a driver that is not registered (no registered driver 'sonnet'; there is sol)
+== set r1: three runs that reach acceptance
+{"name": "r1-sol-C", "set": "r1-sol", "arm": "C", "driver": "sol", "pid": 54164, "started_at": 1795297952.412243, "limit_minutes": 1.0, "decided_at": 1795297955.445296, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-135219/root/samples/r1-sol-C/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
+{"name": "r1-sol-X", "set": "r1-sol", "arm": "X", "driver": "sol", "pid": 54165, "started_at": 1795297952.414465, "limit_minutes": 1.0, "decided_at": 1795297955.4633331, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-135219/root/samples/r1-sol-X/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
+{"name": "r1-sol-A", "set": "r1-sol", "arm": "A", "driver": "sol", "pid": 54166, "started_at": 1795297952.417347, "limit_minutes": 1.0, "decided_at": 1795297955.478007, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-135219/root/samples/r1-sol-A/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
+ok    run returns cleanly
+ok    14 items apply, 3 are capability, 4 are kept out of the rule
+ok    A: the watcher saw the acceptance and wrote the stop file
+ok    A: the working file was copied at acceptance
+ok    A: the review's bind was kept when first seen
+ok    C: the watcher saw the acceptance and wrote the stop file
+ok    C: the working file was copied at acceptance
+ok    C: the review's bind was kept when first seen
+ok    X: the watcher saw the acceptance and wrote the stop file
+ok    X: the working file was copied at acceptance
+ok    X: the review's bind was kept when first seen
+ok    refused: a second launch of the same set (set r1-sol already has samples: a set is launched once)
+r1-sol-A: watcher saw the acceptance; the stop file; usable True; delivered True; words 674 
+r1-sol-C: watcher saw the acceptance; the stop file; usable True; delivered True; words 674 
+r1-sol-X: watcher saw the acceptance; the stop file; usable True; delivered True; words 674 
+set r1-sol: complete; delivered {'A': True, 'C': True, 'X': True}; blind copies in results/round-g-r1-sol-095b51
+ok    collect finds the set complete
+ok    refused: a second collect of the same set (set-r1-sol.json exists: a set is collected once)
+ok    A: usable by every check
+ok    A: delivered as the arm intends
+ok    A: pinned by ShipLoop's own commit, review text from the kept bind
+ok    C: usable by every check
+ok    C: delivered as the arm intends
+ok    C: pinned by ShipLoop's own commit, review text from the kept bind
+ok    X: usable by every check
+ok    X: delivered as the arm intends
+ok    X: pinned by ShipLoop's own commit, review text from the kept bind
+ok    the cue is in C's and X's packet and not in A's
+ok    the guide text is in X's packet alone
+ok    three blind copies whose names show no arm
+== readings: made-up verdicts through the judging command, sealed, then compared
+ok    refused: a score before any reading (slot K1 has no complete, sealed reading from opus: nothing is compared)
+ok    the live rubric is the bench judge's text with four phrases changed
+DONE csv-user-import__K2__sol-medium covered=10/21 partial=3 
+DONE csv-user-import__K3__sol-medium covered=7/21 partial=2 
+DONE csv-user-import__K1__sol-medium covered=6/21 partial=3 
+DONE csv-user-import__K1__sol-medium covered=6/21 partial=3 
+DONE csv-user-import__K2__sol-medium covered=9/21 partial=4 
+DONE csv-user-import__K3__sol-medium covered=6/21 partial=3 
+set r1-sol: 6 of 6 readings complete 
+ok    judge takes six readings and seals them
+ok    every judge was given the live rubric
+ok    refused: a score before the readings are sealed (slot K1 has no complete, sealed reading from opus: nothing is compared)
+ok    refused: a score before the reader's audit (the reader's audit has not been checked in: the arms are not revealed before it is)
+reader's folder: /private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-135219/reader (3 specifications, arms hidden); its instructions are PROMPT.md there
+ok    the reader's folder is made
+ok    the reader's folder holds the sentence, the base, three coded files and its instructions
+made-up capability: verified in ['K2'] of ['K2', 'K3']
+1 capabilities listed; arms stay hidden until `score`
+ok    the audit is checked
+ok    a true quote is verified and an invented one is not
+set r1-sol: items that apply here for both sorters (14): ['N-1', 'N-2', 'N-3', 'N-4', 'N-5', 'N-6', 'N-7', 'N-8', 'N-9', 'N-10', 'N-11', 'N-12', 'N-20', 'N-21']
+  A opus: covered 6, partly 3, absent 5
+  A astra: covered 6, partly 3, absent 5
+  C opus: covered 7, partly 2, absent 5
+  C astra: covered 6, partly 3, absent 5
+  X opus: covered 10, partly 3, absent 1
+  X astra: covered 9, partly 4, absent 1
+  X over C: higher under both judges ['N-8', 'N-10', 'N-11', 'N-12', 'N-20']; of them newly raised ['N-10', 'N-11', 'N-12', 'N-20']; lower []; net 5
+  C over A: higher under both judges []; of them newly raised []; lower []; net 0
+  X over A: higher under both judges ['N-8', 'N-10', 'N-11', 'N-12', 'N-20']; of them newly raised ['N-10', 'N-11', 'N-12', 'N-20']; lower []; net 5
+  not in the rule (mixed, unclear or the sorters differ), as states under the two judges:
+    N-13: A 0/0, C 0/0, X 0/0
+    N-14: A 0/0, C 0/0, X 0/0
+    N-15: A 0/0, C 0/0, X 0/0
+    N-19: A 0/0, C 0/0, X 0/0
+  added capability: made-up capability: in ['X']
+  delivered as each arm intends: {'A': True, 'C': True, 'X': True}
+  OUTCOME (X over C): a signal of harm
+ok    score runs
+ok    X over C: five higher, four of them newly raised, none lower
+ok    C over A: nothing higher under both judges
+ok    capability in X alone turns the gain into harm
+0 capabilities listed; arms stay hidden until `score`
+set r1-sol: items that apply here for both sorters (14): ['N-1', 'N-2', 'N-3', 'N-4', 'N-5', 'N-6', 'N-7', 'N-8', 'N-9', 'N-10', 'N-11', 'N-12', 'N-20', 'N-21']
+  A opus: covered 6, partly 3, absent 5
+  A astra: covered 6, partly 3, absent 5
+  C opus: covered 7, partly 2, absent 5
+  C astra: covered 6, partly 3, absent 5
+  X opus: covered 10, partly 3, absent 1
+  X astra: covered 9, partly 4, absent 1
+  X over C: higher under both judges ['N-8', 'N-10', 'N-11', 'N-12', 'N-20']; of them newly raised ['N-10', 'N-11', 'N-12', 'N-20']; lower []; net 5
+  C over A: higher under both judges []; of them newly raised []; lower []; net 0
+  X over A: higher under both judges ['N-8', 'N-10', 'N-11', 'N-12', 'N-20']; of them newly raised ['N-10', 'N-11', 'N-12', 'N-20']; lower []; net 5
+  not in the rule (mixed, unclear or the sorters differ), as states under the two judges:
+    N-13: A 0/0, C 0/0, X 0/0
+    N-14: A 0/0, C 0/0, X 0/0
+    N-15: A 0/0, C 0/0, X 0/0
+    N-19: A 0/0, C 0/0, X 0/0
+  delivered as each arm intends: {'A': True, 'C': True, 'X': True}
+  OUTCOME (X over C): a signal worth repeating
+ok    with no added capability the same readings are a signal worth repeating
+== the rule, case by case
+ok    unknown delivery comes first
+ok    failed delivery comes before any signal
+ok    four lower on net is harm
+ok    four higher with two newly raised is worth repeating
+ok    four higher with one newly raised is not
+ok    five higher and two lower is not
+ok    one either way is no signal
+== set r3: X's author gives itself only the head of its packet
+{"name": "r3-sol-A", "set": "r3-sol", "arm": "A", "driver": "sol", "pid": 54307, "started_at": 1795297956.949845, "limit_minutes": 1.0, "decided_at": 1795297959.978477, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-135219/root/samples/r3-sol-A/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
+{"name": "r3-sol-C", "set": "r3-sol", "arm": "C", "driver": "sol", "pid": 54308, "started_at": 1795297956.9524028, "limit_minutes": 1.0, "decided_at": 1795297959.993175, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-135219/root/samples/r3-sol-C/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
+{"name": "r3-sol-X", "set": "r3-sol", "arm": "X", "driver": "sol", "pid": 54309, "started_at": 1795297956.954698, "limit_minutes": 1.0, "decided_at": 1795297960.0083442, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-135219/root/samples/r3-sol-X/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
+ok    run returns cleanly
+r3-sol-A: watcher saw the acceptance; the stop file; usable True; delivered True; words 674 
+r3-sol-C: watcher saw the acceptance; the stop file; usable True; delivered True; words 674 
+r3-sol-X: watcher saw the acceptance; the stop file; usable True; delivered False; words 674 ["at least half of the stage's instructions given to the model", 'the cue given, as the arm has it', 'the guide text given, as the arm has it']
+set r3-sol: complete; delivered {'A': True, 'C': True, 'X': False}; blind copies in results/round-g-r3-sol-a86c06
+ok    collect finds the set complete
+ok    X is usable and not delivered: little of the instructions, no cue, no block
+ok    A and C are delivered
+ok    the set reads as delivery failed
+== tampering is caught
+ok    refused: a grade file changed after sealing (slot K1 has no complete, sealed reading from opus: nothing is compared)
+ok    refused: a blind copy changed after collecting (slot K1 is missing or is not the specification the manifest recorded)
+ok    refused: a label file changed after the first launch (items.json no longer matches the label files: the item list is fixed once)
+== set r2: a run that never accepts, a launch that makes no folder, a run that ends by itself
+{"name": "r2-sol-X", "set": "r2-sol", "arm": "X", "driver": "sol", "pid": 54613, "started_at": 1795297961.409041, "limit_minutes": 0.1, "decided_at": 1795297962.420834, "watcher": "the run ended with no acceptance", "stop_written": false, "seen": null, "returncode": 0}
+{"name": "r2-sol-A", "set": "r2-sol", "arm": "A", "driver": "sol", "pid": 54614, "started_at": 1795297961.41119, "limit_minutes": 0.1, "decided_at": 1795297967.465853, "watcher": "the time limit", "stop_written": true, "seen": null, "returncode": 0}
+{"name": "r2-sol-C", "set": "r2-sol", "arm": "C", "driver": "sol", "pid": 54615, "started_at": 1795297961.413665, "limit_minutes": 0.1, "decided_at": 1795297967.4660459, "watcher": "the time limit; no output folder, so the launch was ended", "stop_written": false, "seen": null, "returncode": -15}
+ok    run returns cleanly
+ok    the six-second limit is kept (all three decided within twenty seconds)
+ok    A: the time limit, and a stop file
+ok    C: the time limit with no folder, so the launch was ended
+ok    X: the run ended with no acceptance
+r2-sol-A: watcher the time limit; the stop file; usable False; delivered None; words None ['accepted inside the limit', 'the specification pinned to its commit', 'the acceptance the watcher saw']
+r2-sol-C: watcher the time limit; no output folder, so the launch was ended; None; usable False; delivered None; words None ['accepted inside the limit', 'the specification pinned to its commit', 'the acceptance the watcher saw', 'the registered sentence', 'the prepared base', "the arm's build"]
+r2-sol-X: watcher the run ended with no acceptance; the host ended by itself; usable False; delivered None; words None ['accepted inside the limit', 'the specification pinned to its commit', 'the acceptance the watcher saw']
+set r2-sol: INCOMPLETE; delivered {'A': None, 'C': None, 'X': None}
+ok    collect reports the set incomplete
+ok    an incomplete set gets no blind copies
+ok    refused: judging an incomplete set (set r2-sol is INCOMPLETE (see collect-r2-sol.json): nothing is judged or compared)
+ok    the endings are told apart
+
+all held

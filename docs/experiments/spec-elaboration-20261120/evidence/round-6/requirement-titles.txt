@@ -1,0 +1,250 @@
+#### gym-waitlist | P-shiploop-spec | sonnet-high | round-5 | 7113 words
+  R-1 Join the waitlist of a full class (primary)
+  R-2 Join guards and repeated joins
+  R-3 Fair order and position visibility
+  R-4 Leave the waitlist
+  R-5 Automatic promotion when a seat opens (primary)
+  R-6 Promotion applies the existing booking rules; ineligible members are passed over
+  R-7 A direct booking cannot jump the queue
+  R-8 Integrity under concurrency, duplicates and failure
+  R-9 Tell the member when they get a seat or lose their place
+  R-10 Member-facing surfaces and states
+  R-11 End of the waitlist
+  R-12 Staff view and management (conditional on G-4)
+  R-13 Existing booking behaviour is preserved
+#### gym-waitlist | P-shiploop-spec | sonnet-high | round-6 | 5974 words
+  R-1: A full class offers the waitlist instead of turning the member away
+  R-2: A member can join the waitlist of a full class
+  R-3: Waitlist order is first-come, first-served and the member can see their position
+  R-4: A member can leave the waitlist
+  R-5: When a seat frees, the first waiting member is booked automatically
+  R-6: Members are told what happened to their entry
+  R-7: The waitlist ends with the class
+  R-8: The waitlist stays correct under concurrent and repeated requests
+  R-9: Members can only see and change their own entries
+  R-10: Existing booking behaviour is unchanged for everything the waitlist does not touch
+#### gym-waitlist | Q-shiploop-spec-lenses | sonnet-high | round-6 | 7753 words
+  R-1 A full class offers the waitlist instead of a dead end
+  R-2 Joining the waitlist
+  R-3 Queue order and position
+  R-4 Leaving the waitlist
+  R-5 Promotion: a freed seat goes to the head of the queue
+  R-6 Concurrency and capacity safety
+  R-7 Notifications
+  R-8 Class and member lifecycle effects
+  R-9 What members and staff can see
+  R-10 Who may do what
+  R-11 Operator controls: turn on, turn off, know it worked
+  R-12 Audit and observability
+  R-13 What exists today still holds; rollout and rollback
+  R-14 Waitlist rules the request leaves out (bounded, not added)
+  R-15 Correctness under concurrency (reliability, data integrity)
+  R-16 Freshness and latency
+  R-17 Privacy and security
+  R-18 Compatibility and runtime limits
+  R-19 Operability
+  R-20 Testability
+  R-21 Interface quality (applies because the feature has member and staff screens)
+#### gym-waitlist | P-shiploop-spec | sol-medium | round-5 | 4505 words
+  R-1 Join the waitlist for a full class
+  R-2 Leave the waitlist
+  R-3 Allocate freed seats to waiting members
+  R-4 End waiting on closure or definitive disqualification
+  R-5 Show truthful status and protect member data
+#### gym-waitlist | P-shiploop-spec | sol-medium | round-6 | 5204 words
+  R-1 — Join the waitlist for a full class
+  R-2 — Turn an opening into a booking
+  R-3 — See and manage one's own waitlist status
+  R-4 — Protect and end waitlist state
+#### gym-waitlist | Q-shiploop-spec-lenses | sol-medium | round-6 | 6428 words
+  R-1 — Join the waitlist for a full class
+  R-2 — See and withdraw from the waitlist
+  R-3 — Allocate a freed seat to the waitlist
+  R-4 — Confirm and recover changes across the booking boundary
+  R-5 — Limit, retain and remove waitlist information
+  R-6 — Operate, pause and recover waitlisting
+
+#### invoice-reminders | P-shiploop-spec | sonnet-high | round-5 | 6825 words
+  R-1 Reminders are enabled per business, off by default
+  R-2 Eligible invoices get the reminder their due date calls for, automatically
+  R-3 The reminder tells the customer what is owed, from whom, and by when
+  R-4 Reminders stop when the invoice stops being unpaid
+  R-5 No duplicate reminders for the same invoice and offset
+  R-6 Delivery failure and missing recipients are handled and visible, not silent
+  R-7 Business users can see what was sent and what is next
+  R-8 Personal and financial data in reminders is minimised, protected and removable
+  R-9 Reminders run without a person or a screen
+#### invoice-reminders | P-shiploop-spec | sonnet-high | round-6 | 7315 words
+  R-1 Account reminder switch and permission
+  R-2 Reminder schedule
+  R-3 Which invoices are unpaid and remindable
+  R-4 Daily evaluation and sending
+  R-5 Stop and adjust when payment or invoice data changes
+  R-6 Reminder message
+  R-7 Delivery outcomes and failure handling
+  R-8 Reminder history and next reminder
+  R-9 Run independence, overlap and recovery
+  R-10 Account isolation and authority
+#### invoice-reminders | Q-shiploop-spec-lenses | sonnet-high | round-6 | 9109 words
+  R-1: Account-level switch and enabling
+  R-2: Schedule definition
+  R-3: Which invoices are reminded (eligibility and stop conditions)
+  R-4: When a reminder is due
+  R-5: At most one reminder per Key
+  R-6: Delivery attempts, failures and bounces
+  R-7: Races with payments and edits
+  R-8: Reminder email content and grouping
+  R-9: Pausing one invoice
+  R-10: Reminder history and visibility
+  R-11: Turning reminders off, everywhere or for one account
+  R-12: Isolation, privacy and audit
+  R-13: What must still hold (existing behaviour and failure isolation)
+  R-14: Recipient opt-out and suppression
+#### invoice-reminders | P-shiploop-spec | sol-medium | round-5 | 5059 words
+  R-1 — Evaluate unpaid invoices automatically
+  R-2 — Deliver the reminder to the authorized billing contact
+  R-3 — Recover processing and show truthful outcomes
+#### invoice-reminders | P-shiploop-spec | sol-medium | round-6 | 6595 words
+  R-1 — Run reminders automatically under an authorized policy
+  R-2 — Recheck whether the invoice is still eligible
+  R-3 — Send a reminder to the billed customer
+  R-4 — Keep reminder outcomes consistent through retries and overlap
+#### invoice-reminders | Q-shiploop-spec-lenses | sol-medium | round-6 | 5931 words
+  R-1 — Determine which unpaid invoices are due a reminder
+  R-2 — Control automatic reminders
+  R-3 — Run reminders automatically and recover safely
+  R-4 — Deliver an invoice-specific reminder to the authorized recipient
+  R-5 — Inspect outcomes, contain failures and roll back
+
+#### grokbot-salesforce | P-shiploop-spec | sonnet-high | round-5 | 10288 words
+  R-1: Open the bot from the org
+  R-2: Send a message and receive Grok's answer
+  R-3: Conversation memory and new conversation
+  R-4: Input validation
+  R-5: Grok is called only from the server, and the xAI key is never exposed
+  R-6: Administrator-configurable behaviour without a code deploy
+  R-7: Failure handling and messages
+  R-8: Only permitted users can open and use the bot
+  R-9: Truthful pending feedback, one request at a time, stale results ignored
+  R-10: Privacy: what is sent, stored and kept
+  R-11: Safe rendering of model output, with a truncation notice
+  R-12: Operational outcome logging without content
+  R-13: Delivered and usable in the development org
+  R-14: Response time and timeout
+  R-15: Platform limits and transaction shape
+  R-16: Cost exposure control
+  R-17: Sharing, object and field access (recorded separately)
+  R-18: A deliberately designed interface
+  R-19: Accessibility
+  R-20: Compatibility
+  R-21: Testability and verification surfaces
+#### grokbot-salesforce | P-shiploop-spec | sonnet-high | round-6 | 8263 words
+  R-1 The bot is delivered to one identified development org
+  R-2 A permitted user opens the bot from a Lightning entry
+  R-3 A user asks a question and receives a Grok reply
+  R-4 The conversation remembers earlier turns
+  R-5 The xAI API key is held only in the platform credential store
+  R-6 Only users with the access grant can use the bot
+  R-7 Failures are reported in distinct, safe, non-destructive ways
+  R-8 A turn in flight is shown truthfully and cannot be duplicated
+  R-9 An administrator can change the bot's behavior without a code change
+  R-10 Only the conversation and configured settings leave the org
+  R-11 No conversation content is stored by the org
+  R-12 Model output is displayed as text and cannot run in the page
+#### grokbot-salesforce | Q-shiploop-spec-lenses | sonnet-high | round-6 | 5491 words
+  R-1 Entry and access
+  R-2 Ask Grok and read the answer (primary)
+  R-3 Multi-turn context
+  R-4 Input validation
+  R-5 Pending state, repeats and supersession
+  R-6 Error behaviour (what the user sees when something fails)
+  R-7 Credential and callout route
+  R-8 Administrator configuration and turn-off
+  R-9 Data handling and privacy
+  R-10 Message rendering safety and display limits
+  R-11 Sharing, object and field access
+  R-12 Operability: enable, observe, undo
+  R-13 Naming, packaging and org targeting
+#### grokbot-salesforce | P-shiploop-spec | sol-medium | round-5 | 5858 words
+  R-1 Development-org entry and delivery
+  R-2 Access uses Salesforce authority
+  R-3 Real Grok text replies
+  R-4 Composing, waiting and recovering in the bot
+  R-5 Data handling and operational outcomes
+#### grokbot-salesforce | P-shiploop-spec | sol-medium | round-6 | 5168 words
+  R-1 — Open Grok Bot in the intended Salesforce development org
+  R-2 — Ask Grok and read its reply
+  R-3 — Recover honestly when a reply cannot be shown
+  R-4 — Contain prompts, responses and provider access
+#### grokbot-salesforce | Q-shiploop-spec-lenses | sol-medium | round-6 | 5373 words
+  R-1 — Find and open the bot in Salesforce
+  R-2 — Submit text and receive a Grok answer
+  R-3 — Keep one isolated conversation while the chat is open
+  R-4 — Configure, restrict, diagnose and recover the bot
+
+#### csv-user-import | P-shiploop-spec | sonnet-high | round-5 | 6742 words
+  R-1 Only admins may use bulk import
+  R-2 File intake and file-level validation
+  R-3 Row validation
+  R-4 Bulk creation is atomic
+  R-5 Result reporting
+  R-6 Concurrent and repeated imports
+  R-7 Audit, privacy and data lifecycle
+  R-8 Admin upload page
+  R-9 New users have no credential and receive no message
+  R-10 Security
+  R-11 Performance and capacity
+  R-12 Compatibility (CSV producers)
+  R-13 Polished, accessible interface (applies if A-1 holds)
+#### csv-user-import | P-shiploop-spec | sonnet-high | round-6 | 8777 words
+  R-1 Only admins can use the import
+  R-2 Upload one CSV file and have it checked as a file
+  R-3 Every row is checked, and all problems are reported together
+  R-4 Valid files create the users, all together or not at all
+  R-5 The admin gets a precise, machine-readable report of every attempt
+  R-6 Concurrent, repeated and interrupted imports cannot corrupt the user set
+  R-7 Admin upload page
+  R-8 Credentials, uploaded content and audit
+  R-9 Security of the import surface
+  R-10 Performance and capacity
+  R-11 Reliability and recovery
+  R-12 Designed, polished interface (the import page)
+  R-13 Accessibility of the import page
+  R-14 Compatibility and operability
+#### csv-user-import | Q-shiploop-spec-lenses | sonnet-high | round-6 | 9469 words
+  R-1 Only admins may import
+  R-2 File intake
+  R-3 CSV format and header
+  R-4 Row validation
+  R-5 Duplicate emails
+  R-6 Create the users, all or nothing
+  R-7 Result reporting
+  R-8 Notifications to created users (conditional)
+  R-9 Audit and observability
+  R-10 Privacy of uploaded data
+  R-11 Repeats, races and interruptions
+  R-12 Operator controls
+  R-13 Preserved behavior and prohibitions
+  R-14 Admin import page
+  R-15 Security and transport
+  R-16 Capacity and latency
+  R-17 Interface quality, accessibility and visual direction (applies to R-14)
+  R-18 Compatibility
+#### csv-user-import | P-shiploop-spec | sol-medium | round-5 | 5342 words
+  R-1 — Authorize the admin for the target scope
+  R-2 — Upload and validate one CSV
+  R-3 — Commit new users as a batch
+  R-4 — Report the outcome and recover from interruption
+#### csv-user-import | P-shiploop-spec | sol-medium | round-6 | 5257 words
+  R-1 — Admin-only CSV upload
+  R-2 — Validate the CSV and identify actionable errors
+  R-3 — Create the entire valid batch through ordinary account rules
+  R-4 — Show confirmed results and recover safely
+#### csv-user-import | Q-shiploop-spec-lenses | sol-medium | round-6 | 6721 words
+  R-1 Authorized entry and scope
+  R-2 Upload and validate one CSV
+  R-3 Create ordinary users and preserve existing accounts
+  R-4 Track completion and recover a submission
+  R-5 Stop further writes and recover operationally
+  R-6 Protect and remove import data
+

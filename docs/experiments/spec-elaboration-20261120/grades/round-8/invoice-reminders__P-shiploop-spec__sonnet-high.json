@@ -1,0 +1,140 @@
+{
+ "slot": "invoice-reminders__P-shiploop-spec__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.4267182,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "A-2",
+   "quote": "Default schedule is offsets **-3, 0, +7, +14** calendar days from the invoice due date, sent at **09:00** account-local time."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "A-3",
+   "quote": "An invoice is *open* (eligible) when it is issued (not draft), not void or cancelled, has outstanding balance > 0 and has a due date.",
+   "missing": "Paid, void and part-paid are decided, but disputed invoices, invoices on a payment plan and credited invoices are not addressed as stop conditions."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "A partial payment keeps the invoice open and the next reminder states the reduced outstanding amount."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "G-8",
+   "quote": "Compliance and legal content rules for payment-reminder email (identification, opt-out, jurisdiction). ... None assumed. Nothing is claimed compliant.",
+   "missing": "Whether an existing do-not-contact, paused or unsubscribed customer state is honoured, and whether billing notices are exempt from a marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "For one (invoice, offset), the system causes at most one successful send, even when processing runs overlap, repeat or restart. A send is preceded by an atomic claim of that occurrence."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "An occurrence is sent only if, **at the moment it is claimed for sending**, the authoritative invoice state says the invoice is open (A-3)."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-6",
+   "quote": "Transient failure (timeout, provider unavailable, rate limit, unreadable invoice state): the occurrence stays Pending, the attempt counts, and it is retried at the next processing run. The third failed attempt ends as Failed",
+   "missing": "Escalation to a person: failures only appear in a passive failed-reminders list and the alert threshold is left unresolved (R-15); retry spacing depends on an unresolved cadence."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-16",
+   "quote": "invoice volume, provider rate limits and run cadence are unknown. ... A rate-limit response is a transient failure.",
+   "missing": "The provider's actual limit and how a large batch is paced or throttled within it."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "A-9",
+   "quote": "Enabling, editing or re-planning does **not** backfill occurrences whose date has already passed; they are skipped. No \"send an immediate first reminder to overdue invoices\"."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "A-2, A-10",
+   "quote": "sent at **09:00** account-local time ... Offsets are plain calendar days: no business-day or holiday calendar."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-3, A-10",
+   "quote": "the **current outstanding amount** with its currency ... A currency's own decimal places are preserved as the product already formats them. / fixed English text with ISO `YYYY-MM-DD` dates and the invoice's own currency code"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-6, A-11",
+   "quote": "No billing contact: Skipped(`no-recipient`) ... Permanent rejection of the address by the provider: Failed(`rejected`), no retry / Delivery or bounce notifications arriving later are not consumed."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "G-2",
+   "quote": "Where the billing contact lives and whether there can be several. ... One address per invoice.",
+   "missing": "If a customer has several billing contacts, which one(s) the reminder is sent to."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "Per invoice, an authorized user can see every occurrence: offset, scheduled local date and time, status (Pending, Sent, Skipped, Cancelled, Failed), reason, sent time and recipient used."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "The message states the business name, the invoice number, the **current outstanding amount** with its currency, the due date ... If the product has a payment link or payment instructions today, they are included as-is",
+   "missing": "Whether a way to pay is always present, and whether a payment link expires."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "A-7, R-3 bound",
+   "quote": "a user who can manage invoices may read and change reminder settings. A view-only user may read history but not change settings. / R-3: no \"send now\" button"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1, traceability bounds",
+   "quote": "An authorized user of an account can enable or disable reminders for the account ... R-1: no per-customer or per-invoice opt-out or snooze ... R-3: no \"send now\" button",
+   "missing": "Previewing the message or dry-running the schedule before enabling is not addressed."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-2, R-7",
+   "quote": "The history surface shows the planned occurrences with their dates. / From the settings surface the user can reach a list of invoices with Failed occurrences."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-9",
+   "quote": "So a customer never gets more than one reminder per invoice per run. ... There is no maximum lateness: a late reminder is still sent, with accurate wording.",
+   "missing": "Any cap on total sending volume per run or period (R-16 leaves capacity unresolved); lateness is explicitly unbounded."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Planning reads invoice and payment data and never writes it. ... After every planning event, a snapshot of the invoice and payment tables is byte-identical to the one before it."
+  }
+ ]
+}

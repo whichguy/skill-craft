@@ -1,0 +1,149 @@
+{
+ "slot": "gym-waitlist__P-shiploop-spec__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.35653959999999996,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3.a",
+   "quote": "the booking authority gives it to the earliest eligible active waiter by committed join order. Promotion creates a normal confirmed booking and consumes that entry as one consistent change."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-3.a; R-3 open gaps",
+   "quote": "earliest eligible active waiter by committed join order ... The product and booking owners must confirm ordinary booking deadlines, time authority, cancellation rules, staff priority or reserved capacity",
+   "missing": "How ties between near-simultaneous joins resolve, and whether staff overrides or membership tiers jump the queue, are left open."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-1 open gaps",
+   "quote": "The product and booking owners must establish how membership, overlapping classes, booking caps, fees, credits and cancellation terms apply at join and promotion.",
+   "missing": "What happens to a member's other waitlist entry or booking for an overlapping class when one is promoted."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1 open gaps; R-3 open gaps",
+   "quote": "must establish how membership, overlapping classes, booking caps, fees, credits and cancellation terms apply at join and promotion",
+   "missing": "Whether an automatic promotion the member then cancels late or misses counts against the existing no-show/late-cancellation policy."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-3 State and data; R-4 service contracts; NFR workload",
+   "quote": "Where allocation is pending, the authority retains responsibility across client disconnects and interruption. ... It may complete allocation with the cancellation or after it. ... A member's app need not be running.",
+   "missing": "The timeliness of the background allocation; completion budgets are explicitly unresolved."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-3.a; R-4 service contracts",
+   "quote": "The promoted member sees Booked on the next successful current read, even if their app was closed at allocation. ... No notification provider or new service is in scope."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-3.b; R-3.a",
+   "quote": "Concurrent releases, promotions, and ordinary booking attempts produce no oversubscription, duplicate booking or promotion after the booking window closes. ... If several seats open, fill up to the number of actual vacancies in order"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-3 State and data; R-1 State and data",
+   "quote": "There is never more than one booking per member and occurrence or more admission than the occurrence's permitted capacity. ... at most one active entry or one active booking exists for the member\u2013occurrence pair."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-1 open gaps; Scope",
+   "quote": "It adds no staff queue management, new identity, sharing, payment terms ... must establish how membership, overlapping classes, booking caps, fees, credits and cancellation terms apply at join and promotion.",
+   "missing": "When payment for a promoted booking is taken and what happens when it fails."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "NFR Workload, latency and runtime ceilings",
+   "quote": "concurrent demand on a popular class, cross-class throughput, queue and retention capacity, execution time, and cost limits are unresolved.",
+   "missing": "Whether a per-class waitlist cap exists, its value, and what a member sees when the waitlist is full."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-3.c",
+   "quote": "At booking close, occurrence cancellation or start, whichever makes booking unavailable first, the authority ends active entries and stops allocation."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-3 open gaps",
+   "quote": "The booking owner must inventory other legitimate vacancy sources, including applicable capacity edits ... Each supported route that releases generally allocatable capacity while booking is open must respect the same priority.",
+   "missing": "Behaviour when capacity is lowered below current bookings with a queue present; whether capacity edits are supported at all is left to inventory."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-3.c; R-2.b",
+   "quote": "At booking close, occurrence cancellation or start ... the authority ends active entries and stops allocation. ... Closure or class cancellation supersedes waiting with the class's authoritative unavailable state."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1 State and data",
+   "quote": "The booking authority owns the durable active-entry association between the existing member identity and the occurrence, including stable entry identity and order.",
+   "missing": "Whether a join timestamp is stored and whether position is stored or derived from order."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-4 Lifecycle and placement",
+   "quote": "Terminal or retry metadata needed for safe reconciliation is authority-only, bounded by the approved retention window, and purged through the existing deletion process.",
+   "missing": "The actual retention period for ended entries after the class runs."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-1 State and data; R-2 open gaps",
+   "quote": "Other members receive neither a roster nor peer identity or queue-position data. ... The default shows personal status without publishing position"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "Scope; R-4.c",
+   "quote": "It adds no staff queue management ... Authorized operations can distinguish an accepted join or leave, promotion, rejection, ending of the queue, and failed or recovered allocation through the existing approved diagnostic destination.",
+   "missing": "Manual staff promote/remove and a staff waitlist view are excluded; staff visibility of who was promoted when is only via diagnostics with unspecified access."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "NFR Workload, latency and runtime ceilings",
+   "quote": "Allocation completion and freshness budgets ... are unresolved. ... No numeric target or platform capability is established here.",
+   "missing": "A concrete bound on time from cancellation to promotion."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1.a; NFR Compatibility and operations",
+   "quote": "When a seat is available for ordinary booking, show the existing booking action. ... Verify they continue to apply their established policy and that the normal path still works for occurrences without active waiters."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

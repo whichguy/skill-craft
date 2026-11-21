@@ -3460,6 +3460,22 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
                 with self.subTest(document=name, needle=needle):
                     self.assertIn(needle, text)
 
+    def test_the_card_and_the_reference_say_whose_choice_a_run_option_is(self) -> None:
+        """The card and the run options reference make a run option the user's choice, with `stage` the default."""
+        card = " ".join((self.SKILL / "SKILL.md").read_text(encoding="utf-8").split())
+        options = " ".join((self.SKILL / "references" / "run-options.md").read_text(encoding="utf-8").split())
+        self.assertIn("Run options are the user's to set: pass one only when the user asks for it", card)
+        self.assertIn("(default `stage`; pass `none` only when the user asks to run without planning reviews)", card)
+        self.assertIn("required when the user asks to run without planning reviews", card)
+        self.assertNotIn("Optional (required with --planning-review none)", card)
+        self.assertIn("pass `none` only when the user asks to run without planning reviews", options)
+
+    def test_the_requirements_guide_sends_the_spec_to_the_knowledge_home(self) -> None:
+        """The spec stage stores the proposed product behavior in `KNOWLEDGE/spec.md`, not in the result body."""
+        guide = (self.SKILL / "references" / "behavioral-requirements.md").read_text(encoding="utf-8")
+        self.assertIn("Store the proposed product behavior in `KNOWLEDGE/spec.md`:", guide)
+        self.assertNotIn("Store the proposed product behavior in the result", guide)
+
 
 class EightStageInnerLoopCliTests(unittest.TestCase):
     """The 8-stage inner loop's script-owned routes, each driven through the real `shiploop complete` CLI.

@@ -1,0 +1,139 @@
+{
+ "slot": "invoice-reminders__P-shiploop-spec__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "D-3",
+   "quote": "Prefilled schedule: offsets **\u22123, 0, +7, +14** days relative to the due date"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "D-4, R-2, D-11",
+   "quote": "status `open` (issued, not draft, not void) **and** outstanding balance (total \u2212 paid) > 0. \u2026 credit-note handling beyond outstanding balance, disputes (use pause, R-7) \u2026 **pause/resume reminders for one invoice** (e.g. payment plan)"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "AC-2.4",
+   "quote": "INV-1003 (partial payment, outstanding 300.00) still gets its 2026-12-22 reminder stating 300.00 outstanding."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "D-13, OG-4",
+   "quote": "**No customer-facing unsubscribe link** in v1 \u2026 whether an opt-out is required in the target jurisdictions.",
+   "missing": "Whether an existing customer-level do-not-contact flag, pause or unsubscribe suppresses billing reminders, including when the opt-out covers marketing."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-5, AC-5.2",
+   "quote": "a claim for an existing (invoice, offset) record is refused, so concurrent or repeated ticks never both send. \u2026 A process restart between claim and handoff does not cause a second send"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "an invoice is a candidate only while it is unpaid (D-4) **at the moment of sending** (the invoice source is re-read after claim and before handoff, R-5)."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-6, R-8",
+   "quote": "Transient provider failure: retry on later ticks up to 3 attempts per step while the window is open; then `failed`. \u2026 settings page shows a count of invoices with a `failed` or `unknown` step",
+   "missing": "Whether persistent failures trigger a notification to a specific person, who receives it and when."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "NFR-4",
+   "quote": "a tick that cannot finish all work leaves the rest claimable by the next tick (AC-11.2), and respects provider rate limits when known.",
+   "missing": "The applicable provider limit and how to pace handoffs during a large batch to stay within it."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "AC-3.5",
+   "quote": "No backfill: INV-1004, reminders enabled 2026-12-20: no email on 2026-12-20 for the 12-07, 12-10, 12-17 steps; one email on 2026-12-24 (+14)."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "D-3, D-12, R-3",
+   "quote": "send time **09:00** account-local \u2026 send time a whole hour 00\u201323. \u2026 step date = due date + offset (calendar days, account zone). \u2026 Left out: business-day calendars, holidays, per-customer time zones."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "AC-4.6",
+   "quote": "1234567.80 USD renders unambiguously with the currency code; zero-decimal currency (JPY 5000) renders without decimals."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "AC-4.4, AC-6.3, AC-6.5",
+   "quote": "Billing address empty or syntactically invalid at evaluation: no handoff \u2026 `skipped: no-recipient` \u2026 Hard reject (address does not exist) \u2192 `failed` after 1 attempt, no retry \u2026 bounce callback (if available) on a `sent` record \u2192 `bounced`"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "one email to the invoice's billing address",
+   "missing": "How to select the invoice\u2019s billing address when the customer has multiple billing contacts and no single recipient is designated."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "each invoice shows its reminder history: per offset, state (`sent`, `failed`, `unknown`, `bounced`, `skipped: <reason>`), time, attempts, recipient address used."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "business name, customer name, invoice number, outstanding amount with currency, due date, days until/past due, pay link only if the host has one (OG-5)",
+   "missing": "Whether the payment link expires and, if so, when."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "D-21",
+   "quote": "changing settings needs the host's account-admin role; viewing history needs permission to view that invoice; pausing needs permission to edit it.",
+   "missing": "Whether anyone can trigger a reminder manually and which permission that action requires."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1, R-7",
+   "quote": "Disabling stops new sends immediately for ticks that start after the save \u2026 an authorised user can pause an invoice.",
+   "missing": "Whether all reminders for one customer can be disabled, whether an operator can preview messages or run the schedule without sending, and whether a reminder can be resent manually."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "AC-8.2, R-8",
+   "quote": "empty state reads that the next reminder is scheduled for 2026-12-12 \u2026 each invoice shows its reminder history: per offset, state (`sent`, `failed`, `unknown`, `bounced`, `skipped: <reason>`), time, attempts, recipient address used."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "D-5",
+   "quote": "A step (invoice \u00d7 offset) may be sent on its **step date** or the **one following calendar day** (its window). At most **one reminder per invoice per calendar day**"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "D-2, D-17",
+   "quote": "Reminders only **read** invoices (D-17). \u2026 Reminders **never change** invoice status, amounts or dates."
+  }
+ ]
+}

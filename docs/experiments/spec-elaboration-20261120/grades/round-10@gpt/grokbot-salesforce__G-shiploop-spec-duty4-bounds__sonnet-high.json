@@ -1,0 +1,184 @@
+{
+ "slot": "grokbot-salesforce__G-shiploop-spec-duty4-bounds__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "opening it shows one tab containing the chat component at `/lightning/n/<TabApiName>` \u2026 no record context is passed to the component"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "N-1 (Security)",
+   "quote": "Sharing/CRUD/FLS: the feature reads and writes no Salesforce object data; sharing, object and field permissions are therefore n/a by design",
+   "missing": "Record data is excluded. There is no requirement to execute record reads in the asking user's sharing context."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "N-1 (Security)",
+   "quote": "sharing, object and field permissions are therefore n/a by design, recorded as separate rules so a later record-grounding feature must add them",
+   "missing": "The spec excludes object data. It gives no rule for enforcing field permissions or handling encrypted or restricted field values on read or display."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1, AD-2, R-5",
+   "quote": "a user holding the Grok Bot permission set sees an app named \"Grok Bot\" \u2026 secret entered by an org admin in Setup \u2026 Administrator-configurable behaviour"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "the transcript is readable only by the signed-in user in that browser page; a second browser tab or user has an independent transcript."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-6",
+   "quote": "One synchronous, non-cacheable Apex invocation per send; no streaming \u2026 one send is one callout.",
+   "missing": "The spec identifies the external callout but omits the trigger and post-DML restrictions. Its synchronous design gives no asynchronous transaction boundary."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AD-2, R-4",
+   "quote": "The key lives only in an External Credential principal \u2026 It is never in source control, deployable metadata, Custom Metadata, records, debug output, the browser or any response to the browser."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "N-3 (Platform limits and capacity)",
+   "quote": "limit 100 per transaction \u2026 cumulative callout time \u2264 120 s \u2026 6 MB synchronous heap",
+   "missing": "The numeric Apex CPU time limit is missing."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "AD-8",
+   "quote": "Apex tests use `Test.setMock(HttpCalloutMock.class, ...)` because a test cannot make a real callout"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-2, R-4",
+   "quote": "referenced by a Named Credential whose URL is `https://api.x.ai`; Apex addresses it as `callout:<NamedCredentialApiName>/<path>`. \u2026 missing/incomplete credential setup \u2192 `NOT_CONFIGURED`"
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "N-3 (Platform limits and capacity)",
+   "quote": "The concurrent long-running Apex request limit and Aura request size for imperative calls are **unverified** and **unresolved** (G-6): behaviour beyond them is platform-defined",
+   "missing": "It identifies a concurrency limit but gives neither a queue or job capacity nor an outcome for a request that cannot be enqueued."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-7, T-3",
+   "quote": "`REQUEST_REJECTED` (other xAI 4xx, e.g. 400 context too long), `SERVICE_ERROR` (xAI 5xx), `TIMEOUT` (read timeout at the configured limit) \u2026 banner with code message"
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "`RATE_LIMITED` (xAI 429) \u2026 Retry is user-driven and unbounded. \u2026 \"try again in a moment\" for `RATE_LIMITED`/`SERVICE_ERROR`/`TIMEOUT`",
+   "missing": "The user controls retries, but no backoff interval or rule for respecting a provider-specified wait is given."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2, R-7",
+   "quote": "\"Reply was cut off at the length limit\" \u2026 at the timeout bound (D-4 elapsed) the user sees `TIMEOUT`, the pending state ends, the composer re-enables."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "State inventory, R-8",
+   "quote": "Message (component, transient) | `Sent` (user, answered), `Failed` (user, not answered), `Assistant` \u2026 no Salesforce record, Custom Setting, file or cache stores a message or reply",
+   "missing": "Roles, text and status exist in page memory. There is no stored conversation-to-turn relationship or per-turn timestamp, model identifier and usage count."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-8",
+   "quote": "none beyond the page session \u2026 a page refresh, navigating away, or \"New conversation\"/Clear removes it.",
+   "missing": "The page lifetime and manual deletion are explicit. The spec does not say what happens to an open transcript if the user account is deleted."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-2, Information lifecycle",
+   "quote": "configured system prompt as the first message, then the conversation messages in order \u2026 no record data \u2026 user messages may contain personal data \u2026 sent to xAI (disclosed in the UI)"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "The component sends at most the last D-2 = 10 completed exchanges plus the new message; older exchanges stay visible in the transcript but are not sent."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "T-0, R-6",
+   "quote": "empty transcript, no call \u2026 if empty \u2192 rejected with `INVALID_INPUT` \u2026 4,000 accepted, 4,001 rejected with `INVALID_INPUT`."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-5, R-11",
+   "quote": "with the model changed to `test-model-x` in the config record \u2026 outcome code, HTTP status (or `none`), elapsed ms, model ID. \u2026 Log retrieval needs a trace flag set by an admin",
+   "missing": "The spec gives admins model configuration and failure diagnostics but defines no administrative control for disabling the bot org-wide."
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-10",
+   "quote": "the configuration type and its default record, the Named/External Credential **without secret** \u2026 development/sandbox/scratch org \u2026 \u2265 75% (the production deploy threshold, used as the default target)",
+   "missing": "Deployment and separate secret entry are specified. The spec does not identify which configuration values or credentials must differ between development and production."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "N-2 (Latency and timeouts), R-9",
+   "quote": "the pending state appears synchronously with Send \u2026 the pending state never outlasts the configured timeout D-4 = 60,000 ms (default) \u2026 a \"Grok is thinking\" indicator is visible"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "N-6 (Interface quality), R-7, T-3",
+   "quote": "designed empty, pending (thinking indicator), error (banner with action) and success states \u2026 `REQUEST_REJECTED` (other xAI 4xx, e.g. 400 context too long) \u2026 banner with code message"
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "Information lifecycle, N-1 (Security), AD-6",
+   "quote": "No identity, sharing or persistence is added beyond the request. \u2026 the feature reads and writes no Salesforce object data \u2026 The component calls an `@AuraEnabled` (non-cacheable) method imperatively; one send is one callout."
+  }
+ ]
+}

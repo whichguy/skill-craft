@@ -1,0 +1,181 @@
+{
+ "slot": "grokbot-salesforce__K-shiploop-spec-default-bounds__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "AD-6, AD-3",
+   "quote": "Consumer path: App Launcher \u2192 Grok Bot \u2192 `/lightning/n/GrokBot`. \u2026 `GrokBotController.sendMessage(message, history)` where `history` is a list of `{role, content}`"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-11",
+   "quote": "Sharing: n/a, the service touches no records.",
+   "missing": "The spec excludes record access. It gives no rule for retrieving records in the asking user's sharing context."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-11",
+   "quote": "Field-level security: n/a. \u2026 adding a record read later reopens them.",
+   "missing": "The design excludes record reads. It gives no field-permission or masking rule for reading and displaying restricted or encrypted values."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1, R-6",
+   "quote": "An org user who holds the \"Grok Bot User\" permission set finds **Grok Bot** in the App Launcher \u2026 Key entry and configuration edits: administrators only"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "State and data assessment",
+   "quote": "Chat component memory in one browser page | That user only"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "Callouts must happen before any DML in the transaction (platform rule); the bot service performs no DML.",
+   "missing": "The spec chooses a synchronous page call. It gives neither the trigger restriction nor an asynchronous transaction for the callout."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AD-4, R-6",
+   "quote": "The xAI key is a principal parameter of an External Credential \u2026 never in source control, deployed metadata values, browser payloads, debug logs, error messages, or the admin-editable configuration."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-12",
+   "quote": "per-callout timeout 1 ms\u2013120,000 ms (default 10 s), cumulative 120 s per transaction, 100 callouts per transaction \u2026 synchronous heap 6 MB, CPU 10,000 ms (callout wait time not counted)"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "AD-8, R-13.1",
+   "quote": "Apex tests with an `HttpCalloutMock`, run in the org \u2026 The Apex test suite runs to green with no network and no key (mock only)."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-4",
+   "quote": "the Named Credential points at `https://api.x.ai` \u2026 Apex calls `callout:<NamedCredentialApiName>/v1/chat/completions`."
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-5.3, R-8",
+   "quote": "Retry resends the *same* message with the *same* history \u2026 The server does not deduplicate; double submits are prevented client-side.",
+   "missing": "Manual retry avoids a duplicate bubble. There is no request-level rule preventing a replayed job from posting a second reply."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-5, A-13",
+   "quote": "unlisted 4xx statuses \u2192 UPSTREAM_REJECTED \u2026 Grok isn't set up correctly. \u2026 Grok is unavailable right now. Please try again later. \u2026 Grok took too long to respond. Please try again."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "A-7, R-5",
+   "quote": "**No automatic retries.** A failed turn is reported once; the user retries manually. \u2026 Grok is receiving too many requests right now. Please wait a moment and try again."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2.3, R-5",
+   "quote": "shows the bubble `Partial answer` followed by \"Reply was cut off at the length limit.\" \u2026 Grok took too long to respond. Please try again."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "AD-3, AD-7",
+   "quote": "Transcript and pending/failed flags are component-local state \u2026 where `history` is a list of `{role, content}`",
+   "missing": "There is no conversation or turn record schema that associates status, timestamps, model and usage counts with the stored text."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "A-4, R-7.4",
+   "quote": "Nothing is saved in the org; reload or \"New chat\" ends it. \u2026 Data subject export/deletion workflows: n/a, the org stores nothing; xAI-side deletion is outside scope"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "Don't enter confidential or customer data. \u2026 the text the user typed in this chat (and Grok's earlier replies) plus the configured system prompt leave Salesforce; no record data, user name, email, org id, or session id is sent."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "at most *W \u2212 1* most recent prior messages (W = history window, default 20) \u2026 drop the oldest prior messages one at a time \u2026 character budget B (default 48,000)"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-1, R-4, R-2.3",
+   "quote": "sees the chat heading \"Grok Bot\", the empty state, and a composer. \u2026 Blank: Send disabled, no call, no message. \u2026 it is 1\u20134,000 characters. \u2026 Reply was cut off at the length limit."
+  },
+  {
+   "id": "N-22",
+   "state": "covered",
+   "where": "R-6, R-5",
+   "quote": "Removing the key or the permission set's access to it makes the next turn fail \u2026 switch the model in Setup \u2026 correlate a reported reference id to a log line when a trace flag was active."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "R-5, State and data assessment",
+   "quote": "Each turn writes one debug-log line without any message or reply content \u2026 Platform log retention",
+   "missing": "The log records a reference and outcome. There is no retained audit entry linking the asker to the question and answer, or retention period for such an entry."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-9",
+   "quote": "source-format Salesforce metadata that deploys to the development org with the `sf` CLI \u2026 Deploy, permission-set assignment, and key entry are separate steps",
+   "missing": "The dev-org deployment is specified. Environment-specific settings and credentials, the sandbox or scratch-org deployment path, and the production Apex coverage requirement are unspecified."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "R-2, R-5",
+   "quote": "shows a pending indicator \"Grok is thinking\u2026\" \u2026 within the callout timeout, or an R-5 error does. \u2026 configured timeout (default 60 s) can never exceed 120 s"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "R-10, R-5",
+   "quote": "Empty (heading, one-line description, three example prompts \u2026 Pending (\"Grok is thinking\u2026\" with animated dots), Failed (banner, R-5), loaded/Idle. \u2026 UPSTREAM_REJECTED | xAI HTTP 400, 404, 422 (e.g. unknown model name) | same text as NOT_CONFIGURED"
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-9, R-11.2, AD-7",
+   "quote": "No existing org object, field, profile, automation, or component is modified or removed. \u2026 The deployed bot service performs no SOQL/DML \u2026 No sharing, no cache, no persistence, no scheduled or background work."
+  }
+ ]
+}

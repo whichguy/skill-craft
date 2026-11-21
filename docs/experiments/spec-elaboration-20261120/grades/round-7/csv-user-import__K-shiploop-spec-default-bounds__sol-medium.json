@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__K-shiploop-spec-default-bounds__sol-medium",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3718572,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "A definite row-local validation, policy or write rejection leaves no partial account for that row and permits later eligible rows to proceed."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "On confirmed completion show **Created**, **Skipped** and **Failed** counts and source lines and reasons for skipped and failed records in source order."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "A match in any identity-reserving state is **Skipped** with \u201cEmail unavailable.\u201d ... later field-valid rows with that key are marked **Skipped** with \u201cDuplicate in this file,\u201d"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "CSV cannot grant elevated roles or set credentials."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "A signed-in admin with user-create authority in the selected directory can open **Import users** from user administration.",
+   "missing": "The spec grants import to anyone with user-create authority, so the ability is implied by single-user creation; no separate import permission is decided."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "The first record, after an optional UTF-8 BOM, decodes to the single case-sensitive field `email`. ... Any other header, including a blank record before the header, yields \u201cExpected one column named email.\u201d"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "LF and CRLF delimit records outside quoted fields, with or without a final terminator. Quotes can enclose a full field, and doubled quotes within a quoted field decode to one quote."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Account creation is atomic at the row boundary, and previously committed rows stay committed. ... Default to the ordinary account-creation side effects, with no extra import-specific invitations",
+   "missing": "What happens to side effects (e.g. invitations already sent) for earlier rows when a later row fails or the attempt stops; onboarding side effects are left as an open gap."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "At most 262,144 file bytes (256 KiB) and 500 data records. ... exceeding a cap rejects the entire file before any user write. Show the failing category and the applicable limit"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2, R-3",
+   "quote": "Zero bytes, BOM only, header only or only empty physical lines after the header yields \u201cNo data rows\u201d ... A valid one-row file can create one user."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "A new attempt cannot create a second account for an already committed key, even if the first attempt is still resolving."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "Authorized results live only in the active view. ... There is no persistent import history, resumable job, shared result, cancellation control or promised completion after leaving."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Default to the ordinary account-creation side effects, with no extra import-specific invitations or login provisioning.",
+   "missing": "Whether ordinary creation mail goes out for up to 500 users at once and any pacing or throttling of it."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "with the product\u2019s normal least-privilege role and initial account state.",
+   "missing": "Whether created users are active or pending, whether they have a password, and how they first sign in; deferred to an open gap."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "Do not expose raw CSV cells, email values, files or filenames in import results, routine telemetry or diagnostic logs. ... release processing data on rejection, completion or abort."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "decodes to the single case-sensitive field `email`. ... No header mapping, alternative delimiters, spreadsheet support, or import of permission, password or profile columns."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "Service boundary contracts",
+   "quote": "Preserve required ordinary account audit coverage for each committed creation. Where the product records import diagnostics, correlate with a non-personal attempt reference",
+   "missing": "Whether an audit records who ran which import and when; audit obligations are left as an open gap."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "There is no persistent import history, resumable job, shared result, cancellation control ... guide the still-authorized admin to refresh the directory, correct the file if necessary and explicitly resubmit."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-4, Non-functional requirements",
+   "quote": "After submission show **Processing** while the outcome is pending. ... No numeric latency, throughput, availability or cost target is sourced.",
+   "missing": "A time bound for a maximum-size file and any progress indication beyond a binary Processing state."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3, Service boundary contracts",
+   "quote": "Import does not update or reactivate existing records. ... Unrelated edits and existing accounts are preserved. ... Rollback of the feature must preserve ordinary user creation"
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Do not expose raw CSV cells, email values, files or filenames in import results",
+   "missing": "No per-field length limit for an overlong email value, and no explicit handling of formula-like values (e.g. leading '=') in the email grammar or results."
+  }
+ ]
+}

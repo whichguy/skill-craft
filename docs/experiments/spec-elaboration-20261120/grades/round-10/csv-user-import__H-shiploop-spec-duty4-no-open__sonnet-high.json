@@ -1,0 +1,143 @@
+{
+ "slot": "csv-user-import__H-shiploop-spec-duty4-no-open__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.4236278,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "PD-1",
+   "quote": "An import is **all-or-nothing**: if any row or file problem exists, no user is created and every problem found is reported."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "`rejected`: `created_count` 0 and either one `file_error` (with `line` for `MALFORMED_CSV`) or `errors[]` with `errors_total`; **at most 100 errors are listed** (default), in row order"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "same normalised email as an earlier row \u2192 `EMAIL_DUPLICATE_IN_FILE` with `first_row` ...; else already belongs to an existing user \u2192 `EMAIL_EXISTS`."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "PD-4",
+   "quote": "Imported users get the product's **default non-admin role**; the import can never create an admin."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "The import operation succeeds only for a signed-in user who is an admin **at the time of the request**.",
+   "missing": "Whether the import permission is distinct from (not implied by) the permission to create a single user is not stated."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A header with only one required column, a duplicated column, or any extra column (e.g. `role`) \u2192 `HEADER_INVALID`. A file with no records at all \u2192 `HEADER_INVALID`."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "valid UTF-8, an optional leading byte-order mark is removed ... records end in LF or CRLF; a field may be quoted with `\"`, in which case it may contain commas, line breaks and doubled quotes"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "every data row becomes a new user in **one atomic commit**: afterwards either all N users exist or none does."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "A file larger than **2,097,152 bytes** is rejected `TOO_LARGE`; a file with more than **5,000 data rows** is rejected `TOO_MANY_ROWS`."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A file with no records at all \u2192 `HEADER_INVALID`. Header only \u2192 `NO_ROWS`. [R-5: One row (N = 1) and 5,000 rows (N = max) behave identically.]"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-5.AC2",
+   "quote": "when root uploads V1 again \u2192 `rejected`, errors ... `EMAIL_EXISTS` ...; users stay 6 (idempotent re-upload)."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "PD-8",
+   "quote": "The import is **one synchronous request/response**; the response is sent only after the outcome is final. ... At \u2264 5,000 rows no queue is needed"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "PD-5",
+   "quote": "The import sets **no credentials and sends no email**."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "G-4",
+   "quote": "How imported users obtain a way to sign in (activation, reset, invitation) is not specified; PD-5 defers it.",
+   "missing": "Whether created users are active or pending and how they first sign in is left undecided."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "The uploaded bytes and parsed rows live only in the request's memory ... discarded when the response is sent; they are never written to durable storage"
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "For **every** import attempt, including denied ones, exactly one structured log entry is written with: timestamp, actor id (or `anonymous`), outcome, file error code if any, data rows parsed, created count"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "F-3",
+   "quote": "file or row problems \u2192 `rejected`, nothing created; screen Rejected; the admin fixes the file and starts F-1 again.",
+   "missing": "Whether a running import can be cancelled is not stated; retry is only whole-file re-upload."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-12",
+   "quote": "**No numeric latency bound is set here (unresolved):** the only hard bound is the host's request timeout, which is unknown (G-5).",
+   "missing": "A time bound for a maximum-size file; progress is only indeterminate (R-7), not visible progress through the rows."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "PD-2",
+   "quote": "Import is **create-only**: a row whose email already belongs to a user is a row error; existing users are never modified.",
+   "missing": "That the existing single-user creation path keeps working unchanged is not stated."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-11",
+   "quote": "A created user name that begins with `=`, `+`, `-` or `@` is stored verbatim; neutralising such values is the duty of any future CSV/spreadsheet export, which this request does not include"
+  }
+ ]
+}

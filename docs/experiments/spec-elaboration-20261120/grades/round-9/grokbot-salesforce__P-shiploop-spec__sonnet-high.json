@@ -1,0 +1,184 @@
+{
+ "slot": "grokbot-salesforce__P-shiploop-spec__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.4826612,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "a user finds \"Grok Bot\" in App Launcher, opens the app, and lands on the chat page whose URL path is `/lightning/n/<TabApiName>` ... Out of scope: Experience Cloud, Salesforce mobile app specifics, utility-bar or record-page embedding."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "Nothing in the product reads Salesforce records on the user's behalf (A-4), so there is no sharing/CRUD/FLS exposure ... sharing: n/a (no record access)"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "Nothing in the product reads Salesforce records on the user's behalf (A-4) ... object CRUD: n/a; FLS: n/a; configuration read is by trusted system code"
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "one permission set (name per AD-6) is the only way to (a) see the chat app/tab, (b) call the product's server methods, (c) use the xAI credential principal.",
+   "missing": "Who may administer (edit config, enter key, assign the permission set) is only 'org admin', with no permission set or named permission; G-6 leaves 'who may assign the permission set' open."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "Who may read: only the person at that browser. No other user, admin or process can read it from the org by design."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "Service boundary",
+   "quote": "the call is synchronous inside the user's request; there is no background job, queue or webhook. ... no callout after uncommitted work (product has no DML).",
+   "missing": "The spec addresses the no-callout-after-DML rule but chooses a synchronous callout; no asynchronous (Queueable/future/batch) design is stated."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "the key is stored only in the org's external-credential facility, entered by an admin after deploy. It never appears in source files, repository history, configuration records, Apex or LWC code, test fixtures, run notes, logs"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "Service boundary",
+   "quote": "Apex limits ... <=100 callouts/transaction (this product uses 1), <=120 s cumulative (default timeout 60 s leaves headroom), no callout after uncommitted work",
+   "missing": "Heap size and CPU time limits are not named or given numbers."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "NFR-7",
+   "quote": "Apex callout code isolated in one service class with the callout mockable; all Apex tests use `HttpCalloutMock`, none hit the network (no `seeAllData`)."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-3",
+   "quote": "a Named Credential references it as the callout endpoint (`callout:<NamedCredential>/v1/...`)"
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "F-1",
+   "quote": "Server \u2192 Credential \u2192 xAI: HTTPS call (synchronous). ... UI: if its request token is still current, append bot message, clear Pending (T-2) else discard (T-5).",
+   "missing": "The reply is assumed to return inline from the Apex call; no platform event, CDC, polled status or LMS notification mechanism is specified."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-4.c",
+   "quote": "pressing Retry re-sends the same text, and on success shows exactly one user bubble and one bot bubble for it (no duplicate)."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "Service boundary",
+   "quote": "there is no background job, queue or webhook.",
+   "missing": "Concurrent-request limits (e.g. org-wide concurrent long-running request limit) and what a user sees when a request cannot be accepted are not stated."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "Other HTTP 4xx ... `REQUEST_REJECTED` ... HTTP 5xx | `UPSTREAM_ERROR` | Grok is having trouble; try again | Callout timeout ... `TIMEOUT` | Grok did not answer in time"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "HTTP 429 | `RATE_LIMITED` | Grok is busy or the key's limit is reached; try again shortly ... the product does not retry automatically."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Callout timeout ... `TIMEOUT` | Grok did not answer in time | 2xx but no assistant text parseable | `BAD_RESPONSE`",
+   "missing": "A truncated reply (e.g. length/stop-reason cut-off) that still parses is not addressed; what the user sees for a partial answer is undecided."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-9",
+   "quote": "the transcript exists only in the open page's memory (AD-4) ... Nothing is written to org records, files, cache or logs.",
+   "missing": "No record shape is defined; model identifier and token/usage counts are not captured anywhere."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "lifetime = until New chat, page reload, or navigating away from the page. Nothing is written to org records, files, cache or logs."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "A-4",
+   "quote": "v1 sends Grok only what the user typed (plus admin-configured instructions and earlier turns of the same chat). It does **not** read or send Salesforce records."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "each request carries the system prompt plus the most recent messages ... trimmed from the oldest end until the count is <= the window (default 20 non-system messages)"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "A message that is empty after trimming, or longer than the configured maximum (default 4,000 characters ...), is rejected ... Boundary: 4,000 characters accepted; 4,001 rejected."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "an org admin can change, in Setup and without a code deploy: the Grok model ID, the system prompt, the callout timeout",
+   "missing": "No off switch is specified, and operator visibility of failed requests is left open (G-10: 'default: the product writes no log lines')."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "Service boundary",
+   "quote": "Owned event coverage: no audit trail of conversations (A-5).",
+   "missing": "No audit record of who asked what and what was answered, and no retention for one; the spec declines it."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-11",
+   "quote": "Apex coverage target: 75% org-wide is the platform deploy gate for production; for a development org the gate may not apply",
+   "missing": "How configuration and credential differ per environment is not stated; production is out of scope."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "NFR-1",
+   "quote": "the user sees a result (reply or error) no later than the configured callout timeout plus platform overhead ... the UI shows \"thinking\" only while a request is truly in flight"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "NFR-4.c",
+   "quote": "designed empty (welcome text, notice from R-9, suggested nothing-to-send state), loading (thinking indicator, disabled Send, `aria-busy`/live region), error (code-specific message with Retry)"
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "State and data assessment",
+   "quote": "Org records (any object) | any | **out of scope**, never read or written | unchanged ... redeploy preserves unrelated org state"
+  }
+ ]
+}

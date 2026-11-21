@@ -1,0 +1,24 @@
+K-shiploop-spec-default-bounds against P-shiploop-spec, same-round pairs in round-7, round-8
+bands (the largest move between two draws of one arm, fixed before these rounds): {'X1': 2, 'X2': 7, 'X3': 2, 'all': 6}
+
+== sonnet-high
+   R16 set-or-limit items (22 items, band 2): opus: 17 vs 13 (+4), 14 vs 12 (+2), mean +3.0; astra: 16 vs 12 (+4), 13 vs 11 (+2), mean +3.0  => shown
+   R17 the other needed items (53 items, band 7): opus: 38 vs 36 (+2), 36 vs 33 (+3), mean +2.5; astra: 36 vs 30 (+6), 33 vs 30 (+3), mean +4.5  => nothing shown
+   R18 capability not asked for (4 items, band 2): opus: 1 vs 0 (+1), 0 vs 1 (-1), mean +0.0; astra: 0 vs 0 (+0), 0 vs 0 (+0), mean +0.0  => nothing shown
+   the whole checklist (89 items, band 6): opus: 61 vs 55 (+6), 56 vs 53 (+3), mean +4.5; astra: 58 vs 48 (+10), 53 vs 46 (+7), mean +8.5  => interim
+   R19 the 24 items the released stage covered in neither earlier draw: opus: 7 vs 1, 5 vs 1; astra: 6 vs 1, 6 vs 2
+   words: 32320 vs 29837, 33540 vs 34001  mean ratio 1.03
+   requirements: 48 vs 43, 52 vs 53  mean ratio 1.05
+   output_tokens: 213317 vs 153139, 207586 vs 184396  mean ratio 1.26
+
+== sol-medium
+   R16 set-or-limit items (22 items, band 2): opus: 14 vs 7 (+7), 12 vs 8 (+4), mean +5.5; astra: 14 vs 6 (+8), 11 vs 6 (+5), mean +6.5  => shown
+   R17 the other needed items (53 items, band 7): opus: 37 vs 32 (+5), 37 vs 32 (+5), mean +5.0; astra: 30 vs 28 (+2), 26 vs 25 (+1), mean +1.5  => interim
+   R18 capability not asked for (4 items, band 2): opus: 1 vs 1 (+0), 2 vs 1 (+1), mean +0.5; astra: 0 vs 1 (-1), 0 vs 0 (+0), mean -0.5  => nothing shown
+   the whole checklist (89 items, band 6): opus: 55 vs 42 (+13), 55 vs 47 (+8), mean +10.5; astra: 47 vs 36 (+11), 41 vs 34 (+7), mean +9.0  => shown
+   R19 the 42 items the released stage covered in neither earlier draw: opus: 14 vs 4, 14 vs 8; astra: 13 vs 5, 11 vs 8
+   words: 24985 vs 22597, 24441 vs 19644  mean ratio 1.17
+   requirements: 16 vs 16, 18 vs 17  mean ratio 1.03
+   output_tokens: 53027 vs 50931, 57224 vs 42587  mean ratio 1.19
+
+DECISION RULE: R16 is shown on a driver and no harm reading fails -> the cue is put to the owner.

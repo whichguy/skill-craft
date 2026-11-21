@@ -1,0 +1,145 @@
+{
+ "slot": "csv-user-import__P-shiploop-spec__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "all in one step: either all users exist afterwards or none do (A-4)."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "\"Nothing was created. Fix N rows and upload again\", followed by a table with row, line, email and problem in plain words (one phrase per code), in row order."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "A row is `duplicate_in_file` when an earlier row has the same email \u2026 it is `email_exists` when a user with that email already exists. The later of two clashing rows is the one flagged. Existing users are never changed."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "an imported user is indistinguishable from one made through single-create in role \u2026 a header named `password` or `role` is rejected as an unknown column",
+   "missing": "File-supplied roles are rejected outright. The spec does not establish that the default role assigned by single-create is within the importing admin\u2019s own authority."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "the import is available only to an authenticated user who holds the administrator role at the moment the request is processed. The role is decided on the server for each request."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "and a header row. Header names are trimmed and case-insensitive; exactly `email` and `name`, each once, in any order, and no other column. \u2026 `invalid_header` (with `missing`, `unknown`, `duplicate` lists)"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "The file must be UTF-8 (an optional leading BOM is ignored), comma-delimited, with LF or CRLF line ends, quoted fields per RFC 4180 (commas, doubled quotes and line breaks inside quotes)"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "effects that leave the system (onboarding email or similar, per G-4) happen only after the whole import has been durably committed, and never for users of a rejected import."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "at `IMPORT_MAX_BYTES` accepted, one byte over refused; at `IMPORT_MAX_ROWS` accepted, one row over refused."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-3, AC-3.1 (FX-8a / 8b / 8c)",
+   "quote": "FX-8c \u2192 accepted, 1 row. Failure: no `file` part \u2192 400 `no_file`; FX-8a \u2192 422 `empty_file`; FX-8b \u2192 422 `no_rows`."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-5, AC-5.2",
+   "quote": "submit FX-1 (201), then submit FX-1 again \u2192 422 `row_errors` with three `email_exists` entries (rows 1\u20133, lines 2\u20134); the store holds exactly 3 users, not 6."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "AD-5",
+   "quote": "process in the request. \u2026 if the NFR-1 probe shows a file at the chosen limit does not finish inside the platform request ceiling, move to an asynchronous design",
+   "missing": "Background processing is a possible future change. The spec gives no current behavior for completing a large import in the background or notifying the admin when it finishes."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-7, AC-7.2",
+   "quote": "if G-4 shows onboarding mail exists, after FX-1 succeeds exactly one message is queued per created user, none before the commit.",
+   "missing": "Whether a large batch of invitations is released together or paced, and the delivery rate or batch interval if paced."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-7, G-4",
+   "quote": "an imported user is indistinguishable from one made through single-create in role, initial state and effects \u2026 How a new user is onboarded (invitation email, set-password link, none) and whether that sends mail.",
+   "missing": "The referenced single-create behavior is unknown. Initial account status, whether the account starts with a password, and the first sign-in steps remain unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "State, data and service assessment (AC-8.2)",
+   "quote": "request memory (and a request-scoped temporary file only if the platform spools uploads) | the request handler only | none: one attempt, one request | at request end, in every outcome (AC-8.2)"
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "each import attempt by an authenticated user writes one audit record: actor, time, sanitised file name, total rows if known, created count, outcome (`created` or the rejection code) and counts per rejection code."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-9; Behaviour model, Transition ledger",
+   "quote": "Nothing was created. Fix N rows and upload again \u2026 A client that disconnects after sending: the attempt still runs to Committed or Rejected; only the response is lost",
+   "missing": "The recovery flow calls for a corrected upload. It does not specify an explicit cancellation action during processing or a way to retry just the flagged rows from the original attempt."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-9, NFR-1",
+   "quote": "the action shows it is busy; text \"Importing\u2026\" with no invented progress figure \u2026 The latency target and the limit values are **unresolved** (G-5)",
+   "missing": "The busy indicator is specified, but the maximum-file completion deadline is only relative to an unmeasured platform timeout. No concrete duration is set."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2, R-5",
+   "quote": "single-user creation behaviour is unchanged by this work. \u2026 Existing users are never changed."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "a field of exactly the single-create limit is valid and one more character is `value_too_long`.",
+   "missing": "Oversized values are rejected. The spec does not address formula-like values if a result is opened in a spreadsheet."
+  }
+ ]
+}

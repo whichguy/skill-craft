@@ -1,0 +1,146 @@
+{
+ "slot": "gym-waitlist__K-shiploop-spec-default-bounds__sol-medium",
+ "case": "gym-waitlist",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.35724199999999995,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Add automatic promotion into the ordinary confirmed booking state. ... There are no manual queue overrides, seat holds, acceptance timers, or priority tiers in this scope."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1 State and data; R-2 Domain rules",
+   "quote": "Commit order establishes precedence for simultaneous joins. ... FIFO is per occurrence. There are no manual queue overrides, seat holds, acceptance timers, or priority tiers in this scope."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-1.b; C-3",
+   "quote": "Other occurrences have independent entries.",
+   "missing": "Whether promotion into one class must remove or resolve the member's entry in a time-overlapping class; the spec keeps them independent and never addresses the time conflict."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-2 State and data; R-3.a",
+   "quote": "Resulting bookings follow existing booking retention and cancellation.",
+   "missing": "Whether a late promotion (e.g. just before cutoff) that the member cannot attend or then cancels counts against the existing no-show/late-cancellation policy."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-2.a; R-2.b; NFR Integrity and recovery",
+   "quote": "When a supported booking cancellation or capacity increase opens a usable seat ... Promotion completes with the waiting member's UI closed. ... No time-to-recovery or latency threshold is supplied.",
+   "missing": "How promptly the background promotion must run after the triggering cancellation."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-4 UI premises; Service boundary contracts; Submission",
+   "quote": "A promotion while the view is closed is visible on the next fresh read. ... No new messaging channel ... External notification ... integration contracts are inapplicable ... in-app status as the confirmation channel."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2.a; R-2.b",
+   "quote": "For multiple usable seats, repeat in order ... overlapping promotion attempts produce no repeat booking or additional seat allocation from stale capacity. ... The seat count never exceeds authorized capacity because of a waitlist action."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-2.b; R-2 State and data",
+   "quote": "Concurrent direct bookings, joins, leaves, cutoffs and vacancy actions are resolved against one authoritative order for that occurrence. ... the candidate is active, currently eligible, unbooked",
+   "missing": "What happens to the member's waitlist entry and what they see when they direct-book the same occurrence while a promotion to them is in flight."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-1 Domain rules; Service boundary contracts",
+   "quote": "If ordinary booking requires a separate payment or consent step, the product owner's decision on a compatible promotion policy is open for those classes.",
+   "missing": "When payment is taken for a promoted booking and what happens if it fails."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "Submission; NFR Runtime and workload",
+   "quote": "No additional fixed queue cap or response-time target is assumed."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "Scope and source; R-3.b",
+   "quote": "The waitlist closes at the earlier of the existing booking cutoff (if any) and class start ... A vacancy at or after cutoff produces zero promotions."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-2.a; R-2 State and data",
+   "quote": "When a supported booking cancellation or capacity increase opens a usable seat ... Existing over-capacity or special-seat policies remain owned by the booking domain.",
+   "missing": "What happens to the waitlist (and existing bookings) when staff lower capacity while entries exist."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-3.b",
+   "quote": "At effective cutoff or class cancellation, outstanding entries stop being active and are cleared. The member sees that waitlisting is closed or the class is cancelled"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1 State and data",
+   "quote": "The booking authority owns active entries, with occurrence ID, existing member ID and committed queue order. Entry creation changes that pair from absent to active, at most once.",
+   "missing": "Whether a join timestamp is recorded and whether a member's position is stored or derived from the committed order."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-3.b; R-3 State and data",
+   "quote": "outstanding entries stop being active and are cleared. ... Remove active queue data when membership ends, with closure cleanup reconciled after failure. Keep no separate member-facing waitlist history"
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-4.a; R-4 UI premises",
+   "quote": "only the current member's own queue membership, never another member's entry, identity or ordering data. ... No new messaging channel, roster, numerical position, forecast or queue-management screen."
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-2 Domain rules; R-4.c; R-4 UI premises",
+   "quote": "There are no manual queue overrides ... Authorized operators can retrieve correlated outcomes for join, leave, promotion ... No new ... roster ... or queue-management screen."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "NFR Integrity and recovery; NFR Runtime and workload",
+   "quote": "No time-to-recovery or latency threshold is supplied. ... No new numeric performance ... target is specified.",
+   "missing": "An actual bound on time from cancellation to promotion."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1; R-1.a; R-2",
+   "quote": "Preserve direct booking for eligible members when a seat is available and no queued member has priority ... If a usable seat remains after satisfying queue priority, use the regular booking path. ... Preserve existing capacity limits, booking obligations"
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  }
+ ]
+}

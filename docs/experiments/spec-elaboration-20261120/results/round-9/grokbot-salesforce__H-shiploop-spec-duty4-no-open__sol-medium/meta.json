@@ -1,0 +1,27 @@
+{
+ "round": "round-9",
+ "case": "grokbot-salesforce",
+ "arm": "H-shiploop-spec-duty4-no-open",
+ "arm_sha256_12": "e50ff6f4a238",
+ "driver": "sol-medium",
+ "host": "codex",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "rc": 0,
+ "seconds": 368.7,
+ "ok": true,
+ "wrote": [
+  "KNOWLEDGE/spec.md",
+  "KNOWLEDGE/architecture.md"
+ ],
+ "stray_files": [],
+ "workdir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/round-9/grokbot-salesforce__H-shiploop-spec-duty4-no-open__sol-medium-ce7c78",
+ "user_skills_turned_off": 11,
+ "usage": {
+  "input_tokens": 1268015,
+  "cached_input_tokens": 1170688,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 14000,
+  "reasoning_output_tokens": 1535
+ }
+}

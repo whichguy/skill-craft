@@ -1,0 +1,36 @@
+=== round-9 G-shiploop-spec-duty4-bounds__sol-medium
+  size:   
+  cutoff: 33:o closure. | Fulfillment runs inside the existing permitted booking window. At its effective closing boundary use the existing authority's definition of open; once |
+=== round-9 G-shiploop-spec-duty4-bounds__sonnet-high
+  size:   42:| DEC-3 | **No cap on waitlist length.** The only bound introduced is **one entry per member per class**. | A c|42:n people away, which the request opposes | cap per class (N entries); cap on lists a member may join | the baseline shows a platform quota the list could hit, or the |151:ies**: promotions per operation ≤ seats freed; with more seats than waiting entries the surplus seats stay free for direct booking;|395:- **R-2 no cap on waitlist length; the only bound is one entry per member per class.** Basis: correctness a|
+  cutoff: 394:mum bound; no evidence of an existing rule. Alternatives: N minutes before start, none. Revalidate: baseline shows an existing booking-close rule (it wins) or the u|
+=== round-9 H-shiploop-spec-duty4-no-open__sol-medium
+  size:   
+  cutoff: 
+=== round-9 H-shiploop-spec-duty4-no-open__sonnet-high
+  size:   63:| A-3 | **No cap on waitlist length.** The rule is one entry per member per class. | The list is already boun|97:count = capacity (full) and bookable; one entry per member per class; no cap on length (A-3).|583:- A-3 (R-1): no cap on waitlist length; one entry per member per class. No numeric limit was introduced anywhere|
+  cutoff: 30:| P-2 | The existing booking window and class lifecycle statuses (open, cancelled, started), and the exact boundary instant s|64: existing rule instead of inventing a time value. | Close N hours before start. | P-2 is read. ||80:- *Full*: booked count ≥ capacity. *Bookable*: the booking window is open and the class is not cancelled (R-6, A-4).|
+=== round-9 P-shiploop-spec__sol-medium
+  size:   
+  cutoff: 26:ccurrence and principal identifiers, eligible member rules, booking windows and full-class entry point. Check whether normal booking requires payment, a waiver, or |
+=== round-9 P-shiploop-spec__sonnet-high
+  size:   31:| PD-8 | No cap on waitlist length is enforced. | Request names none (G-4). ||368:- **G-4** (R-1): should the waitlist length be capped? Interim: no cap.|
+  cutoff: 
+=== round-10 G-shiploop-spec-duty4-bounds__sol-medium
+  size:   31:. Its numeric value is open. There is no basis for a product waitlist-length cap. The runtime owner must establish whether storage, concurrency, or other limits require a|100:tion reopens capacity, T-3 has 1 newly available place and 2 eligible waiting entries. TC-6 bounds the net gain to at most 1 booking. If T-4 commits a booking, occupancy retur|
+  cutoff: 
+=== round-10 G-shiploop-spec-duty4-bounds__sonnet-high
+  size:   47:| A-2 | **No cap on waitlist length.** The only bound is the natural one: one `Waiting` entry per member per |71:  the class is full again. There is no length cap: the Nth member (N unbounded, ≤ distinct|79:- **Out of scope here (bounded by this R):** waitlist length cap; priority tiers; joining several|378:(1) **waitlist length cap** — not introduced: duplicates are blocked (one `Waiting` entry per|
+  cutoff: 
+=== round-10 H-shiploop-spec-duty4-no-open__sol-medium
+  size:   
+  cutoff: 64:ale seat counts. The authority rechecks eligibility and the booking window when committing. Failure to establish eligibility preserves priority and never grants a b|64:e authority recovers, allocation is resolved only while the booking window remains open. R-5 governs closure.|70:in [Source and scope]. Preserve the actual class lifecycle, booking window and ordinary booking history. Add an end to waitlist particip
+=== round-10 H-shiploop-spec-duty4-no-open__sonnet-high
+  size:   36:| PD-4 | No waitlist length cap and no "latest promotion time" cutoff. The list is bounded by one entry per member per cl|51:instant (PD-6); no length cap (PD-4). Error behaviour: each refusal names its reason and creates no entry. Consumer|61:| AC-1.6 boundary | No cap (PD-4): n/a for a count bound; the effective bound is one entry per member per class, cov|276:tart between operations leaves no state with a free spot and eligible waiting entries on an open class that a repair cannot fix; repair is idempotent | AC-7.4 ||
+  cutoff: 36:me before the class's booking closes | A cap, or a cutoff N minutes before start | Hot classes show unmanageable lists, or promoted members cannot reasonably attend|
+=== round-10 P-shiploop-spec__sol-medium
+  size:   93:iteria and capacity design. This specification adds no numeric SLA or waitlist cap. ||
+  cutoff: 
+=== round-10 P-shiploop-spec__sonnet-high
+  size:   35:| PD-4 | The waitlist has **no product-imposed length cap**. | Request names none; an invented bound is forbidden. Platform limits still apply (G-6|53:- I-4 positions of waiting entries are exactly 1..N with no gaps or ties.|162:- **Behaviour:** when a booked place on a class with waiting entries becomes free because the booking is cancelled, the service, **in the same atomic unit as |198:s the existing rule of the app (unknown); it never creates or removes waiting entries.|
+  cutoff: 400:t moment before start at which promotion is allowed (e.g. N minutes before) | Until start (PD-5) | Cutoff transition | Ask the owner ||

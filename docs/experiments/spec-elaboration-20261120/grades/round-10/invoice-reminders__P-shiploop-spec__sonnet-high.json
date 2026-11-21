@@ -1,0 +1,141 @@
+{
+ "slot": "invoice-reminders__P-shiploop-spec__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.4166256,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "A-3, A-1",
+   "quote": "Default schedule: reminders at 3, 7 and 14 days after the due date (\"offsets\"), sent at 09:00 in the business timezone ... Pre-due reminders are not sent"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "it is not void, written off, draft or disputed ... A partial payment leaves the invoice in scope with the reduced balance. ... Out of scope (bounded domain rules): ... credit notes; refunds; payment-plan invoices.",
+   "missing": "Whether credited invoices and invoices on a payment plan stop or continue the reminder sequence; they are listed out of scope, which doesn't say how they behave."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "The amount is the invoice's current balance at send time, not its original total."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "can mark a customer \"no reminders\" ... its customer is opted out, the offset is recorded `skipped: paused` or `skipped: opted_out` ... Out of scope: customer self-service unsubscribe (G-3)",
+   "missing": "Whether existing do-not-contact or unsubscribed states on the customer are respected, and whether billing reminders are exempt from a marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "at most one reminder message is handed to the provider per (invoice, offset). The evaluator claims (invoice, offset) by atomically creating a reminder record in state `sending` with a lease before the provider call"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "The evaluator re-reads the invoice from the invoicing system immediately before claiming a send (R-6) and never uses a cached or earlier-run copy for the decision."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "A transient provider failure (timeout, throttling, 5xx) leaves the record retryable ... up to 3 attempts in total (A-7) ... persistent trouble is visible to staff (R-8).",
+   "missing": "Escalation to a person: whether anyone is alerted or notified when sends keep failing or the provider is down, beyond records showing up in the history."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "NFR-4",
+   "quote": "volume and provider rate limits are unknown, so no bound is invented. Required behaviour under throttling is fixed by R-7.AC5.",
+   "missing": "How a large batch is paced within the provider's rate limit; only the reaction to throttling responses is stated."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "A-5, R-2 rule 1",
+   "quote": "No retroactive reminders: when the feature is enabled, a reminder whose scheduled instant is earlier than the enabling instant is never sent"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "A-3, R-2",
+   "quote": "sent at 09:00 in the business timezone ... Out of scope (bounded domain rules): ... weekend or holiday avoidance (a reminder due on a Saturday is sent on that Saturday)."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "A-9",
+   "quote": "One locale for message text: English, dates as \"March 11, 2027\", amounts as \"USD 1,200.00\" (ISO currency code, thousands separator, two decimals)."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-3, R-7",
+   "quote": "a missing or syntactically invalid contact address yields no provider call and the record `skipped: no_recipient` ... A permanent rejection (address rejected) makes the record `failed` at once."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "A-2, R-3",
+   "quote": "The reminder is an email to the invoice's single billing-contact address. ... Out of scope: ... multiple recipients.",
+   "missing": "Which contact is written to when the customer or invoice has more than one billing contact; the spec assumes there is only one."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-8",
+   "quote": "for each invoice, staff can list reminder records: offset, scheduled instant (UTC), state, reason ... attempts, instant of last attempt, and the recipient address used."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Body ... contains in order: a greeting line, `Invoice: <number>`, `Amount due: USD <balance>`, `Due date: <Month D, YYYY>` ... Out of scope: payment link or instructions (G-6; none in the default message)"
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "A-12, R-7",
+   "quote": "Staff who can edit invoices can configure, pause and view reminders, until a role model is known (G-7). ... Out of scope: ... manual \"resend\".",
+   "missing": "The role model is left open (G-7, A-12 is only a placeholder), and who may send a reminder by hand isn't stated."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1, R-5, R-7",
+   "quote": "enabled flag (default off, A-4) ... can mark a customer \"no reminders\" ... Out of scope: ... manual \"resend\".",
+   "missing": "Preview or dry run of what would be sent; nothing in the spec mentions it."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-8",
+   "quote": "staff can list reminder records: offset, scheduled instant (UTC), state, reason (for `skipped` and `failed`)",
+   "missing": "Any view of upcoming reminders the system will send next; records only exist once an offset is due."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "NFR-1, NFR-4, R-2 rule 2",
+   "quote": "Unresolved bound (G-4); no number is invented. ... At most one message per invoice per run.",
+   "missing": "A numeric bound on how late a reminder may go out, or on total sending volume per run or day."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "State and data assessment",
+   "quote": "the evaluator changes no invoice field ... Invoice status, balance, due date, contact | Invoicing system (authority; G-1) | evaluator reads only"
+  }
+ ]
+}

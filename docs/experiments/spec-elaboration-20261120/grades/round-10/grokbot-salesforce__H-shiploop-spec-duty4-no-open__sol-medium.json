@@ -1,0 +1,181 @@
+{
+ "slot": "grokbot-salesforce__H-shiploop-spec-duty4-no-open__sol-medium",
+ "case": "grokbot-salesforce",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.560648,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "C1",
+   "quote": "an assigned, signed-in Salesforce user finds Grok Bot via the org\u2019s App Launcher and opens a workspace with an enabled Prompt composer"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "Service boundaries (Signed-in Salesforce workspace \u2192 Salesforce runtime)",
+   "quote": "Existing record sharing, object permissions and field permissions are untouched. Each is inapplicable to bot data operations because the bot performs no business-record reads/writes."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "Service boundaries (Signed-in Salesforce workspace \u2192 Salesforce runtime)",
+   "quote": "Existing record sharing, object permissions and field permissions are untouched. Each is inapplicable to bot data operations because the bot performs no business-record reads/writes."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "C10",
+   "quote": "a signed-in, assigned user can invoke the bot using the enabled development integration. Failure \u2014 unassigned, unauthenticated, or effectively revoked users cannot initiate a chargeable provider call"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "C12",
+   "quote": "only the initiating user\u2019s active workspace displays exchange content. The bot owns no durable history ... a fresh/reloaded workspace or another user cannot retrieve the exchange from the bot."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "AD-2",
+   "quote": "Use an imperative, non-cacheable Apex invocation and a server-side HTTPS callout. ... Use one request/response callout per send and no server-side work queue.",
+   "missing": "The callout-after-DML / no-callout-from-trigger constraint is never stated; the spec picks a synchronous callout without naming the transaction rule that makes it valid."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "Use a modern Named Credential for the fixed xAI endpoint and an External Credential ... configure its bearer header from a protected credential parameter. ... deployment artifacts carry only non-secret configuration"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "AD-2",
+   "quote": "A 30-second configured callout is within the documented 120-second transaction ceiling. ... margin below the documented 6 MB synchronous callout and heap ceilings",
+   "missing": "Callouts-per-transaction and CPU time limits are not named with numbers."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "C8",
+   "quote": "For isolated P1 attempts, supply HTTP 429, 401, 403 and 503 with empty bodies ... For timing use a controlled transport clock",
+   "missing": "The spec calls for controlled provider responses but never says Apex tests cannot make real callouts or that a mock callout implementation is required."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "Use a modern Named Credential for the fixed xAI endpoint"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "AD-2",
+   "quote": "Use one request/response callout per send and no server-side work queue. The client handles the asynchronous invocation result for its active attempt only."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-3 state rules",
+   "quote": "While pending, only its matching completion can leave that state. ... There is no shared queue, exactly-once claim, background delivery, remote cancellation or deferred retrieval."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "C7",
+   "quote": "the default is one active send per workspace instance; another instance has independent state, subject to org and provider limits.",
+   "missing": "No queue exists, and the concurrent external-callout limit is mentioned only in AD-2. What the user sees when that limit is hit is not stated."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "C8",
+   "quote": "provider throttling (\u201cGrok is busy. Try again later.\u201d), provider authentication/configuration (\u201cGrok is unavailable. Contact your Salesforce admin.\u201d) ... timeout (\u201cGrok took too long. Try again.\u201d)"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "C8",
+   "quote": "provider throttling (\u201cGrok is busy. Try again later.\u201d) ... There is no automatic retry."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "C6",
+   "quote": "when generation ends incomplete at the allowance, show that the answer reached its length limit and suggest a shorter requested answer. Preserve the prompt for editing and display no partial answer as success."
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "C12",
+   "quote": "The bot owns no durable history or retrievable provider-side response object for the request."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-4 state and data assessment",
+   "quote": "Teardown or reload discards all workspace state, with no restored history or theme."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "C11",
+   "quote": "directs users to enter synthetic development data only. On a successful request, only the explicitly submitted text and necessary inference parameters cross the provider boundary."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-2 state rules",
+   "quote": "Neither prior prompts, earlier answers, CRM data, nor attachments enter a later request. Single-turn text Q&A is the scope default."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "C4",
+   "quote": "missing, empty, or Unicode White_Space-only input shows \u201cEnter a prompt.\u201d ... At 16,384 bytes the send is allowed; from 16,385 bytes it is rejected"
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-4 state and data assessment",
+   "quote": "Operator-facing diagnostics use status class, elapsed time and an opaque attempt identifier in the approved host destination.",
+   "missing": "Turning the bot off means removing grants one at a time; no global off switch is defined. Model change appears only as 'server-owned configuration' in AD-3, with no admin procedure."
+  },
+  {
+   "id": "N-23",
+   "state": "partial",
+   "where": "R-4 state and data assessment",
+   "quote": "No prompt, answer, token, raw error, session value or user identifier in bot diagnostics. Host operator owns access and actual retention.",
+   "missing": "The spec deliberately keeps no who-asked-what audit. It records outcome-only diagnostics and leaves their retention to the host, with no period set."
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-1 state rules",
+   "quote": "There is no business data migration, production rollout, or additional channel in S0.",
+   "missing": "How configuration and credentials would differ across environments, scratch org versus sandbox, and the production code-coverage requirement are not addressed. Only a development-only principal and metadata deployment are stated."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "C7",
+   "quote": "when a valid send starts, show a screen-reader-announced Waiting for Grok state ... make the composer read-only and sending unavailable until the active attempt settles."
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "Non-functional requirements (Visual quality and accessibility)",
+   "quote": "Give empty, waiting and error states distinct treatments, including a persistent error with a recovery action."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "C2",
+   "quote": "its entry and scoped access are effective, and unrelated state matches the recorded pre-change baseline."
+  }
+ ]
+}

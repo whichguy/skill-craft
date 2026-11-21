@@ -1,0 +1,141 @@
+{
+ "slot": "invoice-reminders__K-shiploop-spec-default-bounds__sonnet-high",
+ "case": "invoice-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.397868,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "A-4",
+   "quote": "Default schedule: offsets -3, 0, +7, +14, +30 days relative to the invoice due date (negative = before, 0 = on the due date)."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "statuses {draft, open, paid, void}: only `open` qualifies. ... Material exclusion: credit notes, refunds and write-offs are not modelled",
+   "missing": "Disputed status is left undecided (G-6) and payment plans are not mentioned; a builder must decide whether either stops the sequence."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Partially paid invoices are eligible and the reminder states the remaining balance."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "G-2",
+   "quote": "Product decision: per-invoice pause/opt-out of reminders (e.g. a disputed invoice). Left out of scope (REQ-0 does not ask for it); an admin can turn reminders off account-wide.",
+   "missing": "Whether an existing customer do-not-contact/paused/unsubscribed state is honoured, and whether billing reminders are exempt from a marketing opt-out."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "Each `(invoice, offset)` is claimed atomically before sending so that two overlapping sweeps send one email."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "An invoice is eligible when, at the moment a reminder would be sent (not when the schedule was computed), all hold"
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "A-7",
+   "quote": "At most 3 attempts per reminder, at least 60 minutes apart, only within the account-local date of the first attempt.",
+   "missing": "No escalation to a person on repeated failure; failures only appear in history and R-9 excludes alerting/paging."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-11",
+   "quote": "a sweep processes invoices in bounded batches ... when the provider throttles, the R-4 transient-retry rules apply",
+   "missing": "The provider rate limit and the batch size/pacing are unresolved (G-4); how to pace a large batch within the limit is not stated."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "its step date is on or after the setting's `effective_from` (R-1; a save never fires reminders for dates before it)."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "A-5",
+   "quote": "Reminder time: 09:00 in the account's time zone (UTC when the account has none).",
+   "missing": "Uses the account's zone, not the customer's local time; weekends and holidays are only listed as not covered, leaving their handling unstated."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "A-11",
+   "quote": "English-language email; dates shown as `20 Mar 2026`; money as ISO currency code plus amount, `USD 1,000.00`."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "permanent fails at once with no retry; no recipient records `skipped-no-recipient`, and a later step sends normally if an address has been added by then.",
+   "missing": "Bounces after provider acceptance are not handled (G-3): whether a bouncing address stops later steps or alerts someone is undecided."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "A-2",
+   "quote": "A reminder is one email to the invoice's single customer billing email address."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "The invoice detail screen shows a Reminders list for that invoice, newest first: offset, step date, status, send/attempt time (account time zone), recipient address"
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Body ... business name, invoice number, remaining balance (`USD 1,000.00`), due date, days relative, and a payment link only if the product has one (G-5).",
+   "missing": "Whether the payment link expires, and what happens if it has by the time the reminder is read."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "only admin may save (the other two are the groups with distinct observable behaviour: other users may view, customers/unauthenticated see nothing)"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "An admin can enable or disable, and edit the offsets, in a settings screen.",
+   "missing": "No preview or dry-run; per-customer off and manual resend are excluded as out of scope rather than provided."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-6",
+   "quote": "status, send/attempt time (account time zone), recipient address, and attempt count for `failed`",
+   "missing": "Failures are visible, but nothing shows what the system will send next (pending steps are not stored or displayed)."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Maximum reminders ever sent for one invoice = number of offsets (A-6, A-8)."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "State, data and lifecycle",
+   "quote": "Invoice status, balance, due date, open date | invoice store (existing, unobserved), read-only here"
+  }
+ ]
+}

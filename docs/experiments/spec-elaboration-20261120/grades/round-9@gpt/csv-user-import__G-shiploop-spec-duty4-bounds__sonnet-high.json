@@ -1,0 +1,144 @@
+{
+ "slot": "csv-user-import__G-shiploop-spec-duty4-bounds__sonnet-high",
+ "case": "csv-user-import",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "one user is created per row, all or none: after the request, either every row's user exists or none does."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-11",
+   "quote": "a panel states \"No users were created. N problems in M rows.\" and lists errors as a table (Row, Column, Problem) in file order"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "that row is an error `EMAIL_EXISTS`; existing users are never modified or overwritten. [\u2026] the first occurrence is kept and every later occurrence is an error `EMAIL_DUPLICATE_IN_FILE` whose message names the first row."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-3/A2",
+   "quote": "a role the uploader may not assign (for example an admin role if single creation does not let this uploader assign it) \u2192 `ROLE_NOT_ALLOWED`, nothing created (no privilege escalation through CSV)."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "the bulk-import operation is available only to an authenticated user who currently holds the admin role. [\u2026] an authenticated non-admin is rejected as forbidden."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2, R-3, R-3/A1",
+   "quote": "The first record is the header. [\u2026] the header must contain `email` (required). [\u2026] Unknown columns, or a duplicated column, reject the whole file [\u2026] one error `MISSING_REQUIRED_COLUMN` (column `email`), no row errors"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "comma delimiter, optional double-quote quoting with `\"\"` escapes (quoted fields may contain commas and line breaks), LF or CRLF line endings, UTF-8 encoding with an optional leading BOM (stripped)."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-5/A2, R-9",
+   "quote": "with the store configured to fail on the second insert of a two-row S-1 upload \u2192 5xx `INTERNAL`, `createdCount` 0, read-back shows neither user. [\u2026] The feature sends no email or other notification"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-7/A1",
+   "quote": "the same with N+1 rows \u2192 422 `TOO_MANY_ROWS`, zero created; a body of `MAX_BYTES`+1 bytes \u2192 413 `FILE_TOO_LARGE`, zero created.",
+   "missing": "The maximum request size in bytes and the maximum number of data rows are both left open in G-1."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2/A1, R-5/A1",
+   "quote": "S-4 (zero bytes) \u2192 422 `EMPTY_FILE`; S-3 (`email,name,role` + newline only) \u2192 422 `NO_DATA_ROWS` [\u2026] a one-row file (`email` header + `ada@example.com`) creates exactly 1 user."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-8/A2",
+   "quote": "resubmitting S-1 immediately after its success \u2192 422, `EMAIL_EXISTS` for rows 1 and 2, user count unchanged."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "AD-1",
+   "quote": "parse, validate and write within the upload request; the outcome is in the response. No job queue, background worker, status endpoint or notification.",
+   "missing": "Background imports are explicitly excluded. The spec gives no threshold for switching to a job or way for the admin to learn that such a job finished."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-9",
+   "quote": "The feature sends no email or other notification (A-7)."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-9",
+   "quote": "Created users are put in the same initial state a single-created user would be (G-2). The feature creates no usable credential on its own.",
+   "missing": "The spec leaves open whether that initial state is active or pending and how the user authenticates for the first time."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "held only for the duration of the request, in memory (or request-scoped temporary storage deleted at request end, success or failure); never written under a client-supplied filename; not retained afterwards."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-10",
+   "quote": "one record per attempt, written for success and for rejection: timestamp, uploader id, outcome (`created`, `rejected`, `conflict`, `failed`), row count, created count, error code counts, and, on success, the created user ids."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-8, R-8/A2",
+   "quote": "recovery is to look at the user list or resubmit [\u2026] client abort after the server has committed (connection closed before the response) \u2192 2 users exist",
+   "missing": "The spec defines whole-file resubmission and a disconnect after commit. It leaves cancellation before commit and the option to retry just the failed rows unspecified."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-14, R-11",
+   "quote": "at `MAX_ROWS` rows the request completes within the runtime's request time limit (value from G-1, **unresolved**). [\u2026] an indeterminate progress status \"Validating and creating users\u2026\" is shown",
+   "missing": "The progress indicator is specified. G-1 leaves the maximum file size, row count, and corresponding completion-time limit unset."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-4, R-3",
+   "quote": "existing users are never modified or overwritten. [\u2026] Each row is validated by **the same rules as creating a single user through the existing path**",
+   "missing": "The spec uses manual creation as a validation reference but does not require the manual creation path to retain all its existing behavior."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-14, R-3",
+   "quote": "no CSV, XLSX or other export is produced by this feature, so spreadsheet-formula injection on output does not apply [\u2026] A value longer than the user model's field limit \u2192 `FIELD_TOO_LONG`"
+  }
+ ]
+}

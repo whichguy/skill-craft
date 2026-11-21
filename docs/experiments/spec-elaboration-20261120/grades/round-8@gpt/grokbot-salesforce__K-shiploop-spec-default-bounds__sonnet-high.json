@@ -1,0 +1,184 @@
+{
+ "slot": "grokbot-salesforce__K-shiploop-spec-default-bounds__sonnet-high",
+ "case": "grokbot-salesforce",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1, R-7, R-3",
+   "quote": "one tab \"Grok Bot\" that renders the chat component. \u2026 the bot reads and writes no standard or custom records \u2026 the new message plus up to the 20 most recent prior **answered** messages"
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "the bot reads and writes no standard or custom records \u2026 Apex is declared `with sharing`",
+   "missing": "The sharing context is specified, but record-based answers are outside scope. No rule selects visible records to ground an answer."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "Apex is declared `with sharing`; since no record data is involved this is hygiene, and is **not** claimed as CRUD/FLS enforcement.",
+   "missing": "The design avoids reading record fields. It gives no field-access or masking rule for reading or displaying encrypted or restricted values."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-7, R-8, R-6",
+   "quote": "Only users it is assigned to can use the bot or spend the key. \u2026 assignment is a separate, named administrator step \u2026 An admin edit takes effect on the next turn. \u2026 until an admin supplies one."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "State inventory and transitions, R-10",
+   "quote": "That user only; never sent to another client \u2026 prompts and replies are shown only in the user's tab, stored nowhere in Salesforce"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "NFR-3",
+   "quote": "Each turn is one synchronous Apex transaction with **exactly one callout and zero DML**, within PF-1..PF-3 (limits: 1 of 100 callouts; timeout \u2264 120 s; no pending DML before the callout).",
+   "missing": "The spec handles the DML constraint for a UI-initiated call. It gives no trigger restriction or asynchronous job design."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "the key is stored in an External Credential (named principal) and used through a Named Credential \u2026 The key never appears in source control, Apex, LWC, custom metadata, records, debug logs, error messages or this spec."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "NFR-3, PF-4",
+   "quote": "1 of 100 callouts; timeout \u2264 120 s \u2026 Total heap is 6 MB synchronous / 12 MB asynchronous",
+   "missing": "The Apex CPU-time limit is unspecified."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-12",
+   "quote": "Apex tests use an `HttpCalloutMock` (no real network)"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "AD-4, R-6",
+   "quote": "Named Credential for `https://api.x.ai` \u2026 Apex addresses the endpoint with the `callout:` form only."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "F-1, R-9/1",
+   "quote": "Apex returns a structured outcome \u2192 component appends the reply (T-2) or the error (T-3). \u2026 DOM queries before/after resolve",
+   "missing": "The UI receives the outcome when its Apex call resolves. No mechanism delivers a reply that finishes after that call returns."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-9, R-5",
+   "quote": "A result appears only for the request that is still current. \u2026 no idempotency key is sent; duplicate calls are possible after TIMEOUT",
+   "missing": "The UI discards stale results, but no message or request identity prevents repeated execution of a job from posting a second reply."
+  },
+  {
+   "id": "N-13",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "Grok could not process that request. \u2026 Grok is temporarily unavailable. Try again. \u2026 Grok took too long to answer. Try again."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-5, R-5/5",
+   "quote": "HTTP 429 | RATE_LIMIT | \"Grok is busy or a usage limit was reached. Try again shortly.\" \u2026 Retry is user-driven; there is no automatic retry"
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "G-3, R-5",
+   "quote": "the exact xAI response schema (field holding the text, truncation indicator), are unconfirmed \u2026 \"Grok took too long to answer. Try again.\"",
+   "missing": "The timeout message is defined, but the spec gives no display rule for usable text returned with a truncation indicator."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "A-4, State inventory and transitions",
+   "quote": "Conversation transcript lives only in the open browser tab's component memory; no Salesforce record, no server session. \u2026 Message states: sent-answered, failed (unanswered).",
+   "missing": "The spec describes transient turns and their status. It excludes conversation and turn records and gives no per-turn fields for timestamps, model identity or token usage."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-10/3, R-10",
+   "quote": "after New chat or reload, no earlier message is recoverable from the page. \u2026 the request asks xAI not to retain the conversation where the chosen endpoint supports it",
+   "missing": "Local transcript removal is defined. There is no deletion behavior for any provider-retained conversation when the Salesforce user is deleted."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-7, R-10",
+   "quote": "the bot reads and writes no standard or custom records \u2026 messages are sent to xAI to be answered, and not to enter data the org may not share externally"
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "each turn sends Grok the new message plus up to the 20 most recent prior **answered** messages \u2026 Turn 12: 22 prior \u2192 oldest 2 (turn 1's pair) dropped"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-3, R-4, R-2/4",
+   "quote": "Turn 1: 0 prior, payload 1 message. \u2026 Enter a message. \u2026 4,000 `a` characters are accepted and sent in full. \u2026 a reply of 1,024 tokens' worth of multi-paragraph text displays fully"
+  },
+  {
+   "id": "N-22",
+   "state": "covered",
+   "where": "NFR-10, R-8, NFR-7",
+   "quote": "unassign the permission set (instantly hides the bot) \u2026 model name, system prompt \u2026 An admin edit takes effect on the next turn. \u2026 Failures log category, HTTP status and elapsed time"
+  },
+  {
+   "id": "N-23",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-24",
+   "state": "partial",
+   "where": "R-11, PF-7, NFR-10",
+   "quote": "Deploy, permission-set assignment and credential-secret entry are three separate steps \u2026 75% Apex coverage is required to deploy to production. \u2026 deploy to the dev org only; promotion beyond it is out of scope.",
+   "missing": "The deploy procedure separates metadata from the secret and cites the production coverage floor. It does not specify how configuration values or credentials differ between environments."
+  },
+  {
+   "id": "N-25",
+   "state": "covered",
+   "where": "R-5, R-9",
+   "quote": "no response within the configured timeout (60 s default) \u2026 while a request is Pending, the thread shows a pending indicator (\"Grok is thinking\u2026\") \u2026 The pending indicator never claims progress it cannot know"
+  },
+  {
+   "id": "N-26",
+   "state": "covered",
+   "where": "NFR-1, R-5",
+   "quote": "designed Empty (prompt + data notice), Pending (R-9), Error (R-5, with Retry) states \u2026 Grok could not process that request. \u2026 You do not have access to Grok Bot."
+  },
+  {
+   "id": "N-27",
+   "state": "covered",
+   "where": "R-7, R-11, State and data assessment",
+   "quote": "the bot reads and writes no standard or custom records \u2026 The deploy does not modify, delete or overwrite any metadata it does not own. \u2026 Existing org automation/components | target org | **intentionally untouched**"
+  }
+ ]
+}
