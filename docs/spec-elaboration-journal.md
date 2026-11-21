@@ -2122,6 +2122,8 @@ a short specification is most at risk (the two ticket cases, 27 and 6 planted de
   specification do with a point left open (take a reasonable answer, report it, pin it in no test), not at making
   the specification decide. That is a ShipLoop product question and the owner's; the evidence for it is in the
   other session's record, on its instrument and not on ShipLoop.
+  (Qualified 2026-11-21, section 36: no test asserts an answer to an open point, but a suite still depends on the
+  answers through how it starts and configures the product, and they have to be on record before the build.)
 - Nothing in sections 26 and 27 changes: they are counts of what was run.
 
 ## 30. Received: the pooled result for the reworded text; its three predictions held on the count (08:04, 2026-11-21)
@@ -2186,7 +2188,8 @@ Section 29 held them against the first case only. On the three cells:
 
 - Section 29's reading stands, and it now rests on three cells instead of one. Leaving a point open, with the later
   stages told to take a reasonable answer, report it and pin it in no test, did better on built products than
-  deciding it in the specification.
+  deciding it in the specification. (Qualified 2026-11-21, section 36, in the same way: "pin it in no test" kept
+  answers out of assertions, not out of how a suite drives the product.)
 - Its limits, as that session states them: one model family (Codex gpt-6.2-sol at high), one run a cell; only one
   case with a consequential thing left unsaid, and the text's author knew that case; whether the defaults the plan
   takes and reports are what a customer wants is not shown; and nothing here is about ShipLoop's released stage.
@@ -2518,3 +2521,80 @@ the new line's output is in `evidence/qualification/background-starts.txt`. The 
 - The merge on the remote is therefore the SDLC session's, with this session's line as its first parent. A merge
   made from the remote side would have kept the remote's own line first; no content differs.
 - CI on the pushed commit was running when this was written.
+
+## 36. Received: a suite written with the reworded text carries to a build it never saw, and not to a correct product that answered the open points differently (10:46, 2026-11-21)
+
+Recorded as received. The runs and findings are those of the fork of the Ratchet session ("Ratchet (fork)"), which the
+owner started at 08:00 to ask whether Ratchet's stages can run at once, relayed by the Ratchet session. The record is
+the subsection "Received from this session's fork: a suite is written against one product's answers" in
+`docs/ratchet-pilot-journal.md` on `main` at 55bb42d6922d0eddeb08c92e8a858dceb1f2cd14. It was first recorded in
+738180c26d55fd24e6ff81c01481847a59abbf85 and corrected in 55bb42d6922d0eddeb08c92e8a858dceb1f2cd14, which also added
+the fork's first run. The fork's own record is `docs/ratchet-parallel-journal.md` on its branch
+`ratchet-parallel-6f54fb`; its commits 810cbe5135358b4614f2bf210f63699bae271789,
+164edda800ebbeac4eca1bdcc025357e5e469fde and
+d610919065c98e9eedcb96755362034b2e7848fb exist in this repository but are not ancestors of `main`, and that journal
+is not in the tree of `main` (it is in the tree of the last of them). A Sonnet worker of this session checked the figures
+below against that record; nothing was re-run here. I read the subsection in that record in full and checked
+every figure below against it myself, and checked with git that the fork's three commits and its journal are not
+on `main`.
+
+What "loop a" and "loop b" are: the two due-times runs `p3R-ticket-due-times-a` and `-b` of the Ratchet session's
+amendment 8 (rung 2), each built from one of the specifications written with the reworded text and run through its test
+pass (`--stop-after tests`). The fork laid each run's frozen test suite over the other products, with no model. Its
+first table was superseded by the fork's own correction: its tool made its copies under the system's temporary folder,
+which on macOS is a symbolic link, and a test that watches `npm test` by file path then sees no test run. Measured
+again in a plain folder, with each copy a clone of the product's repository, the tool reproduces the runs' own gates
+(loop a's suite on its own build 41 of 42, loop b's 41 of 41) and gives this table of items passed. The first
+table had 39, 38 and "29 or 31" for loop a's suite, 41, 41 and "29 or 31" for loop b's, and 31, 31 and 35 for the
+test-strength cell's.
+
+| Suite | On loop a's build | On loop b's build | On the correct reference |
+| --- | --- | --- | --- |
+| loop a's (42 items) | 41 | 39 | 30 |
+| loop b's (41 items) | 41 | 41 | 31 |
+| the test-strength cell's (39 items) | 32 | 32 | 35 |
+
+**The first half.** A loop's suite loses 10 to 12 of its items against the reference (first recorded as 10 to 13; the
+table gives 12 for loop a and 10 for loop b). Every cross failure is about how a test drives the product at an open
+point (one `RESPONSE_HOURS` setting against four `DUE_HOURS_*` ones; how the data file is prepared) or about the
+product's own tests. None is about what a clause asserts. So the Ratchet session's earlier reading that no test
+asserts an answer to an open point stands; it had said too little, because a suite drives a product through the answers
+that product took.
+
+**The second half.** The fork's first run started two test sessions from the two loop specifications and plans and
+the starting product, with no build present, on Codex `gpt-6.2-sol` at high. Their suites pass 42 of 42 and 41 of 41 on
+the two loop builds, which they never saw, and on each other's. The fork had predicted 4 to 10 failing. The sessions
+were not cheaper: 15.9 and 19.7 minutes against 16.7 and 13.4, on a loaded machine. Not measured: whether such a suite
+catches the planted defects.
+
+**What that session reads from it.** This is its reading, not a figure. With the reworded text the plan is where a
+product's answers to the open points are fixed. What a second product, or a test written somewhere else, has to share
+is those answers and the names the plan fixes: not the whole plan, not the specification alone and not the build.
+The fork, asked whether this states its finding, agreed and added the narrowing in the limits below.
+
+**Limits, as its record states them.** The Ratchet session did not re-run the fork's overlays or its sessions; the
+figures are as received. It is one request (due times), two sessions and one model; the fork adds that the
+blind sessions took every name that starts or configures the product from the plan, the specification or the starting
+documents. Whether such a suite catches the planted defects is not measured.
+
+**What it means here** (this session's reading).
+
+- It qualifies sections 29 and 30. Both said the evidence pointed at later stages that take a reasonable answer at
+  an open point, report it "and pin it in no test". The first half shows what that sentence did and what it did
+  not. No test asserts an answer; a suite still depends on the answers, through how it starts and configures the
+  product. A dated note is added at both places.
+- The answers have to be on record before the build, not only reported after it. The paragraph that travelled with
+  the reworded text told the build to take a reasonable answer and report it. The second half is two suites written
+  before any build that pass on builds they never saw, and that session reads the plan as the place where the
+  answers and the names were fixed. For anything written apart from the build (a second product, or a test stage
+  run at the same time as the build), "report it" comes too late, and the plan is the place of record.
+- One thing here is not reconciled. Section 30 recorded, from that session's three test-strength cells, that "the
+  plan stage added three clauses and none settles an open point". The fork's reading is that in the two loop runs
+  the plan fixes the answers. They are different runs, and a name or a setting in a plan's text is not a clause, so
+  the two need not conflict; I have not read those plans and make no claim.
+- For ShipLoop nothing is proposed, and this experiment's conclusion stands: no template was changed. If the owner
+  ever takes up leaving a point open in the specification, this adds a condition to that design: the answer taken
+  at an open point has to be written where the tests are written from, before the build. It is untested on
+  ShipLoop, where one session writes the plan, the tests and the product in turn.
+- The evidence is thin, as its limits say: two sessions, one request, one model, and no measure of whether a suite
+  written that way catches a planted defect.
