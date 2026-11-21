@@ -1104,3 +1104,56 @@ candidate, and what each would need, is the list at the end of section 15: a sho
 who run the thing and its unhappy paths (interim evidence; the review's rewording, its own paired check, an E2E
 round and the owner's go); the stale sentence in `references/behavioral-requirements.md`; and, under both, whether
 the stage should decide more of what it reaches.
+
+## 18. The lens form goes to a built-product test in the pilot's session, and a reworded arm is drafted for it (2026-11-21)
+
+**Received from the Ratchet session, at the owner's word there** ("We should pick up the elaboration message from the
+other chat about a new elaboration of a spec prompt"; "Should you inform Spec elaboration chat about your
+findings?"). Recorded as received; two things were read here and found as described, the registration commit and
+the port's diff.
+- It ported `arms/L-lenses-once.md` into the pilot's enrich stage as a second enrichment text
+  (`SPEC_PACKET_LENSES`, flag `--enrich lenses`), keeping that stage's frame and file path, its
+  repository-reading step and its `existing` source kind, since its cases have repositories. Registered before
+  any run as its amendment 7 (commit 43d5486168448f221763d9413f7ea02878f6d237, branch `ratchet-lens-08805f`).
+- Five runs started at 03:22 on Codex gpt-6.2-sol at high: three test-strength cells (enrich with the lens text,
+  plan, the correct reference laid in as the build, a test pass by another session, then the frozen suite run
+  against the correct reference, a second correct delivery and 37 calibrated defects) and two runs of one case's
+  loop to its first test pass, graded with held-out checks.
+- Its registered readings are the half this experiment could not reach: whether the lens form avoids a reading of
+  one sentence that made two of two earlier builds fail 5 of 8 held-out checks with their own tests green (R8.1);
+  the share of clauses whose test fails on a correct product, 11.8% with the pilot's own text (R8.2); calibrated
+  defects caught, 37 of 37 before (R8.3); clauses, minutes and tokens (R8.4).
+- It says of its own design what should be said here too: this is "deciding more" tested for rightness, one case
+  family and one run a cell, so it will give a direction and not a size.
+
+**What this is for this journal.** Sections 14 and 17 ended on a question neither instrument had answered alone:
+is what the coverage judge scores as coverage, in part, what a built product scores as harm? The pilot's session is
+now running the arm of this experiment through its instrument. Its result, when it comes, is that session's to
+report and is recorded here as received.
+
+**A reworded arm, drafted and not run: `arms/R-lenses-reworded.md`.** The pilot's session offered to measure a lens
+block reworded to meet the review's findings as a third enrichment text, and said it would put it to the owner
+before running. The arm it is running is the one the review faulted, so a reworded one is worth having beside it.
+`R-lenses-reworded` is `L-lenses-once` with these changes, each from a finding of section 14's review:
+
+| change | the review's finding |
+| --- | --- |
+| The lenses are "aids to thinking, to be used once while you draft; they are not a list of things to write". Nothing says an answer becomes a clause. | 2: "becomes" turned an aid into an output mandate |
+| "What earns a clause": the request's sentences, then only distinct checkable behaviour the requested outcome needs or that must be preserved where the change touches it. The test for leaving one out is the audit's own: a builder could omit it with nothing missing. | 2, 5 |
+| An `Open:` line under a clause, and a rule for it: where the answer would change what the requester gets, write the loosest reading certainly wanted and record what is undecided and who decides. "An open line is a finished piece of work." | 2, 3, 4: record open items instead of settling them |
+| "Invent no bound": a value comes from the request, from what exists or from the runtime's documentation, or the bound is an `Open:` line. The earlier "state your own decided value" is gone. | 4 |
+| A prerequisite is named "only if its absence or its failure would change that outcome or how it is checked", and followed no further. The recursion sentence is gone. | 3: no stop, and "one pass" contradicted itself |
+| The runtime lens is "for the environment the request names, and no further". | 4: a production contract drawn from a development request |
+| "Where paths share something" replaces "each ... against the others". | 9: an invitation to the cross-product |
+| Sets name "the members or groups that behave differently"; "the fields a record holds" is gone. | 11: a schema inventory |
+| The operator's work is in only "where running it or recovering from it is part of what was asked", and "using the controls that already exist". | 8 |
+| One check after drafting, which ends on "a clause that a builder could leave out with nothing missing, which should go". | 3: "one pass" must not waive the final check |
+
+It is 1,002 words against 1,219. **No model call has been made with it, here or anywhere**, and nothing is claimed
+for it. Two things a reader of any later result has to know:
+- **It was drafted after this session had read the pilot session's description of R8.1**, the sentence and how two
+  builds misread it. The arm was written from the review's findings, which predate that message, and no sentence
+  was added for that case; but the session that wrote it knew the case, so R8.1 is not a blind test of this text
+  in the way it is of `L-lenses-once`.
+- The `Open:` line is a new line in the specification's form. A stage that reads the specification has to know
+  that an open line is not something to build or to write a test from.
