@@ -1,0 +1,44 @@
+A first screen: regions [] | buttons [
+  'M\nContinue as Maya\n→',
+  'T\nContinue as Theo\n→',
+  'A\nContinue as Ana\n→'
+] | textboxes []
+A after Continue as Maya: regions [
+  'Setup',
+  'Conversation',
+  'Saved instructions',
+  'Saved tasks',
+  'Memory',
+  'Tasks'
+] | buttons [
+  'New bot',
+  'A\nAssistant',
+  'Save bot name',
+  'Rename bot',
+  'New conversation',
+  'Untitled conversation',
+  'Switch person',
+  'Save token',
+  '↗ Explore orders',
+  '↗ Plan a change',
+  '↗ Check memory',
+  '↗ Start a task',
+  'Send',
+  'Save instruction'
+] | textboxes [
+  '', '', '', '',
+  '', '', ''
+] | alerts []
+A body text: Commonroom Bots + A Assistant Bot name ↵ Rename bot Conversations + Untitled conversation M Maya Switch person Assistant Untitled conversation Setup needed Connect the local provider Enter a token starting with sk-local- followed by at least 12 letters or digits. It’s stored on this computer and stays hidden after saving. Provider token Save token What are we working on? Ask about a record, work through a change, or start a task you can come back to. ↗ Explore orders ↗ Plan a change ↗ Check memo
+B before New conversation: conversations [ '+|null', 'hello planner|true' ]
+B after New conversation: conversations [ '+|null', 'Untitled conversation|true', 'hello planner|null' ]
+B articles before send []
+B articles after send [
+  'Message from Maya: M\nMaya\n10:40 PM\n\nfresh start',
+  'Message from Planner: Planner\n' +
+    '10:40 PM\n' +
+    '\n' +
+    'You said: "fresh start". (Planner has 1 message(s) from you in this conversation.)'
+]
+B alerts [] | status [ '' ]
+B box value "" | conversations [ '+|null', 'fresh start|true', 'hello planner|null' ]

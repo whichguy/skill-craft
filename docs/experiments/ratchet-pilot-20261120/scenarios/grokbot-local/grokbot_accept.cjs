@@ -7,6 +7,20 @@
  * stops `node server.js` itself, each mode on a free port with an empty data folder of its own, and finds everything
  * by role and accessible name, as REQUEST.md states them. Every check is tried and recorded: one failing does not stop
  * the others, though checks in one mode share that mode's state. It exits 0 only when every check passes.
+ *
+ * Calibration, 2026-11-20, on the bare arm's build and before any other arm had a result (the journal lists each
+ * correction with what was observed):
+ *   1. Setup is looked for on the first screen and, when it is not there, after continuing as a person. The request
+ *      says the first screen offers the Continue as buttons and that Setup is shown while no token is saved; it does
+ *      not say which comes first, and the first version assumed Setup did.
+ *   2. A good token counts as accepted when a first message then gets a reply. The first version waited for the
+ *      Continue as buttons to appear after saving, which is assumption 1 again.
+ *   3. After a restart Setup must be absent on the first screen and after continuing (stricter than before for an
+ *      app that shows people first).
+ *   4. After New conversation the check waits for the conversation to show no messages, which is what it is named
+ *      for, before it writes. The first version wrote within milliseconds of the click.
+ *   5. `send` pauses 300 ms before it writes, the pause `openBot` always had: a person does not send a message
+ *      within milliseconds of their last click, and the request states no such speed.
  */
 'use strict';
 const fs = require('node:fs');
@@ -98,6 +112,7 @@ async function signIn(page, base, who) {
   await textbox(page, 'Message').waitFor({ state: 'visible' });
 }
 async function send(page, text) {
+  await page.waitForTimeout(300); // a person's pace after their last click (calibration 5)
   await textbox(page, 'Message').fill(text);
   await button(page, 'Send').click();
 }
@@ -133,7 +148,14 @@ async function setupMode() {
   page.on('response', async (answer) => { try { bodies.push(await answer.text()); } catch { /* a body that cannot be read */ } });
   await page.goto(server.base + '/', { waitUntil: 'load' });
   await attempt('setup-is-shown-without-a-token', async () => {
-    await region(page, 'Setup').waitFor({ state: 'visible' });
+    const setup = region(page, 'Setup');
+    try {
+      await setup.waitFor({ state: 'visible', timeout: 2500 });
+    } catch { // not on the first screen: the request lets the people come first (calibration 1)
+      const enter = button(page, 'Continue as Maya');
+      if (await enter.count()) await enter.click();
+      await setup.waitFor({ state: 'visible' });
+    }
     await textbox(page, 'Provider token').waitFor({ state: 'visible' });
   });
   await attempt('setup-refuses-a-wrong-token-and-lets-me-retry', async () => {
@@ -145,7 +167,13 @@ async function setupMode() {
   await attempt('setup-accepts-a-good-token', async () => {
     await textbox(page, 'Provider token').fill(TOKEN);
     await button(page, 'Save token').click();
-    await button(page, 'Continue as Maya').waitFor({ state: 'visible' });
+    // accepted means the app can now be used: the people are offered, or the person already chosen can write
+    const enter = button(page, 'Continue as Maya');
+    const box = textbox(page, 'Message');
+    await region(page, 'Setup').waitFor({ state: 'hidden', timeout: 4000 }).catch(() => {});
+    await enter.or(box).first().waitFor({ state: 'visible' });
+    if (await enter.isVisible()) await enter.click();
+    await ask(page, 'Assistant', 'first words', 'You said: "first words"'); // calibration 2
   });
   await attempt('the-token-is-never-shown-again', async () => {
     await signIn(page, server.base, 'Maya');
@@ -161,6 +189,7 @@ async function setupMode() {
     await again.goto(server.base + '/', { waitUntil: 'load' });
     expect(await region(again, 'Setup').count() === 0, 'Setup is shown again after a restart although a token was saved');
     await signIn(again, server.base, 'Maya');
+    expect(await region(again, 'Setup').count() === 0, 'Setup is shown after continuing as a person although a token was saved'); // calibration 3
     await ask(again, 'Assistant', 'ping', 'You said: "ping"');
     await again.context().close();
   });
@@ -267,6 +296,12 @@ async function coreMode() {
   });
   await attempt('a-second-conversation-starts-empty-and-both-are-listed', async () => {
     await button(page, 'New conversation').click();
+    let shown = await conversation(page).getByRole('article').count();
+    for (let tries = 0; tries < 40 && shown > 0; tries += 1) { // wait for the empty conversation to be on screen (calibration 4)
+      await page.waitForTimeout(200);
+      shown = await conversation(page).getByRole('article').count();
+    }
+    expect(shown === 0, `the new conversation still shows ${shown} message(s) after 8 s`);
     await ask(page, 'Planner', 'fresh start', '(Planner has 1 message(s)');
     expect(await navigation(page, 'Conversations').getByRole('button').count() >= 2, 'the Conversations navigation lists fewer than two conversations');
   });

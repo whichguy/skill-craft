@@ -480,6 +480,8 @@ What it is (`docs/experiments/ratchet-pilot-20261120/scenarios/grokbot-local/`):
   the secret (5), conversation, bots, memory, records and changes (27, with a restart), long tasks (8, with the page
   closed and with a restart), everyday use at 320, 390 and 1440 pixels and from the keyboard (6), and the delivery's
   own `npm test` (1). Every check is tried and recorded; one failing does not stop the others.
+  (Corrected 2026-11-20 22:39: the file as registered has 49 checks, 29 of them in the second group; "48" and "27"
+  were my miscount. No check was added or removed between this registration and the first grading. Section 14.)
 - `BRIEF.md`, the proposal the owner said go to.
 
 Arms, one run each on Codex `gpt-6.2-sol` at high, each in its own new Git repository in its own folder outside this
@@ -493,7 +495,7 @@ checkout:
 
 Readings:
 
-- R5.1 **the scenario is hard enough** if the bare arm fails at least 5 of the 48 checks. Fewer reads as another
+- R5.1 **the scenario is hard enough** if the bare arm fails at least 5 of the 48 checks (49: see the correction above). Fewer reads as another
   ceiling case.
 - R5.2 **quality at the end**: checks passed by each arm's final product. An arm is ahead of another by 5 checks or
   more; within 4 reads as no difference shown.
@@ -551,3 +553,56 @@ Readings (exploratory; section 6 registered no bar for them):
 
 Limits: models as judges, one answer each; a judge sees documents and not code; the two ticket-assignment runs can
 add the same requirement twice, and it is then counted twice.
+
+## 14. Grokbot-local: the yardstick calibrated on the bare build, and R5.1 (2026-11-20 22:39)
+
+Status: firm for what was measured (one build, one calibrated grading); the ShipLoop and Ratchet arms had no result
+when this was written and the corrected yardstick was committed.
+
+**The bare arm.** One Codex `gpt-6.2-sol` high session, given the request and the rules of conduct and nothing else,
+in a new repository holding only the starting folder: 16.9 minutes, 47,308 output tokens (1,532,165 input, 1,458,176
+of them cached). It left 2,471 lines in 12 files of its own (a 129-line `server.js`, three modules under `lib/`,
+three files under `public/`, two test files) and no held-out name in its event stream.
+
+**First grading, as registered: 43 of 49.** All five setup checks failed, and
+`a-second-conversation-starts-empty-and-both-are-listed`. I read each by driving the build in a browser with two
+throwaway probes (Playwright, a copy of the build, its own data folder).
+
+| Failing checks | What the build does | What the yardstick assumed | Verdict |
+|---|---|---|---|
+| the five setup checks | Shows the people first. After `Continue as Maya`, a region named Setup is on the main screen with `Provider token` and `Save token`, and says what is needed. | That Setup is on the first screen and the people come after a token is saved. | Yardstick. The request says "The first screen offers a button named Continue as <name>" and that Setup is shown "when no provider token has been saved"; it does not put Setup first. |
+| second conversation | At a person's pace (a probe with pauses): `New conversation` opens an empty conversation, both are listed, and the reply counts 1 message. At the yardstick's pace (the message written within milliseconds of the click): the message is dropped, nothing is sent and no error is shown. | Nothing about pace; it wrote at once. | Yardstick. The request states no such speed, and the same script already paused 300 ms after opening a bot. |
+
+**Corrections (the calibration rule of section 12; each is in the file's header).**
+
+1. Setup is looked for on the first screen and, when it is not there, after continuing as a person.
+2. A good token counts as accepted when a first message then gets a reply (the first version waited for the people
+   to appear after saving, which is the same assumption).
+3. After a restart, Setup must be absent on the first screen and after continuing. This is stricter than before for
+   an app that shows people first, where the first version passed without looking.
+4. After `New conversation` the check waits until the conversation shows no messages, which is what it is named for,
+   and then writes.
+5. `send` pauses 300 ms before it writes, in every check. No failing check asked for this one; it is the same class
+   as 4, and I applied it before any other arm had a result so that a later arm cannot fail for the driver's speed.
+
+**After calibration: 49 of 49** on the bare build (one grading, 78 seconds, machine load average 22). The first
+grading is kept beside it (`hidden-before-calibration.json`).
+
+**R5.1, the scenario is hard enough: not met.** The bar was 5 failing checks; none fails. On this yardstick
+Grokbot-local is another ceiling case for Sol 6.2 high: one 17-minute session with no plan, no separate tests and no
+closing look passes every check, including work that continues with the page closed, a restart in the middle of a
+task, a confirmation pressed twice across a reload, and two people who must not see each other's records.
+
+What follows from it:
+
+- R5.2 can now show a loss for the ShipLoop and Ratchet arms and cannot show a gain. Their cost (R5.4) and whether
+  Ratchet's cycles break something that worked (R5.5) are what those two runs can still add.
+- Seen outside the yardstick and not scored: the bare build drops a message written while `New conversation` is on
+  its way to the server.
+- The yardstick probes what the request names. It does not probe several sentences the request states in prose (that
+  everything kept lives under `DATA_DIR`, that the stand-in is unchanged, a reload during a slow or failed reply, a
+  proposal whose record changed before it was confirmed, deleting a saved instruction, the narrow window keeping the
+  conversation in view). A second yardstick from those sentences is the next amendment, written before the other two
+  arms end.
+
+Evidence: `evidence/grokbot-local/` (the bare run's record, both gradings, the two probes and their output).
