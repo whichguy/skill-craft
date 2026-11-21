@@ -1,0 +1,47 @@
+== A. this round's whole deliveries: mean seconds by stage, and the seconds after refused commands ==
+
+claude-sonnet-5-5 high, ticket-due-times: 4 runs, mean 53.3 minutes with a host running
+  intake 79s (2%); discovery 40s (1%); research 26s (1%); spec 56s (2%); test-strategy 79s (2%); plan 62s (2%); prepare 25s (1%); step-plan 339s (11%); test-spec 118s (4%); implement 778s (24%); test 501s (16%); document 126s (4%); carry-forward 65s (2%); system-test-author 70s (2%); system-test 29s (1%); product-acceptance 29s (1%); release-plan 50s (2%); release-check 164s (5%); release 24s (1%); release-verify 40s (1%); operations 27s (1%); handoff 34s (1%); all reviews 441s (14%)
+  refused commands: 9.5 a run; seconds until the next command after each: 232s a run (7% of the run)
+  by stage (count a run, seconds a run): test 3.0, 117s; step-plan 2.5, 28s; implement 0.8, 61s; release-plan 0.8, 6s; test-strategy 0.5, 3s; plan 0.5, 3s; document 0.5, 4s; improve 0.2, 1s
+  most common refusal texts: 4x Restore <path> to what HEAD holds plus this step's requirement lines, then run t | 2x ShipLoop mutation check: test is not done. 3 of 8 mutants of this item's changed | 2x ShipLoop mutation check: test is not done. 1 of 8 mutants of this item's changed | 2x a test command's criteria must be a nonempty list of distinct criterion IDs
+
+gpt-6.2-sol medium, shared-expenses: 4 runs, mean 11.1 minutes with a host running
+  intake 33s (5%); discovery 15s (2%); research 14s (2%); spec 16s (2%); test-strategy 29s (4%); plan 25s (4%); prepare 8s (1%); step-plan 53s (8%); test-spec 14s (2%); implement 83s (12%); test 119s (18%); document 25s (4%); carry-forward 10s (1%); system-test-author 17s (3%); system-test 8s (1%); product-acceptance 7s (1%); release-plan 17s (3%); release-check 18s (3%); release 16s (2%); release-verify 15s (2%); operations 15s (2%); handoff 17s (3%); all reviews 92s (14%)
+  refused commands: 6.2 a run; seconds until the next command after each: 80s a run (12% of the run)
+  by stage (count a run, seconds a run): test-strategy 1.5, 11s; step-plan 1.2, 20s; test 1.2, 30s; implement 1.0, 8s; document 0.5, 5s; plan 0.5, 6s; test-spec 0.2, 1s
+  most common refusal texts: 5x ShipLoop mutation check: test is not done. 1 of 8 mutants of this item's changed | 4x step S1's Proof runs test<path> which the item base does not have and no earlier | 3x test_layers[0].layer is one of unit, component, e2e | 3x not_covered is [{"behaviour": "<what this step added that no test case covers>",
+
+gpt-6.2-sol medium, ticket-due-times: 4 runs, mean 16.7 minutes with a host running
+  intake 28s (3%); discovery 33s (3%); research 30s (3%); spec 26s (3%); test-strategy 23s (2%); plan 22s (2%); prepare 9s (1%); step-plan 56s (6%); test-spec 17s (2%); implement 127s (13%); test 164s (16%); document 70s (7%); carry-forward 17s (2%); system-test-author 65s (6%); system-test 15s (1%); product-acceptance 15s (1%); release-plan 24s (2%); release-check 29s (3%); release 20s (2%); release-verify 24s (2%); operations 19s (2%); handoff 21s (2%); all reviews 149s (15%)
+  refused commands: 5.0 a run; seconds until the next command after each: 79s a run (8% of the run)
+  by stage (count a run, seconds a run): test 2.8, 59s; document 0.8, 7s; step-plan 0.5, 4s; spec 0.2, 5s; implement 0.2, 1s; carry-forward 0.2, 1s; product-acceptance 0.2, 1s
+  most common refusal texts: 6x ShipLoop mutation check: test is not done. 1 of 8 mutants of this item's changed | 3x ShipLoop mutation check: test is not done. 3 of 8 mutants of this item's changed | 1x evidence_refs cite files that do not exist: <path> Write the file or remove the  | 1x ShipLoop mutation check: test is not done. 2 of 8 mutants of this item's changed
+
+== B. criteria in each work item's accepted step plan, by run ==
+  sol-medium-due-L-1        W1: 2 criteria in 2 steps   total 2
+  sol-medium-due-L-2        W1: 5 criteria in 2 steps   total 5
+  sol-medium-due-S-1        W1: 3 criteria in 1 step   total 3
+  sol-medium-due-S-2        W1: 6 criteria in 1 step   total 6
+  sol-medium-expenses-L-1   W1: 2 criteria in 1 step   total 2
+  sol-medium-expenses-L-2   W1: 7 criteria in 1 step   total 7
+  sol-medium-expenses-S-1   W1: 6 criteria in 1 step   total 6
+  sol-medium-expenses-S-2   W1: 2 criteria in 1 step   total 2
+  sonnet-high-due-L-1       W1: 13 criteria in 2 steps; W2: 8 criteria in 1 step; W3: 5 criteria in 1 step   total 26
+  sonnet-high-due-L-2       W1: 20 criteria in 2 steps   total 20
+  sonnet-high-due-S-1       W1: 14 criteria in 2 steps; W2: 8 criteria in 1 step   total 22
+  sonnet-high-due-S-2       W1: 10 criteria in 1 step; W2: 9 criteria in 1 step; W3: 4 criteria in 1 step   total 23
+
+== C. the recorded Grok whole deliveries: active minutes by part ==
+  grok-4.6 xhigh ticket-due-times    2026-11-14 pass=True option stage: 364 min | planning 40 | step-plan, test-spec 27 | implement 25 | test 61 | document 37 | system tests 14 | acceptance to handoff 34 | reviews 119 (33%)
+      reviews by reviewed stage, minutes: carry-forward 6, document 42, plan 12, release-plan 11, spec 17, step-plan 16, system-test-author 3, test-strategy 13
+  grok-4.6 xhigh ticket-due-times    2026-11-14 pass=True option stage: 348 min | planning 36 | step-plan, test-spec 28 | implement 31 | test 38 | document 28 | system tests 12 | acceptance to handoff 36 | reviews 134 (39%)
+      reviews by reviewed stage, minutes: carry-forward 9, document 53, plan 14, release-plan 11, spec 8, step-plan 16, system-test-author 11, test-strategy 13
+  grok-4.6 xhigh ticket-due-times    2026-11-14 pass=True option stage: 339 min | planning 40 | step-plan, test-spec 26 | implement 35 | test 50 | document 37 | system tests 12 | acceptance to handoff 26 | reviews 112 (33%)
+      reviews by reviewed stage, minutes: carry-forward 6, document 38, plan 14, release-plan 8, spec 11, step-plan 21, system-test-author 3, test-strategy 12
+  grok-4.7 medium hello               2026-10-26 pass=True option stage: 68 min | planning 13 | step-plan, test-spec 5 | implement 2 | test 3 | document 6 | system tests 5 | acceptance to handoff 13 | reviews 17 (24%)
+      reviews by reviewed stage, minutes: carry-forward 1, implement 1, plan 1, release-plan 3, spec 1, step-plan 1, system-test-author 2, test-spec 4, test-strategy 1
+  grok-4.7 medium battleship          2026-10-26 pass=True option stage: 205 min | planning 34 | step-plan, test-spec 25 | implement 31 | test 11 | document 11 | system tests 2 | acceptance to handoff 21 | reviews 58 (28%)
+      reviews by reviewed stage, minutes: carry-forward 2, implement 18, plan 3, release-plan 2, spec 15, step-plan 4, system-test-author 1, test-spec 3, test-strategy 8
+  grok-4.7 medium battleship-scoring  2026-10-26 pass=False option stage: 113 min | planning 22 | step-plan, test-spec 12 | implement 5 | test 3 | document 2 | system tests 2 | acceptance to handoff 16 | reviews 42 (37%)
+      reviews by reviewed stage, minutes: carry-forward 2, implement 8, plan 2, release-plan 1, spec 7, step-plan 10, system-test-author 1, test-spec 2, test-strategy 10

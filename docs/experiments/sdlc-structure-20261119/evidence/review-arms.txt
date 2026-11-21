@@ -1,5 +1,5 @@
 run                         driver                  arm  option  pass  checks    min reviews refused items implements send-backs work added  turns  dollars  to system-test
-sonnet-high-due-L-1         claude-sonnet-5-5 high  L      none     -     8/8  69.6+       6       8     2          4          1          1    283        -            28.1  interrupted, still running
+sonnet-high-due-L-1         claude-sonnet-5-5 high  L      none   yes     8/8  110.0       9      13     2          6          2          1    612    7.44*            28.1  interrupted
 sonnet-high-due-L-2         claude-sonnet-5-5 high  L      none    NO     8/8   48.3       4       8     1          2          0          0    352    0.67*            27.4  interrupted
 sonnet-high-due-S-1         claude-sonnet-5-5 high  S     stage   yes     8/8   53.1      10       9     2          3          0          0    419    2.14*            31.3  interrupted
 sonnet-high-due-S-2         claude-sonnet-5-5 high  S     stage   yes     8/8   45.3      10       8     3          3          0          0    450    15.60            40.5
@@ -12,7 +12,7 @@ sol-medium-due-L-2          gpt-6.2-sol medium      L      none    NO     8/8   
 sol-medium-due-S-1          gpt-6.2-sol medium      S     stage    NO     3/8   20.8       9       3     1          1          0          0     43        -            15.2  interrupted
 sol-medium-due-S-2          gpt-6.2-sol medium      S     stage   yes     8/8   16.5       8       8     1          1          0          0    151        -            13.0
 (min: start to end of the run, or with a + the minutes so far of a run still going; pass: the harness's overall verdict; reviews: Improve review packets issued; refused: check and complete commands ShipLoop refused; items: work items of the plan that were built; send-backs: a build stage returned the item to its step plan; work added: a stage after the build opened a new work item; dollars with a *: the resumed session only, the session the kill ended reported none)
-  sonnet-high-due-L-1: reviews of [('document', 3), ('release-plan', 2), ('carry-forward', 1)]
+  sonnet-high-due-L-1: reviews of [('document', 4), ('release-plan', 3), ('carry-forward', 2)]
   sonnet-high-due-L-2: reviews of [('document', 2), ('carry-forward', 1), ('release-plan', 1)]
   sonnet-high-due-S-1: reviews of [('document', 3), ('spec', 1), ('test-strategy', 1), ('plan', 1), ('step-plan', 1), ('carry-forward', 1), ('system-test-author', 1), ('release-plan', 1)]
   sonnet-high-due-S-2: reviews of [('document', 3), ('spec', 1), ('test-strategy', 1), ('plan', 1), ('step-plan', 1), ('carry-forward', 1), ('system-test-author', 1), ('release-plan', 1)]
@@ -24,8 +24,7 @@ sol-medium-due-S-2          gpt-6.2-sol medium      S     stage   yes     8/8   
   sol-medium-due-L-2: reviews of [('document', 2), ('carry-forward', 1), ('release-plan', 1)]
   sol-medium-due-S-1: reviews of [('release-plan', 2), ('spec', 1), ('test-strategy', 1), ('plan', 1), ('step-plan', 1), ('document', 1), ('carry-forward', 1), ('system-test-author', 1)]
   sol-medium-due-S-2: reviews of [('spec', 1), ('test-strategy', 1), ('plan', 1), ('step-plan', 1), ('document', 1), ('carry-forward', 1), ('system-test-author', 1), ('release-plan', 1)]
-  sonnet-high-due-L-1: host ended by SIGTERM at 31.7 minutes (engine at release-plan) when sonnet-high-due-S-2 ran pkill by pattern; resumed by hand with run.py --resume-run 14.0 minutes later
-  sonnet-high-due-L-1: still running when the report was made: after the kill at 31.7 minutes it was resumed, its release check found its own test run flaky and opened a third work item. Its checks here are the eight hidden checks on its last commit before the kill (28.3 minutes, after its system tests were written), graded with slice_snapshots.due_times: runs-reviews/l1-at-kill.json
+  sonnet-high-due-L-1: host ended by SIGTERM at 31.7 minutes (engine at release-plan) when sonnet-high-due-S-2 ran pkill by pattern; resumed by hand with run.py --resume-run 14.0 minutes later; it ended at 110.0 minutes after a third work item its release check opened (52 minutes, two send-backs from implement to the step plan)
   sonnet-high-due-L-2: host ended by SIGTERM at 31.6 minutes (engine at release-check) when sonnet-high-due-S-2 ran pkill by pattern; resumed by hand with run.py --resume-run 14.0 minutes later
   sonnet-high-due-L-2: checks as first graded 7/8; after reruns 8/8: {"pristine": {"first": "FAIL: the base's own tests do not pass in the base (rc 1, pass 116, fail 1): socket hang up, ECONNRESET, in test/api.test.js", "runs": 5, "passed": 5}}
   sonnet-high-due-S-1: host ended by SIGTERM at 31.7 minutes (engine at system-test) when sonnet-high-due-S-2 ran pkill by pattern; resumed by hand with run.py --resume-run 14.0 minutes later
@@ -34,19 +33,18 @@ sol-medium-due-S-2          gpt-6.2-sol medium      S     stage   yes     8/8   
 
 == the registered readings, by driver and case ==
 claude-sonnet-5-5 high, ticket-due-times
-  not finished when this was made: sonnet-high-due-L-1
   option recorded is the arm's: yes, in every run
   interrupted by another run's process kill: sonnet-high-due-S-1, sonnet-high-due-L-1, sonnet-high-due-L-2; start-to-end minutes are not comparable in this cell (they hold a stop, a wait and a resume)
-  time, start to end (the registered measure), not comparable here: S 53.1, 45.3 min; L 69.6+, 48.3 min; not read
+  time, start to end (the registered measure), not comparable here: S 53.1, 45.3 min; L 110.0, 48.3 min; not read
   time to the first entry into system-test (fallback, not registered): S 31.3, 40.5 min (mean 35.9); L 28.1, 27.4 min (mean 27.8); change -22.7%: L saves time
     of it, to the first step plan (intake to prepare, with the planning reviews in S): S 9.4, 10.3 min (mean 9.9); L 5.3, 6.4 min (mean 5.8); change -40.8%: L saves time
     of it, from there to the system-test author (the build items, their reviews, added work items): S 20.3, 28.5 min (mean 24.4); L 21.6, 20.2 min (mean 20.9); change -14.3%: no readable difference
     of it, writing the system tests (and in S their review): S 1.6, 1.7 min (mean 1.7); L 1.2, 0.9 min (mean 1.0); change -37.9%: L saves time
-  minutes in Improve reviews, the whole run with a host running (an unfinished run so far): S 10.2, 8.4 min (mean 9.3); L 5.4, 3.3 min (mean 4.4); change -53.0%: L saves time
-  minutes with a host running (start to end less the time no host ran; not registered, and a resumed session re-reads the run): S 39.1, 45.3; L 55.6+, 34.2; not read
-  quality: harness verdicts failed: S [[], []], L [['unfinished'], []]; held-out checks: S ['8/8', '8/8'], L ['8/8', '8/8']: no loss seen (every L run has at least the least S run)
-  reviews run: S [10, 10], L [6, 4]; refused: S [9, 8], L [8, 8]; work items built: S [2, 3], L [2, 1]; send-backs: S [0, 0], L [1, 0]; work added: S [0, 0], L [1, 0]
-  mean seconds by part with a host running, S and (L), an unfinished run counted as far as it got: planning stages 381 (350); planning reviews 256 (0); step-plan, test-spec 420 (472); implement 303 (554); test 350 (394); document 116 (114); step reviews 137 (121); carry-forward + review 92 (117); system tests 85 (81); their review 42 (0); acceptance to handoff 329 (479)
+  minutes in Improve reviews, the whole run with a host running (an unfinished run so far): S 10.2, 8.4 min (mean 9.3); L 7.4, 3.3 min (mean 5.4); change -42.6%: L saves time
+  minutes with a host running (start to end less the time no host ran; not registered, and a resumed session re-reads the run): S 39.1, 45.3; L 96.0, 34.2; not read
+  quality: harness verdicts failed: S [[], []], L [[], []]; held-out checks: S ['8/8', '8/8'], L ['8/8', '8/8']: no loss seen (every L run has at least the least S run)
+  reviews run: S [10, 10], L [9, 4]; refused: S [9, 8], L [13, 8]; work items built: S [2, 3], L [2, 1]; send-backs: S [0, 0], L [2, 0]; work added: S [0, 0], L [1, 0]
+  mean seconds by part with a host running, S and (L): planning stages 381 (350); planning reviews 256 (0); step-plan, test-spec 420 (493); implement 303 (1252); test 350 (652); document 116 (137); step reviews 137 (142); carry-forward + review 92 (148); system tests 85 (112); their review 42 (0); acceptance to handoff 329 (599)
 gpt-6.2-sol medium, shared-expenses
   option recorded is the arm's: yes, in every run
   time, start to end (the registered measure): S 10.9, 9.0 min (mean 9.9); L 14.2, 12.9 min (mean 13.5); change +36.3%: L is slower

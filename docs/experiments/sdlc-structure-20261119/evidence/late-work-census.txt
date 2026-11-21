@@ -1,0 +1,23 @@
+finished whole deliveries read: 311 (trace missing for 0); with late work: 8
+
+driver                                   runs  plans of >1 item  late work  min, none  min, late  min added  opened by
+codex gpt-6.1-terra high                  151                 2          3         12         18         10  {'product-acceptance': 2, 'release-verify': 1}
+codex gpt-6.1-terra xhigh                 118                 2          2         15         37         10  {'product-acceptance': 1, 'release-verify': 1}
+codex gpt-6.2-sol medium                   11                 0          0         13          -          -  
+claude claude-sonnet-5-5 -                  8                 0          0         21          -          -  
+claude deepseek-v4.1-flash:1017-cloud -     8                 5          1        138        372         43  {'release-verify': 1}
+claude claude-sonnet-5-5 high               5                 3          2         48         79         35  {'product-acceptance': 1, 'release-check': 1}
+codex gpt-6.1-sol medium                    4                 0          0         22          -          -  
+grok grok-4.7 medium                        3                 1          0        113          -          -  
+grok grok-4.6 xhigh                         3                 0          0        348          -          -  
+
+(min: first trace row to the last accepted command, waits included; min added: the first late move to that end)
+runs with late work:
+  claude claude-sonnet-5-5 high           shared-expenses-sonnet-high                     48 min,   13 added, opened by product-acceptance
+  claude claude-sonnet-5-5 high           sonnet-high-due-L-1                            110 min,   57 added, opened by release-check
+  claude deepseek-v4.1-flash:1017-cloud - pa-ds-battleship-4ed4e3                        372 min,   43 added, opened by release-verify
+  codex gpt-6.1-terra high                published-verification-02                       11 min,    6 added, opened by product-acceptance
+  codex gpt-6.1-terra high                candidate-hello-hook-continuation-3             18 min,   10 added, opened by product-acceptance
+  codex gpt-6.1-terra high                chess-sf-clean                                  57 min,   11 added, opened by release-verify
+  codex gpt-6.1-terra xhigh               run                                             39 min,   10 added, opened by product-acceptance
+  codex gpt-6.1-terra xhigh               ticket-import-s3                                34 min,   11 added, opened by release-verify

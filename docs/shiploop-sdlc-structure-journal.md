@@ -1749,7 +1749,8 @@ verdict is reported as it ended and run once more if time allows.
 `shared-expenses` and of `ticket-due-times`; Sonnet 5.5 high, two S and two L of `ticket-due-times`. Every run
 recorded its arm's option, so none was set aside and the registered fallback was not needed. Every S run ran
 reviews of all eight points; every L run ran only the step, carry-forward and `release-plan` reviews. Eleven
-ended. One Sonnet L run was still working when this was written (R62).
+ended. One Sonnet L run was still working when this was written (R62); it has ended since (see the update
+after Limits).
 
 **R60. One run's process kill reached five others.** At 20:35:19, 31.7 minutes into the four Sonnet runs,
 `sonnet-high-due-S-2` stopped its own test server with `pkill -f "src/server.js" -P $(cat $S/pid)` and then
@@ -1775,7 +1776,7 @@ part (`down` in `runs-reviews/census.json`).
 | Sol 6.2 medium, ticket-due-times | S | 20.8 (resumed), 16.5 | 4.6, 3.7 | 9.3, 7.5 | 1.2, 1.7 | 15.2, 13.0 | 4.4, 2.2 |
 | | L | 15.2, 16.8 | 2.2, 3.0 | 9.2, 9.2 | 0.7, 1.3 | 12.1, 13.5 | 1.5, 1.8 |
 | Sonnet 5.5 high, ticket-due-times | S | 53.1 (39.1 with a host running), 45.3 | 9.4, 10.3 | 20.3, 28.5 | 1.6, 1.7 | 31.3, 40.5 | 10.2, 8.4 |
-| | L | unfinished, 48.3 (34.2) | 5.3, 6.4 | 21.6, 20.2 | 1.2, 0.9 | 28.1, 27.4 | 5.4 so far, 3.3 |
+| | L | 110.0 (96.0), 48.3 (34.2) | 5.3, 6.4 | 21.6, 20.2 | 1.2, 0.9 | 28.1, 27.4 | 7.4, 3.3 |
 
 - **Sol 6.2 medium, shared-expenses.** L is 36% slower from start to end (mean 13.5 against 9.9). The five
   removed reviews took 55 seconds of an S delivery, and planning took the same time in both arms. The
@@ -1805,7 +1806,7 @@ part (`down` in `runs-reviews/census.json`).
 |---|---|---|
 | Sol 6.2 medium, shared-expenses | 6 of 6, 6 of 6; every verdict | 6 of 6, 6 of 6; every verdict |
 | Sol 6.2 medium, ticket-due-times | 3 of 8, 8 of 8 | 3 of 8, 8 of 8 (this one's process verdict lost to the kill) |
-| Sonnet 5.5 high, ticket-due-times | 8 of 8, 8 of 8; every verdict | 8 of 8 at its last commit before the kill (unfinished); 8 of 8 after a rerun |
+| Sonnet 5.5 high, ticket-due-times | 8 of 8, 8 of 8; every verdict | 8 of 8, every verdict (and 8 of 8 at its last commit before the kill); 8 of 8 after a rerun |
 
 - **The two 3 of 8, one in each arm, are one design choice.** The delivery adds a migration script, and its
   server refuses to start with `DUE_TIMES=on` until an operator has run it ("tickets are missing due times; run
@@ -1818,7 +1819,7 @@ part (`down` in `runs-reviews/census.json`).
 - **One lost verdict, run again** (R55's rule). `sonnet-high-due-L-2` was first graded 7 of 8: `pristine` failed
   with a connection reset in the untouched base's own tests. Run again on the saved work it passed 5 of 5; both
   are kept (`runs-reviews/reruns.json`).
-- **The unfinished run.** After its resume, `sonnet-high-due-L-1`'s release check ran the delivery's `npm test`
+- **The run that was unfinished at the first write-up** (its end is in the update after Limits). After its resume, `sonnet-high-due-L-1`'s release check ran the delivery's `npm test`
   46 times, saw about 4 abnormal runs against 0 in 40 on the base, and opened a third work item so that the
   service registers its signal handlers before it reports that it listens. Its later step plan records 0 red in
   200 runs before the fix. At 84 minutes it was still building that item. Its product at its last commit before the
@@ -1826,7 +1827,8 @@ part (`down` in `runs-reviews/census.json`).
 
 **R63. Refusals and send-backs.** Refused commands are alike in both arms: Sonnet 9 and 8 against 8 and 8; Sol
 6.2 `ticket-due-times` 3 and 8 against 4 and 5; `shared-expenses` 6 and 7 against 7 and 5. No build stage sent
-an item back in any finished run, and no stage after the build opened new work in one.
+an item back, and no stage after the build opened new work, in the eleven runs that had ended at the first
+write-up. The twelfth is the exception (see the update after Limits).
 
 **R64. What the removed reviews changed** (`evidence/removed-review-judged.txt`; each packet is the review's own
 tree before and after, and its result as submitted and as accepted). 37 reviews of the five removed stages, in
@@ -1862,7 +1864,8 @@ the request did not state.
   run lacks a harness verdict. That verdict was lost to the kill 12 seconds after the delivery was complete, so
   the cell is read here as no loss seen, and this is a departure from the letter: held-out checks are 3 and 8
   of 8 in both arms. Sonnet: no loss seen in the finished L run after its rerun (7 of 8 as first graded); the
-  other L run is unfinished, so the cell has no reading yet.
+  other L run was unfinished at the first write-up. It has since ended with every verdict and 8 of 8, so the
+  cell reads no loss seen.
 - **The removed reviews earn their place on Sonnet 5.5 high** (69% substantive by both judges; the bar was
   30%). **They do not on Sol 6.2 medium** (0%; the bar was 10%).
 - **Lean does not pay on Sonnet 5.5 high,** by the registered rule: the removed reviews earn their place.
@@ -1934,7 +1937,7 @@ the request did not state.
 
 ### Limits
 
-- Two runs a cell, one of them unfinished at this write-up. The registered time measure was lost in two of
+- Two runs a cell, one of them unfinished at the first write-up (ended since). The registered time measure was lost in two of
   three cells to the kill; the milestone and the time split that replace it were not registered.
 - The judges are one model, and 13 packets is a small base for a kappa. Packets are cut at 12,000 characters.
 - An edit is not an escape (F45). The held-out checks are at their ceiling on Sonnet and cannot show what the
@@ -1946,6 +1949,36 @@ the request did not state.
 - Whether an S run asked for `none` and was held to `stage` by the pin was not established.
 - R61's time split charges a review to the stage it reviews and leaves out the time no host ran; a resumed
   session re-reads its run, and that reading is charged to the stage it resumed in.
+
+### Update, 2026-11-20, after the first write-up (6c4fcfdbe14bde845eb9bb110eb737dd732e63d6): the twelfth run ended
+
+`sonnet-high-due-L-1` ended 110.0 minutes after its start, 96.0 of them with a host running: every harness
+verdict and 8 of 8 held-out checks. The work item its release check opened took 52 minutes, from 52.3 to 104.6,
+with two send-backs from `implement` to the step plan (at 68.1 and 85.7 minutes). The product had passed 8 of 8
+at 28.3 minutes, before that item (`runs-reviews/l1-at-kill.json`). The resumed session cost $7.44; the session
+the kill ended reported none.
+
+What it changes above. R59: all twelve ended. R61: the L row of the table now holds 110.0 minutes and 7.4
+minutes in reviews. R62: 8 of 8 at the end. R63: this run is the one with send-backs and with work opened after
+the build. The quality reading for the Sonnet cell is now no loss seen. No time reading changes: start to end
+was already not comparable in this cell. `runs-reviews/unfinished.json` is removed; the report no longer needs
+it.
+
+- **F50 (new; interim, two cases on the current Sonnet).** A work item opened after the build is what makes a
+  Sonnet delivery long. Here it more than doubled the run (52 minutes on top of 44 with a host running) for a
+  product that already passed every held-out check. On record it is rare (`evidence/late-work-census.txt`): 8
+  of 311 finished whole deliveries, 5 of 269 on terra, none on Sol 6.2 medium (11), Sol 6.1 medium (4) or Grok
+  (6), but 2 of 5 on Sonnet 5.5 high: this one, opened by `release-check`, and the fewest-steps round's
+  `shared-expenses` delivery, opened by `product-acceptance`, which added 13 minutes. Whether either was needed
+  is not established. This one followed a stability measurement taken while other runs shared the machine
+  (F48).
+- **Also read for the next round (exploratory; quick cuts of this round's runs and of the records, not
+  registered; `evidence/next-round-cuts.txt`).** On Sonnet the step plan alone takes 11% of a delivery, against
+  6 to 8% on Sol 6.2 medium, and Sonnet's plans hold 20 to 26 criteria for the request where Sol 6.2's hold 2 to
+  6. The seconds after a refused command are 7 to 12% of a run, most of them after the mutation check in `test`. The
+  three recorded Grok 4.6 xhigh deliveries of `ticket-due-times` (2026-11-14, before the fewest-steps release)
+  took 339 to 364 active minutes, 112 to 134 of them in reviews: the step reviews 38 to 53, the four planning
+  reviews 46 to 56. Their review records are still on disk and have not been judged.
 
 ## Evidence (all rounds)
 
@@ -1988,7 +2021,9 @@ the request did not state.
 | `evidence/review-yield-drivers.txt`, `review_yield_drivers.py` | round 7: what each review changed, by driver and reviewed stage, from the pass logs of this study's runs (R58) |
 | `overlays/r7-s-planning-reviews-pinned.json`, `overlays/r7-l-lean-reviews.json`, `build_arm.py` | round 7: the two arms' edits, applied to plugin build copies only, and the script that builds an arm's plugin for `run.py --plugin-dir` |
 | `evidence/review-arms.txt`, `review_arms_report.py`, `runs-reviews/census.json` | round 7: the twelve deliveries' rows, the registered readings by driver and case, the time split, and the file they are computed from (R59 to R63) |
-| `runs-reviews/interrupted.json`, `runs-reviews/reruns.json`, `runs-reviews/unfinished.json`, `runs-reviews/l1-at-kill.json` | round 7: which runs the kill reached and how each went on, the one check run again, and the unfinished run's grading at its last commit before the kill (R60, R62) |
+| `runs-reviews/interrupted.json`, `runs-reviews/reruns.json`, `runs-reviews/l1-at-kill.json` | round 7: which runs the kill reached and how each went on, the one check run again, and the grading of the run that was unfinished at the first write-up at its last commit before the kill (R60, R62) |
+| `evidence/late-work-census.txt`, `late_work_census.py` | round 7 update: how often a stage after the build opened a new work item, by driver, in 311 finished whole deliveries, and the minutes it added (F50) |
+| `evidence/next-round-cuts.txt`, `next_round_cuts.py` | round 7 update, exploratory: seconds by stage and after refused commands in this round's deliveries, criteria per work item, and the recorded Grok deliveries by part |
 | `removed_review_diffs.py`, `judge-reviews/packet-*.txt`, `judge-reviews/key.json` | round 7: each review of a removed stage that changed anything, as the judges saw it, and which run and driver each is |
 | `judge-reviews/out-A.jsonl`, `judge-reviews/out-B.jsonl`, `evidence/removed-review-judge-brief.txt` | round 7: each judge's label, scope and reason per packet, and the brief |
 | `evidence/removed-review-judged.txt`, `removed_review_score.py` | round 7: the judges' agreement and the substantive share by driver and reviewed stage (R64) |
@@ -2044,7 +2079,9 @@ none` and name the folder `-L-1`). Then `review_option_census.py runs-reviews/ce
 `review_arms_report.py runs-reviews/census.json`, which reads the run folders and reproduces
 `evidence/review-arms.txt`. The judges: `removed_review_diffs.py judge-reviews <run folders>` writes the packets, two
 judges label them with `evidence/removed-review-judge-brief.txt`, and `removed_review_score.py judge-reviews`
-rescores from the repository alone.
+rescores from the repository alone. `late_work_census.py <work>/census.json runs-reviews/census.json` reads the
+runs' traces and reproduces `evidence/late-work-census.txt`; `next_round_cuts.py runs-reviews/census.json
+<work>/census.json` does the same for `evidence/next-round-cuts.txt`.
 
 Round 3: `python3 -I replay_score.py judge-replay` rescores from the repository alone. To run it again from the
 recorded runs: `replay_cases.py <work>` (needs `<work>/census.json` and `<work>/review_edits.json`),
