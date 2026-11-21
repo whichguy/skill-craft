@@ -1,0 +1,6 @@
+JUDGE ON SHIPLOOP'S R-n FORM: the same eight statements as CAL-rich, laid out as requirements with acceptance lines
+
+covered: U/C form 7 of 27, R-n form 7 of 27
+partial: U/C form 7, R-n form 8
+same state on 26 of 27 nuances; same covered-or-not on 27 of 27
+  N-26: absent -> partial

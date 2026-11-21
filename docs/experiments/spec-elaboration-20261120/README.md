@@ -174,3 +174,57 @@ read. Detail and evidence in `docs/spec-elaboration-journal.md` section 5.
 ```sh
 sh queue-2.sh          # everything above, in order, resumable; stops at once if a session leaks
 ```
+
+## The plan to conclude (2026-11-20, revised before round 5 began)
+
+The owner asked, ten minutes into round 4, whether the plan to conclude should change. It should: the queue above
+answers this experiment's questions, and the conclusion is a narrower thing, a decision on what goes into
+ShipLoop's `spec` stage. Measured against that, the queue carried two things the decision does not need and lacked
+one that it cannot be made without. `queue-2.sh` was stopped after its round-4 subject calls; `queue-3.sh` carries on.
+
+**Added: the baseline that was missing.** Every arm so far is measured against `A-single`, the ratchet pilot's
+enrich text. That is the newest text for this job; it is not what ShipLoop ships. The released `spec` stage is twelve
+duties that already ask for async completion and recovery, the life of each piece of state, designed interface
+states and bounded non-functional requirements (duties 6 to 9), and it has never been run on these requests. Until
+it is, nothing here shows that the elaboration adds to ShipLoop rather than repeating it.
+
+- `P-shiploop-spec` = `shiploop_prompts.prompt("spec")`, word for word as a packet prints it (source and hash in
+  `arms/P-shiploop-spec.source.txt`), under a frame that says what is absent when the stage runs alone, with the
+  skill's own reference guides in `GUIDES/` as a real run has them. It writes ShipLoop's form (R-n with acceptance
+  lines) and may write a second document; the judge is given everything it wrote. The judge was checked on that
+  form first: the calibration specification re-laid as requirements scored the same covered-or-not on 27 of 27
+  nuances (`evidence/cal-rn-result.txt`).
+- **R14, does it add to ShipLoop.** P is a lower bound on the stage inside a real run, which has intake, discovery
+  and research before it. The elaboration adds to ShipLoop if the better of F and L exceeds P by 8 or more on a
+  driver (or by more than twice R6's measured move, if that is larger); nothing is shown if it is inside that band;
+  and if P is at or above them, **no fold-back is warranted on this evidence** and the conclusion is "no change".
+  `counts.json` records which guides each P session opened, so a Grokbot score that came from the skill's own
+  Salesforce card is visible as that.
+
+**Withdrawn before any call of it ran.**
+- `S-sectioned` (R11). Its question, whether asking by dimension lifts the weak categories, is the question P
+  answers better: the released stage is already laid out by dimension. And S's layout would not carry over, since
+  the stage writes R-n requirements, not this experiment's U-n and C-n. The arm file stays; one command runs it
+  (`python3 -I run.py round-5 --arms=S-sectioned`) if the owner wants the dimensions they listed tested as such.
+- The clause audit of round 1. It would have re-checked an old claim on sessions that are now known to have leaked.
+
+**Kept as registered:** round 4 (R6, R7, R1), F and L in round 5 (R8, R9), the clause audit of rounds 4 and 5 for
+the arms that write C-n clauses (R10), and the two checks of the judge on round 4 (R12, R13).
+
+**How it ends.**
+1. Four answers: is the gain real beyond noise (R6, R1), which form (R9), does it overbuild (R10), does it add to
+   the released stage (R14).
+2. They give one of three outcomes: no fold-back; fold in the lenses as one pass; fold in the iterating form. For
+   either fold-back, a drafted change to the stage's duty text that keeps duties 5 to 12 as they are, including
+   duty 10's demand for a primary source behind a platform claim, which is stricter than anything these arms ask.
+   That draft goes to Sol at max, and this journal to an adversarial read, before either is called ready.
+3. The fold-back is a ShipLoop product-behaviour trade-off, minutes and specification length in every run, so it
+   is the owner's decision, put with the numbers. After a yes: the change note, the suites, an E2E round on the
+   changed stage with its LEARNINGS entry (which is also the first check of this standalone finding inside a real
+   run), then the release.
+4. **Stop rule.** No further arm is added. An answer that comes back interim at its threshold gets one more draw of
+   the same arms, not a new arm.
+
+```sh
+sh queue-3.sh          # the revised queue, in order, resumable; stops at once if a session leaks
+```

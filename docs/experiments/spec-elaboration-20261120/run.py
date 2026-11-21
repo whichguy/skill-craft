@@ -113,6 +113,26 @@ def call_codex(prompt, cwd, model, effort, timeout):
     return rc, usage
 
 
+SKILL = HERE.parents[2] / "skills" / "shiploop"
+
+
+def give_guides(cwd):
+    """Put ShipLoop's own reference guides in cwd/GUIDES, with a README saying which file each guide name means."""
+    shutil.copytree(SKILL / "references", cwd / "GUIDES")
+    sys.path.insert(0, str(SKILL / "scripts"))
+    import shiploop_prompts
+    import shiploop_reference
+    rows = list(shiploop_prompts.STAGE_REFERENCES["spec"]) + list(shiploop_reference.POLICIES)
+    lines = ["# Guides", "", "The guides the stage text names, and the file (and section) each one is:", ""]
+    lines += [f"- {name}: `{where}`" for name, where in dict(rows).items()]
+    (cwd / "GUIDES" / "README.md").write_text("\n".join(lines) + "\n")
+
+
+# What an arm needs in its working directory before the session starts.
+ARM_SETUP = {"P-shiploop-spec": give_guides}
+OWN_FOLDERS = ("GUIDES", ".codex-home", ".tmp")
+
+
 def run_one(round_name, case, arm, driver, timeout):
     slot = f"{case['id']}__{arm}__{driver}"
     kept = HERE / "results" / round_name / slot
@@ -123,6 +143,8 @@ def run_one(round_name, case, arm, driver, timeout):
     prompt = arm_text.replace("{request}", case["request"])
     cwd = WORK / round_name / f"{slot}-{uuid.uuid4().hex[:6]}"
     cwd.mkdir(parents=True)
+    if arm in ARM_SETUP:
+        ARM_SETUP[arm](cwd)
     spec = DRIVERS[driver]
     start = time.time()
     caller = call_claude if spec["host"] == "claude" else call_codex
@@ -130,17 +152,25 @@ def run_one(round_name, case, arm, driver, timeout):
     seconds = round(time.time() - start, 1)
     kept.mkdir(parents=True, exist_ok=True)
     written = []
+    def own(path):
+        return not any(part in OWN_FOLDERS for part in path.relative_to(cwd).parts)
+
     for name in ("spec.md", "passes.md"):
-        found = next((p for p in sorted(cwd.rglob(name)) if ".codex-home" not in p.parts), None)
+        found = next((p for p in sorted(cwd.rglob(name)) if own(p)), None)
         if found is not None:
             shutil.copy2(found, kept / name)
             written.append(str(found.relative_to(cwd)))
+    # Any other document the stage wrote (ShipLoop's stage may put a decision in architecture.md) is kept beside
+    # the specification and judged with it.
+    for other in sorted(p for p in cwd.rglob("*.md") if own(p) and p.name not in ("spec.md", "passes.md")):
+        (kept / "also").mkdir(exist_ok=True)
+        shutil.copy2(other, kept / "also" / other.name)
+        written.append(str(other.relative_to(cwd)))
     for name in (".stream.jsonl", ".stderr.txt"):
         if (cwd / name).is_file():
             shutil.copy2(cwd / name, kept / name.lstrip("."))
     stray = sorted(str(p.relative_to(cwd)) for p in cwd.rglob("*")
-                   if p.is_file() and not p.name.startswith(".") and p.name not in ("spec.md", "passes.md")
-                   and ".codex-home" not in p.parts and ".tmp" not in p.parts)
+                   if p.is_file() and not p.name.startswith(".") and own(p) and p.suffix != ".md")
     ok = rc == 0 and (kept / "spec.md").is_file() and (kept / "spec.md").read_text().strip() != ""
     (kept / "meta.json").write_text(json.dumps({
         "round": round_name, "case": case["id"], "arm": arm, "arm_sha256_12": sha(arm_text), "driver": driver,

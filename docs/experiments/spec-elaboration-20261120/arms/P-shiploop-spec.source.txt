@@ -1,0 +1,3 @@
+arms/P-shiploop-spec.md holds shiploop_prompts.prompt('spec') verbatim under a standalone frame.
+source file: skills/shiploop/scripts/shiploop_prompts.py, last changed by 67ac34ae2b996205ba6018ebbd7f78bee9d338dd
+stage text sha256: 3ec6aef8fc912339a107854c21e1974355509f8434183c22bb98a3ec3eb1734f

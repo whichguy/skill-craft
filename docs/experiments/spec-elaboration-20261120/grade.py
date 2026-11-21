@@ -23,6 +23,7 @@ re-reading is a new set of verdicts beside the first, never an edit of it).
                       pooled, and nuance by nuance. Writes evidence/<round>/agreement.txt.
   audit ROUND         One headless Opus session per kept spec, reading the request and the spec, putting every clause
                       in one class: request, needed, decision, extra, empty or wrong. Writes audits/<round>/<slot>.json.
+                      --arms=A,B limits it to those arms (it reads C-n clauses, which ShipLoop's own form has none of).
   audit-board ROUND   The share of clauses in each class by arm and driver, with the clauses called extra, empty or
                       wrong. Writes evidence/<round>/audit.txt.
 
@@ -152,6 +153,14 @@ def grades_dir(round_name, tag=None):
     return HERE / "grades" / (f"{round_name}@{tag}" if tag else round_name)
 
 
+def judged_text(slot):
+    """What the judge is given as spec.md: the specification, then any other document the same stage wrote."""
+    text = (slot / "spec.md").read_text()
+    for other in sorted((slot / "also").glob("*.md")) if (slot / "also").is_dir() else []:
+        text += f"\n\n---\n\n# Also written by this stage: {other.name}\n\n" + other.read_text()
+    return text
+
+
 def clause_ids(text):
     return [f"C-{n}" for n in dict.fromkeys(re.findall(r"^#{2,4}\s*C-(\d+)\b", text, re.MULTILINE))]
 
@@ -168,7 +177,9 @@ def parse_spec(text):
 
     bundled = [m.group(1)[:70] for m in re.finditer(r"^#{2,4}\s*C-\d+:\s*(.+)$", text, re.MULTILINE)
                if " and " in m.group(1)]
-    return {"use_cases": len(set(use_cases)), "clauses": len(set(clauses)), "source_mix": mix,
+    requirements = re.findall(r"^#{2,4}\s*R-(\d+)\b", text, re.MULTILINE)
+    return {"use_cases": len(set(use_cases)), "clauses": len(set(clauses)), "requirements": len(set(requirements)),
+            "source_mix": mix,
             "use_case_gaps": gaps(use_cases), "clause_gaps": gaps(clauses), "words": len(text.split()),
             "bundled_and": len(bundled), "bundled_examples": bundled[:3]}
 
@@ -200,9 +211,17 @@ def cmd_counts(round_name, _flags):
     for slot in slots(round_name):
         meta = json.loads((slot / "meta.json").read_text()) if (slot / "meta.json").is_file() else {}
         row = parse_spec((slot / "spec.md").read_text())
+        row["words_judged"] = len(judged_text(slot).split())
+        usage = meta.get("usage") or {}
         row.update(seconds=meta.get("seconds"), rc=meta.get("rc"), arm=meta.get("arm"), driver=meta.get("driver"),
                    case=meta.get("case"), cost_usd=meta.get("cost_usd"), turns=meta.get("turns"),
-                   tools=tool_use(slot))
+                   output_tokens=usage.get("output_tokens"), tools=tool_use(slot),
+                   also=sorted(p.name for p in (slot / "also").glob("*.md")) if (slot / "also").is_dir() else [])
+        if (slot / "stream.jsonl").is_file():
+            opened = sorted({found for text in session_texts(slot / "stream.jsonl")
+                             for found in re.findall(r"GUIDES/([\w./-]+\.md)", text)})
+            if opened:
+                row["guides_opened"] = opened
         if (slot / "passes.md").is_file():
             passes = (slot / "passes.md").read_text()
             row["passes_recorded"] = len(re.findall(r"^#{1,4}\s*(?:Pass|pass)\s*\d+", passes, re.MULTILINE)) or \
@@ -213,8 +232,8 @@ def cmd_counts(round_name, _flags):
     target.mkdir(parents=True, exist_ok=True)
     (target / "counts.json").write_text(json.dumps(out, indent=1) + "\n")
     for name, row in sorted(out.items()):
-        say(f"{name:52s} U={row['use_cases']:3d} C={row['clauses']:3d} words={row['words']:6d} "
-            f"passes={row.get('passes_recorded', '-'):>3} mix={row['source_mix']}")
+        say(f"{name:52s} U={row['use_cases']:3d} C={row['clauses']:3d} R={row['requirements']:3d} "
+            f"words={row['words']:6d} passes={row.get('passes_recorded', '-'):>3} mix={row['source_mix']}")
     say(f"\n{len(out)} specs -> {(target / 'counts.json').relative_to(HERE)}")
 
 
@@ -328,7 +347,7 @@ def judge_one(round_name, slot, case, timeout, tag, judge_name):
     judge = JUDGES[judge_name]
     cwd = WORK / round_name / f"judge{'-' + tag if tag else ''}-{slot.name}-{uuid.uuid4().hex[:6]}"
     cwd.mkdir(parents=True)
-    shutil.copy2(slot / "spec.md", cwd / "spec.md")
+    (cwd / "spec.md").write_text(judged_text(slot))
     (cwd / "checklist.json").write_text(json.dumps(
         [{"id": n["id"], "nuance": n["nuance"]} for n in case["nuances"]], indent=1) + "\n")
     rc, cost = run_session(JUDGE_PROMPT, cwd, judge, timeout)
@@ -518,7 +537,9 @@ def audit_one(round_name, slot, case, timeout):
 
 def cmd_audit(round_name, flags):
     by_case = cases()
-    jobs = [(s, by_case[json.loads((s / "meta.json").read_text())["case"]]) for s in slots(round_name)]
+    arms = [a for a in flags.get("arms", "").split(",") if a]
+    jobs = [(s, by_case[json.loads((s / "meta.json").read_text())["case"]]) for s in slots(round_name)
+            if not arms or s.name.split("__")[1] in arms]
     timeout, width = int(flags.get("timeout", 2400)), int(flags.get("parallel", 3))
     say(f"auditing {len(jobs)} specs clause by clause on {JUDGES['opus']['model']} ({JUDGES['opus']['effort']}), "
         f"{width} at a time")

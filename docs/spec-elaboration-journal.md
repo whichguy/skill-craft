@@ -302,3 +302,57 @@ Considered and not queued, with the reason:
   real stage; the audit's `wrong` class is a first, undocumented reading.
 - **Ablating single passes.** R9 answers the larger question first; if iterating does not earn its place, which
   pass earns it is moot.
+
+## 6. The plan to conclude, revised ten minutes into round 4 (2026-11-20)
+
+**The owner's question.** "What's the status? Should we update the plan on how to conclude?" Status at that moment:
+`queue-2.sh` had been running for four minutes, 2 of round 4's 16 subject calls were done, and nothing new had been
+measured since section 5.
+
+**Answer: yes, and for a reason that is this session's miss.** Section 5's queue answers eight questions about the
+experiment. The conclusion the owner set at the start is narrower: a small side experiment, then reincorporation
+into ShipLoop. That is one decision, on what goes into ShipLoop's `spec` stage, and it needs four answers:
+
+| the decision needs | where it comes from | was it in the queue |
+| --- | --- | --- |
+| Is the gain real beyond noise, on clean isolation? | round 4 (R6, R7, R1) | yes |
+| Which form: going round again, or the lenses in one pass? | round 5, F against L (R9) | yes |
+| Does it ask for more than the request does? | the clause audit (R10) | yes |
+| **Does it add anything to the stage ShipLoop ships?** | nothing | **no** |
+
+The fourth is the miss. Section 1 called arm A "the current state of the art" and made it the control. It is the
+ratchet pilot's enrich text, the newest text for this job. It is not ShipLoop's released `spec` stage, whose twelve
+duties already ask for async completion and recovery (duty 8), the owner, readers, end and quotas of each piece of
+state (duty 9), designed interface states and bounded non-functional requirements (duty 6) and a state and data
+assessment (duty 7). Every result in sections 3 to 5 therefore reads "better than the ratchet pilot's single pass",
+and none reads "better than ShipLoop". The released stage could already sit near the recursive arms, in which case
+the honest conclusion is that nothing should be folded back.
+
+**What changed (routine: this experiment's own runs).**
+- Added `P-shiploop-spec`: `shiploop_prompts.prompt("spec")` word for word, in a frame that says what is absent
+  when the stage runs alone, with the skill's reference guides to hand as a real run has them. Reading R14 is in
+  the README. P is a lower bound on the real stage (no intake, discovery or research ran before it), and it writes
+  ShipLoop's R-n form, so the judge was checked on that form before any P call: the calibration specification
+  re-laid as eight requirements with acceptance lines scored 7 of 27 covered, as it did in U-n and C-n form, the
+  same covered-or-not on 27 of 27 nuances and the same state on 26 (`evidence/cal-rn-result.txt`).
+- Withdrew `S-sectioned` before any call of it ran. Its question is the one P answers better, since the released
+  stage is already laid out by dimension, and its layout would not carry into a stage that writes R-n requirements.
+  The dimensions are the owner's own list, so the arm file stays and one command runs it.
+- Withdrew the clause audit of round 1: an old claim, on sessions now known to have leaked.
+- `queue-2.sh` was stopped by ending its own shell after round 4's subject calls had started; the calls in flight
+  ran on. `queue-3.sh` waits for them, then carries on with round 4's checks, round 5 as F, L and P, the two checks
+  of the judge, and the clause audit of the arms that write C-n clauses.
+
+**How it ends** is registered in the README: four answers, one of three outcomes (no fold-back; the lenses as one
+pass; the iterating form), a drafted change to the stage's duty text reviewed by Sol at max, the owner's decision
+on the trade-off, and only then the change note, the suites, the E2E round and the release. Stop rule: no further
+arm; an interim answer gets one more draw of the same arms.
+
+**Whose is what.**
+- This session's: rounds 4 and 5, the judge checks, the audit; reading R6 to R14; the draft or the "no change"
+  conclusion; the Sol review and an adversarial read of this journal.
+- The owner's: whether to fold it in at all once the numbers are in (a product-behaviour trade-off); where it
+  lands, the released stage, the ratchet pilot's enrich stage, or both; whether the sections arm should still run;
+  whether Sol at high is worth a cell.
+- Another session's: the ratchet pilot, which measures the same idea through the built product. If the owner wants
+  this text or this instrument there, that session takes it; its branch and runs were not touched.

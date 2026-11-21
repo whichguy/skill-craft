@@ -1,0 +1,9 @@
+{
+ "round": "cal-rn",
+ "case": "grokbot-salesforce",
+ "arm": "CAL-rich-rn",
+ "driver": "hand",
+ "rc": 0,
+ "ok": true,
+ "seconds": 0
+}
