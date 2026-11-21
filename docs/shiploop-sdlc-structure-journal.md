@@ -2221,6 +2221,53 @@ last, with its own tests green throughout. That is F46's reading again, on a thi
 - **Counts.** Held-out checks, the planning choice and the option each run records are added to R69 and R70.
 - **Limits known before the run.** Two runs a cell, two requests, one evening.
 
+### Results: the paired redo (run 2026-11-21 after 98ee2e64527a2445a60d1e155d49628c374bb00d)
+
+**R73. The runs** (`evidence/effort-sol-paired.txt`). Eight whole deliveries on ShipLoop 2.4.0, medium and high
+started together: `shared-expenses` two and two at 03:29, `ticket-due-times` one and one at 03:29 and again at
+03:54. This round's Grok delivery ran beside them. Every run ended in one session with every harness verdict.
+Two of the four medium runs recorded `none` by themselves, so each medium cell holds one run.
+
+**R74. Time**, in minutes.
+
+| Request | Measure | Medium | High | Change |
+|---|---|---|---|---|
+| shared-expenses | start to end | 11.1 (and 11.9 with reviews off by its own choice) | 17.1, 13.7 | +38% |
+| | to the first step plan | 3.0 | 4.0, 3.8 | +32% |
+| | to `system-test` | 8.3 | 13.3, 10.4 | +43% |
+| ticket-due-times | start to end | 15.0 (and 13.7 with reviews off by its own choice) | 24.6, 25.2 | +66% |
+| | to the first step plan | 3.7 | 5.0, 5.4 | +40% |
+| | to `system-test` | 12.2 | 19.3, 19.7 | +60% |
+
+**R75. Held-out checks and the planning choice.** `shared-expenses`: 6 of 6 in all four. `ticket-due-times`: both
+high runs 3 of 8, the operator-step choice again; medium 3 of 8 for the same reason, and 8 of 8 in the run with
+reviews off. That run was first graded 7 of 8: `suite` ended at the harness's time limit with no test result,
+the lost verdict of R55, and passed 5 of 5 on the returned work (`runs-effort-paired/reruns.json`). The count on
+ShipLoop 2.4.0 is now: Sol 6.2 medium 3 of 6, Sol 6.2 high 4 of 6, 7 of 12 in all; Sonnet 0 of 4.
+
+**R76. Runs that switched planning reviews off by themselves**: two of the four medium runs, neither high run.
+With R70 that is 5 of the 15 Sol 6.2 deliveries that were free to choose: 3 of 5 on medium, 2 of 10 on high.
+
+**R77. The exposure of R72, seen.** Two of the eight runs' events name a file under the owner's own skill
+folders, twice each (`sol-high-expenses-p1`, `sol-medium-expenses-p1`).
+
+### Registered readings: the paired redo
+
+- **Time.** High is slower on both requests: 38% on `shared-expenses` and 66% on `ticket-due-times`, each
+  against the one medium run that kept planning reviews on. The medium runs with reviews off were faster still.
+- **Quality.** The same on `shared-expenses`. On `ticket-due-times` high passed 3 and 3 of 8 against medium's 3
+  and 8.
+- This replaces the withdrawn readings of R68. F52 stands again, restated: **high costs about 40% more minutes
+  on the small request and two thirds more on the planning-heavy one, for held-out results that are no better.**
+  Unlike the withdrawn figures, planning is slower too (32% and 40% to the first step plan). Interim: one evening
+  and one medium run a cell.
+- F51 is stronger for it: the failing planning choice came in 4 of 6 high deliveries and 3 of 6 medium ones.
+- F53's count is now 5 of 15.
+
+Recommendation 1 of this round, restated on these numbers: on this evidence Sol 6.2 medium is the better
+driver for these two requests, faster by a third or more and no worse on the held-out checks. The switch to
+high is the owner's to keep or reverse.
+
 ## Evidence (all rounds)
 
 | File | Holds |
@@ -2267,6 +2314,7 @@ last, with its own tests green throughout. That is F46's reading again, on a thi
 | `evidence/next-round-cuts.txt`, `next_round_cuts.py` | round 7 update, exploratory: seconds by stage and after refused commands in this round's deliveries, criteria per work item, and the recorded Grok deliveries by part |
 | `evidence/grok-review-scan.txt`, `grok_review_scan.py` | round 8, context only: every recorded Grok 4.6 review's passes, seconds and whether it changed anything, on ShipLoop 1.34.3 to 2.3.0 (R66) |
 | `evidence/effort-sol-high.txt`, `effort_report.py`, `runs-effort/census.json` | round 8: the six Sol 6.2 high deliveries beside round 7's Sol 6.2 medium runs, the registered readings, and the file they are computed from (R67 to R71) |
+| `evidence/effort-sol-paired.txt`, `runs-effort-paired/census.json`, `runs-effort-paired/reruns.json` | round 8: the paired redo, medium and high started together, its readings, the file they are computed from, and the one check run again (R73 to R77) |
 | `removed_review_diffs.py`, `judge-reviews/packet-*.txt`, `judge-reviews/key.json` | round 7: each review of a removed stage that changed anything, as the judges saw it, and which run and driver each is |
 | `judge-reviews/out-A.jsonl`, `judge-reviews/out-B.jsonl`, `evidence/removed-review-judge-brief.txt` | round 7: each judge's label, scope and reason per packet, and the brief |
 | `evidence/removed-review-judged.txt`, `removed_review_score.py` | round 7: the judges' agreement and the substantive share by driver and reviewed stage (R64) |
@@ -2332,7 +2380,9 @@ builds packets for every review point of one model's runs, seeded slices include
 the registration commit, `build_arm.py <folder>` with no overlay, `run.py --case <case> --host codex --model
 gpt-6.2-sol --effort high --source checkout --plugin-dir <plugin> --output <root>/<name>` from that worktree, then
 `review_option_census.py runs-effort/census.json <root>` and `effort_report.py runs-reviews/census.json
-runs-effort/census.json`, which reads the run folders and reproduces `evidence/effort-sol-high.txt`.
+runs-effort/census.json`, which reads the run folders and reproduces `evidence/effort-sol-high.txt`. The paired redo:
+the same launches with medium and high started together, `review_option_census.py runs-effort-paired/census.json
+<root>`, then `effort_report.py - runs-effort-paired/census.json` reproduces `evidence/effort-sol-paired.txt`.
 
 Round 3: `python3 -I replay_score.py judge-replay` rescores from the repository alone. To run it again from the
 recorded runs: `replay_cases.py <work>` (needs `<work>/census.json` and `<work>/review_edits.json`),
