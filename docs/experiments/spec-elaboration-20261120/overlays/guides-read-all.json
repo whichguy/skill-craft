@@ -1,0 +1,11 @@
+{
+ "about": "Spec-elaboration journal sections 40 to 44, arm R of the guides test: one sentence added to the spec stage's goal, telling the author to print and read the whole packet. For an experiment only; not a proposed change to ShipLoop.",
+ "edits": [
+  {
+   "module": "shiploop_stage_spec.py",
+   "constant": "_ROWS",
+   "old": "Define each requirement and its acceptance lines as R-<n> in KNOWLEDGE/spec.md; ShipLoop derives this run's ID changes from the spec diff.",
+   "new": "Define each requirement and its acceptance lines as R-<n> in KNOWLEDGE/spec.md; ShipLoop derives this run's ID changes from the spec diff. Before you act, print and read this whole packet, down to its closing line: the numbered duties below are this stage's instructions."
+  }
+ ]
+}

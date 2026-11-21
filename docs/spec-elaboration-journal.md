@@ -3320,3 +3320,65 @@ third.
 
 **Passed on**, as information: to the SDLC session, whose study is ShipLoop's structure on these hosts, and to the
 Ratchet session.
+
+## 44. The owner's go-ahead, step 0, and a fourth arm registered before any run (14:29, 2026-11-21)
+
+**The owner's word**, about 14:20, to the question "Run the small guides test now?", offered with or without an
+arm that tells the model to read its whole packet: "Yes, approved to continually do experiments / tests as you se
+for". I read it as: run it, and go on with experiments and tests in this study on my own judgement. This journal's
+rules stay: each design is registered before its first model call, steps are small with their cost and stop rule
+written first, and results are reported at milestones. Decisions about ShipLoop itself stay his.
+
+**Step 0, done.** Two sorter sessions (`labels/here-opus.json`, `labels/here-astra.json`; Opus 23 cents, Astra on
+subscription). Opus: 12 items apply, 4 are capability, 4 mixed, 1 unclear. Astra: 11 apply, 3 capability, 7 mixed.
+Nine items apply for both and are the list every score uses: N-1 partial failure, N-2 what the admin gets back, N-3
+duplicates, N-5 who may import, N-6 validation of the file, N-7 encoding and shape, N-9 a size limit, N-10 empty
+and one-row files, N-11 the same file twice. Both call three capability: N-12 background processing, N-13 mail,
+N-18 cancel and retry. The other nine are mixed, unclear or disagreed; they are shown for each arm and never
+counted. Nine is one above the gate of 8.
+
+**A free reading before deciding on the fourth arm** (no model called). In the 9 of 50 existing runs where the
+model was given the lines that say where the guides are (section 43), was a guide then opened before the spec's
+acceptance? A passage of the two sections: in none of the 9. Three or more lines of either guide file in one
+output: in 1 of the 9 (other sections of `requirements-definition.md`), and in 1 of the 41 runs that were not given
+the lines. Seeing the pointers did not lead to opening the guides.
+
+**The fourth arm, R.** ShipLoop as released, with one sentence added to the spec stage's goal: "Before you act,
+print and read this whole packet, down to its closing line: the numbered duties below are this stage's
+instructions." The goal is the line a packet prints under its first, and the model gives it to itself even when it
+skims. (`overlays/guides-read-all.json`, 22 words. It edits the stage's row in `shiploop_stage_spec.py`, so the
+sentence also shows wherever ShipLoop prints the spec stage's goal, such as the head of its review's packet.)
+
+- What it is for. Section 43 found that Sol gives itself only part of a packet. R asks whether one sentence changes
+  that. Its first reading is how much of the spec packet R's author gives itself, above all of the reference lines
+  (the middle of the 50 runs is 14%). Its second is R over A on the nine items.
+- What I expect of it. At the spec stage the instructions were already given at four fifths or more in 41 of 50
+  runs, so R can change a specification in about one run in five, and the reading above says pointers, once seen,
+  are not followed. R's yield is mostly its first reading, which matters most for the later stages, where half the
+  packets are skimmed.
+- Delivery for R: its sentence was given to the model and the cue was not. How much of the instructions R's author
+  gives itself is R's result and not a condition, and so is a guide R's author opens.
+- R over A is a second registered contrast, read by the same rule as X over C (`outcome`): delivery unknown;
+  delivery failed (of A or of R); harm (4 or more items lower on net, or a verified capability in R alone); worth
+  repeating (4 or more higher under both judges, net 4 or more, 2 or more of them absent in A); no signal (fewer
+  than 2 either way); otherwise described. X over C rests on the delivery of A, C and X, and R's delivery does not
+  touch it.
+
+**Predictions added for the first set, before any run.** Predictions 1 to 7 stand, with "all three" in 1 and 2 now
+"all four"; with four arms I give prediction 2 somewhat under an even chance.
+
+8. R's author gives itself at least nine tenths of the reference lines of its spec packet.
+9. R's author opens neither of the two spec guide sections before its acceptance.
+10. R over A: fewer than 2 items higher and fewer than 2 lower under both judges.
+
+**A set is now four runs side by side**, A, R, C and X, the first to launch rotating with the set. It adds one Sol
+run and two judge readings to section 41's cost.
+
+**Not reviewed at maximum effort.** The fourth arm is one overlay, one delivery check and a second use of the same
+rule. It was rehearsed offline with the rest (84 checks held and none failed; `evidence/guides-test/rehearsal.txt`
+is that run's transcript) and was not sent for a third review.
+
+**Order of work.** Commit this section with the two label files and the driver; cut a clean checkout at that
+commit; `prepare`, `run` set s1 on Sol with a 20-minute limit, `collect`; if the set is complete, `judge`, the
+blind reader, `score`. If the delivery of A, C or X fails, one replacement set. A set incomplete twice, or the same
+fault twice, ends the step and is reported.

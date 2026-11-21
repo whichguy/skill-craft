@@ -1,0 +1,122 @@
+{
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "cost_usd": null,
+ "prompt_sha256": "12ee5b002276f777f99ac3c3252d76208a6dd6663d503add70e659e3438f096b",
+ "request": "Let admins upload a CSV to bulk-create users.",
+ "fixture_digest": "8f445d24ed3c",
+ "labels": [
+  {
+   "id": "N-1",
+   "here": "applies",
+   "why": "The commit rule determines which users appear in GET /users when a file contains both valid and invalid rows."
+  },
+  {
+   "id": "N-2",
+   "here": "applies",
+   "why": "The upload response must let the admin locate a rejected row and understand what to correct."
+  },
+  {
+   "id": "N-3",
+   "here": "applies",
+   "why": "Bulk creation needs a matching rule and a defined outcome for collisions with existing users and between rows in the upload."
+  },
+  {
+   "id": "N-4",
+   "here": "mixed",
+   "applies_part": "Define which user fields the import may set and ensure an uploaded row cannot grant privileges.",
+   "why": "A field allowlist can enforce the privilege boundary here, while comparing assignable roles requires a role model absent from the user store."
+  },
+  {
+   "id": "N-5",
+   "here": "applies",
+   "why": "The request reserves uploads for admins, so the upload endpoint needs its own enforceable authorization rule even though the server currently exposes only reads."
+  },
+  {
+   "id": "N-6",
+   "here": "applies",
+   "why": "The importer needs a header contract to map columns to user fields and handle missing or unexpected columns."
+  },
+  {
+   "id": "N-7",
+   "here": "applies",
+   "why": "Encoding, line endings and CSV quoting determine where headers, fields and records begin and end."
+  },
+  {
+   "id": "N-8",
+   "here": "mixed",
+   "applies_part": "Specify whether users inserted from earlier rows remain in the store when a later row fails.",
+   "why": "Inserting a user changes observable state, while sending an invitation requires a mail capability absent from the program."
+  },
+  {
+   "id": "N-9",
+   "here": "applies",
+   "why": "The HTTP handler needs an enforceable upload limit and a defined rejection outcome to bound the resources consumed by one request."
+  },
+  {
+   "id": "N-10",
+   "here": "applies",
+   "why": "Empty input, a header with zero records and one data row are distinct boundary cases for the upload."
+  },
+  {
+   "id": "N-11",
+   "here": "applies",
+   "why": "An admin can repeat a request after a lost response, so the specification must explain what happens to rows already created."
+  },
+  {
+   "id": "N-12",
+   "here": "capability",
+   "why": "Processing after the HTTP request finishes and reporting later completion would add background jobs and a way to obtain their results."
+  },
+  {
+   "id": "N-13",
+   "here": "capability",
+   "why": "Invitation volume and pacing belong to a mail service that neither the program nor the upload request calls for."
+  },
+  {
+   "id": "N-14",
+   "here": "mixed",
+   "applies_part": "Define the initial record for each accepted row, including its ID, name, email and visibility through the existing reads.",
+   "why": "Creating the stored record is intrinsic to the import, while account activation, passwords and first sign-in require an account lifecycle the program lacks."
+  },
+  {
+   "id": "N-15",
+   "here": "mixed",
+   "applies_part": "Specify where uploaded personal data is held during processing and when the raw file or any temporary copy is discarded.",
+   "why": "Handling and retention apply as soon as the server receives the bytes, while later download would require a retrievable file and a download endpoint."
+  },
+  {
+   "id": "N-16",
+   "here": "applies",
+   "why": "The column contract can settle this by treating names and emails as text, defining how numeric IDs are assigned and excluding date or locale-based coercion."
+  },
+  {
+   "id": "N-17",
+   "here": "applies",
+   "why": "Attributing a bulk write to its admin requires deciding what import details and timestamp to log without copying the raw personal data into the log."
+  },
+  {
+   "id": "N-18",
+   "here": "capability",
+   "why": "Targeting an in-flight import for cancellation or a previous import for selective retry would add import controls beyond submitting a CSV."
+  },
+  {
+   "id": "N-19",
+   "here": "mixed",
+   "applies_part": "Set and verify a processing-time bound for an upload at the supported size limit.",
+   "why": "Maximum-size performance belongs to the upload contract, while live progress would add a user-visible reporting channel."
+  },
+  {
+   "id": "N-20",
+   "here": "mixed",
+   "applies_part": "Preserve existing user records and their behavior through the list and lookup endpoints when adding imported users.",
+   "why": "The store already serves existing records, while the server has no manual single-user creation path to preserve."
+  },
+  {
+   "id": "N-21",
+   "here": "mixed",
+   "applies_part": "Bound field lengths and handle oversized or hostile values safely in the import and its HTTP result.",
+   "why": "Field validation applies to every upload, while formula execution on opening a result presupposes a spreadsheet-compatible export beyond the server's JSON responses."
+  }
+ ]
+}

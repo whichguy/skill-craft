@@ -1,0 +1,119 @@
+{
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "cost_usd": 0.23183579999999998,
+ "prompt_sha256": "12ee5b002276f777f99ac3c3252d76208a6dd6663d503add70e659e3438f096b",
+ "request": "Let admins upload a CSV to bulk-create users.",
+ "fixture_digest": "8f445d24ed3c",
+ "labels": [
+  {
+   "id": "N-1",
+   "here": "applies",
+   "why": "How the import behaves when some rows are bad is the requested behaviour's own error conduct."
+  },
+  {
+   "id": "N-2",
+   "here": "applies",
+   "why": "The HTTP response to the upload, including per-row failures, is part of the requested behaviour."
+  },
+  {
+   "id": "N-3",
+   "here": "applies",
+   "why": "Users are keyed by email in the existing store, so conflicts with existing users and within the file are a boundary the import must settle."
+  },
+  {
+   "id": "N-4",
+   "here": "applies",
+   "why": "The request introduces an admin distinction, so a safe import must say whether a file can grant it: a privilege-escalation security check."
+  },
+  {
+   "id": "N-5",
+   "here": "applies",
+   "why": "Who may use the import (admins only) is stated by the request and is a 'who may use it' question."
+  },
+  {
+   "id": "N-6",
+   "here": "applies",
+   "why": "Rejecting malformed files (header, required or unexpected columns) is the import's own input validation."
+  },
+  {
+   "id": "N-7",
+   "here": "applies",
+   "why": "Parsing BOMs, line endings and quoted fields correctly is needed for any correct CSV import with no parser dependency."
+  },
+  {
+   "id": "N-8",
+   "here": "mixed",
+   "applies_part": "Whether users created from earlier rows stay in the store when a later row fails must be settled.",
+   "why": "Earlier in-store creations apply; invitations already sent need mail, which the program lacks."
+  },
+  {
+   "id": "N-9",
+   "here": "applies",
+   "why": "A size or row limit on the upload and the error above it is a quota and boundary of the endpoint."
+  },
+  {
+   "id": "N-10",
+   "here": "applies",
+   "why": "Empty, header-only and single-row files are edge cases of the requested behaviour."
+  },
+  {
+   "id": "N-11",
+   "here": "applies",
+   "why": "Re-uploading the same file follows from the duplicate rule and must be stated for the import's conduct."
+  },
+  {
+   "id": "N-12",
+   "here": "capability",
+   "why": "Background processing and completion notification need job and notification capabilities the program lacks and the request does not ask for."
+  },
+  {
+   "id": "N-13",
+   "here": "capability",
+   "why": "The program sends no mail and the request does not ask for invitations."
+  },
+  {
+   "id": "N-14",
+   "here": "mixed",
+   "applies_part": "What record a created user gets in the existing store (assigned id, name, email) must be settled.",
+   "why": "The stored shape applies; passwords, pending state and first sign-in need a sign-in capability the program lacks."
+  },
+  {
+   "id": "N-15",
+   "here": "mixed",
+   "applies_part": "That the uploaded personal data is processed in memory and not retained after the request (its retention) must be stated.",
+   "why": "Retention is rigour; storing files for later download is a capability nobody asked for."
+  },
+  {
+   "id": "N-16",
+   "here": "unclear",
+   "why": "Users have only name and email, and the request does not say whether the file carries any date or number values."
+  },
+  {
+   "id": "N-17",
+   "here": "capability",
+   "why": "The program has no logging or audit store and the request does not ask for an audit trail."
+  },
+  {
+   "id": "N-18",
+   "here": "capability",
+   "why": "Cancelling a running import and retrying selected rows need job and import-history features the request does not ask for."
+  },
+  {
+   "id": "N-19",
+   "here": "mixed",
+   "applies_part": "A bound on how long processing a maximum-size file in the request may take must be settled.",
+   "why": "The time bound is rigour; visible progress needs a progress or background capability the program lacks."
+  },
+  {
+   "id": "N-20",
+   "here": "applies",
+   "why": "Keeping the existing users and the existing endpoints' behaviour intact is what of the existing program must be preserved."
+  },
+  {
+   "id": "N-21",
+   "here": "applies",
+   "why": "Handling hostile values (formula injection, very long fields) is a security check on the import's input and output."
+  }
+ ]
+}

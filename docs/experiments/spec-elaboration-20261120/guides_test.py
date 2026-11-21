@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-"""The guides test (journal sections 39 to 41): real ShipLoop runs from one sentence, read at the accepted specification.
+"""The guides test (journal sections 39 to 44): real ShipLoop runs from one sentence, read at the accepted specification.
 
-Three arms of one build: A, ShipLoop as it is; C, the same with one cue sentence at the end of the spec stage's first
-duty; X, the cue and, after the stage's last duty, the unchanged text of two guide sections. A sample is a real run of
+Four arms of one build: A, ShipLoop as it is; R, the same with one sentence in the spec stage's goal telling the author
+to print and read the whole packet; C, A with one cue sentence at the end of the spec stage's first duty; X, the cue
+and, after the stage's last duty, the unchanged text of two guide sections. A sample is a real run of
 test/shiploop_e2e/run.py on a small existing user service, started from the sentence REQUEST and ended through the
 harness's own stop file once ShipLoop's trace shows the specification accepted. The specification is read from the
 commit that held it at acceptance, with a witness that the commit's text is the accepted text.
 
-  overlays                          no model: write the two overlays from the guide text in this checkout
-  prepare ROOT [--allow-dirty]      no model: lay the base down, build the three arms, enforce how they differ
+  overlays                          no model: write the three overlays from the guide text in this checkout
+  prepare ROOT [--allow-dirty]      no model: lay the base down, build the four arms, enforce how they differ
   sort JUDGE                        one sorter session (opus | astra): which checklist items apply to this base
-  run ROOT SET DRIVER               launch one set (A, C, X together); refuses without a committed item list of 8 or more
+  run ROOT SET DRIVER               launch one set (A, R, C, X together); refuses without a committed item list of 8 or more
   collect ROOT SETID                no model: endings, launch facts, what each author was shown; blind copies; a manifest
   judge ROOT SETID                  both judges on the manifest's blind copies
   audit-pack ROOT SETID DEST        no model: a folder for the reader who looks for added capability, arms hidden
@@ -58,8 +59,17 @@ OVERLAYS = HERE / "overlays"
 LABELS = HERE / "labels"
 RESULTS = HERE / "results"
 SPEC = "docs/shiploop/spec.md"
-ARMS = ("A", "C", "X")
-ARM_OVERLAY = {"A": None, "C": "guides-cue.json", "X": "guides-excerpt.json"}
+ARMS = ("A", "R", "C", "X")
+ARM_OVERLAY = {
+    "A": None,
+    "R": "guides-read-all.json",
+    "C": "guides-cue.json",
+    "X": "guides-excerpt.json",
+}
+BUILD_FILES = (
+    "shiploop_prompts.py",
+    "shiploop_stage_spec.py",
+)  # the two files an arm's overlay may change
 # Only the Sol set is registered (section 41). A Claude set needs its own registration, with its cap and its build check.
 DRIVERS = {
     "sol": {
@@ -88,6 +98,9 @@ DUTY_LAST = (
 EXCERPT_MARK = (
     "GUIDE TEXT for the behaviour model and the state and data changes of duty 1"
 )
+# Arm R: the spec stage's goal, the line under a packet's first, gains one sentence (journal section 44).
+SPEC_GOAL = "Define each requirement and its acceptance lines as R-<n> in KNOWLEDGE/spec.md; ShipLoop derives this run's ID changes from the spec diff."
+READ_ALL = "Before you act, print and read this whole packet, down to its closing line: the numbered duties below are this stage's instructions."
 MIN_ITEMS = 8
 SHOWN = 3  # a result returning this many of a section's lines returned the passage, not a search hit
 RANK = {"absent": 0, "partial": 1, "covered": 2}
@@ -164,6 +177,7 @@ LAY_BASE = (
     "print(__import__('json').dumps(brownfield.start(work, run.catalog()[sys.argv[2]])))"
 )
 RENDER = "import sys; sys.path.insert(0, sys.argv[1]); import shiploop_prompts as p; sys.stdout.write(p.prompt('spec'))"
+GOALS = "import sys, json; sys.path.insert(0, sys.argv[1]); import shiploop_stage_spec as s; print(json.dumps({name: row.goal for name, row in s.STAGE_SPEC.items()}))"
 
 
 def sh(argv: list[str], cwd: Path) -> str:
@@ -257,8 +271,21 @@ def overlay_docs() -> dict[str, dict]:
         + excerpt()
     )
     tail = {**edit, "old": DUTY_LAST, "new": DUTY_LAST + block}
-    about = "Spec-elaboration journal sections 40 and 41, arm {} of the guides test: {} For an experiment only; not a proposed change to ShipLoop."
+    goal = {
+        "module": "shiploop_stage_spec.py",
+        "constant": "_ROWS",
+        "old": SPEC_GOAL,
+        "new": SPEC_GOAL + " " + READ_ALL,
+    }
+    about = "Spec-elaboration journal sections 40 to 44, arm {} of the guides test: {} For an experiment only; not a proposed change to ShipLoop."
     return {
+        "guides-read-all.json": {
+            "about": about.format(
+                "R",
+                "one sentence added to the spec stage's goal, telling the author to print and read the whole packet.",
+            ),
+            "edits": [goal],
+        },
         "guides-cue.json": {
             "about": about.format(
                 "C",
@@ -313,39 +340,51 @@ def cmd_prepare(root: Path, allow_dirty: bool) -> int:
             REPO,
         )
     )
-    plugins, prompts, hashes = {}, {}, {}
+    plugins, prompts, goals, hashes = {}, {}, {}, {}
     for arm in ARMS:
         argv = [sys.executable, BUILD_ARM, str(root / f"arm-{arm}")]
         argv += [str(OVERLAYS / ARM_OVERLAY[arm])] if ARM_OVERLAY[arm] else []
         plugins[arm] = sh(argv, REPO).strip().splitlines()[-1]
         scripts = Path(plugins[arm]) / "skills" / "shiploop" / "scripts"
         prompts[arm] = sh([sys.executable, "-c", RENDER, str(scripts)], REPO)
-        hashes[arm] = sha256(scripts / "shiploop_prompts.py")
+        goals[arm] = json.loads(sh([sys.executable, "-c", GOALS, str(scripts)], REPO))
+        hashes[arm] = {name: sha256(scripts / name) for name in BUILD_FILES}
     problems = []
-    for arm in ("C", "X"):
-        expected = prompts["A"]
-        for edit in overlay_docs()[ARM_OVERLAY[arm]]["edits"]:
-            if expected.count(edit["old"]) != 1:
-                problems.append(
-                    f"arm {arm}: an edit's anchor is not in the rendered spec stage exactly once"
-                )
-            expected = expected.replace(edit["old"], edit["new"])
+    for arm in ARMS[1:]:
+        edits = overlay_docs()[ARM_OVERLAY[arm]]["edits"]
+        expected, goal = prompts["A"], goals["A"]["spec"]
+        for edit in edits:
+            if edit["module"] == "shiploop_prompts.py":
+                if expected.count(edit["old"]) != 1:
+                    problems.append(
+                        f"arm {arm}: an edit's anchor is not in the rendered spec stage exactly once"
+                    )
+                expected = expected.replace(edit["old"], edit["new"])
+            else:
+                goal = goal.replace(edit["old"], edit["new"])
         differing = subprocess.run(
             ["diff", "-rq", "-x", "__pycache__", plugins["A"], plugins[arm]],
             capture_output=True,
             text=True,
             check=False,
         ).stdout.splitlines()
-        if len(differing) != 1 or "shiploop_prompts.py" not in differing[0]:
+        named = sorted({edit["module"] for edit in edits})
+        if len(differing) != len(named) or any(
+            not any(name in line for line in differing) for name in named
+        ):
             problems.append(
-                f"arm {arm} differs from A in {len(differing)} files, not in shiploop_prompts.py alone"
+                f"arm {arm} differs from A in {len(differing)} files, not in {named} alone"
             )
         if prompts[arm] != expected:
             problems.append(
                 f"arm {arm}'s rendered spec stage is not A's with the overlay's edits and nothing else"
             )
-    # A guide line in a tool result is read as guide text only because the arms without the block print none of them.
-    for arm in ("A", "C"):
+        if goals[arm] != {**goals["A"], "spec": goal}:
+            problems.append(
+                f"arm {arm}'s stage goals are not A's with the overlay's edits and nothing else"
+            )
+    # A guide line in what a model was given is read as guide text only because the arms without the block print none.
+    for arm in ARMS[:-1]:
         printed = squeeze(prompts[arm])
         if any(line in printed for lines in passages().values() for line in lines):
             problems.append(
@@ -355,8 +394,12 @@ def cmd_prepare(root: Path, allow_dirty: bool) -> int:
         problems.append(
             "arm X's spec stage does not print the whole of the two guide sections"
         )
+    if goals["R"]["spec"] != SPEC_GOAL + " " + READ_ALL or any(
+        READ_ALL in goals[arm]["spec"] for arm in ("A", "C", "X")
+    ):
+        problems.append("the read-all sentence is not in arm R's spec goal alone")
     deltas = {}
-    for arm in ("C", "X"):
+    for arm in ARMS[1:]:
         diff = difflib.unified_diff(
             prompts["A"].splitlines(), prompts[arm].splitlines(), lineterm="", n=0
         )
@@ -369,7 +412,7 @@ def cmd_prepare(root: Path, allow_dirty: bool) -> int:
         "checkout_status_lines": len(dirty),
         "base": base,
         "plugins": plugins,
-        "prompts_file_sha256": hashes,
+        "build_sha256": hashes,
         "spec_prompt_sha256": {
             arm: hashlib.sha256(text.encode()).hexdigest()[:12]
             for arm, text in prompts.items()
@@ -839,6 +882,7 @@ def exposure(out: Path, dest: Path, snap: dict) -> dict | None:
         ],
         "instructions_shown_whole": all(held for _, held in parts["instructions"]),
         "cue_shown": all(line in writing for line in lines_of(CUE)),
+        "read_all_shown": squeeze(READ_ALL) in writing,
         "guide_block_lines_shown": [sum(block), len(block)],
         "guide_block_shown_whole": all(block) and EXCERPT_MARK in writing,
         "guide_lines_returned": returned,
@@ -909,9 +953,7 @@ def read_sample(
         )
         if row.get("row") == "end"
     ]
-    loaded = out.glob(
-        "home/.codex/plugins/cache/**/skills/shiploop/scripts/shiploop_prompts.py"
-    )
+    cache = "home/.codex/plugins/cache/**/skills/shiploop/scripts/"
     accepted = dest / "spec-accepted.md"
     return {
         # how it ended: the one-word reading, and beside it the harness's own facts
@@ -938,7 +980,10 @@ def read_sample(
         "planning_review": state_of(run).get("planning_review"),
         "plugin_wanted": plugin.get("wanted") or invocation.get("plugin_dir"),
         "plugin_check_passed": plugin.get("pass"),
-        "loaded_prompts_sha256": sorted({sha256(path) for path in loaded}),
+        "loaded_sha256": {
+            name: sorted({sha256(path) for path in out.glob(cache + name)})
+            for name in BUILD_FILES
+        },
         "exposure": exposure(out, dest, snap),
         "accepted": measures(accepted.read_text(errors="replace"))
         if accepted.is_file()
@@ -1134,8 +1179,9 @@ def cmd_run(root: Path, set_name: str, driver: str, limit: float) -> int:
 def checks(sample: dict, read: dict, ready: dict) -> dict:
     """Whether a sample is its arm's accepted specification, and whether its author was given what the arm intends.
 
-    On this host the model gives itself as much of a packet as its own script prints, so the cue and the block count only
-    when they are in what it was given, and an author given less than half of the stage's instructions is not compared.
+    On this host the model gives itself as much of a packet as its own script prints, so an arm's sentence or block counts
+    only when it is in what the model was given. An author given less than half of the stage's instructions is not
+    compared, except in arm R, where how much the author gives itself is what the arm is for.
     """
     arm, shown, seen = sample["arm"], read.get("exposure"), sample.get("seen") or {}
     usable = {
@@ -1150,18 +1196,23 @@ def checks(sample: dict, read: dict, ready: dict) -> dict:
         "the arm's build": bool(read.get("plugin_wanted"))
         and Path(read["plugin_wanted"]).resolve()
         == Path(ready["plugins"][arm]).resolve()
-        and read.get("loaded_prompts_sha256") == [ready["prompts_file_sha256"][arm]],
+        and read.get("loaded_sha256")
+        == {name: [ready["build_sha256"][arm][name]] for name in BUILD_FILES},
     }
     delivered = None
     if shown:
         given, of = shown["instructions_lines_shown"]
         delivered = {
-            "at least half of the stage's instructions given to the model": 2 * given
-            >= of,
-            "the cue given, as the arm has it": shown["cue_shown"] == (arm != "A"),
+            "at least half of the stage's instructions given to the model": arm == "R"
+            or 2 * given >= of,
+            "the arm's own sentence given, and no other arm's": (
+                shown["cue_shown"],
+                shown["read_all_shown"],
+            )
+            == (arm in ("C", "X"), arm == "R"),
             "the guide text given, as the arm has it": shown["guide_block_shown_whole"]
             if arm == "X"
-            else not shown["guide_passage_before_acceptance"],
+            else arm == "R" or not shown["guide_passage_before_acceptance"],
         }
     return {
         "usable": all(usable.values()),
@@ -1447,21 +1498,21 @@ def compare(states: dict, items: list, high: str, low: str) -> dict:
     }
 
 
-def outcome(delivered: dict, x_over_c: dict, x_alone: list) -> str:
-    """The registered reading of one complete set: the first of these that holds (journal section 41)."""
+def outcome(delivered: dict, pair: dict, alone: list) -> str:
+    """The registered reading of one contrast in a complete set: the first of these that holds (journal sections 41 to 44).
+
+    `delivered` holds the arms the contrast rests on, `pair` the higher arm over the lower, and `alone` the product
+    capabilities the reader verified in the higher arm and in no other.
+    """
     if any(value is None for value in delivered.values()):
         return "delivery unknown: nothing is claimed"
     if not all(delivered.values()):
-        return "delivery failed: the set says nothing about the guide text"
-    if x_over_c["net"] <= -4 or x_alone:
+        return "delivery failed: this contrast cannot be read"
+    if pair["net"] <= -4 or alone:
         return "a signal of harm"
-    if (
-        len(x_over_c["higher"]) >= 4
-        and x_over_c["net"] >= 4
-        and len(x_over_c["newly_raised"]) >= 2
-    ):
+    if len(pair["higher"]) >= 4 and pair["net"] >= 4 and len(pair["newly_raised"]) >= 2:
         return "a signal worth repeating"
-    if len(x_over_c["higher"]) < 2 and len(x_over_c["lower"]) < 2:
+    if len(pair["higher"]) < 2 and len(pair["lower"]) < 2:
         return "no signal"
     return "described only: no rule applies"
 
@@ -1477,7 +1528,11 @@ def cmd_score(root: Path, set_id: str) -> int:
         raise SystemExit(
             "the reader's audit has not been checked in: the arms are not revealed before it is"
         )
-    applies, other = manifest["items"]["applies"], manifest["items"]["other"]
+    applies, other, delivered = (
+        manifest["items"]["applies"],
+        manifest["items"]["other"],
+        manifest["delivered"],
+    )
     print(
         f"set {set_id}: items that apply here for both sorters ({len(applies)}): {applies}"
     )
@@ -1489,7 +1544,7 @@ def cmd_score(root: Path, set_id: str) -> int:
             )
     pairs = {
         f"{high} over {low}": compare(states, applies, high, low)
-        for high, low in (("X", "C"), ("C", "A"), ("X", "A"))
+        for high, low in (("X", "C"), ("C", "A"), ("X", "A"), ("R", "A"))
     }
     for name, pair in pairs.items():
         print(
@@ -1517,17 +1572,30 @@ def cmd_score(root: Path, set_id: str) -> int:
         if arms:
             added[str(entry["capability"])] = arms
             print(f"  added capability: {entry['capability']}: in {arms}")
-    x_alone = [name for name, arms in added.items() if arms == ["X"]]
-    result = outcome(manifest["delivered"], pairs["X over C"], x_alone)
-    print(f"  delivered as each arm intends: {manifest['delivered']}")
-    print(f"  OUTCOME (X over C): {result}")
+    alone = {
+        arm: [name for name, arms in added.items() if arms == [arm]] for arm in ARMS
+    }
+    # The two registered contrasts: the guide block given the cue, and the read-all sentence against the stage as released.
+    results = {
+        "X over C": outcome(
+            {arm: delivered[arm] for arm in ("A", "C", "X")},
+            pairs["X over C"],
+            alone["X"],
+        ),
+        "R over A": outcome(
+            {arm: delivered[arm] for arm in ("A", "R")}, pairs["R over A"], alone["R"]
+        ),
+    }
+    print(f"  delivered as each arm intends: {delivered}")
+    for name, result in results.items():
+        print(f"  OUTCOME ({name}): {result}")
     record = {
         "set": set_id,
         "items": manifest["items"],
         "pairs": pairs,
         "added_capability": added,
-        "capability_in_x_alone": x_alone,
-        "outcome": result,
+        "capability_in_one_arm_alone": alone,
+        "outcomes": results,
     }
     record["states"] = {
         arm: {

@@ -688,7 +688,7 @@ started from requests of 76 to 322 words where the bench's are 7 to 15. Read the
 both in mind. `evidence/readings/coverage-by-category.txt` gives what the released stage reached in each of the
 checklist's ten categories.
 
-## The guides test (journal sections 39 to 41; not run without the owner's word)
+## The guides test (journal sections 39 to 44; the owner's go-ahead is in section 44)
 
 A small real-ShipLoop test of the question section 38 left open: from one sentence, how full is the specification
 the released spec stage writes in a real run, and does the text of its reference guides add anything beyond a cue?
@@ -720,3 +720,8 @@ in 41, and the lines that say where the spec guides are in 9).
 `spec_by_reading.py RUNS_ROOT...` sets that share beside each run's accepted specification, by case and effort
 (`evidence/readings/spec-by-reading.txt`: where both kinds of run exist, the runs given under a third of the
 instructions wrote specifications a quarter to a third shorter).
+
+Section 44 records the owner's go-ahead, step 0 (`labels/here-opus.json`, `labels/here-astra.json`: nine items apply
+for both sorters) and a fourth arm, R: the released stage with one sentence in the spec stage's goal telling the
+author to print and read the whole packet (`overlays/guides-read-all.json`). A set is four runs, and `score` reads
+two contrasts by one rule: X over C and R over A.

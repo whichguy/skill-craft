@@ -75,18 +75,18 @@ def stub() -> int:
     )
     (out / "invocation.json").write_text(json.dumps(invocation))
     loaded = (
-        out
-        / "home/.codex/plugins/cache/stub/skill-craft/0/skills/shiploop/scripts/shiploop_prompts.py"
+        out / "home/.codex/plugins/cache/stub/skill-craft/0/skills/shiploop/scripts"
     )
-    loaded.parent.mkdir(parents=True)
-    shutil.copyfile(plugin / "skills/shiploop/scripts/shiploop_prompts.py", loaded)
+    loaded.mkdir(parents=True)
+    for name in g.BUILD_FILES:
+        shutil.copyfile(plugin / "skills/shiploop/scripts" / name, loaded / name)
     edits = g.overlay_docs()[g.ARM_OVERLAY[arm]]["edits"] if g.ARM_OVERLAY[arm] else []
     printed = next(
         run / row["file"]
         for row in rows
         if row.get("kind") == "packet" and row.get("stage") == "spec"
     )
-    assert all(printed.read_text().count(edit["old"]) == 1 for edit in edits), (
+    assert all(printed.read_text().count(edit["old"]) >= 1 for edit in edits), (
         "the template's spec packet is of another build"
     )
 
@@ -276,7 +276,7 @@ def main() -> int:
     os.environ["GUIDES_STUB"] = json.dumps(
         {
             "template": str(template),
-            "modes": {"A": "accept", "C": "accept", "X": "accept"},
+            "modes": dict.fromkeys(g.ARMS, "accept"),
         }
     )
     expect("run returns cleanly", g.cmd_run(root, "r1", "sol", 1.0) == 0)
@@ -332,19 +332,25 @@ def main() -> int:
         )
     expect(
         "the cue is in C's and X's packet and not in A's",
-        [collected[a]["exposure"]["cue_shown"] for a in g.ARMS] == [False, True, True],
+        [collected[a]["exposure"]["cue_shown"] for a in g.ARMS]
+        == [False, False, True, True],
+    )
+    expect(
+        "the read-all sentence is in R's packet alone",
+        [collected[a]["exposure"]["read_all_shown"] for a in g.ARMS]
+        == [False, True, False, False],
     )
     expect(
         "the guide text is in X's packet alone",
         [collected[a]["exposure"]["guide_block_shown_whole"] for a in g.ARMS]
-        == [False, False, True],
+        == [False, False, False, True],
     )
     manifest = g.manifest_of(root, "r1-sol")
     arm_code = {info["arm"]: code for code, info in manifest["slots"].items()}
     names = sorted(path.name for path in (g.RESULTS / manifest["round"]).iterdir())
     expect(
-        "three blind copies whose names show no arm",
-        len(names) == 3
+        "four blind copies whose names show no arm",
+        len(names) == 4
         and all(name.split("__")[1] in arm_code.values() for name in names),
         names,
     )
@@ -360,6 +366,9 @@ def main() -> int:
         for i in wanted[6:9]:
             state[arm][i] = [1, 1]
     state["C"][wanted[6]] = [2, 1]  # higher under one judge only: not a difference
+    state["R"].update(
+        {wanted[8]: [2, 2], wanted[9]: [1, 1], wanted[10]: [2, 2], wanted[11]: [1, 2]}
+    )
     state["X"].update(
         {
             wanted[6]: [2, 1],
@@ -397,8 +406,8 @@ def main() -> int:
         and "U-n" not in rubric,
     )
     expect(
-        "judge takes six readings and seals them",
-        g.cmd_judge(root, "r1-sol", 60) == 0 and len(prompts) == 6,
+        "judge takes eight readings and seals them",
+        g.cmd_judge(root, "r1-sol", 60) == 0 and len(prompts) == 8,
         len(prompts),
     )
     expect("every judge was given the live rubric", set(prompts) == {rubric})
@@ -414,7 +423,7 @@ def main() -> int:
     )
     reader = sorted(path.name for path in (scratch / "reader").iterdir())
     expect(
-        "the reader's folder holds the sentence, the base, three coded files and its instructions",
+        "the reader's folder holds the sentence, the base, the coded files and its instructions",
         reader
         == sorted(
             [
@@ -476,17 +485,28 @@ def main() -> int:
     )
     expect(
         "capability in X alone turns the gain into harm",
-        score["capability_in_x_alone"] == ["made-up capability"]
-        and score["outcome"] == "a signal of harm",
-        score["outcome"],
+        score["capability_in_one_arm_alone"]["X"] == ["made-up capability"]
+        and score["outcomes"]["X over C"] == "a signal of harm",
+        score["outcomes"],
     )
     verdict.write_text(json.dumps({"capabilities": []}))
     g.cmd_audit_check(root, "r1-sol", verdict)
     g.cmd_score(root, "r1-sol")
     expect(
         "with no added capability the same readings are a signal worth repeating",
-        json.loads((root / "score-r1-sol.json").read_text())["outcome"]
+        json.loads((root / "score-r1-sol.json").read_text())["outcomes"]["X over C"]
         == "a signal worth repeating",
+    )
+    r_over_a = json.loads((root / "score-r1-sol.json").read_text())
+    expect(
+        "R over A: four higher, three of them newly raised, and its own outcome",
+        (
+            len(r_over_a["pairs"]["R over A"]["higher"]),
+            len(r_over_a["pairs"]["R over A"]["newly_raised"]),
+            r_over_a["outcomes"]["R over A"],
+        )
+        == (4, 3, "a signal worth repeating"),
+        r_over_a["pairs"]["R over A"],
     )
 
     print("== the rule, case by case")
@@ -546,7 +566,7 @@ def main() -> int:
     os.environ["GUIDES_STUB"] = json.dumps(
         {
             "template": str(template),
-            "modes": {"A": "accept", "C": "accept", "X": "skim"},
+            "modes": {**dict.fromkeys(g.ARMS, "accept"), "X": "skim"},
         }
     )
     expect("run returns cleanly", g.cmd_run(root, "r3", "sol", 1.0) == 0)
@@ -563,8 +583,13 @@ def main() -> int:
         skimmed["X"]["delivery_checks"],
     )
     expect(
-        "A and C are delivered",
-        skimmed["A"]["delivered"] is True and skimmed["C"]["delivered"] is True,
+        "A, R and C are delivered",
+        all(skimmed[arm]["delivered"] is True for arm in ("A", "R", "C")),
+    )
+    expect(
+        "the other contrast, R over A, can still be read",
+        g.outcome({arm: skimmed[arm]["delivered"] for arm in ("A", "R")}, gain, [])
+        == "a signal worth repeating",
     )
     expect(
         "the set reads as delivery failed",
@@ -597,7 +622,7 @@ def main() -> int:
     os.environ["GUIDES_STUB"] = json.dumps(
         {
             "template": str(template),
-            "modes": {"A": "never", "C": "nofolder", "X": "exit"},
+            "modes": {"A": "never", "R": "accept", "C": "nofolder", "X": "exit"},
         }
     )
     began = time.time()
@@ -641,7 +666,13 @@ def main() -> int:
     }
     expect(
         "the endings are told apart",
-        endings == {"A": "the stop file", "C": None, "X": "the host ended by itself"},
+        endings
+        == {
+            "A": "the stop file",
+            "R": "the stop file",
+            "C": None,
+            "X": "the host ended by itself",
+        },
         endings,
     )
 
