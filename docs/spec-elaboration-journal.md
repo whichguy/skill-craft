@@ -2621,6 +2621,10 @@ documents. Whether such a suite catches the planted defects is not measured.
 
 ## 37. Received: with the reworded text, Sonnet at medium writes the specification as well as Sonnet at high, and a shorter specification leans on the product's own tests (11:23, 2026-11-21)
 
+*Qualified 2026-11-21 13:26 (section 42): the second half of this heading is not shown. The Ratchet session ran the
+shortest of the four cells three times and got 5, 3 and 0 on the count below, so four single runs do not show that
+the count follows the specification's length. The first half stands.*
+
 Recorded as received. The runs and findings are the Ratchet session's. Its record is the subsection "Amendment 11,
 result (2026-11-21 11:12; Sonnet at medium against Sonnet at high)" in `docs/ratchet-pilot-journal.md` on `main` at
 7588f5503f5e480b9fbe3556240501e6e26a6a95; the registration is in 586f6f4756655c510ace22c4ed3479d47eb04f49 and the
@@ -2662,6 +2666,9 @@ specification, the more of the existing behaviour is covered by the product's ow
 wrote; it calls this the risk amendment 10 named, "visible and small", and says it follows the specification's length
 across the four cells.
 
+*Qualified 2026-11-21 13:26 (section 42): three runs of the 22-clause cell give 5, 3 and 0 on this count. The series is
+not shown to follow the specification's length, and that session has marked its own sentence so.*
+
 **Limits, as its record states them.** One run a cell and no measure of spread, so one defect either way would have
 been nothing; whole cells are compared, so a difference would not say which stage made it; the calibrated defects are
 partly caught through the product's own tests, for every text. Not established: Sonnet's run-to-run spread, any case
@@ -2678,6 +2685,8 @@ but ticket assignment, anything built by Sonnet, and which stage would be sensit
   suite rise from none to 5 of 26 as the specification falls from 153 clauses to 22. Read beside section 36: a short
   specification leaves the open answers to the plan and the existing behaviour to the product's own tests. A trial
   of this in ShipLoop would have to say where existing behaviour is pinned once the specification stops restating it.
+  *Qualified 2026-11-21 13:26 (section 42): "rise from none to 5 of 26" rested on single runs and is not shown. That
+  `update-rejects-resolved` is missed by the reworded text's cells stands.*
 - Nothing is proposed, and this experiment's conclusion stands: no ShipLoop template was changed.
 
 ## 38. Two more free readings: the real requests were not vague, and real builders do not open the spec guides (11:47, 2026-11-21)
@@ -3122,3 +3131,68 @@ reader.
 choices; "2 newly raised" has no measure of run-to-run spread behind it from real runs, where specifications are
 several times shorter than the bench's, and the second set is the guard against that; the driver is long for what
 it does, which is the price of the two reviews' checks.
+
+## 42. Received: a question is answered where the stage has a section to fill; and one series in section 37 is not shown (13:26, 2026-11-21)
+
+Recorded as received. The runs and findings are the Ratchet session's: "Amendment 12, result" in
+`docs/ratchet-pilot-journal.md` at commit f24542834f6f9d9a6202f4e28b2b1a12756cc677 (on branch `ratchet-preserve-1cbbeb`, which has moved on since;
+committed 2026-11-21 13:13 -08:00; on this machine and not on the remote `main` when this was written, and whether it is
+published is that session's and the owner's matter), with its evidence under
+`docs/experiments/ratchet-pilot-20261120/evidence/preserve-question/`. A Sonnet worker of this session checked
+eleven statements of that session's message against the commit's journal and evidence files, read-only: all eleven
+are there as stated, with the two differences of wording noted below. Nothing was re-run here.
+
+**What was run.** Six cells on ticket assignment, Sonnet 5.5 at medium, one run each: two with the reworded text
+as it is, two with ShipLoop's question on preserved behaviour added to the specification text, and two with it
+added to the plan text, where it asks for a section "## Preserved behaviour". They are read beside amendment 11's
+medium cell as a third baseline.
+
+**What it found.**
+
+- In the plan, with a section to fill, both runs wrote it: 14 and 10 entries, 13 and 9 of them naming the file
+  that shows the behaviour, and a last entry for what the repository does not settle. They added 5 and 4 clauses,
+  8 of the 9 sourced as existing, none failing on the reference. In the specification text, as one more
+  instruction with no section, both runs wrote what five specifications without the question wrote: 21 and 22
+  clauses against 20 to 24, and 4 and 5 sourced as existing against 1 to 5. Stage and form changed together, so
+  that session does not say which of the two decides.
+- No registered reading moved. Defects caught of 27: 26, 24 and 26 without the question, 25 and 25 with it in
+  the specification, 23 and 26 with it in the plan. One of the 27 is caught only by a clause on existing behaviour
+  (the commit's words; the message said "needs"), and it was caught once, by a clause the plan's question added.
+- The first measure of spread on that instrument: the same text, case, model and effort gives 24 to 26 caught, 21
+  to 24 clauses, and 1 to 5 clauses sourced as existing.
+- One of the nine added clauses decided new behaviour under an "existing" source (a data file with an unusable
+  assignee is refused at load). The reference agrees with it; the second correct delivery fails it.
+- A test run started from inside a `node --test` run inherits `NODE_TEST_CONTEXT`, runs no file and exits 0.
+  Checked there on one defect tree and one Node version: exit 1 with 3 of 121 failing when started plainly, exit 0
+  with nothing run when the variable is set. One of seven model-written suites kept the variable in both of its
+  checks and lost two planted defects by that alone.
+
+**What changes in this journal.** Section 37 recorded the defects caught only through the product's own tests as
+none, 1, 3 and 5 of 26 across four cells, and read the count as rising while the specification shortens.
+Amendment 12 has three runs of the shortest of those cells: 5, 3 and 0. The rise is not shown, and section 37 is
+marked in three places. What stands of it: Sonnet at medium is not shown to differ from high (26 of 27 in the two
+single runs; medium now ranges from 24 to 26 over three), and the one defect in existing behaviour that the reworded
+text's cells miss.
+
+**What it means here** (this session's reading).
+
+- An instruction with no place to write its answer left no trace, twice. Arm C of the guides test is such an
+  instruction, and that is prediction 4 of section 41. Arm X's block is text of the same kind, in bulk. The spec
+  stage does have places for what it describes (its duty on acceptance lines and its duty on the state and data
+  assessment), so prediction 5 stands as written, with this result as evidence against it.
+- If the guides test shows the block does nothing, the next candidate is a section to fill and not more text.
+  That is the Ratchet session's proposal to the owner, not this session's.
+- Single runs on a neighbouring instrument differ by 2 defects of 27 and by 4 clauses on existing behaviour. One
+  set of the guides test is read as a signal to repeat or not, as section 41 has it, and as nothing more.
+
+**Exchanged.** That session asked for flaws in an instrument it proposes to the owner (a request with its stated
+details removed one at a time). I sent five: sort each removed detail against the base beforehand, as step 0 does
+here; read the plan or the product as well, and never score "decided" as success; four classes, one of them
+"marked open with the answer taken named"; few details with repeats and a difference registered beforehand; and a
+request rewritten to read whole. It answered that all five go into the design it registers if the owner chooses
+it. The reading of nested test runs in archived deliveries is not this session's to start; that session will put
+it to the owner.
+
+**Not checked here.** The worker did not recheck the two earlier cells and Sol's in "missed by eight of nine", the
+reading of each suite's test code, or the dollars. The message's "this morning's medium cell" is "amendment 11's
+medium cell" in the commit. One run a cell.
