@@ -4651,3 +4651,10 @@ attempts today to reach the SDLC session by message, none delivered. This sessio
 `auto`; it cannot read the other session's mode, and it does not change another session's settings. The
 notices name two possible causes: the two sessions' modes differ, or that session is set to hold every
 message. Which it is, and whether to change it, is the owner's to see and decide there.*
+
+*Added 2026-11-21 23:00, at the owner's word ("Do it now"): the third copy expired undelivered. He then said
+"Send it"; a fourth copy of the note went out, was held within the minute and expired undelivered as well.
+Five attempts today to reach the SDLC session by message, none delivered, and after each the owner was told
+what was not delivered and why. A further copy will be held the same way unless that session's permission mode
+is changed first, and none is sent unless he asks. The line that points that session at this journal stands:
+read sections 55, 57 and 58.*
