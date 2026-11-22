@@ -3250,6 +3250,109 @@ deliveries, the plan's concern catalog (`shiploop_concerns.py`), the release ins
 Not proposed: a question about odd input (one delivery of sixteen, and wording has not moved behaviour here); a new
 kind of change for the fault check (one delivery).
 
+## Round 15 (2026-11-21): building round 14's candidates: the review, what is built, what is tried first, what is not built
+
+### Owner decision, 2026-11-21
+
+To round 14's four candidates: "Yes, do these".
+
+### Review before building (Sol 6.2 at max effort; `review-r15/`)
+
+The owner's order for a ShipLoop change is a max-effort review of the intention and the design, then weighing it,
+then building. The brief and the verbatim review are in `review-r15/` (served model gpt-6.2-sol, effort max, no
+fallback; a read-only export with no personal names). Its verdict: "C1–C4 should all be built differently." What
+it said, what I checked in the code, and what I decided:
+
+- **C1, the clean-copy gate.** *Review:* equality of commands is a hint, not a proof: a setting in front can
+  select a legitimate smaller profile; the return plan may exclude tests; a wrapper escapes; an unreadable count
+  must not pass once a count is bound; both exits must be named. *Checked:* `verify` gives the outer stages no
+  floor (`held = {}`), by the decision of 53ab8b788de56feb3d28c598146331cd51e006b3 (its audit: no revise
+  there, and a union across items dead-ends on a consolidation; "open, needs an owner decision"); `judge` reads a
+  count on a `check` row and Node's reader leaves skipped tests out of `ran`; `send-back` from release-verify
+  reruns release-plan (`OUTER_SEND_BACK_TO`) and `add-work` queues a corrective item. *Decision:* build the floor
+  with four corrections: the latest accepted work-area count and not the most; an unreadable count is refused
+  where a count is bound; the refusal names `add-work` and `send-back`; the release-verify packet prints each
+  bound count and the release-plan duty states the rule. Not adopted: a new field that declares a full replay. One
+  live run in sixteen does not earn a new field (the owner's rule on guards), and the two exits cover the cases
+  the review names. The limits (a wrapper, a different spelling, an equal count hiding a changed selection) are
+  documented and pinned by a test.
+- **C2, the way back.** *Review:* do not add a concern; a sixteenth id rejects saved plans on load, `rollback`
+  already names release-plan's undo of the source return, every plan pays one more answer, and a row can be filled
+  while the product stays as it is; use the existing `state` row. *Checked:* the result normaliser calls
+  `shiploop_concerns.canonical_plan` on each accepted plan and it refuses a plan missing any current id, so saved
+  runs would stop loading; the plan duty prints only the ids (the one-line questions in `CONCERNS`, from
+  fff7fa13fd537d7152e9d71a476b716e4f5e6839, are never shown to the model), so a row's meaning has to be said in
+  the duty. *Decision:* no new row. One sentence in plan duty 3 on the `state` row, as a candidate on its own
+  branch (44d8dea03f571f54e0a6c5f232573f47a6d58100), tried before it ships (below).
+- **C3, tests of things that are not the product.** *Review:* wording alone is unlikely to move it; the step-plan
+  template seeds every open assumption as an `executed` criterion on the focused row and shows no `searched`
+  one; a `check` row can run before the document stage writes the wording it expects; relabelling behaviour as a
+  search would lower rigour. *Checked:* the template does so on purpose, by measured decisions of 2026-10-31
+  recorded in its comments (a `check` row naming a criterion "taught 22 of 445 executed criteria to rest on one";
+  10 of 11 open items were met with a check that settled nothing). The census below puts the strict class at one
+  criterion in 2 of 5 Sonnet medium runs and none on Sol. *Decision:* **not built.** The prize is one brittle test
+  in under half of one driver's deliveries; no trial of affordable size can show a move from 2 in 5; the earlier
+  measured decisions pull the other way; and the risk is to rigour. It stays a described finding (F87).
+- **C4, the yardstick.** *Review:* the probes need the harness's own server handling, a check that the old
+  release's writes survive a restore, like-for-like suite runs, and calibration on the saved deliveries; and an
+  edit to `cases.json`, `checks/` or the harness's top-level code changes the digests that make runs comparable.
+  *Checked:* `boundary.evaluator_files` is the top-level `*.py` and `*.cjs`, `oracle_files` is `checks/` and
+  `fixtures/`, and the SPEC says "a harness or oracle change is an experiment of its own". *Decision:* build the
+  observers as an opt-in tool outside that boundary, calibrated on the sixteen saved deliveries, changing no
+  verdict and no digest. Wiring them into every run is left as the owner's later decision.
+
+Also taken from the review: qualify each change on its own before the batch round; C1's trigger cannot be waited
+for in live runs (1 in 16), so it is seeded through the real gate in a test; one correction to round 13's wording
+(the nine tests that need Git history were caught by the harness's own suite check; the fourteen are the faults in
+behaviour).
+
+### Baselines from existing records (no run)
+
+- **Plan rows** (`plan_rows.py`, six saved plans of the ticket case on the released text). Both Sol high plans
+  decide to keep due times across a rollback ("Keep due-bearing snapshot to recover through old binary writes";
+  "For re-upgrade after 1.4.0 rewrites, merge retained due values from a stopped-service backup"), in their
+  `migrate-after` rows. Neither Sol medium plan nor either Sonnet medium plan does; one Sonnet medium plan
+  records the loss as documented.
+- **Criteria** (`criteria_census.py`, 13 runs). By a broad word pattern 8 of 13 runs have an `executed`
+  criterion about a document, the suite or the release; read by hand the strict class (a search inside a test)
+  is 2 of 5 Sonnet medium runs and 4 of 9 Sonnet runs, one criterion each, and 0 of 4 Sol medium runs. Several
+  hits are a real requirement of the request ("no npm dependencies").
+- **Delivered tests** (`meta_test_census.py`, the sixteen deliveries): marks in 6 of 16, all Sonnet; the pattern
+  misses one test the judges confirmed (it reads its document through a helper), so it is a list to confirm.
+
+### Registered trial for C2 (written and committed before any run)
+
+**Question.** Does the sentence on the `state` row change what a plan decides about data that must survive going
+back to the previous release and returning?
+
+**Arms.** Control: the plugin built from the remote main as it is. Candidate: the same with only the sentence
+(44d8dea03f571f54e0a6c5f232573f47a6d58100). Each built with `build_arm.py` from a clean worktree.
+
+**Samples.** The ticket case (`ticket-due-times`), ended when the run enters `prepare` (the plan and its review
+are then accepted), with `stop_at_stage.py`. Two samples an arm on each driver now in use: Claude Code
+`claude-sonnet-5-5` at medium and Codex `gpt-6.2-sol` at medium; eight samples. `--planning-review stage` is
+passed to all eight, because two of four Sol medium runs on file switched the reviews off by themselves (R76).
+Control and candidate samples start together.
+
+**Reading.** `plan_rows.py --blind` prints each plan's `state`, `migrate-before`, `migrate-after` and
+`switchover` rows under shuffled labels. I label each plan before opening the key:
+- **keeps**: the plan decides a way for a due time to survive going back and returning (a saved copy that is
+  merged or restored, or another mechanism);
+- **accepts**: the plan says due times are recomputed or lost on the return, documented or not;
+- **silent**: no row says what happens on the return.
+
+**Rule.** The sentence goes on to whole deliveries if at least 3 of 4 candidate plans are *keeps* and at most 1 of
+4 control plans is. Otherwise it is not shipped and its branch is deleted. A plan that only *accepts* is not what
+the sentence is for: it changes no product.
+
+**If it goes on.** The batch round's ticket deliveries are its product test: shown if at least 3 of 4 keep the
+due time across a rollback and return and keep what the old release wrote, where 0 of 4 medium deliveries on file
+do. That round is registered separately, when the build is final.
+
+**Limits, stated in advance.** Two samples a cell. The request does not say a due time must survive a return, so
+"keeps" is the stricter reading of "set once" and "keep them from then on", and a plan that accepts the loss in
+writing is not wrong by the request. A stopped Claude sample records no cost.
+
 ## Evidence (all rounds)
 
 | File | Holds |
@@ -3363,6 +3466,11 @@ judges label them with `evidence/removed-review-judge-brief.txt`, and `removed_r
 rescores from the repository alone. `late_work_census.py <work>/census.json runs-reviews/census.json` reads the
 runs' traces and reproduces `evidence/late-work-census.txt`; `next_round_cuts.py runs-reviews/census.json
 <work>/census.json` does the same for `evidence/next-round-cuts.txt`.
+
+Round 15: `python3 stop_at_stage.py --plugin-dir <plugin> --root <out> --until prepare --planning-review stage
+<name>:ticket-due-times:<host>:<model>:medium ...` ends each sample at the plan; `python3 -I plan_rows.py [--blind
+<key file>] state,migrate-before,migrate-after,switchover <name>=<run folder> ...` prints the rows;
+`criteria_census.py` and `meta_test_census.py` take `<name>=<run folder or tree>` and print the two baselines.
 
 Round 13: `python3 -I quality_packets.py <out> 20261121 <name>=<medium run>,<high run> ...` builds the packets; two
 judges per pair with `evidence/quality-judge-brief.txt`; their answers are `judge-quality/verdicts.json` and the key
