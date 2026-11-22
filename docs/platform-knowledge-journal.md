@@ -1201,3 +1201,172 @@ to ShipLoop: it needs to be written in that project's knowledge file, and the qu
 reusable facts get there. If it fails where the printed arm passed, printing earns its place and the next step is
 the stage-by-stage cold test the review describes.
 
+## 31. The free reading of section 30, and rung 7 launched (2026-11-22, 14:23)
+
+Built by an Opus subagent to my brief and committed on the candidate branch as
+6c3e9f9f7c9c4d5eb8d7636d4be6bd943c8dfa3e (no file under `skills/` changes): the fixtures of rung 7, each differing
+from its base only in the knowledge home; `familiar/contract_check.js`, the tightened product check; and
+`familiar/scope_reading.py`. The two readings below are of the seven deliveries of rungs 6 and 6b
+(`familiar/readings/contract-rung6.txt` and `scope-rung6.txt`).
+
+**The tightened check agrees with the first one.** Calibration: the reference product with the header passes all
+four parts (the sent id echoed; an id generated when none is sent; the 400 path; the 18 requests of the untouched
+service answering as before); the reference without it fails the three header parts and passes the fourth; the
+untouched service is reported as missing the route.
+
+| Deliveries | Echo | Generated id | 400 path | Existing routes unchanged | Header on the existing routes too |
+|---|---|---|---|---|---|
+| n01, n04 (released), n03 (Sol, plan-only candidate) | fail | fail | fail | pass | no |
+| n05, n06 (Sol, candidate with discovery) | pass | pass | pass | pass | no: the new route only |
+| n02, n07 (Sonnet, candidate) | pass | pass | pass | pass | yes: every route |
+
+**What the candidate's deliveries did beyond the hidden fact.** Every one of the seven changed `src/app.js`, added
+`src/routes/stock.js` and touched no other existing source file; the service's original seven tests pass against
+all seven products; none added authorization or shared-state code. So the two real entries printed beside the
+hidden one led to no extra work here. One difference of scope: the entry asks for the header on "every response of
+a new or changed route"; Sol put it on the new route, Sonnet on every route of the service. Neither breaks the
+check; the wider reading is more than was asked.
+
+**Rung 7 launched at 14:23**: `familiar/runs/rung7a.tsv`, eight plan-stage slices in `~/e2e-runs-pk/20261122-k/`
+(k01 to k08), and `familiar/runs/rung7b.tsv`, three whole deliveries in `~/e2e-runs-pk/20261122-n/` (k11 and k12 on
+Sol, k13 on Sonnet), all on the released route (the candidate build with every switch at its default), the fact
+written in the product's own `docs/shiploop/environment.md` under `## Platform facts`.
+
+## 32. Rung 7a: the fact in the project's own knowledge file reaches the plan with released ShipLoop (2026-11-22, 14:23 to 14:36)
+
+Eight plan-stage slices (`~/e2e-runs-pk/20261122-k/k01` to `k08`), released behaviour: no card named, nothing
+printed by the script, the hidden fact written as one bullet under `## Platform facts` in the product's
+`docs/shiploop/environment.md`. Readings `familiar/readings/rung7a-node.txt` and `rung7a-sf.txt` on the candidate
+branch. The token is in the fixture's `environment.md` by construction, so the reading counts it only in the
+accepted plan result and in the `architecture.md` and `spec.md` the plan stage wrote.
+
+| Platform | Driver | Token in the plan, `architecture.md` or `spec.md` | What the plan does with it (read by hand) |
+|---|---|---|---|
+| Node | Sol (k01, k08) | yes, yes | "Echo or generate X-Org-Request-Id on success and error"; a requirement in the spec |
+| Node | Sonnet (k04, k05) | yes, yes | sets the header; one records "gateway not reachable from repo" as a check owed after deploy |
+| Salesforce | Sol (k03, k06) | yes, yes | "group-only grant [...] Apply an additive change to the current `SLX_Feature_Access` source only after the admin confirms its effective roster" |
+| Salesforce | Sonnet (k02, k07) | yes, yes | k02 uses the group and opens its membership; k07 keeps the org's rule (a group, never a direct assignment) but makes a new group and leaves the named one alone, "rejected until its membership is known", because the request says only twelve dispatchers |
+
+**Prediction ("at least 6 of 8"): right, 8 of 8.**
+
+**This is the route the study had not run where it matters, and it works at the plan stage without any change to
+ShipLoop.** Against section 23: the card only named 0 to 1 of 8; the entries printed 7 of 8; the fact in the
+request 8 of 8; the fact in the project's knowledge file 8 of 8.
+
+**And the plans are better for it, not only compliant.** Read as the project's own observation, the fact was
+neither doubted (as in the card that was merely read, f08 and f25) nor simply obeyed: five of the eight plans say
+what has to be confirmed before acting on it, and k07 found the one real conflict the planted fact has with the
+request. That is the authority the second review said a printed card entry lacks.
+
+**Limits.** A slice starts cold at the plan stage, and the first thing a model does there is read the knowledge
+home; rung 7b asks whether the same holds through a whole delivery. Two samples a cell. The bullet states where
+the fact was observed, which a real project's file may not.
+
+## 33. Rung 7b: three whole deliveries with released ShipLoop and the fact in the project's knowledge file: all three products pass (2026-11-22, 14:23 to 14:41)
+
+Runs `~/e2e-runs-pk/20261122-n/k11` and `k12` (Sol medium) and `k13` (Sonnet medium): the Node service of rung 6
+with a knowledge home whose `environment.md` states the hidden fact as one bullet under `## Platform facts`; the
+released route (the candidate build with every switch at its default); the request of rung 6, which names no
+header. Readings on the candidate branch: `familiar/readings/contract-rung7b.txt` (the tightened check of section
+31) and `rung7b-product-token.txt`.
+
+| Run | Driver | ShipLoop | Minutes | Output tokens | Sent id echoed | Id generated | 400 path | The 18 existing answers unchanged | Existing routes carrying the header | Plan packet held the entry | Card opened |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| k11 | Sol | done | 9.9 | 19,771 | pass | pass | pass | pass | none | no | never |
+| k12 | Sol | done | 11.1 | 23,511 | pass | pass | pass | pass | none | no | never |
+| k13 | Sonnet | done | 17.4 | 124,662 ($6.83) | pass | pass | pass | pass | all 18 | no | never |
+
+**Rule ("the existing route holds on Sol when both Sol products pass"): it holds. Prediction ("at least 2 of 3
+pass"): right, 3 of 3.**
+
+**The whole chain on this service, every arm run today** (products that pass the check, of deliveries run):
+
+| Where the fact is | Sol | Sonnet |
+|---|---|---|
+| Only in the platform card, released ShipLoop (n01, n04) | 0 of 1 | 0 of 1 |
+| The card's entries printed in the plan duty, candidate (n03, n02) | 0 of 1 | 1 of 1 |
+| Printed at discovery and at plan, candidate (n05, n06, n07) | 2 of 2 | 1 of 1 |
+| In the project's own knowledge file, released ShipLoop (k11, k12, k13) | 2 of 2 | 1 of 1 |
+
+**How the fact travelled, read in the session records.** Each of the three sessions printed `docs/shiploop/*.md`
+to itself within twelve seconds of its start (start 22:23:15Z; k13 at 22:23:24Z, k12 at 22:23:26Z, k11 at
+22:23:27Z), before its first stage result, and nobody asked it to by name: the knowledge home is where a delivery
+begins. Each then wrote the fact into the spec as a requirement (k11: "Every response for GET /stock, including
+400 and 500 errors, carries X-Org-Request-Id"; k13: "R-6 Every /stock answer carries X-Org-Request-Id. Basis:
+environment.md Platform facts"). From there it was a requirement like any other: a test (TC-3 in both Sol
+products), the code, the README. No plan packet held the entry, and no session opened the platform card. This is
+what the second review asked a design to do ("put the fact at the first decision that needs it and then carry the
+decision in the records ShipLoop already has"), and the released route already does it.
+
+**It costs nothing extra.** Sol took 9.9 and 11.1 minutes (10.0 and 10.1 in rung 6, 12.1 and 9.5 in rung 6b);
+Sonnet 17.4 minutes and $6.83 (16.4 and 15.9 minutes in rung 6, 21.7 in rung 6b).
+
+**Scope, as in section 31.** Sol put the header on the new route only; Sonnet put it on every route, and added a
+case to the existing test file for it. The bullet says both things ("the platform team confirms it applies to
+every route"; "every response of a new or changed route [...] must carry it"), so each reading has its sentence.
+Neither breaks the check.
+
+**The knowledge file is kept up by the deliveries themselves.** k12 and k13 each added a bullet to
+`## Platform facts` (who owns the gateway's log; what the service logs and does not), unasked.
+
+**Limits.** One repository, one fact, one Sonnet sample. The knowledge home was written by me, as an earlier
+delivery would have left it, and its `## Platform facts` holds four bullets: a platform's key considerations are
+dozens (rung 8, section 34, asks about that). And this route presupposes the file: the first delivery in a
+repository with no knowledge home has none, and that is the fresh repository of rung 6, 0 of 2. So "how do a
+platform's facts get into the project's file" stays open.
+
+## 34. Amendment 7, registered before its runs: a long list against an index with pages (2026-11-22, 14:50)
+
+**Why one more rung before concluding.** The route that works has been run with four bullets. The owner's
+reference is a platform's key considerations, and his two worries were about size and shape: "I wonder if the wiki
+style would pollute context less, but requires key identifiers and pointers in order to pick up the other items. I
+worry the file cannot be loaded in context". This is the case most likely to break section 33's reading, so it
+runs before the conclusion, and it runs both shapes on the route that works.
+
+**The two shapes**, on the Salesforce plan-stage case of rung 7a (released behaviour, no card named, nothing
+printed by the script). Both hold the same facts; an Opus subagent builds them from one source so they cannot
+drift, and a script proves the two sets identical:
+
+- **L, the long list.** `## Platform facts` holds the three code bullets and then 36 to 44 real statements of the
+  Salesforce card restated as facts of this project's platform (nothing invented, the card not named), with the
+  hidden bullet of rung 7a, unchanged, in the middle of them.
+- **X, the index with pages.** `## Platform facts` holds the three code bullets and a short index: one sentence
+  ("This org's platform facts are kept as pages under docs/shiploop/platform/, one topic a page. Before a decision
+  that touches a topic, read its page:") and one line a page saying what the page covers and stating no fact. The
+  same facts are on six to eight topic pages; the hidden bullet is in the middle of `access.md`, and its token is
+  nowhere else in the repository.
+
+**Baseline:** rung 7a's Salesforce cell, four bullets: 4 of 4.
+
+**Runs.** Eight plan-stage slices, `familiar/runs/rung8.tsv`, in `~/e2e-runs-pk/20261122-m/` (m01 to m08): each
+shape twice on Sol medium and twice on Sonnet medium.
+
+**Readings**, by `familiar/knowledge_reading.py`, calibrated on rung 7a's four Salesforce slices before use. Of
+record: the token in the accepted plan, or in the `architecture.md` or `spec.md` the plan stage wrote (the reading
+of rung 7a, by the same code). Beside it: whether every line of the hidden bullet was given to the model before
+the plan was submitted (for Sol, read in the session record, never in the event stream); which pages a command or a
+read named; and the characters of knowledge text given (the Platform facts section plus the pages), which is the
+context cost this rung compares.
+
+**Rules.** A shape **holds** when the token reaches the plan in at least 3 of its 4 slices; it **holds on a
+driver** when it does in both of that driver's slices.
+
+**Predictions.** L: the bullet is given in 4 of 4 and the token reaches the plan in at least 3 of 4. X: `access.md`
+is opened in at least 3 of 4 and the token reaches the plan in at least 2 of 4. X gives the model under 60% of the
+knowledge characters L gives.
+
+**What each outcome would mean.**
+
+- L holds on both drivers: at this size (about forty facts) one section of the project's knowledge file is enough.
+  No wiki, no skill and no script is needed to deliver the facts; the pages are an option when the cost matters,
+  with the saving as measured.
+- L fails on a driver and X holds on it: the wiki shape earns its place, as an index in the knowledge file with
+  pages beside it.
+- Both fail on a driver: the list a delivery reads must be short and chosen for the project, and the open question
+  is who chooses.
+
+**Limits known before the run.** The plan stage only, started cold; a whole delivery meets the knowledge home in
+its first seconds (section 33), not at the plan. One platform, one request, one list, two samples a cell. The
+hidden fact is the only one of the list the request cannot be done right without, so this measures finding one
+needed fact among many, not using many.
+
