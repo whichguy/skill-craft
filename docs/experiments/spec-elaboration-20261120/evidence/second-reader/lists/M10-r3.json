@@ -1,0 +1,74 @@
+{
+ "code": "M10",
+ "repeat": 3,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "The new release stores deadlines in the version-1 ticket file, where a 1.4.0 write discards them, so operators must save a copy before a writable rollback and use it to restore deadlines by ticket ID when rolling forward while retaining changes made under 1.4.0.",
+   "alternative": "The requester might have meant that normal writes under 1.4.0 should preserve assigned deadlines automatically so operators can roll forward without a backup-and-merge step.",
+   "where": "repo/docs/shiploop/spec.md, R-5 (line 25), and record/03-research.md, result.summary (line 17)"
+  },
+  {
+   "decision": "With DUE_TIMES=on, the server refuses to serve if an existing data file has any ticket without a deadline.",
+   "alternative": "The requester might have wanted the server to keep serving the old API contract and report that activation failed until the file is complete.",
+   "where": "repo/docs/shiploop/spec.md, R-3 (line 17)"
+  },
+  {
+   "decision": "The server can start with due times enabled and an empty store when the configured data file is absent or when it is running in memory.",
+   "alternative": "The requester might have wanted activation to require an existing, explicitly prepared data file so a missing file or an omitted DATA_FILE cannot bring up an empty ticket service.",
+   "where": "repo/docs/shiploop/spec.md, R-3 (line 17)"
+  },
+  {
+   "decision": "The backfill uses the priority stored on each ticket when the backfill runs, including any priority changes since creation.",
+   "alternative": "The requester might have meant to use the original priority recorded at creation so a later reprioritization does not change a legacy ticket's deadline.",
+   "where": "repo/docs/shiploop/spec.md, R-3 (line 17), and record/03-research.md, result.summary (line 17)"
+  },
+  {
+   "decision": "The backfill uses the response-time settings in effect when it assigns each missing deadline.",
+   "alternative": "The requester might have wanted all existing tickets backfilled using the four stated default durations, with overrides applying only to new tickets.",
+   "where": "repo/docs/shiploop/spec.md, R-1 and R-3 (lines 9 and 17)"
+  },
+  {
+   "decision": "The spec assigns deadlines at ticket creation with the feature enabled and uses backfill for tickets still missing a deadline.",
+   "alternative": "The requester might have wanted the new release to assign deadlines at creation even while the flag hides them, fixing the deadline before any later change to priority or response hours.",
+   "where": "repo/docs/shiploop/spec.md, R-1, R-3 and R-4 (lines 9, 17 and 21)"
+  },
+  {
+   "decision": "The work delivers and verifies the change locally with disposable files and leaves the production rollout to the help-desk operator.",
+   "alternative": "The requester might have expected the work to include executing and verifying the migration and activation on the live production file once access was provided.",
+   "where": "record/04-spec.md, result.summary (line 46), and repo/docs/shiploop/environment.md, Targets and runtimes and Access and accounts (lines 5 and 19)"
+  },
+  {
+   "decision": "An invalid response-hour setting causes the service to fail with a clear error when due times are enabled.",
+   "alternative": "The requester might have wanted the service to log the bad override and continue using the default hours for that priority.",
+   "where": "repo/docs/shiploop/spec.md, R-1 (line 9), and repo/README.md, Configuration (line 35)"
+  },
+  {
+   "decision": "The overdue filter narrows the existing cursor-paginated list and keeps the live API's behavior that either a supplied status or a supplied priority may match when both are given.",
+   "alternative": "The requester might have expected an overdue ticket to match both supplied filters, as the existing API documentation describes for status and priority.",
+   "where": "repo/docs/shiploop/spec.md, R-2 (line 13), record/02-discovery.md, result.summary (line 25), and repo/src/tickets/query.js, matchesFilters (line 45)"
+  },
+  {
+   "decision": "Backfill writes the deadlines while leaving the existing audit log intact.",
+   "alternative": "The requester might have wanted an audit entry for each backfilled deadline so agents can see when it was first assigned.",
+   "where": "repo/docs/shiploop/spec.md, R-3 (line 17)"
+  },
+  {
+   "decision": "The spec adds no outbound notifications triggered by deadlines.",
+   "alternative": "The requester might have wanted agents notified when an open or in-progress ticket first becomes overdue.",
+   "where": "repo/docs/shiploop/spec.md, Non-functional requirements (line 33)"
+  },
+  {
+   "decision": "Human-readable CLI output displays the deadline when DUE_TIMES=on and the file contains it, and raw CLI output keeps its existing column positions.",
+   "alternative": "The requester might have wanted the CLI to show stored deadlines regardless of the server's activation flag so operators can inspect them before enabling the feature.",
+   "where": "repo/docs/shiploop/spec.md, R-4 (line 21)"
+  }
+ ]
+}

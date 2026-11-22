@@ -1,0 +1,49 @@
+{
+ "code": "M09",
+ "repeat": 1,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "The original local checkout is the delivery destination, with verification performed locally.",
+   "alternative": "The requester could have expected delivery through a pull request with its own verification.",
+   "where": "record/01-intake.md:83 and record/04-spec.md:26"
+  },
+  {
+   "decision": "The specified way to run the greeting is `python3 hello.py` from the checkout.",
+   "alternative": "The requester could have expected to execute `./hello.py` directly.",
+   "where": "repo/docs/shiploop/spec.md:9 (R-1)"
+  },
+  {
+   "decision": "The test compares raw stdout bytes, so the line ending must be a single LF byte.",
+   "alternative": "The requester could have meant to verify the greeting as text and accept the platform's native line ending.",
+   "where": "repo/docs/shiploop/spec.md:9\u201310 (R-1)"
+  },
+  {
+   "decision": "The unittest launches `hello.py` in a subprocess and observes its stdout.",
+   "alternative": "The requester could have meant an in-process unittest that calls the greeting code and captures its output.",
+   "where": "repo/docs/shiploop/environment.md:18 (Harnesses and suites) and repo/docs/shiploop/spec.md:16 (R-2)"
+  },
+  {
+   "decision": "The unittest requires a successful exit even when the script produces the expected stdout.",
+   "alternative": "The requester could have intended the unittest to assert only the printed output.",
+   "where": "repo/docs/shiploop/spec.md:16 (R-2)"
+  },
+  {
+   "decision": "The test checks stdout and the exit status, allowing a passing run that also writes to stderr.",
+   "alternative": "The requester could have meant that the greeting must be the only terminal output, with stderr empty.",
+   "where": "repo/docs/shiploop/spec.md:16 (R-2) and repo/docs/shiploop/environment.md:18 (Harnesses and suites)"
+  },
+  {
+   "decision": "The test must run through default unittest discovery from the checkout.",
+   "alternative": "The requester could have expected verification by explicitly running the `test_hello` module.",
+   "where": "repo/docs/shiploop/spec.md:16 (R-2)"
+  }
+ ]
+}

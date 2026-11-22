@@ -1,0 +1,35 @@
+due times, the set the rule reads: place, items, `new` by both judges, by one, by neither
+   1   21    8   13    0
+   2   21   13    2    6
+   3   21   13    4    4
+   4   21   11    2    8
+   5   21    4    3   14
+
+due times, every list: place, items, `new` by both judges, by one, by neither
+   1   30   17   13    0
+   2   30   20    2    8
+   3   30   17    6    7
+   4   30   17    2   11
+   5   30    8    6   16
+
+hello, every list: place, items, `new` by both judges, by one, by neither
+   1    9    2    1    6
+   2    9    7    1    1
+   3    9    1    5    3
+   4    9    0    4    5
+   5    8    0    3    5
+
+pairs of classes over all shown items (opus, astra): count
+   new       new        89
+   settled   settled    37
+   unseen    new        22
+   unseen    unseen     13
+   settled   new        11
+   unseen    unfounded   9
+   unfounded new         6
+   new       settled     4
+   told      told        2
+   unfounded unfounded   1
+
+class of the item both judges place as `way_back` (opus, astra): {('new', 'new'): 15, ('unfounded', 'new'): 6}
+class of the item both judges place as `refusal` (opus, astra): {('new', 'new'): 9}

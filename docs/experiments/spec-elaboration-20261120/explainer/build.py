@@ -1135,9 +1135,16 @@ def page():
     for you, the costliest first. The decisive one was on the list 27 times of 27: already right after the
     specification, between second and fifth of about two dozen, and second or third once the plan existed. Asking
     after the tests ran only lengthened the list. So the question can be produced early, with no build; where the
-    Ratchet session's sessions were asked to choose one question, they never chose that point. Whether ShipLoop
-    should put such a list in front of you is yours to decide. Which driver to use is a question about whole
-    deliveries, which the SDLC session reads.</div></li>
+    Ratchet session's sessions were asked to choose one question, they never chose that point. ShipLoop now puts
+    such a list in front of you: the Ratchet session's "Decided for you" was released on 22 November as ShipLoop
+    2.6.0. <b>A last test asked whether a second reader should add to it.</b> For thirteen finished deliveries a
+    fresh session was shown the rows the author had recorded and asked what else the work had decided for you.
+    Where the rows left out what going back to the old release loses, the second reader put it first every time (21
+    lists of 21), and where a row already told it no list said it again. But of the five added items that would be
+    shown, two are real open points by both judges, and a one-line request got four to seven more "decisions" of
+    which one was real. By the rule set beforehand that is mixed, so no second reader is proposed. What changes a
+    build is your answer reaching the specification, and you have asked the Ratchet session to build that route.
+    Which driver to use is a question about whole deliveries, which the SDLC session reads.</div></li>
     <li><div><b>Try "open in the spec, answered in the plan" in ShipLoop?</b> Nothing is proposed yet. It would need your
     word, a candidate build and real end-to-end deliveries, and it is untested where one session writes the plan, the
     tests and the product in turn.</div></li>
@@ -1171,7 +1178,7 @@ def page():
 
 <footer>
   <p>Every figure comes from <code>docs/spec-elaboration-journal.md</code> on <code>main</code>; threads 3 and 4 are the Ratchet
-  session's results as recorded there, checked against its journal and not re-run here. Prepared 21 November 2026.</p>
+  session's results as recorded there, checked against its journal and not re-run here. Prepared 22 November 2026.</p>
 </footer>
 </main>
 <div id="tip" role="tooltip" hidden></div>

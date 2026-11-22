@@ -1,0 +1,64 @@
+{
+ "code": "M07",
+ "repeat": 3,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "Keep deadlines as optional fields in the version 1 ticket records and rely on operators to retain the upgraded values for reactivation, because release 1.4.0 discards those fields when it rewrites the file.",
+   "alternative": "The requester might have expected operators to run 1.4.0 normally during rollback and then upgrade again with both the original deadlines and all intervening ticket changes preserved automatically.",
+   "where": "record/03-research.md:16 (research summary) and repo/docs/shiploop/spec.md:16 (R-3 rollback)"
+  },
+  {
+   "decision": "Backfill existing tickets using their stored creation timestamps and the priorities on their records at migration time.",
+   "alternative": "The requester might have wanted deadlines based on the original priority at creation for tickets that were later reprioritized.",
+   "where": "repo/docs/shiploop/spec.md:15 (R-3 backfill) and repo/src/store.js:87\u201395 (priority edits)"
+  },
+  {
+   "decision": "Apply the backfill by atomically replacing the configured data file in place when values are missing.",
+   "alternative": "The requester might have expected a staged output file that an operator could inspect before promoting it and that would leave the original file available for recovery.",
+   "where": "repo/docs/shiploop/spec.md:15 (R-3 save) and :24 (rewrite condition), with the existing replacement described in repo/docs/operations.md:14\u201320"
+  },
+  {
+   "decision": "Reject invalid response-hour overrides at startup with an error that names the offending setting.",
+   "alternative": "The requester might have expected the service to log a warning and start with default hours so a bad override would leave the help desk available.",
+   "where": "repo/docs/shiploop/spec.md:6 (R-1 invalid overrides) and repo/README.md:35 (configuration failure convention)"
+  },
+  {
+   "decision": "Deliver the change locally, verify the rollback with the actual 1.4.0 release on disposable data, and leave production activation to the operators.",
+   "alternative": "The requester might have expected the delivery to include a rollout rehearsal using a copy of production data and to cover activation on the production host.",
+   "where": "record/04-spec.md:50 (scope, rollback evidence and activation ownership) and repo/docs/shiploop/environment.md:7,25 (delivery and production access)"
+  },
+  {
+   "decision": "Require overdue results to pass the overdue check and preserve the running service's either-match behavior when both status and priority filters are supplied.",
+   "alternative": "The requester might have expected an overdue ticket to match both supplied filters, as the current API documentation says combined filters do.",
+   "where": "record/03-research.md:16 (filter decision) and repo/docs/api.md:67\u201377 (documented filter contract)"
+  },
+  {
+   "decision": "Apply the overdue filter before cursor pagination, so page size and continuation are based on matching tickets.",
+   "alternative": "The requester might have expected the filter to narrow each existing cursor page, allowing a short or empty page even when later pages contain overdue tickets.",
+   "where": "repo/docs/shiploop/spec.md:11 (R-2 filter and pagination order)"
+  },
+  {
+   "decision": "Expose `due` in enabled HTTP ticket payloads for create, patch, and transition as well as list and get.",
+   "alternative": "The requester might have wanted `due` only on list and get, leaving clients that consume write responses on their existing response shape.",
+   "where": "repo/docs/shiploop/spec.md:10 (R-2 HTTP response coverage)"
+  },
+  {
+   "decision": "Represent `due` as a UTC ISO 8601 string in API ticket responses.",
+   "alternative": "The requester might have wanted an epoch timestamp for programmatic comparison without parsing a date string.",
+   "where": "repo/docs/shiploop/spec.md:5 (R-1 exact UTC ISO times)"
+  },
+  {
+   "decision": "Leave the audit log and notification outbox untouched when filling missing deadlines.",
+   "alternative": "The requester might have wanted a migration audit entry so operators could later tell when existing tickets acquired their deadlines.",
+   "where": "repo/docs/shiploop/spec.md:15 (R-3 unchanged audit and outbox)"
+  }
+ ]
+}

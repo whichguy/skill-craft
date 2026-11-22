@@ -1,0 +1,13 @@
+M07: d1 (due, first): commit c94eac3271 found by subject, 4 rows told
+M06: d2 (due, first): commit e6c7cd1e85 found by subject, 3 rows told
+M10: d3 (due, first): commit 802bc5084f found by subject, 3 rows told
+M08: h1 (hello, first): commit 096b53c819 found by subject, 1 rows told
+M04: d4 (due, final): commit a2fe29bc2d found by subject, 4 rows told
+M13: d5 (due, final): commit d06191af77 found by subject, 4 rows told
+M12: d6 (due, final): commit b61de8c619 found by subject, 3 rows told
+M09: h2 (hello, final): commit f424f4384a found by subject, 1 rows told
+M03: s1 (due, final): commit 6bb34eede8 found by time, 6 rows told
+M05: k1 (hello, latest): commit 05ea7e06b9 found by subject, 1 rows told
+M11: k2 (due, latest): commit 859c33f4b7 found by subject, 5 rows told
+M01: k3 (due, latest): commit 9351e9bc49 found by subject, 3 rows told
+M02: k4 (due, latest): commit 237fc86047 found by time, 6 rows told

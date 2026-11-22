@@ -1,0 +1,27 @@
+{
+ "case": "A",
+ "told": "# What the requester has been told\n\nThe work recorded these decisions as taken on the requester's behalf and showed them to the requester.\n\n1. (R-1) How do I change the hours?\n   Decided: Set SLA_HOURS_URGENT, SLA_HOURS_HIGH, SLA_HOURS_NORMAL or SLA_HOURS_LOW to positive whole hours.\n   Otherwise: Use a single JSON environment value.\n\n2. (R-2) Is a ticket overdue exactly at its due time?\n   Decided: It is overdue only after that instant.\n   Otherwise: Count it at the exact instant as overdue.\n\n3. (R-3) How do I prepare the data file?\n   Decided: Run the one-shot backfill with the service stopped, then enable the feature. Enabled startup also fills missing dues before listening.\n   Otherwise: Rely entirely on startup backfill.\n\n4. (R-2) What happens with other overdue query values?\n   Decided: Only the literal true activates the extra filter.\n   Otherwise: Reject other values with 400.\n",
+ "specification": "# Help desk ticket service specification\n\n## Requirements\n\n### R-1 Assign a due time once\n\nBasis: 2026-11-21 response-time request. New ticket due is its persisted created time plus 4 urgent, 24 high, 72 normal or 168 low elapsed hours. Default of 2026-11-21: use individual positive whole-hour SLA_HOURS_<PRIORITY> environment settings, with unset values using the defaults and invalid values naming the setting. A priority update, lifecycle change, config change, or feature toggle retains the assigned value. Verify with deterministic HTTP creates and a file-backed restart.\n\n### R-2 Expose due times and filter overdue tickets\n\nBasis: 2026-11-21 response-time request and docs/api.md listing contract. With DUE_TIMES=on, ticket reads, create, edit, transition and lists expose ISO due. Default of 2026-11-21: only literal overdue=true narrows a list, and overdue means open or in progress with a due instant strictly before now. Preserve the status/priority OR filter, sort, cursor and envelope. Verify equality, resolved and closed exclusions, and combined filters with loopback HTTP.\n\n### R-3 Backfill before activation\n\nBasis: 2026-11-21 response-time request and data-file decision 8. Fill absent dues from existing created and priority without modifying audit, outbox, ticket IDs, update times or assigned values. Default of 2026-11-21: use a one-shot offline command and catch up missing dues before enabled startup listens. Verify file read-back, repeated backfill, and restart with a changed policy. Off-mode API responses stay in the baseline shape and ignore overdue. The single service process or the offline operator owns the data file at any one time.\n\n### R-4 Readability in rollback\n\nBasis: 2026-11-21 response-time request. Actual 1.4.0 must start using the new file and list its existing and newly created tickets. Its writer discards the optional due field, so operator instructions preserve the due-bearing copy and protect later ticket changes during re-upgrade. Verify against a copy using the unchanged 1.4.0 executable.\n\n### R-5 Preserve existing behavior and tests\n\nBasis: 2026-11-21 response-time request and CONTRIBUTING.md. Preserve dependency-free Node 22+ service, npm start and PORT, CLI and raw report contracts, and the unchanged suite. Add node:test coverage under test/ and run npm test.\n\n## Non-functional requirements\n\nThe version-1 file remains atomically replaced and single writer. Feature work adds no service, timer, dependency or new personal data. The existing CLI retains the documented table and raw contracts. No new graphical interface is introduced.\n\n## Retired\n\nNone.\n",
+ "items": [
+  {
+   "decision": "Rollback uses the same version-1 data file even though a 1.4.0 save strips due times, so operators must keep a copy containing the assigned dues and preserve subsequent ticket changes when upgrading again.",
+   "alternative": "The requester may have expected assigned due times to survive writes by 1.4.0 automatically while operators continue working on the rolled-back release."
+  },
+  {
+   "decision": "Response times run in elapsed hours, including nights, weekends and holidays.",
+   "alternative": "The help desk may have meant hours during its staffed schedule so the response clock pauses outside working hours."
+  },
+  {
+   "decision": "New tickets get their due time at creation even with DUE_TIMES off, and the flag controls whether the HTTP API exposes or uses that time.",
+   "alternative": "The requester may have wanted tickets created while the feature is off to get their first due time during backfill under the policy chosen for activation."
+  },
+  {
+   "decision": "Backfill uses each ticket\u2019s currently stored priority.",
+   "alternative": "The requester may have meant to use the priority the ticket had when it was created, looking it up in the audit history for tickets that were reprioritized."
+  },
+  {
+   "decision": "An invalid SLA hours setting is treated as a configuration error that names the variable and prevents startup under the service\u2019s existing configuration convention.",
+   "alternative": "Operators may have wanted the service to warn and start using the built-in hours for that priority."
+  }
+ ]
+}

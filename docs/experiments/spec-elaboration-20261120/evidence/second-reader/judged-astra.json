@@ -1,0 +1,554 @@
+{
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "cost_usd": null,
+ "prompt_sha256": "ecbdba42da8d92d47d8ac19c9a2d74204330ab5a4af0ae174b7108244bfed98a",
+ "rule_sha256": "c2f55f00639683e4698cc50f3200d190d249c21ace2f9f9c5485345546e60ffb",
+ "verdicts": {
+  "L01": {
+   "told_way_back": false,
+   "spec_refuses": true,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "new",
+    "new",
+    "settled",
+    "new"
+   ],
+   "way_back": 1,
+   "refusal": 2
+  },
+  "L02": {
+   "told_way_back": false,
+   "spec_refuses": false,
+   "told_refusal": false,
+   "classes": [
+    "unfounded",
+    "new",
+    "new",
+    "unseen",
+    "unseen"
+   ],
+   "way_back": 0,
+   "refusal": 0
+  },
+  "L03": {
+   "told_way_back": true,
+   "spec_refuses": true,
+   "told_refusal": true,
+   "classes": [
+    "new",
+    "told",
+    "new",
+    "settled",
+    "settled"
+   ],
+   "way_back": 0,
+   "refusal": 0
+  },
+  "L04": {
+   "told_way_back": false,
+   "spec_refuses": true,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "new",
+    "new",
+    "settled",
+    "unfounded"
+   ],
+   "way_back": 1,
+   "refusal": 2
+  },
+  "L05": {
+   "told_way_back": false,
+   "spec_refuses": true,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "new",
+    "settled",
+    "new",
+    "settled"
+   ],
+   "way_back": 1,
+   "refusal": 2
+  },
+  "L06": {
+   "told_way_back": false,
+   "spec_refuses": false,
+   "told_refusal": false,
+   "classes": [
+    "unfounded",
+    "new",
+    "new",
+    "new",
+    "new"
+   ],
+   "way_back": 0,
+   "refusal": 0
+  },
+  "L07": {
+   "told_way_back": false,
+   "spec_refuses": true,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "new",
+    "new",
+    "new",
+    "settled"
+   ],
+   "way_back": 1,
+   "refusal": 2
+  },
+  "L08": {
+   "told_way_back": true,
+   "spec_refuses": false,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "new",
+    "new",
+    "new",
+    "new"
+   ],
+   "way_back": 0,
+   "refusal": 0
+  },
+  "L09": {
+   "told_way_back": false,
+   "spec_refuses": false,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "new",
+    "settled",
+    "settled",
+    "settled"
+   ],
+   "way_back": 1,
+   "refusal": 0
+  },
+  "L10": {
+   "told_way_back": false,
+   "spec_refuses": false,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "settled",
+    "new",
+    "settled",
+    "new"
+   ],
+   "way_back": 1,
+   "refusal": 0
+  },
+  "L11": {
+   "told_way_back": false,
+   "spec_refuses": true,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "new",
+    "settled",
+    "new",
+    "new"
+   ],
+   "way_back": 1,
+   "refusal": 2
+  },
+  "L12": {
+   "told_way_back": false,
+   "spec_refuses": false,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "settled",
+    "new",
+    "new",
+    "new"
+   ],
+   "way_back": 1,
+   "refusal": 0
+  },
+  "L13": {
+   "told_way_back": false,
+   "spec_refuses": false,
+   "told_refusal": false,
+   "classes": [
+    "unfounded",
+    "new",
+    "new",
+    "unseen",
+    "new"
+   ],
+   "way_back": 0,
+   "refusal": 0
+  },
+  "L14": {
+   "told_way_back": false,
+   "spec_refuses": true,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "new",
+    "unfounded",
+    "new",
+    "settled"
+   ],
+   "way_back": 1,
+   "refusal": 2
+  },
+  "L15": {
+   "told_way_back": false,
+   "spec_refuses": false,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "new",
+    "settled",
+    "settled",
+    "new"
+   ],
+   "way_back": 1,
+   "refusal": 0
+  },
+  "L16": {
+   "told_way_back": true,
+   "spec_refuses": false,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "new",
+    "new",
+    "settled",
+    "settled"
+   ],
+   "way_back": 0,
+   "refusal": 0
+  },
+  "L17": {
+   "told_way_back": true,
+   "spec_refuses": false,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "new",
+    "new",
+    "new",
+    "new"
+   ],
+   "way_back": 0,
+   "refusal": 0
+  },
+  "L18": {
+   "told_way_back": false,
+   "spec_refuses": false,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "settled",
+    "new",
+    "new",
+    "settled"
+   ],
+   "way_back": 1,
+   "refusal": 0
+  },
+  "L19": {
+   "told_way_back": false,
+   "spec_refuses": true,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "new",
+    "new",
+    "new",
+    "settled"
+   ],
+   "way_back": 1,
+   "refusal": 2
+  },
+  "L20": {
+   "told_way_back": false,
+   "spec_refuses": false,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "unfounded",
+    "unseen",
+    "new",
+    "unseen"
+   ],
+   "way_back": 0,
+   "refusal": 0
+  },
+  "L21": {
+   "told_way_back": false,
+   "spec_refuses": false,
+   "told_refusal": false,
+   "classes": [
+    "unfounded",
+    "new",
+    "new",
+    "unseen",
+    "unseen"
+   ],
+   "way_back": 0,
+   "refusal": 0
+  },
+  "L22": {
+   "told_way_back": true,
+   "spec_refuses": true,
+   "told_refusal": true,
+   "classes": [
+    "new",
+    "new",
+    "new",
+    "told",
+    "settled"
+   ],
+   "way_back": 0,
+   "refusal": 0
+  },
+  "L23": {
+   "told_way_back": false,
+   "spec_refuses": false,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "new",
+    "new",
+    "new",
+    "settled"
+   ],
+   "way_back": 1,
+   "refusal": 0
+  },
+  "L24": {
+   "told_way_back": false,
+   "spec_refuses": false,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "new",
+    "new",
+    "settled",
+    "new"
+   ],
+   "way_back": 1,
+   "refusal": 0
+  },
+  "L25": {
+   "told_way_back": true,
+   "spec_refuses": false,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "new",
+    "new",
+    "new",
+    "new"
+   ],
+   "way_back": 0,
+   "refusal": 0
+  },
+  "L26": {
+   "told_way_back": false,
+   "spec_refuses": false,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "settled",
+    "settled",
+    "new",
+    "new"
+   ],
+   "way_back": 1,
+   "refusal": 0
+  },
+  "L27": {
+   "told_way_back": false,
+   "spec_refuses": true,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "new",
+    "new",
+    "new",
+    "settled"
+   ],
+   "way_back": 1,
+   "refusal": 4
+  },
+  "L28": {
+   "told_way_back": false,
+   "spec_refuses": false,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "new",
+    "unseen",
+    "new",
+    "unseen"
+   ],
+   "way_back": 0,
+   "refusal": 0
+  },
+  "L29": {
+   "told_way_back": false,
+   "spec_refuses": false,
+   "told_refusal": false,
+   "classes": [
+    "unfounded",
+    "new",
+    "new",
+    "new",
+    "unseen"
+   ],
+   "way_back": 0,
+   "refusal": 0
+  },
+  "L30": {
+   "told_way_back": false,
+   "spec_refuses": false,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "new",
+    "new",
+    "new",
+    "settled"
+   ],
+   "way_back": 1,
+   "refusal": 0
+  },
+  "L31": {
+   "told_way_back": false,
+   "spec_refuses": true,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "new",
+    "settled",
+    "new",
+    "new"
+   ],
+   "way_back": 1,
+   "refusal": 2
+  },
+  "L32": {
+   "told_way_back": true,
+   "spec_refuses": false,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "settled",
+    "new",
+    "settled",
+    "settled"
+   ],
+   "way_back": 0,
+   "refusal": 0
+  },
+  "L33": {
+   "told_way_back": true,
+   "spec_refuses": true,
+   "told_refusal": true,
+   "classes": [
+    "new",
+    "new",
+    "new",
+    "settled",
+    "settled"
+   ],
+   "way_back": 0,
+   "refusal": 0
+  },
+  "L34": {
+   "told_way_back": false,
+   "spec_refuses": false,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "new",
+    "settled",
+    "new",
+    "settled"
+   ],
+   "way_back": 1,
+   "refusal": 0
+  },
+  "L35": {
+   "told_way_back": false,
+   "spec_refuses": false,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "new",
+    "unseen",
+    "unseen"
+   ],
+   "way_back": 0,
+   "refusal": 0
+  },
+  "L36": {
+   "told_way_back": false,
+   "spec_refuses": false,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "settled",
+    "new",
+    "new",
+    "new"
+   ],
+   "way_back": 1,
+   "refusal": 0
+  },
+  "L37": {
+   "told_way_back": false,
+   "spec_refuses": false,
+   "told_refusal": false,
+   "classes": [
+    "unfounded",
+    "new",
+    "new",
+    "unseen",
+    "new"
+   ],
+   "way_back": 0,
+   "refusal": 0
+  },
+  "L38": {
+   "told_way_back": true,
+   "spec_refuses": false,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "settled",
+    "new",
+    "new",
+    "settled"
+   ],
+   "way_back": 0,
+   "refusal": 0
+  },
+  "L39": {
+   "told_way_back": false,
+   "spec_refuses": false,
+   "told_refusal": false,
+   "classes": [
+    "new",
+    "new",
+    "new",
+    "settled",
+    "unfounded"
+   ],
+   "way_back": 1,
+   "refusal": 0
+  }
+ }
+}

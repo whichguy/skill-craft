@@ -1,0 +1,27 @@
+{
+ "case": "A",
+ "told": "# What the requester has been told\n\nThe work recorded these decisions as taken on the requester's behalf and showed them to the requester.\n\n1. (R-1) How are response hours configured?\n   Decided: Set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL or DUE_HOURS_LOW to positive whole hours.\n   Otherwise: Use one JSON environment value for all priorities.\n\n2. (R-2) What happens with other overdue values and existing filters?\n   Decided: Only exact true activates it. The filter intersects the existing status/priority result before paging.\n   Otherwise: Reject values other than true and false.\n\n3. (R-3) How does rollout populate the file?\n   Decided: Run npm run backfill:due while the writer is stopped. Enabled startup also fills any missing deadlines before serving.\n   Otherwise: Require a separate backfill and refuse startup when any value is missing.\n\n4. (R-2) What changes in the CLI?\n   Decided: Human list and show display due with the flag on; raw output keeps its four-column contract.\n   Otherwise: Show due only in HTTP.\n",
+ "specification": "# Help desk tickets\n\n## Requirements\n\n### R-1 Fixed creation-time deadlines\n\nBasis: response-time request, 2026-11-21 (S2\u2013S4). The service persists an ISO UTC due value using the ticket's creation time plus 4, 24, 72 or 168 hours for urgent, high, normal or low. Confirm all four with a fixed clock. Existing priority changes and restarts with changed hours keep the original value. Default of 2026-11-21: operators configure DUE_HOURS_<PRIORITY> in positive whole hours. Unset or blank uses default. Invalid values name the variable at startup.\n\n### R-2 Flagged responses and overdue lists\n\nBasis: S5 and S7, 2026-11-21. Exact DUE_TIMES=on exposes due on ticket responses and activates exact overdue=true. Compare now strictly after due for open and in_progress tickets. Confirm future, equality, past, resolved, closed, and reopened cases. Default of 2026-11-21: intersect with existing status/priority OR filter before cursor pagination, ignore other overdue values, and show due in human CLI output with the flag on. The weekly report's four raw columns remain intact. With the flag off, persisted deadlines remain hidden and overdue is ignored.\n\n### R-3 Backfill\n\nBasis: S6\u2013S7, 2026-11-21. Existing records receive due computed from their creation and stored priority, preserving existing due and domain records. Default of 2026-11-21: an offline command supports preparation before opt-in and enabled startup ensures backfill before listening. Confirm idempotence, preservation of ticket metadata, sequence, audit and outbox, and a clear error for a corrupt file.\n\n### R-4 Service and rollback compatibility\n\nBasis: S1 and S8\u2013S10, 2026-11-21. Preserve npm start on PORT, CLI/report operation and existing tests. Confirm 1.4.0 starts and lists all tickets using the upgraded file. Rollback writes can drop due metadata, consistent with the old codec, so operations documents retaining a separate copy. Verify through the actual 1.4.0 codec and locally running server, then npm test with new files under test/.\n\n## Non-functional requirements\n\nKeep Node standard library only. Maintain single-writer, replace-whole persistence using the existing operational model. No new network dependency, identity, event sink or schedule. Maintain the CLI's established text formatting and raw machine contract.\n\n## Retired\n\nNone.\n",
+ "items": [
+  {
+   "decision": "Roll back against the same version-1 data file and have operators retain a separate copy, because a save by 1.4.0 can discard the live file's fixed deadlines.",
+   "alternative": "The requester might have meant that operators can run 1.4.0 normally and later upgrade again with the original deadlines intact, including for tickets changed during rollback."
+  },
+  {
+   "decision": "Backfill uses each ticket's priority as stored at migration time, even when it changed after creation.",
+   "alternative": "The requester might have meant to recover the priority at creation from the ticket's audit history and calculate the deadline from that."
+  },
+  {
+   "decision": "New tickets receive fixed deadlines as soon as the new release creates them, even while DUE_TIMES is off and the API hides those deadlines.",
+   "alternative": "The requester might have meant to start assigning deadlines at production opt-in and treat tickets created before then as backfill records."
+  },
+  {
+   "decision": "An invalid nonblank response-hour setting stops startup with an error naming the variable.",
+   "alternative": "The requester might have meant to keep the service available by using the default for that priority and logging a warning."
+  },
+  {
+   "decision": "The work delivers and verifies the change locally, leaving production deployment and activation to operators.",
+   "alternative": "The requester might have meant to include production release automation that handles the migration and enables the flag after preparation succeeds."
+  }
+ ]
+}

@@ -1,0 +1,44 @@
+{
+ "code": "M09",
+ "repeat": 2,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "The specification requires exact stdout bytes, including an LF line ending on every platform.",
+   "alternative": "The requester might have meant one line of exact greeting text with the platform's normal line ending.",
+   "where": "repo/docs/shiploop/spec.md, R-1, lines 9\u201310"
+  },
+  {
+   "decision": "The specified way to run the greeting is to pass hello.py to the python3 interpreter from the checkout.",
+   "alternative": "The requester might have expected hello.py to be directly executable as ./hello.py.",
+   "where": "repo/docs/shiploop/spec.md, R-1, line 9; repo/docs/shiploop/environment.md, Commands, line 9"
+  },
+  {
+   "decision": "The unittest launches hello.py in a subprocess to verify the command through its normal entry point.",
+   "alternative": "The requester might have meant an in-process unit test that calls a greeting function and captures its output.",
+   "where": "repo/docs/shiploop/spec.md, R-2, line 16; repo/docs/shiploop/environment.md, Harnesses and suites, line 18"
+  },
+  {
+   "decision": "The unittest requires the child process to exit successfully even when its stdout matches.",
+   "alternative": "The requester might have meant for the test to assert the greeting alone and leave exit status outside the test's scope.",
+   "where": "repo/docs/shiploop/spec.md, R-2, line 16"
+  },
+  {
+   "decision": "The test checks stdout and successful execution, with no assertion that stderr is empty.",
+   "alternative": "The requester might have meant the greeting to be the only terminal output, with the test also rejecting messages on stderr.",
+   "where": "repo/docs/shiploop/spec.md, R-1 and R-2, lines 9 and 16"
+  },
+  {
+   "decision": "The specification requires standard unittest discovery to find and run the greeting test from the checkout.",
+   "alternative": "The requester might have expected the documented verification command to select test_hello explicitly.",
+   "where": "repo/docs/shiploop/spec.md, R-2, line 16; repo/docs/shiploop/environment.md, Commands, line 10"
+  }
+ ]
+}

@@ -1,0 +1,27 @@
+{
+ "case": "A",
+ "told": "# What the requester has been told\n\nThe work recorded these decisions as taken on the requester's behalf and showed them to the requester.\n\n1. (R-1) How do operators set response hours?\n   Decided: Use DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL and DUE_HOURS_LOW for positive whole hours.\n   Otherwise: Use a single JSON settings variable, requiring an operator to edit a JSON object.\n\n2. (R-3) Is a ticket overdue at the exact deadline?\n   Decided: It enters the overdue list once the deadline has passed. Existing filters still apply.\n   Otherwise: Include the ticket at equality, changing results at the exact timestamp.\n\n3. (R-4) What command prepares the data?\n   Decided: Startup prepares missing deadlines before opening the port, including startup with the flag off.\n   Otherwise: Use a separate offline migration command, requiring a separate operator invocation.\n",
+ "specification": "# Help desk ticket service\n## Requirements\nBasis for R-1 through R-6: the November 21, 2026 due-time request. Existing API, CLI and persistence contracts come from README, docs/api.md and decision 8.\n\n### R-1 \u2014 Assign and keep deadlines\n- Creating a ticket assigns a UTC ISO timestamp from its creation time plus 4/24/72/168 hours for urgent/high/normal/low. Verify the four defaults via HTTP and a manual clock.\n- Default of November 21, 2026: positive whole hours from DUE_HOURS_<PRIORITY> override only that priority and invalid values identify the setting. Verify override loading and rejection through configuration tests.\n- Priority changes, status changes and restarts with different hours retain the stored timestamp. Verify HTTP writes and restart with the same file.\n### R-2 \u2014 Gate ticket output\n- DUE_TIMES=on exposes due on ticket HTTP responses and human CLI output. Unset and other values preserve old responses and ignore overdue. Verify HTTP routes and CLI rendering.\n- Raw CLI columns, weekly report, audit and outbox retain their existing contracts. Verify existing suite and raw CLI output.\n### R-3 \u2014 List overdue tickets\n- With the flag on, overdue=true selects only open or in_progress tickets whose deadline has passed. Default of November 21, 2026: strict cutoff, independently intersected with existing filters before pagination. Verify all statuses, equality and filtered pages through HTTP.\n### R-4 \u2014 Backfill persistent data\n- Default of November 21, 2026: startup fills only missing deadlines from each stored creation time and priority and persists them before serving even with the flag off. Restarts never rewrite an existing due value. Verify mixed legacy/new files and an immediate read after startup, with unchanged audit/outbox.\n### R-5 \u2014 Read with release 1.4.0\n- The unchanged 1.4.0 service starts on a real copy of the candidate-written file and returns all tickets with the old response shape. Verify using the baseline checkout and real HTTP before local delivery.\n### R-6 \u2014 Preserve runtime and regression suite\n- npm start uses PORT, with no dependencies. Keep existing tests as written and add node:test tests under test/ collected by npm test. Confirm test suite and startup.\n## Non-functional requirements\n- Atomic file write and single ownership remain as specified in decision 8. Migration must finish before listening and must preserve IDs, audit and outbox.\n- Production deployment and its data verification are operator-owned. No UI, new access boundary or throughput target is introduced.\n## Retired\nNone.\n",
+ "items": [
+  {
+   "decision": "Rollback compatibility covers starting 1.4.0 and reading every ticket from the new file, although a subsequent save by 1.4.0 drops the stored deadlines.",
+   "alternative": "The requester might have expected previously assigned deadlines to survive writes made during rollback and be available when the new release is restored."
+  },
+  {
+   "decision": "Backfill uses each ticket\u2019s stored priority at migration time, so a priority change made before migration affects its first deadline.",
+   "alternative": "The requester might have expected the original priority recorded at ticket creation to determine the deadline for tickets that were later reprioritized."
+  },
+  {
+   "decision": "Backfill uses the response-hour settings in effect when missing deadlines are first assigned, so overrides at that startup can set deadlines for existing tickets.",
+   "alternative": "The requester might have intended the stated 4, 24, 72 and 168 hours to govern all existing tickets and any overrides to apply only to tickets created afterward."
+  },
+  {
+   "decision": "An invalid response-hours override is rejected as a startup configuration error that names the setting.",
+   "alternative": "The requester might have wanted startup to continue using the default for that priority and log a warning about the invalid override."
+  },
+  {
+   "decision": "Local delivery uses a copied data file and real HTTP to verify rollback, while production deployment and verification of the actual data file are left to operators before enablement.",
+   "alternative": "The requester might have considered the work complete only after someone verified the actual production file and enabled due times on the production service."
+  }
+ ]
+}

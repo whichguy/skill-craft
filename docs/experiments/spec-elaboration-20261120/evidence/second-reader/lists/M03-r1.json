@@ -1,0 +1,74 @@
+{
+ "code": "M03",
+ "repeat": 1,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "A single ticket with a malformed stored `due` prevents the service from starting and the error names the offending record, even with due times switched off.",
+   "alternative": "The requester might have wanted the service to keep serving the old API while operators repair the affected deadline.",
+   "where": "repo/docs/shiploop/spec.md, R-6 lines 43\u201346 and R-7 line 52"
+  },
+  {
+   "decision": "An explicitly empty `DUE_HOURS_*` setting selects the built-in default for that priority.",
+   "alternative": "The requester might have wanted an explicitly blank setting to stop startup so a configuration mistake cannot permanently assign tickets the wrong deadline.",
+   "where": "repo/docs/shiploop/spec.md, R-2 line 15"
+  },
+  {
+   "decision": "The production rollout relies on operators to deploy with `DUE_TIMES` off, confirm the data file contains due times, and then switch it on.",
+   "alternative": "The requester might have wanted startup to enforce the rollout sequence by refusing `DUE_TIMES=on` if the file still needs backfilling.",
+   "where": "repo/docs/shiploop/spec.md, R-10 line 71 and R-6 line 43"
+  },
+  {
+   "decision": "With `overdue=true` and both status and priority specified, an overdue ticket qualifies if it matches either of those two filters.",
+   "alternative": "The requester might have expected an overdue search to require all three conditions, as the current API documentation already says for status and priority together.",
+   "where": "repo/docs/shiploop/spec.md, R-5 line 39, and repo/docs/api.md, List tickets lines 69\u201377"
+  },
+  {
+   "decision": "The creation audit entry omits the deadline assigned to a new ticket.",
+   "alternative": "The requester might have wanted the audit history to record the original promise so it can be recovered later.",
+   "where": "repo/docs/shiploop/spec.md, R-1 line 11"
+  },
+  {
+   "decision": "The operator CLI and weekly report keep their existing output in both switch modes.",
+   "alternative": "The requester might have wanted a deadline in the CLI's human-readable output and overdue counts in the weekly report while preserving the existing raw columns.",
+   "where": "record/01-intake.md, Q6 lines 114\u2013121, and repo/docs/shiploop/spec.md, R-6 line 48 and R-7 line 52"
+  },
+  {
+   "decision": "Overdue results keep the usual cursor pagination and ticket ID order.",
+   "alternative": "The requester might have wanted the earliest deadlines first so agents see the longest-overdue tickets on the first page.",
+   "where": "repo/docs/shiploop/spec.md, R-5 lines 35\u201339"
+  },
+  {
+   "decision": "The ticket receipt notification keeps its current content and omits the due time.",
+   "alternative": "The requester might have wanted the receipt to tell the person who filed the ticket when to expect a response.",
+   "where": "repo/docs/shiploop/spec.md, R-1 line 11, and repo/docs/api.md, Create a ticket lines 64\u201365"
+  },
+  {
+   "decision": "Backfilling a ticket's deadline leaves the ticket's `updated` timestamp unchanged.",
+   "alternative": "The requester might have wanted the backfill to advance `updated` so consumers that look for changed tickets can pick up the new field.",
+   "where": "repo/docs/shiploop/spec.md, R-6 lines 43\u201347"
+  },
+  {
+   "decision": "A ticket request body containing `due` is rejected with HTTP 400 as an unknown field.",
+   "alternative": "The requester might have wanted the API to ignore the read-only field so clients can echo back a ticket body without stripping `due`.",
+   "where": "repo/docs/shiploop/spec.md, R-3 line 24"
+  },
+  {
+   "decision": "The API returns `due` as an ISO 8601 UTC string in the same format as `created`.",
+   "alternative": "The requester might have wanted a numeric Unix timestamp for deadline comparisons in their clients.",
+   "where": "record/01-intake.md, Q9 lines 141\u2013148, and repo/docs/shiploop/spec.md, R-1 line 8"
+  },
+  {
+   "decision": "The work designates the release as version 1.5.0.",
+   "alternative": "The requester might have wanted the feature shipped in the 1.4 maintenance line as 1.4.1 because the API defaults to its existing behavior.",
+   "where": "repo/docs/shiploop/spec.md, R-10 line 71"
+  }
+ ]
+}

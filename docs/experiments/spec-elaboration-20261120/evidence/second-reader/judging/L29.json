@@ -1,0 +1,27 @@
+{
+ "case": "B",
+ "told": "# What the requester has been told\n\nThe work recorded these decisions as taken on the requester's behalf and showed them to the requester.\n\n1. (R-1) Should the greeting end with a newline?\n   Decided: The greeting appears on one complete line.\n   Otherwise: Omit the newline so the next terminal output starts on the same line.\n",
+ "specification": "# Hello world specification\n\n## Requirements\n\n### R-1 Command output\n\nBasis: November 22, 2026 request for hello.py to print exactly \u201cHello, world!\u201d when run. This creates a new program on an empty baseline. The conventional single trailing newline is the November 22, 2026 default.\n\n- From the repository root, run `python3 hello.py`. Expect stdout bytes `b'Hello, world!\\n'`; missing or extra bytes fail the check. Observe the subprocess stdout and a successful exit. No arguments or persistent state are required.\n\n### R-2 Output regression test\n\nBasis: November 22, 2026 request for a unittest in test_hello.py. The empty baseline provides no test coverage.\n\n- Run `python3 -B -m unittest -v` from the repository root. The suite discovers a test in test_hello.py that runs hello.py and compares its complete stdout against the R-1 value. A missing script or mismatched output fails the suite.\n\n## Non-functional requirements\n\nThe program uses the installed Python standard library and emits one plain-text line. There is no graphical UI, storage, external service, or requested performance bound.\n\n## Retired\n\nNone.\n",
+ "items": [
+  {
+   "decision": "The files will be delivered to the current local checkout.",
+   "alternative": "The requester might have expected a shareable patch or a pull request for review."
+  },
+  {
+   "decision": "The documented way to run the greeting is `python3 hello.py` from the repository root using the Python 3 interpreter on PATH.",
+   "alternative": "The requester might have expected to run `./hello.py` directly as an executable."
+  },
+  {
+   "decision": "The command acceptance check requires the script to exit successfully as well as produce the expected stdout.",
+   "alternative": "The requester might have intended the output check to assess the greeting regardless of the process exit status."
+  },
+  {
+   "decision": "The acceptance check requires the exact stdout bytes, which makes a platform-native CRLF line ending fail.",
+   "alternative": "The requester might have meant the same greeting line should pass with either LF or CRLF."
+  },
+  {
+   "decision": "The unittest verifies the greeting by launching hello.py in a subprocess and capturing its stdout.",
+   "alternative": "The requester might have expected an in-process unittest that calls the greeting code and captures what it prints."
+  }
+ ]
+}

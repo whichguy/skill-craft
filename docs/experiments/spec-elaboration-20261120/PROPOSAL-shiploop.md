@@ -12,6 +12,18 @@ The account behind it is the journal's section 61 (`docs/spec-elaboration-journa
 - The Ratchet session's confirmation round added two Sol deliveries. One of them tells what going back loses and
   one does not. So on Sol a row tells it in 1 delivery of 8 (1 row of 29), not in none of 6; on Sonnet in 2 of 2.
 
+**The test's result (2026-11-22, 07:51): mixed, so no second reader is proposed.** The journal's section 63 has it
+whole.
+
+- Where the rows leave out what going back loses, the second reader puts it first in 21 lists of 21, and where a row
+  tells it no list repeats it (0 of 9).
+- Of the five added items that would be shown, a median of two are real open points by both judges, and the two
+  judges agree on seven items in ten.
+- A one-line request (`hello`) gets four to seven more "decisions", of which one is real.
+- The list itself was released the same morning as ShipLoop 2.6.0, and the owner asked the Ratchet session to build
+  the route for the requester's answer as a candidate. "The test that would follow a yes" below is the test that
+  was run; its first item is answered and nothing in it is waiting.
+
 ## In short
 
 - **ShipLoop should tell the requester what it decided for them, right after the specification. That is already

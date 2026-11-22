@@ -5076,3 +5076,98 @@ the outside record of the order.
 owner's word (its tests now listen on 127.0.0.1). This registration is cut from that commit. All thirteen deliveries
 were built on the earlier fixture, and the test reads each delivery's own starting product from its first commit,
 so the change alters nothing the test reads. A later repeat on fresh deliveries would be on the new fixture.
+
+## 63. A second reader fills the gap every time and repeats nothing, but two of its first five items are real open points by both judges and it buries a small request: mixed, no proposal (07:51, 2026-11-22)
+
+**What was run.** Section 62's test, from a worktree at its commit. Thirteen snapshots were cut. Thirty-nine lister
+sessions on Sol at medium ran from 07:23 to 07:41; each wrote a usable list on its first attempt, and no session's own
+stream names the real folder of a delivery (`evidence/second-reader/leaks.txt`). The two judges each read the first
+five items of all 39 lists in one session, 07:41 to 07:46; neither verdict was refused. A Sonnet agent ran the
+commands from a written brief and reported their output; I read the score file, the judged files and the lists
+myself.
+
+**The readings.** The rule reads the nine deliveries of the final wording (27 lists). The same counts over all
+thirteen (39 lists) stand beside them.
+
+| Reading | The set the rule reads | All thirteen | By the rule |
+|---|---|---|---|
+| A, the gap is filled: where no row tells what going back loses, it is among the first three added | 12 lists of 12 | 21 of 21 | **filled** |
+| B1, a decision already told is not told again | told again in 0 lists of 9 | 0 of 9 | **not repeated** |
+| B2, rows are not repeated: items both judges class `told` | 2 of 105 | 2 of 150 | **does not repeat rows** |
+| C, what is added is worth telling: of a list's five, how many both judges class `new` | median 2 (two lists with 0, two with 1, nine with 2, three with 3, five with 4) | median 2.5 | **in between** |
+| D, a small request (`hello`): list lengths; `new` by both | 6 or 7 items; 1 | 4 to 7; 1 | **floods** |
+| E, the decisive consequence: where the specification refuses to start and no row says so, the refusal is among the first three added | 3 lists of 3 | 8 of 9 | too few lists to read (over all: "completes it") |
+| **Overall** | | | **mixed: described, no proposal** |
+
+**The predictions.** 47 held (12 of 12). 48 held (told again in none of the three lists of s1, nor in k2's or k4's).
+49 held (2 items of 105). 50 failed in its first half: the median list has two `new` of five, not three; its second
+half held (the judges give different classes to 41 of 135 items, three in ten). 51 held. 52 held, barely: the refusal
+is among the first three in five of the six lists of d2 and d3 (second in five, fourth in one).
+
+**As a description** (`evidence/second-reader/places.txt`, written by `second_reader_places.py` after the score; none
+of it is a registered reading).
+
+- *The left-out decision comes first, every time.* In all 21 lists whose rows do not tell what going back loses
+  (d1 to d6 and k3), it is the first item of the second reader's list, by both judges. Where a row already tells it
+  (k2, s1 and k4, nine lists), no list tells it again.
+- *The refusal the rows left out comes second.* In the nine lists of d2, d3 and k3, whose specification makes the
+  service refuse to start and whose rows do not say so, the refusal is the second item in eight and the fourth in
+  one. Both judges class it `new` in all nine. k3 is one of this morning's deliveries on the latest ShipLoop: its row
+  names the operator's command and not the refusal.
+- *Past the top, about half is worth telling, and the judges do not agree on which half.* By place, in the set the
+  rule reads, the items both judges class `new` are 8, 13, 13, 11 and 4 of 21. The fifth place is mostly filler
+  (14 of 21 `new` by neither; a typical one: "The work delivers and verifies the change locally, leaving production
+  deployment and activation to operators"). Over the 135 items shown, Opus classes 57 `new` and Astra 87; they give
+  the same class to 94. Where they differ it is mostly Opus saying nobody would notice (`unseen`) or the product
+  already did so (`settled`) where Astra says `new`.
+- *When the specification itself is silent, one judge calls the top item unfounded.* The item about going back is
+  `new` by both judges in 15 of its 21 lists. In the other six Opus classes it `unfounded`: they are the lists of d6
+  and k3, the two deliveries whose specification never writes the loss down. By the letter of the rule Opus is
+  right, the specification does not say it; the reader worked it out from how release 1.4.0 treats a field it does
+  not know. That is the one place where a second reader tells the requester something nobody recorded, and reading C
+  counts it against the list.
+- *What else it adds, read by a word pattern over the first five items of the 30 due-times lists.* That the
+  backfill uses the priority a ticket has now, not the one it was created with: 20 lists, `new` by both judges in all
+  20, in nine of the ten deliveries; the tenth, k3, is the one whose row already says it ("using the existing stored
+  priority"), and no list repeats it there. That a new ticket gets its due time at creation even
+  while the switch is off: 20 lists, `new` by both in 14. That the first backfill uses the hours configured at that
+  start: 5 lists. That one bad stored due value stops the whole service: 6 lists, both Sonnet deliveries, `new` by
+  Astra and `settled` by Opus in all six.
+- *A small request is buried.* For `hello`, where the author told one row (the newline), the second reader lists
+  four to seven more decisions. The one that both judges class `new`, in all nine lists, is that the script is run
+  as `python3 hello.py`. The rest say how the test works or where the files are.
+- *A fuller author's list leaves less to add in one delivery and as much in the other.* The two Sonnet deliveries
+  each told six rows. For s1 the lists have 0, 0 and 1 item `new` by both; for k4 they have 4, 4 and 3.
+
+**What it means, by the rule fixed before the run.** Mixed, so no proposal: the test does not earn a second reader
+a trial in ShipLoop in the form tested (one more session after the specification, up to five added rows). What it
+shows is narrower, and goes to the list's owner as a description. Asked for what the rows leave out, a separate
+reader puts the left-out decision first every time and never repeats a told one. The cost is in places three to
+five and on small requests.
+
+**Seen in the result, not registered and not run.** A reader held to its first one or two items. The table by place
+suggests it, and it is exactly the kind of idea a result invites. It would need its own registration, and for a
+small request a way to stay silent, which nothing here provides: the first item for `hello` is `new` by both judges
+in two lists of nine.
+
+**The release, the same hour.** Received from the Ratchet session and checked by me only as far as the remote's
+head: the owner said "Yes, both" to that session at 07:37; the list is released as ShipLoop 2.6.0 in skill-craft
+4.4.0 (the remote's main since 07:48); the route for the requester's answer is to be built there as a candidate.
+The hold on my pushes ended with the release.
+
+**What it cost.** Thirty-nine lister sessions and the Astra judge on subscription; $1.95 for the Opus judge. Beside
+the models under test: one Opus agent at extra-high effort wrote the harness (two rounds), and three Sonnet agent
+sessions made the commits and ran the commands.
+
+**Limits.** As section 62's, and:
+
+- The classes rest on two judges who agree on seven items in ten. `new` by both is a floor: Astra alone classes 64%
+  of the shown items `new`, Opus alone 42%.
+- One request that leaves much open and one that leaves little. Nothing between.
+- Whether the requester would have wanted any added row is not known. No held-out check judges what going back
+  loses or which priority a backfill uses, and the owner has ruled on neither.
+- The lists were made by Sol at medium only.
+
+**Decision.** No second reader is proposed. The proposal file gets a dated closing note. This study's part ends
+here; what changes builds is the route for the requester's answer, which the owner has now asked the Ratchet session
+to build as a candidate.

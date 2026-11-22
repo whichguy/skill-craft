@@ -1,0 +1,27 @@
+{
+ "case": "B",
+ "told": "# What the requester has been told\n\nThe work recorded these decisions as taken on the requester's behalf and showed them to the requester.\n\n1. (R-1) Should the greeting end with a newline?\n   Decided: The greeting appears as one complete line followed by a newline.\n   Otherwise: Write the greeting without a newline, leaving the next terminal prompt on the same line.\n",
+ "specification": "# Hello command\n\n## Requirements\n\n### R-1 Greeting output\n\nBasis: the 2026-11-21 request for hello.py to print exactly \u201cHello, world!\u201d.\n\n- Run `python3 hello.py` from the checkout. It exits successfully and stdout equals `b\"Hello, world!\\n\"`. The single trailing newline is the 2026-11-21 default.\n- The invocation needs no arguments or state. Check the exact bytes through unittest.\n\n### R-2 Executable verification\n\nBasis: the 2026-11-21 request for a unittest in test_hello.py.\n\n- `python3 -B -m unittest -v` discovers and runs the test. The test invokes hello.py, passes on the expected stdout, and fails if output differs or the child cannot run successfully.\n\n## Non-functional requirements\n\nThe script and test run locally with Python 3 and standard-library modules.\n\n## Retired\n\nNone.\n",
+ "items": [
+  {
+   "decision": "The specification requires exact stdout bytes, including an LF line ending on every platform.",
+   "alternative": "The requester might have meant one line of exact greeting text with the platform's normal line ending."
+  },
+  {
+   "decision": "The specified way to run the greeting is to pass hello.py to the python3 interpreter from the checkout.",
+   "alternative": "The requester might have expected hello.py to be directly executable as ./hello.py."
+  },
+  {
+   "decision": "The unittest launches hello.py in a subprocess to verify the command through its normal entry point.",
+   "alternative": "The requester might have meant an in-process unit test that calls a greeting function and captures its output."
+  },
+  {
+   "decision": "The unittest requires the child process to exit successfully even when its stdout matches.",
+   "alternative": "The requester might have meant for the test to assert the greeting alone and leave exit status outside the test's scope."
+  },
+  {
+   "decision": "The test checks stdout and successful execution, with no assertion that stderr is empty.",
+   "alternative": "The requester might have meant the greeting to be the only terminal output, with the test also rejecting messages on stderr."
+  }
+ ]
+}

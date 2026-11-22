@@ -1,0 +1,64 @@
+{
+ "code": "M04",
+ "repeat": 1,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "Release 1.4.0 can read the upgraded file but strips due times on its next save, so the rollback plan relies on operators keeping a due-bearing copy and protecting ticket changes made during rollback when they upgrade again.",
+   "alternative": "The requester might have expected assigned due times and ticket changes to survive a rollback and re-upgrade automatically, without operators reconciling copies.",
+   "where": "repo/docs/shiploop/spec.md:19 (R-4); record/03-research.md:14 (rollback probe summary)"
+  },
+  {
+   "decision": "The response clock counts elapsed hours continuously through nights, weekends, and holidays.",
+   "alternative": "The requester might have meant for the response clock to count only hours when the help desk is staffed.",
+   "where": "repo/docs/shiploop/spec.md:7 (R-1)"
+  },
+  {
+   "decision": "Backfill uses each old ticket's priority as stored when backfill runs, so a priority change made since creation affects the due time assigned at migration.",
+   "alternative": "The requester might have wanted backfill to use the priority at creation, recovered from the ticket's audit history.",
+   "where": "repo/docs/shiploop/spec.md:15 (R-3); repo/docs/api.md:116 (ticket audit history)"
+  },
+  {
+   "decision": "The new release assigns due times to newly created tickets even while DUE_TIMES is off, with the flag controlling what the HTTP API exposes.",
+   "alternative": "The requester might have intended the off setting to suspend assignment too, leaving tickets created while it is off for a later backfill.",
+   "where": "repo/docs/shiploop/spec.md:7 (R-1), :11 (R-2), and :15 (R-3)"
+  },
+  {
+   "decision": "Backfill adds due times without adding ticket audit entries, changing ticket update timestamps, or queuing notifications.",
+   "alternative": "The requester might have expected the audit history to record each deadline assignment as a system maintenance event.",
+   "where": "repo/docs/shiploop/spec.md:15 (R-3); repo/docs/decisions/0007-append-only-audit-log.md:13 (audit policy)"
+  },
+  {
+   "decision": "An unset SLA override uses the built-in hours, while an invalid override is treated as a configuration error that names the offending variable.",
+   "alternative": "The requester might have preferred a warning and fallback to the built-in hours so a bad override would leave the service available.",
+   "where": "repo/docs/shiploop/spec.md:7 (R-1); repo/README.md:35 (configuration error behavior)"
+  },
+  {
+   "decision": "When an overdue list includes both status and priority parameters, an overdue ticket can match either parameter because the spec keeps the running service's OR behavior.",
+   "alternative": "The requester might have expected an overdue ticket to match both parameters, as the published listing contract says.",
+   "where": "repo/docs/shiploop/spec.md:11 (R-2); repo/src/tickets/query.js:42 (filter implementation); repo/docs/api.md:76 (documented filter behavior)"
+  },
+  {
+   "decision": "Overdue results keep the existing ticket ID order and cursor pagination.",
+   "alternative": "The requester might have wanted the overdue queue ordered by due time, with the oldest missed deadline first.",
+   "where": "repo/docs/shiploop/spec.md:11 (R-2); repo/docs/api.md:79 (list order and pagination)"
+  },
+  {
+   "decision": "Due times appear in enabled HTTP ticket responses while the operator CLI and weekly report keep their existing output.",
+   "alternative": "The requester might have expected the human-readable CLI list and ticket detail to show deadlines while preserving the raw output consumed by the weekly report.",
+   "where": "repo/docs/shiploop/spec.md:11 (R-2), :23 (R-5), and :27 (CLI output); repo/README.md:60 (CLI and report contracts)"
+  },
+  {
+   "decision": "Delivery is a local source handoff with fixture-based verification and rollout instructions, leaving production execution to operators.",
+   "alternative": "The requester might have expected a rehearsal against a copy of production data as part of delivery before operators switched on the feature.",
+   "where": "record/01-intake.md:173 (delivery default); record/04-spec.md:51 (verification scope and production authority); repo/docs/shiploop/environment.md:18 (access and accounts)"
+  }
+ ]
+}

@@ -1,0 +1,27 @@
+{
+ "case": "A",
+ "told": "# What the requester has been told\n\nThe work recorded these decisions as taken on the requester's behalf and showed them to the requester.\n\n1. (R-1) How do operators override the hours?\n   Decided: Use one DUE_HOURS_<PRIORITY> environment setting per priority, with positive whole hours.\n   Otherwise: Use a separate configuration file that the operator edits and distributes.\n\n2. (R-2) Does a ticket count as overdue at the exact due instant?\n   Decided: It counts from the first instant after due.\n   Otherwise: Include tickets at the exact due instant.\n\n3. (R-3) How do operators populate deadlines before activation?\n   Decided: Stop the writer, run an explicit backfill, then start with the flag on.\n   Otherwise: Run migration automatically before the new server listens.\n",
+ "specification": "# Help desk tickets specification\n\n## Requirements\n\nBasis for R-1 through R-6: help-desk request of 2026-11-21, with existing contracts in README.md, docs/api.md and docs/operations.md. Checks are local with disposable data; the production file is operator-managed.\n\n### R-1 Assign and retain due times\n\nWith due times on, creating an urgent ticket at 2025-01-01T00:00:00.000Z assigns 2025-01-01T04:00:00.000Z. Other defaults are high 24, normal 72 and low 168 hours. Default of 2026-11-21: operators override a priority through DUE_HOURS_<PRIORITY> using positive whole hours. HTTP create, show, list, patch and transition return due. Later priority or settings changes leave the stored value intact. Invalid active configuration fails clearly. Check create and read across priority changes and restarts.\n\n### R-2 List overdue tickets\n\nGET /tickets?overdue=true combines strictly past due and active status with the existing filter and cursor behavior. Default of 2026-11-21: equality is excluded. Resolved, closed and future cases are excluded. Confirm with a manual clock at equality and one millisecond later, and page through qualifying IDs.\n\n### R-3 Backfill and activate\n\nDefault of 2026-11-21: stop the file writer and run an explicit command before enabling. Backfill assigns due for every missing ticket deadline from the stored created time and priority, including closed tickets. Repeat runs keep assigned values, even with changed settings. Preserve IDs, counters, audit and outbox. Starting with DUE_TIMES=on and an existing incomplete file fails before serving. An absent file for first start and the in-memory mode can safely start empty. Verify writes, idempotence, and activation against disposable files.\n\n### R-4 Preserve the disabled contract\n\nWith DUE_TIMES unset or any value other than on, HTTP shapes and query behavior match 1.4.0, including ignoring overdue. Preserve stored due through new-version writes while disabled. Human CLI output exposes due when on and the file holds it. Raw CLI columns retain their positions. Confirm disabled HTTP, CLI and report against populated data.\n\n### R-5 Roll back to 1.4.0\n\nThe exact 1.4.0 service must start on the new data file and serve every ticket. Preserve the current file before a writable rollback. A later reactivation can use that copy to restore missing assigned deadlines by ticket ID, preserving tickets and other changes written by the rollback release. Check an actual old server read and write followed by recovery.\n\n### R-6 Preserve prior behavior and tests\n\nExisting routes, errors, lifecycle, notifications, audit and reports stay compatible. Existing tests remain byte-for-byte intact. New node:test coverage under test/ runs through npm test.\n\n## Non-functional requirements\n\nNode 22 or later and no npm dependencies. Retain old-or-new atomic file replacement and one writer per file. A failed backfill must leave the original file intact. Use existing access to ticket and data-file state. No new outbound effects, identities, or retention behavior.\n\n## Retired\n\nNone.\n",
+ "items": [
+  {
+   "decision": "A writable rollback to 1.4.0 depends on operators saving a copy of the data file before rollback and using it to restore missing deadlines by ticket ID when reactivating, because 1.4.0 drops the extra deadline field when it rewrites the file.",
+   "alternative": "Assigned deadlines could survive writes by 1.4.0 without operators having to save a copy and merge the deadlines back."
+  },
+  {
+   "decision": "If DUE_TIMES=on and an existing data file has tickets with missing deadlines, the server refuses to start serving.",
+   "alternative": "The server could keep serving the old contract and report that activation is blocked until the missing deadlines are populated."
+  },
+  {
+   "decision": "The work will deliver the source and procedure locally and verify migration and rollback on disposable files, leaving production backfill and activation to the help-desk operator.",
+   "alternative": "The requested delivery could include arranging access and carrying out the backfill and activation on the live production file."
+  },
+  {
+   "decision": "Backfill uses each ticket\u2019s stored creation time and the priority on its current record.",
+   "alternative": "Backfill could use the priority recorded when the ticket was opened, even if it was subsequently reprioritized."
+  },
+  {
+   "decision": "Invalid deadline-hour settings fail when due times are active.",
+   "alternative": "The service could warn operators and start with the standard hours for any priority with an invalid override."
+  }
+ ]
+}

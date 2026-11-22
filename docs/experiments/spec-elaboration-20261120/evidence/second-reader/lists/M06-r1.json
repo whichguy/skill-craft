@@ -1,0 +1,64 @@
+{
+ "code": "M06",
+ "repeat": 1,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "Because 1.4.0 drops due times when it rewrites the file, operators can carry deadlines through rollback and re-upgrade by saving the pre-rollback file and merging its deadlines into the state updated under 1.4.0.",
+   "alternative": "The requester may have expected assigned deadlines to survive 1.4.0 writes and be available automatically on re-upgrade.",
+   "where": "repo/docs/shiploop/spec.md:21 (R-4 Rollback) and record/03-research.md:16 (summary)"
+  },
+  {
+   "decision": "With DUE_TIMES=on, the service refuses to start if an existing data file is missing any ticket's due time.",
+   "alternative": "The requester may have wanted the service to start with legacy behavior and report that activation is blocked until the file is ready.",
+   "where": "repo/docs/shiploop/spec.md:17 (R-3 Existing tickets and activation)"
+  },
+  {
+   "decision": "The backfill uses each ticket's priority stored at migration time, including any changes made since creation.",
+   "alternative": "The requester may have meant to use the priority the ticket had when it was created, as recorded in its audit history.",
+   "where": "repo/docs/shiploop/spec.md:17 (R-3 Existing tickets and activation)"
+  },
+  {
+   "decision": "The service assigns and saves due times for new tickets even while DUE_TIMES is off.",
+   "alternative": "The requester may have wanted tickets created while the feature is off to receive their due times during the pre-activation backfill.",
+   "where": "repo/docs/shiploop/spec.md:9 and :13 (R-1 and R-2) and record/03-research.md:16 (independent presentation gate)"
+  },
+  {
+   "decision": "An invalid hours override prevents startup and the error names the environment variable.",
+   "alternative": "The requester may have wanted the service to use the default for that priority and warn operators about the invalid setting.",
+   "where": "repo/docs/shiploop/spec.md:9 (R-1 Immutable due time)"
+  },
+  {
+   "decision": "The work is delivered locally, with production rollout and activation left to operators.",
+   "alternative": "The requester may have expected the delivery to include the production rollout through activation after the data file was ready.",
+   "where": "record/02-discovery.md:19 (Q9), record/04-spec.md:45 (summary), and repo/docs/shiploop/environment.md:6 (Targets and runtimes)"
+  },
+  {
+   "decision": "When both status and priority are supplied with overdue=true, an overdue ticket can match either of those two filters.",
+   "alternative": "The requester may have expected an overdue ticket to match both filters, as the published API documentation describes for combined filters.",
+   "where": "record/03-research.md:16 (summary), with the documented contract at repo/docs/api.md:76"
+  },
+  {
+   "decision": "When enabled, due appears in the human-facing CLI list and detail views while the raw CLI output keeps its existing columns.",
+   "alternative": "The requester may have wanted a due column appended to the raw output so scripts could read it while the weekly report continued using the existing column positions.",
+   "where": "repo/docs/shiploop/spec.md:13 (R-2 Enabled ticket views and overdue listing) and :29 (Non-functional requirements)"
+  },
+  {
+   "decision": "With due times enabled, overdue values other than true leave the list query unchanged.",
+   "alternative": "The requester may have wanted overdue=false to select tickets that are not overdue and invalid values to return a query error.",
+   "where": "repo/docs/shiploop/spec.md:13 (R-2 Enabled ticket views and overdue listing)"
+  },
+  {
+   "decision": "The due timestamp is an ISO-formatted UTC string.",
+   "alternative": "The requester may have wanted a numeric Unix timestamp for clients to consume directly.",
+   "where": "repo/docs/shiploop/spec.md:9 (R-1 Immutable due time)"
+  }
+ ]
+}

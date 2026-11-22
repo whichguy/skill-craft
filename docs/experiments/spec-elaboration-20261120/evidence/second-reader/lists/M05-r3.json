@@ -1,0 +1,49 @@
+{
+ "code": "M05",
+ "repeat": 3,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "The files will be delivered to the current local checkout.",
+   "alternative": "The requester might have expected a shareable patch or a pull request for review.",
+   "where": "repo/docs/shiploop/environment.md, Targets and runtimes, line 5; record/01-intake.md, Q4, lines 99\u2013105"
+  },
+  {
+   "decision": "The documented way to run the greeting is `python3 hello.py` from the repository root using the Python 3 interpreter on PATH.",
+   "alternative": "The requester might have expected to run `./hello.py` directly as an executable.",
+   "where": "repo/docs/shiploop/spec.md, R-1 Command output, line 9; repo/docs/shiploop/environment.md, Targets and runtimes, line 5"
+  },
+  {
+   "decision": "The command acceptance check requires the script to exit successfully as well as produce the expected stdout.",
+   "alternative": "The requester might have intended the output check to assess the greeting regardless of the process exit status.",
+   "where": "repo/docs/shiploop/spec.md, R-1 Command output, line 9"
+  },
+  {
+   "decision": "The acceptance check requires the exact stdout bytes, which makes a platform-native CRLF line ending fail.",
+   "alternative": "The requester might have meant the same greeting line should pass with either LF or CRLF.",
+   "where": "repo/docs/shiploop/spec.md, R-1 Command output, line 9, and R-2 Output regression test, line 15"
+  },
+  {
+   "decision": "The unittest verifies the greeting by launching hello.py in a subprocess and capturing its stdout.",
+   "alternative": "The requester might have expected an in-process unittest that calls the greeting code and captures what it prints.",
+   "where": "record/01-intake.md, Q3, lines 90\u201396; repo/docs/shiploop/spec.md, R-2 Output regression test, line 15"
+  },
+  {
+   "decision": "The specified output assertion compares stdout alone.",
+   "alternative": "The requester might have meant the test to fail on any additional terminal output, including messages on stderr.",
+   "where": "repo/docs/shiploop/spec.md, R-1 Command output, line 9, and R-2 Output regression test, line 15"
+  },
+  {
+   "decision": "The test is expected to be discoverable by running `python3 -B -m unittest -v` from the repository root.",
+   "alternative": "The requester might have expected operators to select `test_hello.py` explicitly when running unittest.",
+   "where": "repo/docs/shiploop/spec.md, R-2 Output regression test, line 15; repo/docs/shiploop/environment.md, Commands, line 9"
+  }
+ ]
+}

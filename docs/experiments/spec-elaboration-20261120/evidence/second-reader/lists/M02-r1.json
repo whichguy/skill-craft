@@ -1,0 +1,79 @@
+{
+ "code": "M02",
+ "repeat": 1,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "A malformed stored due time prevents the whole service from starting, even with DUE_TIMES off, and the error identifies the affected field.",
+   "alternative": "Operators could have expected the service to treat a malformed due time as missing and backfill that ticket while keeping the service available.",
+   "where": "repo/docs/shiploop/spec.md, R-6, lines 29\u201330"
+  },
+  {
+   "decision": "New tickets receive a permanent due time at creation and have it written to the production data file even during the rollout with DUE_TIMES off.",
+   "alternative": "The requester could have meant for tickets created while the switch is off to join the legacy tickets and get their due times when the file is prepared for activation.",
+   "where": "repo/docs/shiploop/spec.md, R-1, lines 8\u201310"
+  },
+  {
+   "decision": "The initial backfill uses each legacy ticket's priority as stored at migration time, including any priority changes made since creation.",
+   "alternative": "The requester could have meant to use the original priority from the ticket's creation history, since later priority changes are supposed to leave the deadline fixed.",
+   "where": "repo/docs/shiploop/spec.md, R-6, line 29"
+  },
+  {
+   "decision": "The initial production backfill applies the response hours configured at that startup to all tickets that lack a due time.",
+   "alternative": "The requester could have meant for existing tickets to receive deadlines based on the stated 4/24/72/168-hour schedule, with overrides applying only to tickets created under the new release.",
+   "where": "record/01-intake.md, Q2, line 81, and repo/docs/shiploop/spec.md, R-2 and R-6, lines 13 and 29"
+  },
+  {
+   "decision": "The ticket audit history omits due times from creation entries and records no event when existing tickets receive a due time.",
+   "alternative": "The requester could have expected audit readers to see the deadline originally assigned to a ticket and when a legacy ticket received it.",
+   "where": "repo/docs/shiploop/spec.md, R-4 and R-6\u2013R-7, lines 21\u201322 and 28\u201334"
+  },
+  {
+   "decision": "When both status and priority are supplied with overdue=true, an overdue ticket qualifies if it matches either of those filters.",
+   "alternative": "Clients could have expected overdue listings to require a match on both status and priority, as the existing API documentation describes for combined filters.",
+   "where": "repo/docs/shiploop/spec.md, R-5, line 25, and repo/docs/shiploop/environment.md, Platform facts, line 15"
+  },
+  {
+   "decision": "An empty DUE_HOURS_* value silently selects the default hours for that priority.",
+   "alternative": "Operators could have expected an explicitly empty override to fail startup so a missing deployment value cannot silently set the wrong deadlines.",
+   "where": "repo/docs/shiploop/spec.md, R-2, line 13"
+  },
+  {
+   "decision": "The API exposes due as an ISO UTC timestamp string in the same format as created.",
+   "alternative": "The requester could have wanted a numeric Unix timestamp for clients to consume.",
+   "where": "repo/docs/shiploop/spec.md, R-1, lines 9\u201310"
+  },
+  {
+   "decision": "Overdue pages use the existing ticket-ID cursor and evaluate overdue status against the clock on each page request.",
+   "alternative": "Clients could have expected the cursor to retain the first page's cutoff time so a multi-page scan would use one definition of overdue throughout.",
+   "where": "repo/docs/shiploop/spec.md, R-5 and R-9, lines 25\u201326 and 40\u201342, with the existing cursor contract in repo/docs/decisions/0005-cursor-pagination.md, lines 20\u201324"
+  },
+  {
+   "decision": "A PATCH request that includes due receives HTTP 400, even if it echoes the existing deadline.",
+   "alternative": "Clients could have expected PATCH to ignore the read-only due field and apply any valid changes in the same request.",
+   "where": "repo/docs/shiploop/spec.md, R-3, line 17"
+  },
+  {
+   "decision": "A ticket whose due time is exactly equal to the service clock is excluded from overdue results.",
+   "alternative": "The requester could have meant for a ticket to count as overdue at the instant its deadline is reached.",
+   "where": "repo/docs/shiploop/spec.md, R-5, lines 25\u201326"
+  },
+  {
+   "decision": "The rollback check is a mandatory part of npm test and runs the original 1.4.0 code without requiring access to Git history.",
+   "alternative": "The requester could have expected release validation to obtain 1.4.0 from Git and run the rollback check in a checkout with that history available.",
+   "where": "repo/docs/shiploop/spec.md, R-8, line 38, and record/04-spec.md, summary, line 67"
+  },
+  {
+   "decision": "The change is assigned release version 1.5.0.",
+   "alternative": "The requester could have intended to leave the exact version to the release process that packages the change.",
+   "where": "repo/docs/shiploop/spec.md, R-10, line 45, and record/01-intake.md, Q10, line 153"
+  }
+ ]
+}

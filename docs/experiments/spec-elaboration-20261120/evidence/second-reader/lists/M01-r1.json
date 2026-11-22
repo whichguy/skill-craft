@@ -1,0 +1,84 @@
+{
+ "code": "M01",
+ "repeat": 1,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "Rollback lets 1.4.0 serve the upgraded data file, but its first rewrite drops the stored due times, so operators must retain an upgraded copy for recovery when they upgrade again.",
+   "alternative": "They might have expected a rollback and subsequent upgrade to preserve original deadlines automatically alongside tickets created or changed during the rollback.",
+   "where": "record/03-research.md:15 (summary); repo/src/persistence.js:98\u2013108 and 138\u2013147 (1.4.0 ticket serialization and loading)"
+  },
+  {
+   "decision": "With DUE_TIMES=on, the service refuses to start if the existing data file is missing any ticket's due time.",
+   "alternative": "They might have wanted the service to start with legacy responses while reporting that due times could not be enabled.",
+   "where": "repo/docs/shiploop/spec.md:12 (R-3); record/03-research.md:15 (summary)"
+  },
+  {
+   "decision": "New tickets get a permanent due time at creation even while DUE_TIMES is off.",
+   "alternative": "They might have wanted tickets created during the disabled rollout window to get their first due times when the production backfill runs.",
+   "where": "repo/docs/shiploop/spec.md:6 (R-1); record/03-research.md:15 (summary)"
+  },
+  {
+   "decision": "The deadline clock counts elapsed hours through nights, weekends, and holidays.",
+   "alternative": "They might have intended response hours to count only when the help desk is staffed.",
+   "where": "repo/docs/shiploop/spec.md:6 (R-1)"
+  },
+  {
+   "decision": "The work ends with a local handoff and leaves production scheduling and activation to Operations.",
+   "alternative": "They might have meant for the work to include coordinating and carrying out the production rollout.",
+   "where": "repo/docs/shiploop/environment.md:16\u201317 (Release); repo/docs/shiploop/spec.md:20\u201321 (Open questions); record/04-spec.md:42 (summary)"
+  },
+  {
+   "decision": "Changes to the response-hour settings take effect for new tickets when the service starts with the new environment.",
+   "alternative": "They might have expected operators to change the hours for newly created tickets while the service keeps running.",
+   "where": "repo/docs/shiploop/spec.md:6 (R-1)"
+  },
+  {
+   "decision": "Ticket receipt notifications keep their existing wording and leave the due time in the ticket views.",
+   "alternative": "They might have wanted the receipt notification to tell the ticket requester when a response is due.",
+   "where": "repo/docs/shiploop/spec.md:9 and 15 (R-2 exposure and R-4 outbox behavior); repo/src/templates.js:9\u201312 (receipt wording)"
+  },
+  {
+   "decision": "With overdue=true, a ticket must be overdue and satisfy the existing status-or-priority grouping when both of those filters are supplied.",
+   "alternative": "They might have expected an overdue result to match every supplied filter, as the existing API guide describes for status and priority.",
+   "where": "repo/docs/shiploop/spec.md:9 (R-2); repo/src/tickets/query.js:41\u201346 (existing OR); repo/docs/api.md:76\u201377 (documented AND)"
+  },
+  {
+   "decision": "Due times are shown in the human CLI views when enabled, while the raw listing and weekly report keep their current output.",
+   "alternative": "They might have wanted scripts and reports to have an opt-in way to retrieve due times through the CLI.",
+   "where": "repo/docs/shiploop/spec.md:9 and 15 (R-2 and R-4); record/03-research.md:15 (summary)"
+  },
+  {
+   "decision": "Calculating a due time leaves the existing audit history behavior in place.",
+   "alternative": "They might have wanted the audit history to record when each deadline was first assigned, including during backfill.",
+   "where": "repo/docs/shiploop/spec.md:12 and 15 (R-3 and R-4)"
+  },
+  {
+   "decision": "The backfill command can be rerun and fills only missing due times.",
+   "alternative": "They might have wanted the command to refuse a file already prepared for activation so that a repeated invocation is reported as an operator mistake.",
+   "where": "repo/docs/shiploop/spec.md:12 (R-3); record/03-research.md:15 (summary)"
+  },
+  {
+   "decision": "The API applies the overdue filter before forming cursor pages.",
+   "alternative": "They might have wanted to retain the ordinary listing's page boundaries and show the overdue subset on each page.",
+   "where": "repo/docs/shiploop/spec.md:9 (R-2); record/02-discovery.md:15 (Q10)"
+  },
+  {
+   "decision": "With the feature enabled, any overdue query value other than the exact string true is ignored.",
+   "alternative": "They might have wanted the API to reject invalid overdue values with a 400 response so callers can detect mistakes.",
+   "where": "repo/docs/shiploop/spec.md:9 (R-2); record/02-discovery.md:15 (Q3)"
+  },
+  {
+   "decision": "The due field is an ISO 8601 timestamp, following the API's UTC convention.",
+   "alternative": "They might have wanted the new field expressed as a numeric Unix timestamp for clients to parse.",
+   "where": "repo/docs/shiploop/spec.md:6 and 9 (R-1 timestamp and R-2 exposure); repo/docs/api.md:10 (UTC convention)"
+  }
+ ]
+}

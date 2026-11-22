@@ -1,0 +1,69 @@
+{
+ "code": "M13",
+ "repeat": 1,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "Roll back against the same version-1 data file and have operators retain a separate copy, because a save by 1.4.0 can discard the live file's fixed deadlines.",
+   "alternative": "The requester might have meant that operators can run 1.4.0 normally and later upgrade again with the original deadlines intact, including for tickets changed during rollback.",
+   "where": "repo/docs/shiploop/spec.md:19 (R-4); record/03-research.md:18 (summary); repo/src/persistence.js:98\u2013108 (1.4.0 ticket fields)"
+  },
+  {
+   "decision": "Backfill uses each ticket's priority as stored at migration time, even when it changed after creation.",
+   "alternative": "The requester might have meant to recover the priority at creation from the ticket's audit history and calculate the deadline from that.",
+   "where": "repo/docs/shiploop/spec.md:15 (R-3); repo/src/store.js:75\u201381 (creation audit)"
+  },
+  {
+   "decision": "New tickets receive fixed deadlines as soon as the new release creates them, even while DUE_TIMES is off and the API hides those deadlines.",
+   "alternative": "The requester might have meant to start assigning deadlines at production opt-in and treat tickets created before then as backfill records.",
+   "where": "record/03-research.md:18 (summary); repo/docs/shiploop/spec.md:11 (R-2)"
+  },
+  {
+   "decision": "An invalid nonblank response-hour setting stops startup with an error naming the variable.",
+   "alternative": "The requester might have meant to keep the service available by using the default for that priority and logging a warning.",
+   "where": "repo/docs/shiploop/spec.md:7 (R-1)"
+  },
+  {
+   "decision": "The work delivers and verifies the change locally, leaving production deployment and activation to operators.",
+   "alternative": "The requester might have meant to include production release automation that handles the migration and enables the flag after preparation succeeds.",
+   "where": "repo/docs/shiploop/environment.md:5 (Targets and runtimes); record/04-spec.md:51 (summary)"
+  },
+  {
+   "decision": "An overdue query with both status and priority can return an overdue ticket matching either of those two fields.",
+   "alternative": "The requester might have meant that an overdue ticket must match both fields, as the published API documentation says combined filters do.",
+   "where": "repo/docs/shiploop/spec.md:11 (R-2); repo/src/tickets/query.js:41\u201346 (existing behavior); repo/docs/api.md:76\u201377 (published contract)"
+  },
+  {
+   "decision": "Backfill reports a corrupt data file as an error under the existing whole-file validation rules.",
+   "alternative": "The requester might have meant that the offline tool could prepare valid tickets and report the bad records for operators to repair before activation.",
+   "where": "repo/docs/shiploop/spec.md:15 (R-3); record/03-research.md:18 (reuse of the persistence codec); repo/docs/operations.md:20\u201322 (existing validation)"
+  },
+  {
+   "decision": "Backfill writes deadlines while preserving the existing ticket metadata, audit history and outbox.",
+   "alternative": "The requester might have meant to append an audit event for each backfilled deadline so operators can tell when it was assigned.",
+   "where": "repo/docs/shiploop/spec.md:15 (R-3)"
+  },
+  {
+   "decision": "A blank response-hour setting uses the built-in default for that priority.",
+   "alternative": "The requester might have meant that a supplied but blank setting is a configuration error, with defaults reserved for omitted settings.",
+   "where": "repo/docs/shiploop/spec.md:7 (R-1)"
+  },
+  {
+   "decision": "The due value is a UTC ISO 8601 string.",
+   "alternative": "The requester might have meant to expose the deadline as a numeric Unix timestamp for clients.",
+   "where": "repo/docs/shiploop/spec.md:7 (R-1) and :11 (R-2); repo/docs/api.md:10 (existing time convention)"
+  },
+  {
+   "decision": "An actionable ticket becomes overdue only when the current time is strictly later than its deadline.",
+   "alternative": "The requester might have meant that a ticket counts as overdue at the exact instant its deadline is reached.",
+   "where": "repo/docs/shiploop/spec.md:11 (R-2)"
+  }
+ ]
+}
