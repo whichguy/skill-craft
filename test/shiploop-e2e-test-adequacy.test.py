@@ -112,7 +112,7 @@ class CaseContract(unittest.TestCase):
     def test_correct_reference_is_pinned_without_reference_added_tests(self):
         reference = reference_module()
         self.assertEqual(brownfield.resolve(CASE), observer.FIXTURE)
-        self.assertEqual(CASE["base"]["digest"], "f0e486c77413")
+        self.assertEqual(CASE["base"]["digest"], "d88f22750bc6")
         with tempfile.TemporaryDirectory() as raw:
             built = Path(raw) / "reference"
             reference.build(built, "reference")

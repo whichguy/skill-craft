@@ -4055,6 +4055,70 @@ During the changed arm's rounds the probe's ticket servers also held numbers on 
 suites could have been handed. A heads-up to that session was held by it and not delivered. A failure or timeout of
 that tier between 05:51 and 06:04 should be run again alone before it is read. Four copies at once would have done.
 
+### Owner decision, 2026-11-22: the ticket fixtures' tests listen on `127.0.0.1`
+
+Asked "Change the ticket fixtures so their tests listen on `127.0.0.1`?", the owner: "Yes do all changes". It is the
+choice 26728eddd587930f5da3f6600e5d7ab4017d8acc left with the owner on 2026-11-01 and
+238bb13ebcc63a8ebdc0fac74037568491a4bcde called the owner's standing call.
+
+- **R162 (the change).** In `fixtures/node-tickets` and `fixtures/node-tickets-assigned`, the two lines R159
+  measured: `createService(...).start()` passes `config.host` to `listen`, and `TEST_SETTINGS` in `test/helpers.js`
+  names `127.0.0.1`, the address the helper's client calls. A comment at each says why, in the base's own words (the
+  base never names the harness). The service started the operator's way has no `host` and listens on every address
+  as before: seen on IPv6 `::`, answering on `127.0.0.1` and on `::1`. Not added: a `HOST` environment variable. The
+  base's README says every setting is an environment variable, so a `HOST` would be a new documented setting with
+  its config test and changelog line, more of the subject changed than was measured or approved; `config.host` is
+  set by a caller, and the comment at `start()` says so. The user-directory references' tests already listen on
+  `127.0.0.1`.
+- **R163 (pins and digests).** `node-tickets` goes from `5652a97375d0` to `6d6f3563c459` (ticket-assignment,
+  ticket-import, ticket-due-times) and `node-tickets-assigned` from `f0e486c77413` to `d88f22750bc6`
+  (ticket-assignment-tests, asserted in `test/shiploop-e2e-test-adequacy.test.py`). The oracle digest of every case
+  goes from `b32933f70500` to `95a78b4ccfa1`, and the four cases' own digests change with their pins (for
+  ticket-due-times, `1f9bbcdded4d` to `22063c685377`). Attempts graded before and after are separate experiments for
+  `promotion.py`. Nothing is rescored; earlier results stand as records of the old base.
+- **R164 (checked without a model).** Each fixture's suite: 117 tests pass and 21 servers start, all on `127.0.0.1`.
+  A new test, `FixtureAddressTest` in `test/shiploop-e2e-brownfield-tickets.test.py`, runs each fixture's own tests
+  with a preload that records the address of every server and asks for `127.0.0.1` alone: it fails on both fixtures
+  as they were (`IPv6 ::`) and passes now. All 92 variants of the five ticket reference modules build on the changed
+  base, so every patch still applies, and the adequacy suite's case contract passes (10 tests). The quick tier
+  selected by the change (70 suites) is not run in this commit: three live runs of another session were on the
+  machine, and a tier is not run beside live runs. Its result is in the results below.
+- **R165 (left as it is).** The stage case `stage_cases/step-plan/replay-ticket-comments-late-send-back` keeps its
+  repo: it is the recorded state of a run of 2026-11-01, and like any saved delivery it has the old lines. The
+  calibration's regrading (`settle` and `agreed`, from 26728eddd587930f5da3f6600e5d7ab4017d8acc and
+  8c5b4d4ec776dc9a06445c1054e9d4802558a649) stays: it costs nothing when grades agree, and whether first grades
+  still disagree with the new base is not measured here. `checks/base_tests.py` keeps its 120-second limit and its
+  whole-group stop.
+- **What other sessions meet.** A checkout or apparatus copy taken before this commit keeps the old fixtures and
+  pins and goes on as before. One taken after it grades every case under a new oracle digest. While both kinds run
+  on one machine, a test server of the new base is one more number on `127.0.0.1` that a run of the old base can be
+  handed.
+
+### Registered confirmation runs for the changed base (written and committed before any run)
+
+**Build.** The commit that carries this section, from a clean checkout.
+
+**Runs.** Two whole deliveries of `ticket-due-times` at medium, defaults, started together: Codex `gpt-6.2-sol` once
+and Claude `claude-sonnet-5-5` once (`--max-budget-usd 40`). No run option, no turn or time cap. No test tier is on
+the machine at the launch. Three live runs of another session, on the old base, are (`e2e-runs/r-20261122-ffb3fb`);
+they and these two do not share a base. After the runs, processes left by these two are looked for by working
+folder and by environment and stopped by process id. The quick tier selected by the change runs once no live run
+is left on the machine, and the push to main waits for it and for these runs.
+
+**Reading.** For each run: the base record (the fixture and the digest it started from), every verdict and case
+check, and any check that did not end. On each delivered tree, the delivered suite is run once with the preload of
+`FixtureAddressTest`, and every server it starts is counted by address.
+
+**What it is asked.** (a) The harness starts each run from the new base (the recorded digest is `6d6f3563c459`) and
+grades it: no refusal over the pin, verdicts and checks recorded. (b) Every server the delivered suite starts through
+the base's helper listens on `127.0.0.1`. A server on another address is reported with the test that started it: it
+is the builder's own doing and not a failure of the change. (c) No base, pristine or suite check ends on "did not
+end". If (a) fails the change is not pushed as it is. A failed verdict or case check is read and explained: two
+deliveries cannot show a rate, and a delivery that fails for a reason of its own says nothing about the base.
+
+**Limits, stated in advance.** Two deliveries of one case on two drivers; nothing about how often a builder is led
+astray by `config.host`; nothing about `ticket-assignment-tests`, whose fixture is covered by the suites alone.
+
 ## Evidence (all rounds)
 
 | File | Holds |
