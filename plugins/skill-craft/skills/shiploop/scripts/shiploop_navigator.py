@@ -35,6 +35,7 @@ import shiploop_primary as primary
 import shiploop_test_layers as layers
 import shiploop_unverified as unverified
 import shiploop_follow_on as follow_on
+import shiploop_defaults as defaults
 import shiploop_prompts as guidance
 import shiploop_consumer_delivery as consumer_delivery
 import shiploop_lint as lint
@@ -83,7 +84,7 @@ _RESULT_KEYS = frozenset((
     "expectations", "check_na", "minimum_na", "failed_expectations", "retired_tests", "skill",
     "follows", "test_cases", "lessons", "not_covered", "concerns", "learned", "decisions", "learned_from",
     "test_layers", "test_layers_na", "targets", "harness_runs", "primary", "mutant_dispositions",
-    "knowledge", "added_tests", "question_categories", "questions",
+    "knowledge", "added_tests", "question_categories", "questions", "defaults",
 ))
 # What each stage's packet quotes by value from earlier results (consumer contract section 4): every stage has a row.
 # ``spec_diff`` is the script's diff since the run baseline (knowledge_home.spec_diff), not a result key; the other keys
@@ -131,7 +132,7 @@ _DONE_ONLY_FIELDS = (
     "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na", "consumer_entry",
     "red_na", "lint_waivers", "unverified", "settled", "follow_on", "follows", "test_cases", "lessons", "not_covered", "concerns",
     "learned", "decisions", "learned_from", "test_layers", "test_layers_na", "targets", "harness_runs", "primary",
-    "mutant_dispositions", "knowledge", "added_tests", "question_categories", "questions",
+    "mutant_dispositions", "knowledge", "added_tests", "question_categories", "questions", "defaults",
 )
 _STATE_KEYS = frozenset(
     (
@@ -1279,6 +1280,13 @@ def _canonical_result(
             result["primary"] = primary.canonical(value["primary"])
         except primary.PrimaryError as exc:
             raise NavigatorError(str(exc)) from exc
+    if "defaults" in value:
+        # Shape only, like follow_on: the exact fields and the requirement each names are checked at the CLI gates.
+        _need(stage in defaults.STAGES and outcome == "done", "defaults is allowed only on a done spec result")
+        try:
+            result["defaults"] = defaults.canonical(value["defaults"])
+        except defaults.DefaultsError as exc:
+            raise NavigatorError(str(exc)) from exc
     for key in ("question_categories", "questions"):
         if key in value:
             # Shape only (intake duty 9): the CLI gate checks the ledger (``_check_intake_questions``). Kept whole, so the
@@ -2302,6 +2310,9 @@ def _stage_input_blocks(core: Any, root: Path, state: Mapping[str, Any], stage: 
         # Required text (run-5 batch F6; F3 of the 2026-10-28 plan): the spec's primary requirements by value, with the
         # tests that passed for each at product-acceptance, and at plan and carry-forward the work items following each.
         blocks.append(_Block("primary", P1, primary.packet_lines(root, state, stage)))
+    if stage == defaults.SHOWN_AT:
+        # Required text: the defaults the spec recorded, by value, for the host to name in its progress line.
+        blocks.append(_Block("defaults", P1, defaults.packet_lines(state, root, stage, _default_rows(state).lines)))
     if stage == "validate-existing":
         blocks.append(_Block("expectation-results", P1, expectations.result_lines(root, state)))
     if stage == "product-acceptance":
@@ -3766,12 +3777,26 @@ def _concern_lines(state: Mapping[str, Any], work_item: str) -> fields.Shown:
     return fields.block(lines, len("\n".join(lines[1:])), concerns.ROWS_PRINT, action, work_item + "-concerns", header=1)
 
 
+def _default_rows(state: Mapping[str, Any]) -> fields.Shown:
+    """The rows of the spec's ``defaults`` as the packet of the stage after the spec prints them
+    (``defaults.row_lines``), whole while they fit ``defaults.ROWS_PRINT``; past it, the rows that fit and
+    RUN/fields/<spec action>-defaults.md, which holds every row whole."""
+    entries = defaults.recorded(state)
+    action = planning_revision.current_actions(state).get((None, "spec"))
+    if not entries or action is None:
+        return fields.Shown([], None)
+    lines = defaults.row_lines(entries)
+    return fields.block(lines, len("\n".join(lines)), defaults.ROWS_PRINT, action, "defaults")
+
+
 def field_files(state: Mapping[str, Any]) -> dict[str, str]:
     """The RUN/fields files the current action's packet and Improve handoff name: each model-written field that a
     required block prints cut, whole (``shiploop_fields``).  Derived from state alone: ``emit`` writes each one whose
     text differs before it prints, so the file a packet names exists whenever its packet does."""
     item = _current_work_item(state)
     shown = [_layer_lines(state, item), *([_concern_lines(state, item)] if item is not None else [])]
+    if state["status"] == "active" and defaults.shows(state, _active_cursor(state)[0]):
+        shown.append(_default_rows(state))
     files = dict(found.file for found in shown if found.file)
     files.update(_step_block_shown(state, item)[1])
     if state["status"] == "active":
@@ -3934,6 +3959,17 @@ def _check_submitted_unverified(state: Mapping[str, Any], stage: str, result: An
         unverified.check_submitted(stage, result)
         unverified.check_restated(state, stage, result)
     except unverified.UnverifiedError as exc:
+        raise NavigatorError(str(exc)) from exc
+
+
+def _check_submitted_defaults(state: Mapping[str, Any], stage: str, result: Any) -> None:
+    """Refuse a submitted done spec result without a usable defaults list: a missing list, a malformed entry, a
+    requirement with no current entry in the living spec (``shiploop_defaults``).  CLI gates only, like ``primary``: the
+    pure graph functions check the shape when the field is present and do not require it, so simulations and saved runs
+    are unaffected.  Nothing here refuses an entry for what it says."""
+    try:
+        defaults.check_submitted(Path(str(state["repo"])), stage, result)
+    except defaults.DefaultsError as exc:
         raise NavigatorError(str(exc)) from exc
 
 
@@ -5437,6 +5473,8 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
     }
     if stage == primary.STAGE:
         result["primary"] = [primary.PLACEHOLDER]
+    if stage in defaults.STAGES:
+        result["defaults"] = [dict(defaults.TEMPLATE_ROW)]
     if stage == "intake":
         # The key-question ledger (intake duty 9), in the shape pilot X1 and X1-T measured (docs/experiments/
         # question-record-20261031): one row per catalog category, one per question.
@@ -6402,6 +6440,7 @@ def _render_lines(core: Any, root: Path, state: Mapping[str, Any], timeline: Map
             [
                 "It's all complete.",
                 f"Report: {root / 'report.html'}",
+                *defaults.done_lines(state),
                 *follow_on.done_lines(state, root, _command(core)),
                 "This is agent-declared completion from accepted navigator results; it does not independently prove checks, repository state, artifacts, deployment, or external effects.",
             ]
@@ -7422,6 +7461,9 @@ def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
         gates.append("a missing unverified list, an entry that is incomplete or still holds a template placeholder, "
                      "a requirement with no current entry in KNOWLEDGE/spec.md, a due_stage that is not a later stage, "
                      "or a primary requirement's lower_layer_check that names no test ShipLoop's test runs passed for it")
+    if stage in defaults.STAGES:
+        gates.append("a missing defaults list, an entry that is incomplete or still holds a template placeholder, or a "
+                     "requirement with no current entry in KNOWLEDGE/spec.md")
     if stage in follow_on.STAGES:
         gates.append("a missing follow_on list, an entry that is incomplete or still holds a template placeholder, a "
                      "class outside the list, a source that resolves to no record of this run, or a gap with no request "
@@ -8448,6 +8490,12 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
     # head of this file names; this part keeps the facts of this review and the exact commands beside the action
     # (efficiency plan U18, IMP-1, IMP-3).
     planning_lines: list[str] = []
+    if child["stage"] in defaults.STAGES:
+        planning_lines = [
+            "Defaults list: final_result.defaults lists each choice the reviewed spec makes that the request does not "
+            "settle. A review that changes, adds or removes such a choice returns the list changed to match; ShipLoop "
+            "refuses a missing list or a requirement with no current entry.",
+        ]
     if planning_reconcile:
         scratch = planning_scratch_dir(state, child)
         planning_lines = [
@@ -8876,6 +8924,7 @@ def _render_report(state: Mapping[str, Any], root: Path | None = None) -> str:
             reason_html,
             "<h2>Original request</h2>",
             f"<pre>{html.escape(state['prompt'])}</pre>",
+            *defaults.html_section(state),
             "<h2>Accepted transitions</h2>",
             "<table><thead><tr><th>Stage</th><th>Outcome</th><th>Work item</th><th>Summary</th><th>Evidence references</th></tr></thead><tbody>",
             *rows,
@@ -10003,6 +10052,7 @@ def _evaluate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, s
     _check_submitted_unverified(state, current, submitted)
     _check_submitted_follow_on(state, current, submitted)
     _check_submitted_primary(root, state, current, submitted)
+    _check_submitted_defaults(state, current, submitted)
     _check_submitted_test_commands(current, submitted)
     _check_focused_ids_new(state, current, submitted)
     _check_focused_guards(current, submitted)
@@ -10196,6 +10246,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                         state, child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_submitted_primary(
                         root, state, child["stage"], child["seed_result"] if final_result is None else final_result)
+                    _check_submitted_defaults(
+                        state, child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_submitted_consumer_entry(
                         state["repo"], child["stage"],
                         child["seed_result"] if final_result is None else final_result)
@@ -10338,6 +10390,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                         _check_submitted_evidence(
                             submitted, _loop_receipt(root, state, cursor_stage, action_id, cursor_item))
                         _check_submitted_unverified(state, cursor_stage, submitted)
+                        _check_submitted_defaults(state, cursor_stage, submitted)
                     except NavigatorError as exc:
                         shiploop_check.record_answer(
                             root, action_id, cursor_stage, taken["key"], yes=False, reason=str(exc))
