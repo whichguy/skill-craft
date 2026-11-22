@@ -13,6 +13,7 @@ joins their JSON answers, and computes the readings. Everything lives under ROOT
     deep_judge.py defects ROOT CASE            after the audits: reported defects, items the audits differ on, probe.md
     deep_judge.py told-packet ROOT CASE        after the cross-probe: one reader's instructions for what each product's documents tell
     deep_judge.py verdict-packet ROOT CASE     after told.json: one masked packet for each of the two judges
+    deep_judge.py fixed ROOT CASE              CASE-fixed: the looked-at and fixed product beside the two it is compared with
     deep_judge.py grab IN.json OUT.json        the first JSON object in an `ask` answer's text
     deep_judge.py score ROOT OUT_DIR           D1 to D6, the gate, the pairs, deep.json and deep.md
 
@@ -33,6 +34,7 @@ CASES = {"expenses": "shared-expenses", "chess": "node-chess-engine", "tickets":
 POINTS = (("S", "1", "final", "docs/shiploop/spec.md"), ("F", "2", "first-build", "ratchet/spec.md"),
           ("L", "2", "final", "ratchet/spec.md"))
 NAMES = {"S": "ShipLoop's delivery", "F": "Ratchet's first build", "L": "Ratchet's final"}
+FIXED_NAMES = {"S": "ShipLoop's delivery after one look and one fix", "F": "ShipLoop's delivery", "L": "Ratchet's final"}
 CALIBRATION_NAMES = {"S": "the correct reference", "F": "the reference, padded", "L": "a stated requirement broken"}
 PAIRS = (("S", "L"), ("S", "F"), ("F", "L"))
 JUDGES = ("a", "b")
@@ -611,7 +613,9 @@ def join_shares(root: Path, case: str) -> None:
     shares = shares_of(inv)
     if len(shares) == 1:
         raise SystemExit(f"{case}: this inventory is audited in one piece")
-    for code in load(case_dir / "key.json"):
+    for code, entry in load(case_dir / "key.json").items():
+        if entry.get("audit_from"):  # an audit carried over from the case this one was derived from is already whole
+            continue
         parts = [load(case_dir / "audits" / f"{code}.share{number}.json") for number in range(1, len(shares) + 1)]
         audit = {"code": code, "ran": parts[-1].get("ran", {}), "shares": len(parts)}
         for kind in ("stated", "unstated"):
@@ -626,6 +630,31 @@ def join_shares(root: Path, case: str) -> None:
             audit[name] = parts[-1].get(name, [] if name in ("explored", "extras") else "")
         dump(case_dir / "audits" / f"{code}.json", audit)
         print(f"{case}: {code} joined from {len(parts)} shares, {len(audit['defects'])} defects")
+
+
+def fixed(root: Path, case: str) -> None:
+    """Lay out CASE-fixed (journal section 11): the fixed product (ROOT/fix/CASE/work) under a new code name as S,
+    beside ShipLoop's delivery (as F) and Ratchet's final (as L) with the audits they already have."""
+    case_dir, out_dir = root / "deep" / case, root / "deep" / f"{case}-fixed"
+    if (out_dir / "key.json").exists():
+        raise SystemExit(f"{out_dir} is already laid out")
+    (out_dir / "prompts").mkdir(parents=True)
+    (out_dir / "audits").mkdir()
+    for name in ("request.md", "inventory.json", "inventory.md"):
+        shutil.copy2(case_dir / name, out_dir / name)
+    shutil.copytree(case_dir / "base", out_dir / "base")
+    code = f"p{random.Random(f'deep-judge codes {case} fixed').randrange(16 ** 6):06x}"
+    shutil.copytree(root / "fix" / case / "work", out_dir / "products" / code, ignore=SKIP)
+    key = {code: {"point": "S", "tree": str(root / "fix" / case / "work"), "spec": "docs/shiploop/spec.md"}}
+    for old, entry in load(case_dir / "key.json").items():
+        if entry["point"] in ("S", "L"):
+            shutil.copytree(case_dir / "products" / old, out_dir / "products" / old)
+            shutil.copy2(case_dir / "audits" / f"{old}.json", out_dir / "audits" / f"{old}.json")
+            key[old] = {**entry, "point": "F" if entry["point"] == "S" else "L", "audit_from": case}
+    dump(out_dir / "key.json", key)
+    write_audit_prompts(out_dir)
+    print(f"{case}-fixed: the fixed product is {code}; its audit prompt(s): "
+          + ", ".join(sorted(path.name for path in (out_dir / "prompts").glob(f"audit-{code}*.md"))))
 
 
 def grade_class(kind: str, grade: str | None) -> str:
@@ -852,7 +881,8 @@ def score(root: Path, out_dir: Path) -> None:
     report, lines = {}, ["# The deep judge", ""]
     rounds = {path.name: f"the instrument check, {path.name} (ticket assignment)"
               for path in sorted((root / "deep").glob("calibration*"))}
-    for case, full_name in {**CASES, **rounds}.items():
+    fixes = {f"{case}-fixed": f"{name}, after one look and one fix" for case, name in CASES.items()}
+    for case, full_name in {**CASES, **fixes, **rounds}.items():
         case_dir = root / "deep" / case
         if not (case_dir / "defects-probed.json").exists():
             continue
@@ -860,7 +890,7 @@ def score(root: Path, out_dir: Path) -> None:
             lines += [f"## {full_name}", "", "Not scored yet: told.json is missing (the `told-packet` step and its reader).", ""]
             continue
         key, inv = load(case_dir / "key.json"), load(case_dir / "inventory.json")
-        names = CALIBRATION_NAMES if case.startswith("calibration") else NAMES
+        names = CALIBRATION_NAMES if case.startswith("calibration") else FIXED_NAMES if case.endswith("-fixed") else NAMES
         code_of = {entry["point"]: code for code, entry in key.items()}
         probed = load(case_dir / "defects-probed.json")["defects"]
         facts = {point: facts_of(case_dir, code, inv, probed, True) for point, code in code_of.items()}
@@ -958,8 +988,12 @@ def main(argv=None) -> int:
         return 0
     steps = {"prepare": prepare, "rate-packet": rate_packet, "inventory": inventory, "defects": defects,
              "join-shares": join_shares, "told-packet": told_packet, "verdict-packet": verdict_packet}
-    late = ("defects", "told-packet", "verdict-packet")
-    if command in steps and len(rest) == 2 and (rest[1] in CASES or (rest[1].startswith("calibration") and command in late)):
+    late = ("defects", "join-shares", "told-packet", "verdict-packet")
+    if command == "fixed" and len(rest) == 2 and rest[1] in CASES:
+        fixed(Path(rest[0]).expanduser().resolve(), rest[1])
+        return 0
+    derived = rest[1:] and (rest[1].startswith("calibration") or rest[1].removesuffix("-fixed") in CASES)
+    if command in steps and len(rest) == 2 and (rest[1] in CASES or (derived and command in late)):
         steps[command](Path(rest[0]).expanduser().resolve(), rest[1])
         return 0
     raise SystemExit(__doc__)
