@@ -6694,8 +6694,10 @@ def _check_text(run: str, stage: str, state: Mapping[str, Any] | None = None) ->
         where = source + "'s " + field
         if not count:
             return "reruns the commands in " + where + ": none recorded, so none runs"
+        also = ("; in a clean copy of the returned result it also runs each regression command of the last work item "
+                "that records one, where none of those is that command" if stage == "release-verify" else "")
         return ("reruns the " + str(count) + " command" + ("s" if count > 1 else "") + " in " + where
-                + " and refuses done unless each passes")
+                + " and refuses done unless each passes" + also)
     if run == "test-rerun" and stage == test_loop.STEP_RERUN_STAGE:
         return _DOCUMENT_RERUN_TEXT + _INNER_RERUN_TEXT
     return _CHECK_TEXT[run] + (_INNER_RERUN_TEXT if run == "test-rerun" and stage in stage_spec.INNER else "")

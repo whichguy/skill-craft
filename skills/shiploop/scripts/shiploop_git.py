@@ -81,11 +81,18 @@ def commit_paths(repo: Path, paths: Sequence[str], message: str, *, allow_empty:
     paths = _stageable(repo, paths)
     if not paths:
         return Committed("", [])
-    added = git(repo, "add", "-A", "--", *paths)
-    if added.returncode:
-        raise CommitError("cannot stage " + ", ".join(paths) + ": " + added.stderr.strip())
-    staged = [line for line in git(repo, "diff", "--cached", "--name-only", "-z", "--", *paths).stdout.split("\0")
-              if line]
+    # A path whose deletion is already staged is in neither the checkout nor the index, and `git add` refuses it
+    # by name; it needs no staging, only the commit below.
+    indexed = set(git(repo, "ls-files", "-z", "--", *paths).stdout.split("\0"))
+    unstaged = [path for path in paths if (repo / path).exists() or path in indexed
+                or any(name.startswith(path.rstrip("/") + "/") for name in indexed)]
+    added = git(repo, "add", "-A", "--", *unstaged) if unstaged else None
+    if added is not None and added.returncode:
+        raise CommitError("cannot stage " + ", ".join(unstaged) + ": " + added.stderr.strip())
+    # Renames off: a moved file is two staged changes, and with rename detection this listing names only its new
+    # path, so the commit below left the old path's deletion staged and uncommitted (a live delivery, 2026-11-21).
+    staged = [line for line in git(repo, "diff", "--cached", "--name-only", "--no-renames", "-z", "--",
+                                   *paths).stdout.split("\0") if line]
     if not staged:
         return Committed("", [])
     done = git(repo, "commit", "-q", "--cleanup=whitespace", *given, "--", *staged, env=identity_env(repo))
@@ -95,8 +102,11 @@ def commit_paths(repo: Path, paths: Sequence[str], message: str, *, allow_empty:
 
 
 def _stageable(repo: Path, paths: Sequence[str]) -> List[str]:
-    """``paths`` less those with nothing to stage: neither on disk nor known to Git (a deletion is known to Git)."""
+    """``paths`` less those with nothing to stage: neither on disk nor known to Git.  A deletion is known to Git:
+    in the index while it is unstaged, and in HEAD alone once it is staged (``git mv``, or a ``git add -A``)."""
     tracked = set(git(repo, "ls-files", "-z", "--", *paths).stdout.split("\0")) if paths else set()
+    if paths:
+        tracked |= set(git(repo, "ls-tree", "-r", "-z", "--name-only", "HEAD", "--", *paths).stdout.split("\0"))
     return [path for path in paths if (repo / path).exists() or path in tracked
             or any(name.startswith(path.rstrip("/") + "/") for name in tracked)]
 

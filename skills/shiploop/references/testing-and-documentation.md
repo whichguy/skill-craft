@@ -160,7 +160,32 @@ its command.
 since the item's latest step plan (`too-few-tests`, with the earlier number as `accepted_ran` in the record). A test that must go
 because the plan changed is a plan change: report `send-back` with the reason, and the redone step plan starts the count again.
 Every inner stage's `send-back` needs its stopped Until Loop receipt; `test` also accepts `send-back` when its latest attempt could
-not run. Known limits: the outer `system-test` and `release-verify` and the end-of-work review
+not run.
+
+At `release-verify`, where the consumer checks run in a clean copy of the returned result, ShipLoop also runs each
+regression command of the last work item whose step plan records one that runs on the checkout, where no check already is
+that command (the same text), after the checks (the packet and a refusal mark each as added by ShipLoop). The model writes
+the consumer checks, and a check written to run less than the suite (a subset of the test files, the suite behind a setting
+that makes tests skip themselves) must not stand in for it. The added command must pass there, judged as the step plan
+recorded it (its exit code, and the test IDs or minimum the step plan gave it).
+
+A command that fails there has two exits, by what is wrong. `send-back` reruns `release-plan` when the release plan is
+wrong: a step that must run first (an install or a build that brings an ignored or unmanaged file) is not recorded, or a
+check removes what a later command needs. `add-work` queues a corrective work item when the delivery must change: a test
+carries what it needs instead of reading the repository's history, or an excluded path is kept by the return plan. It is the
+last item's commands, not every item's: an earlier item's command can name what a later item moved, and the corrective item
+is the last one, so its step plan records what is added next (the replacement, where the command itself must change).
+
+Limits of this rule. No test count is compared: a suite that passes in the clean copy while some of its tests skip
+themselves there (for want of the repository's history, say) is accepted. A count was built three ways and dropped by the
+owner on 2026-11-21: read from the run's earlier records it refused a sound delivery whose tree had changed since; no
+version caught a fault the exit code missed. Nothing is added for a regression command that tests a hosted runtime (one that
+reaches such a runtime through a wrapper no platform card lists is added like any other), for a run whose `release-plan`
+recorded no consumer check, or where the checks run in the work area or in place. A later item that records a narrower
+regression command leaves an earlier item's suite out. A check that is the regression command keeps the row `release-plan`
+recorded for it, so the step plan's test IDs and minimum are not carried over to it.
+
+Known limits: the outer `system-test` and the end-of-work review
 rerun commands another stage recorded and have no `send-back` to lower a floor, so they are not held to one; a run whose count
 ShipLoop cannot read (a focused command whose `ids` all show, in a reporter it does not recognise) passes with no floor to hold it
 to; a command whose test count varies by design (generated cases, a last-failed or changed-only selection, a host-dependent skip)
