@@ -504,7 +504,14 @@ on the E2E subject (DeepSeek flash on Ollama through the Claude host, `hosts.RUN
   sections stands for it: a check lost to a collision is run again alone, the first result is kept and both are reported.
 - **Checked.** Each fixture's suite: 117 tests pass and 21 servers start, all on `127.0.0.1`. `FixtureAddressTest` (`test/shiploop-e2e-brownfield-tickets.test.py`) records the address of every server the fixtures'
   own tests start and asks for `127.0.0.1` alone: it fails on both fixtures as they were and passes now. All 92 variants of the five ticket reference modules build on the changed base. The quick tier and two
-  whole deliveries on the changed base are registered in docs/shiploop-sdlc-structure-journal.md and their results follow in the next commit.
+  whole deliveries on the changed base are registered in docs/shiploop-sdlc-structure-journal.md and their results follow in the next commit. The quick tier selected by the change: 70 suites pass (612 seconds at 8 jobs), `shiploop-e2e-brownfield-tickets` with its 53 tests among them.
+- **Confirmed in two whole deliveries** (registered before they ran; `docs/experiments/sdlc-structure-20261119/evidence/changed-base-r15e.txt`). `ticket-due-times` at medium on the commit that made the change
+  (8debbdcf8eb2bab882fd054d64a89d2c4fd158c9), Codex `gpt-6.2-sol` and Claude `claude-sonnet-5-5`: both started from `node-tickets` at `6d6f3563c459` and were graded; every server a delivered suite starts through the base's helper listens on
+  `127.0.0.1` (26 of 26, 32 of 32); no check ended on "did not end". The Sonnet delivery passes every verdict and 8 of 8 checks. The Sol delivery passes every verdict and 3 of 8 checks: its service refuses to start
+  switched on until a backfill is run, the design choice on record for Sol on this case on the old base. One delivery's own system test starts the real server on every address with a port the system picks and calls
+  `127.0.0.1` (3 of its 35 servers): the pattern the change does not reach.
+- **The other direction, measured.** A listener that asks for a port on `127.0.0.1` is not given a number that a listener on every address holds (0 of 40,000 with 2,000 held), so a test server of the new base does not
+  land on the number of a product the harness started.
 - **Not changed.** The calibration's regrading (`settle`, `agreed`) stays, and whether first grades still disagree with the new base is not measured. The stage case `replay-ticket-comments-late-send-back` keeps the
   recorded repo of its run.
 - **Limits.** One machine and one morning for the measurement. Listening on `127.0.0.1` removes the collision for every test that takes its settings from `TEST_SETTINGS`; a builder's own test that starts the
