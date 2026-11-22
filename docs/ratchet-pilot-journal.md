@@ -3800,3 +3800,34 @@ is the right one.
 **Predictions.** Due times: the ordinary-use question asks the start-up point in two of three. The states: the
 ordinary-use question asks which states allow assignment in one of three. The limit: none of three. The
 disagreement question names the filters in at least six of nine.
+
+### Part D2b, result (18:44): three questions of three kinds still miss the point, and every session finds the place where the product disagrees with itself
+
+Nine sessions, 33 to 51 seconds, launched from 545c432df9603a982e5372ebc43cb35cfcffc77f; each wrote the file in
+the form asked and changed nothing else. Two readers agree on every sorting (the second a Sonnet subagent with the
+files under shuffled names; `evidence/program/one-question/three-questions*.md`).
+
+| Request | A question asks the request's point | Cost | Ordinary use | Disagreement |
+|---|---|---|---|---|
+| limit unsaid (k1 to k3) | 0 of 3 | who turns a name into a mail address, three times | whether `Dana` and `dana` are one agent (twice); whether a resolved ticket keeps its assignee | the filters: both, or either (3 of 3) |
+| states unsaid (k4 to k6) | 0 of 3 | the same, three times | capital letters (twice); spaces around a name | the filters (3 of 3) |
+| due times (k7 to k9) | 0 of 3 | deadlines after a roll-back, three times | whether the command line shows the deadline, three times | the filters, for an overdue listing (3 of 3) |
+
+- **RD2b.1: none of nine.** With three questions the request's own point is still not asked: 27 questions, none on
+  the longest name, the states that allow assignment, or who fills the due times in. My predictions (two of three
+  for the due times, one of three for the states) were wrong.
+- **RD2b.2: none of the 27 asks what the files settle.**
+- **The third kind works: nine of nine name the one place where this product's documents and code disagree**
+  (a listing "matches every filter given"; the code matches either), and one asks outright whether the command
+  line should change with the API. That is F55's place, which two deliveries changed unasked and which every
+  reviewer of part R reported.
+
+**F50 stands, more firmly, and gains a second half.** Thirty-six questions over two wordings do not reach the
+choice that sank the builds: a session does not see the plan's future answer to an open point as a question worth
+the requester's time, whichever way the question is framed. What a question step does reach, every time, is a
+disagreement that already stands in the files. So of the two things a requester needed to be asked here, the
+disagreement can be found by asking for it, and the preference cannot be found by asking the session to guess
+which preference matters; it shows only when the decision taken is put in front of the requester.
+
+**Limits.** Exploratory: the kinds were written after part D2 and with the due-times point known to me. One
+product, with one known disagreement that is easy to see once looked for.
