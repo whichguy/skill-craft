@@ -1,0 +1,204 @@
+[
+ {
+  "name": "s1",
+  "pass": true,
+  "class": "PASS",
+  "checks": {
+   "base_tests.py suite node-tickets": true,
+   "base_tests.py pristine node-tickets": true,
+   "due_times_probe.py migrate": true,
+   "due_times_probe.py restart": true,
+   "due_times_probe.py switch": true,
+   "due_times_probe.py rollback": true,
+   "due_times_probe.py off": true,
+   "due_times_probe.py cli": true
+  },
+  "seconds": 2619,
+  "output_tokens": 195151,
+  "gate_counts": {
+   "other": {
+    "fired": 8,
+    "caught": 6
+   },
+   "test_layers": {
+    "fired": 1,
+    "caught": 1
+   },
+   "mutation_not_done": {
+    "fired": 3,
+    "caught": 3
+   },
+   "spec_writeback": {
+    "fired": 2,
+    "caught": 2
+   },
+   "improve_regression_test": {
+    "fired": 2,
+    "caught": 2
+   }
+  },
+  "spec_seconds": [
+   131.0
+  ],
+  "requester": {
+   "case": "ticket-due-times",
+   "reply_enabled": false,
+   "rule": {
+    "tickets": "\\b(backfill\\w*|back-fill\\w*|migrat\\w*|existing|already|older)\\b",
+    "start": "\\b(start\\w*|start-up|boot\\w*|launch\\w*|restart\\w*)\\b",
+    "absent": "\\b(missing|without|lack\\w*|no due|has none|have none|has no|have no)\\b"
+   },
+   "run_dir": "~/e2e-runs/r-20261121-2c3d50/w3/s1/.shiploop-runs/work-20261122-080001-a002e7/run",
+   "seen_at": "2026-11-22T08:03:30Z",
+   "block_printed": true,
+   "rows": [
+    "1. R-2 How does the help desk change the hours? Decided: Operators set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL, DUE_HOURS_LOW in the service's environment and restart; unset means 4/24/72/168; a bad value stops start with a message naming it. Each value must be a whole number from 1 to 100000 hours, else start stops. Otherwise: A settings file or an API to edit hours live; it would add a new file or endpoint to maintain.",
+    "2. R-5 Is a ticket due exactly now overdue, and what does overdue=false do? Decided: Overdue means due strictly before now; overdue=true narrows the list; overdue=false or any other value gets a 400 invalid error. Otherwise: Accept overdue=false as 'only tickets not overdue'; it would add a second filter meaning.",
+    "3. R-7 What happens with DUE_TIMES unset, off or misspelt? Decided: Only the exact value on switches it on; anything else acts as off: no due in answers and overdue ignored. The service still stores due times in the data file. Otherwise: Refuse to start on an unknown value; a typo would stop the service instead of silently staying off.",
+    "4. R-6 When do existing tickets receive due times and what hours are used? Decided: At the first start of the new release, whatever DUE_TIMES says, using the hours set at that moment; the file is rewritten once with no audit entries. Otherwise: A separate migration command run by operators before the switch; it adds a step that can be forgotten.",
+    "5. R-8 What do operators lose by rolling back? Decided: 1.4.0 starts and shows every ticket, but its next save drops the due times; the next upgrade recomputes them from created time and priority with the hours then in force. Otherwise: Keep due in a side file that 1.4.0 never touches; it adds a second file to back up.",
+    "6. R-2 What is the largest number of hours accepted? Decided: 100000 hours (about 11 years); a larger value stops the service at start with a message naming the variable. Otherwise: No limit; an absurd value would make a due time that is not a valid date and fail at ticket creation."
+   ],
+   "recorded": [
+    {
+     "alternative": "A settings file or an API to edit hours live; it would add a new file or endpoint to maintain.",
+     "default": "Operators set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL, DUE_HOURS_LOW in the service's environment and restart; unset means 4/24/72/168; a bad value stops start with a message naming it. Each value must be a whole number from 1 to 100000 hours, else start stops.",
+     "question": "How does the help desk change the hours?",
+     "requirement": "R-2",
+     "why": "Every other setting is an environment variable (README Configuration); the request names DUE_TIMES that way."
+    },
+    {
+     "alternative": "Accept overdue=false as 'only tickets not overdue'; it would add a second filter meaning.",
+     "default": "Overdue means due strictly before now; overdue=true narrows the list; overdue=false or any other value gets a 400 invalid error.",
+     "question": "Is a ticket due exactly now overdue, and what does overdue=false do?",
+     "requirement": "R-5",
+     "why": "The request defines only overdue=true; refusing other values matches how status and priority refuse bad values."
+    },
+    {
+     "alternative": "Refuse to start on an unknown value; a typo would stop the service instead of silently staying off.",
+     "default": "Only the exact value on switches it on; anything else acts as off: no due in answers and overdue ignored. The service still stores due times in the data file.",
+     "question": "What happens with DUE_TIMES unset, off or misspelt?",
+     "requirement": "R-7",
+     "why": "The request says 'until DUE_TIMES is on' the service answers as today."
+    },
+    {
+     "alternative": "A separate migration command run by operators before the switch; it adds a step that can be forgotten.",
+     "default": "At the first start of the new release, whatever DUE_TIMES says, using the hours set at that moment; the file is rewritten once with no audit entries.",
+     "question": "When do existing tickets receive due times and what hours are used?",
+     "requirement": "R-6",
+     "why": "The request wants the file to hold due times before DUE_TIMES is switched on."
+    },
+    {
+     "alternative": "Keep due in a side file that 1.4.0 never touches; it adds a second file to back up.",
+     "default": "1.4.0 starts and shows every ticket, but its next save drops the due times; the next upgrade recomputes them from created time and priority with the hours then in force.",
+     "question": "What do operators lose by rolling back?",
+     "requirement": "R-8",
+     "why": "1.4.0 cannot be changed, and it rewrites only the fields it knows."
+    },
+    {
+     "alternative": "No limit; an absurd value would make a due time that is not a valid date and fail at ticket creation.",
+     "default": "100000 hours (about 11 years); a larger value stops the service at start with a message naming the variable.",
+     "question": "What is the largest number of hours accepted?",
+     "requirement": "R-2",
+     "why": "A hard bound keeps created + hours a valid date; the request gives none."
+    }
+   ],
+   "about": [
+    false,
+    false,
+    true,
+    true,
+    false,
+    false
+   ],
+   "note": null
+  },
+  "status": "done",
+  "spec_action": "nav-7d287e3b38b049f381be07b8144664cc",
+  "spec_results": 1,
+  "defaults": [
+   {
+    "alternative": "A settings file or an API to edit hours live; it would add a new file or endpoint to maintain.",
+    "default": "Operators set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL, DUE_HOURS_LOW in the service's environment and restart; unset means 4/24/72/168; a bad value stops start with a message naming it. Each value must be a whole number from 1 to 100000 hours, else start stops.",
+    "question": "How does the help desk change the hours?",
+    "requirement": "R-2",
+    "why": "Every other setting is an environment variable (README Configuration); the request names DUE_TIMES that way."
+   },
+   {
+    "alternative": "Accept overdue=false as 'only tickets not overdue'; it would add a second filter meaning.",
+    "default": "Overdue means due strictly before now; overdue=true narrows the list; overdue=false or any other value gets a 400 invalid error.",
+    "question": "Is a ticket due exactly now overdue, and what does overdue=false do?",
+    "requirement": "R-5",
+    "why": "The request defines only overdue=true; refusing other values matches how status and priority refuse bad values."
+   },
+   {
+    "alternative": "Refuse to start on an unknown value; a typo would stop the service instead of silently staying off.",
+    "default": "Only the exact value on switches it on; anything else acts as off: no due in answers and overdue ignored. The service still stores due times in the data file.",
+    "question": "What happens with DUE_TIMES unset, off or misspelt?",
+    "requirement": "R-7",
+    "why": "The request says 'until DUE_TIMES is on' the service answers as today."
+   },
+   {
+    "alternative": "A separate migration command run by operators before the switch; it adds a step that can be forgotten.",
+    "default": "At the first start of the new release, whatever DUE_TIMES says, using the hours set at that moment; the file is rewritten once with no audit entries.",
+    "question": "When do existing tickets receive due times and what hours are used?",
+    "requirement": "R-6",
+    "why": "The request wants the file to hold due times before DUE_TIMES is switched on."
+   },
+   {
+    "alternative": "Keep due in a side file that 1.4.0 never touches; it adds a second file to back up.",
+    "default": "1.4.0 starts and shows every ticket, but its next save drops the due times; the next upgrade recomputes them from created time and priority with the hours then in force.",
+    "question": "What do operators lose by rolling back?",
+    "requirement": "R-8",
+    "why": "1.4.0 cannot be changed, and it rewrites only the fields it knows."
+   },
+   {
+    "alternative": "No limit; an absurd value would make a due time that is not a valid date and fail at ticket creation.",
+    "default": "100000 hours (about 11 years); a larger value stops the service at start with a message naming the variable.",
+    "question": "What is the largest number of hours accepted?",
+    "requirement": "R-2",
+    "why": "A hard bound keeps created + hours a valid date; the request gives none."
+   }
+  ],
+  "spec_summary": "Requirements trace S3 to R-1, R-2; S4 to R-3; S5 to R-4, R-5; S6 to R-6; S7 to R-7; S8 to R-8; S9 to R-9; S10 to R-10. Non-functional: compatibility and dependencies assessed, others excluded with reason. No open conflicts; reuse states.ACTIVE for overdue statuses. Improve review: R-2 bounded, missing config keys default (existing tests), backfill save lives in store open not the shared loader, R-8 replay made exact, R-5 clock named.",
+  "spec_md": {
+   "words": 1633,
+   "requirements": 10,
+   "default_words": 7
+  },
+  "clause_says_default": [
+   true,
+   true,
+   false,
+   false,
+   false,
+   true
+  ],
+  "block": {
+   "packets": 1,
+   "with_block": 1,
+   "rows": [
+    "1. R-2 How does the help desk change the hours? Decided: Operators set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL, DUE_HOURS_LOW in the service's environment and restart; unset means 4/24/72/168; a bad value stops start with a message naming it. Each value must be a whole number from 1 to 100000 hours, else start stops. Otherwise: A settings file or an API to edit hours live; it would add a new file or endpoint to maintain.",
+    "2. R-5 Is a ticket due exactly now overdue, and what does overdue=false do? Decided: Overdue means due strictly before now; overdue=true narrows the list; overdue=false or any other value gets a 400 invalid error. Otherwise: Accept overdue=false as 'only tickets not overdue'; it would add a second filter meaning.",
+    "3. R-7 What happens with DUE_TIMES unset, off or misspelt? Decided: Only the exact value on switches it on; anything else acts as off: no due in answers and overdue ignored. The service still stores due times in the data file. Otherwise: Refuse to start on an unknown value; a typo would stop the service instead of silently staying off.",
+    "4. R-6 When do existing tickets receive due times and what hours are used? Decided: At the first start of the new release, whatever DUE_TIMES says, using the hours set at that moment; the file is rewritten once with no audit entries. Otherwise: A separate migration command run by operators before the switch; it adds a step that can be forgotten.",
+    "5. R-8 What do operators lose by rolling back? Decided: 1.4.0 starts and shows every ticket, but its next save drops the due times; the next upgrade recomputes them from created time and priority with the hours then in force. Otherwise: Keep due in a side file that 1.4.0 never touches; it adds a second file to back up.",
+    "6. R-2 What is the largest number of hours accepted? Decided: 100000 hours (about 11 years); a larger value stops the service at start with a message naming the variable. Otherwise: No limit; an absurd value would make a due time that is not a valid date and fail at ticket creation."
+   ]
+  },
+  "says": 45,
+  "says_naming_a_default": [
+   "Complete. The review changed a default (the hours bound), so I'll write a final result with the updated defaults.",
+   "Mutation testing found four product lines my tests don't pin: the two `dueTimes` defaults, a status code, and the default page size. I'm adding targeted tests f"
+  ],
+  "report": {
+   "section": true,
+   "after_request": true,
+   "rows": 48,
+   "none": false,
+   "not_recorded": false
+  },
+  "notes": [],
+  "owner_notes_state": null
+ }
+]

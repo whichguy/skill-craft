@@ -427,4 +427,32 @@ in the script notices.
 - It does not make the requester's answer take effect. Sent as a plain owner note right after the specification,
   the answer changed the build in two runs of four, was confirmed in one and ignored in one. A route of ShipLoop's
   own for that answer, with a check that the requirement changed, is the missing half, and a product decision.
-- Not run: any other case, more than three runs a cell, and (when this was written) the other driver.
+- Not run: any other case, more than three runs a cell, and (when this was written) the other driver; section 8
+  adds one delivery on it.
+
+## 8. One delivery on the other driver (written 2026-11-22, 00:45)
+
+The first test plan put two Sonnet runs after a passing wave 1; wave 1 did not pass, the rewording did, and one
+delivery was run to see that the list does not misbehave on the other driver: `ticket-due-times` on the Claude host
+with `claude-sonnet-5-5` at medium, built from 1641ecb825d4b6a09111927c871ca7c00d9c433b, the stand-in silent, 00:00 to
+00:43 on 2026-11-22. One run shows function, not a rate. Evidence: `evidence/sonnet-1/`.
+
+- **The list.** Six rows, written for an operator ("A separate migration command run by operators before the
+  switch; it adds a step that can be forgotten"; "Refuse to start on an unknown value; a typo would stop the service
+  instead of silently staying off"). The author submitted five; the stage review changed the bound on hours and the
+  host said "The review changed a default (the hours bound), so I'll write a final result with the updated
+  defaults", which is the line the spec review's packet now carries, followed.
+- **The reader.** "Partly" on the start-up question, for the reason d1 and d6 got it: the service fills the due
+  times in at any start, and the row does not say in so many words what a start with the switch on does. Five rows
+  are real open points their clause states. The sixth, "What is the largest number of hours accepted? Decided:
+  100000 hours", the reader calls behaviour the request does not need, and borderline. It is not new behaviour: all
+  four archived Sonnet specifications of this case on the released ShipLoop state such a bound (87,600; 1,000,000;
+  87,600; 87,600 hours). The list did not make the bound; it shows the requester a bound this driver has always set.
+  On Sol, in wave 1, the same bound is the build's, in no specification and no row.
+- **The surfaces.** The block was printed, the report has the section, no row was rewritten later. The last message
+  gives every chosen behaviour in plain words (the 1 to 100000 range, "A ticket due exactly now is not yet overdue",
+  "Any other `overdue` value is a 400 error") without calling them choices.
+- **The delivery.** All eight held-out checks pass (archive: two of four Sonnet deliveries pass). No refusal of the
+  new gate. 195,151 output tokens and $10.58 (archive: 155,107 to 225,283; $7.73 to $12.67). It took 2,619 seconds
+  against 1,359 to 2,035, and the spec stage 131 seconds against 90 to 100; I ran the wide test selection beside it
+  for its first 25 minutes, so its time says nothing.

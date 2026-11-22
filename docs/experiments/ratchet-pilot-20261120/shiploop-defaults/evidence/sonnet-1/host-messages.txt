@@ -1,0 +1,132 @@
+Intake, discovery and baseline are done (117 of 117 tests pass). I'm now in research, running the one experiment that matters: whether 1.4.0 loads a data file that has an extra `due` field.
+---
+Spec is written and accepted (R-1 to R-10). ShipLoop now wants an Improve review pass on it, so I'm invoking the improve skill on its handoff.
+---
+Pass 1 is committed. In pass 2 a full re-read found only two wording fixes in the spec (a placeholder-looking phrase and an awkward sentence), so I'm recording it as trivial.
+---
+Complete. The review changed a default (the hours bound), so I'll write a final result with the updated defaults.
+---
+The test strategy is accepted (DT-1 to DT-20 planned, none run yet). I'm now running the Improve review on it, as I did for the spec.
+---
+Both review passes on the test strategy are recorded. Pass 1 was a fix to the CLI check and its backfill seam, and pass 2 found nothing. I'm closing out the Improve loop and returning to ShipLoop.
+---
+Valid owner stages are step-plan, test, document, system-test-author, release-plan and operations. I'll map the concerns onto those.
+---
+The plan is accepted: one work item, W1, covering the whole change. Next is its Improve review.
+---
+Pass 1 of the plan review is committed. It found one unsupported claim (a name-collision grep that was never run) and corrected it. I'm running the done step and then a second, confirming pass.
+---
+Preparation is done and I'm in W1's step-plan. I'm splitting it into two product steps, then I'll start its Until Loop and submit the plan.
+---
+Working on W1's plan. The plan check refused criterion C8 (the docs and version) because no test command covers it. I'm adding a docs check command to cover it.
+---
+The step plan is accepted: two steps with real proof scripts. Next is its Improve review.
+---
+Pass 1 is done and the loop asks for a second pass. It's a quick re-walk of the corrected proofs.
+---
+Planning is finished (spec, strategy, plan, step plan and test cases all accepted). I'm now implementing step S1: the due module, config, store and data file.
+---
+Step S1 is built and its proof passes (117 existing tests still pass, lint clean). I'm fixing the `not_covered` format in the result so ShipLoop will accept it.
+---
+The S1 tests are written (12 tests, all green on the candidate and red on the base). I'm recording the notes and result, then running ShipLoop's check.
+---
+Step S1's code and tests are done. I'm on its document stage: README config rows, the data-file notes and decision record 0009. I'll also tidy duplicate headings in the knowledge file.
+---
+The check rejected my spec edit: one Met-by line was inserted mid-line. I'm restoring the spec from the last commit and re-adding the four lines correctly.
+---
+Step S1's documentation is accepted and now goes to its Improve review.
+---
+The step review commits nothing, since ShipLoop commits the whole step once at the end. I'll leave the edit uncommitted and finish the pass with improve-pass.
+---
+The review loop finished on its first pass, so I'll return to ShipLoop.
+---
+Step S2's code and docs are written and the existing suite is green (131 of 131). Two proof assertions still fail, so I'm checking them now.
+---
+Both failures are the same docs assertion: api.md needs the literal `?overdue=true`. I'll add an example sentence.
+---
+Mutation testing found four product lines my tests don't pin: the two `dueTimes` defaults, a status code, and the default page size. I'm adding targeted tests for each.
+---
+Step S2's tests are accepted (26 focused tests, 143 total). I'm on its document stage: I'll verify the rollout example, add the spec's Met-by lines for R-4, R-5 and R-7, and finish.
+---
+Each added spec line must end with the step mark. One of mine continued after it, so I'm reordering that sentence.
+---
+S2's document stage is accepted. Next is its Improve review, the last review before the release stages.
+---
+I guessed the action id; the handoff names the real one, so I'm rerunning improve-pass with it.
+---
+Both steps are committed (S1 as d638277, S2 as 6b50f6d). The carry-forward stage is next.
+---
+The carry-forward is accepted and goes to its Improve review. After that come the nine release stages, including the 1.4.0 rollback experiment.
+---
+The fix is written and tested (red before, green after), but improve-pass refused. I'm reading its message to see why.
+---
+The commit message needs a `Regression test:` line naming the test that fails without the fix. That is DT-13 (d).
+---
+The system tests are written and accepted (all four pass against real server processes, including release 1.4.0). They now go to Improve review.
+---
+Now at the system-test stage: I'll run the recorded system command on the real candidate and save its output as evidence.
+---
+Now the release-plan stage: it plans the release without performing it. I'm reading the workspace return and rollback recipes first.
+---
+Still on release-plan and the stray processes are gone. I'm redoing the edit with files written directly, so shell expansion can't mangle them.
+---
+Now the release-plan result, written with a quoted heredoc, followed by the callback.
+---
+The release plan is accepted and goes to its Improve review. Several release stages remain after this: release-check, release, release-verify, operations and handoff.
+---
+Next the review file and the commit message, written with the file tool rather than a heredoc.
+---
+Pass 1 is committed. Pass 2 re-reads the plan after the fix.
+---
+Release-check is under way. The return plan lists 19 undecided paths, all of them product code, tests or docs, so I'm keeping all of them.
+---
+Release-check found nothing to repair. The release step is the source return: plan-return again, then the return command, which fast-forwards master in your checkout to the run branch.
+---
+Release-verify: I'm running the two consumer checks against the returned result in your checkout (`npm test` and the HTTP probe), then I'll record what I observe.
+---
+Both start-up failures name their cause and the next action, and `/health` answers. Writing the operations result now.
+---
+Due times are built and merged into `master` of your checkout (now at 3a27163, version 1.5.0). `npm test` passes: the 117 existing tests, unedited, plus 27 new ones in five `test/due-*.test.js` files.
+
+I have not deployed it or switched it on anywhere. That is the operators' step.
+
+- **Due time:** each ticket gets `due` = created time plus the hours for its priority (4 urgent, 24 high, 72 normal, 168 low). It is set once, so changing the hours or the priority later does not move it.
+- **Hours:** set with `DUE_HOURS_URGENT`, `DUE_HOURS_HIGH`, `DUE_HOURS_NORMAL` and `DUE_HOURS_LOW`, whole numbers from 1 to 100000. A bad value stops the service at start and names the variable.
+- **Overdue listing:** `GET /tickets?overdue=true` lists only open and in-progress tickets whose due time has passed. A ticket due exactly now is not yet overdue. Any other `overdue` value is a 400 error.
+- **Existing tickets:** at first start the new release gives each ticket in the data file its due time, computed from its own created time and priority, and saves the file once.
+- **The switch:** the service stores `due` always, but shows it and answers `overdue` only when `DUE_TIMES` is exactly `on`. Otherwise it answers as 1.4.0 does.
+- **Rollback to 1.4.0:** the data file stays version 1, and 1.4.0 ignores the extra field. I ran the real 1.4.0 server from commit 23f8879 on a file the new release wrote, and it started and showed every ticket. Its next save drops the due times, and the next upgrade recomputes them from created time and priority with the hours then in force. This is documented in `docs/operations.md`, along with the rollout order: deploy with `DUE_TIMES` unset, check the file holds the due times, then switch on.
+- **Start-up write failure:** if the data file can't be written at that first start, the service now stops with a message naming the file and what to do. Without that fix the failure would have shown as a bare stack trace.
+
+Also checked: with `DUE_TIMES` unset, twelve requests give identical answers on 1.4.0 and the new release. Four system tests (ST-1 to ST-4, run against real server processes) pass.
+
+**Left for the operators:**
+- Deploy 1.5.0 and confirm the production file holds one `due` per ticket (`grep -c '"due"' <data file>`).
+- Then set `DUE_TIMES=on` and restart. I had no production access, so this is unverified.
+
+**For the API owners:** `docs/api.md` says list filters combine with AND, but `matchesFilters` in `src/tickets/query.js` combines them with OR. I left it alone because fixing it would change today's answers; `overdue` narrows the result either way. Do you want it fixed?
+
+The system tests live outside the repository because they need git history. The ShipLoop run's records are in `~/e2e-runs/r-20261121-2c3d50/w3/s1/.shiploop-runs/work-20261122-080001-a002e7`, with the report at `report.html` there.
+---
+[the last message]
+Due times are built and merged into `master` of your checkout (now at 3a27163, version 1.5.0). `npm test` passes: the 117 existing tests, unedited, plus 27 new ones in five `test/due-*.test.js` files.
+
+I have not deployed it or switched it on anywhere. That is the operators' step.
+
+- **Due time:** each ticket gets `due` = created time plus the hours for its priority (4 urgent, 24 high, 72 normal, 168 low). It is set once, so changing the hours or the priority later does not move it.
+- **Hours:** set with `DUE_HOURS_URGENT`, `DUE_HOURS_HIGH`, `DUE_HOURS_NORMAL` and `DUE_HOURS_LOW`, whole numbers from 1 to 100000. A bad value stops the service at start and names the variable.
+- **Overdue listing:** `GET /tickets?overdue=true` lists only open and in-progress tickets whose due time has passed. A ticket due exactly now is not yet overdue. Any other `overdue` value is a 400 error.
+- **Existing tickets:** at first start the new release gives each ticket in the data file its due time, computed from its own created time and priority, and saves the file once.
+- **The switch:** the service stores `due` always, but shows it and answers `overdue` only when `DUE_TIMES` is exactly `on`. Otherwise it answers as 1.4.0 does.
+- **Rollback to 1.4.0:** the data file stays version 1, and 1.4.0 ignores the extra field. I ran the real 1.4.0 server from commit 23f8879 on a file the new release wrote, and it started and showed every ticket. Its next save drops the due times, and the next upgrade recomputes them from created time and priority with the hours then in force. This is documented in `docs/operations.md`, along with the rollout order: deploy with `DUE_TIMES` unset, check the file holds the due times, then switch on.
+- **Start-up write failure:** if the data file can't be written at that first start, the service now stops with a message naming the file and what to do. Without that fix the failure would have shown as a bare stack trace.
+
+Also checked: with `DUE_TIMES` unset, twelve requests give identical answers on 1.4.0 and the new release. Four system tests (ST-1 to ST-4, run against real server processes) pass.
+
+**Left for the operators:**
+- Deploy 1.5.0 and confirm the production file holds one `due` per ticket (`grep -c '"due"' <data file>`).
+- Then set `DUE_TIMES=on` and restart. I had no production access, so this is unverified.
+
+**For the API owners:** `docs/api.md` says list filters combine with AND, but `matchesFilters` in `src/tickets/query.js` combines them with OR. I left it alone because fixing it would change today's answers; `overdue` narrows the result either way. Do you want it fixed?
+
+The system tests live outside the repository because they need git history. The ShipLoop run's records are in `~/e2e-runs/r-20261121-2c3d50/w3/s1/.shiploop-runs/work-20261122-080001-a002e7`, with the report at `report.html` there.

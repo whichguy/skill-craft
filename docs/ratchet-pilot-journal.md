@@ -4422,3 +4422,57 @@ The rule is old: never edit a running shell script.
 on 2026-11-22, four suites at a time, beside one live delivery): the same wide selection as before, 131 suites, all
 passed. The two suites that had each failed one test in runs of eight at a time (`shiploop-navigator-contract`,
 `shiploop-e2e-incremental-pilot`) pass here, as they do alone.
+
+### One delivery on the other driver (2026-11-22, 00:00 to 00:43)
+
+`ticket-due-times` on the Claude host with `claude-sonnet-5-5` at medium, built from
+1641ecb825d4b6a09111927c871ca7c00d9c433b, to see that the list does not misbehave there. One run: function, not a
+rate. `DESIGN.md` section 8; evidence under `evidence/sonnet-1/`.
+
+- Six rows in an operator's words, no refusal of the gate, all eight held-out checks pass, tokens and cost inside
+  the archive's range for this driver (195,151 output tokens, $10.58). Its time is not comparable: I ran the test
+  selection beside it.
+- The stage review changed a default and the host returned the list changed to match, saying so: the one line added
+  to the spec review's packet, followed.
+- One row is a limit: at most 100,000 hours. The reader calls it behaviour the request does not need. All four
+  archived Sonnet specifications of this case already set such a bound; the list did not make it, and now shows it.
+  This is the same bound that on Sol, in wave 1, the build sets and nothing records.
+- The reader's score on the start-up question is "partly", as for every specification here that fills the due times
+  in at start: three of three such rows (d1, d6, s1) got it, and both "yes" went to rows that say what an enabled
+  start does. The question as I registered it rewards a sentence this design makes unnecessary.
+
+### Where the candidate stands (2026-11-22, 00:46)
+
+Nine real deliveries (eight on Sol at medium, one on Sonnet at medium), three commits on `shiploop-defaults-2c3d50`,
+nothing pushed, nothing on `main`.
+
+| | archive (released ShipLoop) | the candidate |
+| --- | --- | --- |
+| the requester is told which answer was taken on the start-up point, with another answer beside it | 0 of 11 | 7 of 7 |
+| rows that are a real open point their clause states | | 26 of 27 (the one other: a bound Sonnet has always set) |
+| a blind, strict reader's "yes" on the start-up row | | 0 of 3 with the first wording; 2 of 3 with the second; 0 of 1 on Sonnet |
+| submissions refused by the new gate | | 0 in nine runs |
+| the spec stage, Sol | 17 to 61 s, median 43 | 52 to 66 s |
+| the last message tells the user the choices as choices | | 0 of 3 untold; 2 of 3 told to |
+
+- **F62. A field to fill, with the clause to name, gets the choice written down; an instruction in prose did not.**
+  The released stage's text already told the author to record a default "as an assumption" and eleven of eleven
+  wrote none. With a required list whose rows name their requirement, seven of seven list the start-up choice and
+  no row is behaviour the list brought about. This is F39 and F43 carried from this pilot's bench into ShipLoop
+  itself.
+- **F63. What a row says follows what the instruction asks for, and may move what gets chosen.** Asked for "the
+  default chosen", the rows named mechanisms and left out the refusal; asked for "what that person sees or must do
+  and what happens if they do not", two of three stated the consequence, and none of three chose a refusal at all
+  (two of three before; four of eleven in the archive). Three runs cannot separate the two effects.
+- **F61 stands as the limit.** The list tells the requester. It does not make the requester's answer take effect:
+  two of four replies changed the build, one was confirmed, one was ignored and recorded as delivered.
+
+**The owner's decisions.** Whether the candidate goes to `main` (it then needs the SDLC session's E2E round before
+a release, and that session holds its own change to the same script). And whether ShipLoop gets a route of its own
+for the requester's answer before the build, with a check that the requirement changed: the half this candidate
+does not build.
+
+**Limits.** One fixture family, two requests, three runs a cell, one run on the second driver. The reader's
+question rewards a sentence that a specification which fills the due times in at start has no need to write
+(three of three such rows got "partly"). The spec packet is at 19,934 of the 20,000 characters a Grok host prints
+whole. Hosts tell the user about the list only some of the time; the report always carries it.
