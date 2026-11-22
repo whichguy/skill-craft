@@ -5,7 +5,7 @@ Apparatus: `docs/experiments/ratchet-vs-shiploop-20261121/`. Earlier work this b
 
 ## 0. Where it stands
 
-Registered 2026-11-22 00:30, before any run. Results go in section 7.
+Registered 2026-11-21 23:55 (commit d522655ae4f6a8af0b289d346aa08cf44d2e9fbe), before any run; all eight runs started at 23:59. Results go in section 7.
 
 ## 1. The question, in the owner's words (2026-11-21, late evening)
 
@@ -106,6 +106,37 @@ the same for both arms: `node --test` for shared expenses, `npm test` otherwise)
 The instruments for M5 and M6 are new. They are checked on archived deliveries of both arms (no model) before any
 new run is measured; after the first new run is measured they do not change, and a fault found later is recorded as
 a correction with every number it moves.
+
+### Instrument checks, 2026-11-22 00:00 to 00:40 (before any new run was measured; the first ShipLoop run had ended)
+
+On a toy product (`scratchpad`, a module with a called and an uncalled function, a server the test spawns and stops
+with SIGTERM) and on five archived deliveries under `~/e2e-runs/ratchet-pilot-20261120-b6eab2/` (Ratchet: chess,
+ticket assignment at medium, shared expenses, Grokbot; ShipLoop 2.3.0: Grokbot). What changed, and why:
+
+- **Coverage of a stopped server.** `v8.takeCoverage()` followed at once by raising the signal again lost the
+  server's coverage file in 4 of 8 toy runs; waiting 100 ms before raising it lost none in 8 (and 3 of 3 through
+  `coverage.py`). The preload waits 100 ms. On the toy, `coverage.py` and Node's own `--experimental-test-coverage`
+  name the same unrun lines (7 and 11 to 14 of the module); Node counts comment and blank lines as run, so its
+  percentage is higher (68.75 against 58.3). On the archived Ratchet chess delivery both give 100% of lines and
+  functions.
+- **Code a browser runs.** On the archived Grokbot delivery, `public/app.js` (592 lines, the page's script) is never
+  loaded by Node; no Node coverage can see it, whichever arm wrote it. So R5 reads coverage over the files Node can
+  run: files under a folder named public, static, client, www, assets, frontend, web or browser are left out of the
+  reading (`measure.py`, `browser_free`) and reported apart.
+- **Which lines.** On the ticket change, coverage of the whole product is mostly the existing service's tests. R5
+  reads the `changed` scope: the lines and functions the delivery added or changed (for a new build, all of its
+  source; a starting file the delivery did not touch, such as Grokbot's model stand-in, is left out).
+- **Which surfaces.** Likewise R6 reads the surfaces that are new in the product (for a new build, all of them).
+  Two kinds were missed and are now read: settings code that is handed `process.env` and reads `env.PORT` (both
+  archived Grokbot deliveries; now names given `process.env` and names `env` or `environment` count), and query
+  parameters (`params.get('status')`, `searchParams.has('assignee')`; the ticket change's new `assignee` filter).
+  After these, the archived ticket delivery has 2 new surfaces (`/tickets/:p/assignee`, `assignee`), the chess
+  delivery 5 (its exports), shared expenses 4, Grokbot 8 (Ratchet) and 6 (ShipLoop).
+- **Seeded faults on a product tested with `node --test`.** `mutate.py` ran `npm test` only; it gains
+  `--own-command` (default unchanged), because a shared-expenses delivery need not have a `package.json`.
+
+Known limits of the readers, kept: the JavaScript reading is a lexer, not a parser (a function written in an unusual
+form may be missed); a route built from pieces at run time is not seen; JSON body fields are not surfaces.
 
 ## 5. Readings, registered before any run
 
