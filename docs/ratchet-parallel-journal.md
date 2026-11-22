@@ -5,7 +5,9 @@ is being written by another session on another branch. This session is a fork of
 owner at 08:00 on 2026-11-21 to think about one question. It writes only in its own worktree and reads the pilot's
 runs without changing them.
 
-## 0. Where it ended (2026-11-21 10:52; stopped at the owner's word; updated 13:51)
+## 0. Where it ended (2026-11-21 10:52; stopped at the owner's word; updated 13:51; closed 16:37)
+
+**Closed, 16:37: nothing to build and nothing proposed. Section 17 holds what to take away, and the leads left.**
 
 **Update, 13:51: reopened the same day to test the owner's design-phase idea on harder apps (sections 9 to 16).
 The parallel schedule itself stays stopped.** Four cells in all, each a test pass written with no build present
@@ -1043,3 +1045,80 @@ existing app with a page would show (the harness has `battleship-scoring`, which
 Evidence: `evidence/parallel/grokbot/` (each run's record, report and manifest; the build-less adapter, driver and
 packet; `overlay-gb-blind.json`; `gb-session-activity.md`; and under `catch-up/` the three corrections as diffs,
 the subagent's report, and the pass counts).
+
+## 17. Closed: what to take away (2026-11-21 16:37; a reading across sections 6 to 16, nothing run)
+
+Status: closed. The owner asked "Should we simply abandon this line of thinking?"; my answer was yes, and the
+owner then asked for the learnings to be journaled, which this section is. Nothing under `skills/` changed in this
+line and nothing is proposed. Every figure below is from the section named; none is new.
+
+**Why there is nothing to build.**
+
+- The parallel schedule saves the build's length at most and no tokens (section 7). On the one case large enough
+  to matter, the catch-up cost more than that (section 16).
+- The design-phase idea is the order ShipLoop already keeps: tests specified before the code, test code after it
+  (section 8). The runs give the reason for that order; they do not ask for a change to it.
+- The check left unrun, a change to an existing app with a page, would only matter to someone moving test code
+  ahead of the build. Nobody is.
+
+**About tests and builds.** These are reasons to keep what ShipLoop does. None is strong enough to change it.
+
+1. What a test asserts and the code that executes it age differently. Expectations written before any code held
+   in every cell (112 of 115 on the largest). Execution code held where there was little to drive and broke on a
+   rich page (4 of 115; sections 13 and 16).
+2. A test that fails where there is no product has shown only that it fails. Before the build, the two build-less
+   suites looked alike: every Battleship item failed on the empty folder, as it should (section 13), and the
+   Grokbot suite's own four runs never reached an app (section 16, G5). On the build the first passed 28 of 28 and
+   the second failed 111 of 115, because only its path for a missing product had ever run. Failing on the base is
+   half a check; the pass on the build is the other half.
+3. A writer's list of its own assumptions finds design gaps, not execution faults. On Grokbot the list had six
+   lines and none named any of the three faults that failed 108 items (section 16, G3). Asking a session what it
+   assumed does not stand in for running its code.
+4. Writing tests without the product is not cheaper. The build-less session was about as long as the other in two
+   cells and longer, with more output tokens, in the other two (47% and 9% longer; sections 6, 13, 16).
+5. Execution kept in one place made the repair small: three diffs in two files brought back 108 items, and no
+   expectation was touched (section 16). That is one run: a reason to keep the habit, not evidence for a rule.
+6. An expected value written before the code is sometimes a slip of counting. ShipLoop's rule that a changed test
+   carries a recorded reason is what catches it, and what made it countable (section 11).
+
+**About how the question was tested.**
+
+1. Three clean small cells did not predict the fourth. After due times and Battleship the reading was "no
+   catch-up, three of three", and my prediction for Grokbot was 0 to 5 failing; 111 failed. The answer changed
+   only because the owner asked whether the case was complex enough (section 9). A run of passes on small cases
+   earns the next rung, not the conclusion: before saying something holds, run the case most likely to break it.
+   Stopping early is safe on a ceiling or on a failure, not on a run of passes.
+2. My predictions were a poor guide. The journal scores seven wrong as it goes (three by section 10, two in 13,
+   one each in 15 and 16), first by expecting failures that did not come and then by expecting none. Two held: the
+   adapter's share on Battleship and the size of the Grokbot catch-up. A prediction is registered so it can be
+   scored. It should not decide whether a rung is run.
+3. The ceiling comes first. For a change whose only gain is waiting time, the most it can save is in stage
+   lengths already on file. Section 7's reading stopped the schedule, and it could have been put to the owner
+   before the first paid run.
+4. When nearly everything fails, look for one cause. All 111 first failures stopped at the same step with the
+   same message, and one correction, found in about 8 minutes, took the count from 4 to 87 (sections 15 and 16).
+   A failing pass is also slow, 30 minutes against 7, because each failing item waits out its limits. So the
+   common cause is worth fixing before any full rerun.
+5. A yardstick is tried on a known good and a known bad before it is used. The Battleship grader passes two
+   finished deliveries and fails an empty tree (sections 10 and 13). The overlay tool has to reproduce a run's own
+   count first; that check is what showed its first table was wrong (section 6).
+6. Counts taken on a busy machine are redone alone. Three items at a time gave 14 false failures (section 16).
+7. A helper's work is bounded by a rule and then recounted. The Sonnet subagent could change only the two
+   execution files; I read each diff and took the final 112 from my own full pass. Its minutes are a size, not a
+   rate. Scripts a helper writes are linted before they are committed: two were not, and 18 findings turned up at
+   merge time (fixed with their output unchanged).
+8. From this session's record, not in section 13: my first comparison of the two fault runs keyed each fault by
+   its site, and sites repeat, so it showed 39 faults where there are 51. Counted by position it is the table in
+   section 13. A count keyed by a name that can repeat undercounts.
+
+**Leads left, for whoever takes one up.** None is a finding.
+
+- Whether an existing page is enough to write the driving code against. The harness has `battleship-scoring`, a
+  change that follows `battleship`.
+- Both Battleship suites miss the same 19 of 51 seeded faults. Both were written under the reworded text's rule
+  that a test must pass whichever reasonable answer a build took. No suite written under another text was put
+  against the same faults, so whether that rule costs strength is open. It belongs to the pilot's line
+  (`docs/ratchet-pilot-journal.md`).
+- All 13 recorded assertion changes in ShipLoop deliveries are in Sonnet 5.5 or DeepSeek runs, and none is in a
+  Sol, Grok or Terra run. Model, case and ShipLoop version move together in that sample (section 11).
+- Strength on Grokbot, and a catch-up done by a session of the loop and not by hand.
