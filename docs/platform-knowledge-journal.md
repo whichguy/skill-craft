@@ -1315,7 +1315,10 @@ dozens (rung 8, section 34, asks about that). And this route presupposes the fil
 repository with no knowledge home has none, and that is the fresh repository of rung 6, 0 of 2. So "how do a
 platform's facts get into the project's file" stays open.
 
-## 34. Amendment 7, registered before its runs: a long list against an index with pages (2026-11-22, 14:50)
+## 34. Amendment 7, registered before its runs: a long list against an index with pages (2026-11-22, 14:45)
+
+*Time corrected 2026-11-22: this heading first said 14:50, a guess. The section was written at 14:45 and
+committed at 14:47 (fe7be8b19d15059b5401c5fd8d0bc4f9f8da9343), before any of its runs.*
 
 **Why one more rung before concluding.** The route that works has been run with four bullets. The owner's
 reference is a platform's key considerations, and his two worries were about size and shape: "I wonder if the wiki
@@ -1369,4 +1372,49 @@ knowledge characters L gives.
 its first seconds (section 33), not at the plan. One platform, one request, one list, two samples a cell. The
 hidden fact is the only one of the list the request cannot be done right without, so this measures finding one
 needed fact among many, not using many.
+
+## 35. A free reading, and amendment 8 registered before its runs: a starter file in a brand-new repository (2026-11-22, 14:51)
+
+**The free reading: what a first delivery writes down.** Section 33's route presupposes the knowledge file. The
+three deliveries of rung 6b started with none and were shown the card's entries by the candidate at discovery; each
+wrote a knowledge home. What its `## Platform facts` says of the hidden fact, read by hand
+(`~/e2e-runs-pk/20261122-n/n05` to `n07`, `work/docs/shiploop/environment.md`):
+
+| Run | Driver | What it wrote |
+|---|---|---|
+| n05 | Sol | "ShipLoop's Node platform guide specifies a gateway request ID for new routes. Implement and test the stock response header locally as specified by AD-2. The deployed gateway configuration remains unverified." The header's name is in `architecture.md`, not here. |
+| n06 | Sol | "Match the platform guide's N-GATEWAY requirement with `X-Org-Request-Id` on stock responses, verified by HTTP success and error cases. The production gateway itself remains unobserved." |
+| n07 | Sonnet | "**N-GATEWAY** (from the platform guide, not observed in this repository): the guide says this deployment's gateway drops any response lacking `X-Org-Request-Id`. [...] Owner to confirm the gateway rule." |
+
+Two things show. All three kept the provenance honest: from the guide, not observed here. And both Sol deliveries
+wrote down their own decision for this piece of work ("for new routes", "on stock responses"), not the platform's
+rule; only Sonnet kept the rule. So a first delivery that is shown a card does not reliably leave the card's fact
+behind for the next delivery. Not tested: a second delivery on those products. Exploratory: three files, read by
+hand.
+
+**Amendment 8, rung 9: the simplest way a platform's facts could reach a new project is to copy them in.** The
+starting repository is the fresh one of rung 6 (no knowledge home; the released route scored 0 of 2 there) plus one
+file, `docs/shiploop/environment.md`, that holds only `## Platform facts`: a note ("Starter facts for a Node
+service on this organisation's deployment, copied from the team's platform notes on 2026-11-20. None of them has
+been checked against this repository yet.") and three bullets, the fact sentences of the Node card's three planning
+entries word for word, without ids, concern tags, "Decision:" or "Proof:" (two real ones, on several instances and
+on authorization, and the hidden one). No `spec.md`, no `architecture.md`. The released build and the request of
+rung 6. Two deliveries on Sol medium and one on Sonnet medium: `familiar/runs/rung9.tsv`, q01 to q03, in
+`~/e2e-runs-pk/20261122-n/`. The file is `familiar/rung9/environment.starter.md`; an Opus subagent lays the
+starting repository with it.
+
+**Reading:** the tightened product check of section 31, as in rung 7b. Beside it, by hand: what the delivery's own
+knowledge home keeps of the three starter bullets; and, with `scope_reading.py`, whether the two real bullets led
+to work nobody asked for.
+
+**Rule:** the starter **holds** on Sol when both Sol products pass. **Prediction:** at least 2 of 3 pass.
+
+**What each outcome would mean.** If it holds, a new project needs no change to ShipLoop either: its platform's
+facts are copied into its knowledge file before the first delivery, a platform reference is the source such
+starters are copied from, and keeping that source true is work outside the delivery. If it fails on Sol where rung
+7b passed, what differs is the provenance (copied and unchecked, against observed) or the bare file (nothing else
+of a knowledge home), and the next step is to tell the two apart.
+
+**Limits known before the run.** One service, one request, three deliveries. Three bullets: a starter for
+Salesforce would be longer, which is rung 8's question. The provenance is the weakest I could write honestly.
 
