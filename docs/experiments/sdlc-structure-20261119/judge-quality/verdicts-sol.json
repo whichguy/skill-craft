@@ -1,0 +1,514 @@
+{
+ "due-1-A": {
+  "sides": {
+   "X": {
+    "defects": [
+     {
+      "kind": "scope",
+      "severity": "medium",
+      "file": "docs/api.md",
+      "line": 81,
+      "claim": "The API contract is rewritten from 'a ticket is listed only when it matches every filter' to 'a ticket may match either filter', turning the base's OR-matching bug in matchesFilters into documented behaviour, which the request did not ask for.",
+      "check": "Compare base/docs/api.md 'Filters combine: a ticket is listed only when it matches every filter given' with X/docs/api.md line 81; base/src/tickets/query.js matchesFilters uses some()."
+     },
+     {
+      "kind": "test",
+      "severity": "low",
+      "file": "test/due-times.test.js",
+      "line": 131,
+      "claim": "The overdue paging test asserts that ?status=open&priority=high returns an urgent open ticket and a high in_progress ticket, locking the OR-filter bug in as expected behaviour.",
+      "check": "Read the query '/tickets?overdue=true&status=open&priority=high&limit=1' and the expected ids ['T-0001'] (urgent, open) then ['T-0004'] (high, in_progress)."
+     },
+     {
+      "kind": "functional",
+      "severity": "low",
+      "file": "src/store.js",
+      "line": 49,
+      "claim": "Backfill runs automatically on every startup, so after a rollback in which 1.4.0 saved the file (dropping due), the next start of the new release silently recomputes deadlines from current priority and hours before the operator can restore the originals, and no tool for that restore exists.",
+      "check": "Create a high ticket with the new release, patch it to low, start 1.4.0 and make any change, then start the new release with DUE_TIMES=on: the ticket's due is now created+168h instead of the original created+24h."
+     },
+     {
+      "kind": "maintainability",
+      "severity": "low",
+      "file": "src/store.js",
+      "line": 7,
+      "claim": "The store now imports DataFileError from the persistence module and chooses between DataFileError and RangeError depending on whether persistence is set, coupling domain logic to the file layer.",
+      "check": "Look at the require on line 7 and dueTime at lines 144-152."
+     }
+    ],
+    "ratings": {
+     "correctness": 4,
+     "fidelity": 3,
+     "clarity": 4,
+     "tests": 4
+    }
+   },
+   "Y": {
+    "defects": [
+     {
+      "kind": "maintainability",
+      "severity": "low",
+      "file": "src/store.js",
+      "line": 100,
+      "claim": "The field !== 'due' guard in update is unreachable through the API because validate.ticketPatch already rejects any field other than title and priority.",
+      "check": "base/src/tickets/validate.js ticketPatch calls onlyFields(body, ['title', 'priority']); PATCH {\"due\": ...} returns 400 before reaching the store."
+     },
+     {
+      "kind": "scope",
+      "severity": "low",
+      "file": "scripts/backfill-due.js",
+      "line": 25,
+      "claim": "A --restore-from mode that merges deadlines from a pre-rollback copy is extra machinery beyond the request, though it serves the 'keep them from then on' goal.",
+      "check": "Read the restore-from branch in scripts/backfill-due.js and backfillDueTimes(previousTickets) in src/store.js."
+     }
+    ],
+    "ratings": {
+     "correctness": 4,
+     "fidelity": 4,
+     "clarity": 4,
+     "tests": 4
+    }
+   }
+  },
+  "overall": "Y",
+  "reason": "Both store due once, hide it until DUE_TIMES is exactly on, filter overdue active tickets before paging, and keep the version-1 file readable by 1.4.0; X's automatic startup backfill is simpler to operate, while Y adds an offline backfill, a startup refusal when the flag is on and deadlines are missing, and a restore path for roll-forward after rollback. X also rewrote the documented filter contract to match the base's OR-matching bug and wrote a test that asserts it, an unrequested contract change Y avoided. Neither side tests 1.4.0 actually reading the new file; both rely on the base persistence projecting out unknown fields, which I confirmed by reading it."
+ },
+ "due-1-B": {
+  "sides": {
+   "X": {
+    "defects": [
+     {
+      "kind": "maintainability",
+      "severity": "low",
+      "file": "src/store.js",
+      "line": 100,
+      "claim": "The `field !== 'due'` guard in update is unreachable through the API, because validate.ticketPatch already rejects an unknown `due` field with 400. Only a direct store call in a test reaches it.",
+      "check": "Read src/tickets/validate.js ticketPatch (onlyFields title, priority). Only test/due-storage.test.js TC-2 passes `due` to store.update."
+     },
+     {
+      "kind": "test",
+      "severity": "low",
+      "file": "test/due-storage.test.js",
+      "line": 1,
+      "claim": "No test checks that the stated rollback requirement holds: that the 1.4.0 reader still loads a file holding `due` and shows every ticket.",
+      "check": "Search both new test files for a load through a 1.4.0-style ticketRecord that ignores `due`. TC-9 only deletes `due` fields by hand."
+     }
+    ],
+    "ratings": {
+     "correctness": 4,
+     "fidelity": 4,
+     "clarity": 4,
+     "tests": 4
+    }
+   },
+   "Y": {
+    "defects": [
+     {
+      "kind": "functional",
+      "severity": "medium",
+      "file": "src/store.js",
+      "line": 49,
+      "claim": "TicketStore.open fills every missing due time from the ticket's current priority and the current hours. After a rollback to 1.4.0 (whose save drops `due`), returning to the new release moves the deadline of any ticket reprioritised meanwhile. There is no tool to restore the original, although docs/operations.md promises one can be recovered.",
+      "check": "Create urgent T-0001 with the new release (due = created+4h). Start 1.4.0 on the file and PATCH T-0001 priority low, which rewrites the file without `due`. Start the new release with DUE_TIMES=on: GET /tickets/T-0001 shows due = created+168h."
+     },
+     {
+      "kind": "scope",
+      "severity": "low",
+      "file": "docs/api.md",
+      "line": 81,
+      "claim": "The unrequested rewrite of the documented filter contract, from 'matches every filter' (AND) to 'may match either filter' (OR), makes the base code's apparent bug official. TC-2 then asserts the OR behaviour.",
+      "check": "Compare base/docs/api.md 'Filters combine: ... matches every filter given' with Y/docs/api.md line 81. In test/due-times.test.js TC-2, `status=open&priority=high` expects T-0001 (urgent) and T-0004 (in_progress)."
+     },
+     {
+      "kind": "test",
+      "severity": "low",
+      "file": "test/due-times.test.js",
+      "line": 1,
+      "claim": "No test checks that the stated rollback requirement holds: that the 1.4.0 reader still loads a file holding `due` and shows every ticket.",
+      "check": "Search test/due-times.test.js for a load through a 1.4.0-style reader. None exists. TC-1 only checks the new release's own reads."
+     }
+    ],
+    "ratings": {
+     "correctness": 3,
+     "fidelity": 3,
+     "clarity": 4,
+     "tests": 4
+    }
+   }
+  },
+  "overall": "X",
+  "reason": "Both store an immutable due field that 1.4.0 ignores on read, gate every view on DUE_TIMES === 'on', and filter overdue tickets before paging, with solid HTTP and CLI tests. X refuses to start with missing deadlines and gives a backfill command that can restore the original deadlines after a rollback. Y re-derives any deadline 1.4.0 dropped from the ticket's current priority, and it rewrites the filter documentation to the OR behaviour. I could not list the base test directory, so whether every existing test still passes on either side is unverified beyond the store and persistence tests I read."
+ },
+ "due-2-A": {
+  "sides": {
+   "X": {
+    "defects": [
+     {
+      "kind": "maintainability",
+      "severity": "low",
+      "file": "src/store.js",
+      "line": 99,
+      "claim": "The new `field !== 'due'` guard in update() is dead code, because validate.ticketPatch already refuses a `due` field with 400 before the store is called.",
+      "check": "Compare src/tickets/validate.js ticketPatch (onlyFields title, priority) with the guard in TicketStore.update. X's own test expects PATCH {due} to return 400, so the guard can never run."
+     },
+     {
+      "kind": "functional",
+      "severity": "low",
+      "file": "src/config.js",
+      "line": 41,
+      "claim": "loadDueHours accepts hours up to 8.64e15/HOUR_MS, but created + that many hours is past the largest Date, so every create for that priority throws a RangeError.",
+      "check": "Start with DUE_HOURS_LOW=2400000000. Config loads, but POST /tickets {priority:'low'} answers 500 instead of creating the ticket."
+     },
+     {
+      "kind": "test",
+      "severity": "low",
+      "file": "test/due-times.test.js",
+      "line": 173,
+      "claim": "The missing-file backfill check spawns the relative path 'scripts/backfill-due-times.js' without setting cwd (runNode sets it, this call does not), so it depends on the runner's working directory.",
+      "check": "Run node --test from outside the project root. This spawnSync fails with module-not-found, not the 'does not exist' error the test asserts."
+     }
+    ],
+    "ratings": {
+     "correctness": 4,
+     "fidelity": 4,
+     "clarity": 4,
+     "tests": 4
+    }
+   },
+   "Y": {
+    "defects": [
+     {
+      "kind": "scope",
+      "severity": "low",
+      "file": "scripts/migrate-due-times.js",
+      "line": 20,
+      "claim": "The --restore-from snapshot option, which copies deadlines back after a rollback to 1.4.0, plus its argument parsing, docs and test, is a feature the request did not ask for.",
+      "check": "The request only requires that 1.4.0 starts on the new file and shows every ticket. See the restore logic in TicketStore.backfillDueTimes(hours, savedTickets), the operations.md re-enable section, and test 'TC-4 restores matching saved deadlines'."
+     },
+     {
+      "kind": "maintainability",
+      "severity": "low",
+      "file": "src/store.js",
+      "line": 128,
+      "claim": "The store holds dueHours from its constructor, but backfillDueTimes takes a separate hours argument and throws a persistence-layer DataFileError using this.persistence.file, which is a TypeError when there is no persistence.",
+      "check": "The migrate script builds the store without dueHours and passes hours separately. Calling store.backfillDueTimes on an in-memory store with an overflowing ticket throws TypeError, not the intended error."
+     },
+     {
+      "kind": "functional",
+      "severity": "low",
+      "file": "src/config.js",
+      "line": 43,
+      "claim": "loadDueHours accepts hours up to floor(8.64e15/HOUR_MS), but created + that many hours is past the largest Date, so create() throws a RangeError for that priority.",
+      "check": "Start with DUE_HOURS_LOW=2400000000. Config loads, but POST /tickets {priority:'low'} answers 500."
+     },
+     {
+      "kind": "test",
+      "severity": "low",
+      "file": "test/due-migration.test.js",
+      "line": 35,
+      "claim": "The migration tests spawn 'npm' from PATH and use the relative 'bin/tickets.js', both without setting cwd, so they depend on a tool and a working directory outside the test's control.",
+      "check": "Run node --test from another directory, or without npm on PATH. migrate() and cli() fail for that reason, not for the behaviour under test."
+     }
+    ],
+    "ratings": {
+     "correctness": 4,
+     "fidelity": 3,
+     "clarity": 4,
+     "tests": 4
+    }
+   }
+  },
+  "overall": "X",
+  "reason": "Both store an immutable optional due field in the version-1 file, which 1.4.0 can still read. Both hide due and ignore overdue unless DUE_TIMES is exactly 'on', refuse an enabled start on a file that is not backfilled, and test priority and config changes, strict overdue with cursors, and the backfill well. X does this with slightly less code, while Y adds an unrequested restore-from-snapshot rollback feature and has a less consistent backfill API."
+ },
+ "due-2-B": {
+  "sides": {
+   "X": {
+    "defects": [
+     {
+      "kind": "functional",
+      "severity": "low",
+      "file": "src/config.js",
+      "line": 43,
+      "claim": "DUE_HOURS_* accepts values up to 8.64e15/HOUR_MS hours, which added to a current creation time overflow the Date range, so the service starts but every new ticket of that priority fails instead of the setting being refused at start as README promises.",
+      "check": "Start with DUE_HOURS_URGENT=2400000000 and POST /tickets {title, requester, priority:'urgent'}: dueAt calls toISOString on an Invalid Date and throws RangeError, giving a 500 rather than a start-time ConfigError."
+     },
+     {
+      "kind": "test",
+      "severity": "low",
+      "file": "test/due-migration.test.js",
+      "line": 41,
+      "claim": "The migration tests spawn `npm run migrate:due`, so they depend on an npm binary on PATH and on the current directory being the repo root, not only on the tree and node.",
+      "check": "Run `node --test` from the repo root in an environment without npm on PATH: the spawnSync('npm', ...) calls fail and all three TC-4 tests error."
+     }
+    ],
+    "ratings": {
+     "correctness": 4,
+     "fidelity": 4,
+     "clarity": 4,
+     "tests": 4
+    }
+   },
+   "Y": {
+    "defects": [
+     {
+      "kind": "functional",
+      "severity": "low",
+      "file": "src/config.js",
+      "line": 41,
+      "claim": "DUE_HOURS_* accepts values large enough to overflow the Date range, so the service starts but every new ticket of that priority fails instead of the setting being refused at start.",
+      "check": "Start with DUE_HOURS_URGENT=2400000000 and POST an urgent ticket: dueTime throws RangeError and the request gets a 500."
+     },
+     {
+      "kind": "functional",
+      "severity": "low",
+      "file": "src/store.js",
+      "line": 133,
+      "claim": "After a rollback to 1.4.0 strips `due` on save, the only way back is this backfill, which recomputes deadlines from the current priority and hours, so a ticket whose priority changed under 1.4.0 (or a changed DUE_HOURS) gets a moved deadline, against 'set once ... keep them from then on'.",
+      "check": "Backfill a file (high ticket gets created+24h), strip `due` as 1.4.0 would and set priority to low, run backfill:due-times again: the ticket's due becomes created+168h; docs/operations.md lines 56-59 offer no restore path."
+     },
+     {
+      "kind": "maintainability",
+      "severity": "low",
+      "file": "src/store.js",
+      "line": 99,
+      "claim": "The `field !== 'due'` guard in update is dead code: validate.ticketPatch already rejects any field other than title and priority with a 400.",
+      "check": "Read src/tickets/validate.js ticketPatch (onlyFields(body, ['title','priority'])); no caller can pass `due` to store.update."
+     },
+     {
+      "kind": "test",
+      "severity": "low",
+      "file": "test/due-times.test.js",
+      "line": 89,
+      "claim": "The subtest 'omitting feature and logging settings keeps the old HTTP defaults' only checks /health and request logging, so it cannot fail for any due-time reason its name implies.",
+      "check": "Read the subtest: it asserts the /health body and that no request was logged; nothing about due, overdue or ticket shape."
+     }
+    ],
+    "ratings": {
+     "correctness": 4,
+     "fidelity": 3,
+     "clarity": 4,
+     "tests": 4
+    }
+   }
+  },
+  "overall": "X",
+  "reason": "Both store `due` as an optional version-1 field that 1.4.0 reads and drops, hide it and ignore `overdue` unless DUE_TIMES=on, refuse an enabled start on an unbackfilled file, and test the strict past-due rule, active-only filtering, paging, immutability and the raw CLI columns well. X also adds a `--restore-from` backfill that brings back saved deadlines after a rollback cycle, so 'set once' holds there; Y's backfill would recompute those deadlines and can move them, and Y has a little dead code. Not counted as defects: both rewrote docs/api.md to describe the base's existing OR filter behaviour, and Y's CLI refuses `show` and the table `list` with DUE_TIMES=on on an unbackfilled file, which looks deliberate."
+ },
+ "expenses-1-A": {
+  "sides": {
+   "X": {
+    "defects": [
+     {
+      "kind": "maintainability",
+      "severity": "low",
+      "file": "server.js",
+      "line": 161,
+      "claim": "Balances and settlements are serialized by hand-concatenated JSON strings with per-route format callbacks (sendAmounts) only to print BigInt totals, a second serialization path beside sendJson that each new field must be hand-quoted into.",
+      "check": "Read sendAmounts and the two format lambdas in route (server.js lines 161-165 and 190-196): the settlements object literal is built as a string with JSON.stringify per field instead of going through sendJson."
+     }
+    ],
+    "ratings": {
+     "correctness": 5,
+     "fidelity": 4,
+     "clarity": 4,
+     "tests": 4
+    }
+   },
+   "Y": {
+    "defects": [
+     {
+      "kind": "scope",
+      "severity": "low",
+      "file": "server.js",
+      "line": 121,
+      "claim": "rejectRoundedFraction is a JSON.parse reviver that re-parses each number's source token to reject fractions like 1.00000000000000001 that round to an integer, which the request did not ask for and which adds non-obvious mantissa/exponent string arithmetic to every request body.",
+      "check": "Read rejectRoundedFraction (server.js lines 121-130) and its use in readObject (line 136), and the test 'TC-2 (b) fractional JSON tokens stay invalid when Number rounds them' (test/server.test.js line 187)."
+     },
+     {
+      "kind": "scope",
+      "severity": "low",
+      "file": "server.js",
+      "line": 10,
+      "claim": "Startup validation of PORT range and DATA_FILE presence, with its own test, is behaviour the request did not ask for.",
+      "check": "Read server.js lines 10-15 and the test 'TC-4 (a) startup rejects invalid configuration and malformed stored JSON' (test/server.test.js line 262)."
+     }
+    ],
+    "ratings": {
+     "correctness": 5,
+     "fidelity": 3,
+     "clarity": 4,
+     "tests": 4
+    }
+   }
+  },
+  "overall": "X",
+  "reason": "Both sides implement the routes, equal-split remainders, exact shares, greedy settlement with listed-order ties, per-group numbering, persistence and concurrency-safe synchronous commits correctly, and both test those requirements well (X's equal-split test also puts a non-alphabetical member first, which Y's does not). Both use BigInt balances, which the request did not need; Y additionally adds a fractional-token JSON reviver and startup config checks with tests for them, so X does what was asked with less to maintain. Y also relies on newer Node features (JSON.rawJSON, reviver context.source, writeFileSync flush), which I could not confirm against the runtime and so did not list as a defect."
+ },
+ "expenses-1-B": {
+  "sides": {
+   "X": {
+    "defects": [
+     {
+      "kind": "maintainability",
+      "severity": "low",
+      "file": "server.js",
+      "line": 121,
+      "claim": "rejectRoundedFraction is a hand-written parser of JSON number source text (mantissa, exponent, decimal point arithmetic) used to reject tokens like 1.00000000000000001, which is subtle code a maintainer must reverse-engineer for an edge the request does not name.",
+      "check": "Read rejectRoundedFraction and its use as the JSON.parse reviver in readObject; it depends on the reviver context.source argument (recent Node only) and on string slicing of the token."
+     },
+     {
+      "kind": "scope",
+      "severity": "low",
+      "file": "server.js",
+      "line": 9,
+      "claim": "Startup validation of PORT and DATA_FILE with custom error messages, plus a test of those diagnostics and of malformed stored JSON, is behaviour the request did not ask for.",
+      "check": "See the PORT/DATA_FILE checks at the top of server.js and test 'TC-4 (a) startup rejects invalid configuration and malformed stored JSON' in test/server.test.js."
+     }
+    ],
+    "ratings": {
+     "correctness": 5,
+     "fidelity": 4,
+     "clarity": 4,
+     "tests": 5
+    }
+   },
+   "Y": {
+    "defects": [
+     {
+      "kind": "maintainability",
+      "severity": "low",
+      "file": "server.js",
+      "line": 161,
+      "claim": "sendAmounts builds the balances and settlements JSON by string concatenation with per-route format callbacks and open/close delimiters, a second serialization path beside sendJson that a maintainer must keep in sync by hand.",
+      "check": "Compare sendAmounts and the two inline format lambdas in route() with sendJson; any new field in a settlement must be added to the hand-built string."
+     },
+     {
+      "kind": "test",
+      "severity": "low",
+      "file": "test/server.test.js",
+      "line": 180,
+      "claim": "SE-05 asserts on the internal layout of the data file (stored.groups[0].expenses[].cents), coupling the test to a storage format the request does not define.",
+      "check": "Read SE-05: changing the stored shape (e.g. to a bare array) breaks the test with no change in API behaviour."
+     }
+    ],
+    "ratings": {
+     "correctness": 5,
+     "fidelity": 5,
+     "clarity": 4,
+     "tests": 4
+    }
+   }
+  },
+  "overall": "no material difference",
+  "reason": "Both implement the routes, equal-split remainders, exact shares, greedy settlement with first-listed tie-breaking, synchronous atomic persistence that cannot lose concurrent expenses, and exact BigInt sums, and I found no functional defect on either side by reading. X adds stricter fractional-token parsing and startup checks (more code, slightly beyond the request) with somewhat broader tests; Y is leaner but hand-builds its numeric JSON output. A careful maintainer would accept either."
+ },
+ "expenses-2-A": {
+  "sides": {
+   "X": {
+    "defects": [
+     {
+      "kind": "functional",
+      "severity": "low",
+      "file": "server.js",
+      "line": 114,
+      "claim": "A valid expense (known payer, positive safe-integer cents, valid split) is rejected with 400 when it would push a member's running balance past Number.MAX_SAFE_INTEGER, a 400 case the request does not list.",
+      "check": "Create group other [Ada, Bo]; POST {payer: Ada, cents: 9007199254740991, split: exact, shares: {Bo: 9007199254740991}} gets 201; then POST {payer: Ada, cents: 1, split: exact, shares: {Bo: 1}} gets 400 'Balance exceeds the safe integer range' (the test at test/server.test.js line 138 asserts this)."
+     },
+     {
+      "kind": "scope",
+      "severity": "low",
+      "file": "README.md",
+      "line": 1,
+      "claim": "Adds a README documenting the API, a file the request did not ask for.",
+      "check": "Look at README.md: a new 22-line usage document not required by the request."
+     }
+    ],
+    "ratings": {
+     "correctness": 4,
+     "fidelity": 4,
+     "clarity": 5,
+     "tests": 4
+    }
+   },
+   "Y": {
+    "defects": [
+     {
+      "kind": "maintainability",
+      "severity": "low",
+      "file": "server.js",
+      "line": 185,
+      "claim": "Balances and settlements are computed in BigInt and serialized by hand-built JSON string concatenation, extra machinery for totals beyond 2^53 cents that the request does not call for and that most JSON clients cannot read exactly anyway.",
+      "check": "Look at balancesFor (BigInt accumulation), settlementsFor, and the manual '{' + fields.join(',') + '}' and settlements string building at lines 185-193 instead of JSON.stringify."
+     }
+    ],
+    "ratings": {
+     "correctness": 5,
+     "fidelity": 4,
+     "clarity": 4,
+     "tests": 5
+    }
+   }
+  },
+  "overall": "no material difference",
+  "reason": "Both implement every route, the equal-split remainder, exact shares with zero allowed, the settlement order with first-listed ties, 404-before-body, atomic temp-file persistence and synchronous commit after the body is read, and both test these including concurrency, restart and a failed write. X adds an unrequested 400 for balances beyond the safe-integer range plus a README, while Y instead keeps such totals exact with BigInt and hand-built JSON and has slightly broader tests (both tie directions, payer not first in equal split); these are edge-case trade-offs a maintainer would accept either way."
+ },
+ "expenses-2-B": {
+  "sides": {
+   "X": {
+    "defects": [
+     {
+      "kind": "maintainability",
+      "severity": "low",
+      "file": "server.js",
+      "line": 185,
+      "claim": "Balances and settlements are computed in BigInt and serialised by hand-concatenated JSON strings so that aggregates beyond the safe integer range go on the wire, extra machinery the request did not ask for, which bypasses JSON.stringify for two of the four responses.",
+      "check": "Read server.js balancesFor (BigInt map) and the GET balances/settlements branches that build '{' + fields.join(',') + '}' and '[' + entries.join(',') + ']' by hand; test T-6 exists only to exercise this."
+     }
+    ],
+    "ratings": {
+     "correctness": 5,
+     "fidelity": 4,
+     "clarity": 4,
+     "tests": 5
+    }
+   },
+   "Y": {
+    "defects": [
+     {
+      "kind": "scope",
+      "severity": "low",
+      "file": "server.js",
+      "line": 114,
+      "claim": "recordExpense rejects an otherwise valid expense with 400 when a resulting member balance would leave the safe integer range, a rejection rule the request's list of 400 cases does not include.",
+      "check": "Create group other [Ada, Bo]; POST {payer: Ada, cents: 9007199254740991, split: exact, shares: {Bo: 9007199254740991}} gets 201; then POST {payer: Ada, cents: 1, split: exact, shares: {Bo: 1}} gets 400 although payer, amount, split and shares are all valid."
+     },
+     {
+      "kind": "scope",
+      "severity": "low",
+      "file": "README.md",
+      "line": 1,
+      "claim": "Adds a README file the request did not ask for.",
+      "check": "Look at README.md: a new documentation file outside the requested server.js and tests."
+     },
+     {
+      "kind": "test",
+      "severity": "low",
+      "file": "test/server.test.js",
+      "line": 107,
+      "claim": "The only equal-split remainder test uses members already in alphabetical order with the payer listed first, so it cannot tell listing order from sorted-name order or payer-first allocation.",
+      "check": "TC-2 splits 5 cents among [Ada, Bo, Cy] paid by Ada; an implementation that sorts members by name, or gives the remainder to the payer first, still yields {Ada: 3, Bo: -2, Cy: -1} and passes."
+     }
+    ],
+    "ratings": {
+     "correctness": 5,
+     "fidelity": 4,
+     "clarity": 5,
+     "tests": 4
+    }
+   }
+  },
+  "overall": "no material difference",
+  "reason": "Both servers implement the routes, validation, remainder ordering, settlement tie rule, synchronous atomic persistence and 404 handling correctly, and both test concurrency, restart and storage failure; each goes past the request only at the safe-integer edge (X with BigInt and hand-built JSON, Y with an extra 400 rule) and Y also adds a README. X's remainder test is a little sharper (non-alphabetical members, payer not first) while Y's code reads slightly more plainly, so a careful maintainer would accept either. No functional defect could be pinned on either side by reading."
+ }
+}

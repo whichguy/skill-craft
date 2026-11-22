@@ -3105,7 +3105,74 @@ where the rule needs 3, and no confirmed defect is of high severity. Four pairs 
 - The first suite runner did not end on one changed tree and I stopped it and its children by process id. The
   script now starts each run in its own process group with a 90 s limit, and every run was repeated with it.
 - One plain run of `due-2` high failed 1 of 175 while the machine's load average was 39; six runs alone passed.
-- The Sol 6.2 extension is not run yet.
+- The Sol 6.2 extension was run afterwards and is the next section.
+
+### Extension: the four Sol 6.2 pairs (2026-11-21; decided at the milestone, as registered)
+
+**Decision to run it (mine).** The Sonnet reading cost about 170,000 to 220,000 tokens and two minutes a judge and
+found a lean that the earlier checks could not see, so the same question was worth asking of the other driver the
+owner moved to medium. Same script, brief, marking rule and reading. Packets: seed 20261122, the four pairs of
+`e2e-runs-sdlc10/20261121-paired` (`sol-medium-due-p1` with `sol-high-due-p1`, and so on). The brief's prompt
+added "not even ls or diff" after the Sonnet judge that ran a shell command.
+
+- **R114 (the judges' choice).** High 3, medium 2, no material difference 3. Mean ratings, medium against high:
+  correctness 4.25 and 4.50, fidelity 3.75 and 3.75, clarity 4.25 and 4.00, tests 4.00 and 4.38.
+- **R115 (functional claims, each run against all four deliveries of its case; `evidence/quality-reading-sol.txt`).**
+  Confirmed: medium 5, in three of four deliveries; high 2, in two of four. By pair: `due-1` 2 and 1; `due-2` 2 and
+  1; `expenses-1` 0 and 0; `expenses-2` 1 and 0.
+  - All four ticket deliveries: a huge hours setting (`DUE_HOURS_LOW=2400000000`) is accepted at start and every
+    ticket of that priority is then answered 500. One each; it does not separate the efforts.
+  - Both medium ticket deliveries, neither high one: a due time does not survive a rollback and return. An urgent
+    ticket (due in 4 hours) is made low under release 1.4.0, which drops the due time when it saves; back on the
+    new release the ticket is due in 168 hours. Both high deliveries built a backfill option that takes the copy
+    saved before the rollback and gives the 4 hours back; neither medium delivery has a way.
+  - One medium `shared-expenses` delivery: a valid expense is refused with 400 once a member's total passes the
+    largest safe integer. Its high partner, and both deliveries of the other pair, keep exact sums.
+- **R116 (tests, scope, size).** Unlike Sonnet, Sol's two efforts are the same size (product lines within 5%,
+  tests 122 to 125 and 123 to 123 on the ticket case, 5 to 8 on the other) and the judges made as many scope
+  claims on one as on the other (5 and 5). Confirmed test faults are on both sides: a medium test started by a
+  relative path (1 of 122 fails from another folder), a high suite that needs npm on PATH (3 of 123 fail without
+  it). One medium delivery rewrote `docs/api.md` to say that two filters match either, which is what the base
+  code does and not what its documentation said; its high partner left the sentence.
+- **R117 (each round's checks on the other driver's products; described).** Sol's four `shared-expenses` products
+  have none of the faults found in Sonnet's medium one. Sonnet's four ticket products, medium and high alike,
+  move the due time after a rollback and return and have no way to keep it; all four refuse the huge hours
+  setting at start.
+
+**Registered reading, Sol.** A drop at medium is shown by the rule: medium has more confirmed functional defects
+than its high partner in 3 of 4 pairs. The count turns on two readings, both made before the key was opened:
+that losing a due time across a rollback is against "a later change of the hours or of the ticket's priority
+does not move it", and that refusing a valid expense is a defect (one judge filed it as functional, the other as
+scope). Without the second it is 2 of 4 and not shown.
+
+### Findings of the extension, and of the round as a whole
+
+- **F81 (registered; interim, four pairs).** On Sol 6.2 the rule shows a drop at medium. What separates the
+  efforts is one thing found twice: at high, both deliveries foresaw that the old release drops the new field and
+  built a way back; at medium, neither did. That is planning foresight and not coding care.
+- **F82 (both drivers; description).** Over the eight pairs medium has 10 confirmed functional defects and high 4;
+  medium has more in 5 pairs, fewer in 1, the same in 2. None is rated high. On Sonnet the difference is
+  robustness on unusual input and the depth of tests; on Sol it is the rollback path. Neither is the kind of
+  fault a case check or the delivery's own tests caught (F79).
+- **F83 (contrary evidence).** Round 8's held-out probes graded these same four ticket deliveries on another
+  point, whether the release works without an operator step first. The medium delivery that fills due times by
+  itself at start passed 8 of 8 once its lost verdict was run again; the other three, both high ones among them,
+  got 3 of 8 (R75). The readers preferred the high delivery of that pair, 2 of 2. The two yardsticks disagree
+  about which design is right, and the probes do not look at the return after a rollback.
+- **F84 (decision record).** Nothing is changed by me. The owner's condition was "as long as the quality comes
+  out the same"; read closely, it does not come out the same, by a small margin in faults of low severity. The
+  choice between the cheaper driver and the more careful one is the owner's.
+
+### Limits of the extension
+
+- Four pairs, the same two cases, the same judges' model family. The Sol runs are ShipLoop 2.4.0.
+- I knew from the round's first half what kinds of fault to expect, and I chose to count the rollback item only
+  where no way to keep the due time exists; that choice was made before the key was opened and is what gives
+  3 of 4.
+- In both first Sol pairs the medium run had also switched planning reviews off by itself (R76), so in those two
+  pairs effort is not the only difference between the sides.
+- In every Sol pair the seeded draw put the medium run as X for judge A. Judge B saw the reverse, so position is
+  still balanced across judges, not within a judge.
 
 ## Evidence (all rounds)
 
@@ -3225,7 +3292,10 @@ Round 13: `python3 -I quality_packets.py <out> 20261121 <name>=<medium run>,<hig
 judges per pair with `evidence/quality-judge-brief.txt`; their answers are `judge-quality/verdicts.json` and the key
 `judge-quality/key.json`. The checks: `node quality_checks/expenses.js <tree>`, `node quality_checks/due.js <base tree>
 <tree>` and `python3 -I quality_checks/suites.py <folder of trees>`, on copies of judge A's packets; their output is
-in `evidence/quality-reading.txt`.
+in `evidence/quality-reading.txt`. The Sol extension: the same builder with seed 20261122 on the pairs of
+`e2e-runs-sdlc10/20261121-paired`; `judge-quality/verdicts-sol.json` and `key-sol.json`; `node
+quality_checks/rollback.js <base tree> <tree> [backfill script] [restore]`, `node quality_checks/bigsum.js <tree>` and
+`python3 -I quality_checks/suites_sol.py <folder of trees>`; output in `evidence/quality-reading-sol.txt`.
 
 Round 12: `python3 -I where_it_goes.py <run roots>` reproduces `evidence/where-it-goes.txt`;
 `python3 -I context_origin.py <the five Sonnet medium run folders>` reproduces `evidence/context-origin.txt` and

@@ -1,0 +1,134 @@
+Round 13, extension: a blind reading of four Sol 6.2 medium and high pairs (round 8's paired redo).
+Sides are named by judge A's labels. In all four pairs the seeded draw (seed 20261122) gave judge A the medium run as X
+and the high run as Y; judge B saw them reversed. Every claim was marked before the key was opened.
+
+THE JUDGES' OVERALL CHOICE (8 choices)
+  due-1       judge A: high      judge B: high
+  expenses-1  judge A: medium    judge B: no material difference
+  due-2       judge A: medium    judge B: high
+  expenses-2  judge A: no material difference    judge B: no material difference
+  Totals: high 3, medium 2, no material difference 3.
+
+MEAN RATINGS, 1 to 5 (8 ratings a cell)
+              correctness  fidelity  clarity  tests
+  medium         4.25        3.75      4.25    4.00
+  high           4.50        3.75      4.00    4.38
+  Claims by kind before checking (both judges): medium functional 6, test 6, maintainability 5, scope 5;
+  high functional 2, test 3, maintainability 6, scope 5.
+
+FUNCTIONAL CHECKS FROM THE SOL JUDGES' CLAIMS, each run against all four deliveries of its case
+ticket-due-times (quality_checks/rollback.js)       d1 medium     d1 high        d2 medium      d2 high
+  release 1.4.0 starts on the new file and shows
+    the ticket                                       yes           yes            yes            yes
+  an urgent ticket (due +4 h) is made low under
+    1.4.0, which drops the due time; back on the
+    new release, by its ordinary way in              +168 h        +168 h         +168 h         +168 h
+    (how)                                            starts and    refuses, then  refuses, then  refuses, then
+                                                     fills it      backfill       backfill       backfill
+  the same with the saved copy given to the
+    backfill (--restore-from)                        no such way   +4 h (kept)    no such way    +4 h (kept)
+  DUE_HOURS_LOW=2400000000: start, then a low ticket starts, 500   starts, 500    starts, 500    starts, 500
+shared-expenses (quality_checks/bigsum.js)          e1 medium     e1 high        e2 medium      e2 high
+  one expense of 9007199254740991 cents, then one
+    of 2 cents, both valid                           201, 201      201, 201       201, 400       201, 201
+  balance shown                                      exact         exact          first only     exact
+
+CONFIRMED FUNCTIONAL DEFECTS (reproduced, and against a sentence of the request or a server error)
+  due-1       medium 2    high 1   both: a huge hours setting is accepted and every ticket of that priority then gets
+                                   a 500. medium only: a due time does not survive a rollback and return, and the
+                                   release gives no way to keep it (asked: "a later change of the hours or of the
+                                   ticket's priority does not move it")
+  due-2       medium 2    high 1   the same two and the same one
+  expenses-1  medium 0    high 0
+  expenses-2  medium 1    high 0   medium: a valid expense is refused with 400 once a member's total passes the
+                                   largest safe integer
+  Total: medium 5 (in 3 of 4 deliveries), high 2 (in 2 of 4). One was rated medium by one judge, the rest low.
+  Medium has more than its high partner in 3 of 4 pairs and the same in 1.
+  The count turns on two readings: that losing a due time across a rollback is against "set once" (both high
+  deliveries built a way to keep it, neither medium one did), and that refusing a valid expense is a defect and not
+  only an addition (one judge filed it as functional, the other as scope). Without the second, 2 of 4 pairs.
+
+CONFIRMED TEST CLAIMS
+  d1 medium   a test fixes the base's either-filter listing as expected behaviour
+  d1 both     no test loads the new file with release 1.4.0's code (true of all four; the check above shows it loads)
+  d2 medium   a test starts a script by a relative path: 1 of 122 fails when the suite is started from another folder;
+              a subtest whose title is about settings checks only /health and logging
+  d2 high     tests need npm on PATH and the project folder as the working folder: 3 fail without npm, 3 from
+              another folder
+  e1 medium   a test reads the data file's inner layout     e2 medium   the remainder test cannot tell listing order
+                                                                        from alphabetical order
+
+CONFIRMED SCOPE AND MAINTAINABILITY CLAIMS
+  d1 medium   docs/api.md rewritten from "matches every filter" to "may match either filter" (the base code does the
+              latter; the high delivery left the sentence); the store throws a file-layer error
+  d1 high, d2 medium   a guard in update() that no caller can reach
+  d1 high, d2 high     the --restore-from option (filed as scope by one judge; it is what keeps the due time above)
+  d2 high     a backfill method that takes hours beside the store's own
+  e1 medium, e2 high   balances and settlements written as hand-built JSON text
+  e1 high     a reviver that rejects fractions which round to an integer; checks of PORT and DATA_FILE at start
+  e2 medium   a README nobody asked for
+
+THE SONNET ROUND'S CHECKS RUN ON SOL'S PRODUCTS, AND SOL'S ON SONNET'S (described, not counted)
+  Sol, shared-expenses: none of the four has the "__proto__", numeric-name or malformed-id faults. A name of two
+  spaces: accepted by e1 medium, refused by e1 high, e2 medium and e2 high. None starts on an empty data file.
+  Sol, ticket command line: no due line for a ticket without one (d1 both, d2 high), or a refusal that names the
+  backfill (d2 medium).
+  Sonnet, ticket: all four move the due time to +168 h after a rollback and return and none has a way to keep it;
+  all four refuse to start with the huge hours setting.
+  Sonnet, big sum: e1 high refuses the second expense with 400; e1 medium, e2 medium and e2 high accept it and show
+  9007199254740992, one cent short.
+
+THE DELIVERIES' OWN SUITES (quality_checks/suites_sol.py; trees with no git data)
+ 122/122  fail 0   due-1/X plain
+ 125/125  fail 0   due-1/Y plain
+ 123/123  fail 0   due-2/X plain
+ 123/123  fail 0   due-2/Y plain
+   7/7    fail 0   expenses-1/X plain
+   8/8    fail 0   expenses-1/Y plain
+   5/5    fail 0   expenses-2/X plain
+   7/7    fail 0   expenses-2/Y plain
+ 117/117  fail 0   base plain
+ 121/121  fail 0   due-1/X started from another folder
+ 122/122  fail 0   due-1/X with no npm on PATH
+ 124/124  fail 0   due-1/Y started from another folder
+ 125/125  fail 0   due-1/Y with no npm on PATH
+ 121/122  fail 1   due-2/X started from another folder
+ 123/123  fail 0   due-2/X with no npm on PATH
+ 119/122  fail 3   due-2/Y started from another folder
+ 120/123  fail 3   due-2/Y with no npm on PATH
+ 116/116  fail 0   base started from another folder
+ 117/117  fail 0   base with no npm on PATH
+
+SIZE (lines of .js; product, tests) AND TESTS
+  due-1       medium 1740, 1478, 122 tests    high 1826, 1625, 125 tests
+  due-2       medium 1779, 1489, 123 tests    high 1808, 1549, 123 tests
+  expenses-1  medium 215, 232, 7 tests        high 219, 303, 8 tests
+  expenses-2  medium 186, 205, 5 tests        high 210, 236, 7 tests
+
+RAW OUTPUT
+sol due-1/X {"created_hours":4,"old_release_starts":true,"old_release_shows":200,"old_release_patch":200,"file_has_due_after_old_release":false,"return_plain_start":"starts","return_plain_hours":168,"huge_hours_start":"starts","huge_hours_create":500}
+sol due-1/Y {"created_hours":4,"old_release_starts":true,"old_release_shows":200,"old_release_patch":200,"file_has_due_after_old_release":false,"return_plain_start":"refuses: 2026-11-22T01:51:58.847Z error cannot start: TMP/data.j","backfill":"exit 0 Backfilled due times for 1 ticket(s).","return_after_backfill_hours":168,"restore":"exit 0 Backfilled due times for 1 ticket(s).","return_after_restore_hours":4,"huge_hours_start":"starts","huge_hours_create":500}
+sol due-2/X {"created_hours":4,"old_release_starts":true,"old_release_shows":200,"old_release_patch":200,"file_has_due_after_old_release":false,"return_plain_start":"refuses: 2026-11-22T01:51:59.735Z error cannot start: TMP/data.j","backfill":"exit 0 Backfilled due times for 1 ticket(s)","return_after_backfill_hours":168,"huge_hours_start":"starts","huge_hours_create":500}
+sol due-2/Y {"created_hours":4,"old_release_starts":true,"old_release_shows":200,"old_release_patch":200,"file_has_due_after_old_release":false,"return_plain_start":"refuses: 2026-11-22T01:52:00.440Z error cannot start: TMP/data.j","backfill":"exit 0 Set due times on 1 ticket(s).","return_after_backfill_hours":168,"restore":"exit 0 Set due times on 1 ticket(s).","return_after_restore_hours":4,"huge_hours_start":"starts","huge_hours_create":500}
+sol expenses-1/X big sum {"first":201,"second":201,"balances":"200 {\"Ada\":9007199254740993,\"Bo\":-9007199254740993}","settlements":"200 [{\"from\":\"Bo\",\"to\":\"Ada\",\"cents\":9007199254740993}]"}
+sol expenses-1/X round-13 checks {"whitespace_name":201,"bad_percent":404,"bad_percent_2":404,"proto_group":[201,200,409],"tie_owed":[{"from":"d","to":"x","cents":50},{"from":"d","to":"2","cents":50}],"tie_owes":[{"from":"zed","to":"amy","cents":50},{"from":"7","to":"amy","cents":50}],"proto_member":[201,201,{"__proto__":-50,"bob":50}],"empty_data_file":"did not start: {\"code\":1,\"sig\":null}","no_data_file":"did not start: {\"code\":1,\"sig\":null}"}
+sol expenses-1/Y big sum {"first":201,"second":201,"balances":"200 {\"Ada\":9007199254740993,\"Bo\":-9007199254740993}","settlements":"200 [{\"from\":\"Bo\",\"to\":\"Ada\",\"cents\":9007199254740993}]"}
+sol expenses-1/Y round-13 checks {"whitespace_name":400,"bad_percent":404,"bad_percent_2":404,"proto_group":[201,200,409],"tie_owed":[{"from":"d","to":"x","cents":50},{"from":"d","to":"2","cents":50}],"tie_owes":[{"from":"zed","to":"amy","cents":50},{"from":"7","to":"amy","cents":50}],"proto_member":[201,201,{"__proto__":-50,"bob":50}],"empty_data_file":"did not start: {\"code\":1,\"sig\":null}","no_data_file":"did not start: {\"code\":1,\"sig\":null}"}
+sol expenses-2/X big sum {"first":201,"second":400,"balances":"200 {\"Ada\":9007199254740991,\"Bo\":-9007199254740991}","settlements":"200 [{\"from\":\"Bo\",\"to\":\"Ada\",\"cents\":9007199254740991}]"}
+sol expenses-2/X round-13 checks {"whitespace_name":400,"bad_percent":404,"bad_percent_2":404,"proto_group":[201,200,409],"tie_owed":[{"from":"d","to":"x","cents":50},{"from":"d","to":"2","cents":50}],"tie_owes":[{"from":"zed","to":"amy","cents":50},{"from":"7","to":"amy","cents":50}],"proto_member":[201,201,{"__proto__":-50,"bob":50}],"empty_data_file":"did not start: {\"code\":1,\"sig\":null}","no_data_file":"started"}
+sol expenses-2/Y big sum {"first":201,"second":201,"balances":"200 {\"Ada\":9007199254740993,\"Bo\":-9007199254740993}","settlements":"200 [{\"from\":\"Bo\",\"to\":\"Ada\",\"cents\":9007199254740993}]"}
+sol expenses-2/Y round-13 checks {"whitespace_name":400,"bad_percent":404,"bad_percent_2":404,"proto_group":[201,200,409],"tie_owed":[{"from":"d","to":"x","cents":50},{"from":"d","to":"2","cents":50}],"tie_owes":[{"from":"zed","to":"amy","cents":50},{"from":"7","to":"amy","cents":50}],"proto_member":[201,201,{"__proto__":-50,"bob":50}],"empty_data_file":"did not start: {\"code\":1,\"sig\":null}","no_data_file":"started"}
+sonnet due-1/X {"created_hours":4,"old_release_starts":true,"old_release_shows":200,"old_release_patch":200,"file_has_due_after_old_release":false,"return_plain_start":"starts","return_plain_hours":168,"huge_hours_start":"refuses"}
+sonnet due-1/Y {"created_hours":4,"old_release_starts":true,"old_release_shows":200,"old_release_patch":200,"file_has_due_after_old_release":false,"return_plain_start":"starts","return_plain_hours":168,"huge_hours_start":"refuses"}
+sonnet due-2/X {"created_hours":4,"old_release_starts":true,"old_release_shows":200,"old_release_patch":200,"file_has_due_after_old_release":false,"return_plain_start":"starts","return_plain_hours":168,"huge_hours_start":"refuses"}
+sonnet due-2/Y {"created_hours":4,"old_release_starts":true,"old_release_shows":200,"old_release_patch":200,"file_has_due_after_old_release":false,"return_plain_start":"starts","return_plain_hours":168,"huge_hours_start":"refuses"}
+sonnet expenses-1/X big sum {"first":201,"second":400,"balances":"200 {\"Ada\":9007199254740991,\"Bo\":-9007199254740991}","settlements":"200 [{\"from\":\"Bo\",\"to\":\"Ada\",\"cents\":9007199254740991}]"}
+sonnet expenses-1/Y big sum {"first":201,"second":201,"balances":"200 {\"Ada\":9007199254740992,\"Bo\":-9007199254740992}","settlements":"200 [{\"from\":\"Bo\",\"to\":\"Ada\",\"cents\":9007199254740992}]"}
+sonnet expenses-2/X big sum {"error":"did not start","out":"node:events:505
+    throw er; // Unhandled 'error' event
+    ^
+
+Error: listen EADDRINUSE: address already in use :::56389
+    at Server.setupListenHandle [as _listen2] (node:net:2390:16)
+    at listen"}
+sonnet expenses-2/Y big sum {"first":201,"second":201,"balances":"200 {\"Ada\":9007199254740992,\"Bo\":-9007199254740992}","settlements":"200 [{\"from\":\"Bo\",\"to\":\"Ada\",\"cents\":9007199254740992}]"}
