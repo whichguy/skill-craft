@@ -1784,9 +1784,8 @@ preparatory commit); a mismatch there is a send-back.
    passes: in an isolated run with a completed return, in a clean copy of the returned result (no Git history,
    nothing the return plan excluded, no ignored or unmanaged file); with none yet, in the work area, and says so.
    In the clean copy ShipLoop also runs each regression command of the last work item that records one, where no
-   check of yours is that command, and holds each to the count of its latest accepted run in the work area: the
-   delivered suite must pass where a consumer gets it. A step the suite needs there (install, build) is a check
-   you record before.
+   check of yours is that command: the delivered suite must pass where a consumer gets it. A step the suite needs
+   there (install, build) is a check you record before.
    Write paths relative to the starting directory, put what a fresh consumer needs (install, build) in the check,
    and never write into the user's checkout by absolute path. A check only a person can make is an open item in
    `assumptions` (who, where, what to report) with release-verify or handoff as `due_stage`, not a command. None
