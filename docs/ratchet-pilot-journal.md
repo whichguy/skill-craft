@@ -3977,3 +3977,39 @@ command still passes on the sabotaged copy is *unnoticed*. Tried on the two suit
 unnoticed, q-base-2 noticed by its last entry after one command (20 seconds for both). The six suites measured the
 registered way stay on file as a cross-check: three stand-in-rules suites unnoticed, ticket assignment and due
 times noticed, one product with no test file to sabotage.
+
+### Part C, the census by script, result (19:20): one suite of 39 claims that the existing tests pass and cannot tell when one fails
+
+46 suites, four minutes (`program/sabotage_census.py`; `evidence/program/hollow-checks/sabotage-census.json`). The
+six suites measured the registered way agree with it, six of six.
+
+| | Suites | By case |
+|---|---|---|
+| The product started with no test file | 7 | battleship 2, Grokbot-local 3, chess 1, shared expenses 1 |
+| A check fails when an existing test is made to fail | 33 | ticket assignment 15, due times 13, stand-in rules 5 |
+| No check fails | 6 | stand-in rules 5 (Sol at high), ticket assignment 1 (q-plan-1, Sonnet at medium) |
+
+A check that noticed was found after two commands at the median (the last entry first), 115 at the most.
+
+**The six, read.** q-plan-1 is the known case: a clause says the existing tests pass and its test starts a run
+that does nothing (F42). The five stand-in-rules suites are the strength cells of one request, which adds a module
+and was given a reference build: in the two I read, the clause is about which command `npm test` runs, not that
+the existing tests pass (p1: "the `scripts.test` value in `package.json` is `node --test`"); in two more a script
+reading shows the checks that start the product's tests failing on the given build already, so they decide
+nothing. I count none of the five as a check that cannot fail.
+
+- **The reading census overcounted.** It found 16 suites in which a nested run keeps the variable that makes it do
+  nothing. By script, two of the suites it listed notice the broken test at once (their manifest starts checks
+  with a plain `node` runner, where the variable is never set). What decides is how the check is started, which a
+  reader of the test file does not see.
+- **My prediction** (5 to 12 unnoticed of those measurable) holds as a count, six, and misses the point: one of
+  the six is the failure the idea is about.
+
+**F58. A do-nothing check of "the existing tests pass" is rare here: one suite in 39.** The rule "a check must be
+able to fail" is right, and the sabotaged copy is a cheap way to enforce it for this claim (a few seconds for most
+suites), but it would have changed one suite of those on file. The yardstick trial already showed where the rule
+has more to do: checks that pass on the starting product and on every faulted copy (one in each of the first two
+proof-of-failure runs, see below), which only a counterexample for that check's own behaviour can expose.
+
+**Limits.** Three cases with existing tests, one fixture family; the sabotage breaks one test file and says nothing
+of a check that runs some of the product's tests.
