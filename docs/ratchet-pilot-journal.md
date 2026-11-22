@@ -3831,3 +3831,20 @@ which preference matters; it shows only when the decision taken is put in front 
 
 **Limits.** Exploratory: the kinds were written after part D2 and with the due-times point known to me. One
 product, with one known disagreement that is easy to see once looked for.
+
+### Part D3, the fourth reading (18:47): the delivery's own check tells the answered build from the plain one, three of three
+
+The three answered runs ended their test passes (682, 739 and 796 seconds; 41, 41 and 43 checks; the first leaves
+one check failing on its own build, the other two none). `program/answer_check.py` ran each run's checks on its
+own build and on the first build of the plain run made from the same specification
+(`evidence/program/answer-carried/answer-checks.json`).
+
+- **RD3.4: three of three.** In each run the two items that carry `Source: answer` (the use case and the clause on
+  filling at start) have a check that passes on its own build and fails on the plain build. My prediction was at
+  least two of three.
+- On the plain build 16, 13 and 14 of each suite's checks fail in all: a build made without the answer does not
+  pass the acceptance suite written with it.
+
+So the answer is carried through every stage that exists here: specification, plan, build, and the delivery's own
+acceptance checks. The first review's third experiment asked for exactly this chain ("carry the reply into
+acceptance"); it holds, given the answer.

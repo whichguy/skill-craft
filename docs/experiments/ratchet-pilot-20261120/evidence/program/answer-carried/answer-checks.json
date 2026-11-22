@@ -1,0 +1,181 @@
+{
+ "b7": {
+  "answered_run": "b7",
+  "plain_run": "p7",
+  "plain_build_commit": "22f116dd703e3908da8049135dc412118e8b14e5",
+  "answer_clauses": {
+   "U-4": {
+    "statement": "A production operator enables due times for tickets in the existing file",
+    "has_check": true,
+    "passes_on_own_build": true,
+    "fails_on_plain_build": true
+   },
+   "C-17": {
+    "statement": "The service automatically fills missing production deadlines at startup with `DUE_TIMES=on`.",
+    "has_check": true,
+    "passes_on_own_build": true,
+    "fails_on_plain_build": true
+   }
+  },
+  "checks": 41,
+  "failing_on_own_build": [
+   "C-14"
+  ],
+  "failing_on_plain_build": [
+   "C-14",
+   "C-17",
+   "C-18",
+   "C-19",
+   "C-20",
+   "C-21",
+   "C-25",
+   "C-26",
+   "C-27",
+   "C-28",
+   "C-29",
+   "C-30",
+   "C-31",
+   "U-4",
+   "U-5",
+   "U-6"
+  ],
+  "sessions": [
+   [
+    "plan-1",
+    213.1,
+    "exited",
+    []
+   ],
+   [
+    "build-1",
+    341.2,
+    "exited",
+    []
+   ],
+   [
+    "tests-1-1",
+    682.4,
+    "exited",
+    []
+   ]
+  ],
+  "final_gate": false
+ },
+ "b8": {
+  "answered_run": "b8",
+  "plain_run": "p8",
+  "plain_build_commit": "64abc9c1d5fa4e12e7144a1c548526bbae2322f6",
+  "answer_clauses": {
+   "U-4": {
+    "statement": "A production operator starts the service with due times enabled",
+    "has_check": true,
+    "passes_on_own_build": true,
+    "fails_on_plain_build": true
+   },
+   "C-16": {
+    "statement": "With `DUE_TIMES=on`, the service fills missing due times during startup before serving requests.",
+    "has_check": true,
+    "passes_on_own_build": true,
+    "fails_on_plain_build": true
+   }
+  },
+  "checks": 41,
+  "failing_on_own_build": [],
+  "failing_on_plain_build": [
+   "C-15",
+   "C-16",
+   "C-17",
+   "C-18",
+   "C-19",
+   "C-20",
+   "C-21",
+   "C-24",
+   "C-25",
+   "C-31",
+   "U-4",
+   "U-5",
+   "U-6"
+  ],
+  "sessions": [
+   [
+    "plan-1",
+    275.6,
+    "exited",
+    []
+   ],
+   [
+    "build-1",
+    370.8,
+    "exited",
+    []
+   ],
+   [
+    "tests-1-1",
+    739.4,
+    "exited",
+    []
+   ]
+  ],
+  "final_gate": true
+ },
+ "b9": {
+  "answered_run": "b9",
+  "plain_run": "p9",
+  "plain_build_commit": "22404492fce7e226934768b9fb8568cab87e85aa",
+  "answer_clauses": {
+   "U-4": {
+    "statement": "A production operator enables due times on the existing data file",
+    "has_check": true,
+    "passes_on_own_build": true,
+    "fails_on_plain_build": true
+   },
+   "C-15": {
+    "statement": "With `DUE_TIMES=on`, the service assigns missing deadlines and saves them before serving",
+    "has_check": true,
+    "passes_on_own_build": true,
+    "fails_on_plain_build": true
+   }
+  },
+  "checks": 43,
+  "failing_on_own_build": [],
+  "failing_on_plain_build": [
+   "C-15",
+   "C-16",
+   "C-17",
+   "C-18",
+   "C-19",
+   "C-21",
+   "C-23",
+   "C-24",
+   "C-25",
+   "C-28",
+   "C-29",
+   "C-30",
+   "U-4",
+   "U-5"
+  ],
+  "sessions": [
+   [
+    "plan-1",
+    172.2,
+    "exited",
+    []
+   ],
+   [
+    "build-1",
+    519.9,
+    "exited",
+    [
+     "shiploop_e2e"
+    ]
+   ],
+   [
+    "tests-1-1",
+    796.8,
+    "exited",
+    []
+   ]
+  ],
+  "final_gate": true
+ }
+}
