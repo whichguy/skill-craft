@@ -55,3 +55,8 @@ check "did not end within 120 s" on that session's own copy of the unfixed check
 group leader had exited and it was the last member of its group. That hang came 14 minutes after the 27 were
 stopped, so those 27 were not its cause. None of the three runs of the second confirmation round left a process: the
 sweep by working folder found this one alone.
+
+The last sweep, 2026-11-22 at 01:25, by working folder over this study's run roots and scratch folder: one process of
+this study, `python server.py` on port 18765, started 2026-11-20 at 01:15 by a headless reader of round 3's replay in
+the study's scratch folder; stopped by process id (SIGTERM). No parentless `node` process in a folder of the base
+check. The four parentless processes listed above as left alone are still there.

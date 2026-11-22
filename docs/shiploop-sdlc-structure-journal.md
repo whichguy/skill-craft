@@ -3944,6 +3944,29 @@ built); the observers wired into every run; the engine's two faults the reviews 
 wait after a timeout, and a return that reuses its receipt when only the return plan changed); ShipLoop's own base
 run leaving test processes behind (R144); and the return after a rollback that moves a due time (R152).
 
+**Released, 2026-11-22.** ShipLoop 2.5.0 in skill-craft 4.3.0 (eb4fad3023f10011b5117cbee1f5f9edafe743e5), cut by
+`scripts/release.py` at the commit of the E2E entry. The guarded push passed its four checks and CI passed on both
+pushes, the merge's and the release's. Claude and Grok went from 4.2.1 to 4.3.0. Codex was refreshed while no
+process ran from an installed plugin folder; its refresh removed the older version folders 3.3.0, 4.1.0 and 4.2.1,
+and they were put back from their release commits within a minute (425, 309 and 309 files, each its release commit's
+count). The first lookup of those commits found nothing (`\b` in an extended regular expression), which is why it
+took a second command. The published-install smoke test passes against the release commit.
+
+- **R155 (the last sweep, 2026-11-22 01:25).** By working folder, over this study's run roots and scratch folder:
+  one process of this study was left, a `python server.py` on port 18765 that a headless reader of round 3's replay
+  had started on 2026-11-20; stopped by process id. No parentless `node` process is in a folder of the base check.
+  Four parentless processes that are not this study's are left as they were and put to the owner: two in run folders
+  of another study of 2026-11-15 (one of them has used a whole processor for six days), one in an unnamed temporary
+  folder, and one server in another session's scratch folder.
+- **R156 (the fixture's hang, described; three in an hour).** After the 27 were stopped: another session's pristine
+  check at 23:55, one builder's own `npm test` in its own copy at 00:10 (R153), and the base's own tests in the
+  calibration suite at about 00:50 (R146). The base's tests listen on the wildcard address with port 0, connect to
+  `127.0.0.1` and send requests with no time limit (`fixtures/node-tickets/test/helpers.js`), so a request that
+  reaches another program holding the same port number can wait for ever; 13 programs held an IPv4 loopback port in
+  that range at about 00:50, 10 of them Claude sessions. 26728eddd587930f5da3f6600e5d7ab4017d8acc measured the same
+  mechanism for wrong answers and left the fixture to the owner, because it is pinned by its digest and is the E2E
+  subject. Binding the fixture's tests to `127.0.0.1` is put to the owner again with these three hangs.
+
 ## Evidence (all rounds)
 
 | File | Holds |
