@@ -1,0 +1,10 @@
+The spec and test-strategy packets as printed at the head-order suite's reference install (packet_hash.py CHECKOUT):
+stage, characters, first 16 hex digits of sha256.
+
+the merged line at 7296b215261e515a8f86ef0e5938bcc6c0cbb09c (this round's build):
+spec 19934 34ca70e712afc916
+test-strategy 22051 f90a27908c8ffe07
+
+the candidate branch at aa795d7318c7218b666a6129048a7c7178dfbfa1 (skill files of 1641ecb825d4b6a09111927c871ca7c00d9c433b, wave 2's build):
+spec 19934 34ca70e712afc916
+test-strategy 22051 f90a27908c8ffe07

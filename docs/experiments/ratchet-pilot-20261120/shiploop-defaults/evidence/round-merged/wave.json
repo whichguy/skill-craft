@@ -1,0 +1,318 @@
+[
+ {
+  "name": "k1",
+  "pass": true,
+  "class": "PASS",
+  "checks": {
+   "test \"$(python3 hello.py)\" = 'Hello, wor": true,
+   "python3 -c \"import sys, unittest; suite ": true
+  },
+  "seconds": 455,
+  "output_tokens": 14593,
+  "gate_counts": {},
+  "spec_seconds": [
+   51.0
+  ],
+  "requester": null,
+  "status": "done",
+  "spec_action": "nav-99639753a0f141e7a7efc824ea596853",
+  "spec_results": 1,
+  "defaults": [
+   {
+    "alternative": "Omit the newline so the next terminal output starts on the same line.",
+    "default": "The greeting appears on one complete line.",
+    "question": "Should the greeting end with a newline?",
+    "requirement": "R-1",
+    "why": "Python print convention and the request describes displayed output."
+   }
+  ],
+  "spec_summary": "Both requested outcomes have local, reproducible acceptance checks. Implementation and candidate verification are pending; there are no open prerequisites.",
+  "spec_md": {
+   "words": 171,
+   "requirements": 2,
+   "default_words": 1
+  },
+  "clause_says_default": [
+   true
+  ],
+  "block": {
+   "packets": 1,
+   "with_block": 1,
+   "rows": [
+    "1. R-1 Should the greeting end with a newline? Decided: The greeting appears on one complete line. Otherwise: Omit the newline so the next terminal output starts on the same line."
+   ]
+  },
+  "says": 8,
+  "says_naming_a_default": [],
+  "report": {
+   "section": true,
+   "after_request": true,
+   "rows": 28,
+   "none": false,
+   "not_recorded": false
+  },
+  "notes": [],
+  "owner_notes_state": null,
+  "exported_spec_from": "commit 05ea7e06b91e1b8960f3f242d0a8a058c0fb2c7b (docs(shiploop): record skill-craft-shiploop-create-hello-py-5b4976 knowledge aft)"
+ },
+ {
+  "name": "k2",
+  "pass": false,
+  "class": "FAILED",
+  "checks": {
+   "base_tests.py suite node-tickets": true,
+   "base_tests.py pristine node-tickets": true,
+   "due_times_probe.py migrate": false,
+   "due_times_probe.py restart": false,
+   "due_times_probe.py switch": false,
+   "due_times_probe.py rollback": false,
+   "due_times_probe.py off": true,
+   "due_times_probe.py cli": false
+  },
+  "seconds": 874,
+  "output_tokens": 30582,
+  "gate_counts": {
+   "other": {
+    "fired": 1,
+    "caught": 1
+   },
+   "mutation_not_done": {
+    "fired": 1,
+    "caught": 1
+   },
+   "spec_writeback": {
+    "fired": 1,
+    "caught": 1
+   }
+  },
+  "spec_seconds": [
+   62.0
+  ],
+  "requester": null,
+  "status": "done",
+  "spec_action": "nav-8509743db2314adeb88d75bb16e2b69b",
+  "spec_results": 1,
+  "defaults": [
+   {
+    "alternative": "Use a JSON map setting.",
+    "default": "Set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL or DUE_HOURS_LOW to positive whole hours; empty uses defaults.",
+    "question": "How do operators configure hours?",
+    "requirement": "R-1",
+    "why": "Existing settings are environment variables."
+   },
+   {
+    "alternative": "Treat exact due time as overdue and reject other values.",
+    "default": "Only the literal true requests the filter, using a strictly past deadline and narrowing the existing listing.",
+    "question": "What happens at the deadline and for other values?",
+    "requirement": "R-2",
+    "why": "The request says the due time has passed and legacy unknown query values are ignored."
+   },
+   {
+    "alternative": "Backfill as part of enabled startup before listening.",
+    "default": "Run the offline command, then start with DUE_TIMES=on. An incomplete persisted file blocks enabled startup.",
+    "question": "How do operators prepare and reveal deadlines?",
+    "requirement": "R-3",
+    "why": "Separate operator steps directly follow the requested production ordering."
+   },
+   {
+    "alternative": "Make all CLI output add a column.",
+    "default": "Human list and show include due when enabled; the raw report stays stable.",
+    "question": "Where does the CLI show deadlines?",
+    "requirement": "R-3",
+    "why": "The documented report depends on its raw format."
+   },
+   {
+    "alternative": "Allow 1.4.0 writes to discard previously assigned deadlines.",
+    "default": "Keep a pre-rollback snapshot and supply it to the migration on roll-forward; merge only matching deadlines and calculate for other tickets.",
+    "question": "How can a rollback preserve original due values if 1.4.0 writes?",
+    "requirement": "R-4",
+    "why": "The legacy writer drops added fields and snapshots fit the existing backup workflow."
+   }
+  ],
+  "spec_summary": "Quantified local behavior and preserved all baseline consumers. Production data access and execution remain with operators.",
+  "spec_md": {
+   "words": 412,
+   "requirements": 5,
+   "default_words": 7
+  },
+  "clause_says_default": [
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "block": {
+   "packets": 1,
+   "with_block": 1,
+   "rows": [
+    "1. R-1 How do operators configure hours? Decided: Set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL or DUE_HOURS_LOW to positive whole hours; empty uses defaults. Otherwise: Use a JSON map setting.",
+    "2. R-2 What happens at the deadline and for other values? Decided: Only the literal true requests the filter, using a strictly past deadline and narrowing the existing listing. Otherwise: Treat exact due time as overdue and reject other values.",
+    "3. R-3 How do operators prepare and reveal deadlines? Decided: Run the offline command, then start with DUE_TIMES=on. An incomplete persisted file blocks enabled startup. Otherwise: Backfill as part of enabled startup before listening.",
+    "4. R-3 Where does the CLI show deadlines? Decided: Human list and show include due when enabled; the raw report stays stable. Otherwise: Make all CLI output add a column.",
+    "5. R-4 How can a rollback preserve original due values if 1.4.0 writes? Decided: Keep a pre-rollback snapshot and supply it to the migration on roll-forward; merge only matching deadlines and calculate for other tickets. Otherwise: Allow 1.4.0 writes to discard previously assigned deadlines."
+   ]
+  },
+  "says": 11,
+  "says_naming_a_default": [
+   "Implemented ticket due times in version 1.5.0 on local `master`. Deadlines use configurable defaults of 4, 24, 72, and 168 hours by priority and stay fixed afte"
+  ],
+  "report": {
+   "section": true,
+   "after_request": true,
+   "rows": 39,
+   "none": false,
+   "not_recorded": false
+  },
+  "notes": [],
+  "owner_notes_state": null,
+  "exported_spec_from": "commit 859c33f4b7b8cff4ca521cd83ae64782f761b239 (docs(shiploop): record skill-craft-shiploop-this-directory-is-e1a2c2 knowledge a)"
+ },
+ {
+  "name": "k3",
+  "pass": false,
+  "class": "FAILED",
+  "checks": {
+   "base_tests.py suite node-tickets": true,
+   "base_tests.py pristine node-tickets": true,
+   "due_times_probe.py migrate": false,
+   "due_times_probe.py restart": false,
+   "due_times_probe.py switch": false,
+   "due_times_probe.py rollback": false,
+   "due_times_probe.py off": true,
+   "due_times_probe.py cli": false
+  },
+  "seconds": 1063,
+  "output_tokens": 34621,
+  "gate_counts": {
+   "other": {
+    "fired": 3,
+    "caught": 3
+   },
+   "test_layers": {
+    "fired": 2,
+    "caught": 2
+   },
+   "mutation_not_done": {
+    "fired": 2,
+    "caught": 2
+   }
+  },
+  "spec_seconds": [
+   50.0
+  ],
+  "requester": null,
+  "status": "done",
+  "spec_action": "nav-897a508c93044d4a8ce71fc367095a8b",
+  "spec_results": 1,
+  "defaults": [
+   {
+    "alternative": "Use one JSON setting, requiring operators to format the whole policy as JSON.",
+    "default": "Use one DUE_HOURS_<PRIORITY> variable per priority, in positive whole hours.",
+    "question": "How do I set hours?",
+    "requirement": "R-1",
+    "why": "Per-priority settings match the service's environment configuration convention."
+   },
+   {
+    "alternative": "Include equality and show the ticket one millisecond sooner.",
+    "default": "It becomes overdue once the clock passes that timestamp.",
+    "question": "Is a ticket overdue at exactly its due timestamp?",
+    "requirement": "R-2",
+    "why": "The request says the due time has passed."
+   },
+   {
+    "alternative": "Auto-backfill during normal startup, coupling activation to the first migration write.",
+    "default": "Run an offline backfill against DATA_FILE using the existing stored priority, then enable.",
+    "question": "How do I prepare a legacy file?",
+    "requirement": "R-3",
+    "why": "The request places backfill before activation and the service has one writer."
+   }
+  ],
+  "spec_summary": "The spec traces the user outcomes to HTTP, CLI, disk and prior-release checks. Production operations owns the live schedule and data file.",
+  "spec_md": {
+   "words": 307,
+   "requirements": 4,
+   "default_words": 1
+  },
+  "clause_says_default": [
+   true,
+   false,
+   false
+  ],
+  "block": {
+   "packets": 1,
+   "with_block": 1,
+   "rows": [
+    "1. R-1 How do I set hours? Decided: Use one DUE_HOURS_<PRIORITY> variable per priority, in positive whole hours. Otherwise: Use one JSON setting, requiring operators to format the whole policy as JSON.",
+    "2. R-2 Is a ticket overdue at exactly its due timestamp? Decided: It becomes overdue once the clock passes that timestamp. Otherwise: Include equality and show the ticket one millisecond sooner.",
+    "3. R-3 How do I prepare a legacy file? Decided: Run an offline backfill against DATA_FILE using the existing stored priority, then enable. Otherwise: Auto-backfill during normal startup, coupling activation to the first migration write."
+   ]
+  },
+  "says": 9,
+  "says_naming_a_default": [],
+  "report": {
+   "section": true,
+   "after_request": true,
+   "rows": 38,
+   "none": false,
+   "not_recorded": false
+  },
+  "notes": [],
+  "owner_notes_state": null,
+  "exported_spec_from": "commit 9351e9bc49003c0858d50f6d50329d5687cd3c7e (docs(shiploop): record skill-craft-shiploop-this-directory-is-9cb1cf knowledge a)"
+ },
+ {
+  "name": "k4",
+  "pass": false,
+  "class": "FAILED",
+  "checks": {
+   "base_tests.py suite node-tickets": true,
+   "base_tests.py pristine node-tickets": true,
+   "due_times_probe.py migrate": true,
+   "due_times_probe.py restart": true,
+   "due_times_probe.py switch": true,
+   "due_times_probe.py rollback": true,
+   "due_times_probe.py off": true,
+   "due_times_probe.py cli": true
+  },
+  "seconds": 1629,
+  "output_tokens": 209968,
+  "gate_counts": {
+   "test_layers": {
+    "fired": 1,
+    "caught": 1
+   },
+   "other": {
+    "fired": 5,
+    "caught": 4
+   },
+   "harness_runs": {
+    "fired": 1,
+    "caught": 1
+   },
+   "spec_writeback": {
+    "fired": 1,
+    "caught": 1
+   },
+   "base_run_not_done": {
+    "fired": 2,
+    "caught": 2
+   },
+   "mutation_not_done": {
+    "fired": 2,
+    "caught": 2
+   },
+   "concerns_gate": {
+    "fired": 1,
+    "caught": 0
+   },
+   "assumptions_due_item": {
+    "fired": 1,
+    "caught": 1
+   }
+  },
+  "spec_seconds": [],
+  "requester": null,
+  "run": "no run directory"
+ }
+]

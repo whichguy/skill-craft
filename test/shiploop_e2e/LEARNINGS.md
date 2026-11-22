@@ -9470,3 +9470,150 @@ Every value above with the file it was read from:
 `docs/experiments/sdlc-structure-20261119/evidence/confirm-r15d.txt`. Evidence root (outside the repository, may be
 pruned): `/Users/dadleet/e2e-runs-sdlc14/r15d/20261121/`, with each run's `result.json`, `metrics.json`, native
 events and delivery bundle.
+
+## 2026-11-22 — The list of defaults joined with ShipLoop 2.5.0: four whole deliveries all reach done and both changes do their part; the round's own first rule is missed by three of them, twice for a start-up choice the list shows and nobody answered, once because a session started ShipLoop twice (Codex Sol 6.2 medium three times, Claude Sonnet 5.5 medium once)
+
+These are four full repository-harness rounds, not mocks and not a comparison. All four ran from
+`7296b215261e515a8f86ef0e5938bcc6c0cbb09c`, whose skill files are those of the merge
+`5eab9cf72d0c1ceae76c583b68504d633c6588dd`. That merge joins two changes. One is ShipLoop 2.5.0, already released:
+at `release-verify` ShipLoop itself runs the last work item's regression command in the clean copy of the returned
+result, and a moved file is committed whole. The other is new: the spec stage's result carries a required list,
+`defaults`, with one entry for each acceptance line that states what the request does not and that a person who
+uses or runs the product would notice (requirement, question, default, alternative, why), and ShipLoop shows the
+list three times and asks nothing: in the packet of the next stage, in the done packet, and in the report's section
+"Decided for you" directly after the request. Command: `test/shiploop_e2e/run.py --case <case> --host <host>
+--model <model> --effort medium --source checkout --quiet`, through the experiment's launcher, to a new external
+folder with a baseline file of its own, all four started together at 14:24:31Z (06:24 local), with no turn, timeout
+or resume cap; the Claude run carried `--max-budget-usd 40`. The checkout build is labelled skill-craft 4.3.0 /
+ShipLoop 2.5.0 and holds this unpublished source (plugin fingerprint `1f5e3fbf8a0f` in all four), so none is a
+marketplace or publication result. The builders received the catalog request with no coaching, and no requester
+answered anything: this is what the list does alone. The harness is main's, with the base check as fixed in
+`fb0f834d90ff8a27b4a2eaec75ed45462a913e95` (oracle digest `b32933f70500`, evaluator `53412ea9d42b`). The machine's
+load average was 14.6 at the start on 18 processors and 5 to 16 when the runs ended.
+
+The round was registered before it ran (`docs/experiments/ratchet-pilot-20261120/shiploop-defaults/DESIGN.md`,
+section 9, in the commit the runs were built from). The combination was to be accepted, and released, if four
+rules held: (1) every delivery passes the harness's five verdicts and every case check, with one exception fixed
+beforehand for a check that "did not end within 120 s"; (2) no delivery is stopped by the list's gate; (3) in every
+delivery the spec result holds the list, the done packet lists it and the report has its section right after the
+request; (4) no delivery is refused wrongly at `release-verify`. If any failed, nothing was to be pushed or
+released, and the owner was to be told.
+
+|  | `k1` | `k2` | `k3` | `k4` |
+|---|---|---|---|---|
+| Case | `hello` | `ticket-due-times` | `ticket-due-times` | `ticket-due-times` |
+| Builder | codex-cli 0.171.0, gpt-6.2-sol at medium; 1 session(s), 0 resume(s) | codex-cli 0.171.0, gpt-6.2-sol at medium; 1 session(s), 0 resume(s) | codex-cli 0.171.0, gpt-6.2-sol at medium; 1 session(s), 0 resume(s) | 2.1.330, claude-sonnet-5-5 at medium; 1 session(s), 0 resume(s) |
+| Harness verdicts (invoked, plugin, process, shiploop, committed) | all five pass | all five pass | all five pass | failed: shiploop |
+| Case checks | 2 of 2 | 3 of 8; failed: due_times_probe.py migrate, due_times_probe.py restart, due_times_probe.py switch, due_times_probe.py rollback, due_times_probe.py cli | 3 of 8; failed: due_times_probe.py migrate, due_times_probe.py restart, due_times_probe.py switch, due_times_probe.py rollback, due_times_probe.py cli | 8 of 8 |
+| The list of defaults | 1 rows; 0 name a roll-back; printed by the next stage's packet: yes; done packet lists 1; report section right after the request: yes | 5 rows; 1 name a roll-back; printed by the next stage's packet: yes; done packet lists 5; report section right after the request: yes | 3 rows; 0 name a roll-back; printed by the next stage's packet: yes; done packet lists 3; report section right after the request: yes | 6 rows; 1 name a roll-back; printed by the next stage's packet: yes; done packet lists 6; report section right after the request: yes |
+| Step plan | W1: 1 steps | W1: 1 steps | W1: 2 steps | W1: 2 steps; W2: 1 steps; W3: 1 steps |
+| Start to end | 14:24:31Z to 14:32:06Z, 7.6 minutes | 14:24:31Z to 14:39:05Z, 14.6 minutes | 14:24:31Z to 14:42:15Z, 17.7 minutes | 14:24:31Z to 14:51:40Z, 27.2 minutes |
+| Accepted revisions | 30 | 30 | 34 | 48 |
+| Stage reviews | 8 in 8 passes; 0 changed something | 8 in 8 passes; 1 changed something | 9 in 9 passes; 0 changed something | None in None passes; None changed something |
+| Refused ShipLoop commands, all recovered in the session | 0; naming `defaults`: 0 | 2 (test 1, document 1); naming `defaults`: 0 | 7 (intake 1, test-strategy 2, plan 2, test 2); naming `defaults`: 0 | 13 (test-strategy 1, plan 1, prepare 1, step-plan 3, document 1, implement 1, test 5); naming `defaults`: 0 |
+| release-verify | 1 record(s), 0 refusal(s). in returned-result, the action ended done: `python3 -B -c 'import subprocess, sys; result = subprocess.r` passed; `python3 -B -m unittest -v` passed, 1 tests | 1 record(s), 0 refusal(s). in returned-result, the action ended done: `npm test` passed, 123 tests | 1 record(s), 0 refusal(s). in returned-result, the action ended done: `npm test` passed, 123 tests; `node ~/e2e-runs/r-20261122-ffb3fb/k3/.shiploop-runs/work-202` passed | 1 record(s), 0 refusal(s). in returned-result, the action ended done: `node --test test/due-system.test.js test/rollback.test.js te` passed, 8 tests; ADDED BY SHIPLOOP `npm test` passed, 166 tests |
+| Turns, model calls, output tokens, cost | 122, 62, 14593, no figure | 119, 93, 30582, no figure | 186, 99, 34621, no figure | 343, 189, 209968, $9.82 |
+| Returned source | committed: yes, head `ff8c392064f8`, 0 uncommitted; return kind fast-forward-merge | committed: yes, head `fc8cc0a9acb7`, 0 uncommitted; return kind fast-forward-merge | committed: yes, head `0b0d542ba428`, 0 uncommitted; return kind fast-forward-merge | committed: yes, head `9353c4873143`, 0 uncommitted; return kind None |
+| Left behind (harness) | reaped 0, survived 0 | reaped 0, survived 0 | reaped 0, survived 0 | reaped 0, survived 0 |
+
+For `k4` the harness names no ShipLoop run, so every cell of that column below "Case checks" except the times, the
+turns and the cost was read from the run folder with the longer history; the harness's own verdict stands as it
+wrote it.
+
+Read by the registered rules.
+
+- **Rule 1 is not met: one delivery of four passes it.** `k1` passes every verdict and both case checks. `k2` and
+  `k3` pass the five verdicts and 3 of 8 case checks; the five that fail are one fault met five ways. Started with
+  `DUE_TIMES=on` on a data file whose tickets have no due time, the delivered service refuses to start ("T-0001 has
+  no due time; run scripts/backfill-due-times.js before enabling DUE_TIMES"). Both specifications chose a separate
+  backfill command and a refusal to start, the reading of the request the owner ruled wrong
+  (`docs/shiploop-sdlc-structure-journal.md`, round 9). `k4` passes all eight case checks and four verdicts, and
+  fails `shiploop`: "ambiguous: 2 ShipLoop runs under the output directory and nothing records or names the one this
+  invocation created". The session's first `workspace start` gave ShipLoop a paraphrase of the request; within
+  ten seconds it started again with the exact text, and it said so in its last message. No check was lost to the
+  fixture's hang, so the exception was not used.
+- **Rules 2, 3 and 4 are met in all four.** No refused command names `defaults`. Every accepted spec result holds
+  the list (1, 5, 3 and 6 rows), the packet of the next stage printed its block, the done packet lists the same
+  number of rows, and each report has "Decided for you" directly after the request. Every delivery was accepted at
+  `release-verify` at its one attempt, in a clean copy of the returned result, and none was refused there.
+
+By the registration the combination is therefore not accepted, and nothing was pushed or released on this round's
+result. The owner was told while the round ran and the decision to release or hold was put to the owner.
+
+What the three misses are, and what they are not. This is my reading, kept apart from the rules above.
+
+- **None is traced to the merge.** The spec packet and the test-strategy packet of this build are byte for byte
+  those of the candidate before the merge (19,934 and 22,051 characters at the head-order suite's reference
+  install, the same hashes; `evidence/round-merged/packet-identity.txt`). The spec stage of `k2` and `k3` read the
+  instruction that three deliveries read on 2026-11-21 at 23:40, none of which chose the refusal.
+- **The start-up choice is taken at the released product's rate.** Of eleven archived deliveries of this case on
+  Sol at medium under ShipLoop 2.4.0 and 2.4.1, four chose the separate command with a refusal and failed these
+  five checks. With the list, four of eight have (two of three in the first wave, none of three in the second, two
+  of two here). Eight runs do not tell four in eight from four in eleven. So the lead of the second wave, that
+  asking for "what happens if they do not" might turn an author away from a refusal, is gone.
+- **The double start is the host session's.** Neither change touches how a run is started. The other three
+  sessions of this round have one run folder each, and so does the candidate's earlier Sonnet delivery (`s1`,
+  2026-11-22 00:00); the other study's two Sonnet deliveries of that night passed the `shiploop` verdict. One
+  occurrence; its rate is not known.
+- **The rule was the wrong instrument, and it is read as registered all the same.** The round asked whether two
+  changes disturb each other. Rule 1 held every delivery to the case's held-out checks, which the released product
+  itself misses about four times in ten on this case and model for one reading of one sentence of the request. I
+  had that count when I wrote the rule and did not use it. A rule for a round like this should hold the candidate
+  to the verdicts and to the archive's rate on the case checks, or to the checks the change can move.
+
+What the round shows about the two changes together.
+
+- **Whole deliveries.** All four went from intake to done in one session, with the report, a committed result and
+  a fast-forward return; the harness found nothing left behind and a sweep by working folder afterwards found no
+  process of the four.
+- **The list shows the choice that fails the delivery, with the other answer beside it.** `k2`, row 3: "How do
+  operators prepare and reveal deadlines? Decided: Run the offline command, then start with DUE_TIMES=on. An
+  incomplete persisted file blocks enabled startup. Otherwise: Backfill as part of enabled startup before
+  listening." `k3`, row 3: "How do I prepare a legacy file? Decided: Run an offline backfill against DATA_FILE
+  using the existing stored priority, then enable. Otherwise: Auto-backfill during normal startup, coupling
+  activation to the first migration write." In both, the alternative is the answer the held-out checks expect.
+  `k2`'s row is the first refusal row written under the reworded instruction and it states the consequence; `k3`'s
+  stops at "then enable" and leaves the refusal out. `k4`, row 3, chose the other answer: "At the first start of the
+  new release on the data file, whether DUE_TIMES is on or off".
+- **The release rule of 2.5.0 acted beside it.** `k4`'s release plan recorded a consumer check of three test files
+  (8 tests); ShipLoop added the last work item's `npm test`, marked as added, and 166 tests pass in the clean copy.
+  The three Sol release plans recorded their regression command itself, so nothing was added and the copy ran the
+  suite anyway (1, 123 and 123 tests).
+- **What the hosts told the user.** Neither Sol host's last message gives the choices as choices: both state the
+  manual step as an instruction ("Run the offline backfill before enabling `DUE_TIMES=on`") and link the report.
+  `k3`'s host had said the refusal in a progress message before the build. The Sonnet host's last message has a
+  section "Choices I made where you were silent" with two of its six rows, and names the loss on roll-back under
+  "Things to know".
+- **A reading added after the registration**, at the prompting of the session "Spec elaboration", which found that
+  no row of the six Sol deliveries of 2026-11-21 (21 rows) says what a roll-back to 1.4.0 loses, although by its
+  reading five of the six specifications do; a word search here finds no row of the 21 that names a roll-back at
+  all. In this round a row names the roll-back in `k2` (row 5 of 5) and `k4` (row 5 of 6) and not in `k3` (3
+  rows).
+- **Cost.** The spec stage took 51, 62 and 50 seconds on Sol (archive: 17 to 61, median 43). The Sonnet delivery
+  cost $9.82 and 209,968 output tokens in 27.2 minutes; the harness attributes no stage times for it.
+
+What they do not show. A requester's answer: none was sent, and on 2026-11-21 two of four one-sentence answers
+sent as owner notes right after the spec changed the build. A Grok delivery, or any case family but these two. A
+right refusal at `release-verify`, either of its exits, or the moved-file fix. A speed or cost comparison.
+
+The harness, asked the standing three questions.
+
+1. Retain or keep state differently: when a session starts ShipLoop twice the harness records both folders and
+   grades neither, so a finished delivery reads "engine unknown". The run the session went on with is plain from the
+   records (one folder has two trace lines, the other a done engine); `read_round.py` reads the folder with the
+   longer history and says so. Whether the harness should do the same, or keep failing such a run, is a harness
+   decision this entry does not take. The spec's list and whether the report carries it are in ShipLoop's records
+   and not in `result.json`; the experiment's two readers take them from the run folder.
+2. More to learn on later passes: how often each model takes the start-up reading the owner ruled wrong (Sol at
+   medium: 8 of 19 over the archive and the candidate; Sonnet at medium: none of the two candidate deliveries), and
+   whether a requester's answer after the spec changes it, which this round did not ask.
+3. More evaluation criteria: the case's five failing checks have one cause, so "3 of 8" reads as five faults and
+   is one. A verdict that named the cause once (the service does not start on a file without due times) would make
+   a round of this case readable at a glance.
+
+Limits: two Sol deliveries and one Sonnet delivery of one case, one `hello`, no Grok run, no promotion or
+efficiency claim, no marketplace result. Every value above with the file it was read from:
+`docs/experiments/ratchet-pilot-20261120/shiploop-defaults/evidence/round-merged/` (`round.txt` and `round.json`
+from `read_round.py`, `wave.txt` and `wave.json` from `read_wave.py`, `k4-two-starts.txt`, `packet-identity.txt`,
+and each Sol delivery's specification and printed rows). Evidence root (outside the repository, may be pruned):
+`~/e2e-runs/r-20261122-ffb3fb/`, with each run's `result.json`, `metrics.json`, native events and delivery bundle.

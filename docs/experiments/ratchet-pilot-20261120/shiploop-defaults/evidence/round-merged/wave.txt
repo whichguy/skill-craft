@@ -1,0 +1,90 @@
+======================================================================================================================
+k1: pass True (PASS); status done; 455 s; spec stage [51.0] s; output tokens 14593
+  checks: test "$(python3 hello.py)" = 'Hello, wor P, python3 -c "import sys, unittest; suite  P
+  gate counts: {}
+  spec results accepted: 1; spec.md: {'words': 171, 'requirements': 2, 'default_words': 1}
+  defaults: 1 rows; the named clause says default: [True]
+    1.requirement: R-1
+    1.question: Should the greeting end with a newline?
+    1.default: The greeting appears on one complete line.
+    1.alternative: Omit the newline so the next terminal output starts on the same line.
+    1.why: Python print convention and the request describes displayed output.
+  spec summary: Both requested outcomes have local, reproducible acceptance checks. Implementation and candidate verification are pending; there are no open prerequisites.
+  stage-after-spec packets: 1, with the block: 1, rows printed: 1
+  host messages to the user: 8; naming a default: 0
+  report: {'section': True, 'after_request': True, 'rows': 28, 'none': False, 'not_recorded': False}
+  owner notes in the run: []; delivered: null
+======================================================================================================================
+k2: pass False (FAILED); status done; 874 s; spec stage [62.0] s; output tokens 30582
+  checks: base_tests.py suite node-tickets P, base_tests.py pristine node-tickets P, due_times_probe.py migrate F, due_times_probe.py restart F, due_times_probe.py switch F, due_times_probe.py rollback F, due_times_probe.py off P, due_times_probe.py cli F
+  gate counts: {"other": {"fired": 1, "caught": 1}, "mutation_not_done": {"fired": 1, "caught": 1}, "spec_writeback": {"fired": 1, "caught": 1}}
+  spec results accepted: 1; spec.md: {'words': 412, 'requirements': 5, 'default_words': 7}
+  defaults: 5 rows; the named clause says default: [True, True, True, True, True]
+    1.requirement: R-1
+    1.question: How do operators configure hours?
+    1.default: Set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL or DUE_HOURS_LOW to positive whole hours; empty uses defaults.
+    1.alternative: Use a JSON map setting.
+    1.why: Existing settings are environment variables.
+    2.requirement: R-2
+    2.question: What happens at the deadline and for other values?
+    2.default: Only the literal true requests the filter, using a strictly past deadline and narrowing the existing listing.
+    2.alternative: Treat exact due time as overdue and reject other values.
+    2.why: The request says the due time has passed and legacy unknown query values are ignored.
+    3.requirement: R-3
+    3.question: How do operators prepare and reveal deadlines?
+    3.default: Run the offline command, then start with DUE_TIMES=on. An incomplete persisted file blocks enabled startup.
+    3.alternative: Backfill as part of enabled startup before listening.
+    3.why: Separate operator steps directly follow the requested production ordering.
+    4.requirement: R-3
+    4.question: Where does the CLI show deadlines?
+    4.default: Human list and show include due when enabled; the raw report stays stable.
+    4.alternative: Make all CLI output add a column.
+    4.why: The documented report depends on its raw format.
+    5.requirement: R-4
+    5.question: How can a rollback preserve original due values if 1.4.0 writes?
+    5.default: Keep a pre-rollback snapshot and supply it to the migration on roll-forward; merge only matching deadlines and calculate for other tickets.
+    5.alternative: Allow 1.4.0 writes to discard previously assigned deadlines.
+    5.why: The legacy writer drops added fields and snapshots fit the existing backup workflow.
+  spec summary: Quantified local behavior and preserved all baseline consumers. Production data access and execution remain with operators.
+  stage-after-spec packets: 1, with the block: 1, rows printed: 5
+  host messages to the user: 11; naming a default: 1
+    say: Implemented ticket due times in version 1.5.0 on local `master`. Deadlines use configurable defaults of 4, 24, 72, and 168 hours by priority and stay fixed afte
+  report: {'section': True, 'after_request': True, 'rows': 39, 'none': False, 'not_recorded': False}
+  owner notes in the run: []; delivered: null
+======================================================================================================================
+k3: pass False (FAILED); status done; 1063 s; spec stage [50.0] s; output tokens 34621
+  checks: base_tests.py suite node-tickets P, base_tests.py pristine node-tickets P, due_times_probe.py migrate F, due_times_probe.py restart F, due_times_probe.py switch F, due_times_probe.py rollback F, due_times_probe.py off P, due_times_probe.py cli F
+  gate counts: {"other": {"fired": 3, "caught": 3}, "test_layers": {"fired": 2, "caught": 2}, "mutation_not_done": {"fired": 2, "caught": 2}}
+  spec results accepted: 1; spec.md: {'words': 307, 'requirements': 4, 'default_words': 1}
+  defaults: 3 rows; the named clause says default: [True, False, False]
+    1.requirement: R-1
+    1.question: How do I set hours?
+    1.default: Use one DUE_HOURS_<PRIORITY> variable per priority, in positive whole hours.
+    1.alternative: Use one JSON setting, requiring operators to format the whole policy as JSON.
+    1.why: Per-priority settings match the service's environment configuration convention.
+    2.requirement: R-2
+    2.question: Is a ticket overdue at exactly its due timestamp?
+    2.default: It becomes overdue once the clock passes that timestamp.
+    2.alternative: Include equality and show the ticket one millisecond sooner.
+    2.why: The request says the due time has passed.
+    3.requirement: R-3
+    3.question: How do I prepare a legacy file?
+    3.default: Run an offline backfill against DATA_FILE using the existing stored priority, then enable.
+    3.alternative: Auto-backfill during normal startup, coupling activation to the first migration write.
+    3.why: The request places backfill before activation and the service has one writer.
+  spec summary: The spec traces the user outcomes to HTTP, CLI, disk and prior-release checks. Production operations owns the live schedule and data file.
+  stage-after-spec packets: 1, with the block: 1, rows printed: 3
+  host messages to the user: 9; naming a default: 0
+  report: {'section': True, 'after_request': True, 'rows': 38, 'none': False, 'not_recorded': False}
+  owner notes in the run: []; delivered: null
+======================================================================================================================
+k4: pass False (FAILED); status None; 1629 s; spec stage [] s; output tokens 209968
+  checks: base_tests.py suite node-tickets P, base_tests.py pristine node-tickets P, due_times_probe.py migrate P, due_times_probe.py restart P, due_times_probe.py switch P, due_times_probe.py rollback P, due_times_probe.py off P, due_times_probe.py cli P
+  gate counts: {"test_layers": {"fired": 1, "caught": 1}, "other": {"fired": 5, "caught": 4}, "harness_runs": {"fired": 1, "caught": 1}, "spec_writeback": {"fired": 1, "caught": 1}, "base_run_not_done": {"fired": 2, "caught": 2}, "mutation_not_done": {"fired": 2, "caught": 2}, "concerns_gate": {"fired": 1, "caught": 0}, "assumptions_due_item": {"fired": 1, "caught": 1}}
+  spec results accepted: None; spec.md: None
+  defaults: None
+  spec summary: None
+  stage-after-spec packets: None, with the block: None, rows printed: 0
+  host messages to the user: None; naming a default: 0
+  report: None
+  owner notes in the run: None; delivered: null

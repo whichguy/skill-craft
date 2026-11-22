@@ -1,0 +1,5 @@
+1. R-1 How do operators configure hours? Decided: Set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL or DUE_HOURS_LOW to positive whole hours; empty uses defaults. Otherwise: Use a JSON map setting.
+2. R-2 What happens at the deadline and for other values? Decided: Only the literal true requests the filter, using a strictly past deadline and narrowing the existing listing. Otherwise: Treat exact due time as overdue and reject other values.
+3. R-3 How do operators prepare and reveal deadlines? Decided: Run the offline command, then start with DUE_TIMES=on. An incomplete persisted file blocks enabled startup. Otherwise: Backfill as part of enabled startup before listening.
+4. R-3 Where does the CLI show deadlines? Decided: Human list and show include due when enabled; the raw report stays stable. Otherwise: Make all CLI output add a column.
+5. R-4 How can a rollback preserve original due values if 1.4.0 writes? Decided: Keep a pre-rollback snapshot and supply it to the migration on roll-forward; merge only matching deadlines and calculate for other tickets. Otherwise: Allow 1.4.0 writes to discard previously assigned deadlines.

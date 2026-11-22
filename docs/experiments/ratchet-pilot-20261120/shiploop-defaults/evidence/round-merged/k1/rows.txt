@@ -1,0 +1,1 @@
+1. R-1 Should the greeting end with a newline? Decided: The greeting appears on one complete line. Otherwise: Omit the newline so the next terminal output starts on the same line.

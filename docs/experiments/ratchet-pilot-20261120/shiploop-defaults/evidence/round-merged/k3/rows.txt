@@ -1,0 +1,3 @@
+1. R-1 How do I set hours? Decided: Use one DUE_HOURS_<PRIORITY> variable per priority, in positive whole hours. Otherwise: Use one JSON setting, requiring operators to format the whole policy as JSON.
+2. R-2 Is a ticket overdue at exactly its due timestamp? Decided: It becomes overdue once the clock passes that timestamp. Otherwise: Include equality and show the ticket one millisecond sooner.
+3. R-3 How do I prepare a legacy file? Decided: Run an offline backfill against DATA_FILE using the existing stored priority, then enable. Otherwise: Auto-backfill during normal startup, coupling activation to the first migration write.

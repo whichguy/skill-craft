@@ -1,0 +1,889 @@
+[
+ {
+  "name": "k1",
+  "case": "hello",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "pass": true,
+  "outcome": "PASS",
+  "basis": "every verdict passed",
+  "verdicts": {
+   "invoked": true,
+   "plugin": true,
+   "process": true,
+   "shiploop": true,
+   "committed": true
+  },
+  "checks_passed": 2,
+  "checks": 2,
+  "failed_checks": [],
+  "versions": {
+   "source": "checkout",
+   "plugin_version": "4.3.0",
+   "shiploop_version": "2.5.0",
+   "plugin_sha256": "1f5e3fbf8a0f",
+   "local_head": "7296b215261e515a8f86ef0e5938bcc6c0cbb09c"
+  },
+  "boundary": {
+   "evaluator": "53412ea9d42b",
+   "oracle": "b32933f70500",
+   "case": "55e60c91e1e2"
+  },
+  "host_build": "codex-cli 0.171.0",
+  "started": "14:24:31Z",
+  "ended": "14:32:06Z",
+  "minutes": 7.6,
+  "turns": 122,
+  "model_calls": 62,
+  "output_tokens": 14593,
+  "cost_usd": null,
+  "sessions": 1,
+  "resumes": 0,
+  "engine": {
+   "status": "done",
+   "stage": "done",
+   "revision": 30,
+   "report_html": true,
+   "runs": 1
+  },
+  "reviews": {
+   "children": 8,
+   "passes": 8,
+   "changed_something": 0
+  },
+  "trace": {
+   "commands": 51,
+   "refusals": 0,
+   "checks_failed": 0,
+   "crashed": 0
+  },
+  "gate_counts": {},
+  "committed": {
+   "pass": true,
+   "head": "ff8c392064f8dfb0b6059742d7481be7bd149fe3",
+   "uncommitted": 0
+  },
+  "left_behind": {
+   "observed": true,
+   "reaped": 0,
+   "survived": 0
+  },
+  "load": {
+   "start": [
+    14.63,
+    12.67,
+    29.0
+   ],
+   "end": [
+    4.81,
+    6.33,
+    18.82
+   ]
+  },
+  "last_message": "Created [hello.py](~/e2e-runs/r-20261122-ffb3fb/k1/work/hello.py), which prints `Hello, world!` with one trailing newline, and [test_hello.py](~/e2e-runs/r-20261122-ffb3fb/k1/work/test_hello.py), which verifies the exact stdout.\n\n`python3 -B -m unittest -v` passed one test in the original checkout. ShipLoop completed and recorded the newline choice in its [achievement report](~/e2e-runs/r-20261122-ffb3fb/k1/.shiploop-runs/work-20261122-142445-860e63/run/report.html).\n",
+  "return_kind": "fast-forward-merge",
+  "harness_reason": null,
+  "refusals": {
+   "count": 0,
+   "by_stage": {},
+   "naming_defaults": [],
+   "at_release_verify": []
+  },
+  "work_items": [
+   {
+    "id": "W1",
+    "title": "Add the exact greeting and its unittest",
+    "regression_commands": [
+     "python3 -B -m unittest -v"
+    ],
+    "steps": 1
+   }
+  ],
+  "consumer_checks": [
+   [
+    "python3 -B -c 'import subprocess, sys; result = subprocess.run([sys.executable, \"hello.py\"], check=True, capture_output=True); assert result.stdout == b\"Hello, world!\\n\", result.stdout'",
+    "python3 -B -m unittest -v"
+   ]
+  ],
+  "release_stages": [
+   "release-plan:done",
+   "release:done",
+   "release-verify:done"
+  ],
+  "release_verify": [
+   {
+    "record": "nav-68c855dfda8e4a6aaf22ce383654708e-verify1.md",
+    "action_ended": "done",
+    "where": "returned-result",
+    "head": "ee38c97829b9",
+    "passed": true,
+    "disposition": "passed",
+    "runs": [
+     {
+      "added": false,
+      "suite": "check",
+      "command": "python3 -B -c 'import subprocess, sys; result = subprocess.run([sys.executable, \"hello.py\"], check=True, capture_output=True); assert result.stdout == b\"Hello, world!\\n\", result.stdout'",
+      "status": "passed",
+      "exit": 0,
+      "ran": null,
+      "seconds": 0.036
+     },
+     {
+      "added": false,
+      "suite": "check",
+      "command": "python3 -B -m unittest -v",
+      "status": "passed",
+      "exit": 0,
+      "ran": 1,
+      "seconds": 0.054
+     }
+    ]
+   }
+  ],
+  "done_packet": {
+   "packets_with_the_list": 1,
+   "file": "nav-2fa7afbce80c4a55bd588fd47ae54880.md",
+   "rows": 1,
+   "marked_changed": 0
+  },
+  "the_list": {
+   "recorded": true,
+   "rows": 1,
+   "questions": [
+    "R-1 Should the greeting end with a newline?"
+   ],
+   "entries": [
+    {
+     "alternative": "Omit the newline so the next terminal output starts on the same line.",
+     "default": "The greeting appears on one complete line.",
+     "question": "Should the greeting end with a newline?",
+     "requirement": "R-1",
+     "why": "Python print convention and the request describes displayed output."
+    }
+   ],
+   "roll_back_rows": 0,
+   "next_stage_packets_with_the_block": 1,
+   "report_section": true,
+   "report_section_right_after_the_request": true
+  }
+ },
+ {
+  "name": "k2",
+  "case": "ticket-due-times",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "pass": false,
+  "outcome": "FAILED",
+  "basis": "engine done; at least one verdict failed",
+  "verdicts": {
+   "invoked": true,
+   "plugin": true,
+   "process": true,
+   "shiploop": true,
+   "committed": true
+  },
+  "checks_passed": 3,
+  "checks": 8,
+  "failed_checks": [
+   {
+    "command": "python3 \"$E2E_CHECKS/due_times_probe.py\" migrate",
+    "output_end": "start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-ae9odtwy/tickets.json: T-0001 has no due time; run scripts/backfill-due-times.js before enabling DUE_TIMES (the delivery DUE_TIMES=on server did not start) migrate: 1 expectation(s) failed"
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/due_times_probe.py\" restart",
+    "output_end": "or cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-uxisimle/tickets.json: T-0001 has no due time; run scripts/backfill-due-times.js before enabling DUE_TIMES (the first start server did not start) restart: 1 expectation(s) failed"
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/due_times_probe.py\" switch",
+    "output_end": "or cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-pvoxcqjb/tickets.json: T-0001 has no due time; run scripts/backfill-due-times.js before enabling DUE_TIMES (the DUE_TIMES=on server did not start) switch: 1 expectation(s) failed"
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/due_times_probe.py\" rollback",
+    "output_end": ": /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-825vlu5f/on/tickets.json: T-0001 has no due time; run scripts/backfill-due-times.js before enabling DUE_TIMES (the delivery, DUE_TIMES=on server did not start) rollback: 1 expectation(s) failed"
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/due_times_probe.py\" cli",
+    "output_end": "not start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-kfqmccub/tickets.json: T-0001 has no due time; run scripts/backfill-due-times.js before enabling DUE_TIMES (the delivery DUE_TIMES=on server did not start) cli: 1 expectation(s) failed"
+   }
+  ],
+  "versions": {
+   "source": "checkout",
+   "plugin_version": "4.3.0",
+   "shiploop_version": "2.5.0",
+   "plugin_sha256": "1f5e3fbf8a0f",
+   "local_head": "7296b215261e515a8f86ef0e5938bcc6c0cbb09c"
+  },
+  "boundary": {
+   "evaluator": "53412ea9d42b",
+   "oracle": "b32933f70500",
+   "case": "1f9bbcdded4d"
+  },
+  "host_build": "codex-cli 0.171.0",
+  "started": "14:24:31Z",
+  "ended": "14:39:05Z",
+  "minutes": 14.6,
+  "turns": 119,
+  "model_calls": 93,
+  "output_tokens": 30582,
+  "cost_usd": null,
+  "sessions": 1,
+  "resumes": 0,
+  "engine": {
+   "status": "done",
+   "stage": "done",
+   "revision": 30,
+   "report_html": true,
+   "runs": 1
+  },
+  "reviews": {
+   "children": 8,
+   "passes": 8,
+   "changed_something": 1
+  },
+  "trace": {
+   "commands": 48,
+   "refusals": 0,
+   "checks_failed": 2,
+   "crashed": 0
+  },
+  "gate_counts": {
+   "other": {
+    "fired": 1,
+    "caught": 1
+   },
+   "mutation_not_done": {
+    "fired": 1,
+    "caught": 1
+   },
+   "spec_writeback": {
+    "fired": 1,
+    "caught": 1
+   }
+  },
+  "committed": {
+   "pass": true,
+   "head": "fc8cc0a9acb75fd1fff75657f80ad95104dbe067",
+   "uncommitted": 0
+  },
+  "left_behind": {
+   "observed": true,
+   "reaped": 0,
+   "survived": 0
+  },
+  "load": {
+   "start": [
+    14.63,
+    12.67,
+    29.0
+   ],
+   "end": [
+    15.58,
+    8.39,
+    14.54
+   ]
+  },
+  "last_message": "Implemented ticket due times in version 1.5.0 on local `master`. Deadlines use configurable defaults of 4, 24, 72, and 168 hours by priority and stay fixed after assignment. With `DUE_TIMES=on`, ticket responses include `due`, and `GET /tickets?overdue=true` lists only open and in-progress tickets past their deadline.\n\nAll 123 tests passed, including the 117 existing tests unchanged. A rollback rehearsal confirmed that 1.4.0 could read every ticket in the new data file. The roll-forward restored the original deadlines and retained changes made during rollback.\n\nProduction rollout is pending. Run the offline backfill before enabling `DUE_TIMES=on`. [Rollout and rollback instructions](~/e2e-runs/r-20261122-ffb3fb/k2/work/docs/operations.md:27) \u00b7 [ShipLoop report](~/e2e-runs/r-20261122-ffb3fb/k2/.shiploop-runs/work-20261122-142505-548fbc/run/report.html)\n",
+  "return_kind": "fast-forward-merge",
+  "harness_reason": null,
+  "refusals": {
+   "count": 2,
+   "by_stage": {
+    "test": 1,
+    "document": 1
+   },
+   "naming_defaults": [],
+   "at_release_verify": []
+  },
+  "work_items": [
+   {
+    "id": "W1",
+    "title": "Ship persisted and gated ticket due times",
+    "regression_commands": [
+     "npm test"
+    ],
+    "steps": 1
+   }
+  ],
+  "consumer_checks": [
+   [
+    "npm test"
+   ]
+  ],
+  "release_stages": [
+   "release-plan:done",
+   "release:done",
+   "release-verify:done"
+  ],
+  "release_verify": [
+   {
+    "record": "nav-89c2104ae5da4b17bdb4123780058ed4-verify1.md",
+    "action_ended": "done",
+    "where": "returned-result",
+    "head": "ae7850265577",
+    "passed": true,
+    "disposition": "passed",
+    "runs": [
+     {
+      "added": false,
+      "suite": "regression",
+      "command": "npm test",
+      "status": "passed",
+      "exit": 0,
+      "ran": 123,
+      "seconds": 1.845
+     }
+    ]
+   }
+  ],
+  "done_packet": {
+   "packets_with_the_list": 1,
+   "file": "nav-61f8d35e84164646bbf4e50ab6a3a825.md",
+   "rows": 5,
+   "marked_changed": 0
+  },
+  "the_list": {
+   "recorded": true,
+   "rows": 5,
+   "questions": [
+    "R-1 How do operators configure hours?",
+    "R-2 What happens at the deadline and for other values?",
+    "R-3 How do operators prepare and reveal deadlines?",
+    "R-3 Where does the CLI show deadlines?",
+    "R-4 How can a rollback preserve original due values if 1.4.0 writes?"
+   ],
+   "entries": [
+    {
+     "alternative": "Use a JSON map setting.",
+     "default": "Set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL or DUE_HOURS_LOW to positive whole hours; empty uses defaults.",
+     "question": "How do operators configure hours?",
+     "requirement": "R-1",
+     "why": "Existing settings are environment variables."
+    },
+    {
+     "alternative": "Treat exact due time as overdue and reject other values.",
+     "default": "Only the literal true requests the filter, using a strictly past deadline and narrowing the existing listing.",
+     "question": "What happens at the deadline and for other values?",
+     "requirement": "R-2",
+     "why": "The request says the due time has passed and legacy unknown query values are ignored."
+    },
+    {
+     "alternative": "Backfill as part of enabled startup before listening.",
+     "default": "Run the offline command, then start with DUE_TIMES=on. An incomplete persisted file blocks enabled startup.",
+     "question": "How do operators prepare and reveal deadlines?",
+     "requirement": "R-3",
+     "why": "Separate operator steps directly follow the requested production ordering."
+    },
+    {
+     "alternative": "Make all CLI output add a column.",
+     "default": "Human list and show include due when enabled; the raw report stays stable.",
+     "question": "Where does the CLI show deadlines?",
+     "requirement": "R-3",
+     "why": "The documented report depends on its raw format."
+    },
+    {
+     "alternative": "Allow 1.4.0 writes to discard previously assigned deadlines.",
+     "default": "Keep a pre-rollback snapshot and supply it to the migration on roll-forward; merge only matching deadlines and calculate for other tickets.",
+     "question": "How can a rollback preserve original due values if 1.4.0 writes?",
+     "requirement": "R-4",
+     "why": "The legacy writer drops added fields and snapshots fit the existing backup workflow."
+    }
+   ],
+   "roll_back_rows": 1,
+   "next_stage_packets_with_the_block": 1,
+   "report_section": true,
+   "report_section_right_after_the_request": true
+  }
+ },
+ {
+  "name": "k3",
+  "case": "ticket-due-times",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "pass": false,
+  "outcome": "FAILED",
+  "basis": "engine done; at least one verdict failed",
+  "verdicts": {
+   "invoked": true,
+   "plugin": true,
+   "process": true,
+   "shiploop": true,
+   "committed": true
+  },
+  "checks_passed": 3,
+  "checks": 8,
+  "failed_checks": [
+   {
+    "command": "python3 \"$E2E_CHECKS/due_times_probe.py\" migrate",
+    "output_end": "19.680Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-u9u98u71/tickets.json: ticket T-0001 has no due time; run the due-time backfill first (the delivery DUE_TIMES=on server did not start) migrate: 1 expectation(s) failed"
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/due_times_probe.py\" restart",
+    "output_end": "-22T14:42:19.922Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-idy8sfdp/tickets.json: ticket T-0001 has no due time; run the due-time backfill first (the first start server did not start) restart: 1 expectation(s) failed"
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/due_times_probe.py\" switch",
+    "output_end": "-22T14:42:20.439Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-awdmvfsh/tickets.json: ticket T-0001 has no due time; run the due-time backfill first (the DUE_TIMES=on server did not start) switch: 1 expectation(s) failed"
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/due_times_probe.py\" rollback",
+    "output_end": "2Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-z759v17j/on/tickets.json: ticket T-0001 has no due time; run the due-time backfill first (the delivery, DUE_TIMES=on server did not start) rollback: 1 expectation(s) failed"
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/due_times_probe.py\" cli",
+    "output_end": ":42:22.531Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-yf7xno0w/tickets.json: ticket T-0001 has no due time; run the due-time backfill first (the delivery DUE_TIMES=on server did not start) cli: 1 expectation(s) failed"
+   }
+  ],
+  "versions": {
+   "source": "checkout",
+   "plugin_version": "4.3.0",
+   "shiploop_version": "2.5.0",
+   "plugin_sha256": "1f5e3fbf8a0f",
+   "local_head": "7296b215261e515a8f86ef0e5938bcc6c0cbb09c"
+  },
+  "boundary": {
+   "evaluator": "53412ea9d42b",
+   "oracle": "b32933f70500",
+   "case": "1f9bbcdded4d"
+  },
+  "host_build": "codex-cli 0.171.0",
+  "started": "14:24:31Z",
+  "ended": "14:42:15Z",
+  "minutes": 17.7,
+  "turns": 186,
+  "model_calls": 99,
+  "output_tokens": 34621,
+  "cost_usd": null,
+  "sessions": 1,
+  "resumes": 0,
+  "engine": {
+   "status": "done",
+   "stage": "done",
+   "revision": 34,
+   "report_html": true,
+   "runs": 1
+  },
+  "reviews": {
+   "children": 9,
+   "passes": 9,
+   "changed_something": 0
+  },
+  "trace": {
+   "commands": 64,
+   "refusals": 5,
+   "checks_failed": 2,
+   "crashed": 0
+  },
+  "gate_counts": {
+   "other": {
+    "fired": 3,
+    "caught": 3
+   },
+   "test_layers": {
+    "fired": 2,
+    "caught": 2
+   },
+   "mutation_not_done": {
+    "fired": 2,
+    "caught": 2
+   }
+  },
+  "committed": {
+   "pass": true,
+   "head": "0b0d542ba4285a0f2909542324fde183091324da",
+   "uncommitted": 0
+  },
+  "left_behind": {
+   "observed": true,
+   "reaped": 0,
+   "survived": 0
+  },
+  "load": {
+   "start": [
+    14.63,
+    12.67,
+    29.0
+   ],
+   "end": [
+    7.93,
+    7.75,
+    13.04
+   ]
+  },
+  "last_message": "Implemented ticket due times in release 1.5.0 and returned it to the local `master` branch. Deadlines are calculated once from creation time and configurable priority hours. With `DUE_TIMES=on`, the API exposes `due`, and `GET /tickets?overdue=true` returns only open or in-progress tickets whose deadlines have passed.\n\nAll 123 tests passed, including the 117 original tests unchanged. The unchanged 1.4.0 server also started on an upgraded file and returned every ticket in the rollback rehearsal.\n\nProduction rollout remains pending. Stop the writer and run the backfill before enabling `DUE_TIMES=on`. Keep a copy of the upgraded file before rolling back, because 1.4.0 drops the deadline fields when it saves. [Rollout and rollback instructions](~/e2e-runs/r-20261122-ffb3fb/k3/work/docs/operations.md#enable-ticket-due-times) \u00b7 [ShipLoop report](~/e2e-runs/r-20261122-ffb3fb/k3/.shiploop-runs/work-20261122-142452-a5b7a1/run/report.html)\n",
+  "return_kind": "fast-forward-merge",
+  "harness_reason": null,
+  "refusals": {
+   "count": 7,
+   "by_stage": {
+    "intake": 1,
+    "test-strategy": 2,
+    "plan": 2,
+    "test": 2
+   },
+   "naming_defaults": [],
+   "at_release_verify": []
+  },
+  "work_items": [
+   {
+    "id": "W1",
+    "title": "Persist and expose ticket due times with safe rollout",
+    "regression_commands": [
+     "npm test"
+    ],
+    "steps": 2
+   }
+  ],
+  "consumer_checks": [
+   [
+    "npm test",
+    "node ~/e2e-runs/r-20261122-ffb3fb/k3/.shiploop-runs/work-20261122-142452-a5b7a1/run/scratch/rehearse-rollback.js"
+   ]
+  ],
+  "release_stages": [
+   "release-plan:done",
+   "release:done",
+   "release-verify:done"
+  ],
+  "release_verify": [
+   {
+    "record": "nav-2077a9bf57e742b9a67a0a35add854a7-verify1.md",
+    "action_ended": "done",
+    "where": "returned-result",
+    "head": "afef73da92ea",
+    "passed": true,
+    "disposition": "passed",
+    "runs": [
+     {
+      "added": false,
+      "suite": "regression",
+      "command": "npm test",
+      "status": "passed",
+      "exit": 0,
+      "ran": 123,
+      "seconds": 0.937
+     },
+     {
+      "added": false,
+      "suite": "check",
+      "command": "node ~/e2e-runs/r-20261122-ffb3fb/k3/.shiploop-runs/work-20261122-142452-a5b7a1/run/scratch/rehearse-rollback.js",
+      "status": "passed",
+      "exit": 0,
+      "ran": null,
+      "seconds": 0.575
+     }
+    ]
+   }
+  ],
+  "done_packet": {
+   "packets_with_the_list": 1,
+   "file": "nav-5a1f528f8fa84978a3893d6e5db89856.md",
+   "rows": 3,
+   "marked_changed": 0
+  },
+  "the_list": {
+   "recorded": true,
+   "rows": 3,
+   "questions": [
+    "R-1 How do I set hours?",
+    "R-2 Is a ticket overdue at exactly its due timestamp?",
+    "R-3 How do I prepare a legacy file?"
+   ],
+   "entries": [
+    {
+     "alternative": "Use one JSON setting, requiring operators to format the whole policy as JSON.",
+     "default": "Use one DUE_HOURS_<PRIORITY> variable per priority, in positive whole hours.",
+     "question": "How do I set hours?",
+     "requirement": "R-1",
+     "why": "Per-priority settings match the service's environment configuration convention."
+    },
+    {
+     "alternative": "Include equality and show the ticket one millisecond sooner.",
+     "default": "It becomes overdue once the clock passes that timestamp.",
+     "question": "Is a ticket overdue at exactly its due timestamp?",
+     "requirement": "R-2",
+     "why": "The request says the due time has passed."
+    },
+    {
+     "alternative": "Auto-backfill during normal startup, coupling activation to the first migration write.",
+     "default": "Run an offline backfill against DATA_FILE using the existing stored priority, then enable.",
+     "question": "How do I prepare a legacy file?",
+     "requirement": "R-3",
+     "why": "The request places backfill before activation and the service has one writer."
+    }
+   ],
+   "roll_back_rows": 0,
+   "next_stage_packets_with_the_block": 1,
+   "report_section": true,
+   "report_section_right_after_the_request": true
+  }
+ },
+ {
+  "name": "k4",
+  "case": "ticket-due-times",
+  "host": "claude",
+  "model": "claude-sonnet-5-5",
+  "effort": "medium",
+  "pass": false,
+  "outcome": "FAILED",
+  "basis": "engine unknown; host is not resumable",
+  "verdicts": {
+   "invoked": true,
+   "plugin": true,
+   "process": true,
+   "shiploop": false,
+   "committed": true
+  },
+  "checks_passed": 8,
+  "checks": 8,
+  "failed_checks": [],
+  "versions": {
+   "source": "checkout",
+   "plugin_version": "4.3.0",
+   "shiploop_version": "2.5.0",
+   "plugin_sha256": "1f5e3fbf8a0f",
+   "local_head": "7296b215261e515a8f86ef0e5938bcc6c0cbb09c"
+  },
+  "boundary": {
+   "evaluator": "53412ea9d42b",
+   "oracle": "b32933f70500",
+   "case": "1f9bbcdded4d"
+  },
+  "host_build": "2.1.330",
+  "started": "14:24:31Z",
+  "ended": "14:51:40Z",
+  "minutes": 27.2,
+  "turns": 343,
+  "model_calls": 189,
+  "output_tokens": 209968,
+  "cost_usd": 9.8242,
+  "sessions": 1,
+  "resumes": 0,
+  "engine": {
+   "status": "done",
+   "stage": "done",
+   "revision": 48,
+   "report_html": true,
+   "runs": 2
+  },
+  "reviews": {
+   "children": null,
+   "passes": null,
+   "changed_something": null
+  },
+  "trace": {
+   "commands": null,
+   "refusals": null,
+   "checks_failed": null,
+   "crashed": null
+  },
+  "gate_counts": {
+   "test_layers": {
+    "fired": 1,
+    "caught": 1
+   },
+   "other": {
+    "fired": 5,
+    "caught": 4
+   },
+   "harness_runs": {
+    "fired": 1,
+    "caught": 1
+   },
+   "spec_writeback": {
+    "fired": 1,
+    "caught": 1
+   },
+   "base_run_not_done": {
+    "fired": 2,
+    "caught": 2
+   },
+   "mutation_not_done": {
+    "fired": 2,
+    "caught": 2
+   },
+   "concerns_gate": {
+    "fired": 1,
+    "caught": 0
+   },
+   "assumptions_due_item": {
+    "fired": 1,
+    "caught": 1
+   }
+  },
+  "committed": {
+   "pass": true,
+   "head": "9353c48731433e43195bc90bc4cea8363256ffc3",
+   "uncommitted": 0
+  },
+  "left_behind": {
+   "observed": true,
+   "reaped": 0,
+   "survived": 0
+  },
+  "load": {
+   "start": [
+    14.63,
+    12.67,
+    29.0
+   ],
+   "end": [
+    5.12,
+    6.11,
+    9.51
+   ]
+  },
+  "last_message": "ShipLoop narrative:\n\n#### \ud83d\udea2 ShipLoop \u2014 This directory is an existing Node.js service with no npm dependencies (README.md describ\u2026\nPreparation \u2713 \u00b7 Work items \u2713 \u00b7 Release \u2713\n\n**\ud83c\udfc1 Done** \u2014 the run is complete; the report is `report.html`.\n\nTickets now get a `due` time, and `GET /tickets?overdue=true` lists the open and in-progress tickets past due. I checked this with tests, a real running service and a copy of the real 1.4.0 code; nothing has touched your production data file or been deployed. `npm test` passes all 166 tests, including your 117 existing ones, which I didn't change.\n\nThe work is on `master` as a fast-forward from `d6108f5`, with a clean tree, as version 1.5.0.\n\n## What it does\n- **Due time:** a new ticket's `due` is its creation time plus 4, 24, 72 or 168 hours for urgent, high, normal or low. The help desk changes the hours with `DUE_HOURS_URGENT`, `DUE_HOURS_HIGH`, `DUE_HOURS_NORMAL` and `DUE_HOURS_LOW`, each a whole number from 1 to 87600. `due` is set once: changing the priority or the hours later does not move it.\n- **Existing tickets:** at the first start, every ticket in the data file without a `due` gets one from its own creation time and priority. The file is saved right away, whatever `DUE_TIMES` says, so it holds the due times before you switch them on.\n- **The switch:** only the exact value `DUE_TIMES=on` shows `due` and reads `?overdue`. Otherwise the service answers exactly as 1.4.0 does.\n- **Going back to 1.4.0:** the data file stays `\"version\": 1` with `due` as an optional extra field. The real 1.4.0 code starts on a file the new release wrote and shows every ticket.\n- **Tests:** the five new test files cover each of these behaviours, and one starts the real service process.\n- **Docs:** README, the API doc, the operations doc (rollout and rollback steps), the changelog and a new decision record 0009 are updated.\n\n## Choices I made where you were silent\n- **Overdue filter:** `overdue=false` means no filter, and any other value is a 400.\n- **Command line:** `bin/tickets.js` and the weekly report do not show due times.\n\n## Things to know\n- **Rollback loses due times:** 1.4.0 drops `due` at its first save. When you go forward again, the new release recomputes it from creation time and the hours set at that point. This is documented in `docs/operations.md`.\n- **Pre-existing docs mismatch, left alone:** `docs/api.md` says combined list filters are ANDed, but the code ORs `status` and `priority`. The new `overdue` filter is a true AND.\n\n## For the operators\nTwo things I could not observe without your production file, both with documented steps in `docs/operations.md`:\n- Deploy with `DUE_TIMES` unset, run the `check-due` command and expect `0`, then set `DUE_TIMES=on`.\n- If the release misbehaves, start 1.4.0 on the same data file; try it on a copy first.\n\nOne thing I got wrong first: my first run started from a paraphrase of your request instead of your exact text. I started a fresh run with your exact text; the first run's directory is still on disk, unused.\n\nThe progress page is at `~/e2e-runs/r-20261122-ffb3fb/k4/.shiploop-runs/work-20261122-142444-b50915/run/progress.html`.",
+  "return_kind": null,
+  "harness_reason": "ambiguous: 2 ShipLoop runs under the output directory and nothing records or names the one this invocation created",
+  "run_read": "the harness names no run (2 run folders); read here: the one with the longest history, work-20261122-142444-b50915",
+  "refusals": {
+   "count": 13,
+   "by_stage": {
+    "test-strategy": 1,
+    "plan": 1,
+    "prepare": 1,
+    "step-plan": 3,
+    "document": 1,
+    "implement": 1,
+    "test": 5
+   },
+   "naming_defaults": [],
+   "at_release_verify": []
+  },
+  "work_items": [
+   {
+    "id": "W1",
+    "title": "Due times in the service: compute, store, backfill, expose and filter (flag-gate",
+    "regression_commands": [
+     "npm test"
+    ],
+    "steps": 2
+   },
+   {
+    "id": "W2",
+    "title": "Rollback proof: frozen 1.4.0 fixture and DT-8",
+    "regression_commands": [
+     "npm test"
+    ],
+    "steps": 1
+   },
+   {
+    "id": "W3",
+    "title": "Release documentation: README, API, operations, CHANGELOG, version 1.5.0, decisi",
+    "regression_commands": [
+     "npm test"
+    ],
+    "steps": 1
+   }
+  ],
+  "consumer_checks": [
+   [
+    "node --test test/due-system.test.js test/rollback.test.js test/due-operations.test.js"
+   ]
+  ],
+  "release_stages": [
+   "release-plan:done",
+   "release:done",
+   "release-verify:done"
+  ],
+  "release_verify": [
+   {
+    "record": "nav-61fcb124b6874219bb14aeed9b9872f6-verify1.md",
+    "action_ended": "done",
+    "where": "returned-result",
+    "head": "88c6c6d6fc23",
+    "passed": true,
+    "disposition": "passed",
+    "runs": [
+     {
+      "added": false,
+      "suite": "check",
+      "command": "node --test test/due-system.test.js test/rollback.test.js test/due-operations.test.js",
+      "status": "passed",
+      "exit": 0,
+      "ran": 8,
+      "seconds": 0.558
+     },
+     {
+      "added": true,
+      "suite": "regression",
+      "command": "npm test",
+      "status": "passed",
+      "exit": 0,
+      "ran": 166,
+      "seconds": 0.775
+     }
+    ]
+   }
+  ],
+  "done_packet": {
+   "packets_with_the_list": 1,
+   "file": "nav-b53842d9a2164eea97291f62f678f273.md",
+   "rows": 6,
+   "marked_changed": 0
+  },
+  "the_list": {
+   "recorded": true,
+   "rows": 6,
+   "questions": [
+    "R-2 How does the help desk set the hours without a code change, and how large may they be?",
+    "R-5 What does overdue=false or another value of overdue do?",
+    "R-6 When do the existing production tickets get their due times, given the switch is turned on only afterwards?",
+    "R-7 Which values of DUE_TIMES switch due times on?",
+    "R-8 What happens to due times when operators roll back to 1.4.0 and later forward again?",
+    "R-7 Does the command line show due times?"
+   ],
+   "entries": [
+    {
+     "alternative": "A hours file (JSON) the service reads at start: adds a file to manage; or no upper bound, which lets a huge value crash ticket creation.",
+     "default": "Four environment variables DUE_HOURS_URGENT/HIGH/NORMAL/LOW, whole hours from 1 to 87600 (ten years), read at start; unset keeps 4/24/72/168; a value outside that range or not a number stops the service at start naming the variable.",
+     "question": "How does the help desk set the hours without a code change, and how large may they be?",
+     "requirement": "R-2",
+     "why": "The README says every setting is an environment variable; the upper bound keeps created+hours inside the Date range."
+    },
+    {
+     "alternative": "Treat every value other than true as no filter: fewer errors for clients, but a typo like overdue=ture silently lists every ticket.",
+     "default": "overdue=false means no filter; any other value is rejected 400 in the error envelope; unknown values of other parameters are still ignored as today.",
+     "question": "What does overdue=false or another value of overdue do?",
+     "requirement": "R-5",
+     "why": "status, priority and limit already reject bad values with 400."
+    },
+    {
+     "alternative": "A separate one-time migration command operators run: one more step to remember and a service that would start without due times.",
+     "default": "At the first start of the new release on the data file, whether DUE_TIMES is on or off; the file is saved at once if any ticket was backfilled; operators deploy with DUE_TIMES off, check the file holds due, then set on.",
+     "question": "When do the existing production tickets get their due times, given the switch is turned on only afterwards?",
+     "requirement": "R-6",
+     "why": "The request says the file must hold the due times before the switch; the service already owns and rewrites the file."
+    },
+    {
+     "alternative": "Accept on/ON/1/true: friendlier, but a stray value could expose due times early.",
+     "default": "Only the exact value on; unset, empty or anything else (even ON or 1) leaves them off and the service answers as today.",
+     "question": "Which values of DUE_TIMES switch due times on?",
+     "requirement": "R-7",
+     "why": "The request names the value `on` and wants today's answers otherwise."
+    },
+    {
+     "alternative": "Add a second version-1 field or sidecar file that 1.4.0 preserves: keeps original due times across a rollback but is a larger change to the format with no way for 1.4.0 to preserve it.",
+     "default": "1.4.0 starts and shows every ticket but drops due times at its first save; the new release backfills them again on the next start from created and the hours then configured. Documented for operators.",
+     "question": "What happens to due times when operators roll back to 1.4.0 and later forward again?",
+     "requirement": "R-8",
+     "why": "1.4.0 cannot be changed, and a format change would stop it starting."
+    },
+    {
+     "alternative": "Show due in `show` when DUE_TIMES=on: operators see it, but the command line would need to read the switch and the request does not ask for it.",
+     "default": "No: bin/tickets.js, its table and `list --raw` stay exactly as today, with the flag on or off.",
+     "question": "Does the command line show due times?",
+     "requirement": "R-7",
+     "why": "The request lists the API only, and the weekly report reads raw columns by position."
+    }
+   ],
+   "roll_back_rows": 1,
+   "next_stage_packets_with_the_block": 1,
+   "report_section": true,
+   "report_section_right_after_the_request": true
+  }
+ }
+]

@@ -1,0 +1,140 @@
+== k1: hello | codex gpt-6.2-sol medium | PASS (every verdict passed)
+   verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True} | case checks 2 of 2
+   build: skill-craft 4.3.0 / ShipLoop 2.5.0, source checkout, fingerprint 1f5e3fbf8a0f, commit 7296b215261e515a8f86ef0e5938bcc6c0cbb09c | evaluator 53412ea9d42b, oracle b32933f70500 | codex-cli 0.171.0
+   14:24:31Z to 14:32:06Z, 7.6 minutes | sessions 1, resumes 0 | turns 122, model calls 62, output tokens 14593, cost None
+   engine done at done, revision 30, report True, run folders 1 | reviews {'children': 8, 'passes': 8, 'changed_something': 0} | trace {'commands': 51, 'refusals': 0, 'checks_failed': 0, 'crashed': 0}
+   refused commands: 0 {} | naming defaults: 0
+   work item W1 (Add the exact greeting and its unittest): 1 steps, regression commands ['python3 -B -m unittest -v']
+   release-plan recorded consumer checks: ['python3 -B -c \'import subprocess, sys; result = subprocess.run([sys.executable, "hello.py"], check=True, captu', 'python3 -B -m unittest -v']
+   release stages in order: release-plan:done release:done release-verify:done
+   release-verify nav-68c855dfda8e4a6aaf22ce383654708e-verify1.md: the action ended done; in returned-result; returned head ee38c97829b9; passed True (passed)
+      check [check] python3 -B -c 'import subprocess, sys; result = subprocess.run([sys.executable, "hello.py"], check=T -> passed, exit 0, ran None, 0.036 s
+      check [check] python3 -B -m unittest -v -> passed, exit 0, ran 1, 0.054 s
+   the list: recorded True, rows 1, rows that name a roll-back 0; next-stage packets with the block 1; report section True, right after the request True
+      1. R-1 Should the greeting end with a newline?
+   the done packet's list: {'packets_with_the_list': 1, 'file': 'nav-2fa7afbce80c4a55bd588fd47ae54880.md', 'rows': 1, 'marked_changed': 0}
+   returned checkout: committed {'pass': True, 'head': 'ff8c392064f8dfb0b6059742d7481be7bd149fe3', 'uncommitted': 0} | left behind {'observed': True, 'reaped': 0, 'survived': 0} | load {'start': [14.63, 12.67, 29.0], 'end': [4.81, 6.33, 18.82]}
+   the host's last message to the user:
+      | Created [hello.py](~/e2e-runs/r-20261122-ffb3fb/k1/work/hello.py), which prints `Hello, world!` with one trailing newline, and [test_hello.py](~/e2e-runs/r-20261122-ffb3fb/k1/work/test_hello.py), which verifies the exact stdout.
+      | 
+      | `python3 -B -m unittest -v` passed one test in the original checkout. ShipLoop completed and recorded the newline choice in its [achievement report](~/e2e-runs/r-20261122-ffb3fb/k1/.shiploop-runs/work-20261122-142445-860e63/run/report.html).
+== k2: ticket-due-times | codex gpt-6.2-sol medium | FAILED (engine done; at least one verdict failed)
+   verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True} | case checks 3 of 8
+   FAILED CHECK ...python3 "$E2E_CHECKS/due_times_probe.py" migrate | ...start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-ae9odtwy/tickets.json: T-0001 has no due time; run scripts/backfill-due-times.js before enabling DUE_TIMES (the delivery DUE_TIMES=on server did not start) migrate: 1 expectation(s) failed
+   FAILED CHECK ...python3 "$E2E_CHECKS/due_times_probe.py" restart | ...or cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-uxisimle/tickets.json: T-0001 has no due time; run scripts/backfill-due-times.js before enabling DUE_TIMES (the first start server did not start) restart: 1 expectation(s) failed
+   FAILED CHECK ...python3 "$E2E_CHECKS/due_times_probe.py" switch | ...or cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-pvoxcqjb/tickets.json: T-0001 has no due time; run scripts/backfill-due-times.js before enabling DUE_TIMES (the DUE_TIMES=on server did not start) switch: 1 expectation(s) failed
+   FAILED CHECK ...python3 "$E2E_CHECKS/due_times_probe.py" rollback | ...: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-825vlu5f/on/tickets.json: T-0001 has no due time; run scripts/backfill-due-times.js before enabling DUE_TIMES (the delivery, DUE_TIMES=on server did not start) rollback: 1 expectation(s) failed
+   FAILED CHECK ...python3 "$E2E_CHECKS/due_times_probe.py" cli | ...not start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-kfqmccub/tickets.json: T-0001 has no due time; run scripts/backfill-due-times.js before enabling DUE_TIMES (the delivery DUE_TIMES=on server did not start) cli: 1 expectation(s) failed
+   build: skill-craft 4.3.0 / ShipLoop 2.5.0, source checkout, fingerprint 1f5e3fbf8a0f, commit 7296b215261e515a8f86ef0e5938bcc6c0cbb09c | evaluator 53412ea9d42b, oracle b32933f70500 | codex-cli 0.171.0
+   14:24:31Z to 14:39:05Z, 14.6 minutes | sessions 1, resumes 0 | turns 119, model calls 93, output tokens 30582, cost None
+   engine done at done, revision 30, report True, run folders 1 | reviews {'children': 8, 'passes': 8, 'changed_something': 1} | trace {'commands': 48, 'refusals': 0, 'checks_failed': 2, 'crashed': 0}
+   refused commands: 2 {'test': 1, 'document': 1} | naming defaults: 0
+   work item W1 (Ship persisted and gated ticket due times): 1 steps, regression commands ['npm test']
+   release-plan recorded consumer checks: ['npm test']
+   release stages in order: release-plan:done release:done release-verify:done
+   release-verify nav-89c2104ae5da4b17bdb4123780058ed4-verify1.md: the action ended done; in returned-result; returned head ae7850265577; passed True (passed)
+      check [regression] npm test -> passed, exit 0, ran 123, 1.845 s
+   the list: recorded True, rows 5, rows that name a roll-back 1; next-stage packets with the block 1; report section True, right after the request True
+      1. R-1 How do operators configure hours?
+      2. R-2 What happens at the deadline and for other values?
+      3. R-3 How do operators prepare and reveal deadlines?
+      4. R-3 Where does the CLI show deadlines?
+      5. R-4 How can a rollback preserve original due values if 1.4.0 writes?
+   the done packet's list: {'packets_with_the_list': 1, 'file': 'nav-61f8d35e84164646bbf4e50ab6a3a825.md', 'rows': 5, 'marked_changed': 0}
+   returned checkout: committed {'pass': True, 'head': 'fc8cc0a9acb75fd1fff75657f80ad95104dbe067', 'uncommitted': 0} | left behind {'observed': True, 'reaped': 0, 'survived': 0} | load {'start': [14.63, 12.67, 29.0], 'end': [15.58, 8.39, 14.54]}
+   the host's last message to the user:
+      | Implemented ticket due times in version 1.5.0 on local `master`. Deadlines use configurable defaults of 4, 24, 72, and 168 hours by priority and stay fixed after assignment. With `DUE_TIMES=on`, ticket responses include `due`, and `GET /tickets?overdue=true` lists only open and in-progress tickets past their deadline.
+      | 
+      | All 123 tests passed, including the 117 existing tests unchanged. A rollback rehearsal confirmed that 1.4.0 could read every ticket in the new data file. The roll-forward restored the original deadlines and retained changes made during rollback.
+      | 
+      | Production rollout is pending. Run the offline backfill before enabling `DUE_TIMES=on`. [Rollout and rollback instructions](~/e2e-runs/r-20261122-ffb3fb/k2/work/docs/operations.md:27) · [ShipLoop report](~/e2e-runs/r-20261122-ffb3fb/k2/.shiploop-runs/work-20261122-142505-548fbc/run/report.html)
+== k3: ticket-due-times | codex gpt-6.2-sol medium | FAILED (engine done; at least one verdict failed)
+   verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True} | case checks 3 of 8
+   FAILED CHECK ...python3 "$E2E_CHECKS/due_times_probe.py" migrate | ...19.680Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-u9u98u71/tickets.json: ticket T-0001 has no due time; run the due-time backfill first (the delivery DUE_TIMES=on server did not start) migrate: 1 expectation(s) failed
+   FAILED CHECK ...python3 "$E2E_CHECKS/due_times_probe.py" restart | ...-22T14:42:19.922Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-idy8sfdp/tickets.json: ticket T-0001 has no due time; run the due-time backfill first (the first start server did not start) restart: 1 expectation(s) failed
+   FAILED CHECK ...python3 "$E2E_CHECKS/due_times_probe.py" switch | ...-22T14:42:20.439Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-awdmvfsh/tickets.json: ticket T-0001 has no due time; run the due-time backfill first (the DUE_TIMES=on server did not start) switch: 1 expectation(s) failed
+   FAILED CHECK ...python3 "$E2E_CHECKS/due_times_probe.py" rollback | ...2Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-z759v17j/on/tickets.json: ticket T-0001 has no due time; run the due-time backfill first (the delivery, DUE_TIMES=on server did not start) rollback: 1 expectation(s) failed
+   FAILED CHECK ...python3 "$E2E_CHECKS/due_times_probe.py" cli | ...:42:22.531Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-yf7xno0w/tickets.json: ticket T-0001 has no due time; run the due-time backfill first (the delivery DUE_TIMES=on server did not start) cli: 1 expectation(s) failed
+   build: skill-craft 4.3.0 / ShipLoop 2.5.0, source checkout, fingerprint 1f5e3fbf8a0f, commit 7296b215261e515a8f86ef0e5938bcc6c0cbb09c | evaluator 53412ea9d42b, oracle b32933f70500 | codex-cli 0.171.0
+   14:24:31Z to 14:42:15Z, 17.7 minutes | sessions 1, resumes 0 | turns 186, model calls 99, output tokens 34621, cost None
+   engine done at done, revision 34, report True, run folders 1 | reviews {'children': 9, 'passes': 9, 'changed_something': 0} | trace {'commands': 64, 'refusals': 5, 'checks_failed': 2, 'crashed': 0}
+   refused commands: 7 {'intake': 1, 'test-strategy': 2, 'plan': 2, 'test': 2} | naming defaults: 0
+   work item W1 (Persist and expose ticket due times with safe rollout): 2 steps, regression commands ['npm test']
+   release-plan recorded consumer checks: ['npm test', 'node ~/e2e-runs/r-20261122-ffb3fb/k3/.shiploop-runs/work-20261122-142452-a5b7a1/run/scratch/rehearse-rollback.']
+   release stages in order: release-plan:done release:done release-verify:done
+   release-verify nav-2077a9bf57e742b9a67a0a35add854a7-verify1.md: the action ended done; in returned-result; returned head afef73da92ea; passed True (passed)
+      check [regression] npm test -> passed, exit 0, ran 123, 0.937 s
+      check [check] node ~/e2e-runs/r-20261122-ffb3fb/k3/.shiploop-runs/work-20261122-142452-a5b7a1/run/scratch/rehearse -> passed, exit 0, ran None, 0.575 s
+   the list: recorded True, rows 3, rows that name a roll-back 0; next-stage packets with the block 1; report section True, right after the request True
+      1. R-1 How do I set hours?
+      2. R-2 Is a ticket overdue at exactly its due timestamp?
+      3. R-3 How do I prepare a legacy file?
+   the done packet's list: {'packets_with_the_list': 1, 'file': 'nav-5a1f528f8fa84978a3893d6e5db89856.md', 'rows': 3, 'marked_changed': 0}
+   returned checkout: committed {'pass': True, 'head': '0b0d542ba4285a0f2909542324fde183091324da', 'uncommitted': 0} | left behind {'observed': True, 'reaped': 0, 'survived': 0} | load {'start': [14.63, 12.67, 29.0], 'end': [7.93, 7.75, 13.04]}
+   the host's last message to the user:
+      | Implemented ticket due times in release 1.5.0 and returned it to the local `master` branch. Deadlines are calculated once from creation time and configurable priority hours. With `DUE_TIMES=on`, the API exposes `due`, and `GET /tickets?overdue=true` returns only open or in-progress tickets whose deadlines have passed.
+      | 
+      | All 123 tests passed, including the 117 original tests unchanged. The unchanged 1.4.0 server also started on an upgraded file and returned every ticket in the rollback rehearsal.
+      | 
+      | Production rollout remains pending. Stop the writer and run the backfill before enabling `DUE_TIMES=on`. Keep a copy of the upgraded file before rolling back, because 1.4.0 drops the deadline fields when it saves. [Rollout and rollback instructions](~/e2e-runs/r-20261122-ffb3fb/k3/work/docs/operations.md#enable-ticket-due-times) · [ShipLoop report](~/e2e-runs/r-20261122-ffb3fb/k3/.shiploop-runs/work-20261122-142452-a5b7a1/run/report.html)
+== k4: ticket-due-times | claude claude-sonnet-5-5 medium | FAILED (engine unknown; host is not resumable)
+   verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': False, 'committed': True} | case checks 8 of 8
+   build: skill-craft 4.3.0 / ShipLoop 2.5.0, source checkout, fingerprint 1f5e3fbf8a0f, commit 7296b215261e515a8f86ef0e5938bcc6c0cbb09c | evaluator 53412ea9d42b, oracle b32933f70500 | 2.1.330
+   14:24:31Z to 14:51:40Z, 27.2 minutes | sessions 1, resumes 0 | turns 343, model calls 189, output tokens 209968, cost 9.8242
+   the harness on the ShipLoop run: ambiguous: 2 ShipLoop runs under the output directory and nothing records or names the one this invocation created
+   the harness names no run (2 run folders); read here: the one with the longest history, work-20261122-142444-b50915
+   engine done at done, revision 48, report True, run folders 2 | reviews {'children': None, 'passes': None, 'changed_something': None} | trace {'commands': None, 'refusals': None, 'checks_failed': None, 'crashed': None}
+   refused commands: 13 {'test-strategy': 1, 'plan': 1, 'prepare': 1, 'step-plan': 3, 'document': 1, 'implement': 1, 'test': 5} | naming defaults: 0
+   work item W1 (Due times in the service: compute, store, backfill, expose and filter (flag-gate): 2 steps, regression commands ['npm test']
+   work item W2 (Rollback proof: frozen 1.4.0 fixture and DT-8): 1 steps, regression commands ['npm test']
+   work item W3 (Release documentation: README, API, operations, CHANGELOG, version 1.5.0, decisi): 1 steps, regression commands ['npm test']
+   release-plan recorded consumer checks: ['node --test test/due-system.test.js test/rollback.test.js test/due-operations.test.js']
+   release stages in order: release-plan:done release:done release-verify:done
+   release-verify nav-61fcb124b6874219bb14aeed9b9872f6-verify1.md: the action ended done; in returned-result; returned head 88c6c6d6fc23; passed True (passed)
+      check [check] node --test test/due-system.test.js test/rollback.test.js test/due-operations.test.js -> passed, exit 0, ran 8, 0.558 s
+      ADDED BY SHIPLOOP [regression] npm test -> passed, exit 0, ran 166, 0.775 s
+   the list: recorded True, rows 6, rows that name a roll-back 1; next-stage packets with the block 1; report section True, right after the request True
+      1. R-2 How does the help desk set the hours without a code change, and how large may they be?
+      2. R-5 What does overdue=false or another value of overdue do?
+      3. R-6 When do the existing production tickets get their due times, given the switch is turned on only afterwards?
+      4. R-7 Which values of DUE_TIMES switch due times on?
+      5. R-8 What happens to due times when operators roll back to 1.4.0 and later forward again?
+      6. R-7 Does the command line show due times?
+   the done packet's list: {'packets_with_the_list': 1, 'file': 'nav-b53842d9a2164eea97291f62f678f273.md', 'rows': 6, 'marked_changed': 0}
+   returned checkout: committed {'pass': True, 'head': '9353c48731433e43195bc90bc4cea8363256ffc3', 'uncommitted': 0} | left behind {'observed': True, 'reaped': 0, 'survived': 0} | load {'start': [14.63, 12.67, 29.0], 'end': [5.12, 6.11, 9.51]}
+   the host's last message to the user:
+      | ShipLoop narrative:
+      | 
+      | #### 🚢 ShipLoop — This directory is an existing Node.js service with no npm dependencies (README.md describ…
+      | Preparation ✓ · Work items ✓ · Release ✓
+      | 
+      | **🏁 Done** — the run is complete; the report is `report.html`.
+      | 
+      | Tickets now get a `due` time, and `GET /tickets?overdue=true` lists the open and in-progress tickets past due. I checked this with tests, a real running service and a copy of the real 1.4.0 code; nothing has touched your production data file or been deployed. `npm test` passes all 166 tests, including your 117 existing ones, which I didn't change.
+      | 
+      | The work is on `master` as a fast-forward from `d6108f5`, with a clean tree, as version 1.5.0.
+      | 
+      | ## What it does
+      | - **Due time:** a new ticket's `due` is its creation time plus 4, 24, 72 or 168 hours for urgent, high, normal or low. The help desk changes the hours with `DUE_HOURS_URGENT`, `DUE_HOURS_HIGH`, `DUE_HOURS_NORMAL` and `DUE_HOURS_LOW`, each a whole number from 1 to 87600. `due` is set once: changing the priority or the hours later does not move it.
+      | - **Existing tickets:** at the first start, every ticket in the data file without a `due` gets one from its own creation time and priority. The file is saved right away, whatever `DUE_TIMES` says, so it holds the due times before you switch them on.
+      | - **The switch:** only the exact value `DUE_TIMES=on` shows `due` and reads `?overdue`. Otherwise the service answers exactly as 1.4.0 does.
+      | - **Going back to 1.4.0:** the data file stays `"version": 1` with `due` as an optional extra field. The real 1.4.0 code starts on a file the new release wrote and shows every ticket.
+      | - **Tests:** the five new test files cover each of these behaviours, and one starts the real service process.
+      | - **Docs:** README, the API doc, the operations doc (rollout and rollback steps), the changelog and a new decision record 0009 are updated.
+      | 
+      | ## Choices I made where you were silent
+      | - **Overdue filter:** `overdue=false` means no filter, and any other value is a 400.
+      | - **Command line:** `bin/tickets.js` and the weekly report do not show due times.
+      | 
+      | ## Things to know
+      | - **Rollback loses due times:** 1.4.0 drops `due` at its first save. When you go forward again, the new release recomputes it from creation time and the hours set at that point. This is documented in `docs/operations.md`.
+      | - **Pre-existing docs mismatch, left alone:** `docs/api.md` says combined list filters are ANDed, but the code ORs `status` and `priority`. The new `overdue` filter is a true AND.
+      | 
+      | ## For the operators
+      | Two things I could not observe without your production file, both with documented steps in `docs/operations.md`:
+      | - Deploy with `DUE_TIMES` unset, run the `check-due` command and expect `0`, then set `DUE_TIMES=on`.
+      | - If the release misbehaves, start 1.4.0 on the same data file; try it on a copy first.
+      | 
+      | One thing I got wrong first: my first run started from a paraphrase of your request instead of your exact text. I started a fresh run with your exact text; the first run's directory is still on disk, unused.
+      | 
+      | The progress page is at `~/e2e-runs/r-20261122-ffb3fb/k4/.shiploop-runs/work-20261122-142444-b50915/run/progress.html`.

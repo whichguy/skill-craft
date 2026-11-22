@@ -528,3 +528,33 @@ first and is a smoke reading only; the round is read when all four have ended.
 
 **What this round cannot show.** A Grok delivery; another case family; anything about the requester's answer (no
 reply is sent); a right refusal at release-verify.
+
+### The round's result (written 2026-11-22, 06:58)
+
+Four deliveries, 06:24 to 06:52, from 7296b215261e515a8f86ef0e5938bcc6c0cbb09c. The table and every value are in
+`test/shiploop_e2e/LEARNINGS.md` (2026-11-22) and `evidence/round-merged/`.
+
+| rule | result |
+| --- | --- |
+| 1. five verdicts and every case check | **not met**: k1 passes; k2 and k3 pass the verdicts and 3 of 8 case checks; k4 passes 8 of 8 and fails the `shiploop` verdict |
+| 2. not stopped by the list's gate | met: no refused command names `defaults` |
+| 3. the list in the spec result, the done packet and the report | met: 1, 5, 3 and 6 rows, each shown in all three places |
+| 4. no wrong refusal at release-verify | met: each accepted at its one attempt; in k4 ShipLoop added `npm test` and 166 tests pass in the clean copy |
+
+By the registration the combination is not accepted and nothing is pushed or released on this result; the owner
+was told and decides.
+
+What failed rule 1, read from the deliveries. k2 and k3 chose a separate backfill command and a refusal to start,
+the reading the owner ruled wrong, and the five checks that start the service on a file without due times fail. In
+both, that choice is row 3 of the list with the checks' answer as its alternative. k4's session started ShipLoop
+twice (a paraphrase of the request, then the exact text), and the harness grades neither run folder.
+
+What that says about the candidate. Nothing new against it and nothing for it beyond section 7: the spec packet is
+byte for byte the one wave 2 read (`evidence/round-merged/packet-identity.txt`); the start-up choice is taken as
+often as before the list (four of eight against four of eleven); and the list did what it is for in both failing
+deliveries, to no effect, because nobody was there to answer. Section 7's last point stands harder than before:
+the route for the requester's answer is the half that could change what is built.
+
+What it says about the rule. It held a round about two changes to the case's held-out checks, which the released
+product misses about four times in ten here. That count is in section 1 of this document. The journal records the
+lesson as F65.

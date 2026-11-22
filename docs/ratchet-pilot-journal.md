@@ -4546,3 +4546,68 @@ combination is accepted, and released, if all four hold:
 The rows, an added command at release-verify, times, cost and the hosts' last messages are described, not rules. If
 any of the four fails, nothing is pushed or released and the owner is told. Not shown by this round: Grok, another
 case family, the requester's answer, a right refusal at release-verify.
+
+### The round on the combined tree: both changes do their part, and three deliveries of four miss the round's first rule (2026-11-22, 06:58)
+
+Four whole deliveries built from 7296b215261e515a8f86ef0e5938bcc6c0cbb09c, 06:24 to 06:52: `hello` (k1) and two of
+`ticket-due-times` (k2, k3) on Codex with gpt-6.2-sol, one of `ticket-due-times` (k4) on Claude Code with
+claude-sonnet-5-5, all at medium, no requester. The whole entry, with its table, is in
+`test/shiploop_e2e/LEARNINGS.md` under 2026-11-22; every value with its file is in
+`docs/experiments/ratchet-pilot-20261120/shiploop-defaults/evidence/round-merged/`.
+
+**Against the registration.**
+
+- **Rule 1 (the five verdicts and every case check): not met; one delivery of four passes it.** k1 passes
+  everything. k2 and k3 pass the verdicts and 3 of 8 case checks: both specifications chose a separate backfill
+  command and a refusal to start, and the five checks that start the service on a file without due times fail. k4
+  passes 8 of 8 and fails the `shiploop` verdict: its session started ShipLoop twice, first with a paraphrase of
+  the request and within ten seconds again with the exact text, and the harness grades neither folder. No check was
+  lost to the fixture's hang.
+- **Rule 2 (not stopped by the list's gate): met.** No refused command names `defaults` in any of the four.
+- **Rule 3 (the list in the spec result, the done packet and the report): met.** 1, 5, 3 and 6 rows; each next
+  packet printed its block, each done packet lists the same rows, each report has "Decided for you" right after the
+  request. For k4 this was read from the run folder with the longer history.
+- **Rule 4 (no wrong refusal at release-verify): met.** Each delivery was accepted there at its one attempt. In k4
+  ShipLoop added `npm test` to a consumer check of three files and 166 tests pass in the clean copy.
+
+So by the rule fixed beforehand the combination is not accepted, and nothing is pushed or released on the round's
+result. The owner was told as each delivery ended, and the decision to release or hold was put to the owner.
+
+**My reading, kept apart from the rules.** None of the three misses is traced to the merge. The spec and
+test-strategy packets of this build are byte for byte the candidate's before the merge
+(`evidence/round-merged/packet-identity.txt`), so k2 and k3 read the instruction wave 2 read. The start-up choice
+is taken at the released product's rate: four of eleven archived Sol deliveries, four of eight with the list. The
+double start is the host session's; neither change touches how a run starts.
+
+- **F64. The list shows the choice that fails a delivery, and showing it changes nothing when nobody answers.** In
+  k2 and k3 the start-up choice is row 3, with the answer the held-out checks expect as its alternative ("Backfill
+  as part of enabled startup before listening"; "Auto-backfill during normal startup"). No requester was in the
+  round, the choice stood, and five checks fail, as in d3. What the list is worth depends on the requester reading
+  it and on the answer taking effect, which is F61 and is not built.
+- **F63, corrected.** Its lead, that asking for "what happens if they do not" may turn an author away from a
+  refusal, is gone: under the same text, two of two here chose it (two of five over wave 2 and this round, against
+  four of eleven in the archive). The reworded text has now met a refusal row twice: k2's states the consequence
+  ("An incomplete persisted file blocks enabled startup"), k3's stops at "then enable".
+- **F65. A rule on held-out checks needs the released product's rate on them before it is registered.** Rule 1
+  held four deliveries to checks the released product misses about four times in ten on this case and model. I had
+  that count (section 27, the baseline) and wrote "every case check" all the same, so a round that asked whether two
+  changes disturb each other was decided by a fault neither change touches. It is read as registered. Next time the
+  rule is the verdicts plus the archive's rate on the case checks, or the checks the change can move.
+
+**From the session "Spec elaboration" (two messages between 06:30 and 06:50), recorded as its reading with my
+check.** In
+the six Sol deliveries of 2026-11-21 no row of 21 says what a roll-back to 1.4.0 loses, though by its reading five
+of the six specifications do, and a separate lister puts that decision first 27 times of 27. A word search on my
+evidence files finds no row of the 21 that names a roll-back at all; the Sonnet delivery's row 5 does. In this
+round a row names it in k2 and k4 and not in k3. The instruction covers such a line ("a step they must take"), so
+this is about what the author picks. Its proposal (`docs/experiments/spec-elaboration-20261120/PROPOSAL-shiploop.md`,
+on main in 8803536bb977f1bf9d090965dad573ccd8ec5abf) takes this list as the list and puts one question to the
+owner.
+
+**Two process notes.** The count of stray servers before the round found one of mine: a `node src/server.js` from
+the program of section 26, in my scratch folder, parentless since 2026-11-21 18:30 and listening on the wildcard
+address. I stopped it by its process id at 06:23, after checking its working folder; the other study's journal had
+named it to the owner as another session's. After the round a sweep by working folder, the harness's temporary
+folders included, found no process of the four deliveries. And from 05:56 the commits on this line are made by a
+Sonnet worker from messages and guarded scripts written here, at the owner's word; its first run stopped, rightly,
+on a tree hash I had given it wrongly (the test receipt records the head's tree, not the staged one).
