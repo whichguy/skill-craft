@@ -558,3 +558,23 @@ the route for the requester's answer is the half that could change what is built
 What it says about the rule. It held a round about two changes to the case's held-out checks, which the released
 product misses about four times in ten here. That count is in section 1 of this document. The journal records the
 lesson as F65.
+
+### Constraints from the asking-later test, and a limit of the display (written 2026-11-22, 07:27)
+
+From the session "Spec elaboration"
+(`docs/experiments/spec-elaboration-20261120/PROPOSAL-shiploop.md`), for any later change of the list:
+
+- The list stays at the end of the spec stage and is not repeated later: asked later, a separate session finds the
+  decision that mattered no more often (9 of 9 at each of three points).
+- Rows carry no rank and no display is cut to a top one or three: asked to rank, a separate session puts that
+  decision first in none of 27 lists.
+- A second list after the build could only add what exists once there is code; nothing shows anyone needs it.
+- On Sol the author leaves out what a roll-back loses: one delivery of eight has such a row (one row of 29), where
+  both Sonnet deliveries have one. The instruction covers the line ("a step they must take"), so this is about
+  what the author picks. A separate reader after the specification, adding at most five marked rows, is that
+  session's test to run; if it earns its place the change is made here, as a change of its own.
+
+A limit found while checking the second point. The done packet and the report print every row. The packet of the
+next stage prints rows in list order within 2,400 characters and then names a file that holds all of them. Twelve
+deliveries of thirteen fit; in k4 the packet printed five of six rows. The cut is by size from the end of the list,
+not by rank, and the budget keeps the block inside the part of the packet every host prints whole.

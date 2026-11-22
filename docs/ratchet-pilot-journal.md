@@ -4611,3 +4611,54 @@ named it to the owner as another session's. After the round a sweep by working f
 folders included, found no process of the four deliveries. And from 05:56 the commits on this line are made by a
 Sonnet worker from messages and guarded scripts written here, at the owner's word; its first run stopped, rightly,
 on a tree hash I had given it wrongly (the test receipt records the head's tree, not the staged one).
+
+### Follow-ups from the asking-later test of the session "Spec elaboration" (2026-11-22, 07:27)
+
+The owner's words to this session at about 07:12: "Follow up on actions for the spec elaboration". That session's
+proposal for ShipLoop (`docs/experiments/spec-elaboration-20261120/PROPOSAL-shiploop.md`, on main in
+8803536bb977f1bf9d090965dad573ccd8ec5abf; its journal's sections 59 to 61) names this session as the one that would
+change the list. What it asks of the list, and what was done here:
+
+| From the proposal | For the list | Done here |
+| --- | --- | --- |
+| The decision that mattered is on 9 of 9 lists right after the specification and no more often later | The list stays at the end of the spec stage; no repeat at a later stage | Recorded as a constraint; nothing to change |
+| Asked to rank, a separate session puts that decision second to fifth and first in none of 27 lists | Rows carry no rank, and no display may be cut to a top one or three | Recorded as a constraint. The done packet and the report print every row. The next stage's packet prints rows in list order within 2,400 characters and then names a file that holds all of them (see below) |
+| Lists made after the tests are longer, by what exists only once there is code | A second list after the build could only add to the report; not proposed | Nothing to build |
+| On Sol the author's list leaves out what a roll-back loses | A gap in what the author picks, inside the instruction's own words ("a step they must take") | Its counts checked on this pilot's files (below); no change to the instruction before the release |
+| One separate session after the specification, at most five added rows marked as a second reader's, if its test earns it | A change of its own, made here after the release | Waiting on that session's test; nothing started |
+| The requester's answer is the half that changes what gets built | The route for that answer | Still the owner's open decision (F61, F64) |
+
+**The gap, with this round added, checked on this pilot's files by a word search and by reading the rows.** On Sol,
+one delivery of eight has a row that tells what going back loses (k2, row 5: "How can a rollback preserve original
+due values if 1.4.0 writes?"), one row of 29 (the 21 rows of d1 to d6, five of k2, three of k3). On Sonnet both
+deliveries have it (s1 row 5, k4 row 5). The other session's count is the same.
+
+**A limit of the display, found while checking that constraint, and a correction to the round's entry above.** In
+twelve of the thirteen deliveries every row fits the next packet's budget. In k4 it does not: the test-strategy
+packet printed five of its six rows (2,104 characters) and the line "(1 more line not printed here: RUN/fields/...
+holds all 6 whole)". Row 6 ("Does the command line show due times?") is in that file, in the done packet and in the
+report. The round's entry and its table say the next packet "printed its block", which is true and leaves this
+out; rule 3 as registered asked for the list in the spec result, the done packet and the report, and is met as
+read. The cut is by size from the end of the list and not by rank, and the budget exists because the block must
+stay inside the part of the packet every host prints whole. A list of long rows is shown one short at that stage;
+nothing shows whether that matters.
+
+**What the owner had just read before writing that, as that session told me.** Its answer to the owner's "What
+should we do?" named two things for this session: the release question ("One thing only you can settle"), and its
+recommendation that the answer route be built here as a candidate after the release. Neither is the owner's
+decision yet, so both were put to the owner as plain questions right afterwards, and nothing was pushed or started
+on either.
+
+**What the other session reads of this pilot's, read-only, agreed here.** All thirteen kept deliveries: the nine
+under `~/e2e-runs/r-20261121-2c3d50/` and the four of this round under `~/e2e-runs/r-20261122-ffb3fb/` (k4 by its
+real run folder). Neither folder is pruned until that session says it is done. Its second-reader test runs under
+the owner's standing approval for its experiments; its registration and its result are its own to journal.
+
+**Main moved a second time while the decision waited (07:19).** The session "Shiploop SDLC" merged a change of the
+ticket fixtures at the owner's word (9bf65a65e8d6b8a5f89ce428baddb1aafe44bbca): the base's own tests listen on
+127.0.0.1, and four pins and every case's oracle digest change. The release commit that had been cut locally on the
+earlier main at 07:00 (skill-craft 4.4.0, shiploop 2.6.0; its 35-suite tier had passed) was dropped unpublished, and
+this line merged main again; its seven paths outside docs/ were read and allowed one by one beforehand. This round's
+deliveries ran on the old base and stand as records of it. That session's own delivery on the new base, on released
+ShipLoop without the list, also chose the refusal to start: five of twelve Sol deliveries without the list, four of
+eight with it.
