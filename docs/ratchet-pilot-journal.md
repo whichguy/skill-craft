@@ -3107,3 +3107,89 @@ shown: any gain from the changes it proposes, none of which has been run. Nothin
 **The owner's to decide.** Whether to pilot the counterexample check in ShipLoop's test gate, which is a product
 change and belongs with the session that owns ShipLoop's releases; whether this pilot's next step is the free
 replay of archived suites; and whether the reworded text goes into ShipLoop's specification stage.
+
+## 26. A program of experiments on Sol 6.2 at medium (2026-11-21 17:32; each part registered before its runs)
+
+Owner, after the reviews of section 25: "Create the experiments and tests to evaluate all these ideas" and "Run
+everything , using SOL 6.2 med as the runner".
+
+**The frame.** Every model session of this section runs on the Codex host with `gpt-6.2-sol` at medium. The ideas
+are the eight I gave the owner and the ranked ones of the two reviews; where two are the same idea they share an
+experiment. Each part is registered in its own subsection, with its rule and predictions, in a commit made before
+its first run. The parts, as planned:
+
+| Part | The idea | The instrument | Model sessions |
+|---|---|---|---|
+| D | a decision the request leaves out is carried, not made silently | three requests with a known unsaid point, read in the specification and the plan; the plain text first, a lever only where the plain text leaves room | 9, then up to 36 |
+| C | a check must be able to fail | a census of checks that run nothing in the suites on file; then test sessions with and without a script that refuses a check never seen to fail, scored on planted defects | 14 |
+| E | existing code is protected | faults seeded in existing code a change touches, replayed on suites on file | none |
+| V | the instruction arrives | the same text in the prompt or through a file, the checked duty first or last, read in Codex's own record | 12 |
+| R | a fresh reader | one marks unstated decisions in a specification; one checks a finished product | 27 |
+| T | a question at test design | a general question against one grounded in the repository; scenarios scored by a script against good and bad products | 12 |
+| A | ask after reading | a census of archived deliveries: are questions routed to "inspect" answered on record | none |
+| G | gaps in ShipLoop's own checks | tests that pin today's behaviour of its validators on made-up inputs | none |
+
+Rules common to every part, from the reviews and from F38: three plain runs before any comparison; a lever is run
+only where the plain runs leave room; a yardstick is shown to work on a good and a bad input before it scores
+anything; what I judge by reading is read a second time by a Sonnet subagent under shuffled names; no held-out
+check, planted defect or answer sheet is ever in a model session's folder or prompt; "more" of anything counted in
+a specification is not a result.
+
+Not run here: changes inside ShipLoop's own scripts (the order of a stage's text, joining receipts, a stage that
+finishes on entry, removals). They are product changes and need its release harness; part G pins the behaviour a
+fix would change, and part V is a bench stand-in for the first.
+
+### Part D1, registered 17:32: what the plain text does with three unsaid points (nine runs)
+
+**What it asks.** Amendment 14 found that on Sonnet the reworded text marks a missing limit as open by itself. The
+archive read by the session "Spec elaboration" says Sol behaves otherwise in ShipLoop: 12 of 12 due-times builds
+enforced a ceiling that none of their specifications named. So the first question on this runner is whether the
+plain text leaves room at all.
+
+**Cells.** Three requests, three runs each, the spec stage and then the plan stage (`--stop-after plan`), the
+reworded text with no question added:
+
+- `d-limit-1` to `-3`: `ticket-assignment-name-limit-unsaid` (amendment 14's request).
+- `d-states-1` to `-3`: `ticket-assignment-states-unsaid`, new: the ticket-assignment request less the sentence
+  "Only open and in-progress tickets can be assigned or unassigned." (171 words for 181).
+- `d-due-1` to `-3`: `ticket-due-times` as it is. Its unsaid point is the one earlier Sol runs decided wrongly:
+  who fills the due times into the existing data file, and what the service does when it starts with the switch on
+  and the file does not hold them.
+
+**The three points, sorted against the starting product before any run** (the session "Spec elaboration"'s first
+point, and the first review's distinction between a fact and a decision):
+
+- *The limit.* A decision the product does not settle, with like limits in plain sight (64 for the requester and
+  the actor, 200 for the title). Right under the text: an `Open:` line.
+- *The states.* A fact the product supplies: "A closed ticket can no longer change" (`docs/api.md`), and a resolved
+  one can. Following the product is right, and nothing in the inputs holds this requester's stricter wish. So the
+  reading is whether the inherited rule is made visible.
+- *The due times.* A decision only the requester can make. The request's words admit two readings (an operator
+  prepares the file before switching on; or the service fills it in itself when it starts switched on). The owner
+  later ruled for the second (the SDLC journal, round 9: "the reading the owner ruled right").
+
+**Classes**, a run at a time, read in the specification as the spec stage leaves it and in the plan.
+
+- For the limit and the due times: **O+** marked open and the answer taken named; **O** marked open, nothing
+  taken; **D** decided with no mark that it is open (for the due times: **D-refuse**, the service refuses to
+  start or to switch on until someone has prepared the file; **D-fill**, the service fills the file itself);
+  **P** passed over.
+- For the states: **I+** the product's rule is applied to assignment and its source is named; **I** applied with
+  no source and no mark; **O** or **O+** marked open; **D** a rule other than the product's is required with no
+  mark (for example resolved tickets refused too); **P** nothing says which states allow assignment.
+
+**Readings.**
+
+- **RD1.1, room.** A request *leaves room* for a lever when at least two of its three runs are D, I or P. A request
+  whose runs are O, O+ or I+ in at least two of three leaves none, and no lever is run on it.
+- **RD1.2, the known bad outcome.** For the due times, the number of runs that are D-refuse: the reading earlier
+  Sol runs built, which failed five of eight held-out checks.
+- **RD1.3, two readers.** My classes and a Sonnet subagent's, made from the nine pairs under shuffled names.
+- Reported: clauses, `Open:` lines, choice clauses, seconds for each session.
+
+**Predictions.** The limit: Sol at medium decides it or passes over it in two of three. The states: the product's
+rule is applied in three of three, with its source named in two. The due times: marked open in two of three, and
+D-refuse in at most one.
+
+**Limits known before the runs.** Three points on two products that are one code base; one model at one effort;
+three runs a request; the specification and the plan only, so what a build would do is not seen.
