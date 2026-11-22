@@ -2533,7 +2533,10 @@ to 8 clauses added": held, 5 and 4; "a smaller effect, most likely not shown": h
   to 5 sourced clauses. In the specification, with no section, both write what the five specifications without
   the question write. The placements differ in stage and in form together; which of the two decides is not
   separated. It agrees with what the session "Spec elaboration" read in real deliveries (the guides are not opened;
-  on Sol the intake's routed questions leave no open gap on record). ShipLoop's fifteen plan concerns already have
+  on Sol the intake's routed questions leave no open gap on record). *Qualified 2026-11-21 16:55 (section 25):*
+  "leaves no trace" says too much. Both specifications written with the bare instruction did answer, inside the one
+  clause on existing behaviour, and one cited existing files in 15 clauses. What was missing is a separate answer
+  and any consistent change in the clauses. ShipLoop's fifteen plan concerns already have
   the form that was answered here: a row, or "applies: no" with a reason.
 - **F40 (not shown, and why this case cannot show it).** Neither placement moved a registered reading. On this
   case none could have by more than one defect: of the 27, one is caught only by a clause on existing behaviour,
@@ -2734,6 +2737,7 @@ not predict.
   from ShipLoop's catalog is answered when there is a section to fill, at the specification stage as at the plan
   stage. At the specification stage, where both forms were run, the form decides: three of three with a section,
   none of two without. The plan was run only with one. So F39's difference was the form, as far as these runs go.
+  *Qualified 2026-11-21 16:55 (section 25):* "none of two" means no separate answer; see the note under F39.
 - **F44 (three runs).** At the specification stage the answer stays a list. The plan's entries became clauses (5
   and 4 added, and one of them caught the defect no short specification had caught); the specification's did not
   (R14.2), and none of the three lists says the one thing that defect needs.
@@ -2996,7 +3000,9 @@ apply.
   cases leave thin is particular to the change (the result for each row, what a caller may set, what happens to
   the product's own notifications and audit, hostile input, dates), and twelve general questions answered in a
   line each do not reach it. With its two earlier levers (guide text in the packet, a sentence to read the whole
-  packet) that is three tried and none shown, over 56 specifications from two vague sentences.
+  packet) that is three tried and none shown, over 56 specifications from two vague sentences. *Corrected
+  2026-11-21 16:55:* 44 specifications, not 56. That session corrected its own total at 15:58, after I had read
+  its section; the outside review of section 25 pointed out that this receipt still carried the old figure.
 
 **What it does to the findings here.**
 
@@ -3013,3 +3019,91 @@ apply.
 **Not known, and the owner's to decide.** Whether questions particular to the kind of change would reach what
 general ones do not. The session "Spec elaboration" names that as the next lever and as a product decision. This
 pilot's removed-detail instrument could read such questions on one detail at a time; nothing is registered.
+
+## 25. Two outside reviews at maximum effort on what to try next (2026-11-21 16:55; no run of this pilot)
+
+Owner, after the result of section 24: "Help think deeply of there is any other consideration or idea we should
+experiment with before we move forward", and then: "We are trying to create a generic SDLC prompt and scripts , how
+could we make this more effective? What ideas should we try based on learnings?"
+
+By his standing rule a deep design question goes to the latest Sol at maximum effort, read-only, before anything is
+called ready. Two reviews were run on `gpt-6.2-sol` at effort max with the consult profile and no fallback: the
+first from 16:32 to 16:43 on this pilot's question, the second from 16:40 to 16:53 on ShipLoop itself. Each read a
+neutral folder of copies: for the first, sections 20 to 24 of this journal, sections 37 to 52 of the Spec
+elaboration journal and the prompt texts under test; for the second, ShipLoop's released source, the architecture
+note and the four journals. The local account name was taken out of the copies. The questions and the answers, word
+for word, are in `review/` (`sol-ideas-question.md`, `sol-ideas-answer.md`, `sol-shiploop-question.md`,
+`sol-shiploop-answer.md`). I gave the owner my own ideas before either answer was in.
+
+**The first review, in short.** Keep the reworded text as the baseline. Stop spending on general additions to the
+specification. Put the next effort on what the gate really measures and on one narrow comparison scored on
+behaviour.
+
+- *A missing fact is not a missing decision.* The repository can supply a fact; only the requester can supply a
+  decision. A person should be asked a decision as a concrete fork that says what the answer changes.
+- *The misses seen here are test-design misses.* Two suites never built an input that separates right paging from
+  wrong; the lists said "a closed ticket cannot be changed" and not "a resolved one still can". A question helps
+  only if it changes the test input or the expected observation.
+- *Instruments.* "Fails on the correct reference" mixes an over-strict clause, a valid alternative interface, a bad
+  test driver and a gap in the fixture, and should be classified before it is leaned on. The rule of R13.1 could
+  not be met once a baseline measured zero. Recovering a deleted detail's original value is not a valid yardstick:
+  facts that can be inferred, preferences only a requester has and choices where several products are valid need
+  separate examples.
+- *Its order of experiments.* First, with no model call, replay archived suites on known-good and known-bad
+  products. Then, for a few dollars, hold the request and the specification fixed and compare a general question
+  on preserved behaviour with one grounded in the repository, each arm proposing two test scenarios that a script
+  scores against known good and bad variants. Then whether one answer from the requester reaches acceptance, a
+  fresh reviewer of a finished product, and the same author against a fresh reader on a frozen draft.
+- *On the texts.* The specification's declared form names two sections, so an added section is outside the form
+  it calls exact; "every sentence of the request" and "joined by and is two clauses" make the count of clauses a
+  stand-in for completeness; a preserved rule needs evidence that it governs the changed path, and the allowed
+  neighbour beside the refusal; an open point needs a stated job downstream (an implementation choice, a
+  provisional choice with a consequence, or a preference someone must settle).
+
+**The second review, in short.** Its one change for ShipLoop: in the existing `test` gate, make a consequential case
+prove that it can fail. For a chosen acceptance criterion the script checks that the right case passes on the
+candidate and fails, for the expected reason, on a relevant counterexample, and that for preserved behaviour the
+original product passes too.
+
+- *Where it says the released loop is weaker than its duties read.* A test case must name a criterion of the step
+  plan, but not the one its own focused command declares, and a criterion with no case is a notice, not a refusal.
+  A proof or check that exits 0 with no readable tally passes. The intake's question ledger may be left out, and
+  nothing joins a routed question or a request outcome to a particular acceptance line. The fifteen concern rows
+  must be present, and any non-blank text satisfies a row. The packet puts the callback first and the guide paths,
+  root definitions and earlier results after the duties, which is the part a sliced read loses.
+- *Its ranked ideas, after the counterexample check.* Put consequential choices in the hand-off that consumes them
+  (reusing assumptions and requirement ids); a short action entry with the inputs and checks that matter, the full
+  packet a named read away; questions about the consequences of the actual change; outer obligations closed from
+  receipts the navigator can join; decisions shown to the person while they can still change the work; a second
+  reader from another model family for a named failure; a clean, local system-test stage that finishes on entry.
+- *What it would remove.* The record-only Backchain graph; the routine skill decision at carry-forward (`none` in
+  306 of 306); the suggested ceilings of twelve criteria and six files in step planning; repeated guidance.
+- *How it would evaluate.* One change an afternoon on two cases that have room; prove the yardstick first on a good
+  product, a second good product and a faulty one; three paired runs a case with the rule written first; stop
+  treating specification length, clause counts, filled fields, guide opens and review edits as results.
+
+**What I checked of them before passing anything on.**
+
+- In the journals: 43 of 203 and 8 of 64 clauses, 15 and 3 items, 38% fewer output tokens (all as recorded here);
+  83 of 84 deliveries passing at the last accepted implement step, 306 `none` skill decisions, mutation refusals in
+  80 of 97 runs, a ceiling enforced by 12 of 12 Sol due-times builds and named by none of their specifications or
+  reports (all as recorded in the other two journals). One figure of the first review, on row-level feedback in 3
+  of 5 guide-block specifications, I could not find and did not pass on.
+- In ShipLoop's source, read at the lines cited: `check_test_cases` does require only that a case's criterion be one
+  of the plan's, and `coverage_notices` says of an unconfirmed criterion "never a refusal"; `judge` passes a check
+  that exits 0 when no tally is recognised, and fails one whose tally shows no test ran; the intake ledger is
+  optional by a recorded decision ("requiring it would refuse every synthetic intake the hermetic suites
+  complete"). So its claims there hold, and two of the gaps are choices someone made on purpose.
+- Its correction of this journal is right and is applied in place: the sister study's total is 44 specifications,
+  not 56. Its objection to "leaves no trace" (F39, F43) is right too, and both are qualified in place.
+
+**What I take, and what stays open.** Both reviews, the sister study and this pilot's amendments 12 to 14 point the
+same way: general questions and guide text have not made a specification measurably fuller, and the failures
+actually seen are downstream of the specification, in what a test builds and observes and in what a green gate
+proves. F42 is one instance of the second review's main idea: a check of "the existing tests pass" that cannot
+fail. Its counterexample check and my hollow-evidence idea are the same proposal at two levels. Not taken as
+shown: any gain from the changes it proposes, none of which has been run. Nothing is registered by this section.
+
+**The owner's to decide.** Whether to pilot the counterexample check in ShipLoop's test gate, which is a product
+change and belongs with the session that owns ShipLoop's releases; whether this pilot's next step is the free
+replay of archived suites; and whether the reworded text goes into ShipLoop's specification stage.
