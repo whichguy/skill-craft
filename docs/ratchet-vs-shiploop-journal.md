@@ -1073,3 +1073,100 @@ builder was not tested (the owner chose Opus at xhigh for fixes); nor was a seco
 **Not shown.** Ratchet rerun from scratch (the owner's option 2, deferred: "let's focus on 1 first"). The same
 sequence with the builder's own model as fixer. Whether the look belongs inside ShipLoop as a stage: that is a
 ShipLoop product decision for the owner, with section 11's design and these results as the evidence.
+
+## 16. Fresh Ratchet runs, and the look as a ShipLoop candidate: registered before either starts (2026-11-22 10:44)
+
+The owner, on section 15's three open decisions: "Do 3 then 2 then 1, plan out all and execute, use agents as needed
+for parallel". 3 was the merge and push of this study to `main` (done 10:41, merge commit
+`472919dfcc81ec1933293f836d4c7ee8d54286d4`; the boundary check and the quick tier's 14 suites passed on it). 2 is
+"one look after the build, then a fix" drafted as a ShipLoop candidate. 1 is the fresh Ratchet runs, the half of
+the owner's earlier "2" (fresh runs of both tools) that section 14 left out. The Ratchet runs take about three
+hours, so they start first and the candidate is drafted beside them.
+
+### 16.1 Fresh Ratchet runs (the owner's step 1)
+
+**Question.** Section 15 set a fresh ShipLoop 2.6.0 delivery, with and without the look and the fix, beside
+*last night's* Ratchet final. Does its result hold when Ratchet's side is also a fresh run, of the same day, from
+the same commit and the same starting files?
+
+**What runs.**
+
+1. **A fresh Ratchet run of each of the four cases**, from scratch in a new repository, through `launch.py run ROOT
+   ratchet CASE LABEL` (the pilot's `ratchet.py --enrich reworded`, Codex, Sol 6.2 medium, the three-cycle limit),
+   in a new runs root, from a new checkout of commit `22e52c0807ca41aa0224dd81f03b84e9bba44e82`, **the same commit
+   this morning's ShipLoop runs came from**. Checked by `git diff` between last night's base
+   (`d522655ae4f6a8af0b289d346aa08cf44d2e9fbe`) and that commit: `ratchet.py`, `one_session.py`, the pilot's
+   `cases.json` and `grade.py` are unchanged; the one difference in starting files is the ticket fixture
+   (its tests listen on 127.0.0.1), which this morning's ShipLoop ticket run already started from. So on tickets
+   the fresh Ratchet run starts from the same files as the fresh ShipLoop run, which last night's did not. The four
+   runs start together, as last night's did.
+2. **Script measures** of each run's first build and final (`measure.py`: time, tokens, held-out checks).
+3. **The deep judge on three products a case, all audited afresh in one round** (the rule of section 14): the
+   fresh ShipLoop delivery after the look and the fix (S'), the fresh ShipLoop delivery (N), both exactly the
+   products of section 15, and the **fresh Ratchet final (L2)**. Section 12's inventories are used unchanged. One
+   cross-probe a case, the single reader, the Opus judge alone. Ratchet's fresh first build is measured by script
+   and not audited (section 12 already read a first build; the question here is the final).
+
+**Readings.**
+
+- **F-1, S' against L2** and **F-2, N against L2**: the better feature and "nearly competitive", by section 10's
+  rules with one judge. These repeat C-2 and C-1 with a fresh Ratchet side.
+- **F-3, cost**: section 15's ShipLoop minutes (run, look, fix) beside the fresh Ratchet minutes.
+- **F-4, how much one Ratchet run differs from another** (reported, no rule): L2's readings beside last night's
+  final (L, as audited in section 15), per case; the time and the cycle count of each.
+- **F-5, how much one audit differs from another on the same product** (reported, no rule): S' and N are the same
+  trees section 15 audited, read here by new sessions. For each of D1 to D5, the difference between the two
+  audits of the same product, set beside the margin the reading needs (2 items). A reading whose two audits of
+  one product differ by its own margin cannot carry a verdict on that case, and I will say so where it happens.
+
+**Predictions.**
+
+- Every fresh Ratchet final passes every held-out check (as all of last night's did).
+- F-1: on the three small cases S' is level with or ahead of L2 on at least two; on Grokbot L2 is the better
+  feature again.
+- F-2: N is behind L2 on what the customer is told (D4) on at least three of four cases.
+- F-3: Ratchet's fresh minutes within 30% of last night's on at least three of four cases.
+- F-5: the two audits of one product agree within one item on D1, D3 and D5 on the small cases; on Grokbot's 153
+  items I expect D5 (defects found) to differ by two or more on at least one product, because section 13 already
+  showed that two readers of one product find different defects.
+
+**Limits known now.** One fresh run of each tool a case: two deliveries of Ratchet and two of ShipLoop a case in
+all, still far too few for a rate. The ShipLoop side is not rerun for this section. The fixer is Opus at xhigh,
+stronger than either builder. ShipLoop is 2.6.0 against section 7's 2.4.1.
+
+### 16.2 The look as a ShipLoop candidate (the owner's step 2)
+
+**What is drafted.** A candidate change to ShipLoop that adds the sequence section 15 measured: after the build
+and its tests, the session uses the running product as its users and operators would, writes down the shortfalls
+it saw happen and the choices the customer was not told, fixes the shortfalls the request's intent covers (each
+with a test) and tells the choices in the delivered documents. It is built on a branch with tests and a change
+note, reviewed by Sol 6.2 at max, tried on real runs of this comparison's cases, and **stays off `main` until the
+owner accepts it** (AGENTS.md: a ShipLoop product behaviour trade-off is the owner's decision).
+
+**What is already known that the design must respect** (read before designing):
+
+- Section 15: one look and one fix bring a fresh ShipLoop delivery level with or ahead of Ratchet's final on the
+  three small cases; on Grokbot they halve the gap. There the look ran as a **separate session that had not built
+  the product** (Sol medium), and the fix was done by **a stronger model** (Opus xhigh). Inside ShipLoop both
+  would be the building session itself, after its context has cleared: neither condition carries over for free,
+  and the trial has to measure what is left of the gain.
+- Section 13: everything a look writes reproduces, but on the small cases under half of it is something a customer
+  would call a shortfall (2 of 5, 1 of 2, 1 of 5; 15 of 15 on Grokbot). A fix that builds every line of a look
+  would add work nobody asked for on small cases.
+- The Ratchet pilot's journal (`docs/ratchet-pilot-journal.md`, sections 13 and 14, finding on the closing looks):
+  of what Ratchet's closing looks **added to the specification**, two outside judges accepted 10 of 59, and no run
+  converged within three cycles because each look kept adding. So the candidate is **one look, not a loop**, it
+  reports what it saw happen, not new requirements, and it adds no cycle limit of its own (no limit on a ShipLoop
+  loop is added or changed without the owner).
+- The released `defaults` list (ShipLoop 2.6.0) already tells the requester the choices made at specification
+  time; section 15's fresh deliveries still told 0 to 13 of 16 to 39 unsaid points in the documents delivered
+  with the product. The look's second list is about choices the *running product* shows, told in the *product's*
+  documents.
+
+**The trial, registered now.** The candidate is run from its branch (`run.py --source checkout`) on the four
+cases, Codex Sol 6.2 medium. Read by script: the run ends delivered; the held-out checks; the minutes the new
+step adds (the harness's per-stage timings); whether the look's file exists and names at least one tried step.
+Read by the deep judge, as a fourth product beside 16.1's three where time allows: D3 to D5 against N (the same
+ShipLoop without the step). The candidate is worth proposing to the owner if, on at least three of four cases, it
+is not behind N on any of D1 to D5 and ahead on at least one, at under 1.5 times N's minutes; otherwise it is
+reported as tried and not proposed. This is one run a case and reads as a first look, not a rate.
