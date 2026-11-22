@@ -4662,3 +4662,42 @@ this line merged main again; its seven paths outside docs/ were read and allowed
 deliveries ran on the old base and stand as records of it. That session's own delivery on the new base, on released
 ShipLoop without the list, also chose the refusal to start: five of twelve Sol deliveries without the list, four of
 eight with it.
+
+### Released at the owner's word: ShipLoop 2.6.0 in skill-craft 4.4.0 (2026-11-22, 08:06)
+
+**The owner's decision, 07:37:** "Yes, both", to "Release the list now, and then build the answer route as a
+candidate?". The owner had the round's result and my reading of it, so the list is released although the round's
+first rule was not met, and the route for the requester's answer is to be built as a candidate.
+
+**The push.** `release: skill-craft 4.4.0, shiploop 2.6.0` is 5c954318867f07c646758b6d58a173fbfca09c67, on main
+since 07:48, thirteen commits, by the guarded push with its four checks. Main moved twice between the question and
+the push, both times by the session "Shiploop SDLC" (07:19, the ticket fixtures' base change; 07:42, a journal),
+so the release was cut three times and each cut was tested before the next step:
+
+| cut | on main at | tested by | then |
+| --- | --- | --- | --- |
+| 865d3258e9c8 | 8803536bb977 | the quick tier chosen by what changed since the merge commit: 35 suites pass | dropped unpublished when main moved (07:19) |
+| dda931362783 | 9bf65a65e8d6 | the same tier, now with the fixtures' change in it: 86 suites pass, 916 seconds | the push was refused before it began (main had moved at 07:42); dropped unpublished |
+| 5c954318867f | aac0b417668c | the quick tier chosen by what differs from the second cut's tree (three documents): 13 suites pass | published |
+
+**After it.** Claude Code and Grok went from 4.3.0 to 4.4.0, Codex was upgraded with no process running from an
+installed copy and its 4.3.0 folder put back (309 files, its release commit's count); each host's installed
+`shiploop` skill is the published one, byte for byte. The published-install smoke test passes against the release
+commit. CI passes on it. The canonical checkout was fast-forwarded.
+
+**Who did what, at the owner's word of 05:56 and 06:31.** A Sonnet worker made every commit, merge and cut from
+messages and guarded scripts written here, ran the tiers, refreshed the hosts and read CI. It stopped twice, both
+times rightly: on a tree hash I had given it wrongly, and on the push itself, which it would not run on a relayed
+approval. The push ran in this session, where the owner's word was given. A safety notice fired on the worker when
+it cut the release commit locally; the remote was checked and held nothing of this line.
+
+**The second-reader test of the session "Spec elaboration"** (on main in 0b3b5a7270135cca67da052c39c221dca164f43e)
+read this pilot's thirteen deliveries, read-only. By its registered rule the result is mixed and it proposes no
+change to the list. What it adds to the list's account, as its description: where no row tells what going back
+loses, a separate reader puts it first in 21 lists of 21, and where a row tells it (k2, s1, k4) no list repeats it;
+on `hello` a second reader floods (4 to 7 more items, one real); and a second decision recurs that no author's row
+tells except k3's, that the backfill uses the priority a ticket has now. That session is done with both run folders.
+
+**Next.** The answer route, as a candidate on the branch `shiploop-answers-603aa8`: its design was reviewed by Sol
+at max effort before any code ("Change first", sixteen findings, each answered in its DESIGN.md), and the first
+version takes an answer only while the stage after the spec is still at work. It has its own journal section.
