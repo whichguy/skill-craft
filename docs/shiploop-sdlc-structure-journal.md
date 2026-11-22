@@ -3029,6 +3029,84 @@ that only shows under load or over time is out of reach. Opus judges share a mod
 (`e2e-runs-sdlc10/20261121-paired`) can be read the same way with the same script, brief and reading. Whether to
 run them is decided when the Sonnet pairs are read and their cost is known.
 
+### Changes to the apparatus after registration and before any judge ran
+
+- **A wrong citation in the registration commit.** The message of 00677819118968c3d885782a6bcdf9345e06383b cites
+  f6f1489789fd41a284c9c5f6c01df3598cb58e97 as round 12. That is another session's merge, the tip of the remote
+  when I resolved the hash from a moving name. Round 12 is eeb31fdca0058aad2b85b526a2256b79c4209c15.
+- **The packet builder** stopped on the product built from nothing, which has no start commit. It now compares
+  such a product with the empty tree. No packet had been read.
+- **The brief** gained one sentence: comments may cite files under `docs/shiploop/`, which the packets leave out
+  on purpose, and such a citation is not a defect. Without it a judge would have reported the citations.
+- **The key and the clones** were moved out of the folder that holds the packets.
+
+### Results (2026-11-21; eight judges, then my checks; `evidence/quality-reading.txt`)
+
+- **R108 (the judges' choice).** Medium 3, high 3, no material difference 2. The two judges of a pair named the
+  same side in one pair of four (`expenses-2`, high). Mean ratings, medium against high: correctness 4.25 and
+  4.88, fidelity to the request 4.38 and 3.50, clarity 4.25 and 4.00, tests 3.62 and 4.62.
+- **R109 (functional claims, each run against all four deliveries of its case).** Confirmed by the marking rule
+  (`judge-quality/marking-rule.txt`, written before the key was opened): medium 5, in two of four deliveries;
+  high 2, in two of four. By pair: `due-1` 0 and 0; `due-2` 1 and 0; `expenses-1` 0 and 1; `expenses-2` 4 and 1.
+  Every one was rated low by the judge who found it.
+  - Medium, `expenses-2` (four): a group id that is not valid percent-encoding is answered 500; `__proto__` as a
+    group id is answered 201, then 404, then 201 again where the request says 409; a tie goes to a member whose
+    name is a number and not to the member listed first; a member named `__proto__` is dropped and the balances
+    no longer add up to 0. All four come from keeping groups and balances in plain objects.
+  - Medium, `due-2` (one): for a ticket that a 1.4.0 file holds without a due time, the command line shows the
+    default hours (24) where the service, given `DUE_HOURS_HIGH=10`, gives 10.
+  - High, both `shared-expenses` deliveries (one each): a member name of two spaces is refused, where the request
+    asks for "at least two distinct non-empty names". Both medium deliveries accept it. This is the letter of the
+    request; without this item high has none.
+  - Reproduced and not counted, by the rule: 400 for a malformed id (one medium delivery); no start on an empty
+    data file (both medium `shared-expenses` deliveries; both high ones start).
+- **R110 (test claims confirmed).** Medium: with the configured hours no longer passed to the store, all 148 tests
+  of `due-2` medium still pass, while the other three ticket deliveries fail tests; a test whose title and input
+  disagree; a test of the docs' wording and system tests that take the caller's environment (`due-1`); a test
+  that runs the whole suite again (`expenses-1`). High: 9 of 164 tests of `due-1` high fail in a tree without the
+  repository's history (round 10's F66, found again by both judges); an assertion on a constant and a count of
+  files (`expenses-1`).
+- **R111 (scope).** Before checking, the judges made 13 scope claims on high and 2 on medium. Confirmed on all four
+  high deliveries: a second listing `overdue=false`; defaults, 413 and 405 answers, a versioned and audited data
+  file; tests of test helpers and of release metadata. On medium: a 1,614-line copy of the old release kept as a
+  test oracle, and a service that runs in memory without a word when `DATA_FILE` is not set.
+- **R112 (size).** High has 1.1 to 4.4 times the tests of its medium partner (164 to 151, 175 to 148, 116 to 34,
+  62 to 14) and 1.0 to 1.8 times the product lines.
+- **R113 (what the earlier checks saw).** All eight deliveries passed every case check of round 10 except the one
+  suite failure already known. None of the seven confirmed functional defects was caught by a case check or by
+  the delivery's own tests.
+
+### Registered reading
+
+No drop at medium is shown: medium has more confirmed functional defects than its high partner in 2 of 4 pairs,
+where the rule needs 3, and no confirmed defect is of high severity. Four pairs can show only a large difference.
+
+### Findings
+
+- **F76 (registered; interim).** By the rule set in advance, reading does not show that medium is worse.
+- **F77 (description; interim, four pairs).** The two are not the same at the edges. Medium's products carry more
+  small faults on unusual input (5 against 2, or 5 against 0 without the name check), most of them in the one
+  leanest delivery, and their tests are fewer and rated a point lower. Where a judge scored the two sides differently for
+  correctness (4 of 8 times), high was the higher each time.
+- **F78 (description; agrees with F65).** High pays for it in scope: more product and tests than were asked for
+  in every pair, and the lower rating for fidelity. Readers split evenly on which they would rather have.
+- **F79 (about the yardstick).** The checks that carried rounds 8 and 10 cannot see this difference (R113). "The
+  same passing checks" was true and was a weaker statement than "the same quality".
+- **F80 (decision record).** Nothing is changed. Whether small faults on unusual input are worth two to three
+  times the cost is the owner's call; F67's signal to revisit (a medium run failing a check on real work) has not
+  occurred.
+
+### Limits and conduct
+
+- Four pairs, two small cases, one model family as builder and judge. A size difference is visible to a judge.
+- I was not fully blind while marking: when the first packet build failed I saw file counts for `due-1`, and I
+  knew round 10's suite failure, which the git claim matches. Functional marks are from commands.
+- The judge of packet `due-1-A` reported running one read-only shell command inside its packet against the brief.
+- The first suite runner did not end on one changed tree and I stopped it and its children by process id. The
+  script now starts each run in its own process group with a 90 s limit, and every run was repeated with it.
+- One plain run of `due-2` high failed 1 of 175 while the machine's load average was 39; six runs alone passed.
+- The Sol 6.2 extension is not run yet.
+
 ## Evidence (all rounds)
 
 | File | Holds |
@@ -3142,6 +3220,12 @@ judges label them with `evidence/removed-review-judge-brief.txt`, and `removed_r
 rescores from the repository alone. `late_work_census.py <work>/census.json runs-reviews/census.json` reads the
 runs' traces and reproduces `evidence/late-work-census.txt`; `next_round_cuts.py runs-reviews/census.json
 <work>/census.json` does the same for `evidence/next-round-cuts.txt`.
+
+Round 13: `python3 -I quality_packets.py <out> 20261121 <name>=<medium run>,<high run> ...` builds the packets; two
+judges per pair with `evidence/quality-judge-brief.txt`; their answers are `judge-quality/verdicts.json` and the key
+`judge-quality/key.json`. The checks: `node quality_checks/expenses.js <tree>`, `node quality_checks/due.js <base tree>
+<tree>` and `python3 -I quality_checks/suites.py <folder of trees>`, on copies of judge A's packets; their output is
+in `evidence/quality-reading.txt`.
 
 Round 12: `python3 -I where_it_goes.py <run roots>` reproduces `evidence/where-it-goes.txt`;
 `python3 -I context_origin.py <the five Sonnet medium run folders>` reproduces `evidence/context-origin.txt` and

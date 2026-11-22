@@ -1,0 +1,9 @@
+Marking rule, written 2026-11-21 before the key was opened. It depends on the kind of claim, never on the side.
+- Every functional check is run against every delivery of that case, not only the side a judge named.
+- Counted as a confirmed functional defect: the behaviour is reproduced by a command, and it contradicts a sentence
+  of the request (the sentence is cited) or it is an unhandled server error (a 500) on a request.
+- Reproduced but not counted: behaviour on input the request does not cover, where the product's answer is a
+  defensible choice (for example 400 for a path that is not valid percent-encoding, or refusing to start on a data
+  file that is not JSON).
+- Test, maintainability and scope claims: confirmed when the cited lines show it, or when a mutation or a run shows
+  it. They are described, not counted in the primary measure.

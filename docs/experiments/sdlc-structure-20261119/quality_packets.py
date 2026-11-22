@@ -75,7 +75,8 @@ def main(argv):
             sides = {}
             for label, (clone, result, run) in zip("XY", order):
                 head = result["committed"]["head"]
-                start = result["committed"]["start_head"]
+                # A product built from nothing has no start commit: diff against the empty tree.
+                start = result["committed"].get("start_head") or git(clone, "hash-object", "-t", "tree", "/dev/null").strip()
                 export(clone, head, packet / label)
                 hits = scrub(packet / label, run)
                 (packet / f"{label}.diff").write_text(

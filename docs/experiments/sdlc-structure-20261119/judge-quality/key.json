@@ -1,0 +1,141 @@
+{
+ "seed": 20261121,
+ "pairs": {
+  "due-1": {
+   "A": {
+    "X": {
+     "run": "e2e-runs-sdlc12/20261121/sonnet-medium-due",
+     "effort": "medium",
+     "model": "claude-sonnet-5-5",
+     "head": "81ac434e3654ecc08546f89827a607f5edf1cdbb",
+     "files_scrubbed": 0
+    },
+    "Y": {
+     "run": "e2e-runs-sdlc12/20261121/sonnet-high-due",
+     "effort": "high",
+     "model": "claude-sonnet-5-5",
+     "head": "2a34d6303cde3ad13e3534eef8f85dc7fb57b806",
+     "files_scrubbed": 0
+    }
+   },
+   "B": {
+    "X": {
+     "run": "e2e-runs-sdlc12/20261121/sonnet-high-due",
+     "effort": "high",
+     "model": "claude-sonnet-5-5",
+     "head": "2a34d6303cde3ad13e3534eef8f85dc7fb57b806",
+     "files_scrubbed": 0
+    },
+    "Y": {
+     "run": "e2e-runs-sdlc12/20261121/sonnet-medium-due",
+     "effort": "medium",
+     "model": "claude-sonnet-5-5",
+     "head": "81ac434e3654ecc08546f89827a607f5edf1cdbb",
+     "files_scrubbed": 0
+    }
+   }
+  },
+  "expenses-1": {
+   "A": {
+    "X": {
+     "run": "e2e-runs-sdlc12/20261121/sonnet-high-expenses",
+     "effort": "high",
+     "model": "claude-sonnet-5-5",
+     "head": "a098e17b9ec45be45fd4e944b58cebd74ed3ec7d",
+     "files_scrubbed": 0
+    },
+    "Y": {
+     "run": "e2e-runs-sdlc12/20261121/sonnet-medium-expenses",
+     "effort": "medium",
+     "model": "claude-sonnet-5-5",
+     "head": "c3e26cfd3d0fbdb2f80c66c3d02be91a3a4025ae",
+     "files_scrubbed": 0
+    }
+   },
+   "B": {
+    "X": {
+     "run": "e2e-runs-sdlc12/20261121/sonnet-medium-expenses",
+     "effort": "medium",
+     "model": "claude-sonnet-5-5",
+     "head": "c3e26cfd3d0fbdb2f80c66c3d02be91a3a4025ae",
+     "files_scrubbed": 0
+    },
+    "Y": {
+     "run": "e2e-runs-sdlc12/20261121/sonnet-high-expenses",
+     "effort": "high",
+     "model": "claude-sonnet-5-5",
+     "head": "a098e17b9ec45be45fd4e944b58cebd74ed3ec7d",
+     "files_scrubbed": 0
+    }
+   }
+  },
+  "due-2": {
+   "A": {
+    "X": {
+     "run": "e2e-runs-sdlc13/20261121/due-high-2",
+     "effort": "high",
+     "model": "claude-sonnet-5-5",
+     "head": "d248993bf203643da2f43a385afebd94136b0a07",
+     "files_scrubbed": 0
+    },
+    "Y": {
+     "run": "e2e-runs-sdlc13/20261121/due-medium-2",
+     "effort": "medium",
+     "model": "claude-sonnet-5-5",
+     "head": "c0bb067764dfe7de1f4b760013b05a8b1058ae77",
+     "files_scrubbed": 0
+    }
+   },
+   "B": {
+    "X": {
+     "run": "e2e-runs-sdlc13/20261121/due-medium-2",
+     "effort": "medium",
+     "model": "claude-sonnet-5-5",
+     "head": "c0bb067764dfe7de1f4b760013b05a8b1058ae77",
+     "files_scrubbed": 0
+    },
+    "Y": {
+     "run": "e2e-runs-sdlc13/20261121/due-high-2",
+     "effort": "high",
+     "model": "claude-sonnet-5-5",
+     "head": "d248993bf203643da2f43a385afebd94136b0a07",
+     "files_scrubbed": 0
+    }
+   }
+  },
+  "expenses-2": {
+   "A": {
+    "X": {
+     "run": "e2e-runs-sdlc13/20261121/expenses-medium-2",
+     "effort": "medium",
+     "model": "claude-sonnet-5-5",
+     "head": "a9ee097b3f8163a9d72ca91d0c9ebe3df03ff609",
+     "files_scrubbed": 0
+    },
+    "Y": {
+     "run": "e2e-runs-sdlc13/20261121/expenses-high-2",
+     "effort": "high",
+     "model": "claude-sonnet-5-5",
+     "head": "c844129200d624b9690e70048caa86d19426c975",
+     "files_scrubbed": 0
+    }
+   },
+   "B": {
+    "X": {
+     "run": "e2e-runs-sdlc13/20261121/expenses-high-2",
+     "effort": "high",
+     "model": "claude-sonnet-5-5",
+     "head": "c844129200d624b9690e70048caa86d19426c975",
+     "files_scrubbed": 0
+    },
+    "Y": {
+     "run": "e2e-runs-sdlc13/20261121/expenses-medium-2",
+     "effort": "medium",
+     "model": "claude-sonnet-5-5",
+     "head": "a9ee097b3f8163a9d72ca91d0c9ebe3df03ff609",
+     "files_scrubbed": 0
+    }
+   }
+  }
+ }
+}

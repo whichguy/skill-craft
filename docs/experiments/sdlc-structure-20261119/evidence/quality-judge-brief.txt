@@ -15,6 +15,8 @@ Rules.
 - Judge the product code and its tests. More code or more tests is not better by itself; behaviour or files the
   request did not ask for are a cost, not a credit.
 - Look equally hard at both sides: read every changed source file of each side in full, and each side's tests.
+- Comments may cite files under docs/shiploop/. Those files are the build process's own notes and were removed
+  from both sides on purpose; a citation of one is not a defect.
 - Report a defect only when you can point to its file and line and say how someone can confirm it. If you
   suspect something and cannot pin it down, leave it out of the list and mention it in "reason".
 

@@ -1,0 +1,117 @@
+Round 13: a blind reading of four Sonnet 5.5 medium and high pairs.
+Sides are named by judge A's labels (judge B saw them reversed). Every claim was marked before the key was opened.
+
+KEY (opened after marking)
+  due-1       X = medium (sonnet-medium-due)       Y = high (sonnet-high-due)
+  expenses-1  X = high (sonnet-high-expenses)      Y = medium (sonnet-medium-expenses)
+  due-2       X = high (due-high-2)                Y = medium (due-medium-2)
+  expenses-2  X = medium (expenses-medium-2)       Y = high (expenses-high-2)
+
+THE JUDGES' OVERALL CHOICE (8 choices)
+  due-1       judge A: medium    judge B: no material difference
+  expenses-1  judge A: high      judge B: medium
+  due-2       judge A: medium    judge B: no material difference
+  expenses-2  judge A: high      judge B: high
+  Totals: medium 3, high 3, no material difference 2. The two judges of a pair named the same side in 1 of 4 pairs.
+
+MEAN RATINGS, 1 to 5 (8 ratings a cell)
+              correctness  fidelity  clarity  tests
+  medium         4.25        4.38      4.25    3.62
+  high           4.88        3.50      4.00    4.62
+  Claims by kind before checking (both judges): medium functional 11, test 7, maintainability 6, scope 2;
+  high functional 2, test 4, maintainability 5, scope 13.
+
+FUNCTIONAL CHECKS, each run against all four deliveries of its case (quality_checks/expenses.js, due.js)
+shared-expenses                                    e1 medium    e1 high      e2 medium     e2 high
+  member name of two spaces (asked: "at least two
+    distinct non-empty names")                      201          400          201           400
+  group id that is not valid percent-encoding       400          404          500           404
+  group id "__proto__": create, read, create again  201,200,409  201,200,409  201,404,201   201,200,409
+  tie between two members who are owed, one named
+    "2" (asked: ties go to the member listed first) listed first listed first "2" first     listed first
+  tie between two members who owe, one named "7"    listed first listed first "7" first     listed first
+  member named "__proto__": balances                sum 0        sum 0        member lost,  sum 0
+                                                                              sum 50
+  DATA_FILE exists and is empty                     no start     starts       no start      starts
+  DATA_FILE not set                                 no start     starts       starts        no start
+ticket-due-times                                   d1 medium    d1 high      d2 medium     d2 high
+  command line, DUE_TIMES=on DUE_HOURS_HIGH=10,
+    a 1.4.0 file whose ticket has no due time       no due line  no due line  +24 h         +10 h
+  the service on the same file and settings         +10 h        +10 h        +10 h         +10 h
+  GET /tickets?overdue=false with DUE_TIMES=on      400          400          400           200
+
+CONFIRMED FUNCTIONAL DEFECTS (reproduced, and against a sentence of the request or a server error)
+  due-1       medium 0    high 0
+  due-2       medium 1    high 0   medium: the command line ignores changed hours for a ticket not yet given a due time
+  expenses-1  medium 0    high 1   high: a name of two spaces is refused
+  expenses-2  medium 4    high 1   medium: 500 on a malformed id; "__proto__" as a group id is answered 201, then
+                                   404, then 201 again; a tie goes to a member whose name is a number; a member
+                                   named "__proto__" is dropped and the balances no longer add up to 0.
+                                   high: a name of two spaces is refused
+  Total: medium 5 (in 2 of 4 deliveries), high 2 (in 2 of 4). Every one was rated low by the judge who found it.
+  Medium has more than its high partner in 2 of 4 pairs, fewer in 1, the same in 1.
+  Reproduced and not counted (input the request does not cover, a defensible answer): 400 for a malformed id
+  (e1 medium); no start on an empty data file (e1 medium, e2 medium).
+
+CONFIRMED TEST CLAIMS
+  d1 medium   a test asserts wording of docs/operations.md (rewording 'holds them' fails 1 test);
+              the system tests take the caller's environment (DUE_HOURS_URGENT=2 fails 2 of 151)
+  d1 high     the rollback tests need git and the repository's history: 9 of 164 fail in an exported tree
+  d2 medium   no test checks that changed hours reach the service: with the hours no longer passed to the store
+              in src/server.js all 148 tests still pass (the other three deliveries fail 1, 3 and 3 more tests);
+              a test titled 'no priority' passes priority 'normal'
+  e1 medium   a test runs the whole suite again and needs a pass count from 20 to 99
+  e1 high     an assertion on the length of a constant list; a test of the number of test and source files
+
+CONFIRMED SCOPE CLAIMS (not asked for)
+  d1 medium   a 1,614-line copy of release 1.4.0 kept as the tests' oracle (identical to the base source)
+  d1 high     a test of a shell one-liner from the docs; a test of the test oracle
+  d2 high     overdue=false as a second listing; a test of release metadata and of a nested test run
+  e1 high     defaults for PORT and DATA_FILE, 413 and 405 answers, a versioned and audited data file,
+              a cap on totals
+  e2 medium   runs in memory with no warning when DATA_FILE is not set
+  e2 high     tests of the test helpers, a replay of the README, shape checks of the data file at start
+
+CONFIRMED MAINTAINABILITY CLAIMS
+  d1 medium   a fixed 20 ms wait in a test          d1 high   a comment names a fixture script that is not in the tree
+  d2 medium   a comment says the overdue filter ignores the other filters; the code combines them
+  d2 high     the command line reads its settings twice to read one flag
+  e1 medium   the store throws HTTP errors; a helper file under test/ is loaded as a test file
+  e2 high     expense validation is written twice (ledger and store)
+
+THE DELIVERIES' OWN SUITES (quality_checks/suites.py; trees with no git data)
+ 151/151  fail 0  due-1/X plain
+ 155/164  fail 9  due-1/Y plain
+ 174/175  fail 1  due-2/X plain
+ 148/148  fail 0  due-2/Y plain
+ 116/116  fail 0  expenses-1/X plain
+  34/34   fail 0  expenses-1/Y plain
+  14/14   fail 0  expenses-2/X plain
+  62/62   fail 0  expenses-2/Y plain
+ 149/151  fail 2  due-1/X with DUE_HOURS_URGENT=2 in the caller's environment
+ 155/164  fail 9  due-1/Y with DUE_HOURS_URGENT=2 in the caller's environment
+ 175/175  fail 0  due-2/X with DUE_HOURS_URGENT=2 in the caller's environment
+ 148/148  fail 0  due-2/Y with DUE_HOURS_URGENT=2 in the caller's environment
+ 150/151  fail 1  due-1/X with the hours no longer passed to the store in src/server.js (1 edit)
+ 152/164  fail 12 due-1/Y with the hours no longer passed to the store in src/server.js (1 edit)
+ 172/175  fail 3  due-2/X with the hours no longer passed to the store in src/server.js (1 edit)
+ 148/148  fail 0  due-2/Y with the hours no longer passed to the store in src/server.js (1 edit)
+ 150/151  fail 1  due-1/X with 'holds them' reworded in docs/operations.md (1 place)
+  Note: 'due-2/X plain' failed 1 of 175 in this run, taken while the machine's load average was 39. Six more
+  plain runs of that suite alone all passed 175 of 175. It passed in the earlier run of the same check.
+
+SIZE (lines of .js; product, tests) AND TESTS
+  due-1       medium 1759, 3482 (1,614 of the test lines are the copied release), 151 tests   high 1803, 2358, 164 tests
+  due-2       medium 1787, 2007, 148 tests                                                     high 1856, 2582, 175 tests
+  expenses-1  medium 318, 458, 34 tests                                                        high 555, 1107, 116 tests
+  expenses-2  medium 226, 252, 14 tests                                                        high 411, 1199, 62 tests
+
+RAW OUTPUT OF THE FUNCTIONAL CHECKS
+expenses-1/X {"whitespace_name":400,"bad_percent":404,"bad_percent_2":404,"proto_group":[201,200,409],"tie_owed":[{"from":"d","to":"x","cents":50},{"from":"d","to":"2","cents":50}],"tie_owes":[{"from":"zed","to":"amy","cents":50},{"from":"7","to":"amy","cents":50}],"proto_member":[201,201,{"__proto__":-50,"bob":50}],"empty_data_file":"started","no_data_file":"started"}
+expenses-1/Y {"whitespace_name":201,"bad_percent":400,"bad_percent_2":400,"proto_group":[201,200,409],"tie_owed":[{"from":"d","to":"x","cents":50},{"from":"d","to":"2","cents":50}],"tie_owes":[{"from":"zed","to":"amy","cents":50},{"from":"7","to":"amy","cents":50}],"proto_member":[201,201,{"__proto__":-50,"bob":50}],"empty_data_file":"did not start: {\"code\":1,\"sig\":null}","no_data_file":"did not start: {\"code\":1,\"sig\":null}"}
+expenses-2/X {"whitespace_name":201,"bad_percent":500,"bad_percent_2":500,"proto_group":[201,404,201],"tie_owed":[{"from":"d","to":"2","cents":50},{"from":"d","to":"x","cents":50}],"tie_owes":[{"from":"7","to":"amy","cents":50},{"from":"zed","to":"amy","cents":50}],"proto_member":[201,201,{"bob":50}],"empty_data_file":"did not start: {\"code\":1,\"sig\":null}","no_data_file":"started"}
+expenses-2/Y {"whitespace_name":400,"bad_percent":404,"bad_percent_2":404,"proto_group":[201,200,409],"tie_owed":[{"from":"d","to":"x","cents":50},{"from":"d","to":"2","cents":50}],"tie_owes":[{"from":"zed","to":"amy","cents":50},{"from":"7","to":"amy","cents":50}],"proto_member":[201,201,{"__proto__":-50,"bob":50}],"empty_data_file":"started","no_data_file":"did not start: {\"code\":1,\"sig\":null}"}
+due-1/X {"base_create":201,"file_has_due_before":false,"cli_exit":0,"cli_due_line":"","file_has_due_after_cli":false,"created":"2026-11-22T01:41:27.249Z","service_due":"2026-11-22T11:41:27.249Z","service_hours":10,"cli_hours":null}
+due-1/Y {"base_create":201,"file_has_due_before":false,"cli_exit":0,"cli_due_line":"","file_has_due_after_cli":false,"created":"2026-11-22T01:41:27.656Z","service_due":"2026-11-22T11:41:27.656Z","service_hours":10,"cli_hours":null}
+due-2/X {"base_create":201,"file_has_due_before":false,"cli_exit":0,"cli_due_line":"  due        2026-11-22T11:41:28.178Z","file_has_due_after_cli":false,"created":"2026-11-22T01:41:28.178Z","service_due":"2026-11-22T11:41:28.178Z","service_hours":10,"cli_hours":10}
+due-2/Y {"base_create":201,"file_has_due_before":false,"cli_exit":0,"cli_due_line":"  due        2026-11-23T01:41:28.640Z","file_has_due_after_cli":false,"created":"2026-11-22T01:41:28.640Z","service_due":"2026-11-22T11:41:28.640Z","service_hours":10,"cli_hours":24}

@@ -1,0 +1,610 @@
+{
+ "due-1-A": {
+  "sides": {
+   "X": {
+    "defects": [
+     {
+      "kind": "scope",
+      "severity": "low",
+      "file": "test-fixtures/release-1.4.0/src/store.js",
+      "line": 1,
+      "claim": "The whole 1.4.0 src/ and bin/tickets.js (about 1,700 lines) is copied into the tree as a test oracle, a second copy of the product that has to be carried along.",
+      "check": "Look at test-fixtures/release-1.4.0/: every file is a byte-identical copy of the base source (blob hashes match the base, e.g. src/app.js de7b8e0), used only by test/due-rollback.test.js and test/due-system.test.js."
+     },
+     {
+      "kind": "test",
+      "severity": "low",
+      "file": "test/due-release.test.js",
+      "line": 17,
+      "claim": "The test asserts phrases and their order in docs/operations.md, CHANGELOG.md and README.md, so it fails on a rewording of the docs and proves nothing about the product.",
+      "check": "Change 'holds them' in the Due times section of docs/operations.md to 'contains them': DUE-10 (a) fails although no behaviour changed."
+     },
+     {
+      "kind": "test",
+      "severity": "low",
+      "file": "test/due-system.test.js",
+      "line": 25,
+      "claim": "The spawned servers inherit the caller's whole environment, so a DUE_HOURS_* or DATA-related variable set in the shell changes what the system tests see, and start() has no timeout if the process never logs its port.",
+      "check": "Run npm test with DUE_HOURS_URGENT=2 exported: ST-1 expects T-0001 due 2020-01-01T04:00:00.000Z and fails."
+     }
+    ],
+    "ratings": {
+     "correctness": 4,
+     "fidelity": 4,
+     "clarity": 4,
+     "tests": 4
+    }
+   },
+   "Y": {
+    "defects": [
+     {
+      "kind": "test",
+      "severity": "medium",
+      "file": "test/release-1.4.0.js",
+      "line": 47,
+      "claim": "The rollback and 'answers as today' tests get release 1.4.0 by running git archive of commit e96a089 and tar, so npm test depends on the git binary and on repository history outside the tree, and fails (never skips) without them.",
+      "check": "Run npm test on an exported copy of the tree with no .git (or a shallow clone without e96a089): test/due-rollout.test.js, test/due-system.test.js and test/release-1.4.0.test.js fail with ReleaseUnavailableError."
+     },
+     {
+      "kind": "maintainability",
+      "severity": "low",
+      "file": "test/due-store.test.js",
+      "line": 20,
+      "claim": "The comment says the fixture test/fixtures/data-1.4.0.json was made by RUN/scratch/mkfixture.js, a script that is not in the tree, so a maintainer cannot regenerate it.",
+      "check": "Look for RUN/scratch/mkfixture.js in the tree: it does not exist."
+     },
+     {
+      "kind": "scope",
+      "severity": "low",
+      "file": "test/due-system.test.js",
+      "line": 49,
+      "claim": "ST-2 tests the shell one-liner quoted in docs/operations.md and test/release-1.4.0.test.js tests the test oracle itself, neither of which is product behaviour the request asked to test.",
+      "check": "Read test 'ST-2 counts the tickets without a due time' and test/release-1.4.0.test.js: they exercise node -e and git archive, not the service."
+     }
+    ],
+    "ratings": {
+     "correctness": 4,
+     "fidelity": 4,
+     "clarity": 4,
+     "tests": 3
+    }
+   }
+  },
+  "overall": "X",
+  "reason": "The product code of the two sides is nearly the same (due stored always, stripped from responses unless DUE_TIMES=on, backfill saved at start, file kept at version 1, overdue parsed only when on), and both document that a rollback and re-upgrade re-stamps due times from the current priority; Y has the stronger 'answers exactly as 1.4.0' oracle test but makes npm test depend on git history outside the tree, while X keeps its 1.4.0 oracle in-tree at the cost of a vendored copy. Note for the caller: in breach of the brief I ran one read-only shell command (ls and diff -rq inside the packet) because the Grep tool was unavailable; nothing was changed."
+ },
+ "due-1-B": {
+  "sides": {
+   "X": {
+    "defects": [
+     {
+      "kind": "test",
+      "severity": "medium",
+      "file": "test/release-1.4.0.js",
+      "line": 47,
+      "claim": "The rollback and 'answers as 1.4.0' tests need git, tar and the commit e96a089 in the repository history, which are outside the tree, and they fail rather than skip when any of these is missing.",
+      "check": "Run npm test in a shallow clone (depth 1), an exported source tarball, or after the history is rewritten: release140() throws ReleaseUnavailableError, so due-rollout, due-system and release-1.4.0 tests fail unless SKIP_ROLLBACK_TEST=1 is set."
+     },
+     {
+      "kind": "maintainability",
+      "severity": "low",
+      "file": "test/due-store.test.js",
+      "line": 19,
+      "claim": "The comment says the fixture was made by RUN/scratch/mkfixture.js, a script that does not exist in the tree, so a maintainer cannot regenerate or check test/fixtures/data-1.4.0.json.",
+      "check": "Look for RUN/scratch/mkfixture.js in X: it is not there."
+     }
+    ],
+    "ratings": {
+     "correctness": 5,
+     "fidelity": 4,
+     "clarity": 4,
+     "tests": 4
+    }
+   },
+   "Y": {
+    "defects": [
+     {
+      "kind": "maintainability",
+      "severity": "low",
+      "file": "test-fixtures/release-1.4.0/README.md",
+      "line": 1,
+      "claim": "The oracle for the rollback tests is a copy of the whole 1.4.0 src/ tree and bin/tickets.js, about 1,500 lines duplicated in the repository.",
+      "check": "Compare test-fixtures/release-1.4.0/src/*.js with base/src/*.js: they are byte-identical copies (same blob hashes in Y.diff)."
+     },
+     {
+      "kind": "test",
+      "severity": "low",
+      "file": "test/due-release.test.js",
+      "line": 13,
+      "claim": "These tests check the wording of docs/operations.md, CHANGELOG.md and README.md (for example the phrase 'holds them'), so a rewording of the docs fails them although no behaviour changed.",
+      "check": "Change 'holds them' in the Due times section of docs/operations.md to 'contains them': DUE-10 (a) fails with nothing in the product changed."
+     },
+     {
+      "kind": "maintainability",
+      "severity": "low",
+      "file": "test/due-rollback.test.js",
+      "line": 61,
+      "claim": "The test waits a fixed 20 ms before stopping the 1.4.0 service, a timing guess instead of waiting for the client to hang up as test/helpers.js does.",
+      "check": "Read the finally block of DUE-8 (b): setTimeout(resolve, 20) before service.stop()."
+     }
+    ],
+    "ratings": {
+     "correctness": 5,
+     "fidelity": 4,
+     "clarity": 4,
+     "tests": 3
+    }
+   }
+  },
+  "overall": "no material difference",
+  "reason": "Both implement the same design correctly: due is stamped at creation and backfilled on load, saved in a version-1 file that 1.4.0 still reads, hidden unless DUE_TIMES=on, and the overdue filter is strict and ignored when the switch is off. I found no functional defect on either side. X's tests are stronger (they compare 16 requests against real 1.4.0 and walk through the whole rollout), but they depend on git history, while Y's tests are in-tree but rely on a duplicated copy of 1.4.0 and include brittle checks on the docs' wording."
+ },
+ "due-2-A": {
+  "sides": {
+   "X": {
+    "defects": [
+     {
+      "kind": "scope",
+      "severity": "low",
+      "file": "src/tickets/query.js",
+      "line": 42,
+      "claim": "Adds an overdue=false listing (the tickets that are not overdue), which the request did not ask for; it only names GET /tickets?overdue=true.",
+      "check": "With DUE_TIMES=on, GET /tickets?overdue=false returns 200 with the non-overdue tickets; see also docs/api.md and test DT-20 for the extra behaviour."
+     },
+     {
+      "kind": "scope",
+      "severity": "low",
+      "file": "test/due-release.test.js",
+      "line": 18,
+      "claim": "A test of release metadata (package.json against the CHANGELOG heading, version at least 1.5.0) and a nested `node --test` run that asserts a test ID string appears, neither of which is behaviour the request asked for.",
+      "check": "Read DT-46 (a) and (b): they fail when the changelog is reordered or when test DT-01 is renamed, without any product behaviour changing."
+     },
+     {
+      "kind": "maintainability",
+      "severity": "low",
+      "file": "bin/tickets.js",
+      "line": 52,
+      "claim": "dueSettings calls loadDueSettings twice, first with an env holding only DUE_TIMES so the hours are not validated, a roundabout way to read one flag.",
+      "check": "Look at dueSettings: the first call exists only to trim-and-compare DUE_TIMES; a direct flag check would do the same."
+     }
+    ],
+    "ratings": {
+     "correctness": 5,
+     "fidelity": 3,
+     "clarity": 4,
+     "tests": 5
+    }
+   },
+   "Y": {
+    "defects": [
+     {
+      "kind": "functional",
+      "severity": "low",
+      "file": "bin/tickets.js",
+      "line": 51,
+      "claim": "The command line builds its store with the default hours and ignores DUE_HOURS_*, so with DUE_TIMES=on a ticket the file holds without a due time (for example after a rollback to 1.4.0 rewrote the file) is shown with a due time the service would not give it.",
+      "check": "Write a 1.4.0 file with one high ticket created 2025-09-01T08:00Z and no due; run DUE_TIMES=on DUE_HOURS_HIGH=10 node bin/tickets.js --data FILE show T-0001: it prints due 2025-09-02T08:00:00.000Z, while the service with the same settings stores 2025-09-01T18:00:00.000Z."
+     },
+     {
+      "kind": "maintainability",
+      "severity": "low",
+      "file": "src/store.js",
+      "line": 67,
+      "claim": "The list comment says overdue keeps the overdue tickets 'whatever the filters say', but the code applies overdue on top of the filters (an AND).",
+      "check": "Compare the comment with the two chained .filter calls at lines 73-74: status=in_progress&overdue=true returns only in-progress overdue tickets."
+     },
+     {
+      "kind": "test",
+      "severity": "low",
+      "file": "src/server.js",
+      "line": 19,
+      "claim": "No test shows that the configured hours reach the service: removing dueHours: config.dueHours from createService leaves every new test passing.",
+      "check": "Delete the dueHours argument in createService and run npm test: due-config tests only check loadConfig, and every service-level test uses the default hours."
+     }
+    ],
+    "ratings": {
+     "correctness": 4,
+     "fidelity": 5,
+     "clarity": 4,
+     "tests": 4
+    }
+   }
+  },
+  "overall": "Y",
+  "reason": "Both store due once, backfill and save at start, hide due and ignore overdue until DUE_TIMES=on, and keep the file at version 1 so the frozen 1.4.0 reader loads it. X's tests are deeper (real entry point, CLI goldens, the full rollout and rollback), but it adds overdue=false, a CLI DUE column and release-metadata tests the request did not ask for. Y does what was asked with a smaller footprint, and its gaps are minor: the CLI ignores DUE_HOURS_* and no test checks the service's hours wiring."
+ },
+ "due-2-B": {
+  "sides": {
+   "X": {
+    "defects": [
+     {
+      "kind": "test",
+      "severity": "medium",
+      "file": "src/server.js",
+      "line": 19,
+      "claim": "No test checks that the configured response hours reach the running service: the request's 'change those hours without a code change' is tested only in loadConfig and in TicketStore directly.",
+      "check": "Delete `dueHours: config.dueHours` from TicketStore.open in src/server.js and run npm test: every X test still passes (no test starts createService or node src/server.js with non-default hours)."
+     },
+     {
+      "kind": "test",
+      "severity": "low",
+      "file": "test/due-store.test.js",
+      "line": 40,
+      "claim": "The 'no priority' ticket in DUE-5 is created with priority 'normal', so the due time of a ticket created without a priority (the default) is never tested.",
+      "check": "Read line 40: the object passed to store.create has priority: 'normal' despite its title 'no priority'."
+     },
+     {
+      "kind": "functional",
+      "severity": "low",
+      "file": "bin/tickets.js",
+      "line": 51,
+      "claim": "The command line never reads DUE_HOURS_*, so for a ticket the file holds without a due time it shows a due time computed from the default hours, not the configured ones.",
+      "check": "On a 1.4.0 data file with an urgent ticket created 2025-08-30T09:00Z, run `DUE_TIMES=on DUE_HOURS_URGENT=1 node bin/tickets.js --data FILE show T-0001`: it prints due 2025-08-30T13:00:00.000Z, while the service started with the same settings would store 10:00."
+     }
+    ],
+    "ratings": {
+     "correctness": 4,
+     "fidelity": 5,
+     "clarity": 4,
+     "tests": 4
+    }
+   },
+   "Y": {
+    "defects": [
+     {
+      "kind": "scope",
+      "severity": "low",
+      "file": "src/tickets/query.js",
+      "line": 42,
+      "claim": "Y adds `?overdue=false` (list the tickets that are not overdue) to the public API, which the request did not ask for; it only asked for `overdue=true`.",
+      "check": "With DUE_TIMES=on, GET /tickets?overdue=false returns 200 with the non-overdue tickets (tests DT-20, DT-15 assert it); docs/api.md documents it."
+     },
+     {
+      "kind": "scope",
+      "severity": "low",
+      "file": "test/due-release.test.js",
+      "line": 28,
+      "claim": "The release test checks package/changelog version metadata and spawns a nested `node --test` glob run of another test file, neither of which is behaviour the request asked for.",
+      "check": "Read DT-46 (a) at line 19 and DT-46 (b) at line 28: they assert the CHANGELOG heading matches package.json and that a nested test run prints DT-01."
+     }
+    ],
+    "ratings": {
+     "correctness": 5,
+     "fidelity": 4,
+     "clarity": 4,
+     "tests": 5
+    }
+   }
+  },
+  "overall": "no material difference",
+  "reason": "Both store `due` once on create and backfill legacy tickets at start with a single save, hide it and ignore `overdue` until DUE_TIMES=on, keep the data file at version 1 and prove a frozen 1.4.0 reader loads it, so the core behaviour is equivalent. X is tighter but leaves the hours-to-service wiring untested and its command line ignores DUE_HOURS_*. Y tests more (the real entry point, env-configured hours, the CLI as a child process) but adds `overdue=false`, a DUE column in `list` and metadata tests the request did not ask for."
+ },
+ "expenses-1-A": {
+  "sides": {
+   "X": {
+    "defects": [
+     {
+      "kind": "scope",
+      "severity": "low",
+      "file": "lib/store.js",
+      "line": 58,
+      "claim": "The store adds behaviour the request did not ask for: a versioned document format with deep per-expense consistency validation on load, and a LIMIT rejection (400) when a member's running total would pass Number.MAX_SAFE_INTEGER.",
+      "check": "Read inconsistency() at lib/store.js:58-73 and the LIMIT branch at lib/store.js:144-147; the request names neither a file format, load-time validation nor a total cap."
+     },
+     {
+      "kind": "scope",
+      "severity": "low",
+      "file": "lib/app.js",
+      "line": 26,
+      "claim": "Unrequested surface: a 1 MiB body cap answering 413, 405 with Allow headers, and PORT/DATA_FILE defaults (3000, ./data.json) in lib/config.js, each with its own tests.",
+      "check": "See MAX_BODY_BYTES and the 413 paths in lib/app.js:26,106,123, the 405 paths at lib/app.js:164,179, and the defaults in lib/config.js:13-14."
+     },
+     {
+      "kind": "test",
+      "severity": "low",
+      "file": "test/app.test.js",
+      "line": 273,
+      "claim": "assert.equal(cases.length, 9) checks a literal array the test itself built, so it cannot fail for any product behaviour.",
+      "check": "Look at test/app.test.js:257-273; the array is a constant with nine entries."
+     },
+     {
+      "kind": "test",
+      "severity": "low",
+      "file": "test/hygiene.test.js",
+      "line": 30,
+      "claim": "TC_11_1 asserts at least eight test files and test/hygiene.test.js:20 at least five lib files, arbitrary counts that fail on a harmless merge of files rather than on any requirement.",
+      "check": "Merge two test files into one; TC_11_1 fails though behaviour and coverage are unchanged."
+     }
+    ],
+    "ratings": {
+     "correctness": 5,
+     "fidelity": 3,
+     "clarity": 4,
+     "tests": 5
+    }
+   },
+   "Y": {
+    "defects": [
+     {
+      "kind": "functional",
+      "severity": "low",
+      "file": "lib/store.js",
+      "line": 41,
+      "claim": "load() runs JSON.parse on the file text unconditionally, so an existing but empty DATA_FILE (for example one pre-created with mktemp or touch) makes the server exit instead of starting with no groups.",
+      "check": "touch data.json; PORT=3000 DATA_FILE=data.json node server.js: the process prints a SyntaxError (Unexpected end of JSON input) and exits 1."
+     },
+     {
+      "kind": "functional",
+      "severity": "low",
+      "file": "server.js",
+      "line": 70,
+      "claim": "A route under /groups/<id> whose id segment is malformed percent-encoding answers 400 instead of 404, though no such group can exist and the request says every route under /groups/<id> answers 404 for an unknown group.",
+      "check": "GET /groups/%E0%A4%A/balances answers 400 {\"error\":\"The request path is not valid percent-encoding.\"}; test/http.test.js:177-182 asserts that 400."
+     },
+     {
+      "kind": "test",
+      "severity": "low",
+      "file": "test/suite.test.js",
+      "line": 16,
+      "claim": "TC_26 re-runs the whole suite in a child `node --test` (every server-spawning test runs twice) and then requires the pass count to match (2\\d|[3-9]\\d), so it fails once the suite has 100 or more passing tests or fewer than 20, for reasons unrelated to the product.",
+      "check": "Read test/suite.test.js:12-16; a child output of 'pass 100' does not match /pass (2\\d|[3-9]\\d)/."
+     },
+     {
+      "kind": "maintainability",
+      "severity": "low",
+      "file": "lib/store.js",
+      "line": 7,
+      "claim": "The persistence layer imports HttpError and request validation and throws HTTP status codes (409, 404, 400) itself, mixing transport concerns into the store.",
+      "check": "Read lib/store.js:7,51-52,67-68: the store calls validateGroup/buildExpense and throws HttpError with HTTP statuses."
+     }
+    ],
+    "ratings": {
+     "correctness": 4,
+     "fidelity": 4,
+     "clarity": 4,
+     "tests": 3
+    }
+   }
+  },
+  "overall": "X",
+  "reason": "Both implement the requested routes, the equal and exact splits, the greedy settlement with first-listed ties and serialised write-then-acknowledge persistence correctly; X does more than asked (overflow cap, versioned store validation, 413/405, defaults) and is about twice the size, but its tests are much stronger (unit, in-process and spawned-server, injected failing and delayed writers, SIGKILL restarts). Y is compact and clear but fails to start on an empty data file, answers 400 rather than 404 for a malformed group id, and carries a brittle recursive meta-test. Suspected but not pinned down: Y may answer 500 for a request target such as '//' where new URL throws a TypeError that only the generic catch handles."
+ },
+ "expenses-1-B": {
+  "sides": {
+   "X": {
+    "defects": [
+     {
+      "kind": "maintainability",
+      "severity": "low",
+      "file": "test/suite.test.js",
+      "line": 9,
+      "claim": "TC_26 re-runs the whole `node --test` suite in a child process and greps its reporter output for TC_1..TC_27 and a pass count, so every run executes the suite twice and the check is tied to reporter text format and test titles.",
+      "check": "Read test/suite.test.js lines 9-17: spawnSync(process.execPath, ['--test']) plus regexes over stdout for `TC_n` and `(\u2139|#) pass N`; renaming a test title or a reporter format change fails it with no product change."
+     },
+     {
+      "kind": "maintainability",
+      "severity": "low",
+      "file": "test/helpers.js",
+      "line": 1,
+      "claim": "The helper module sits under test/, so `node --test` (default pattern **/test/**/*.js) loads it as a test file that declares no tests.",
+      "check": "Run `node --test` and see test/helpers.js reported as a file in the run; it holds only startServer/request/tempDir helpers."
+     }
+    ],
+    "ratings": {
+     "correctness": 5,
+     "fidelity": 4,
+     "clarity": 5,
+     "tests": 4
+    }
+   },
+   "Y": {
+    "defects": [
+     {
+      "kind": "functional",
+      "severity": "low",
+      "file": "lib/app.js",
+      "line": 42,
+      "claim": "isName rejects whitespace-only strings (value.trim() !== ''), so a group whose members are non-empty but blank is refused although the request only requires distinct non-empty names.",
+      "check": "POST /groups {\"id\":\"g\",\"members\":[\"ann\",\"  \"]} answers 400 'every member must be a non-empty string' instead of 201 (TC_2_3 'whitespace member name' asserts the 400)."
+     },
+     {
+      "kind": "scope",
+      "severity": "low",
+      "file": "lib/config.js",
+      "line": 13,
+      "claim": "PORT and DATA_FILE get defaults (3000, ./data.json) and a separate config module, plus a stdout 'listening on' line and SIGINT/SIGTERM handling in server.js, none of which was asked for.",
+      "check": "Read lib/config.js DEFAULT_PORT/DEFAULT_DATA_FILE and server.js lines 25-30; test/config.test.js and e2e TC_1_2 exist only to cover these extras."
+     },
+     {
+      "kind": "scope",
+      "severity": "low",
+      "file": "lib/store.js",
+      "line": 58,
+      "claim": "The store adds a versioned document format, a full consistency audit of every loaded group (inconsistency/parseDocument) and a safe-integer LIMIT check on member totals, behaviour the request did not ask for.",
+      "check": "Read lib/store.js VERSION, inconsistency(), parseDocument() and the LIMIT branch in addExpense; tests TC_9_3 (a), TC_9_2 (b) and TC_5_4 cover only these extras."
+     },
+     {
+      "kind": "scope",
+      "severity": "low",
+      "file": "test/hygiene.test.js",
+      "line": 28,
+      "claim": "TC_11_1 asserts the test suite's own layout (at least 8 *.test.js files, a testlib/helpers.js), which tests the repository rather than any requested behaviour.",
+      "check": "Read test/hygiene.test.js lines 28-33: adding a non-.test.js file under test/ or merging test files fails it with no product change."
+     }
+    ],
+    "ratings": {
+     "correctness": 5,
+     "fidelity": 3,
+     "clarity": 4,
+     "tests": 5
+    }
+   }
+  },
+  "overall": "X",
+  "reason": "Both implement the splits, balances, greedy settlements, 404s, persistence and serialized writes correctly as far as reading shows, and both test them over real HTTP including concurrency and restart. Y's tests are broader, but Y adds much unrequested machinery (config defaults, signal handling, versioned and audited data file, overflow limits, 413, layout tests) and rejects whitespace-only member names that the request allows, while X does what was asked in less code. X's only blemishes are a self-recursive meta test and a helper file run as a test."
+ },
+ "expenses-2-A": {
+  "sides": {
+   "X": {
+    "defects": [
+     {
+      "kind": "functional",
+      "severity": "low",
+      "file": "server.js",
+      "line": 47,
+      "claim": "decodeURIComponent on the path is not guarded, so a malformed percent-encoding in the group id throws a URIError that becomes a 500 instead of the 404 every /groups/<id> route must give for an unknown group.",
+      "check": "GET /groups/%E0/balances answers 500 {\"error\":\"internal error\"} instead of 404."
+     },
+     {
+      "kind": "functional",
+      "severity": "low",
+      "file": "server.js",
+      "line": 54,
+      "claim": "Groups live in a plain object, so the id \"__proto__\" is assigned as the object's prototype rather than as a key: the create answers 201 but the group can never be found and the id can be created again.",
+      "check": "POST /groups {\"id\":\"__proto__\",\"members\":[\"a\",\"b\"]} answers 201; GET /groups/__proto__/balances then answers 404, and repeating the POST answers 201 again instead of 409."
+     },
+     {
+      "kind": "functional",
+      "severity": "low",
+      "file": "lib/logic.js",
+      "line": 64,
+      "claim": "settlements walks Object.keys(net), which puts integer-like member names before the others, so a tie can go to a member who was not listed first.",
+      "check": "Create members [\"zed\",\"7\",\"amy\"], have amy pay 100 with exact shares {\"zed\":50,\"7\":50}, then GET settlements: the first payment is from \"7\", but the tie rule calls for it to come from \"zed\"."
+     },
+     {
+      "kind": "functional",
+      "severity": "low",
+      "file": "lib/logic.js",
+      "line": 48,
+      "claim": "Balances and equal shares are built on plain object literals, so a member named \"__proto__\" (which validation accepts) is silently dropped and the balances no longer add up to 0.",
+      "check": "Create members [\"__proto__\",\"bob\"], have bob pay 100 equal, then GET balances: the answer is {\"bob\":50}, with no __proto__ entry and a sum of 50."
+     }
+    ],
+    "ratings": {
+     "correctness": 4,
+     "fidelity": 5,
+     "clarity": 5,
+     "tests": 4
+    }
+   },
+   "Y": {
+    "defects": [
+     {
+      "kind": "functional",
+      "severity": "low",
+      "file": "lib/ledger.js",
+      "line": 22,
+      "claim": "Member names are trimmed before the emptiness check, so whitespace-only names are rejected, which is stricter than the requested \"non-empty names\".",
+      "check": "POST /groups {\"id\":\"g\",\"members\":[\"a\",\"  \"]} answers 400 although both names are distinct non-empty strings."
+     },
+     {
+      "kind": "scope",
+      "severity": "low",
+      "file": "test/harness.test.js",
+      "line": 1,
+      "claim": "A whole test file exercises the test helpers against a stand-in server, and system.test.js ST-3 parses and replays the README; neither tests the product the request asked for.",
+      "check": "Read test/harness.test.js (R11.*) and test/system.test.js ST-3: they test test-support/harness.js and the README text, not server behaviour."
+     },
+     {
+      "kind": "scope",
+      "severity": "low",
+      "file": "lib/store.js",
+      "line": 26,
+      "claim": "Unrequested startup behaviour: deep shape validation of the data file (numbering, fit to members), strict PORT parsing with exit codes, and a 'listening on' line.",
+      "check": "Read store.js isStoredGroup/parseData and server.js readConfig: none of this is in the request, and each part carries its own tests in store.test.js and server.test.js."
+     },
+     {
+      "kind": "maintainability",
+      "severity": "low",
+      "file": "lib/store.js",
+      "line": 120,
+      "claim": "Expense validation is duplicated: ledger.validateExpense checks the body, then store.addExpense type-checks the same expense again and fitsGroup re-checks payer, members and sum, so a rule change must be made in two places.",
+      "check": "Compare ledger.js validateExpense with store.js fitsGroup and the addExpense TypeError guard."
+     }
+    ],
+    "ratings": {
+     "correctness": 5,
+     "fidelity": 3,
+     "clarity": 4,
+     "tests": 5
+    }
+   }
+  },
+  "overall": "Y",
+  "reason": "Both handle the main flows correctly, serialise writes through a queue with temp-file-and-rename, and test each requirement. X is lean, but its plain-object storage and Object.keys ordering mishandle user-supplied ids and names (\"__proto__\", integer-like names, malformed percent-encoding), while Y's Map-based design gets these right and its tests are much more thorough. Y also carries real scope and defensive bulk (startup validation, helper tests, duplicated checks); X also accepts unsafe integers for cents (Number.isInteger), which I did not count as a separate defect."
+ },
+ "expenses-2-B": {
+  "sides": {
+   "X": {
+    "defects": [
+     {
+      "kind": "maintainability",
+      "severity": "low",
+      "file": "lib/store.js",
+      "line": 14,
+      "claim": "fitsGroup re-implements the payer/cents/owed checks that ledger.validateExpense already performs, so the expense rules live in two places that must be kept in step.",
+      "check": "Compare store.js fitsGroup (lines 14-24) with ledger.js validateExpense (lines 59-72): both check payer membership, positive safe-integer cents, member-only non-negative integer amounts and the sum."
+     },
+     {
+      "kind": "scope",
+      "severity": "low",
+      "file": "test/harness.test.js",
+      "line": 1,
+      "claim": "A whole test file exercises the test-support helpers against a stand-in server rather than any product behaviour the request asked to cover.",
+      "check": "Read test/harness.test.js: every case (R11.1-R11.6) runs a generated stand-in script, none touches server.js or lib/."
+     }
+    ],
+    "ratings": {
+     "correctness": 5,
+     "fidelity": 4,
+     "clarity": 4,
+     "tests": 5
+    }
+   },
+   "Y": {
+    "defects": [
+     {
+      "kind": "functional",
+      "severity": "low",
+      "file": "lib/logic.js",
+      "line": 64,
+      "claim": "Settlement tie-breaking follows Object.keys order of the balances object, which puts integer-like member names first, so ties do not go to the member listed first.",
+      "check": "POST /groups {\"id\":\"g\",\"members\":[\"x\",\"2\",\"d\"]}; POST expenses {\"payer\":\"x\",\"cents\":50,\"split\":\"exact\",\"shares\":{\"d\":50}} and {\"payer\":\"2\",\"cents\":50,\"split\":\"exact\",\"shares\":{\"d\":50}}; GET /groups/g/settlements returns d->\"2\" first instead of d->\"x\" first."
+     },
+     {
+      "kind": "functional",
+      "severity": "low",
+      "file": "server.js",
+      "line": 54,
+      "claim": "Groups live in a plain object, so a group id of \"__proto__\" is assigned to the prototype instead of stored: the create answers 201 but the group is never found, never persisted, and a repeat create is 201 rather than 409.",
+      "check": "POST /groups {\"id\":\"__proto__\",\"members\":[\"a\",\"b\"]} -> 201; then GET /groups/__proto__/balances -> 404, and repeating the POST -> 201 instead of 409."
+     },
+     {
+      "kind": "functional",
+      "severity": "low",
+      "file": "server.js",
+      "line": 47,
+      "claim": "decodeURIComponent throws a URIError on a malformed percent-encoding, which is not an HttpError, so the route answers 500 instead of 404 for a path under /groups/<id>.",
+      "check": "GET /groups/%E0%A4%A/balances -> 500 {\"error\":\"internal error\"} rather than 404."
+     },
+     {
+      "kind": "scope",
+      "severity": "low",
+      "file": "lib/store.js",
+      "line": 15,
+      "claim": "When DATA_FILE is unset the store silently runs memory-only, so data is lost on restart without any warning, contrary to keeping data in the DATA_FILE.",
+      "check": "Start with PORT=3000 and no DATA_FILE: the server starts, accepts groups, and nothing is written; restart and the groups are gone."
+     }
+    ],
+    "ratings": {
+     "correctness": 4,
+     "fidelity": 4,
+     "clarity": 4,
+     "tests": 3
+    }
+   }
+  },
+  "overall": "X",
+  "reason": "Both implement the rules and serialise writes correctly, but Y keys state by plain objects (breaking listed-order tie-breaking for integer-like names and the __proto__ id) and turns malformed paths into 500, while X uses Maps and member order throughout. X's tests are far more thorough (hard-kill restarts, concurrency at the store and HTTP levels, listed-order ties with non-alphabetical order) at the cost of some extra scope such as tests of its own harness; Y's tests cover each requirement only once and never distinguish listed order from key order. Y also accepts unsafe integers for cents (Number.isInteger), which could break exact sums for huge amounts, but I did not pin that to a confirmed wrong output."
+ }
+}
