@@ -1,0 +1,143 @@
+Round 15, the second confirmation round on build D (5c48bcc84ac3999cb9dce5484a1da0aeb059f2e2): three whole deliveries
+of ticket-due-times at medium effort, defaults, started together at 23:35:14 (local) on 2026-11-21; the last ended at
+00:20:08 on 2026-11-22. Read with confirm_read.py; the observers ran on the tree at each result's committed head.
+In the lines below "floor None" means no count was compared: this build compares none.
+
+== sol-D-due-1
+   case ticket-due-times | gpt-6.2-sol medium | pass True | verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True} | checks 8/8 | cost None | build 5c48bcc84
+   planning reviews: stage | ShipLoop status: done | ShipLoop run folders: 1
+   work item W1 (Persist fixed due times and expose them with the rollout flag): regression commands ['npm test']
+   release-plan nav-c276d1a2419044b99f9a3cb2f6b56918 recorded consumer checks: ['npm test', 'node --test --test-reporter=spec ~/e2e-runs-sdlc14/r15d/20261121/sol-D-due-1/.shiploop-runs/work-']
+   release stages in order: release-plan:done release:done release-verify:done
+   release-verify attempt nav-b1defd1de2fa4a9a94f46ed02236148b-verify1.md (the action ended done; in returned-result; returned head 5e9692173762, tree e09714347b65; passed True, passed):
+      check [regression] npm test -> passed, exit 0, ran 123, floor None, 0.551 s
+      check [focused] node --test --test-reporter=spec ~/e2e-runs-sdlc14/r15d/20261121/sol-D-due-1/.shiploop- -> passed, exit 0, ran 1, floor None, 0.592 s
+   observer ticket-return: moves 1 of 8 due times
+      first start: by itself | ordinary: {'starts': True, 'due_same': 7, 'due_of': 8, 'moved': ['T-0001'], 'old_release_priority_kept': True, 'old_release_ticket_kept': True, 'old_release_ticket_has_due': True} | with the kept copy: no such option
+   observer suite-elsewhere: 122 of 122 pass in the project folder; the same without npm; the same from another folder
+== sonnet-D-due-1
+   case ticket-due-times | claude-sonnet-5-5 medium | pass True | verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True} | checks 8/8 | cost 7.3962 | build 5c48bcc84
+   planning reviews: stage | ShipLoop status: done | ShipLoop run folders: 1
+   work item W1 (Due times: compute, store, backfill, gate, overdue filter, rollback-sa): regression commands ['npm test']
+   release-plan nav-d02c3da587d8408b81cb03378ade4b00 recorded consumer checks: ['node --test --test-reporter=spec test/due-system.test.js']
+   release stages in order: release-plan:done release:done release-verify:done
+   release-verify attempt nav-244df8d952dd4d6d8b4711248e0ba5c8-verify1.md (the action ended done; in returned-result; returned head 3f036c8c0bf0, tree e2285e092b4c; passed True, passed):
+      check [focused] node --test --test-reporter=spec test/due-system.test.js -> passed, exit 0, ran 1, floor None, 0.538 s
+      ADDED [regression] npm test -> passed, exit 0, ran 144, floor None, 0.838 s
+   observer ticket-return: moves 1 of 8 due times
+      first start: by itself | ordinary: {'starts': True, 'due_same': 7, 'due_of': 8, 'moved': ['T-0001'], 'old_release_priority_kept': True, 'old_release_ticket_kept': True, 'old_release_ticket_has_due': True} | with the kept copy: no such option
+   observer suite-elsewhere: 143 of 143 pass in the project folder; the same without npm; the same from another folder
+== sonnet-D-due-2
+   case ticket-due-times | claude-sonnet-5-5 medium | pass True | verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True} | checks 8/8 | cost 10.2628 | build 5c48bcc84
+   planning reviews: stage | ShipLoop status: done | ShipLoop run folders: 1
+   work item W1 (Due times in the core: config, store, persistence, API, with tests): regression commands ['npm test']
+   work item W2 (CLI output, operations docs, version 1.5.0 and decision record): regression commands ['npm test']
+   release-plan nav-03faf74924e443a29e1afd3ea5fdfc73 recorded consumer checks: ['node --test --test-reporter=spec test/due-system.test.js', 'node bin/tickets.js --help']
+   release stages in order: release-plan:done release:done release-verify:done
+   release-verify attempt nav-10de838b1aab4513a18d41ddea53722c-verify1.md (the action ended done; in returned-result; returned head 2e0a587ab86e, tree accb560422a0; passed True, passed):
+      check [check] node --test --test-reporter=spec test/due-system.test.js -> passed, exit 0, ran 2, floor None, 0.576 s
+      check [check] node bin/tickets.js --help -> passed, exit 0, ran None, floor None, 0.115 s
+      ADDED [regression] npm test -> passed, exit 0, ran 158, floor None, 1.055 s
+   observer ticket-return: moves 1 of 8 due times
+      first start: by itself | ordinary: {'starts': True, 'due_same': 7, 'due_of': 8, 'moved': ['T-0001'], 'old_release_priority_kept': True, 'old_release_ticket_kept': True, 'old_release_ticket_has_due': True} | with the kept copy: no such option
+   observer suite-elsewhere: 156 of 156 pass in the project folder; the same without npm; the same from another folder
+
+Read by hand, after the reading above.
+
+Identity. All three: checkout build labelled skill-craft 4.2.1 / ShipLoop 2.4.1, plugin fingerprint 88d434e52a5c,
+local head 5c48bcc84ac3; harness digests evaluator cc221376b337, oracle dba32b3f6860, case 1f9bbcdded4d (the
+candidate tree's own harness, with the base check as it was before its fix). Codex CLI 0.171.0 with gpt-6.2-sol;
+Claude Code 2.1.330 with claude-sonnet-5-5 (served: claude-sonnet-5-5). One session each, no resume. The case declares
+no held-out acceptance and no mutation command.
+
+Times (UTC), turns, model calls, cost, last revision:
+  sol-D-due-1     07:35:19 to 07:49:16, 13.9 min; 149 turns, 69 model calls, no dollar figure; revision 34
+  sonnet-D-due-1  07:35:19 to 08:20:08, 44.8 min; 291 turns, 162 model calls, $7.40; revision 34
+  sonnet-D-due-2  07:35:19 to 08:17:35, 42.3 min; 356 turns, 210 model calls, $10.26; revision 45
+Load average on 18 processors: 5.9 at the start; 4.8 when the Sol run ended; 25.0 and 33.9 when the two Sonnet runs
+ended (other sessions' runs and suites were on the machine).
+
+`npm test` as ShipLoop recorded it, in order (stage, where, tests run, failed):
+  sol-D-due-1     test 122; document 122; test 123; system-test 123; release-verify (returned copy) 123
+  sonnet-D-due-1  test 129; document 129; test 143; document 143; release-verify (returned copy, added) 144
+  sonnet-D-due-2  test 131; test 140; test 154; test 154; carry-forward 156; release-verify (returned copy, added) 158
+  None of these runs failed a test. In both Sonnet runs the copy ran more tests than the last run recorded in the work
+  area (143 to 144, 156 to 158): system tests were written after it.
+
+Each delivered tree's `npm test` (its script is `node --test`), run again by hand on the tree at the committed head:
+  sol-D-due-1     exit 0: tests 123, pass 123, fail 0, cancelled 0, skipped 0, todo 0
+  sonnet-D-due-1  exit 0: tests 144, pass 144, fail 0, cancelled 0, skipped 0, todo 0
+  sonnet-D-due-2  exit 0: tests 158, pass 158, fail 0, cancelled 0, skipped 0, todo 0
+  The suite observer counts 122, 143 and 156 because it names the `*.test.*` files; `node --test` with no file names
+  also runs the other files under test/ (test/helpers.js in all three, test/fixtures/persistence-1.4.0.js in the
+  third) and counts each as one passing test.
+
+Returns and moved files. Every return recorded in the three runs is a fast-forward-merge. Each returned checkout is
+clean and committed (9, 15 and 17 commits on the case's base). No commit of any delivery renames or deletes a file,
+so the moved-file fix of this build was not met.
+
+Refusals (every ShipLoop command that exited non-zero, from each run's trace), step plans and reviews:
+
+== sol-D-due-1
+  failed ShipLoop commands counted by the harness: 3
+   refusal 1: 2026-11-22T07:37:53Z stage test-strategy/test-strategy complete exit 2: test_layers[1].layer is one of unit, component, e2e
+   refusal 2: 2026-11-22T07:38:02Z stage test-strategy/test-strategy complete exit 2: test_layers gives src/server.js and bin/tickets.js no unit or component row. All code the run writes is tested below the e2e layer: add its unit or component row, status prerequisite when its harness is missing.
+   refusal 3: 2026-11-22T07:38:25Z stage plan/plan complete exit 2: a done plan maps the concerns of every work item: concerns: {"W1": [one row per concern: ui, api, messaging, state, migrate-before, migrate-after, switchover, concurrency, platform-services, scale, security, observability, config,
+  item W1: criteria 2, steps 2: 1 criteria, 13 paths; 1 criteria, 3 paths
+     regression rows: [('npm test', 'regression', None)]
+  reviews: 9 in 9 passes, 0 changed something: carry-forward 1, document 1, document 1, plan 1, release-plan 1, spec 1, step-plan 1, system-test-author 1, test-strategy 1
+== sonnet-D-due-1
+  failed ShipLoop commands counted by the harness: 14
+   refusal 1: 2026-11-22T07:37:42Z stage improve/improve improve-pass exit 2: Run this stage's checks on the edited tree and write their output to ~/e2e-runs-sdlc14/r15d/20261121/sonnet-D-due-1/.shiploop-runs/work-20261122-073524-34684a/worktree/.shiploop-improve/spec-ce37e0c7/reviews/checks.md
+   refusal 2: 2026-11-22T07:41:32Z stage step-plan/step-plan check exit 2: ~/e2e-runs-sdlc14/r15d/20261121/sonnet-D-due-1/.shiploop-runs/work-20261122-073524-34684a/run/inbox/nav-766d02ff14d3418d90761ae4b50fbd60.md: record must contain exactly one shiploop-state fence (found 0): write Markdo
+   refusal 3: 2026-11-22T07:41:36Z stage step-plan/step-plan check exit 2: ~/e2e-runs-sdlc14/r15d/20261121/sonnet-D-due-1/.shiploop-runs/work-20261122-073524-34684a/run/inbox/nav-766d02ff14d3418d90761ae4b50fbd60.md: record must contain exactly one shiploop-state fence (found 0): write Markdo
+   refusal 4: 2026-11-22T07:41:39Z stage step-plan/step-plan check exit 2: open plan assumptions A2 name W1 as due_item; settle each here: an executed criterion with "from": "<assumption id>" that this item's tests confirm, or, for a fact about what exists, an expectation with "from" whose check holds on
+   refusal 5: 2026-11-22T07:44:46Z stage test/test check exit 2: red_na names TC-22, which is not a test ID new at this step (new: TC-1, TC-2, TC-3, TC-4, TC-5, TC-6, TC-7, TC-18, TC-19, TC-21). red_na exempts only a new test ID that passes without this change (a characterisation test, or a cas
+   refusal 6: 2026-11-22T07:44:56Z stage test/test check exit 2: ShipLoop mutation check: test is not done. 2 of 8 mutants of this item's changed product lines survived the focused tests, with no disposition: - src/config.js:38:78: src/config.js:38: '1' -> '2' - src/store.js:43:23: src/store.js
+   refusal 7: 2026-11-22T07:55:08Z stage test/test check exit 2: ShipLoop test run: test is not done. ShipLoop ran the 2 listed commands from ~/e2e-runs-sdlc14/r15d/20261121/sonnet-D-due-1/.shiploop-runs/work-20261122-073524-34684a/worktree and 1 did not pass: - [regression] npm te
+   refusal 8: 2026-11-22T08:11:54Z stage test/test check exit 2: ShipLoop base run: test is not done. ShipLoop ran 2 focused and regression commands on the item's base (lint base 2637f05d1936, with this item's 3 test files copied in): - [focused] node --test --test-reporter=spec test/due.test.j
+   refusal 9: 2026-11-22T08:12:06Z stage test/test check exit 2: ShipLoop test run: test is not done. ShipLoop ran the 3 listed commands from ~/e2e-runs-sdlc14/r15d/20261121/sonnet-D-due-1/.shiploop-runs/work-20261122-073524-34684a/worktree and 1 did not pass: - [check] grep -q DUE
+   refusal 10: 2026-11-22T08:12:21Z stage test/test check exit 2: ShipLoop mutation check: test is not done. 3 of 8 mutants of this item's changed product lines survived the focused tests, with no disposition: - src/server.js:22:26: src/server.js:22: '0' -> '1' - src/store.js:69:32: src/store.js
+   refusal 11: 2026-11-22T08:13:07Z stage document/document check exit 2: Restore ~/e2e-runs-sdlc14/r15d/20261121/sonnet-D-due-1/.shiploop-runs/work-20261122-073524-34684a/worktree/docs/shiploop/spec.md to what HEAD holds plus this step's requirement lines, then run the same callback again;
+   refusal 12: 2026-11-22T08:13:40Z stage improve/improve improve-pass exit 2: no bound current Improve stage with this action (it may already be imported); to read the current packet run: python3 ~/e2e-runs-sdlc14/r15d/20261121/sonnet-D-due-1/build/plugins/skill-craft/skills/shiploop/scripts/sh
+   refusal 13: 2026-11-22T08:19:48Z stage handoff/handoff complete exit 2: a done handoff result restates unverified alongside settled, the list product-acceptance left: record removed rows in settled; carry pending rows, [] when none stays open
+  item W1: criteria 11, steps 2: 5 criteria, 4 paths; 6 criteria, 10 paths
+     regression rows: [('npm test', 'regression', None)]
+  reviews: 9 in 12 passes, 4 changed something: carry-forward 1, document 1*, document 1*, plan 1, release-plan 1, spec 3*, step-plan 1, system-test-author 1, test-strategy 2*
+== sonnet-D-due-2
+  failed ShipLoop commands counted by the harness: 15
+   refusal 1: 2026-11-22T07:37:59Z stage improve/improve improve-pass exit 2: Run this stage's checks on the edited tree and write their output to ~/e2e-runs-sdlc14/r15d/20261121/sonnet-D-due-2/.shiploop-runs/work-20261122-073524-5cf756/worktree/.shiploop-improve/spec-ae7c5c95/reviews/checks.md
+   refusal 2: 2026-11-22T07:40:12Z stage plan/plan complete exit 2: W1: concern api's owner_stage must be one of step-plan, test, document, system-test-author, release-plan, operations
+   refusal 3: 2026-11-22T07:42:16Z stage step-plan/step-plan check exit 2: concerns maps concerns the plan does not give this step plan: api, state, migrate-before, migrate-after
+   refusal 4: 2026-11-22T07:42:21Z stage step-plan/step-plan check exit 2: these step paths have no expectation listing them in paths: docs/shiploop/** (item paths, needs works or broken). Every path a step changes that exists on the item's lint base needs a works or broken expectation, and every new pat
+   refusal 5: 2026-11-22T07:45:37Z stage test/test check exit 2: ShipLoop mutation check: test is not done. 2 of 8 mutants of this item's changed product lines survived the focused tests, with no disposition: - src/config.js:42:89: src/config.js:42: '1' -> '2' - src/store.js:51:28: src/store.js
+   refusal 6: 2026-11-22T07:57:49Z stage test/test check exit 2: ShipLoop test run: test is not done. ShipLoop ran the 3 listed commands from ~/e2e-runs-sdlc14/r15d/20261121/sonnet-D-due-2/.shiploop-runs/work-20261122-073524-5cf756/worktree and 1 did not pass: - [regression] npm te
+   refusal 7: 2026-11-22T07:58:07Z stage test/test check exit 2: ShipLoop mutation check: test is not done. 3 of 8 mutants of this item's changed product lines survived the focused tests, with no disposition: - src/app.js:20:49: src/app.js:20: '1024' -> '1025' - src/app.js:41:22: src/app.js:41:
+   refusal 8: 2026-11-22T07:58:24Z stage test/test check exit 2: ShipLoop mutation check: test is not done. 1 of 8 mutants of this item's changed product lines survived the focused tests, with no disposition: - src/app.js:41:22: src/app.js:41: '200' -> '201' For each, add or strengthen a test s
+   refusal 9: 2026-11-22T08:02:44Z stage test/test check exit 2: ShipLoop mutation check: test is not done. 1 of 3 mutants of this item's changed product lines survived the focused tests, with no disposition: - src/format.js:53:48: src/format.js:53: 'false' -> 'true' For each, add or strengthen
+   refusal 10: 2026-11-22T08:02:55Z stage test/test check exit 2: ShipLoop test run: test is not done. ShipLoop ran the 2 listed commands from ~/e2e-runs-sdlc14/r15d/20261121/sonnet-D-due-2/.shiploop-runs/work-20261122-073524-5cf756/worktree and 2 did not pass: - [focused] node --te
+   refusal 11: 2026-11-22T08:06:04Z stage improve/improve improve-pass exit 2: Add a line `Regression test: <the ID of the test in this commit that fails without the fix>` to ~/e2e-runs-sdlc14/r15d/20261121/sonnet-D-due-2/.shiploop-runs/work-20261122-073524-5cf756/worktree/.shiploop-improve/carr
+   refusal 12: 2026-11-22T08:16:46Z stage operations/operations check exit 2: evidence_refs cite files that do not exist: ~/e2e-runs-sdlc14/r15d/20261121/sonnet-D-due-2/.shiploop-runs/work-20261122-073524-5cf756/run/obs.log. Write the file or remove the reference.
+   refusal 13: 2026-11-22T08:16:47Z stage operations/operations complete exit 2: evidence_refs cite files that do not exist: ~/e2e-runs-sdlc14/r15d/20261121/sonnet-D-due-2/.shiploop-runs/work-20261122-073524-5cf756/run/obs.log. Write the file or remove the reference.
+  item W1: criteria 11, steps 2: 7 criteria, 0 paths; 4 criteria, 0 paths
+     regression rows: [('npm test', 'regression', None)]
+  item W2: criteria 7, steps 2: 4 criteria, 0 paths; 3 criteria, 0 paths
+     regression rows: [('npm test', 'regression', None)]
+  reviews: 11 in 16 passes, 3 changed something: carry-forward 2*, document 1, document 1, document 1, document 1, plan 1, release-plan 1, spec 3*, step-plan 2, system-test-author 1, test-strategy 2*
+
+None of the refusals above is at release-verify. The harness's own count of failed ShipLoop commands is 3, 14 and 15;
+it reads the event stream as well and counts some texts twice.
+
+sonnet-D-due-2 at release-verify, 6.7 minutes for one accepted attempt (read from its events, 08:09:48 to 08:16:29
+UTC). Before calling the gate the builder made its own copy of the returned head (`git archive`) and ran its two
+checks and `npm test` there. That `npm test` did not end: the host moved it to the background after 120 seconds, the
+builder waited, found a test process at 104% of a processor, stopped its own task and wrote "The clean-copy `npm
+test` hung. I suspect a port collision with other sessions on this shared machine". Run again under `timeout 90` it
+passed in a second: tests 158, pass 158. ShipLoop's own run of the added `npm test` in its clean copy then took
+1.055 seconds and passed. The hang was in the builder's run, not in the gate's.
+
+Left behind. The harness's verdict: nothing observed, in all three. A sweep by working folder after the round found
+no process of the three runs; it found one process of another session's run (see leaked-servers-stopped.txt).
+
+The reading, as registered: (a) no delivery was refused wrongly: none was refused at release-verify; (b) all three
+deliveries ShipLoop accepted pass the harness's suite check, and its other seven checks. Accepted.

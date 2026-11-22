@@ -4,7 +4,9 @@ Living journal for one question from the owner (2026-11-19): is ShipLoop's stage
 planning sequence, how the dependency graph is made, and how the inner loop executes it, and should any of it change?
 
 Evidence folder: `docs/experiments/sdlc-structure-20261119/` (scripts, their outputs under `evidence/`, the judges'
-inputs and verdicts under `judge/`, and round 3's under `judge-replay/`). Nothing in `skills/` changed in any round.
+inputs and verdicts under `judge/`, and round 3's under `judge-replay/`). No round's own commits change `skills/`. The
+changes that came out of the rounds are commits of their own: the fewest-steps wording (ShipLoop 2.4.0), three text
+corrections (2.4.1), and round 15's two changes to the engine, merged from their branch on 2026-11-22.
 
 ## Round 1 (2026-11-19): where the time goes, what each planning level contributes, what each review changes
 
@@ -3866,6 +3868,80 @@ runs the harness of the candidate's own tree, which this does not touch.
   tickets server". A leaked base-test server is one such server; live runs of the same case on the machine are
   others.
 
+### Results of the second confirmation round (2026-11-21 23:35 to 2026-11-22 00:20; `evidence/confirm-r15d.txt`)
+
+Three whole deliveries of the ticket case at medium effort, defaults, started together on build D
+(5c48bcc84ac3999cb9dce5484a1da0aeb059f2e2). The load average was 6 at the start and 25 to 34 when the two Sonnet runs
+ended: other sessions' runs and suites were on the machine.
+
+| Run | Minutes, cost | Verdicts | Case checks | release-verify in the clean copy |
+|---|---|---|---|---|
+| `sol-D-due-1` | 13.9, no dollar figure | all pass | 8 of 8 | accepted at its one attempt: the release plan recorded `npm test` itself, 123 tests pass; nothing was added |
+| `sonnet-D-due-1` | 44.8, $7.40 | all pass | 8 of 8 | accepted at its one attempt: its own check was one system-test file, 1 test; ShipLoop added `npm test`, 144 tests pass |
+| `sonnet-D-due-2` | 42.3, $10.26 | all pass | 8 of 8 | accepted at its one attempt: its own checks were one system-test file, 2 tests, and `node bin/tickets.js --help`; ShipLoop added `npm test`, 158 tests pass |
+
+- **R147 (the rule acted in two deliveries and was already met in the third).** Both Sonnet release plans recorded a
+  consumer check that runs one test file. ShipLoop added the last work item's `npm test`, and the whole suite ran in
+  the copy and passed: 144 and 158 tests, none failing, none skipped. This is the form of R127 twice more. The Sol
+  release plan recorded `npm test` itself, so the copy already ran the suite.
+- **R148 (nothing was refused at release-verify).** Each delivery had one attempt there, in the returned copy, and it
+  was accepted. The runs' other refusals (3, 13 and 13 commands) are at other stages and were recovered in the
+  session. So this round did not meet a right refusal, and neither exit was taken live: the tests through the real
+  gate carry both.
+- **R149 (the reading, as registered).** (a) holds: no delivery was refused wrongly. (b) holds: all three deliveries
+  ShipLoop accepted pass the harness's suite check, and its other seven checks. No verdict failed. The rule is
+  accepted as built.
+- **R150 (the counts, read because the first round's fault was a count).** In both Sonnet runs the copy ran more
+  tests than the last run recorded in the work area, 144 against 143 and 158 against 156: system tests were written
+  after that run. A count taken from the run's history would have been stale again, this time in the harmless
+  direction. Run again by hand on each delivered tree, the suites report 123, 144 and 158 tests, all passing, none
+  skipped.
+- **R151 (the moved-file fix was not met).** No delivery renamed or deleted a file. Every return is a fast-forward
+  merge, every returned checkout is clean and committed, and all three `committed` verdicts pass. The fix is carried
+  by its test.
+- **R152 (the observers).** All three delivered trees move one of eight due times on a rollback and return, as most
+  deliveries on file do (round 14's second hole, which this build does not address). Each suite passes from the
+  project folder, without npm and from another folder. The observer counts 122, 143 and 156 where `npm test` counts
+  123, 144 and 158: it names the `*.test.*` files, and `node --test` with no file names also runs the helper files
+  under `test/`, one passing test each.
+- **R153 (a hang the gate did not meet, described, one run).** `sonnet-D-due-2` spent 6.7 minutes at release-verify
+  for its one accepted attempt. Before calling the gate, the builder made its own copy of the returned head and ran
+  `npm test` there; that run did not end, the builder found a test process spinning, stopped its own task and wrote
+  that it suspected "a port collision with other sessions on this shared machine". Run again under a 90-second limit
+  it passed in a second, and ShipLoop's own run of the added command took 1.1 seconds. The rule adds one more run
+  of the suite to a delivery, so it adds one more chance to meet such a hang; the registration calls a run that ends
+  on an unresolved timeout inconclusive, and none did.
+- **R154 (time, not a comparison).** The two Sonnet runs took 44.8 and 42.3 minutes against 27.1 and 33.9 in the
+  first round. Their plans differ (two steps an item here, and two work items in one run), each spent about 14
+  minutes at `test`, one lost 6.7 minutes to R153, and the machine was loaded. No command ShipLoop ran took over a
+  minute.
+
+### Findings of the second confirmation round
+
+- **F96 (firm for what was built; six deliveries of one case over two rounds).** Left to the builder, the check of
+  the delivery where a consumer gets it is often one file: three of the four Sonnet deliveries of the two
+  confirmation rounds recorded a consumer check of 1 to 3 tests where the suite has 144 to 159, and both Sol
+  deliveries recorded `npm test`. With the rule the suite is run in the copy either way. In all six it passes there;
+  the two deliveries on file where it does not (R118, R127) are refused by the committed gate (R143).
+- **F97 (two rounds, one direction each).** A count from the run's history was stale in both rounds: once too high
+  (R137, a wrong refusal) and twice too low (R150, harmless). Nothing in the second round speaks for comparing a
+  count.
+- **F98 (a limit, described).** Every run of the suite on a shared machine can meet the fixture's hang (R153, and
+  another session's lost verdict in R145). The rule's added run is one more of them. On the 28 saved release checks
+  one added command of 7 did not end within the script's limit and failed in 2 seconds when run alone (R143).
+
+### Decision: release (routine, AGENTS.md "Decisions")
+
+The owner approved the change ("Yes, do these") and chose its form ("Go for the simpler"); the registered round
+accepts it. The candidate branch is merged into main with its four commits kept, the round is journaled in
+`test/shiploop_e2e/LEARNINGS.md` after the merge, and the release is published once `scripts/release.py`'s preflight
+and CI pass. The two change notes make it a minor release of ShipLoop.
+
+Left open, each the owner's to decide: proof of non-product criteria kept out of product tests (candidate 3, not
+built); the observers wired into every run; the engine's two faults the reviews found (the shared runner's unbounded
+wait after a timeout, and a return that reuses its receipt when only the return plan changed); ShipLoop's own base
+run leaving test processes behind (R144); and the return after a rollback that moves a due time (R152).
+
 ## Evidence (all rounds)
 
 | File | Holds |
@@ -3939,6 +4015,7 @@ runs the harness of the candidate's own tree, which this does not touch.
 | `evidence/gate-on-file-final.txt`, `evidence/mutants-final.txt`, `evidence/suites-final.txt` | round 15: the committed rule (no count) on 28 saved release checks, with the refused attempt replayed (R143); its twelve mutants; the 24 suites and the fail-first results |
 | `review-r15/sol-max-brief-3.txt`, `review-r15/sol-max-review-3.md` | round 15: the question put to Sol 6.2 at max effort about the count measured in the work area and the moved-file fix, and its verbatim answer |
 | `list_leaked.py`, `stop_leaked.py`, `evidence/leaked-servers-stopped.txt` | round 15: the leaked test servers of the harness's base check: the listing, each process stopped with its start time, port and folder, and what was left alone (R145) |
+| `evidence/confirm-r15d.txt` | round 15: the second confirmation round: each delivery's verdicts, checks, work items and its one release-verify attempt with the added command; the suites run again by hand; refusals, returns, the hang in one builder's own copy (R147 to R154) |
 
 To rerun: `python3 -I stage_census.py <work>/census.json` writes the run list the other scripts read
 (`passes_census.py <work>/census.json <work>/samples.jsonl`, `review_edits.py <work>/census.json
