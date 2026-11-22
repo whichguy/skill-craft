@@ -1783,6 +1783,9 @@ preparatory commit); a mismatch there is a send-back.
    code, no ids or min_tests). ShipLoop runs every one when release-verify reports done and refuses unless each
    passes: in an isolated run with a completed return, in a clean copy of the returned result (no Git history,
    nothing the return plan excluded, no ignored or unmanaged file); with none yet, in the work area, and says so.
+   A check that is a test command this run recorded, with or without NAME=value settings in front, must run at
+   least as many tests as the work area's latest accepted run of it, with a count ShipLoop can read: a test skipped
+   or missing there is refused. Record a check that is meant to run less by its own command.
    Write paths relative to the starting directory, put what a fresh consumer needs (install, build) in the check,
    and never write into the user's checkout by absolute path. A check only a person can make is an open item in
    `assumptions` (who, where, what to report) with release-verify or handoff as `due_stage`, not a command. None

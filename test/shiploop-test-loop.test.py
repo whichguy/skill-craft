@@ -3829,6 +3829,50 @@ class ReleaseVerifyReturnedResultTests(unittest.TestCase):
         self.complete(dict(DONE, outcome="add-work", work_items=[{"id": "W2", "title": "Return retained.txt"}]))
         self.assertIn("W2", [row["id"] for row in self.state()["work_items"]])
 
+    def refuse_a_consumer_check_that_skips_a_test(self) -> str:
+        """Drive a run whose regression command ran 4 tests in the work area to release-verify, with that command as
+        the consumer check behind a setting that leaves one out, and see it refused; returns release-verify's action."""
+        suite = {"command": "sh suite.sh", "suite": "regression"}
+
+        def write(_state) -> None:
+            (self.repo / "suite.sh").write_text('echo "Ran $(( 4 - ${SKIP_SLOW:-0} )) tests in 0.001s"; echo OK\n')
+
+        self.drive_to("release", step_plan={"test_commands": [COMMANDS[0], suite], "paths": ["a.py"]}, each=write)
+        self.assertEqual(test_loop.latest_counts(self.run_dir, self.state()).get("sh suite.sh"), 4,
+                         "control: ShipLoop accepted a work-area run of the regression command with 4 tests")
+        self.return_result()
+        self.drive_to("release-verify")
+        state = self.state()
+        producer = next(row["action"] for row in reversed(state["history"]) if row["stage"] == "release-plan")
+        state["accepted"][producer]["consumer_checks"] = [{"command": "SKIP_SLOW=1 sh suite.sh", "suite": "check"}]
+        nav.save(self.run_dir, state)
+        packet = self.packet()
+        self.assertIn(test_loop.CONSUMER_RULE, packet)
+        self.assertIn("1. [check] SKIP_SLOW=1 sh suite.sh (floor: 4 tests)", packet)
+        knowledge_support.write(self.state())  # the knowledge gate runs before the test rerun
+        action = self.action()
+        self.assert_refused(DONE, r"(?s)release-verify is not done.*result returned to.*SKIP_SLOW=1 sh suite\.sh -> ran "
+                                  r"fewer tests than the work area did \(4 there.*3 run, 0 failed.*add-work.*send-back")
+        record = store.read_record(self.run_dir / test_loop.verify_path(action, 1))
+        run = record["runs"][0]
+        self.assertEqual((record["observed"]["where"], run["status"], run["accepted_ran"], run["counts"]["ran"]),
+                         ("returned-result", "too-few-tests", 4, 3))
+        self.assertEqual(test_loop.refused_runs(self.run_dir, action), 1)
+        return action
+
+    def test_a_consumer_check_that_skips_tests_the_work_area_ran_is_refused_and_add_work_is_an_accepted_exit(self):
+        """The count rule through the real gate, and the exit for tests that must be made to run in a clean copy."""
+        self.refuse_a_consumer_check_that_skips_a_test()
+        self.complete(dict(DONE, outcome="add-work", work_items=[{"id": "W2", "title": "Run every test in a clean copy"}]))
+        self.assertIn("W2", [row["id"] for row in self.state()["work_items"]])
+
+    def test_the_other_exit_of_a_refused_consumer_check_sends_the_run_back_to_release_plan(self):
+        """The exit for a check that is meant to run less than the recorded command: release-plan records it again."""
+        self.refuse_a_consumer_check_that_skips_a_test()
+        self.complete(dict(DONE, outcome="send-back",
+                           summary="The consumer check is a smoke run: record it by its own command."))
+        self.assertEqual(nav.current_stage(self.state()), "release-plan")
+
     def test_the_handoff_packet_names_the_returned_copy_after_a_passing_release_verify(self):
         self.drive_to("release")
         self.return_result()
@@ -4278,6 +4322,139 @@ class CountFloorTests(unittest.TestCase):
         duty = " ".join(test_loop.guidance.duty("test").split())
         self.assertIn("`retired_tests`: each test this item deliberately retires", duty)
         self.assertIn("any other drop below a command's floor is refused", duty)
+
+
+class ConsumerFloorTests(unittest.TestCase):
+    """release-verify holds a consumer check that is a recorded test command to what the work area last ran.
+
+    Motive: a live run recorded its whole suite as a consumer check with a setting in front that made nine tests skip
+    themselves in the clean copy, and the check passed on its exit code (docs/shiploop-sdlc-structure-journal.md,
+    round 14, R118)."""
+
+    SUITE = 'echo "Ran $(( $(cat n.txt) - ${SKIP_SLOW:-0} )) tests in 0.001s"; echo OK\n'
+    COMMAND = "sh suite.sh"
+
+    def setUp(self) -> None:
+        temp = tempfile.TemporaryDirectory(prefix="shiploop-consumer-floor-")
+        self.addCleanup(temp.cleanup)
+        self.root = Path(temp.name)
+        (self.root / "suite.sh").write_text(self.SUITE)
+        self.state = {"repo": str(self.root), "accepted": {"P1": dict(
+            DONE, test_commands=[{"command": self.COMMAND, "suite": "regression"}])},
+            "history": [{"stage": "step-plan", "workitem": "W1", "action": "P1", "outcome": "done"}]}
+
+    run_stage = CountFloorTests.run_stage
+    record = CountFloorTests.record
+
+    def release_plan(self, *commands: str) -> None:
+        """release-plan's accepted result, recording ``commands`` as its consumer checks."""
+        self.state["accepted"]["R1"] = dict(DONE, consumer_checks=[{"command": command, "suite": "check"}
+                                                                  for command in commands])
+        self.state["history"] = ([row for row in self.state["history"] if row["action"] != "R1"]
+                                 + [{"stage": "release-plan", "workitem": None, "action": "R1", "outcome": "done"}])
+
+    def test_a_setting_in_front_of_a_recorded_command_does_not_hide_the_tests_it_skips(self):
+        self.assertEqual(self.run_stage("A1", "document", 9), "")
+        self.release_plan("SKIP_SLOW=3 " + self.COMMAND)
+        refusal = self.run_stage("V1", "release-verify", 9, item="")
+        self.assertIn("ran fewer tests than the work area did (9 there: the latest run of `sh suite.sh` that ShipLoop "
+                      "accepted in the work area) (unittest reported 6 run, 0 failed).", refusal)
+        self.assertIn("report outcome add-work with one corrective work item", refusal)
+        self.assertIn("report send-back naming it: release-plan then records that check by its own command", refusal)
+        self.assertNotIn("Restore the tests", refusal)  # the item stages' reply; this stage cannot restore one
+        run = self.record("V1")["runs"][0]
+        self.assertEqual((run["status"], run["accepted_ran"], run["counts"]["ran"]), ("too-few-tests", 9, 6))
+        self.assertFalse(self.record("V1")["passed"])
+
+    def test_the_recorded_command_and_a_setting_that_skips_nothing_pass_and_fewer_tests_in_either_is_refused(self):
+        self.assertEqual(self.run_stage("A1", "document", 9), "")
+        self.release_plan(self.COMMAND, "TZ=UTC " + self.COMMAND, "LANG='en US' SKIP_SLOW=0 " + self.COMMAND)
+        self.assertEqual(self.run_stage("V1", "release-verify", 9, item=""), "")
+        self.assertEqual([run["accepted_ran"] for run in self.record("V1")["runs"]], [9, 9, 9])
+        # The place may lack what the work area had: the same command, running fewer tests, is refused too.
+        refusal = self.run_stage("V1", "release-verify", 8, item="")
+        self.assertEqual(refusal.count("ran fewer tests than the work area did (9 there"), 3)
+
+    def test_the_floor_is_the_latest_accepted_count_not_the_most(self):
+        """A later item may consolidate tests on purpose; the outer stages have no step plan to send back to."""
+        self.assertEqual(self.run_stage("A1", "document", 9), "")
+        self.state["accepted"]["P2"] = dict(DONE, test_commands=[{"command": self.COMMAND, "suite": "regression"}])
+        self.state["history"].append({"stage": "step-plan", "workitem": "W2", "action": "P2", "outcome": "done"})
+        self.assertEqual(self.run_stage("B1", "document", 7, item="W2"), "")
+        self.assertEqual(test_loop.latest_counts(self.root, self.state), {self.COMMAND: 7})
+        self.release_plan(self.COMMAND)
+        self.assertEqual(self.run_stage("V1", "release-verify", 7, item=""), "")
+        self.assertIn("(7 there", self.run_stage("V1", "release-verify", 6, item=""))
+
+    def test_a_check_that_is_another_command_has_no_floor(self):
+        """Known limit, pinned: only the same words count as the same command, so a subset, a step before the suite or
+        another spelling of it is judged as release-plan recorded it."""
+        self.assertEqual(self.run_stage("A1", "document", 9), "")
+        self.release_plan(self.COMMAND + " --smoke", "true && " + self.COMMAND, "SKIP_SLOW=8 sh ./suite.sh",
+                          "echo 'unclosed")
+        self.assertEqual(test_loop.consumer_floors(self.root, self.state,
+                                                   self.state["accepted"]["R1"]["consumer_checks"]), {})
+        self.release_plan(self.COMMAND + " --smoke", "true && " + self.COMMAND, "SKIP_SLOW=8 sh ./suite.sh")
+        self.assertEqual(self.run_stage("V1", "release-verify", 9, item=""), "")
+        self.assertTrue(all("accepted_ran" not in run for run in self.record("V1")["runs"]))
+
+    def test_a_count_shiploop_could_not_read_is_no_floor_and_meets_none(self):
+        (self.root / "suite.sh").write_text('test -z "$SKIP_SLOW" && echo quiet; echo OK\n')
+        self.assertEqual(self.run_stage("A1", "document", 9), "")
+        self.assertEqual(test_loop.latest_counts(self.root, self.state), {})
+        self.release_plan("SKIP_SLOW=1 " + self.COMMAND)
+        self.assertEqual(self.run_stage("V1", "release-verify", 9, item=""), "")
+
+    def test_a_count_shiploop_cannot_read_here_is_refused_where_the_work_area_count_is_known(self):
+        """A reporter that a setting changes must not be how a lower count passes: the check is held to a count, so it
+        has to show one."""
+        (self.root / "suite.sh").write_text('test -n "$QUIET" || echo "Ran $(cat n.txt) tests in 0.001s"; echo OK\n')
+        self.assertEqual(self.run_stage("A1", "document", 9), "")
+        self.release_plan("QUIET=1 " + self.COMMAND)
+        refusal = self.run_stage("V1", "release-verify", 9, item="")
+        self.assertIn("exited 0, but ShipLoop could not read how many tests it ran here; it read 9 in the latest run "
+                      "of `sh suite.sh` that ShipLoop accepted in the work area.", refusal)
+        self.assertIn("report outcome add-work", refusal)
+        self.assertNotIn("belongs in suite `check`", refusal)  # the reply to a command that is no test runner
+        self.assertEqual(self.record("V1")["runs"][0]["status"], "uncounted")
+
+    def test_the_item_stages_still_accept_an_uncounted_pass_after_a_counted_one(self):
+        """GUARD: the known limit of the item stages' floor is unchanged (``CountFloorTests`` pins it for a focused
+        command); only the consumer check is held to a readable count."""
+        (self.root / "suite.sh").write_text('test -f quiet.txt || echo "Ran $(cat n.txt) tests in 0.001s"; echo OK\n')
+        self.assertEqual(self.run_stage("A1", "document", 9), "")
+        (self.root / "quiet.txt").write_text("")
+        self.assertEqual(self.run_stage("A2", "document", 9), "")
+        self.assertEqual(self.record("A2")["runs"][0]["status"], "passed-uncounted")
+
+    def test_a_release_verify_record_never_sets_the_floor(self):
+        """What the copy ran is what the count judges: an accepted release-verify of an earlier outer pass is no source."""
+        self.assertEqual(self.run_stage("A1", "document", 9), "")
+        self.release_plan("TZ=UTC " + self.COMMAND)
+        self.assertEqual(self.run_stage("V1", "release-verify", 9, item=""), "")
+        self.state["history"].append({"stage": "release-verify", "workitem": None, "action": "V1", "outcome": "done"})
+        self.assertEqual(test_loop.latest_counts(self.root, self.state), {self.COMMAND: 9})
+
+    def test_system_test_and_the_end_of_work_review_stay_without_a_floor(self):
+        self.assertEqual(self.run_stage("A1", "document", 9), "")
+        rows = [{"command": "SKIP_SLOW=5 " + self.COMMAND, "suite": "regression"}]
+        self.state["accepted"]["S2"] = dict(DONE, system_commands=rows)
+        self.state["history"].append({"stage": "system-test-author", "workitem": None, "action": "S2", "outcome": "done"})
+        self.assertEqual(self.run_stage("Y1", "system-test", 9, item=""), "")
+        self.assertEqual(self.run_stage("E1", "end-of-work review", 9, item="", commands=rows), "")
+
+    def test_the_release_verify_packet_states_the_floor_before_it_refuses(self):
+        self.release_plan(self.COMMAND)
+        lines = test_loop.rerun_lines(self.root, self.state, "", "release-verify")
+        self.assertIn("  1. [check] sh suite.sh", lines)  # no work-area run yet: no count to show
+        self.assertEqual(self.run_stage("A1", "document", 9), "")
+        self.release_plan("SKIP_SLOW=1 " + self.COMMAND, "true")
+        lines = test_loop.rerun_lines(self.root, self.state, "", "release-verify")
+        self.assertIn("  1. [check] SKIP_SLOW=1 sh suite.sh (floor: 9 tests)", lines)
+        self.assertIn("  2. [check] true", lines)
+        self.assertIn(test_loop.CONSUMER_RULE, lines)
+        self.assertNotIn(test_loop.RATCHET_RULE, lines)
+        self.assertIn("the same words once any NAME=value settings in front are left out", test_loop.CONSUMER_RULE)
 
 
 class TapCountRouteTests(unittest.TestCase):

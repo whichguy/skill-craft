@@ -160,7 +160,19 @@ its command.
 since the item's latest step plan (`too-few-tests`, with the earlier number as `accepted_ran` in the record). A test that must go
 because the plan changed is a plan change: report `send-back` with the reason, and the redone step plan starts the count again.
 Every inner stage's `send-back` needs its stopped Until Loop receipt; `test` also accepts `send-back` when its latest attempt could
-not run. Known limits: the outer `system-test` and `release-verify` and the end-of-work review
+not run.
+
+At `release-verify`, a consumer check that is a test command the run recorded (the same shell words once any `NAME=value`
+settings in front of either are left out, so `SKIP_SLOW=1 npm test` is `npm test`) may not run fewer tests than the latest
+run of that command ShipLoop accepted in the work area, and its count must be readable (`too-few-tests` or `uncounted`,
+with the work-area number as `accepted_ran`; the packet shows it beside the command as its floor). It is the latest count,
+not the most, so tests a later item consolidated do not count against it. The stage has two exits: `add-work` when the tests
+must be made to run where a consumer runs them, and `send-back`, which reruns `release-plan`, when the check is meant to run
+less than the recorded command and should be recorded by its own command. A check spelled as another command (a wrapper, an
+install step and then the suite, a path written differently) is held to no count, and an equal count does not show that the
+same tests ran.
+
+Known limits: the outer `system-test` and the end-of-work review
 rerun commands another stage recorded and have no `send-back` to lower a floor, so they are not held to one; a run whose count
 ShipLoop cannot read (a focused command whose `ids` all show, in a reporter it does not recognise) passes with no floor to hold it
 to; a command whose test count varies by design (generated cases, a last-failed or changed-only selection, a host-dependent skip)
