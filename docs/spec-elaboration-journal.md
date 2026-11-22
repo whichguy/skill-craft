@@ -4630,3 +4630,9 @@ asking nothing:
   owner.
 
 Both reached the sessions' inboxes. Whether either was read is not known here.
+
+*Corrected 2026-11-21 19:56: the note to the SDLC session was held by that session and has not been delivered
+to its Claude; a notice of that came a minute after the sending. The usual cause is that the two sessions run in
+different permission modes, and a held message expires unless it is released there. It is not resent while
+held. What it carried is all in this journal: sections 43, 55, 57 and this one. The reply to the Ratchet
+session drew no such notice.*
