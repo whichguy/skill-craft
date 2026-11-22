@@ -3618,3 +3618,47 @@ three.
 **Limits known before the runs.** The question is mine and names both alternatives, so this is the mechanism at
 its best; three runs an arm; the plain arm stops after the build, since its own tests add nothing to these
 readings; the limit is read in the plan only.
+
+### Part V, result (18:20): at this size the text arrives whole through a command, and the duty is done wherever it stands
+
+Eighteen runs, 158 to 229 seconds each, every one a single spec session (no refusal), launched from
+f413b280a06c6c20616b2e5c04ccf06ac21bb8dc (`evidence/program/delivery/shown.txt`, `runs.json`).
+
+| Delivery | The question stands | Lines of the text given to the model | Lines of the question given | `## Rules and edge cases` written (entries) |
+|---|---|---|---|---|
+| prompt | first | in the prompt | in the prompt | 3 of 3 (6, 8, 9) |
+| prompt | standing | in the prompt | in the prompt | 3 of 3 (11, 9, 11) |
+| prompt | last | in the prompt | in the prompt | 3 of 3 (12, 13, 8) |
+| command | first | 83 of 83, three times | 7 of 7, three times | 3 of 3 (9, 9, 10) |
+| command | standing | 83 of 83, three times | 7 of 7, three times | 3 of 3 (11, 12, 9) |
+| command | last | 83 of 83, three times | 7 of 7, three times | 3 of 3 (8, 7, 6) |
+
+- **RV.1:** in all nine command runs Codex's own record shows the model was given every non-blank line of the
+  text. Its first tool call is the command the prompt names, and each time the model's script raises its own limit
+  on the output it shows itself (`max_output_tokens` of 15,000 to 24,000).
+- **RV.2: the channel does not matter and the place does not matter** at this size: the section is written in 18
+  of 18. Both predictions held.
+
+**F51. What ShipLoop loses on Codex is the tail of a long packet, not the channel and not a place within the
+instructions.** A text of 108 lines given as a command's output arrives whole, nine of nine, when the prompt says
+to read all of what the command prints. In 62 archived Codex runs of ShipLoop the instruction lines also arrive (97%
+on average, no third of the packet below 94%), and what goes missing stands after them: the result template and
+the list of references, a median of 15% given at the spec stage. So a duty belongs in the instructions, where it
+is read, and a pointer that matters should not live only in the references after the template. Whether the tail is
+lost because of its length or because the model takes it for reference material is not separated here.
+
+**Limits.** One text of 9.7 thousand characters, one stage, one case; the prompt of the command runs says "read
+all of what it prints", which ShipLoop's own entry text may not; no run here has a packet as long as ShipLoop's.
+
+### A note on yardstick Y2, written at 18:22 while the test passes of parts C and T are still running
+
+Part E's replay (six of seven suites done; its result follows when the last one ends) shows where the seeded
+faults that survive sit. Of the 40 faults on existing lines, the product's own tests catch 30 or 31, and seven
+survive every suite replayed so far: two in the request log (`src/app.js` lines 16 and 65), one in the table
+formatter (`src/format.js` line 36), and four in the checks a data file gets when it is loaded
+(`src/persistence.js` lines 92, 160 twice, 170). Two more in the table formatter are caught by one suite each and
+by no other. None is behaviour that ticket assignment touches; they are gaps
+of the product's own tests in files the change happened to edit. So Y2 has little room that a test pass for this
+change ought to fill, and a run that did catch them would be testing code the request does not concern. RC.1 is
+read as registered; this note says beforehand that "not shown" on Y2 would not mean a lever failed to protect what
+the change touched, and that the defect a change can plausibly cause (RC.2) is the better reading of protection.
