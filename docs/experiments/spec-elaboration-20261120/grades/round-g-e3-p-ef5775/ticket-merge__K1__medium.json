@@ -1,0 +1,151 @@
+{
+ "slot": "ticket-merge__K1__medium",
+ "case": "ticket-merge",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.2377074,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1, R-2",
+   "quote": "`POST /tickets/:id/merge` with JSON `{ \"into\": \"<id>\" }` ... Answers 200 with the duplicate ticket after the merge ... unknown extra field: 400 `invalid`."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "`:id` = the duplicate, `into` = the surviving ticket."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1, R-6",
+   "quote": "status `closed`, new field `mergedInto` = the survivor's id ... `PATCH`/`transition` rules (closed ticket final)"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1, Open gaps / decisions",
+   "quote": "The survivor is not changed. ... Out of scope: unmerge, merging comments/history into the survivor, bulk or automatic duplicate detection, changing survivor fields."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "`GET /tickets/T-0002` returns the same",
+   "missing": "Whether the merged duplicate still appears in GET /tickets and under each status filter."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1, R-2",
+   "quote": "a merge where the survivor is `resolved` or `in_progress` is allowed ... `into` equal to the duplicate: 409 `conflict` ... Duplicate already `closed` (including already merged), or survivor `closed` (including a merged ticket): 409 `conflict`"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "`into` missing, not a string, or not a valid ticket id format ... 400 `invalid`. Unknown duplicate id or unknown `into` id: 404 `not_found`",
+   "missing": "Which id the error message names."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Duplicate already `closed` (including already merged), or survivor `closed` (including a merged ticket): 409 `conflict`; nothing changes"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Merging twice is therefore a 409 on the second call."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1, R-3",
+   "quote": "`GET /tickets/T-0001` is unchanged (same `updated`) ... The survivor's audit gains no entry (default)."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-3, Non-functional requirements",
+   "quote": "`actor` = the `X-Actor` header (or `system`) ... Security: no authentication exists in the service (internal network, README); none added (A1)."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "A data file written before this change (no `mergedInto`) still loads (version stays 1). A saved ticket without a merge omits `mergedInto` (not `null`)."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "`mergedInto` that is not a ticket id of the file, equals the ticket's own id, or is present on a ticket not `closed` is refused with a DataFileError naming the ticket.",
+   "missing": "Whether multi-ticket cycles (A into B, B into A) are detected on load."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "`GET /tickets/T-0002/audit` ends with one entry `action:\"ticket.merged\"`, `actor` = the `X-Actor` header ... `changes` = ... The survivor's audit gains no entry (default)."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Atomicity: a merge applies status, `mergedInto`, audit, outbox and save in one store step (`apply`)",
+   "missing": "What happens if the save fails or the process crashes mid-merge (rollback, before-or-after state)."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "`GET /admin/outbox` lists one `pending` event `type:\"ticket.merged\"`, `key:\"ticket.merged:T-0002\"`, `to` = the duplicate's requester ... its rendered text (src/templates.js) names both ids.",
+   "missing": "The template wording, and what happens to notifications about the duplicate still pending."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-7, R-6",
+   "quote": "`bin/tickets.js show T-0002` displays the merge target ... `bin/tickets.js list --raw` columns (id, status, priority, title) keep their positions",
+   "missing": "How the show output formats the link and how non-raw `tickets list` presents a merged ticket."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Open gaps / decisions",
+   "quote": "Out of scope: unmerge",
+   "missing": "How an operator corrects a wrong merge."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "Baseline, R-6",
+   "quote": "Existing behaviour not listed below is preserved (R-6). ... Ids, pagination cursors, `PATCH`/`transition` rules (closed ticket final), error envelope ... keep their positions."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "`bin/tickets.js list --raw` columns (id, status, priority, title) keep their positions. `scripts/weekly-report.js` counts a merged duplicate as `closed` (assumption A4)."
+  },
+  {
+   "id": "N-22",
+   "state": "covered",
+   "where": "R-2, R-7, Non-functional requirements",
+   "quote": "ADR docs/decisions/0009 records the merge rules ... CHANGELOG.md section and `package.json` version bump to 1.5.0 ... standard library only ... one store step (`apply`); verified by R-3/R-4 tests."
+  }
+ ]
+}

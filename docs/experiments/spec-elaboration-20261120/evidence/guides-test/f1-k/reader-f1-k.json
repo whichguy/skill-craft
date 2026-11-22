@@ -1,0 +1,25 @@
+{
+ "from_folder": "reader-authors-remind-e7889c",
+ "capabilities": [
+  {
+   "capability": "New ticket status waiting_on_requester with its own transitions",
+   "found": [
+    {
+     "spec": "K1",
+     "requirement": "R-1",
+     "quote": "Add `waiting_on_requester` as an active status."
+    }
+   ]
+  },
+  {
+   "capability": "Canceled reminder state in the outbox, shown to operators",
+   "found": [
+    {
+     "spec": "K1",
+     "requirement": "R-2.c",
+     "quote": "The outbox exposes the cancelled records."
+    }
+   ]
+  }
+ ]
+}

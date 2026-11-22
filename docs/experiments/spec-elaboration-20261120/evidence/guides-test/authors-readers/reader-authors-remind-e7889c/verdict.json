@@ -1,0 +1,39 @@
+{
+ "capabilities": [
+  {
+   "capability": "New ticket status waiting_on_requester with its own transitions",
+   "found": [
+    {
+     "spec": "S2",
+     "requirement": "R-1",
+     "quote": "A ticket in progress may enter `waiting_on_requester`; it may then resume in progress or resolve."
+    },
+    {
+     "spec": "S4",
+     "requirement": "R-1",
+     "quote": "Add `waiting_on_requester` as an active status."
+    },
+    {
+     "spec": "S5",
+     "requirement": "R-1",
+     "quote": "From waiting_on_requester the agent can return to in_progress when a response arrives, or resolve the ticket."
+    }
+   ]
+  },
+  {
+   "capability": "Canceled reminder state in the outbox, shown to operators",
+   "found": [
+    {
+     "spec": "S2",
+     "requirement": "R-2 State",
+     "quote": "Operators can see canceled reminders in the existing outbox report."
+    },
+    {
+     "spec": "S4",
+     "requirement": "R-2.c",
+     "quote": "The outbox exposes the cancelled records."
+    }
+   ]
+  }
+ ]
+}

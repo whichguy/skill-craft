@@ -1,0 +1,21 @@
+{
+ "name": "e1-k-A",
+ "set": "e1-k",
+ "arm": "A",
+ "driver": "k",
+ "pid": 82180,
+ "started_at": 1795312150.300925,
+ "limit_minutes": 20.0,
+ "decided_at": 1795312350.418428,
+ "watcher": "saw the acceptance",
+ "stop_written": true,
+ "seen": {
+  "run_dir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-authors-merge-4166f9/samples/e1-k-A/.shiploop-runs/work-20261122-014929-b039f7/run",
+  "spec_action": "nav-5d43bfe9e8474de888a5ce250f8b5e41",
+  "at": "2026-11-22T01:52:29Z",
+  "ts": 1795312349.455,
+  "spec_sha256": "f1fdd314090c46b4192bab59a3e55af9bc68b91b13891c409e08f7b1f73a89df",
+  "head": "433f919c14bd1cb1c9ec2ee4c31ff51dd4321bf5"
+ },
+ "returncode": 1
+}

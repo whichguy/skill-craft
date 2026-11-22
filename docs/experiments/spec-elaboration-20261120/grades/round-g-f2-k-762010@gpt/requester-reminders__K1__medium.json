@@ -1,0 +1,156 @@
+{
+ "slot": "requester-reminders__K1__medium",
+ "case": "requester-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "After creating a ticket and moving it to in_progress, an agent can POST `{\"to\":\"waiting_on_requester\"}` \u2026 From waiting_on_requester the agent can return to in_progress when a response arrives, or resolve the ticket."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Each uninterrupted wait becomes eligible at elapsed time greater than or equal to 72 hours (259200000 ms). \u2026 A title or priority update during the wait leaves its start intact."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A later tick and a restart preserve one logical event for that wait, even if it is dead. Leaving before eligibility suppresses it. Leaving after a failed send stops retries for that wait. Re-entering starts a new wait"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1 and R-2",
+   "quote": "From waiting_on_requester the agent can return to in_progress when a response arrives, or resolve the ticket. \u2026 Waits end when the agent transitions out. Outbox retry cancellation applies only to pending reminders for the ended wait."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-2 and Non-functional requirements",
+   "quote": "The subject identifies the ticket and the body requests the missing information. \u2026 Requesters receive messages only at the address stored on their ticket.",
+   "missing": "The builder must choose the template wording and fields, including whether to show the ID, title and elapsed wait, and decide what happens when the stored requester text contains no usable address."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "The subject identifies the ticket and the body requests the missing information.",
+   "missing": "The spec leaves open how the requester should supply the information and whether the resolved notice\u2019s seven-day reopening instruction applies."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2 and Non-functional requirements",
+   "quote": "At eligibility, the existing worker produces one `ticket.requester_reminder` notification addressed to the ticket's requester. \u2026 Use the existing single scheduler and persisted outbox; idle scans perform no writes. Existing worker cadence governs normal scheduling"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A later tick and a restart preserve one logical event for that wait, even if it is dead. \u2026 The relay's existing deduplication identity (key and event ID) remains stable across attempts."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Leaving before eligibility suppresses it. \u2026 Outbox retry cancellation applies only to pending reminders for the ended wait.",
+   "missing": "The spec leaves open whether enqueueing verifies that the same wait is still active if the ticket leaves or re-enters after being identified as eligible."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "A later tick and a restart preserve one logical event for that wait, even if it is dead. \u2026 Reminder delivery uses the existing backoff, dead limit, and at-least-once contract.",
+   "missing": "The builder must decide whether the reminder template must exist before the event can be enqueued."
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A later tick and a restart preserve one logical event for that wait, even if it is dead. \u2026 Re-entering starts a new wait, including re-entry in the same millisecond."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Each uninterrupted wait becomes eligible at elapsed time greater than or equal to 72 hours (259200000 ms). \u2026 a manual-clock HTTP-to-notifier case at threshold minus one millisecond and threshold.",
+   "missing": "The elapsed-millisecond rule settles equality. The production clock source and time-zone convention are unspecified, and there is no explicit rule about holding delivery outside business hours or on holidays."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-2 and Non-functional requirements",
+   "quote": "The store owns waiting state and notification events. \u2026 Use the existing single scheduler and persisted outbox",
+   "missing": "The builder must choose which records and field names save and restore the wait start, distinguish wait cycles, and track whether a reminder was already created."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Existing version 1 data remains readable",
+   "missing": "The spec leaves the defaults for missing reminder fields and the rejection and field-specific diagnostic for malformed stored values undecided."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1 and R-2",
+   "quote": "From waiting_on_requester the agent can return to in_progress when a response arrives, or resolve the ticket. \u2026 No requester reply endpoint, new permissions, or separate data service is required.",
+   "missing": "An agent can end a wait. The spec leaves open who controls reminder settings and whether anyone can send or suppress an individual reminder by hand while the ticket stays waiting."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "72 hours (259200000 ms). `REQUESTER_REMINDER_AFTER_MS` overrides this with a positive whole number. Empty uses default and invalid values fail startup naming the variable. \u2026 Worker interval 0 prevents scheduled reminder creation and dispatch."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-1 and R-2",
+   "quote": "The weekly report counts the added status with raw CLI columns unchanged. \u2026 Check local JSONL output, persisted outbox, and worker tests.",
+   "missing": "The spec identifies delivery records and waiting-ticket counts but leaves open how an operator sees which ticket is due for a reminder next and when."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Use the existing single scheduler and persisted outbox; idle scans perform no writes. Existing worker cadence governs normal scheduling, with retry backoff on failure.",
+   "missing": "The spec gives no maximum scheduling delay under load, per-tick enqueue limit, or bound on scan work that protects delivery with thousands of tickets."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1 and R-2",
+   "quote": "Existing transitions and finality hold. \u2026 The weekly report counts the added status with raw CLI columns unchanged. \u2026 Creation and resolution messages keep their existing behavior.",
+   "missing": "R-1 specifies the audit record for entering the new state but leaves preservation of audit entries for existing actions unstated."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Check config and a manual-clock HTTP-to-notifier case at threshold minus one millisecond and threshold.",
+   "missing": "The spec leaves open whether to update the API and operations docs, README settings table and changelog, bump the version, or record a change to a rule other code relies on."
+  }
+ ]
+}

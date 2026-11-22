@@ -1,0 +1,62 @@
+
+===== merge (guides-authors-merge-4166f9)
+e1-p Sonnet: the stop file; usable True | to decision 3.3 min | author 22.1 s, review 110.9 s | words submitted 754 -> accepted 1077 | R ids 7 -> 7 | instr [58, 102] refs [10, 53] | covered by both 11, at least partly 19, absent for both 1 | est. cost $0.72 | capability ["Merge notification to the duplicate's requester", 'Audit entry recorded on the surviving ticket', 'Operator CLI shows the merge link']
+e1-k Sol: the stop file; usable True | to decision 3.3 min | author 33.9 s, review 37.1 s | words submitted 768 -> accepted 768 | R ids 4 -> 4 | instr [101, 102] refs [8, 58] | covered by both 13, at least partly 20, absent for both 0
+e2-p Sonnet: the stop file; usable True | to decision 2.2 min | author 15.9 s, review 67.1 s | words submitted 500 -> accepted 698 | R ids 5 -> 5 | instr [44, 102] refs [8, 52] | covered by both 13, at least partly 20, absent for both 0 | est. cost $0.47 | capability ["Merge notification to the duplicate's requester", 'Audit entry recorded on the surviving ticket', 'Operator CLI shows the merge link']
+e2-k Sol: the stop file; usable True | to decision 2.9 min | author 23.2 s, review 31.8 s | words submitted 474 -> accepted 474 | R ids 3 -> 3 | instr [99, 102] refs [8, 54] | covered by both 8, at least partly 18, absent for both 3
+e3-p Sonnet: the stop file; usable True | to decision 2.5 min | author 31.7 s, review 59.3 s | words submitted 703 -> accepted 768 | R ids 7 -> 7 | instr [102, 102] refs [24, 55] | covered by both 11, at least partly 20, absent for both 0 | est. cost $0.53 | capability ["Merge notification to the duplicate's requester", 'Operator CLI shows the merge link']
+e3-k Sol: the stop file; usable True | to decision 3.1 min | author 33.6 s, review 33.4 s | words submitted 657 -> accepted 657 | R ids 3 -> 3 | instr [101, 102] refs [8, 56] | covered by both 14, at least partly 20, absent for both 0 | capability ['Operator CLI shows the merge link']
+  item by item: states opus/astra, Sonnet's sets then Sol's; 2 covered, 1 partly, 0 absent
+   N-1 Sonnet 2/2 2/2 2/2 | Sol 2/2 1/1 2/2 | covered readings 6/6 vs 4/6 | [interaction] The request itself: its route and method, the names of the body fields that identify the two tickets
+   N-2 Sonnet 2/2 2/2 2/2 | Sol 2/2 2/2 2/2 | covered readings 6/6 vs 6/6 | [interaction] Which ticket survives and which is absorbed, and whether the caller chooses or the service decides (
+   N-3 Sonnet 1/0 2/2 0/1 | Sol 1/0 2/1 1/1 | covered readings 2/6 vs 1/6 | [interaction] What makes two tickets duplicates: whether any check is made (same requester, same title, same prior
+   N-4 Sonnet 1/1 2/2 2/2 | Sol 2/2 2/2 2/2 | covered readings 4/6 vs 6/6 | [interaction] What the absorbed ticket becomes (a new status in the lifecycle, or a separate merged-into marker), 
+   N-5 Sonnet 2/2 2/2 2/2 | Sol 2/2 2/2 2/2 | covered readings 6/6 vs 6/6 | [interaction] What of the absorbed ticket carries over to the survivor, given that a ticket holds only a title, a 
+   N-6 Sonnet 2/2 2/2 1/1 | Sol 2/2 2/1 2/2 | covered readings 4/6 vs 5/6 | [interaction] What GET /tickets/:id returns for the absorbed ticket, whether it still appears in GET /tickets and 
+   N-7 Sonnet 1/1 2/2 2/2 | Sol 1/1 1/1 2/2 | covered readings 4/6 vs 2/6 | [unhappy] Each combination of states that is refused (either ticket resolved, closed or already merged, or a t
+   N-8 Sonnet 1/1 1/1 1/1 | Sol 1/1 1/1 1/1 | covered readings 0/6 vs 0/6 | [unhappy] A ticket id that is missing from the body, malformed, or names no ticket, in either position: which 
+   N-9 Sonnet 2/2 1/2 2/1 | Sol 2/2 2/2 2/2 | covered readings 4/6 vs 6/6 | [edge] Chains and cycles: merging a ticket that has itself absorbed others, merging into a ticket that is a
+  N-10 Sonnet 2/2 2/2 2/2 | Sol 2/2 2/2 2/2 | covered readings 6/6 vs 6/6 | [edge] Sending the same merge request twice: whether the second answers success with no change and no new a
+  N-11 Sonnet 2/2 2/2 2/2 | Sol 2/2 2/2 2/2 | covered readings 6/6 vs 6/6 | [edge] Whether the survivor's `updated` time and audit history change when the merge changes nothing about 
+  N-12 Sonnet 2/2 1/1 2/2 | Sol 1/1 1/1 2/2 | covered readings 4/6 vs 2/6 (not in the rule) | [permission] Who may merge: the service has no sign-in and only an advisory X-Actor header, so whether a merge re
+  N-13 Sonnet 2/2 2/2 2/2 | Sol 2/2 2/2 2/2 | covered readings 6/6 vs 6/6 | [data] Where the merge link is kept on the tickets (field names and values) and how persistence.js saves an
+  N-14 Sonnet 1/1 1/1 1/1 | Sol 1/1 0/0 1/1 | covered readings 0/6 vs 0/6 | [data] What loading checks about the link (the target exists, no cycles, status and link agree) and the ref
+  N-15 Sonnet 2/2 2/2 2/2 | Sol 2/2 2/2 2/2 | covered readings 6/6 vs 6/6 | [data] Which audit entries a merge writes (one on each ticket or one in all), the action name, what `change
+  N-16 Sonnet 1/1 1/1 1/1 | Sol 2/2 2/1 2/2 | covered readings 0/6 vs 5/6 | [unhappy] That a merge is one all-or-nothing store change: both tickets, the audit entries, the notifications 
+  N-17 Sonnet 1/1 1/1 1/1 | Sol 2/2 2/1 2/2 | covered readings 0/6 vs 5/6 | [async] Whether anyone is notified of a merge (the absorbed ticket's requester, the survivor's, both, or non
+  N-18 Sonnet 2/2 2/1 1/1 | Sol 1/1 0/0 1/1 | covered readings 3/6 vs 0/6 | [operator] How `tickets show` and `tickets list` present a merged ticket and its link, given the command line o
+  N-19 Sonnet 0/0 0/1 1/1 | Sol 1/1 1/1 0/1 | covered readings 0/6 vs 0/6 | [operator] Whether a wrong merge can be undone, and if not how an operator corrects it, given that the audit lo
+  N-20 Sonnet 2/1 2/2 2/2 | Sol 1/1 1/1 1/1 | covered readings 5/6 vs 0/6 | [preserve] Creating, changing and transitioning tickets that are not part of a merge, the listing's filters, id
+  N-21 Sonnet 2/2 2/2 2/2 | Sol 2/2 0/0 2/2 | covered readings 6/6 vs 4/6 | [preserve] `list --raw` keeps its tab-separated columns in their positions, and the weekly report still counts 
+  N-22 Sonnet 1/1 1/1 2/1 | Sol 1/1 1/1 1/1 | covered readings 1/6 vs 0/6 | [nonfunctional] The rigour the project requires of this change: tests for each success and error path and for atomic
+
+===== remind (guides-authors-remind-4166f9)
+f1-p Sonnet: the stop file; usable True | to decision 2.7 min | author 21.4 s, review 64.6 s | words submitted 762 -> accepted 865 | R ids 5 -> 5 | instr [102, 102] refs [9, 55] | covered by both 9, at least partly 18, absent for both 0 | est. cost $0.54
+f1-k Sol: the stop file; usable True | to decision 3.5 min | author 36.0 s, review 43.0 s | words submitted 693 -> accepted 706 | R ids 2 -> 2 | instr [83, 102] refs [11, 59] | covered by both 7, at least partly 17, absent for both 1 | capability ['New ticket status waiting_on_requester with its own transitions', 'Canceled reminder state in the outbox, shown to operators']
+f2-p Sonnet: the stop file; usable True | to decision 3.3 min | author 37.9 s, review 76.1 s | words submitted 1439 -> accepted 1572 | R ids 5 -> 5 | instr [102, 102] refs [52, 52] | covered by both 10, at least partly 19, absent for both 0 | est. cost $0.62
+f2-k Sol: the stop file; usable True | to decision 3.0 min | author 28.3 s, review 30.7 s | words submitted 533 -> accepted 533 | R ids 2 -> 2 | instr [102, 102] refs [37, 62] | covered by both 6, at least partly 16, absent for both 2 | capability ['New ticket status waiting_on_requester with its own transitions']
+f3-p Sonnet: the stop file; usable True | to decision 3.3 min | author 25.9 s, review 96.1 s | words submitted 712 -> accepted 928 | R ids 2 -> 2 | instr [100, 102] refs [9, 53] | covered by both 6, at least partly 19, absent for both 0 | est. cost $0.58
+f3-k Sol: the stop file; usable True | to decision 2.9 min | author 24.1 s, review 28.9 s | words submitted 434 -> accepted 434 | R ids 2 -> 2 | instr [99, 102] refs [8, 57] | covered by both 6, at least partly 16, absent for both 2 | capability ['New ticket status waiting_on_requester with its own transitions', 'Canceled reminder state in the outbox, shown to operators']
+  item by item: states opus/astra, Sonnet's sets then Sol's; 2 covered, 1 partly, 0 absent
+   N-1 Sonnet 2/2 2/2 2/2 | Sol 2/2 2/2 2/2 | covered readings 6/6 vs 6/6 | [interaction] What 'waiting on the requester' means in a program whose lifecycle (open, in_progress, resolved, clo
+   N-2 Sonnet 2/2 2/2 2/2 | Sol 2/2 2/2 2/2 | covered readings 6/6 vs 6/6 | [interaction] How 'too long' is measured: the threshold, the instant it is counted from (entering the waiting cond
+   N-3 Sonnet 2/2 2/2 2/2 | Sol 2/2 2/2 2/2 | covered readings 6/6 vs 6/6 | [interaction] How many reminders a ticket may get and how far apart: a single reminder or a repeating sequence, th
+   N-4 Sonnet 1/1 2/1 1/1 | Sol 2/1 2/2 1/1 | covered readings 1/6 vs 3/6 (not in the rule) | [interaction] Every event that ends the waiting and stops reminders: the ticket reopened, moved on, closed, change
+   N-5 Sonnet 1/1 1/1 1/1 | Sol 1/1 1/1 1/1 | covered readings 0/6 vs 0/6 | [interaction] What the reminder says and to whom: its subject and body in the style of the existing templates, the
+   N-6 Sonnet 2/2 2/2 2/1 | Sol 1/1 0/1 1/1 | covered readings 5/6 vs 0/6 | [interaction] How the requester acts on a reminder, given the existing 'reply within 7 days to reopen it' wording 
+   N-7 Sonnet 2/2 2/2 2/2 | Sol 2/2 2/2 2/2 | covered readings 6/6 vs 6/6 | [async] Where the check runs: as a job of the existing background worker, with its schedule and what it does
+   N-8 Sonnet 2/1 2/2 2/1 | Sol 2/2 2/2 2/2 | covered readings 4/6 vs 6/6 | [async] That the same reminder is not queued or sent twice across ticks, a restart, or a retry, given that a
+   N-9 Sonnet 1/1 1/1 2/1 | Sol 2/2 1/1 1/1 | covered readings 1/6 vs 2/6 | [async] Re-checking at the moment of enqueueing that the ticket is still waiting, so a ticket that changed s
+  N-10 Sonnet 1/1 1/1 1/1 | Sol 1/1 1/1 1/1 | covered readings 0/6 vs 0/6 | [unhappy] What happens when a reminder cannot be delivered: the existing retries and dead state apply or not, 
+  N-11 Sonnet 2/2 2/2 1/2 | Sol 0/0 0/0 0/0 | covered readings 5/6 vs 0/6 | [edge] What happens to tickets that already meet the condition when the feature is first deployed: whether 
+  N-12 Sonnet 2/2 2/1 2/1 | Sol 2/2 2/2 2/2 | covered readings 4/6 vs 6/6 | [edge] A ticket resolved, reopened and resolved again: whether the waiting time restarts and how the remind
+  N-13 Sonnet 1/1 1/2 1/2 | Sol 1/1 1/1 1/1 | covered readings 2/6 vs 0/6 (not in the rule) | [edge] The boundaries of the threshold: a ticket exactly at it, the time zone and clock source used for the
+  N-14 Sonnet 2/1 1/1 2/2 | Sol 1/1 1/1 1/1 | covered readings 3/6 vs 0/6 | [data] The new stored data (a waiting-since time, a reminder count or last-reminded time), where it lives i
+  N-15 Sonnet 2/1 1/1 2/1 | Sol 1/1 1/1 1/1 | covered readings 2/6 vs 0/6 | [data] That a data file written by the current version still loads after the change, with the new fields ta
+  N-16 Sonnet 2/2 2/2 1/1 | Sol 0/1 0/0 0/0 | covered readings 4/6 vs 0/6 | [data] Whether sending a reminder is recorded in the audit log, what the entry's action and actor are, and 
+  N-17 Sonnet 1/1 1/1 2/1 | Sol 1/1 1/1 1/1 | covered readings 1/6 vs 0/6 (not in the rule) | [permission] Who may configure the threshold and the reminders and who may stop or send one by hand, given the se
+  N-18 Sonnet 2/2 2/2 2/1 | Sol 1/1 1/2 1/1 | covered readings 5/6 vs 1/6 | [operator] The settings that control the feature: environment variables with defaults and validation errors tha
+  N-19 Sonnet 0/1 1/1 2/2 | Sol 1/1 1/1 1/1 | covered readings 2/6 vs 0/6 | [operator] How operators see what was sent and what will be sent next: through the outbox report, the ticket's 
+  N-20 Sonnet 1/1 1/1 1/1 | Sol 1/1 1/1 0/1 | covered readings 0/6 vs 0/6 | [nonfunctional] A bound on how late a reminder may go out after the threshold and on how many are enqueued in one ti
+  N-21 Sonnet 1/1 2/2 2/1 | Sol 1/1 2/1 1/1 | covered readings 3/6 vs 1/6 | [preserve] That existing behaviour stays as it is: the lifecycle transitions, the received and resolved notific
+  N-22 Sonnet 2/1 2/1 1/1 | Sol 1/1 1/1 1/1 | covered readings 2/6 vs 0/6 | [preserve] The accompanying changes: tests in the style of the existing suite using the manual clock, an update

@@ -1,0 +1,152 @@
+{
+ "slot": "requester-reminders__K1__medium",
+ "case": "requester-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.2237134,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "A ticket is waiting on its requester while its status is `resolved` ... Assumption: no new status."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1, R-4",
+   "quote": "Resolve time is the `at` of the ticket's last audit entry `ticket.transitioned` with `status.to === 'resolved'`, not `ticket.updated`; R-4: Runs only in the background worker, configured by one setting"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1, R-2",
+   "quote": "R-1 A resolved ticket that waits too long gets one reminder ... further ticks after the reminder, even once it is sent, enqueue nothing more."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1, R-2",
+   "quote": "a ticket that is open, in_progress or closed is never reminded ... a ticket reopened or closed before the threshold is not reminded ... edits the title after 60h and still gets the reminder",
+   "missing": "What counts as the requester responding, given there is no reply endpoint; whether any requester action other than a reopen transition stops the reminder."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "`to` is the ticket's requester ... subject `[<id>] Waiting on you` and a body naming the ticket title and saying it can be reopened by replying.",
+   "missing": "Whether the body states how long it has waited, and what happens when the requester field is free text rather than an email address."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1, R-3",
+   "quote": "the resolved notice promises \"Reply within 7 days to reopen it\" ... the reminder window is [REMINDER_AFTER_HOURS, 168h); body ... saying it can be reopened by replying"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "the check is a job of the worker; no timer of its own and no request does it."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2, Non-functional Data",
+   "quote": "further ticks after the reminder, even once it is sent, enqueue nothing more ... Invariant: at most one event per (ticket, resolve time) key, before and after restart"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "a ticket resolved at T0 whose status is still `resolved` at T0 + REMINDER_AFTER_HOURS ... has exactly one pending `ticket.reminder` outbox event ... after the next worker tick",
+   "missing": "An explicit re-check of the ticket's current status at the moment of enqueueing, rather than relying on a snapshot taken earlier in the tick."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "delivery follows the outbox rules unchanged (retry with backoff, dead after 5).",
+   "missing": "Whether a dead reminder leads to another one later (only implied by the one-per-period key), and whether the template must exist before the event type can be enqueued."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "This also means the first worker tick after this release sends nothing for tickets resolved long ago ... first tick at T0 + 167h gives one reminder; first tick at T0 + 168h ... gives none."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2, Non-functional Data",
+   "quote": "a ticket reopened (resolved to open) and resolved again starts a new period: reminded again 72h after the new resolve, not before ... one event per (ticket, resolve time) key"
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "at T0 + 71h59m no reminder; at exactly T0 + 72h a reminder (threshold is inclusive).",
+   "missing": "Time zone and clock source for the comparison, and whether reminders are held outside business hours, weekends or holidays."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "Non-functional Data",
+   "quote": "no new stored ticket field; the reminder lives in the outbox and persists with it."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-5, Non-functional Data",
+   "quote": "the data file format (version 1; old files load) ... a test that loads a data file with no reminder events; no new stored ticket field"
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "A reminder is not a ticket change: no audit entry, `updated` unchanged."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "Non-functional Security",
+   "quote": "Security/accessibility/UI: excluded: no UI, no new input or endpoint, recipient is the existing requester field.",
+   "missing": "Who may configure the threshold and whether anyone can stop or send a reminder by hand, given only the X-Actor header and admin area."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "`REMINDER_AFTER_HOURS` sets the threshold ... default 72 ... an unusable value ... stops start with a message naming `REMINDER_AFTER_HOURS` ... `WORKER_INTERVAL_MS=0` turns reminders off"
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "Non-functional Performance",
+   "quote": "the job scans all tickets each tick; at current size acceptable, no numeric bound invented. Excluded with that reason.",
+   "missing": "A bound on reminder lateness after the threshold, on reminders enqueued per tick, and on scan cost with thousands of tickets or its effect on delivery."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "Created and resolved notifications, the lifecycle table, API responses, the audit log, the data file format ... and the existing 117 tests are unchanged.",
+   "missing": "List filters, error codes, and the command line's and weekly report's output are not named as preserved."
+  },
+  {
+   "id": "N-22",
+   "state": "covered",
+   "where": "R-5, R-1",
+   "quote": "CHANGELOG section and version bump (1.5.0), README config row, docs/operations.md note, ADR 0009 for the reminder design; tests with `manualClock`"
+  }
+ ]
+}

@@ -1,0 +1,28 @@
+{
+ "reader_file_sha256": "71b3b6ed9cf12382cd0e03f24f2bbf84b95b7fc07a160f77f6de50c6727af7be",
+ "prompt_sha256": "30e7660c897ae23cd99904ee320af861d0e376c0e45a9fb9cd21f79d9b348d05",
+ "capabilities": [
+  {
+   "capability": "Merge notification to the duplicate's requester",
+   "found": [
+    {
+     "spec": "K1",
+     "requirement": "R-4",
+     "quote": "its rendered text (src/templates.js) names both ids.",
+     "quote_is_in_the_file": true
+    }
+   ]
+  },
+  {
+   "capability": "Operator CLI shows the merge link",
+   "found": [
+    {
+     "spec": "K1",
+     "requirement": "R-7",
+     "quote": "`bin/tickets.js show T-0002` displays the merge target",
+     "quote_is_in_the_file": true
+    }
+   ]
+  }
+ ]
+}

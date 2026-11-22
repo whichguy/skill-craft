@@ -1,0 +1,152 @@
+{
+ "slot": "ticket-merge__K1__medium",
+ "case": "ticket-merge",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Endpoint `POST /tickets/:id/merge`, body `{ \"into\": \"T-0001\" }` (`:id` is the duplicate, `into` the surviving ticket). \u2026 200 with the duplicate ticket \u2026 unknown field is 400 `invalid`."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Endpoint `POST /tickets/:id/merge`, body `{ \"into\": \"T-0001\" }` (`:id` is the duplicate, `into` the surviving ticket)."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1 and Non-functional requirements",
+   "quote": "200 with the duplicate ticket, now `status: \"closed\"` and `mergedInto: \"<into>\"`. \u2026 Invariant: a ticket with `mergedInto` is `closed` and the target exists.",
+   "missing": "The invariant rules out reopening while the link exists. The spec leaves edits to other fields and any transition that clears the link unspecified."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1 and R-4",
+   "quote": "`GET /tickets/T-0001` is byte-for-byte what it was before \u2026 no ticket is created or removed \u2026 one `ticket.merged` outbox notification to the duplicate's requester"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1 and R-7",
+   "quote": "200 with the duplicate ticket, now `status: \"closed\"` and `mergedInto: \"<into>\"`. \u2026 `GET /tickets/:id` of a merged ticket still answers. \u2026 `GET /tickets?status=closed` count a merged ticket as closed."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Order of checks (first failure wins): request body 400; unknown `:id` 404; unknown `into` 404; self-merge 409; closed duplicate 409; closed target 409.",
+   "missing": "The refusal rules omit resolved tickets in both positions. They give no refusal code for either resolved case."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "unknown `:id` or unknown `into` is 404 `not_found`; body not an object, missing or non-ticket-id `into`, or an unknown field is 400 `invalid`. \u2026 `:id` that is not a ticket id is 404",
+   "missing": "The source comes from the path. The spec gives no response for an omitted source segment and does not say which ID or field the error message identifies."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "chains are allowed and not flattened. A is merged into B; B (still open) may later be merged into C. \u2026 Cycles cannot occur because a merged ticket is closed and a closed ticket is refused as a target."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Failure (409 `conflict`, message names the reason): merging a ticket into itself; a duplicate that is already closed (including already merged); a surviving ticket that is closed. A refused merge changes nothing: no audit entry, no notification, no save."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "each entry records one received duplicate, so a second merge into the same survivor adds a second entry; the survivor's own fields and `updated` stay as they were"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "Basis for R-1..R-7 and R-6",
+   "quote": "any caller naming itself in `X-Actor` (default `system`) may merge \u2026 no authentication or role check is added"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-1 and R-5",
+   "quote": "`mergedInto: \"<into>\"` \u2026 with `DATA_FILE`, a merged ticket reloads with `status`, `mergedInto`, and the audit entries intact. \u2026 `version` stays 1; a data file written before this change loads unchanged (no `mergedInto` means not merged)"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "is not a ticket id, is its own id, names no ticket in the file, or sits on a ticket that is not `closed` is refused as a corrupt data file",
+   "missing": "The loader has no stated check for cycles spanning multiple records or requirement to identify the offending record in its error message."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "`ticket.merged`, the request's actor, changes `{ status: {from, to: \"closed\"}, mergedInto: {from: null, to: \"<into>\"} }` \u2026 `ticket.merge_received`, changes `{ mergedFrom: {from: null, to: \"<duplicate id>\"} }` \u2026 Visible in `GET /tickets/:id/audit` of each."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "a merge is applied atomically in memory (both tickets and the audit entries change in one store call, then one save)",
+   "missing": "The spec leaves outbox insertion outside the stated atomicity guarantee and gives no all-or-nothing guarantee for a failed save or crash."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "one `ticket.merged` outbox notification to the duplicate's requester, key `ticket.merged:<id>`, rendered by a new template in `src/templates.js` that names both ticket ids \u2026 the surviving ticket's requester is not notified",
+   "missing": "The template must name both IDs, but its wording is open. The spec leaves the fate of earlier pending notifications for the duplicate undecided."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "CLI stays read-only \u2026 one extra detail line after `updated`, only when `mergedInto` is present: label `merged into`, value `T-0001` \u2026 `list` and `list --raw` columns are unchanged"
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Preserved: all existing endpoints, ticket fields and lifecycle; `GET /tickets/:id` of a merged ticket still answers.",
+   "missing": "The preservation clause leaves list ordering and cursor behavior unspecified. The only concrete status-filter example concerns closed tickets."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "`list` and `list --raw` columns are unchanged (the weekly report reads them by position). \u2026 the weekly report and `GET /tickets?status=closed` count a merged ticket as closed."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-2, R-7 and Non-functional requirements",
+   "quote": "Confirmed by store and API tests. \u2026 `docs/api.md` documents the endpoint, field `mergedInto` and the audit actions; a decision record (docs/decisions/0009) records the closed-plus-link representation; `CHANGELOG.md` gains a 1.5.0 section and `package.json` version 1.5.0. \u2026 Dependencies: none added",
+   "missing": "The spec calls for one store call but does not identify a TicketStore method. It specifies no atomicity test or explicit requirement to test every success and error path."
+  }
+ ]
+}

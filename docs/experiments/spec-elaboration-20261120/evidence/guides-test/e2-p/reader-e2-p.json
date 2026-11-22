@@ -1,0 +1,35 @@
+{
+ "from_folder": "reader-authors-merge-941479",
+ "capabilities": [
+  {
+   "capability": "Merge notification to the duplicate's requester",
+   "found": [
+    {
+     "spec": "K1",
+     "requirement": "R-4",
+     "quote": "a `ticket.merged` outbox event for the source's requester, naming the target"
+    }
+   ]
+  },
+  {
+   "capability": "Audit entry recorded on the surviving ticket",
+   "found": [
+    {
+     "spec": "K1",
+     "requirement": "R-3",
+     "quote": "on the target a `ticket.merge_received` entry"
+    }
+   ]
+  },
+  {
+   "capability": "Operator CLI shows the merge link",
+   "found": [
+    {
+     "spec": "K1",
+     "requirement": "R-5",
+     "quote": "the CLI `show` prints it"
+    }
+   ]
+  }
+ ]
+}

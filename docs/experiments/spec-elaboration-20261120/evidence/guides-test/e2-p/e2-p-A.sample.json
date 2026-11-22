@@ -1,0 +1,21 @@
+{
+ "name": "e2-p-A",
+ "set": "e2-p",
+ "arm": "A",
+ "driver": "p",
+ "pid": 235,
+ "started_at": 1795312353.0877051,
+ "limit_minutes": 20.0,
+ "decided_at": 1795312486.468891,
+ "watcher": "saw the acceptance",
+ "stop_written": true,
+ "seen": {
+  "run_dir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-authors-merge-4166f9/samples/e2-p-A/.shiploop-runs/work-20261122-015238-8b5af6/run",
+  "spec_action": "nav-25a0bfdc107b421f8eff979693e794ed",
+  "at": "2026-11-22T01:54:45Z",
+  "ts": 1795312485.849,
+  "spec_sha256": "6e462064ac7b0698b6ea6ddf042c0b4e3163e93b8db747d8c9e6dafbff56f135",
+  "head": "150caf5000986dc64fddb4c681d9fd0da3c1edb6"
+ },
+ "returncode": 1
+}

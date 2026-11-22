@@ -1,0 +1,12 @@
+{
+ "rubric_sha256": "e189dc7b9046d48fa9dc418fd8fd920d8c7b1f933d523e9875c1645ed831c27c",
+ "slots": {
+  "K1": {
+   "spec_sha256": "bdca0673358d02649b6f74f69ce3cfb53c93e06eed2b6df9347f665a2ad7bd6c",
+   "grades": {
+    "opus": "eabbeac887692adb92c49d173a4e0f3288ca84306d04625cfea604fb4b65a342",
+    "astra": "b06e596772c40dd5732a92ebd4a7a2e4e0a18094114d795a313358e571004e6d"
+   }
+  }
+ }
+}

@@ -1,0 +1,17 @@
+  f1-p: the stop file; usable True; delivered True; 865 words; 5 requirement ids; instructions given [102, 102]; references [9, 55]; spec stage 86.0 s, of them review 64.6; cost None; covered under both judges 9 of 19; at least partly 18; capability the reader verified: none
+  f1-k: the stop file; usable True; delivered True; 706 words; 2 requirement ids; instructions given [83, 102]; references [11, 59]; spec stage 79.0 s, of them review 43.0; cost None; covered under both judges 7 of 19; at least partly 17; capability the reader verified: ['New ticket status waiting_on_requester with its own transitions', 'Canceled reminder state in the outbox, shown to operators']
+  f2-p: the stop file; usable True; delivered True; 1572 words; 5 requirement ids; instructions given [102, 102]; references [52, 52]; spec stage 114.0 s, of them review 76.1; cost None; covered under both judges 10 of 19; at least partly 19; capability the reader verified: none
+  f2-k: the stop file; usable True; delivered True; 533 words; 2 requirement ids; instructions given [102, 102]; references [37, 62]; spec stage 59.0 s, of them review 30.7; cost None; covered under both judges 6 of 19; at least partly 16; capability the reader verified: ['New ticket status waiting_on_requester with its own transitions']
+  f3-p: the stop file; usable True; delivered True; 928 words; 2 requirement ids; instructions given [100, 102]; references [9, 53]; spec stage 122.0 s, of them review 96.1; cost None; covered under both judges 6 of 19; at least partly 19; capability the reader verified: none
+  f3-k: the stop file; usable True; delivered True; 434 words; 2 requirement ids; instructions given [99, 102]; references [8, 57]; spec stage 53.0 s, of them review 28.9; cost None; covered under both judges 6 of 19; at least partly 16; capability the reader verified: ['New ticket status waiting_on_requester with its own transitions', 'Canceled reminder state in the outbox, shown to operators']
+counts of items covered under both judges: p [9, 10, 6]; k [7, 6, 6]
+  f1-p over f1-k: net 3 (higher ['N-6', 'N-11', 'N-16', 'N-18'], lower ['N-9'])
+  f1-p over f2-k: net 3 (higher ['N-6', 'N-11', 'N-16'], lower [])
+  f1-p over f3-k: net 4 (higher ['N-6', 'N-11', 'N-16', 'N-18'], lower [])
+  f2-p over f1-k: net 4 (higher ['N-6', 'N-11', 'N-16', 'N-18', 'N-21'], lower ['N-9'])
+  f2-p over f2-k: net 3 (higher ['N-6', 'N-11', 'N-16'], lower [])
+  f2-p over f3-k: net 5 (higher ['N-6', 'N-11', 'N-16', 'N-18', 'N-21'], lower [])
+  f3-p over f1-k: net 3 (higher ['N-11', 'N-14', 'N-19'], lower [])
+  f3-p over f2-k: net 4 (higher ['N-11', 'N-14', 'N-16', 'N-19'], lower [])
+  f3-p over f3-k: net 4 (higher ['N-11', 'N-14', 'N-16', 'N-19'], lower [])
+READING (p over k): not shown

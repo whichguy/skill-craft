@@ -1,0 +1,25 @@
+{
+ "from_folder": "reader-authors-merge-941479",
+ "capabilities": [
+  {
+   "capability": "Merge notification to the duplicate's requester",
+   "found": [
+    {
+     "spec": "K1",
+     "requirement": "R-4",
+     "quote": "its rendered text (src/templates.js) names both ids."
+    }
+   ]
+  },
+  {
+   "capability": "Operator CLI shows the merge link",
+   "found": [
+    {
+     "spec": "K1",
+     "requirement": "R-7",
+     "quote": "`bin/tickets.js show T-0002` displays the merge target"
+    }
+   ]
+  }
+ ]
+}

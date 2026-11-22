@@ -1,0 +1,28 @@
+{
+ "reader_file_sha256": "fdf8c13a59216e09a67785f586f9dabba25ca2d032aaeb7c95ac3c2a7ba7ded0",
+ "prompt_sha256": "30e7660c897ae23cd99904ee320af861d0e376c0e45a9fb9cd21f79d9b348d05",
+ "capabilities": [
+  {
+   "capability": "New ticket status waiting_on_requester with its own transitions",
+   "found": [
+    {
+     "spec": "K1",
+     "requirement": "R-1",
+     "quote": "A ticket in progress may enter `waiting_on_requester`; it may then resume in progress or resolve.",
+     "quote_is_in_the_file": true
+    }
+   ]
+  },
+  {
+   "capability": "Canceled reminder state in the outbox, shown to operators",
+   "found": [
+    {
+     "spec": "K1",
+     "requirement": "R-2 State",
+     "quote": "Operators can see canceled reminders in the existing outbox report.",
+     "quote_is_in_the_file": true
+    }
+   ]
+  }
+ ]
+}

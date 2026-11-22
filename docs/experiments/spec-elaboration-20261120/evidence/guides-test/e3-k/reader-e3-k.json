@@ -1,0 +1,15 @@
+{
+ "from_folder": "reader-authors-merge-941479",
+ "capabilities": [
+  {
+   "capability": "Operator CLI shows the merge link",
+   "found": [
+    {
+     "spec": "K1",
+     "requirement": "R-3",
+     "quote": "Ticket detail and audit display the link."
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,152 @@
+{
+ "slot": "requester-reminders__K1__medium",
+ "case": "requester-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.3319242,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1 Basis",
+   "quote": "The lifecycle has no waiting-on-requester status, so by assumption (A1) a ticket waits on its requester while it is `resolved`"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1 Behaviour",
+   "quote": "whose latest resolve time (`at` of its latest audit entry with `changes.status.to = 'resolved'`; not `ticket.updated`) is at least 7 days (604800000 ms) before the clock's now"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1.3; Left out",
+   "quote": "running the job again (also after the reminder is delivered/sent, and at 30 days) enqueues nothing more ... no repeat reminders"
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1.4, R-1.5, R-1.6",
+   "quote": "a ticket resolved at day 0 and closed at day 1 ... get no event ... reopened (resolved -> open) at day 3 ... no reminder at day 7",
+   "missing": "What counts as the requester responding when there is no reply endpoint; only reopen, close and a title edit are addressed."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1.1, R-1.9",
+   "quote": "subject exactly `[T-0001] Waiting for your reply` and body exactly `Ticket T-0001 \"VPN drops every hour\" has been waiting for your reply for 7 days since it was resolved. Reply to reopen it.`",
+   "missing": "Which address the reminder goes to when the `requester` field is free text rather than an email address."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1 Basis; R-1.9",
+   "quote": "the resolved notice already says \"Reply within 7 days to reopen it\" ... has been waiting for your reply for 7 days since it was resolved. Reply to reopen it."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1 Behaviour; R-1.8; R-1.10",
+   "quote": "the worker, on each tick, finds every ticket that is `resolved` ... `worker.start()` returns false and the outbox stays empty (no timer, no side effect of a request"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-1 Behaviour; R-1.3; R-1.7",
+   "quote": "that has no audit entry with action `ticket.reminded` later in the log (higher `seq`) than that resolve entry ... a ticket reminded before a restart is not reminded again after reloading"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1 Behaviour",
+   "quote": "the worker, on each tick, finds every ticket that is `resolved` ... For each, it enqueues one `ticket.reminder` notification ... in the same store step (saved together)."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1.9",
+   "quote": "an event of this type is never dead for want of a template",
+   "missing": "Whether the existing retries and dead state apply to reminders and whether a dead reminder leads to another reminder later."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-1.8; R-1.9",
+   "quote": "holding a ticket resolved 30 days ago ... an explicit `worker.tick()` then enqueues exactly one reminder ... a worker that first ticks at 10.5 days says 10",
+   "missing": "An explicit decision for first deployment: whether the existing backlog is reminded at once or waiting is counted from deployment."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-1.6",
+   "quote": "no reminder at day 7 (3 days since the new resolve); one reminder at day 11, counted from the new resolve; none more after that, even though an earlier resolution exists."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-1 Behaviour; R-1.1; R-1.2",
+   "quote": "at least 7 days (604800000 ms) before the clock's now ... clock advanced 7 days exactly ... at 7 days minus 1 ms after resolve, no event",
+   "missing": "Whether reminders are held outside business hours, weekends or holidays."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-1 Behaviour; R-1.7; Left out",
+   "quote": "appends one audit entry `ticket.reminded` ... (the audit entry persists; no data-file format change, `VERSION` stays 1) ... no new ticket status, field"
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-1.7; R-2",
+   "quote": "no data-file format change, `VERSION` stays 1 ... the data file's version and readability of existing data files ... are unchanged"
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-1 Behaviour",
+   "quote": "appends one audit entry `ticket.reminded`, actor `system`, empty `changes`, in the same store step (saved together). The audit entry shows in GET /tickets/:id/audit like any other.",
+   "missing": "Whether sending a reminder changes the ticket's `updated` time."
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-1 Left out",
+   "quote": "no new ticket status, field, API endpoint or configuration variable"
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-1 Left out; R-1.8",
+   "quote": "no new ... configuration variable ... a service built with `WORKER_INTERVAL_MS=0` ... `worker.start()` returns false and the outbox stays empty"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-1.1; R-1 Behaviour; R-2",
+   "quote": "Observed in `store.outboxReport()` / GET /admin/outbox and `store.history` ... The audit entry shows in GET /tickets/:id/audit ... `list --raw` column positions ... unchanged"
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Performance, security, accessibility, UI: excluded; the work has no interface and no stated bound.",
+   "missing": "A bound on lateness after the threshold, on reminders enqueued per tick, and on check cost with thousands of tickets."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Every existing API response (a ticket's audit list gains `ticket.reminded` entries only), the lifecycle, `list --raw` column positions, the weekly report, ... and the `ticket.created` / `ticket.resolved` notifications are unchanged."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-1 Acceptance; Open gaps",
+   "quote": "confirmed by tests in test/ with `manualClock` ... Pending: implementation, tests, decision record 0009, CHANGELOG 1.5.0.",
+   "missing": "Updates to the API doc, operations doc and README."
+  }
+ ]
+}

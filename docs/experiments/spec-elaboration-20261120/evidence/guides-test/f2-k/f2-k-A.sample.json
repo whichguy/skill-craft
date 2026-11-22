@@ -1,0 +1,21 @@
+{
+ "name": "f2-k-A",
+ "set": "f2-k",
+ "arm": "A",
+ "driver": "k",
+ "pid": 2278,
+ "started_at": 1795312365.083452,
+ "limit_minutes": 20.0,
+ "decided_at": 1795312546.9088058,
+ "watcher": "saw the acceptance",
+ "stop_written": true,
+ "seen": {
+  "run_dir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-authors-remind-4166f9/samples/f2-k-A/.shiploop-runs/work-20261122-015302-79c5a2/run",
+  "spec_action": "nav-05149eaa1aa94382aa9ed81cba98c339",
+  "at": "2026-11-22T01:55:46Z",
+  "ts": 1795312546.528,
+  "spec_sha256": "89a27a7d0a2a54ec507238a8460aeecd1c069ef2eee6f57986770a5eacebae5a",
+  "head": "64216be685962fcb9fb5fdf053cc15e581207720"
+ },
+ "returncode": 1
+}
