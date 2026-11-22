@@ -870,6 +870,37 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
                          "Authorization: Bearer 0123456789abcdefghij\n")
         self.assertEqual(self._call(workspace.commit_leftovers, root).commit, "")  # nothing left
 
+    def test_a_file_moved_after_the_last_work_item_is_committed_whole_so_the_return_fast_forwards(self) -> None:
+        """A moved file is two changes, and a listing with rename detection names only its new path.  The commit
+        before the return then took the new file and left the old path's deletion staged, the candidate kept a
+        tracked change, the return applied a working-tree delta, and the user's checkout was left uncommitted: a live
+        delivery, 2026-11-21, whose builder moved six fixture files out of test/ at release-plan with a plain `mv`.
+        Both forms of a move are covered: left as it is, and staged first (`git mv`, or a host's `git add -A`)."""
+        for staged in (False, True):
+            with self.subTest(staged=staged):
+                name = "late move staged" if staged else "late move"   # the second starts from the first's result
+                old, new = "test-" + name[-6:].strip() + "/fixture.js", "moved-" + name[-6:].strip() + "/fixture.js"
+                record = self._prepare(name=name)
+                root = self.base / name
+                worktree = self._worktree(record)
+                (worktree / old).parent.mkdir()
+                (worktree / old).write_text("a file long enough for git to pair as a rename\nline two\nline three\n",
+                                            encoding="utf-8")
+                self._commit_all(worktree, "work item")
+                (worktree / new).parent.mkdir()
+                (worktree / old).rename(worktree / new)
+                if staged:
+                    self.git("add", "-A", cwd=worktree)
+                committed = self._call(workspace.commit_leftovers, root)
+                self.assertEqual(sorted(committed.paths), sorted([old, new]))
+                self.assertEqual(self.git("status", "--porcelain", cwd=worktree).stdout, "")   # no tracked change left
+                self._plan(root)
+                self._resolve_plan(root)
+                receipt = self._execute(root)
+                self.assertEqual(receipt["kind"], "fast-forward-merge")
+                self.assertTrue((self.repo / new).is_file())
+                self.assertFalse((self.repo / old).exists())
+
     def _returned_once(self, name: str) -> tuple[Path, Path]:
         record = self._prepare(name=name)
         root = self.base / name
