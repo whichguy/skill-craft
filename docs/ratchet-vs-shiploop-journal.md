@@ -850,8 +850,7 @@ the gap" is that judge's answer. Grok's raters had already rated the looks' find
   change request, rated `must` by both); of the small cases' real new ones, all three are present on F and L too.
   So section 12's defect counts are a floor for every product, Ratchet's final included.
 - Predictions: K1 at least half on Grokbot, wrong (10 of 25); K2 at least half real, right on Grokbot (15 of 15),
-  wrong on the small cases (4 of 12); K3 under a third, right on three cases (not expenses' 5 of 18, which is
-  under a third too: right on all four).
+  wrong on the small cases (4 of 12); K3 under a third, right on all four (5 of 18, 1 of 8, 1 of 4, 8 of 27).
 
 ### The fixes (Opus at xhigh, one session each, given the product and `look.md` only) and the deep judge again
 
@@ -876,3 +875,63 @@ of 19 for ShipLoop's original, 18 then 19 for Ratchet's final. That is the reade
   reported and the cross-probe confirmed as a low defect, and it is why the judge still leans to Ratchet's final.
 - K5 (under half of Ratchet's minutes): right on tickets (28%), wrong on expenses (55%).
 - A limit, as registered: the fixer is Opus at xhigh, a stronger model at a higher effort than the builders'.
+
+- Added after the commit of this section: Grok's verdict on the fixed shared-expenses case had been requested
+  before the owner's instruction and arrived after it. It is not counted. It puts Ratchet's final somewhat ahead
+  of the fixed product where Opus says "same"; under section 10's two-judge rule the pair would still read "no
+  difference shown" (the judges would not agree on a side) and nearly competitive.
+
+## 14. Clean runs for the ShipLoop side: registered before any of them starts (2026-11-22 09:10)
+
+The owner, on section 13: "I wanted to make sure that we're doing this from clean runs, not just repairs from old
+ones, in order to make sure that our evaluations are not overly biased. Can you confirm that this is what
+happened?" My answer from the records: the eight builds of section 7 were clean runs (each repository starts at
+its base commit at 23:59 or 00:00 and ends at its delivery), and the deep judge of section 12 re-read those
+deliveries with fresh sessions; but section 13's look-and-fix results are **repairs of those deliveries**, with
+four ways to be biased: only ShipLoop's product was repaired, and only where it had been found behind; the fixer
+is a stronger model than either builder; the fixed product got a fresh audit while the products beside it kept
+their earlier ones; and there is one delivery of each tool a case. Offered: (1) fresh ShipLoop runs with the look
+and the fix, beside last night's Ratchet finals; (2) fresh runs of both tools. The owner: "2", then "let's focus
+on 1 first". This section registers (1).
+
+### What runs
+
+1. **A fresh ShipLoop run of each of the four cases**, from scratch in a new repository, through
+   `launch.py` and the E2E harness as in section 3, on Codex Sol 6.2 medium, from a new checkout of `origin/main`.
+   **The ShipLoop version is the one on main today, 2.6.0** (the owner's standing rule: always the latest
+   ShipLoop), not last night's 2.4.1. 2.6.0 carries the released `defaults` change (the specification's result
+   lists the choices it made for the requester), which bears on D4. So two things differ from section 7's ShipLoop
+   runs at once, a fresh run and a newer version, and this section cannot say which moved a number.
+2. **The look on every fresh delivery** (Sol 6.2 medium, `look.py`'s instructions unchanged) **and the fix on
+   every one** (Opus at xhigh, the instructions of section 13 unchanged), all four cases, whether or not the
+   delivery is behind: the process under test is "ShipLoop, one look, one fix" as a fixed sequence.
+3. **The deep judge on three products a case, all audited afresh in one round**: the fresh delivery after the look
+   and the fix, the fresh delivery itself, and last night's Ratchet final, which is audited again by a new session
+   so that no product is read against an older audit. The inventories of section 12 are used unchanged (they were
+   written without seeing any product). One cross-probe a case, the single reader, and the Opus judge alone (the
+   owner's instruction).
+
+### Readings
+
+- **C-1, the fresh delivery against Ratchet's final**, by section 10's rules with one judge: does section 12's
+  result repeat on a second ShipLoop delivery, now on 2.6.0?
+- **C-2, the fresh delivery after look and fix against Ratchet's final**: the better feature, and nearly
+  competitive or not. This is section 13's K4 without the repair.
+- **C-3, cost**: the fresh run's minutes, plus the look's, plus the fix's, beside last night's Ratchet minutes.
+- Reported: the held-out checks on each fresh delivery and on each fixed product (a fix must not break one); what
+  each look found and each fix changed.
+
+### Predictions
+
+- The fresh deliveries build every stated item again (D1 level everywhere).
+- C-1: on Grokbot Ratchet's final is again the better feature; on the three small cases ShipLoop 2.6.0 tells more
+  unsaid points than 2.4.1 did, and at most one of them still goes to Ratchet's final.
+- C-2: nearly competitive or better on the three small cases; on Grokbot not (my guess from section 12: its gap is
+  in behaviour, and a look names under half of what an audit finds).
+- C-3: under half of Ratchet's minutes on tickets and Grokbot; not on expenses and chess.
+
+### Limits known now
+
+Ratchet is not rerun (that is option 2): its side is still one delivery a case, from 2.4.1's night. The fixer is
+Opus at xhigh, stronger than the builders. One fresh ShipLoop run a case. A version change and a fresh run are
+confounded. The repaired Grokbot product of section 13 is still being audited; its result is recorded as a repair.
