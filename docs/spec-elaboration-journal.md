@@ -4615,3 +4615,24 @@ to 4 are that session's own runs and are recorded as received.
   answer gets in, which is that session's question and the owner's decision.
 
 Section 57's results are untouched by any of this.
+
+**Sent at the owner's word (19:55).** Asked whether to send the two neighbouring sessions a short note of what
+bears on their work, the owner answered "Yes, send it". Two messages went out, each for information only and
+asking nothing:
+
+- To the SDLC session: what Sol gives itself of a packet, with the correction above (the instructions of the
+  first four stages nearly whole, the part after them at a median of 15% at the spec stage, the low figures for
+  instructions in the later stages of whole deliveries); the spec-stage review by driver (sections 55 and 57);
+  and that a Claude run ended through the stop file records no cost.
+- To the Ratchet session, in reply to its message: that its packet figures reproduce here; that the two models
+  made different silent decisions on the same sentence (a new status against the existing one; a notification
+  against none); the judges' swing of section 57; and what its third result changed in the advice given to the
+  owner.
+
+Both reached the sessions' inboxes. Whether either was read is not known here.
+
+*Corrected 2026-11-21 19:56: the note to the SDLC session was held by that session and has not been delivered
+to its Claude; a notice of that came a minute after the sending. The usual cause is that the two sessions run in
+different permission modes, and a held message expires unless it is released there. It is not resent while
+held. What it carried is all in this journal: sections 43, 55, 57 and this one. The reply to the Ratchet
+session drew no such notice.*
