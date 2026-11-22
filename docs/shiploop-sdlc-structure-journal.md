@@ -4173,6 +4173,27 @@ Findings.
   can stop a builder writing that test; whether the base should say how to start the product for a test is a
   question about the subject and is not proposed here.
 
+### Owner decision, 2026-11-22: stop the two stuck processes of the 2026-11-15 study
+
+Asked "Stop the two stuck processes left by the 2026-11-15 study?", the owner: "Yes, stop both". They are two of the
+four parentless processes R155 left as they were and put to the owner.
+
+- **R172 (the two, stopped at 07:40; `stop_named.py`, `evidence/leaked-servers-stopped.txt`).** Process 77954, in
+  `e2e-runs/fixrate-false-alarms-20261115/gemma4_26b/grok-web-battleship__R-4.14/work`: a test file's process of
+  `node --test`, started 2026-11-15 at 11:20, which had used a whole processor for 6 days and 20 hours and held no
+  socket. Process 20836, in `e2e-runs/fixrate-pilot2-20261115/gemma4_26b/v2170-ds-battleship__R-8.1/work`:
+  `node -e "require('./battleship_bad.js'); ..."`, started 2026-11-15 at 09:31, idle, listening on every address at
+  port 56240. Each was checked at the moment of stopping to be the process listed (a parentless `node`, that start
+  time, that folder, no children) and each ended on SIGTERM. Checked afterwards from this session: neither process
+  id exists and nothing listens on 56240.
+- **How.** The script takes a listing of process id, start time and folder and stops exactly those, each only if it
+  still matches. It was tried first on a throwaway process of this session: two wrong identities were left alone and
+  the right one was stopped. A Sonnet worker ran it once from the listing written here, by the owner's rule of the
+  same day that tactical operations go to a Sonnet agent, and the result was checked here.
+- **The other two of R155.** The server in another session's scratch folder (23435, port 56855) was gone by 07:38;
+  this study did not stop it. The process in an unnamed temporary folder (56210, started 2026-11-18 at 03:12, a test
+  file's process, idle, no socket) is left as it is: it is not this study's and was not asked about.
+
 ## Evidence (all rounds)
 
 | File | Holds |
@@ -4245,7 +4266,7 @@ Findings.
 | `confirm_read.py`, `evidence/confirm-r15.txt` | round 15: the confirmation round: each delivery's verdicts, checks, work items, every release-verify attempt with its counts and floors; the wrong refusal and the uncommitted return reproduced by hand (R136 to R142) |
 | `evidence/gate-on-file-final.txt`, `evidence/mutants-final.txt`, `evidence/suites-final.txt` | round 15: the committed rule (no count) on 28 saved release checks, with the refused attempt replayed (R143); its twelve mutants; the 24 suites and the fail-first results |
 | `review-r15/sol-max-brief-3.txt`, `review-r15/sol-max-review-3.md` | round 15: the question put to Sol 6.2 at max effort about the count measured in the work area and the moved-file fix, and its verbatim answer |
-| `list_leaked.py`, `stop_leaked.py`, `evidence/leaked-servers-stopped.txt` | round 15: the leaked test servers of the harness's base check: the listing, each process stopped with its start time, port and folder, and what was left alone (R145) |
+| `list_leaked.py`, `stop_leaked.py`, `stop_named.py`, `evidence/leaked-servers-stopped.txt` | round 15: the leaked test servers of the harness's base check: the listing, each process stopped with its start time, port and folder, and what was left alone (R145); 2026-11-22: the two stuck processes of another study stopped at the owner's word, each by process id, start time and folder (R172) |
 | `evidence/confirm-r15d.txt` | round 15: the second confirmation round: each delivery's verdicts, checks, work items and its one release-verify attempt with the added command; the suites run again by hand; refusals, returns, the hang in one builder's own copy (R147 to R154) |
 | `port_mixup_demo.js`, `port_mixup_outcomes.py`, `port_mixup_stranger.js`, `port_mixup_suite_probe.py`, `port_mixup_count_listens.js`, `evidence/port-mixup.txt`, `evidence/port-mixup-probe.json` | 2026-11-22: the ticket fixture's port mix-up watched and counted: one number held by two programs, how often the system hands out a held number, the base's suite 1,600 times as it is and with the service on `127.0.0.1`, what one test does by what the other program does, and a stuck run found and stopped (R157 to R161) |
 | `port_mixup_reverse.js`, `changed_base_read.py`, `evidence/changed-base-r15e.txt` | 2026-11-22: the other direction of the port mix-up (a listener on `127.0.0.1` is not given a number held on every address), and the two deliveries on the changed ticket base: the base each started from, verdicts, checks, and where the delivered suite's servers listen (R166 to R171) |
@@ -4317,6 +4338,8 @@ of `evidence/port-mixup.txt`.
 Leaked test servers: `python3 -I list_leaked.py` prints one JSON line for each `node` process (it stops nothing);
 `python3 -I stop_leaked.py <that listing> [<minimum age in seconds>]` stops, by process id, the parentless ones in
 a folder of the base check.
+`python3 -I stop_named.py <listing.json>` stops exactly the processes a listing names (process id, start time,
+working folder), each only if it still matches; anything else is left alone and reported.
 The observers: `python3 test/shiploop_e2e/observers/observe.py <case> <delivered tree> [--out <file>]`; run on the
 sixteen trees of round 13 it reproduces `evidence/observers-calibration.txt`.
 The rebuilt rule on saved deliveries: `python3 -I gate_on_file.py <candidate>/skills/shiploop/scripts 600

@@ -60,3 +60,32 @@ The last sweep, 2026-11-22 at 01:25, by working folder over this study's run roo
 this study, `python server.py` on port 18765, started 2026-11-20 at 01:15 by a headless reader of round 3's replay in
 the study's scratch folder; stopped by process id (SIGTERM). No parentless `node` process in a folder of the base
 check. The four parentless processes listed above as left alone are still there.
+
+The owner's answer on the four, 2026-11-22: "Yes, stop both". The two of the 2026-11-15 study, stopped at 07:40
+
+Asked "Stop the two stuck processes left by the 2026-11-15 study?", the owner: "Yes, stop both". Both were listed again at
+07:38:57 (each a parentless node in the folder recorded at 01:25, with no children) and stopped at 07:40:07 by
+stop_named.py from a listing of process id, start time and working folder. Its output, whole:
+
+    77954: node, no parent, started Sun Nov 15 11:20:50 2026, 97.8% of a processor, in /Users/dadleet/e2e-runs/fixrate-false-alarms-20261115/gemma4_26b/grok-web-battleship__R-4.14/work
+    77954: SIGTERM sent
+    77954: gone
+    20836: node, no parent, started Sun Nov 15 09:31:02 2026, 0.0% of a processor, in /Users/dadleet/e2e-runs/fixrate-pilot2-20261115/gemma4_26b/v2170-ds-battleship__R-8.1/work
+    20836: SIGTERM sent
+    20836: gone
+    listed 2, left alone 0, still alive 0
+    exit 0
+    run at 2026-11-22 07:40:07
+
+77954 was a test file's process of `node --test` (its command line carries the runner's flags). It had used a whole
+processor since 2026-11-15 11:20:50, 6 days and 20 hours, and held no socket. 20836 was
+`node -e "require('./battleship_bad.js'); console.log(process._getActiveHandles()...)"`, started 2026-11-15 09:31:02, idle,
+listening on every address at port 56240. Checked afterwards from the study's own session: neither process id exists and
+nothing listens on 56240.
+The script was tried first on a throwaway process of this session (two wrong identities left alone, the right one stopped)
+and then run once by a Sonnet worker from this listing: the owner's rule of 2026-11-22 sends tactical operations to a Sonnet
+agent.
+
+Of the other two listed as left alone: the server in another session's scratch folder (23435, port 56855) was gone by
+07:38 and was not stopped by this study. The process in the unnamed temporary folder (56210, started 2026-11-18 03:12:39, a
+test file's process, idle, no socket) is left as it is: it was not asked about.
