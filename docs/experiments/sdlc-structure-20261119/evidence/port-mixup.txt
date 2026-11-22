@@ -1,0 +1,181 @@
+The port mix-up of the ticket fixture's tests, watched and counted (2026-11-22, 05:44 to 06:10)
+============================================================================================
+
+Why. The owner asked what "bind the ticket fixture's tests to 127.0.0.1" means technically (journal R156 had put the question).
+26728eddd587930f5da3f6600e5d7ab4017d8acc inferred the mechanism on 2026-11-01 from two wrong-answer bodies and "did not watch the two
+sockets". Here it is watched, counted and tried against a two-line change, on scratch copies only. Nothing under
+test/shiploop_e2e/fixtures/ is changed.
+
+The two lines of the fixture this is about
+  src/server.js    server.listen(config.port, ...)                 no address: the service listens on every address (IPv6 ::)
+  test/helpers.js  client(`http://127.0.0.1:${port}`)             the test's client calls 127.0.0.1
+  test/helpers.js  TEST_SETTINGS.port = 0                          the system picks the port number
+
+Machine: macOS (darwin 27.2.0), node v26.12.1. The system hands out port numbers 49152 to 65535 (16,384 of them).
+At the start 15 listeners sat on a specific IPv4 address: 10 claude, 2 OrbStack, 2 Ollama/ollama, 1 1Password; 12 of them on
+127.0.0.1 in the range handed out (10 claude, 1 OrbStack, 1 Ollama). No E2E run was live at the start (0 run.py processes), load 2.6.
+
+
+1. One port number held by two programs (port_mixup_demo.js; its output, whole)
+
+    node v26.12.1 on darwin 27.2.0
+    Part 1: one port number, 23117, held by two programs at once
+      another program listens on 127.0.0.1:23117
+      the test's server then listens on the same number with no address given: accepted by the system, as IPv6 :: port 23117
+      the test's client asks 127.0.0.1:23117 -> answered by: another program
+      with the other program gone, the same question -> answered by: the test's own server
+      another program that takes the call and says nothing now listens on 127.0.0.1:23117 (started after the test's server: the order does not matter)
+      the test's client asks 127.0.0.1:23117 -> no answer after 3 s
+      a server told to listen on 127.0.0.1:23117 itself: refused by the system, EADDRINUSE
+    Part 2: asking the system for "any free port", 40000 times each way (1.2 s)
+      port numbers other programs hold on 127.0.0.1 itself, in the range handed out (49152 to 65535), for the whole of the count: 12 (1 OrbStack, 10 claude, 1 Ollama)
+      listening with no address, as the fixture does: given one of those numbers 29 times in 40000 (12 of the 12 numbers)
+      listening on 127.0.0.1: given one of those numbers 0 times in 40000
+
+   Read: the system accepts "23117 on every address" beside "23117 on 127.0.0.1"; a call to 127.0.0.1:23117 goes to the program
+   that named 127.0.0.1; asked for "any free port" with no address the system gave one of the 12 held numbers 29 times in 40,000
+   (12 in 16,552; a held number counted as free would be 12 in 16,384); asked on 127.0.0.1 it gave one 0 times in 40,000.
+
+
+2. The fixture's suite, once, as it is and with the change (port_mixup_count_listens.js counts the servers)
+
+   as it is:  117 tests, 117 pass; 21 servers started, all on "IPv6 ::"
+   changed:   117 tests, 117 pass; 21 servers started, all on "IPv4 127.0.0.1"
+
+   The change under test (scratch copies only):
+
+    --- asis/src/server.js
+    +++ bound/src/server.js
+    @@ -37,7 +37,7 @@
+         async start() {
+           await new Promise((resolve, reject) => {
+             server.once('error', reject);
+    -        server.listen(config.port, () => {
+    +        server.listen(config.port, config.host, () => {
+               server.off('error', reject);
+               resolve();
+             });
+    --- asis/test/helpers.js
+    +++ bound/test/helpers.js
+    @@ -12,6 +12,7 @@
+     /** The settings a test service starts with: port 0, memory only, the worker off. */
+     const TEST_SETTINGS = Object.freeze({
+       port: 0,
+    +  host: '127.0.0.1',
+       dataFile: null,
+       notifyFile: null,
+       workerIntervalMs: 0,
+
+
+3. The fixture's suite 1,600 times each way (port_mixup_suite_probe.py; evidence/port-mixup-probe.json holds every run that
+   did not pass)
+
+   16 copies at once, 100 rounds, the two arms never at the same time, order alternating by round; a 30-second limit per run,
+   a run past it stopped whole. 1001 seconds in all. Held on 127.0.0.1 by other programs during it: 12 to 14 numbers.
+
+                                                   as it is     changed (service on 127.0.0.1)
+   runs                                                1600         1600
+   passed                                              1580         1600
+   failed                                                 2            0
+   did not end within 30 s                               18            0
+   servers started                                    33600        33600
+   runs given a number another program held              19            0
+     of those, failed or did not end                     19            0
+     of those, passed                                     0            0
+   failed or did not end with no such number              1            0
+   the other program, by run                       15 claude, 2 Ollama, 2 OrbStack
+
+   The 20 runs of the fixture as it is that did not pass:
+
+  round  4 | did not end within 30 s    | number shared: 64308          | held by: claude   | first test reported failed: creates an open ticket and answers 201 with it
+  round  5 | did not end within 30 s    | number shared: 50214          | held by: claude   | first test reported failed: answers a bad body with 400 invalid
+  round 20 | did not end within 30 s    | number shared: 53876          | held by: claude   | first test reported failed: with a data file, a restarted service has the same tickets, history and outbox
+  round 26 | did not end within 30 s    | number shared: none in the list | held by: -        | first test reported failed: filters by status
+  round 27 | did not end within 30 s    | number shared: 64295, 64308   | held by: claude   | first test reported failed: pages a filtered listing through its cursors
+  round 32 | did not end within 30 s    | number shared: 54286          | held by: claude   | first test reported failed: answers 409 for a move the lifecycle does not allow and 400 for a status that does not exist
+  round 40 | did not end within 30 s    | number shared: 49199          | held by: claude   | first test reported failed: records the X-Actor of each change, and system without one
+  round 43 | did not end within 30 s    | number shared: 53876          | held by: claude   | first test reported failed: answers a bad filter, limit or cursor with 400 invalid
+  round 55 | did not end within 30 s    | number shared: 53876          | held by: claude   | first test reported failed: answers 409 for a move the lifecycle does not allow and 400 for a status that does not exist
+  round 57 | did not end within 30 s    | number shared: 56699          | held by: claude   | first test reported failed: changes the priority and records who did it
+  round 58 | did not end within 30 s    | number shared: 57741          | held by: Ollama   | first test reported failed: answers a bad body with 400 invalid
+  round 64 | failed, 1 of 117 tests     | number shared: 49724          | held by: OrbStack | first test reported failed: lists every ticket in id order, 20 to a page
+  round 64 | did not end within 30 s    | number shared: 49443          | held by: claude   | first test reported failed: changes the priority and records who did it
+  round 67 | did not end within 30 s    | number shared: 54286          | held by: claude   | first test reported failed: answers 409 for a move the lifecycle does not allow and 400 for a status that does not exist
+  round 69 | did not end within 30 s    | number shared: 57741          | held by: Ollama   | first test reported failed: answers a bad filter, limit or cursor with 400 invalid
+  round 75 | did not end within 30 s    | number shared: 49443          | held by: claude   | first test reported failed: pages a filtered listing through its cursors
+  round 86 | did not end within 30 s    | number shared: 64295          | held by: claude   | first test reported failed: answers a bad filter, limit or cursor with 400 invalid
+  round 87 | failed, 1 of 117 tests     | number shared: 49724          | held by: OrbStack | first test reported failed: answers 409 for a move the lifecycle does not allow and 400 for a status that does not exist
+  round 92 | did not end within 30 s    | number shared: 56000          | held by: claude   | first test reported failed: nothing reported
+  round 99 | did not end within 30 s    | number shared: 50047, 50214   | held by: claude   | first test reported failed: pages a filtered listing through its cursors
+
+   Read: every run that shared a number with another program failed or did not end (19 of 19), and none passed. 18 of the 20
+   did not end; 17 of those 18 had reported a test failed before they stopped moving. The two that failed outright had a dropped
+   connection (ECONNRESET) and the other program was OrbStack both times. One run (round 26) did not end with no shared number in
+   the list read at the start of its round: the list leaves out node listeners on 127.0.0.1 (they could be this probe's own
+   changed copies), and another session's test tier was running by then, so its cause is not shown.
+   Expected from part 1: 33,600 servers at 12 to 14 held numbers in 16,384 is 25 to 29 shared numbers; 21 were seen (two runs
+   had two each).
+
+
+4. What one test does, by what the other program does (port_mixup_outcomes.py, port_mixup_stranger.js; its output, whole)
+
+    One test, the fixture's own helper, on port 23131; another program listens on 127.0.0.1:23131 first. Limit 8 s.
+      as it is | the other program drops  | ended in 0.2 s, exit 1             | reported: ✖ lists no tickets on a new service | Error: read ECONNRESET
+      as it is | the other program json   | ended in 0.2 s, exit 0             | reported: ✔ lists no tickets on a new service
+      as it is | the other program text   | did not end within 8 s (stopped)   | reported: ✖ lists no tickets on a new service
+      as it is | the other program silent | did not end within 8 s (stopped)   | reported: nothing
+      bound    | the other program drops  | ended in 0.2 s, exit 1             | reported: ✖ lists no tickets on a new service | Error: listen EADDRINUSE: address already in use 127.0.0.1:23131
+      bound    | the other program json   | ended in 0.2 s, exit 1             | reported: ✖ lists no tickets on a new service | Error: listen EADDRINUSE: address already in use 127.0.0.1:23131
+      bound    | the other program text   | ended in 0.2 s, exit 1             | reported: ✖ lists no tickets on a new service | Error: listen EADDRINUSE: address already in use 127.0.0.1:23131
+      bound    | the other program silent | ended in 0.2 s, exit 1             | reported: ✖ lists no tickets on a new service | Error: listen EADDRINUSE: address already in use 127.0.0.1:23131
+
+   Read: as it is, a dropped call fails the test and the run ends; an answer in JSON is taken as the service's answer (this one
+   test only checks the status, so it passes on another program's answer); an answer that is not JSON is reported as a failed
+   test and the run never ends; no answer at all reports nothing and the run never ends. test/helpers.js parses the body inside
+   the response's `end` handler: a body that is not JSON throws there, the request's promise is never settled, `withService`
+   never reaches its `finally`, the test's server stays up and the test file's process cannot exit. With the change the service
+   cannot start on a number held on 127.0.0.1 at all (EADDRINUSE on a fixed number; with port 0 the system gives another).
+
+
+5. A stuck run of this session's own, found by this check and stopped
+
+   A `node --test` of the base's tests, started 2026-11-22 00:44:45 by a case check's command in this session's test tier (its
+   environment names this session), in the temporary folder tmp749rmb4l/prior: the test file test/api.test.js, 0% of a processor,
+   0.35 s of processor time in 5 h 22 min, main thread waiting in kevent, its server still listening on every address at port
+   57236, no connection open. The state of a test whose request was never settled. Which program held 57236 on 127.0.0.1 at
+   00:44 is not known (none does now). The sweep of 01:25 (R155) looked in this study's run roots and scratch folder, not in the
+   system's temporary folder, and missed it. Stopped by process id, top first, each checked to have started at 00:44:45:
+
+    tree: 72541 72542 72543 72545 72544 72546
+      72541 started [Sun Nov 22 00:44:45 2026] /bin/sh cwd /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmp749rmb4l/alternative
+      72542 started [Sun Nov 22 00:44:45 2026] /bin/sh cwd /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmp749rmb4l/prior
+      72543 started [Sun Nov 22 00:44:45 2026] sed cwd /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmp749rmb4l/alternative
+      72545 started [Sun Nov 22 00:44:45 2026] tail cwd /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmp749rmb4l/alternative
+      72544 started [Sun Nov 22 00:44:45 2026] node cwd /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmp749rmb4l/prior
+      72546 started [Sun Nov 22 00:44:45 2026] /opt/homebrew/Cellar/node/26.12.1_1/bin/node cwd /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmp749rmb4l/prior
+      TERM 72541
+      TERM 72542
+      TERM 72543
+      TERM 72545
+      TERM 72544
+      TERM 72546
+    done
+
+
+Limits and conduct
+- One machine, one morning, one node version, one operating system. The count of held numbers depends on what else is open
+  (10 of the 12 were Claude sessions).
+- What a Claude session's listener answers was not asked directly; 15 hung runs that shared its number, 14 of them with a test
+  reported failed first, fit an answer that is not JSON (part 4, "text").
+- The probe ran 16 suites at once and the suite runs its 18 files at once: the load average reached about 190. Another
+  session's quick tier (its scratch folder defaults/merge-a5ac04) started about three minutes into it, at 05:51, and ran beside
+  it until 06:04. During the changed arm's rounds this probe's ticket servers held numbers on 127.0.0.1, which that tier's own
+  ticket suites could have been handed too. A heads-up to that session was held by it and not delivered. If a suite of that tier
+  failed or timed out between 05:51 and 06:04, rerun it alone before reading it.
+- The probe keeps a run's output only as the names of the tests reported failed and its error lines; the full output of the
+  runs that did not end was not kept.
+
+Run again: copy test/shiploop_e2e/fixtures/node-tickets twice; in the second copy apply the two-line change above;
+`node port_mixup_demo.js`; `python3 -I port_mixup_outcomes.py AS_IS BOUND`;
+`python3 -I port_mixup_suite_probe.py AS_IS BOUND port_mixup_count_listens.js OUT.json 16 100 30` (heavy: about 17 minutes
+and a load average near 190 at 16 copies; use 4 copies beside any other work).
