@@ -1,0 +1,15 @@
+diff --git a/skills/shiploop/scripts/shiploop_prompts.py b/skills/shiploop/scripts/shiploop_prompts.py
+index 0aa5aba15..0312d33c7 100644
+--- a/skills/shiploop/scripts/shiploop_prompts.py
++++ b/skills/shiploop/scripts/shiploop_prompts.py
+@@ -1161,7 +1161,9 @@ DUTIES = {
+    need (`assumptions`). The mapping goes in each item's `context`. A filled template is not proof. `concerns`: per
+    item a row for each of ui, api, messaging, state, migrate-before, migrate-after, switchover, concurrency,
+    platform-services, scale, security, observability, config, performance, accessibility: the template's row, or
+-   `{id, applies: "no", reason}`; one clause each.
++   `{id, applies: "no", reason}`; one clause each. Where an item changes stored data that another release reads or
++   writes, its `state` row says what each release reads and writes, what must survive going back to the previous
++   release and returning, and the check that shows it.
+    Carry each acceptance line's required surface and completion condition into the owning item's context. For a
+    later or unavailable observation, retain its owner, due phase and unresolved status under the existing
+    completion and unverified policies. Opt-in execution or a lower-layer pass does not close a stronger explicit

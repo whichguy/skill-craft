@@ -29,15 +29,16 @@ def main(argv):
         specs = [f"P{number}=" + spec.split("=")[1] for number, spec in enumerate(specs, 1)]
     for spec in specs:
         name, folder = spec.split("=")
-        runs = glob.glob(folder + "/.shiploop-runs/*/run")
+        runs = sorted(glob.glob(folder + "/.shiploop-runs/*/run"))
         print("==", name)
         if not runs:
             print("   no run folder"); continue
-        state = record(runs[0] + "/state.md") or {}
         plan = None
-        for row in state.get("history", []):
-            if row.get("stage") == "plan" and row.get("outcome") == "done":
-                plan = (state.get("accepted") or {}).get(row.get("action"))
+        for run in runs:  # a session may halt its first run and start another: the latest accepted plan is read
+            state = record(run + "/state.md") or {}
+            for row in state.get("history", []):
+                if row.get("stage") == "plan" and row.get("outcome") == "done":
+                    plan = (state.get("accepted") or {}).get(row.get("action"))
         if not isinstance(plan, dict) or "concerns" not in plan:
             print("   no accepted plan with concerns"); continue
         for item, rows in plan["concerns"].items():

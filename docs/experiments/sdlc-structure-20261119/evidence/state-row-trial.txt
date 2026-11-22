@@ -1,0 +1,87 @@
+Round 15, the trial of the state-row sentence: eight plans of the ticket case, ended at the plan.
+
+THE SAMPLES (stop_at_stage.py; minutes to the stop; planning reviews pinned on)
+  control-sonnet-1     claude claude-sonnet-5-5  medium  reached the plan  4.2 min
+  control-sol-1        codex  gpt-6.2-sol        medium  reached the plan  4.2 min
+  candidate-sonnet-1   claude claude-sonnet-5-5  medium  see note  14.3 min
+  candidate-sol-1      codex  gpt-6.2-sol        medium  reached the plan  5.1 min
+  candidate-sonnet-2   claude claude-sonnet-5-5  medium  reached the plan  4.7 min
+  candidate-sol-2      codex  gpt-6.2-sol        medium  reached the plan  3.6 min
+  control-sonnet-2     claude claude-sonnet-5-5  medium  reached the plan  4.8 min
+  control-sol-2        codex  gpt-6.2-sol        medium  reached the plan  5.3 min
+  Note: candidate-sonnet-1's session halted its first ShipLoop run (it had started it with a reworded request) and started
+  another. The sampler watched the first run folder only, so it did not see the plan and the sample ran on for 14.3
+  minutes, past the build, until I ended it by its stop file. Its accepted plan is read like the others. The sampler
+  and plan_rows.py now look at every run folder of a sample; the second wave used the corrected sampler.
+
+LABELS, written before the key was opened (plan-labels: keeps / accepts / silent)
+  P1 = candidate-sonnet-2   accepts  its state row says 1.4.0's next save drops due and that returning backfills again; a documented caveat
+  P2 = candidate-sol-2      keeps    keep an enriched snapshot to recover fixed deadlines during roll-forward; rejoin pre-rollback deadlines by ticket ID
+  P3 = control-sol-2        silent   preserve existing deadlines and exercise a real 1.4.0 rollback; nothing on the return
+  P4 = candidate-sonnet-1   accepts  its state row says going back drops due and returning backfills from created and priority with the hours then set
+  P5 = control-sonnet-1     silent   the new file must load in 1.4.0; 'rollback and its limit documented'; no row says what happens on the return
+  P6 = candidate-sol-1      keeps    restore preserved due from a pre-rollback snapshot keyed by ticket identity, keeping newer state
+  P7 = control-sonnet-2     silent   deploy unset then on; rollback to 1.4.0; nothing on the return
+  P8 = control-sol-1        silent   persist a first deadline; confirm on reopening; nothing on the return
+
+TALLY
+  control    silent 4 of 4 (Sonnet 2, Sol 2)
+  candidate  keeps 2 of 4 (Sol 2 of 2), accepts 2 of 4 (Sonnet 2 of 2), silent 0
+
+THE ROWS AS READ (shuffled labels)
+== P1
+   W1 state [yes] owner=step-plan anchor=R-5, R-7, AD-1: 1.5.0 reads v1 files with or without ticket.due and writes v1 with due; 1.4.0 reads and ignores due (its next save drops it); returning to 1.5.0 backfills again; checked by due-persistence tests and the real 1.4.0 run in W3
+   W1 migrate-before [yes] owner=step-plan anchor=R-5: before start tickets lack due; checked by a hand-written 1.4.0-shape file in due-persistence
+   W1 migrate-after [yes] owner=step-plan anchor=R-5: after start every ticket has due and the file is saved at once; due is never recomputed; checked by reopening with other hours
+   W1 switchover [yes] owner=step-plan anchor=R-6: due is stored while DUE_TIMES is off, so switching on needs no migration; surface in W2
+   W2 state [no] owner=None anchor=None: W2 reads due only; storage was settled in W1
+   W2 migrate-before [no] owner=None anchor=None: not touched by this item
+   W2 migrate-after [no] owner=None anchor=None: not touched by this item
+   W2 switchover [yes] owner=step-plan anchor=R-6: off path answers exactly as 1.4.0; checked by deep-equal tests and CLI byte comparison
+   W3 state [yes] owner=step-plan anchor=R-7: rollback proof: real 1.4.0 code on a file the final 1.5.0 wrote; documented caveat that 1.4.0 saves drop due
+   W3 migrate-before [no] owner=None anchor=None: not touched by this item
+   W3 migrate-after [no] owner=None anchor=None: not touched by this item
+   W3 switchover [yes] owner=step-plan anchor=R-6, R-10: operations.md states the order: deploy with DUE_TIMES unset, verify the file holds due, then set on; rollback = redeploy 1.4.0
+== P2
+   W1 state [yes] owner=step-plan anchor=docs/shiploop/architecture.md AD-1: 1.4.0 reads all tickets and writes familiar fields only; keep an enriched snapshot to recover fixed deadlines during roll-forward. Verify old startup and write against an enriched copy
+   W1 migrate-before [yes] owner=step-plan anchor=src/store.js and src/persistence.js: Calculate missing due values and save atomically before listening
+   W1 migrate-after [yes] owner=step-plan anchor=docs/operations.md: Existing deadlines persist on restart; rejoin pre-rollback deadlines by ticket ID before roll-forward if old writes occurred
+   W1 switchover [yes] owner=step-plan anchor=docs/operations.md: Deploy with flag off, verify file, then restart with on
+== P3
+   W1 state [yes] owner=step-plan anchor=docs/shiploop/spec.md: Store optional due and preserve existing deadlines
+   W1 migrate-before [yes] owner=step-plan anchor=docs/shiploop/spec.md: Backfill offline with the old writer stopped
+   W1 migrate-after [yes] owner=step-plan anchor=docs/shiploop/spec.md: Exercise idempotence and real 1.4.0 rollback
+   W1 switchover [yes] owner=step-plan anchor=docs/shiploop/spec.md: DUE_TIMES=on exposes only after persistent preparation
+== P4
+   W1 state [yes] owner=step-plan anchor=R-5, R-7, AD-1: 1.4.0 reads and writes version-1 files without due and ignores it; the new release writes due on every ticket; going back: 1.4.0 lists every ticket and its next save drops due; returning: missing due is backfilled from created+priority with the hours then set. Check: DT-7 and DT-5
+   W1 migrate-before [no] owner=None anchor=None: no schema version change, nothing to migrate before deploy
+   W1 migrate-after [yes] owner=step-plan anchor=R-5, AD-4: backfill is an automatic in-process step at first start, saved once; check DT-5
+   W1 switchover [yes] owner=document anchor=R-6: deploy with DUE_TIMES unset so the file fills, then set on; check DT-6 (a)
+== P5
+   W1 state [yes] owner=step-plan anchor=architecture.md AD-1: due is a stored extra field of version 1, set once at create
+   W1 migrate-before [yes] owner=step-plan anchor=spec.md R-5: backfill on load computes due from created and priority; file saved at start
+   W1 migrate-after [no] owner=None anchor=None: nothing removed or renamed, so no later cleanup
+   W1 switchover [no] owner=None anchor=None: gate and rollout are W2 and W3
+   W2 state [no] owner=None anchor=None: no new state beyond W1
+   W2 migrate-before [no] owner=None anchor=None: done in W1
+   W2 migrate-after [no] owner=None anchor=None: none
+   W2 switchover [yes] owner=step-plan anchor=spec.md R-6: DUE_TIMES=on is the switch; off must answer as today
+   W3 state [yes] owner=test anchor=spec.md R-7: file written by new release must load in 1.4.0
+   W3 migrate-before [no] owner=None anchor=None: done in W1
+   W3 migrate-after [no] owner=None anchor=None: none
+   W3 switchover [yes] owner=document anchor=spec.md R-7; assumption A3: rollout order off, check file, on; rollback and its limit documented
+== P6
+   W1 state [yes] owner=test anchor=persistence.js, store.js: New v1 reader/writer retains due. Old reader serves every ticket and old writer drops due. Restore preserved due from pre-rollback snapshot keyed by stable ticket identity, keeping newer state. Rehearse against af57e54.
+   W1 migrate-before [yes] owner=step-plan anchor=scripts/backfill-due-times.js: Subprocess command fills missing fields in one atomic save before flag on.
+   W1 migrate-after [no] owner=None anchor=None: Normal cutover migrates before activation.
+   W1 switchover [yes] owner=document anchor=server.js, docs/operations.md: Guard existing incomplete files on enabled startup. Roll back binary with live file and preserve a deadline snapshot.
+== P7
+   W1 state [yes] owner=step-plan anchor=KNOWLEDGE/architecture.md ## Decisions: due stored in data file v1, backfilled at start (AD-1, AD-4)
+   W1 migrate-before [no] owner=None anchor=None: not touched by this change
+   W1 migrate-after [yes] owner=step-plan anchor=KNOWLEDGE/architecture.md ## Decisions: backfill at service start after deploy (AD-4)
+   W1 switchover [yes] owner=step-plan anchor=KNOWLEDGE/architecture.md ## Decisions: deploy with DUE_TIMES unset, then on; rollback to 1.4.0 (R-5, R-6)
+== P8
+   W1 state [yes] owner=step-plan anchor=docs/shiploop/architecture.md: Persist a ticket's first deadline in v1
+   W1 migrate-before [yes] owner=step-plan anchor=docs/shiploop/architecture.md: Prove initialization on a legacy file
+   W1 migrate-after [yes] owner=step-plan anchor=docs/shiploop/architecture.md: Confirm saved deadlines and related state on reopening
+   W1 switchover [yes] owner=step-plan anchor=docs/shiploop/architecture.md: Backfill before listen and gate via exact on

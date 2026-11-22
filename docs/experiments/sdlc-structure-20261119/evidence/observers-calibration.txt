@@ -1,0 +1,34 @@
+The observers run on the sixteen deliveries of round 13 (test/shiploop_e2e/observers/observe.py; one line a delivery: each observer's summary).
+
+sonnet-medium-due-1    moves 1 of 8 due times || 150 of 150 pass in the project folder; the same without npm; the same from another folder
+                       first start by itself; ordinary return {'starts': True, 'due_same': 7, 'due_of': 8, 'old_release_priority_kept': True, 'old_release_ticket_kept': True}; with the kept copy no such option
+sonnet-high-due-1      moves 1 of 8 due times || 152 of 161 pass in the project folder; the same without npm; the same from another folder
+                       first start by itself; ordinary return {'starts': True, 'due_same': 7, 'due_of': 8, 'old_release_priority_kept': True, 'old_release_ticket_kept': True}; with the kept copy no such option
+sonnet-medium-due-2    moves 1 of 8 due times || 146 of 146 pass in the project folder; the same without npm; the same from another folder
+                       first start by itself; ordinary return {'starts': True, 'due_same': 7, 'due_of': 8, 'old_release_priority_kept': True, 'old_release_ticket_kept': True}; with the kept copy no such option
+sonnet-high-due-2      moves 1 of 8 due times || 172 of 172 pass in the project folder; the same without npm; the same from another folder
+                       first start by itself; ordinary return {'starts': True, 'due_same': 7, 'due_of': 8, 'old_release_priority_kept': True, 'old_release_ticket_kept': True}; with the kept copy no such option
+sol-medium-due-1       moves 1 of 8 due times || 121 of 121 pass in the project folder; the same without npm; the same from another folder
+                       first start by itself; ordinary return {'starts': True, 'due_same': 7, 'due_of': 8, 'old_release_priority_kept': True, 'old_release_ticket_kept': True}; with the kept copy no such option
+sol-high-due-1         keeps every due time with its restore option || 124 of 124 pass in the project folder; the same without npm; the same from another folder
+                       first start after backfill:due (exit 0); ordinary return {'starts': True, 'due_same': 7, 'due_of': 8, 'old_release_priority_kept': True, 'old_release_ticket_kept': True}; with the kept copy {'starts': True, 'due_same': 8, 'due_of': 8, 'old_release_priority_kept': True, 'old_release_ticket_kept': True}
+sol-medium-due-2       moves 1 of 8 due times || 122 of 122 pass in the project folder; the same without npm; 1 more fail from another folder
+                       first start after backfill:due-times (exit 0); ordinary return {'starts': True, 'due_same': 7, 'due_of': 8, 'old_release_priority_kept': True, 'old_release_ticket_kept': True}; with the kept copy no such option
+sol-high-due-2         keeps every due time with its restore option || 122 of 122 pass in the project folder; 3 more fail without npm; 3 more fail from another folder
+                       first start after migrate:due (exit 0); ordinary return {'starts': True, 'due_same': 7, 'due_of': 8, 'old_release_priority_kept': True, 'old_release_ticket_kept': True}; with the kept copy {'starts': True, 'due_same': 8, 'due_of': 8, 'old_release_priority_kept': True, 'old_release_ticket_kept': True}
+sonnet-medium-exp-1    none of the recorded faults || 33 of 33 pass in the project folder; the same without npm; the same from another folder
+                       recorded, not judged: {'name_of_two_spaces': 201, 'id_not_valid_percent_encoding': 400, 'total_past_the_largest_exact_integer': 'one or more cents off'}
+sonnet-high-exp-1      none of the recorded faults || 116 of 116 pass in the project folder; the same without npm; the same from another folder
+                       recorded, not judged: {'name_of_two_spaces': 400, 'id_not_valid_percent_encoding': 404, 'total_past_the_largest_exact_integer': 'second expense refused'}
+sonnet-medium-exp-2    a server error on a malformed id; a group id of __proto__ is lost; a member named __proto__ is lost; a tie goes to a numeric name, not the member listed first || 14 of 14 pass in the project folder; the same without npm; the same from another folder
+                       recorded, not judged: {'name_of_two_spaces': 201, 'id_not_valid_percent_encoding': 500, 'total_past_the_largest_exact_integer': 'one or more cents off'}
+sonnet-high-exp-2      none of the recorded faults || 62 of 62 pass in the project folder; the same without npm; the same from another folder
+                       recorded, not judged: {'name_of_two_spaces': 400, 'id_not_valid_percent_encoding': 404, 'total_past_the_largest_exact_integer': 'one or more cents off'}
+sol-medium-exp-1       none of the recorded faults || 7 of 7 pass in the project folder; the same without npm; the same from another folder
+                       recorded, not judged: {'name_of_two_spaces': 201, 'id_not_valid_percent_encoding': 404, 'total_past_the_largest_exact_integer': 'exact'}
+sol-high-exp-1         none of the recorded faults || 8 of 8 pass in the project folder; the same without npm; the same from another folder
+                       recorded, not judged: {'name_of_two_spaces': 400, 'id_not_valid_percent_encoding': 404, 'total_past_the_largest_exact_integer': 'exact'}
+sol-medium-exp-2       none of the recorded faults || 5 of 5 pass in the project folder; the same without npm; the same from another folder
+                       recorded, not judged: {'name_of_two_spaces': 400, 'id_not_valid_percent_encoding': 404, 'total_past_the_largest_exact_integer': 'second expense refused'}
+sol-high-exp-2         none of the recorded faults || 7 of 7 pass in the project folder; the same without npm; the same from another folder
+                       recorded, not judged: {'name_of_two_spaces': 400, 'id_not_valid_percent_encoding': 404, 'total_past_the_largest_exact_integer': 'exact'}

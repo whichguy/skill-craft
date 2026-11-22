@@ -3353,6 +3353,77 @@ do. That round is registered separately, when the build is final.
 "keeps" is the stricter reading of "set once" and "keep them from then on", and a plan that accepts the loss in
 writing is not wrong by the request. A stopped Claude sample records no cost.
 
+### Results of the trial for C2 (2026-11-21; `evidence/state-row-trial.txt`)
+
+- **R124.** Eight samples reached the plan in 3.6 to 5.3 minutes each, but for one (see the apparatus note). The
+  four Sonnet samples cost about $6 by the fitted prices (a stopped Claude run records no cost).
+- **R125 (labels written before the key was opened).** Control: silent 4 of 4. Candidate: keeps 2 of 4, accepts
+  2 of 4, silent 0. By driver: both Sol 6.2 medium candidate plans keep ("keep an enriched snapshot to recover
+  fixed deadlines during roll-forward"; "Restore preserved due from pre-rollback snapshot keyed by stable ticket
+  identity, keeping newer state"); both Sonnet 5.5 medium candidate plans accept ("1.4.0 ... its next save drops
+  it; returning to 1.5.0 backfills again").
+- **Registered reading.** Not met: keeps in 2 of 4 candidate plans, where the rule needs 3. By the rule the
+  sentence does not go on to whole deliveries on this evidence.
+- **F89 (described, not the registered reading).** The sentence is answered every time: 4 of 4 candidate plans
+  say what happens on the return and 0 of 4 control plans do. What they decide differs by driver. On Sol the
+  answer is the one the two high-effort plans gave unasked (R120's baseline); on Sonnet it is an explicit
+  acceptance of the loss, which changes no product.
+- **Apparatus note.** The session of `candidate-sonnet-1` halted its first ShipLoop run, which it had started
+  with a reworded request, and started another with the request as given. `stop_at_stage.py` watched the first
+  run folder only, so that sample ran on for 14.3 minutes, past the build, until I ended it by its stop file. Its
+  accepted plan is read like the others. The sampler and `plan_rows.py` now look at every run folder of a sample;
+  the second wave used the corrected sampler. My first launch started nothing: a zsh slip in the sample names
+  (`$n:t` is a modifier), seen at once and corrected before any run.
+
+### C1 as built, and the observers (C4)
+
+- **C1** is one commit on a candidate branch (5fc4a220ae797cbcdf4ae7d1104720b50ebae1d1): the code, 12 tests (10
+  unit, 2 through the real gate, one for each exit), the packet and duty lines, the reference text and the change
+  note. Its own test file passes whole (234), with the suites that pin packet text. It is not on main until the
+  batch round below.
+- **C4** is `test/shiploop_e2e/observers/`: `ticket_return.py` (the return after a rollback, the ordinary way
+  and with the delivery's own restore option, with a check that what 1.4.0 wrote survives),
+  `expense_inputs.py` (odd names, ids and sums), `suite_elsewhere.py` (the suite without npm and from another
+  folder, the same files each time) and `observe.py`. They use the cases' own server handling from `checks/`,
+  change no check and sit outside the files a run's `boundary` digests. Calibration on the sixteen deliveries of
+  round 13 (`evidence/observers-calibration.txt`) gives round 13's findings again: both Sol high ticket deliveries
+  keep every due time with their restore option and the other six move one of eight; one delivery has the four
+  faults on unusual input; the two suites that lean on npm or the working folder show it. A name of two spaces,
+  400 against 404 for a malformed id, and a total past the largest exact integer are recorded and not judged.
+
+### Registered batch round (written and committed before any run)
+
+**Two builds.** A: main with C1 (5fc4a220ae797cbcdf4ae7d1104720b50ebae1d1). B: A with the sentence
+(b6287b09bbb55df20e7729d15fc90de630550031).
+
+**Why B is run at all.** The first rule was not met, and I am not rescoring it. The split by driver is a question
+the rule did not ask: on the one driver whose plans changed to *keeps*, does the product follow? This is a second
+test of the same sentence, chosen after seeing the first, and should be weighed as that.
+
+**Runs.** Eight whole deliveries at medium effort, no run option, no turn or time cap (Claude runs with
+`--max-budget-usd 40`), from clean worktrees of the two commits, in two waves of four started together.
+- Wave 1: `ticket-due-times` on Codex `gpt-6.2-sol`, builds A and B, twice each (the paired test).
+- Wave 2: `ticket-due-times` on Claude `claude-sonnet-5-5`, builds A and B, once each; `shared-expenses` on
+  build B, once on each driver.
+
+**Reading 1, the release's E2E round (C1).** Every harness verdict and case check of each run. C1 is accepted if no
+ordinary delivery is refused wrongly by the count rule: each release-verify record is read, and a refusal by the
+rule is judged by hand (right, or a false refusal). The rule's own trigger is seeded in its tests, not waited for.
+
+**Reading 2, the sentence (C2).** `ticket_return.py` on the four Sol ticket deliveries. The sentence is merged if
+both B deliveries keep every due time across the rollback and return, with what 1.4.0 wrote (by themselves or with
+their own restore option), and neither A delivery does. Otherwise it is not merged and its branches are deleted.
+
+**Described.** The observers on all eight deliveries; each run's recorded planning-review option; the Sonnet A and
+B ticket deliveries' return behaviour.
+
+**What is released.** Build B if reading 2 holds, else build A. Each has whole deliveries on both hosts in this
+round (A: three; B: five).
+
+**Limits, stated in advance.** Two deliveries a cell. Runs side by side, so no time is read. The yardstick for
+reading 2 is the stricter reading of "set once" (round 15's registration). Sol at medium may switch planning reviews
+off by itself; it is recorded, not pinned, because the release's round uses the defaults.
+
 ## Evidence (all rounds)
 
 | File | Holds |
@@ -3471,6 +3542,8 @@ Round 15: `python3 stop_at_stage.py --plugin-dir <plugin> --root <out> --until p
 <name>:ticket-due-times:<host>:<model>:medium ...` ends each sample at the plan; `python3 -I plan_rows.py [--blind
 <key file>] state,migrate-before,migrate-after,switchover <name>=<run folder> ...` prints the rows;
 `criteria_census.py` and `meta_test_census.py` take `<name>=<run folder or tree>` and print the two baselines.
+The observers: `python3 test/shiploop_e2e/observers/observe.py <case> <delivered tree> [--out <file>]`; run on the
+sixteen trees of round 13 it reproduces `evidence/observers-calibration.txt`.
 
 Round 13: `python3 -I quality_packets.py <out> 20261121 <name>=<medium run>,<high run> ...` builds the packets; two
 judges per pair with `evidence/quality-judge-brief.txt`; their answers are `judge-quality/verdicts.json` and the key

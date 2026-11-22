@@ -22,21 +22,27 @@ import time
 REPO = pathlib.Path(__file__).resolve().parents[3]
 
 
+def run_dirs(out):
+    """Every ShipLoop run folder of the sample, oldest first: a session may halt its first run and start another."""
+    return sorted(out.glob(".shiploop-runs/*/run"))
+
+
 def run_dir(out):
-    found = sorted(out.glob(".shiploop-runs/*/run"))
-    return found[0] if found else None
+    found = run_dirs(out)
+    return found[-1] if found else None
 
 
 def entered(out, stage):
-    run = run_dir(out)
-    if not run:
-        return False
-    try:
-        rows = [json.loads(line) for line in (run / "trace.jsonl").read_text(errors="replace").splitlines() if line.strip()]
-    except (OSError, ValueError):
-        return False
-    return any(r.get("kind") == "command" and r.get("verb") == "complete" and r.get("exit") == 0
-               and isinstance(r.get("stage"), list) and r["stage"][1] == stage for r in rows)
+    for run in run_dirs(out):
+        try:
+            rows = [json.loads(line) for line in (run / "trace.jsonl").read_text(errors="replace").splitlines()
+                    if line.strip()]
+        except (OSError, ValueError):
+            continue
+        if any(r.get("kind") == "command" and r.get("verb") == "complete" and r.get("exit") == 0
+               and isinstance(r.get("stage"), list) and r["stage"][1] == stage for r in rows):
+            return True
+    return False
 
 
 def main():
