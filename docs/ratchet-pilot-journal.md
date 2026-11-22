@@ -3950,3 +3950,18 @@ far.
 **Limits.** One specification and two known targets, by one model at one effort. A clean sheet on the other 43
 clauses means none of them is known to be wrong, not that all are right. Whether the reading holds on a
 specification with no over-decision (does it then write `none`?) is not tested.
+
+### A change to how yardstick Y2 is measured, written at 19:03 before any test pass of parts C and T has been graded on it
+
+The registration reads Y2 on all 52 fault sites. Measured that way for twelve runs, the machine could not keep up:
+`mutate.py` runs the product's own tests for every fault, `npm test` starts a process for each test file at
+once, and three grading streams drove the load to 47 on 18 cores, where a check can fail for want of time. I
+stopped the streams before any of them had finished a replay (one run's planted-defect grading had finished and is
+kept: it shows no check that did not end).
+
+The change: Y2 is read on the **40 faults of part E** (the first 40 of the same 52, on the same reference build),
+and each fault's own-tests result is taken from part E's replay of q-base-2 (`mutate.py --own-from`, new), since
+the product and its own tests are the same files under every suite. The acceptance checks are run on every fault
+as before. The odd-numbered lines remain the yardstick for every arm; the proof of failure showed sessions faults
+from all 52 sites on even lines, so nothing held out was shown. What is lost: the twelve sites beyond the first
+forty.

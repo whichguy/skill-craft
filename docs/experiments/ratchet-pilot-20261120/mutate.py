@@ -3,6 +3,7 @@
 changed, run against that delivery's tests. No model is called.
 
     python3 mutate.py LABEL TREE FIXTURE OUT.json [--sample N] [--manifest] [--unchanged] [--workers N]
+                                                  [--own-from REPORT.json]
 
 TREE is a delivered product (a Git work folder); FIXTURE is the folder it started from. The faults are the E2E
 harness's own catalog (test/shiploop_e2e/quality.py, `sites`: flipped comparisons, moved bounds, flipped logic and
@@ -17,6 +18,11 @@ checks that the file still parses, and runs
 
 With --unchanged the faults go the other way round: only on lines of product source that TREE left as FIXTURE has
 them, in the files TREE changed. That reads how well the suites protect the existing code a change touches.
+
+With --own-from the product's own tests are not run: each fault's `own` result is taken from an earlier report of
+this script on the same product with the same own tests (another suite laid over the same build), and a fault that
+report does not hold stops the run. `npm test` starts a test process for every file at once, so running it for
+every fault of every suite is what loads a machine; the result cannot differ between suites over one build.
 
 A command counts as failing when it fails twice in a row. A fault is caught by a suite when a command of that suite
 fails on it that passes on the untouched copy; a command that already fails on the untouched copy is left out and
@@ -141,7 +147,7 @@ def suites(folder, manifest):
     return found
 
 
-def one(tree, scratch, number, name, site, manifest, skip):
+def one(tree, scratch, number, name, site, manifest, skip, known=None):
     folder = copy_tree(tree, scratch, str(number))
     temp = Path(tempfile.mkdtemp(prefix=f"tmp-{number}-", dir=scratch))
     row = {"file": name, "line": site["line"], "op": site["op"], "old": site["old"], "new": site["new"]}
@@ -152,6 +158,12 @@ def one(tree, scratch, number, name, site, manifest, skip):
         if run(f"node --check {json.dumps(name)}", folder, temp) != 0:
             return dict(row, invalid=True)
         for suite, commands in suites(folder, manifest).items():
+            if known is not None and suite == "own":
+                key = (name, site["line"], site["op"], site["old"], site["new"])
+                if key not in known:
+                    raise RuntimeError(f"--own-from holds no result for the fault {key}")
+                row[suite] = known[key]
+                continue
             usable = [command for command in commands if command not in skip]
             if not usable:
                 row[suite] = NOT_MEASURED  # every command of this suite fails on the untouched copy
@@ -184,6 +196,12 @@ def main(argv=None):
     if "--workers" in argv:
         workers = int(argv[argv.index("--workers") + 1])
         del argv[argv.index("--workers"):argv.index("--workers") + 2]
+    known = own_from = None
+    if "--own-from" in argv:
+        own_from = Path(argv[argv.index("--own-from") + 1]).resolve()
+        del argv[argv.index("--own-from"):argv.index("--own-from") + 2]
+        known = {(row["file"], row["line"], row["op"], row["old"], row["new"]): row.get("own")
+                 for row in json.loads(own_from.read_text())["faults"] if not row.get("invalid")}
     argv = [arg for arg in argv if arg not in ("--manifest", "--unchanged")]
     if len(argv) != 4:
         raise SystemExit(__doc__)
@@ -194,7 +212,8 @@ def main(argv=None):
     # the untouched copy: which commands fail there and so decide nothing
     clean = copy_tree(tree, scratch, "clean")
     temp = Path(tempfile.mkdtemp(prefix="tmp-clean-", dir=scratch))
-    skip = sorted(command for commands in suites(clean, manifest).values() for command in commands if fails(command, clean, temp) is not False)
+    skip = sorted(command for suite, commands in suites(clean, manifest).items() if not (known is not None and suite == "own")
+                  for command in commands if fails(command, clean, temp) is not False)
     reasons = {command: output_tail(command, clean, temp) for command in skip}
     targets = quality.targets(clean, NOT_PRODUCT)
     per_file = {}
@@ -213,12 +232,13 @@ def main(argv=None):
     order = quality.round_robin(per_file)
     chosen = order[:sample]
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
-        rows = list(pool.map(lambda item: one(tree, scratch, item[0], item[1][0], item[1][1], manifest, set(skip)), enumerate(chosen)))
+        rows = list(pool.map(lambda item: one(tree, scratch, item[0], item[1][0], item[1][1], manifest, set(skip), known), enumerate(chosen)))
     shutil.rmtree(scratch, ignore_errors=True)
     valid = [row for row in rows if not row.get("invalid")]
     where = "unchanged lines of the files the delivery touched" if unchanged else "changed lines"
     report = {"label": label, "tree": str(tree), "where": where, "sites_on_changed_lines": len(order), "files": {name: len(found) for name, found in per_file.items()},
-              "sampled": len(chosen), "invalid": len(rows) - len(valid), "commands_failing_on_the_untouched_copy": skip, "untouched_failures": reasons, "faults": rows}
+              "sampled": len(chosen), "invalid": len(rows) - len(valid), "commands_failing_on_the_untouched_copy": skip, "untouched_failures": reasons, "faults": rows,
+              "own_from": str(own_from) if own_from else None}
     for suite in (["own", "acceptance"] if manifest else ["own"]):
         caught = sum(1 for row in valid if row.get(suite) is True)
         survived = sum(1 for row in valid if row.get(suite) is False)
