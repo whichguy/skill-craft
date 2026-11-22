@@ -1170,3 +1170,63 @@ Read by the deep judge, as a fourth product beside 16.1's three where time allow
 ShipLoop without the step). The candidate is worth proposing to the owner if, on at least three of four cases, it
 is not behind N on any of D1 to D5 and ahead on at least one, at under 1.5 times N's minutes; otherwise it is
 reported as tried and not proposed. This is one run a case and reads as a first look, not a rate.
+
+### 16.3 The candidate's design, its outside review, and two amendments made before any candidate run (2026-11-22 11:01)
+
+**Where the look attaches, and the evidence for it.** A read-only map of ShipLoop's stage machinery (an Explore
+agent, 85 tool calls) and the per-stage timings of this morning's four fresh ShipLoop runs
+(`~/e2e-runs/d20261122-b54ea4/*/metrics.json`) settle it:
+
+- No stage asks the session to start the assembled product and use it. `document` runs one step's changed
+  behaviour, the Improve reviews trace entry points in code, `system-test` runs the planned commands,
+  `release-verify` runs the consumer checks.
+- The stage whose goal is "assess the product against the request", `product-acceptance`, took **5, 6, 6 and 46
+  seconds** in the four fresh runs (expenses, chess, tickets, Grokbot). It closes from evidence already recorded.
+- Those runs have no Improve review at all (the harness's default), so a design that extends the end-of-work
+  review would not run in the trial; and a new stage would break the 23-stage count that some twenty suites pin.
+
+So the candidate adds no stage. `product-acceptance` gets one duty (use the running product as its users and
+operators would, and record each thing done as a row of a new result field `look`: works, shortfall or untold
+choice), one script check with a routing rule (a `done` result is refused while a high or medium shortfall or an
+untold choice is listed; they go to **one** corrective work item through the existing `add-work`, so the inner loop
+supplies the failing-first test, the fix and the document edit), and an answer pass after that item (no new look;
+each routed row answered `closed` with a test file that changed since the look, or `told` with a line the script
+finds in a delivered document). **One look a run, and no limit added to any loop.** Full text:
+`docs/experiments/ratchet-vs-shiploop-20261121/shiploop-look/DESIGN.md` on the candidate's branch.
+
+**Outside review** (Sol 6.2 at max, 8 minutes; question and verbatim answer beside the design): "Change first."
+Seven changes. Taken: a test of the actual claim (below); discovery narrowed to what a person who uses or runs the
+product would notice, with the checklist conditional on the request and the product; routing and closure made
+executable (the corrective item must name every routed id; `closed` and `told` checked against the tree); the
+hand-off to a retry printed whole. **Not taken, on purpose, and recorded as the two options the trial can call
+for:** (1) a script-owned receipt that the look happened, which the review ranks first. No cheap script-run form
+exists for a page action, and the owner's standing rule is the plain rule first with the guard offered as the
+option; the trial instead reads, from the session's own command record, whether the product was started during the
+stage. (2) A direct edit of the delivered documents at acceptance when a look finds only untold choices; it would
+change the stage's read-only contract and the engine's commit route.
+
+**Amendment a, the cost bound.** 16.2 said "under 1.5 times N's minutes". I set that without checking section
+15's own numbers: the look-and-fix sequence this candidate reproduces cost 2.0, 1.5, 2.7 and 2.1 times N (20.3,
+16.4, 27.9, 61.7 minutes against 10.1, 10.7, 10.5, 28.7), so the bound would have rejected the result that
+motivates the candidate. The claim is "near Ratchet's result at well under Ratchet's cost": the bound is now **at
+most half of the fresh Ratchet run's minutes for the case**, with the ratio to N reported beside it.
+
+**Amendment b, the rule.** The review showed what 16.2's rule lets through: three small cases each gaining one
+reading while Grokbot, the one case with a measured behaviour gap, does not move, and no comparison with Ratchet
+at all. The rule is now, all four required:
+
+1. every candidate run ends delivered and passes every held-out check;
+2. against N, on at least three of four cases not behind on any of D1 to D5 and ahead on at least one, **Grokbot
+   among them, ahead on D4 or D5**;
+3. against the fresh Ratchet final, "nearly competitive" by section 10's rule on at least two of the three small
+   cases;
+4. at most half of the fresh Ratchet run's minutes for the case.
+
+A reading on its margin (one item either side of a two-item margin, or 45 to 55% of Ratchet's minutes) is not
+decided by one run: that case is run once more first. The candidate's delivery is audited in one round with N and
+the fresh Ratchet final (the candidate takes S's place in a layout like `CASE-fresh`), so both comparisons are read
+from the same audits. S' (a separate observer, a stronger fixer) is a different intervention and is read beside
+the candidate, not as its target.
+
+Both amendments are made before the candidate exists as code: an Opus worker at xhigh began building it at 11:00
+on its own branch, off `main`.
