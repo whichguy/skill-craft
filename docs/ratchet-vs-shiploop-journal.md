@@ -632,3 +632,35 @@ Because the instrument changed, the check is run again on two newly drawn defect
 `notify-requester`, unsaid `actor-ignored`; the reference's and the padded copy's audits are reused, the
 cross-probe, the reader and the judges run afresh). The audit instructions did not change, so the real ticket
 audits were started in parallel with round 2.
+
+### The instrument check, round 2 (2026-11-22 06:50 to 07:10): the changed instrument on two newly drawn defects
+
+Status: firm for what it measured. Evidence: `evidence/deep/calibration2/` (the two new audits, the cross-probe,
+`told.json`, both verdicts; the reference's and the padded copy's audits are round 1's).
+
+The draws: stated `notify-requester` (the assignment notice goes to the ticket's requester), unsaid
+`actor-ignored` (assignment history records "system", not the acting user).
+
+| Bar | Result |
+|---|---|
+| C1, reference against padded: stated items, defects, readings D1 to D5 | Met again: 21 and 21; 0 and 0; D2 5 and 5 of 6; D3 18 and 18 of 19; D4 2 and 2 of 19 |
+| C1: both judges answer `same` | Missed as written, as in round 1 and for the same reason: both judges put the clean reference somewhat ahead of the padded copy |
+| C2, the stated defect | Met: S-13 `wrong` by the auditor and the re-run, two unsaid items about the notice `poor`, defect D-5 graded high and present only there; the gate and both judges (each "much") put the reference ahead |
+| C3, the unsaid defect | Met: U-4 `poor` by the auditor and the re-run, defect D-7 graded high and present only there |
+
+Over both rounds: four planted defects, four found, each on its own product only after the cross-probe; no stated
+item marked short on a correct product; the single reader's `told` the same on every product of a round (2 of 19
+independent items, eight products). The judges' strength follows severity: "some" for the medium defect of round
+1, "much" for the high one of round 2. The by-reading test grade stayed noisy (14, 11, 14 of 21) and is no longer
+shown to the judges.
+
+**What the check does not show:** how often an auditor misses a defect that no one planted and no other auditor
+reports; whether a judge's preference between two correct products of different shape is stable (each pair was
+judged once by each family).
+
+A second change to the apparatus, made for Grokbot before its audits: its inventory holds 108 stated and 45 kept
+unstated items, too many for one session to try with care, so each product's audit is shared between three
+sessions (stated items 1 to 54, 55 to 108, and the unstated items with the probes of the auditor's own choosing
+and the closing notes) and joined by script (`join-shares`). The shares use the same instructions; the page is
+driven with this machine's Playwright, the one the pilot's grader uses. A limit: three auditors a product there,
+one elsewhere.

@@ -1,0 +1,28 @@
+{
+ "a": {
+  "letters": {
+   "c9191ec": "X",
+   "ca2ce52": "Y",
+   "c3cf105": "Z"
+  },
+  "pairs": [
+   "Z-Y",
+   "Z-X",
+   "X-Y"
+  ],
+  "characters": 86114
+ },
+ "b": {
+  "letters": {
+   "c3cf105": "X",
+   "ca2ce52": "Y",
+   "c9191ec": "Z"
+  },
+  "pairs": [
+   "X-Y",
+   "X-Z",
+   "Z-Y"
+  ],
+  "characters": 86114
+ }
+}

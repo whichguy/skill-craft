@@ -9,6 +9,7 @@ joins their JSON answers, and computes the readings. Everything lives under ROOT
     deep_judge.py rate-packet ROOT CASE        after merged.json: the rating instructions, sources left out
     deep_judge.py inventory ROOT CASE          after both ratings: inventory.json, inventory.md, the audit prompts
     deep_judge.py calibrate ROOT [ROUND]       after the ticket inventory: the instrument check as a case of its own
+    deep_judge.py join-shares ROOT CASE        a long inventory is audited in shares: one audit a product from them
     deep_judge.py defects ROOT CASE            after the audits: reported defects, items the audits differ on, probe.md
     deep_judge.py told-packet ROOT CASE        after the cross-probe: one reader's instructions for what each product's documents tell
     deep_judge.py verdict-packet ROOT CASE     after told.json: one masked packet for each of the two judges
@@ -39,6 +40,12 @@ MASKS = [(re.compile(r"ship\s*loop", re.IGNORECASE), "[tool]"), (re.compile(r"ra
 SKIP = shutil.ignore_patterns(".git", "node_modules")
 PROVED = 6  # stated items a case, drawn by seed, whose test must be proved by breaking the behaviour
 EXPLORE = 12  # probes of the auditor's own beyond the inventory, the same for every product
+# This machine's Playwright and headless browser, the ones the pilot's grade.py uses.
+PLAYWRIGHT = "/Users/dadleet/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright"
+BROWSER = ("/Users/dadleet/Library/Caches/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-mac-arm64/"
+           "chrome-headless-shell")
+SHARES = 3  # an inventory of more than SHARE_OVER items is audited in this many shares by separate sessions
+SHARE_OVER = 80
 # The ticket case's calibrated defects (test/fixtures/quality/reference_ticket_assignment.py) that break a behaviour
 # the request states, and those that break one the request leaves unsaid but the new feature raises.
 STATED_DEFECTS = ("closed-assignable", "cli-no-assignee", "empty-filter-ignored", "filter-or", "listing-hides-assignee",
@@ -211,6 +218,22 @@ Write your audit to `{out}` as one JSON object and nothing else in the file:
 
 Every inventory item must appear once. When the file is written and every process you started is stopped, reply
 with three lines only: the tests' result, the count of stated items not `yes`, the count of defects.
+"""
+
+SHARE = """
+
+## Your share of this audit
+
+This inventory is long, so the audit of this product is shared between {shares} auditors who work separately, each
+with these same instructions. Your share is these items and no others: {items}.
+
+- Do Parts 1, 2 and 3 for your items only. The `stated` and `unstated` arrays of your file hold your items only,
+  each once. This replaces "every inventory item must appear once".
+- In Part 2, the items of yours whose test must be proved by breaking the behaviour: {proved}.
+- {closing}
+- Where an item needs the page in a browser, drive it for real with Playwright from a Node script:
+  `const {{ chromium }} = require('{playwright}')` and `chromium.launch({{ executablePath: '{browser}' }})`
+  (headless). Close every browser you open.
 """
 
 PROBE = """# Re-run what the audits disagree on, and try each reported defect on every product
@@ -427,8 +450,20 @@ def rate_packet(root: Path, case: str) -> None:
     print(f"{case}: {len(merged['stated'])} stated, {len(merged['unstated'])} unstated to rate")
 
 
+def shares_of(inv: dict) -> list:
+    """The inventory's item ids in shares: one share for a short inventory; for a long one the stated items in
+    SHARES - 1 runs of equal length and the unstated items as the last share."""
+    stated, unstated = [item["id"] for item in inv["stated"]], [item["id"] for item in inv["unstated"]]
+    if len(stated) + len(unstated) <= SHARE_OVER:
+        return [stated + unstated]
+    size = -(-len(stated) // (SHARES - 1))
+    return [stated[start:start + size] for start in range(0, len(stated), size)] + [unstated]
+
+
 def write_audit_prompts(case_dir: Path) -> None:
-    proved = ", ".join(load(case_dir / "inventory.json")["proved"])
+    inv = load(case_dir / "inventory.json")
+    shares = shares_of(inv)
+    proved = ", ".join(inv["proved"])
     base = (f"The files the builder started from: `{case_dir}/base/`" if any((case_dir / "base").iterdir())
             else "The builder started from an empty folder")
     (case_dir / "audits").mkdir(exist_ok=True)
@@ -438,9 +473,26 @@ def write_audit_prompts(case_dir: Path) -> None:
             spec_line = f"Its builders' specification is `{spec}` inside it; other working notes of theirs may sit beside it."
         else:
             spec_line = "It holds no specification by its builders."
-        (case_dir / "prompts" / f"audit-{code}.md").write_text(AUDIT.format(
-            case_dir=case_dir, base_line=base, product=product, spec_line=spec_line, work=case_dir / "work" / code,
-            out=case_dir / "audits" / f"{code}.json", code=code, proved=proved, explore=EXPLORE))
+        if len(shares) == 1:
+            (case_dir / "prompts" / f"audit-{code}.md").write_text(AUDIT.format(
+                case_dir=case_dir, base_line=base, product=product, spec_line=spec_line, work=case_dir / "work" / code,
+                out=case_dir / "audits" / f"{code}.json", code=code, proved=proved, explore=EXPLORE))
+            continue
+        for number, items in enumerate(shares, 1):
+            last = number == len(shares)
+            mine = [item for item in inv["proved"] if item in items]
+            closing = ("You also make the probes of your own choosing and write `extras`, `spec_notes`, `tests_notes` and "
+                       "`maintainer`." if last else
+                       "Leave `explored` and `extras` empty and `spec_notes`, `tests_notes` and `maintainer` as empty strings: "
+                       "another auditor writes them. Make no probes of your own choosing; report a defect only where you "
+                       "meet one while trying your items.")
+            text = AUDIT.format(case_dir=case_dir, base_line=base, product=product, spec_line=spec_line,
+                                work=case_dir / "work" / f"{code}-share{number}",
+                                out=case_dir / "audits" / f"{code}.share{number}.json", code=code, proved=proved,
+                                explore=EXPLORE)
+            text += SHARE.format(shares=len(shares), items=", ".join(items), proved=", ".join(mine) or "none", closing=closing,
+                                 playwright=PLAYWRIGHT, browser=BROWSER)
+            (case_dir / "prompts" / f"audit-{code}-share{number}.md").write_text(text)
 
 
 def inventory(root: Path, case: str) -> None:
@@ -550,6 +602,30 @@ def calibrate(root: Path, round_number: int = 1) -> None:
     write_audit_prompts(out_dir)
     print("calibration laid out (key.json is not for an auditor): "
           + "; ".join(f"{code} own tests {'pass' if entry['own_tests_pass'] else 'FAIL'}" for code, entry in key.items()))
+
+
+def join_shares(root: Path, case: str) -> None:
+    """One audit a product from its shares: the items of each share, every share's defects, the last share's notes."""
+    case_dir = root / "deep" / case
+    inv = load(case_dir / "inventory.json")
+    shares = shares_of(inv)
+    if len(shares) == 1:
+        raise SystemExit(f"{case}: this inventory is audited in one piece")
+    for code in load(case_dir / "key.json"):
+        parts = [load(case_dir / "audits" / f"{code}.share{number}.json") for number in range(1, len(shares) + 1)]
+        audit = {"code": code, "ran": parts[-1].get("ran", {}), "shares": len(parts)}
+        for kind in ("stated", "unstated"):
+            wanted = [item["id"] for item in inv[kind]]
+            rows = {row["id"]: row for part, items in zip(parts, shares) for row in part.get(kind, []) if row["id"] in items}
+            missing = [item for item in wanted if item not in rows]
+            if missing:
+                raise SystemExit(f"{case}: {code} has no audit row for {', '.join(missing)}")
+            audit[kind] = [rows[item] for item in wanted]
+        audit["defects"] = [defect for part in parts for defect in part.get("defects", [])]
+        for name in ("explored", "extras", "spec_notes", "tests_notes", "maintainer"):
+            audit[name] = parts[-1].get(name, [] if name in ("explored", "extras") else "")
+        dump(case_dir / "audits" / f"{code}.json", audit)
+        print(f"{case}: {code} joined from {len(parts)} shares, {len(audit['defects'])} defects")
 
 
 def grade_class(kind: str, grade: str | None) -> str:
@@ -780,6 +856,9 @@ def score(root: Path, out_dir: Path) -> None:
         case_dir = root / "deep" / case
         if not (case_dir / "defects-probed.json").exists():
             continue
+        if not (case_dir / "told.json").exists():  # a case is scored once the single reader has answered
+            lines += [f"## {full_name}", "", "Not scored yet: told.json is missing (the `told-packet` step and its reader).", ""]
+            continue
         key, inv = load(case_dir / "key.json"), load(case_dir / "inventory.json")
         names = CALIBRATION_NAMES if case.startswith("calibration") else NAMES
         code_of = {entry["point"]: code for code, entry in key.items()}
@@ -878,7 +957,7 @@ def main(argv=None) -> int:
         calibrate(Path(rest[0]).expanduser().resolve(), int(rest[1]) if len(rest) == 2 else 1)
         return 0
     steps = {"prepare": prepare, "rate-packet": rate_packet, "inventory": inventory, "defects": defects,
-             "told-packet": told_packet, "verdict-packet": verdict_packet}
+             "join-shares": join_shares, "told-packet": told_packet, "verdict-packet": verdict_packet}
     late = ("defects", "told-packet", "verdict-packet")
     if command in steps and len(rest) == 2 and (rest[1] in CASES or (rest[1].startswith("calibration") and command in late)):
         steps[command](Path(rest[0]).expanduser().resolve(), rest[1])

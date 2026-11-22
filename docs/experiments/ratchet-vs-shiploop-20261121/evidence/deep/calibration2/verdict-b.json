@@ -1,0 +1,74 @@
+{
+ "pairs": [
+  {
+   "pair": "X-Y",
+   "better": "X-much",
+   "advantages": [
+    {
+     "of": "X",
+     "what": "ticket.assigned is addressed to the assigned agent and delivered to that agent; the requester is not told the ticket was assigned to them.",
+     "ref": "D-5",
+     "matters_to": "operator"
+    }
+   ],
+   "lesser_lacks": [
+    "In TicketStore.assign, pass the assignee as the notification recipient instead of ticket.requester, then re-run npm test so the existing outbox assertion passes."
+   ],
+   "one_task_closes": "yes",
+   "why": "X delivers the notice to the named agent and the assignment suite is green. Y delivers that same notice to the ticket requester, with the subject 'Assigned to you', so the agent never hears about the work (D-5, high; S-13, U-7, U-8). The recipient is one hard-coded argument and the failing test already expects the agent name, so one edit closes the gap."
+  },
+  {
+   "pair": "X-Z",
+   "better": "X-some",
+   "advantages": [
+    {
+     "of": "X",
+     "what": "The new behaviour is checked in a single test file, so an assignment change is edited in one place rather than kept in step across a copied file that adds no check.",
+     "ref": "tests_notes",
+     "matters_to": "maintainer"
+    },
+    {
+     "of": "X",
+     "what": "The tree carries no specification that restates the request six ways and records none of the choices the code made (409 on resolved or closed, audit action ticket.assigned, per-agent outbox key, fifth raw column, status+priority intersection).",
+     "ref": "spec_notes",
+     "matters_to": "maintainer"
+    }
+   ],
+   "lesser_lacks": [
+    "Delete test/assignment-again.test.js.",
+    "Delete docs/spec.md."
+   ],
+   "one_task_closes": "yes",
+   "why": "Every stated requirement and every re-tried defect lands the same way on X and Z, including missing docs, the '-' list marker, lossy UTF-8, weak file-load checks, and the UTF-16 length count. Z's only extras are a duplicated test file the audit marks a liability and a specification that decides nothing. Both are maintainer costs; deleting the two files is one short task and leaves the running feature as X shipped it."
+  },
+  {
+   "pair": "Z-Y",
+   "better": "Z-much",
+   "advantages": [
+    {
+     "of": "Z",
+     "what": "ticket.assigned is addressed to the assigned agent and the assignment tests pass.",
+     "ref": "D-5",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Y",
+     "what": "Assignment tests live in one file, so a behaviour change is not copied by hand into a second file.",
+     "ref": "tests_notes",
+     "matters_to": "maintainer"
+    },
+    {
+     "of": "Y",
+     "what": "There is no specification that only repeats the request and leaves the implementation choices unrecorded.",
+     "ref": "spec_notes",
+     "matters_to": "maintainer"
+    }
+   ],
+   "lesser_lacks": [
+    "In TicketStore.assign, address ticket.assigned to the assignee instead of the requester so the existing notification test passes and npm test exits 0."
+   ],
+   "one_task_closes": "yes",
+   "why": "Z notifies the assigned agent and npm test passes; Y notifies the requester, which breaks a stated requirement and leaves the suite red. Y is easier to keep only because it has one test file and no empty specification. Fixing Y's recipient closes the gap that decides the pair; copying Z's extra files would not."
+  }
+ ]
+}
