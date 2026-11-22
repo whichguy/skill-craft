@@ -4644,3 +4644,10 @@ within the minute that it is held again. So nothing of this study has yet reache
 message, in three attempts today (one about section 43, two about sections 55 to 58). The copy that lasts is
 this journal on main. The one line that points that session at it was given to the owner: read sections 55,
 57 and 58 of this journal.*
+
+*Added 2026-11-21 22:02: the second copy expired undelivered at about 21:10. At the owner's word ("Send note
+again") a third copy of the note went out, and was held within the minute like the others. That makes four
+attempts today to reach the SDLC session by message, none delivered. This session runs in the permission mode
+`auto`; it cannot read the other session's mode, and it does not change another session's settings. The
+notices name two possible causes: the two sessions' modes differ, or that session is set to hold every
+message. Which it is, and whether to change it, is the owner's to see and decide there.*
