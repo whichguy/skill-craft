@@ -5036,3 +5036,60 @@ What is not known: whether Sol, once it has received a late note through a hold,
 did; what a hold without a proof row does (F61's two of four suggests about half); and the cost on Sol of taking a
 late answer in during the run. What follows is the owner's: whether the answer route goes into main, and whether
 owner notes should be held and accounted for as the in-time answers are.
+
+## 29. A candidate for ShipLoop: an owner note is settled by a row in a result (2026-11-22, from 14:27)
+
+**The owner's word, about 14:27:** "Yes, design it", to "Design the owner-note fix as the next candidate?". The
+answer route of section 28 stays out of `main`; its record is carried onto this candidate's branch
+(`shiploop-notes-85299a`, from `main`) without its code. The candidate's single account is
+`docs/experiments/ratchet-pilot-20261120/shiploop-notes/DESIGN.md`.
+
+### What was read before anything was designed
+
+- **How notes behave on `main`** (a Sonnet worker, read from the code: `shiploop-notes/mechanism-map-notes.md`). A
+  note is "delivered" when a step is accepted whose packet text held it, whatever the step did, and every accepted
+  outcome delivers (`blocked`, `send-back` and `add-work` too). A `check` that prints a note marks it shown, so the
+  `complete` that follows is neither held nor delivers it. A reprint by `next` puts a note into the packet's record
+  and the next `complete` delivers it with no hold. A stage with a review delivers at the producer's first
+  submission. No result key says what a stage did with a note, and the done packet, the report and the status line
+  never mention notes. After the plan is bound only `carry-forward` can change a requirement or the queue.
+- **The four plain notes of F61, read again from each session's own record**
+  (`shiploop-notes/evidence/earlier-plain-notes.md`). In d1, d2 and d4 a callback was held for the note, the words
+  reached the model and it acted (in d4 the refusal itself arrived cut to its first sentence, 216 characters, and
+  the words came later through a packet the session printed for itself). In d5 the note was only in two reprints of
+  the packet, the model was never given the words, nothing was done, and ShipLoop recorded the note as delivered.
+- **F79. Whenever the model was given a note's words it acted on the note, and a printed note is not a given
+  note.** Given: 14 of 14 acted (Sol d1, d2, d4 and the eight answers of round 1; Sonnet m1 and two answers). Only
+  printed, on Sol: 0 of 3 given (d5, n4, n5), each recorded as delivered. This does not separate the hold, the duty
+  text and the proof row from one another: they came together.
+
+### The design, and the review that changed it
+
+The design (14:35): every owner note must be accounted for by a row in a stage's `done` result (`applied`,
+`already`, `carried` or `declined`), the result is refused while a row is missing and the refusal names the note's
+file, a note a stage cannot act on is carried forward, and the done packet and the report list every note with
+what was done. The hold, the record of what a print showed and the delivery record go.
+
+Sol 6.2 at max effort reviewed it before any code (14:38 to 14:52, "Change first", ten findings; question and
+answer word for word in `shiploop-notes/review/`). What they changed, in the order they mattered:
+
+- **Where a note stands is read from results in the order they were accepted, not from the per-stage view.** The
+  current view keeps one result per stage and item, so the next step's result would have reopened a settled note,
+  and an outer send-back or `add-work` could have left a carried note owed by nobody. The ledger of the design's
+  2.2: settled is settled for the rest of the run; a carried note is owed by the next producer result, or by the
+  item's `carry-forward` when a stage of a work item carried it; `handoff` owes every open note.
+- **The first line of the refusal must be enough by itself, for both commands.** With today's wording a refused
+  `check` begins "the check says no". The refusal gets its own formatter: the line names the notes, the folder and
+  the result file.
+- **The carry table is gone.** It routed by stage order. A stage now applies what is within its duty and carries
+  the rest, and every stage but `carry-forward` and `handoff` may carry.
+- **Admission is spelled out:** the gate sits where the hold sat; the reuse of a check's yes revalidates; a
+  review's import checks the result that takes effect against the parked rows; a parked producer's replay passes;
+  one read of the notes per admission, a second at `handoff` before the save.
+- **Cut to the reviewer's size:** no gate on a queue that later drops a note's item (the report says what became of
+  it), no reopening after a rewind, no sentence added to the list of defaults.
+- **Not followed in one respect.** The reviewer would leave requirement rewriting for later. The design keeps it at
+  `carry-forward` only: the owner asked for a late answer to reach the same run, and in m1 the product's own steps
+  did exactly that. The deliveries registered in the design's section 5 are what test it on both drivers.
+
+Section 4 of the design lists all ten with what was done.
