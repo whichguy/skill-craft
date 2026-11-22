@@ -1,0 +1,47 @@
+{"pairs": [
+{"pair": "Z-Y", "better": "Z-some",
+ "advantages": [
+  {"of": "Z", "what": "A missing, non-string or empty FEN gets a plain Error 'Invalid FEN: expected a string' instead of an internal TypeError", "ref": "D-2", "matters_to": "operator"},
+  {"of": "Z", "what": "The suite tests invalid FENs (13 malformed inputs across all three functions, asserting an Invalid FEN error), so the validation contract is guarded; Y has no invalid-FEN test", "ref": "U-12", "matters_to": "maintainer"},
+  {"of": "Z", "what": "The suite times the middlegame and depth-2 limits (a slowdown fails TC-8); in Y a 2.1 s depth-2 count still passes npm test", "ref": "S-39", "matters_to": "maintainer"},
+  {"of": "Z", "what": "README tells the caller about FEN validation and impossible positions, the error class, and how inconsistent castling or en-passant fields are treated", "ref": "U-1", "matters_to": "operator"},
+  {"of": "Y", "what": "README tells the caller that a saved FEN resumes or branches play in a fresh process", "ref": "U-11", "matters_to": "operator"},
+  {"of": "Z", "what": "No builder acceptance harness shipped beside the product (Y ships acceptance/*.cjs not run by npm test), and no tests pinning conversion-hook call counts", "ref": "Y extras: acceptance/", "matters_to": "maintainer"}
+ ],
+ "lesser_lacks": [
+  "Check the FEN is a non-empty string up front and throw a descriptive invalid-FEN error",
+  "Add tests that pass malformed FENs to legalMoves, status and applyMove and assert the thrown error",
+  "Add a test that times legalMoves on a middlegame position and the depth-2 start count against the stated limits",
+  "Document FEN validation, impossible-position handling, the IllegalMoveError shape and castling/en-passant field handling in the README",
+  "Remove or explain the acceptance/ directory"
+ ],
+ "one_task_closes": "yes",
+ "why": "Both engines are correct on every stated requirement and every perft count; Z adds a clean error for non-string FENs, guards its FEN validation and its two speed limits with tests, and documents more of its behaviour. Y's only edge is a README line on resuming from a saved FEN, and it carries a shipped acceptance harness. The gap is a small, well-defined follow-up."},
+{"pair": "Z-X", "better": "Z-some",
+ "advantages": [
+  {"of": "Z", "what": "Malformed FENs (bad side field, wrong rank length, unknown piece letter) throw 'Invalid FEN: <reason>'; X gives confident wrong answers such as status 'stalemate' for side 'x' and echoes a corrupt rank '97' into applyMove's result", "ref": "D-1", "matters_to": "operator"},
+  {"of": "Z", "what": "A missing, non-string or empty FEN gets a descriptive error instead of an internal TypeError", "ref": "D-2", "matters_to": "operator"},
+  {"of": "Z", "what": "The suite tests invalid FENs and asserts the error; X has no invalid-FEN test", "ref": "U-12", "matters_to": "maintainer"},
+  {"of": "Z", "what": "README documents FEN validation, impossible positions, move-string strictness, the error class and inconsistent castling/en-passant fields; X tells none of these", "ref": "U-3", "matters_to": "operator"}
+ ],
+ "lesser_lacks": [
+  "Validate FEN syntax (string type, eight ranks of eight squares, known piece letters, side, castling, en-passant and clock fields) and throw a descriptive invalid-FEN error from all three functions",
+  "Add tests passing malformed FENs to legalMoves, status and applyMove asserting that error",
+  "Document in the README the FEN validation, impossible-position tolerance, move-string strictness and the IllegalMoveError shape"
+ ],
+ "one_task_closes": "yes",
+ "why": "The engines, test coverage of the named subjects and timing guards are equivalent, and every perft count matches in both. X has no FEN validation, so malformed input gets confident wrong answers (D-1) or raw TypeErrors (D-2), with nothing documented and no test for that path. Adding a validating parser, its tests and README lines is about an hour of work."},
+{"pair": "X-Y", "better": "Y-some",
+ "advantages": [
+  {"of": "Y", "what": "Malformed FENs throw descriptive errors ('Invalid FEN fields', 'Invalid FEN rank width', 'Missing king in FEN'); X returns confident wrong answers", "ref": "D-1", "matters_to": "operator"},
+  {"of": "Y", "what": "README documents the move-string contract and resuming or branching from a saved FEN", "ref": "U-11", "matters_to": "operator"},
+  {"of": "X", "what": "The suite times both speed limits, so a performance regression fails npm test; Y has no timing test", "ref": "S-39", "matters_to": "maintainer"},
+  {"of": "X", "what": "No builder acceptance harness shipped and no tests pinning conversion-hook behaviour a correct product need not share", "ref": "Y extras: acceptance/", "matters_to": "maintainer"}
+ ],
+ "lesser_lacks": [
+  "Validate FEN syntax and throw descriptive errors for malformed FENs from all three functions",
+  "Add README sections on the call contract, the move-string rules and resuming from a saved FEN"
+ ],
+ "one_task_closes": "yes",
+ "why": "Both engines are correct on all stated requirements and perft counts, and both leave non-string FENs to an internal TypeError (D-2). Y validates malformed FENs and documents its contract, which matters to whoever runs it; X's edge is a timing test and a cleaner shipped tree, which matter to a maintainer but less. X closes the gap by adding a validating parser and README lines."}
+]}

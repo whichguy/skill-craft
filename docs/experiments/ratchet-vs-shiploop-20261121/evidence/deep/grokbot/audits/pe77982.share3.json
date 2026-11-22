@@ -1,0 +1,667 @@
+{
+ "code": "pe77982",
+ "ran": {
+  "tests_command": "npm test (node --test) in the work copy",
+  "tests_result": "19 tests, 19 pass, 0 fail (about 5 s)",
+  "started_with": "PORT=<free port> DATA_DIR=<work>/data-<probe> [PROVIDER_TOKEN=sk-local-abcdefghijkl] [STANDIN_STEP_MS/STANDIN_SLOW_MS as noted] node server.js, from /Users/dadleet/e2e-runs/d20261122-360a9f/deep/grokbot/work/pe77982-share3; driven by Node fetch clients with separate cookie jars and by Playwright headless Chromium"
+ },
+ "stated": [],
+ "unstated": [
+  {
+   "id": "U-1",
+   "behaviour": "The person is held per browser by an HttpOnly session cookie; tabs of one browser share it and revalidate each other via BroadcastChannel.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "Playwright, two browser contexts on one server: A Continue as Maya + \"hello from Maya\", B Continue as Theo + \"hello from Theo\"; after reloading each, A showed Maya with only her messages and B Theo with only his; a further send from A went to Maya (\"Assistant has 2 message(s)\"). Two tabs in A: tab2 Switch person -> Continue as Ana; tab1 re-rendered as Ana with an empty thread and its next send landed in Ana's conversation, shown as Ana. HTTP: two cookie jars (Maya, Theo) never saw each other's turns.",
+   "spec": "silent",
+   "told": "no",
+   "told_where": "",
+   "test": "strong",
+   "test_name": "confirmation commits only the reviewed record changes exactly once"
+  },
+  {
+   "id": "U-2",
+   "behaviour": "Every action is scoped server-side to the session's person and a per-selection generation; ids from another person's workspace return 404, an old generation returns 409.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "HTTP: as Maya noted conversation, memory and proposal ids; same cookie Switch to Ana; POST /api/actions/open-conversation, forget-memory, confirm with Maya's botId/conversationId/itemId and Ana's generation -> 404 \"This item is unavailable in the current workspace.\"; confirm with Maya's old generation -> 409 \"The selected workspace has changed.\"; GET /api/receipt for Maya's conversation -> 404; a cookie-less send with Maya's generation -> 409. Back as Maya: \"The status of ORD-1001 is open.\" and memory still [\"likes tea\"].",
+   "spec": "decided-unmarked",
+   "told": "no",
+   "told_where": "",
+   "test": "strong",
+   "test_name": "setup, record scoping, saved workspace and transparent provider echo"
+  },
+  {
+   "id": "U-3",
+   "behaviour": "First screen holds only the three Continue as buttons; Setup and the chat appear after a person is chosen (token is saved from inside a workspace). After Switch person a reload stays on the chooser and no message box is shown.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "Playwright, empty data, no token: GET / buttons [\"Continue as Maya\",\"Continue as Theo\",\"Continue as Ana\"], Setup region count 0, Message not visible. Continue as Maya -> Setup visible, Send disabled; sk-local-bad -> alert \"The provider refused this token. Check its format and try again.\"; sk-local-abcdefghijkl -> Setup gone, page has no token. Switch person + reload -> chooser buttons only, Message not visible. HTTP: send before token -> 409 \"Save an accepted provider token before sending a message.\"",
+   "spec": "silent",
+   "told": "yes",
+   "told_where": "README \"Start the app\": \"Choose Maya, Theo, or Ana. On the first launch, use Setup to save a token...\"",
+   "test": "weak",
+   "test_name": "setup, record scoping, saved workspace and transparent provider echo"
+  },
+  {
+   "id": "U-5",
+   "behaviour": "An accepted PROVIDER_TOKEN wins over a saved one; it is never copied into DATA_DIR; while it is set, Save token is a silent no-op (Setup is hidden). With the variable unset the app needs a saved token.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "HTTP: PROVIDER_TOKEN=sk-local-abcdefghijkl -> ready true, \"who are you\" -> \"I am Assistant. I have no special instructions.\"; POST save-token sk-local-zzzzzzzzzzzzzz -> 200 but DATA_DIR still only [\"state.json\"]; no file contains the env token. Restart with variable set -> ready, replies; restart unset -> ready false (Setup); saving sk-local-zzzz... -> ready; restart with both set -> ready, replies; provider-token file holds only the saved token. No token in any response.",
+   "spec": "open",
+   "told": "yes",
+   "told_where": "README settings table, PROVIDER_TOKEN: \"An accepted environment token takes precedence. A refused environment value falls back to an accepted saved token, or to Setup if neither works.\"",
+   "test": "none"
+  },
+  {
+   "id": "U-6",
+   "behaviour": "A refused PROVIDER_TOKEN is treated as unsaved: Setup is shown and a valid token can be saved; sending first is refused with a message to save a token.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "HTTP: PROVIDER_TOKEN=not-a-token -> GET / 200, Continue as Maya -> ready false; save sk-local-abcdefghijkl -> ready true, \"hello\" replies. PROVIDER_TOKEN=sk-local-short -> ready false; send \"hello\" -> 409 \"Save an accepted provider token before sending a message.\"; save token -> ready, \"hello\" replies. Server output only the ready line.",
+   "spec": "open",
+   "told": "yes",
+   "told_where": "README settings table, PROVIDER_TOKEN row",
+   "test": "strong",
+   "test_name": "setup, record scoping, saved workspace and transparent provider echo"
+  },
+  {
+   "id": "U-7",
+   "behaviour": "The saved token is stored in plain text in DATA_DIR/provider-token with mode 600, never in state.json, responses or server output; tokens typed into messages are replaced by [redacted].",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "HTTP: after Save token, files [\"provider-token\",\"state.json\"], only provider-token contains the token, mode 600; GET /api/view text has no token; \"hello [fail once]\" -> turn status failed, server output only \"Local chat is ready at ...\"; sending \"my token is sk-local-abcdefghijkl\" -> reply \"You said: \\\"my token is [redacted]\\\"...\". Playwright: after saving, page HTML has no token.",
+   "spec": "silent",
+   "told": "yes",
+   "told_where": "README \"Storage and recovery\": \"When setup saves a token, the app stores it in a separate restricted provider-token file.\"",
+   "test": "strong",
+   "test_name": "setup, record scoping, saved workspace and transparent provider echo"
+  },
+  {
+   "id": "U-8",
+   "behaviour": "A new person, and each New bot, starts with one empty open conversation (\"Untitled chat\") so Send works at once; a new bot has no memory and no instructions; New conversation becomes the open one.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "HTTP, empty data, as Ana: bots [\"Assistant\"], one conversation \"Untitled chat\", 0 turns; \"who are you\" -> \"I am Assistant. I have no special instructions.\"; \"what do you remember\" -> \"I don't remember anything about you yet.\"; New bot Clerk -> one \"Untitled chat\", memory [], instructions \"\"; Clerk \"who are you\" -> \"I am Clerk. I have no special instructions.\"; New conversation -> the new id is current.",
+   "spec": "decided-unmarked",
+   "told": "no",
+   "told_where": "",
+   "test": "weak",
+   "test_name": "setup, record scoping, saved workspace and transparent provider echo"
+  },
+  {
+   "id": "U-9",
+   "behaviour": "Blank names are refused (browser required-field message; server 400 \"Enter a bot name.\"); duplicate names allowed and distinguished by a stable \"Bot #n\" plus the open conversation label as visible text and aria-describedby; the textbox stops input at 80 characters and the server refuses longer names.",
+   "handling": "acceptable",
+   "observed": true,
+   "evidence": "HTTP: new-bot \"\" and \"   \" -> 400 \"Enter a bot name.\"; second \"Assistant\" -> 200; 300 chars -> 400 \"Use at most 80 characters for a bot name.\"; 80 chars accepted. Playwright 1440px: empty Save bot name -> validation \"Please fill out this field.\"; Bots buttons both have accessible name \"Assistant\" with descriptions \"Bot #1 · remember that likes tea\" and \"Bot #2 · second assistant pears\", visible the same text (screenshot). Filling 300 z in Bot name leaves 80 characters in the box and saves an 80-character name with no message.",
+   "spec": "open",
+   "told": "yes",
+   "told_where": "README \"Try a conversation\": \"Bots can share a name. Each has a stable number shown in the Bots list and the chat header...\"",
+   "test": "weak",
+   "test_name": "bot references survive duplicate names, navigation, rename and restart"
+  },
+  {
+   "id": "U-11",
+   "behaviour": "Buttons are labelled by the first message (truncated at 38 characters) or \"Untitled chat\"; duplicates get \"· Chat n\" and similar openings get a distinguishing excerpt; listed in creation order; the open one has aria-current.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "HTTP: two New conversation in one bot -> labels [\"Untitled chat\",\"Untitled chat · Chat 2\",\"Untitled chat · Chat 3\"]; first messages \"Please look up the order history for the customer called Northwind Traders\" / \"...Southwind Traders\" -> \"Please look up the order history for t… · …tomer called Northwind Traders · Chat 3\" and \"... Southwind Traders · Chat 4\"; an identical third -> \"... Northwind Traders · Chat 5\". Accessible names equal the visible labels (buttons have no aria-label).",
+   "spec": "open",
+   "told": "yes",
+   "told_where": "README \"Try a conversation\": \"In Conversations, similar openings show a distinguishing excerpt where available and a chat number.\"",
+   "test": "strong",
+   "test_name": "similar conversation labels include distinguishing text and stable numbers"
+  },
+  {
+   "id": "U-13",
+   "behaviour": "The last open bot and conversation are kept per person on the server (survive reload, Switch person and back, a new browser session and a restart); the unsent draft and scroll position are kept per tab in sessionStorage (kept on reload and switch-back, not in a new browser session).",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "Playwright as Maya, bot Second, its 2nd conversation, scrollTop 200, draft \"unsent draft text\": after reload {bot Second, same conversation, draft kept, scroll 200}; after Switch to Theo and back: same; new browser context with the cookie: Second, same conversation, draft \"\", scroll at bottom; after server restart + reload: Second, same conversation.",
+   "spec": "open",
+   "told": "no",
+   "told_where": "",
+   "test": "strong",
+   "test_name": "setup, record scoping, saved workspace and transparent provider echo"
+  },
+  {
+   "id": "U-14",
+   "behaviour": "One library of saved instructions and saved tasks per person, listed for every bot; Use and Run act on the open bot and conversation only; another person sees none.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "HTTP as Maya on Assistant: save instruction Tone=\"Be brief\", task Ping=\"hello\"; New bot Other lists [\"Tone\"] and [\"Ping\"]; Use Tone + Run Ping in Other -> reply \"You said: \\\"hello\\\". (Other has 1 message(s)...)\", Other \"who are you\" -> \"I am Other. My instructions: Be brief\"; back to Assistant -> \"I am Assistant. I have no special instructions.\"; Theo sees instructions [] and savedTasks [].",
+   "spec": "open",
+   "told": "yes",
+   "told_where": "README \"Try a conversation\": \"Saved instructions and saved tasks are available across your bots.\"",
+   "test": "none"
+  },
+  {
+   "id": "U-15",
+   "behaviour": "Saving a name that already exists (case-insensitive) without Edit is refused with a message; empty name or text refused; never two entries with one name.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "HTTP: save-instruction A=\"x\" 200; A=\"y\" -> 409 \"An entry with this name already exists. Choose Edit to change it.\", one A; \"a\"=\"y\" -> 409; Use A + \"who are you\" -> \"My instructions: x\"; name \"\" -> 400 \"Enter a name.\"; text \"\" -> 400 \"Enter the text.\"; same for save-task (P twice -> 409, one P; empty name / whitespace text -> 400).",
+   "spec": "open",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  },
+  {
+   "id": "U-16",
+   "behaviour": "Changing the name after Edit renames the same item (no second item); Use/Edit/Delete buttons follow the new name.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "HTTP: save-instruction with Tone's itemId and name Style -> instructions [[\"Style\",\"Be brief\"],[\"A\",\"x\"]] (Tone gone, no duplicate); save-task with Ping's itemId and name Pong -> [[\"Pong\",\"hello\"],[\"P\",\"x\"]].",
+   "spec": "open",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  },
+  {
+   "id": "U-17",
+   "behaviour": "Use copies the text into the bot; editing or deleting the saved instruction does not change the bot until Use is chosen again; the page only says \"Custom instructions active for <bot>.\" without the text.",
+   "handling": "acceptable",
+   "observed": true,
+   "evidence": "HTTP: save Formal=\"Be formal\", Use, \"who are you\" -> \"I am U17. My instructions: Be formal\"; edit Formal to \"Be casual\" -> still \"...My instructions: Be formal\"; Delete Formal -> still \"...My instructions: Be formal\" (bot.instructions \"Be formal\").",
+   "spec": "open",
+   "told": "yes",
+   "told_where": "README \"Try a conversation\": \"Use copies the saved instruction into the current bot. Select Use again to activate an edit.\"",
+   "test": "strong",
+   "test_name": "reply reservations, library state and original history survive navigation"
+  },
+  {
+   "id": "U-20",
+   "behaviour": "A second send while a reply is pending is refused with an alert (not queued); repeated submission ids are deduplicated; the reply lands in its own conversation and person after switching conversation, person or reloading; a lost acknowledgement is reconciled by a receipt check so nothing is started twice, while a deliberate new send still is.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "HTTP: \"hello [slow]\" then another send -> 409 \"A reply is on its way. Send again when it finishes.\"; same submission id twice -> one turn, second returns its receipt. \"set the status of ORD-1001 to closed [slow]\" then switch to Theo: Theo turns [] proposals []; back as Maya the proposal sits in her conversation. Playwright: status \"Second is preparing a reply…\"; Enter again -> alert, one message; reload during wait -> status shown, reply arrives; switch conversation and back -> reply in origin. Response held after server received + page closed -> new tab shows the turn and reply once; response aborted -> \"Your original submission was received.\", one copy after reload. \"long task: alpha [slow]\" with request blocked and page closed -> nothing stored; resend creates one Task: alpha.",
+   "spec": "open",
+   "told": "yes",
+   "told_where": "README \"Try a conversation\" paragraph \"If a send or saved-task Run loses its acknowledgement ... Recover original submission\"",
+   "test": "strong",
+   "test_name": "reply reservations, library state and original history survive navigation"
+  },
+  {
+   "id": "U-21",
+   "behaviour": "A failed reply stays failed with Retry after reload and restart, and Retry succeeds; a new message is accepted while the failed one keeps its Retry; a reply interrupted by stopping the server becomes \"interrupted\" with Retry (not automatic).",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "HTTP: \"hello [fail once]\" -> failed; restart -> still failed attempt 1; retry-reply -> complete attempt 2, repeating retry changes nothing (one copy). At a failure, send \"next\" -> accepted, failed turn kept failed. \"hello [slow]\" then kill -9 and restart -> status interrupted; retry -> complete. Playwright: alert \"The reply failed. Retry to answer your original message.\"; reload -> Retry still there; Retry -> reply shown, message once.",
+   "spec": "open",
+   "told": "yes",
+   "told_where": "README \"Storage and recovery\": \"Any unfinished reply or running task that was stopped becomes explicitly retryable.\"",
+   "test": "strong",
+   "test_name": "real process restart preserves task work, pending replies, confirmed changes and the saved token"
+  },
+  {
+   "id": "U-22",
+   "behaviour": "The stored person message keeps the markers; the stand-in sees them, so \"what did I ask first\" quotes them, while the echo reply omits them.",
+   "handling": "acceptable",
+   "observed": true,
+   "evidence": "HTTP: \"hello [fail once]\" failed, Retry -> \"You said: \\\"hello\\\". (Assistant has 1 message(s)...)\"; \"what did I ask first\" -> \"You first asked: \\\"hello [fail once]\\\".\"; Message article text \"hello [fail once]\".",
+   "spec": "silent",
+   "told": "no",
+   "told_where": "",
+   "test": "strong",
+   "test_name": "record replies preserve casing outside field names and reject inexact or unsupported amounts"
+  },
+  {
+   "id": "U-23",
+   "behaviour": "A repeated remember is merged; a forget is exact (case-insensitive) match only; a non-matching forget removes nothing but the shown reply still says \"I've forgotten ...\" with no notice.",
+   "handling": "poor",
+   "observed": true,
+   "evidence": "HTTP: \"remember that likes tea\" twice -> memory [\"likes tea\"]; \"forget tea\" -> reply \"I've forgotten \\\"tea\\\".\" memory still [\"likes tea\"]; \"forget coffee\" -> \"I've forgotten \\\"coffee\\\".\" memory unchanged; \"forget that likes tea\" -> memory []; \"remember that likes Tea\" then \"forget LIKES TEA\" -> memory [].",
+   "spec": "open",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  },
+  {
+   "id": "U-25",
+   "behaviour": "Memory text starts filled with the current fact; Save memory updates that item.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "Playwright: \"remember that likes tea\", Edit memory -> Memory text \"likes tea\"; changed to \"likes coffee\", Save memory -> list [\"likes coffee\"].",
+   "spec": "silent",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  },
+  {
+   "id": "U-26",
+   "behaviour": "Management actions add no messages; only typed messages and Run write to the conversation.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "HTTP in a fresh bot with one turn \"first q\": save/use/delete instruction, save task, rename bot -> still 1 turn; \"remember that x1\" -> 2 turns; edit-memory and forget-memory -> still 2; \"what did I ask first\" -> \"You first asked: \\\"first q\\\".\"",
+   "spec": "silent",
+   "told": "no",
+   "told_where": "",
+   "test": "weak",
+   "test_name": "an original Run survives stale and delayed deliveries and reply Retry keeps its turn"
+  },
+  {
+   "id": "U-27",
+   "behaviour": "Memory and task progress update on their own while the page is open (polls every 400 ms).",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "Playwright without reload: after \"remember that likes tea\" the Memory list showed \"likes tea\"; Task status/finished-step samples for \"long task: alpha\": \"Running 0\", \"Running 1\", \"Running 2\", \"Completed 3\".",
+   "spec": "silent",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  },
+  {
+   "id": "U-29",
+   "behaviour": "Proposals for readers, id and type are refused with a notice naming the editable fields (the stand-in's \"I propose...\" text is still shown above it); owner is an editable account field and is offered and applied like any other field without a warning, without changing readers.",
+   "handling": "acceptable",
+   "observed": true,
+   "evidence": "HTTP as Maya: \"set the readers of ORD-1001 to ana\" -> reply \"I propose one change: ORD-1001 readers: maya,theo → ana. Confirm to apply it.\" plus notice \"There is no change to confirm for this request. Choose an editable field for ORD-1001 (customer, status, total)...\", no proposal; same for \"set the id of ORD-1004 to ORD-9999\" and type. \"set the owner of ACC-2001 to ana\" -> proposal ACC-2001 owner: maya → ana, confirmed -> \"Changes confirmed and applied.\"; order counts afterwards Maya 3, Theo 2, Ana 1 (unchanged).",
+   "spec": "open",
+   "told": "no",
+   "told_where": "",
+   "test": "strong",
+   "test_name": "confirmation commits only the reviewed record changes exactly once"
+  },
+  {
+   "id": "U-30",
+   "behaviour": "Non-numeric and out-of-precision totals, unknown fields and decimal creates are refused with correction guidance; a decimal update and any status text are offered exactly as shown; a corrected request works in the same conversation.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "HTTP as Maya: \"set the total of ORD-1001 to banana\" -> notice \"...Use a number written in digits... For example, set the total of ORD-1001 to 42.50.\", no proposal; \"set the colour of ORD-1001 to red\" -> notice \"Choose an editable field for ORD-1001 (customer, status, total)...\"; \"create an order for Acme totalling 42.50\" -> echo reply + notice \"Use a whole amount written in digits...\"; \"what is the total of ORD-1001\" -> 125; \"set the total of ORD-1001 to 130\" -> proposal 125 → 130; \"...to 42.50\" -> proposal 125 → 42.5; \"set the status of ORD-1002 to banana\" -> proposal shipped → banana.",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "README \"Try a conversation\": \"To create an order, enter a whole amount in digits ... To update a total, use digits with an optional minus sign and decimal point...\"",
+   "test": "strong",
+   "test_name": "record replies preserve casing outside field names and reject inexact or unsupported amounts"
+  },
+  {
+   "id": "U-31",
+   "behaviour": "An undecided proposal is kept across Enter, reload, restart and switching conversations; several may be pending and an older one can still be confirmed; only Confirm changes confirms; after a decision the buttons are replaced by Change result and further confirms change nothing.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "HTTP: proposal ORD-1002 shipped → closed; restart -> result null, status still shipped; new conversation and back -> present; second proposal shipped → cancelled, Reject -> \"Changes rejected...\"; Confirm on it -> still rejected; Confirm the older -> \"Changes confirmed and applied.\"; again -> same, status closed. Playwright: Enter in empty Message with two proposals -> nothing decided; after decisions no Confirm changes buttons remain.",
+   "spec": "open",
+   "told": "yes",
+   "told_where": "README \"Try a conversation\": \"Leaving the conversation preserves the pending decision... A stale preview expires and requires a fresh request.\"",
+   "test": "strong",
+   "test_name": "confirmation commits only the reviewed record changes exactly once"
+  },
+  {
+   "id": "U-32",
+   "behaviour": "The bot gives the stand-in sentence; Proposed changes lists Create order, Customer, Total, Status, \"Access: <name> only\" and \"Order ID: assigned on confirmation\"; nothing stored before Confirm; Change result names the final id.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "HTTP as Maya: \"create an order for Northwind totalling 40\" -> \"I propose creating one order: customer Northwind, total 40, status open. Confirm to apply it.\"; before confirm \"how many orders can you see\" -> 3; Confirm -> \"Changes confirmed. Created ORD-1005.\"; count 4, \"The customer of ORD-1005 is Northwind.\" Proposal text from the page code (proposalView) not seen rendered for a create.",
+   "spec": "open",
+   "told": "yes",
+   "told_where": "README \"Try a conversation\": \"The app assigns new order IDs at confirmation and reports the final ID.\"",
+   "test": "weak",
+   "test_name": "confirmation commits only the reviewed record changes exactly once"
+  },
+  {
+   "id": "U-33",
+   "behaviour": "Confirm re-checks the from-value; a stale preview is not applied and Change result says it is no longer current and asks for a fresh preview; repeated confirms write nothing.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "HTTP: Maya proposal ORD-1001 open → closed (undecided); Theo \"set the status of ORD-1001 to shipped\" + Confirm -> applied; Maya Confirm -> result expired \"Changes were left unapplied. This preview is no longer current. Ask for a fresh preview to review the current record.\"; \"what is the status of ORD-1001\" -> shipped; second Confirm -> same expired result.",
+   "spec": "open",
+   "told": "yes",
+   "told_where": "README \"Try a conversation\": \"A stale preview expires and requires a fresh request.\"",
+   "test": "strong",
+   "test_name": "confirmation commits only the reviewed record changes exactly once"
+  },
+  {
+   "id": "U-34",
+   "behaviour": "Ids are assigned at confirm time as the lowest unused ORD- number from 1001; concurrent creates get distinct ids; each readable only by its creator.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "HTTP: Maya proposes North 10, Ana proposes South 20 (both pending); Ana confirms -> \"Created ORD-1006.\" (ORD-1005 already existed from an earlier probe); Maya confirms -> \"Created ORD-1007.\"; ORD-1006 readable by Ana only (customer South), ORD-1007 by Maya only (customer North), Theo sees neither.",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "README \"Try a conversation\": \"The app assigns new order IDs at confirmation and reports the final ID.\"",
+   "test": "strong",
+   "test_name": "confirmation commits only the reviewed record changes exactly once"
+  },
+  {
+   "id": "U-35",
+   "behaviour": "The decision is stored on the proposal in its conversation; after reload or restart a Change result region shows it in place of the proposal, with no Confirm button left.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "Playwright: Confirm changes then immediate reload -> Change result regions [\"Changes rejected. The records were left as they were.\",\"Changes confirmed and applied.\"], Confirm changes count 0. HTTP: proposal results [\"applied\",\"rejected\",\"expired\",\"applied\"] persisted in /api/view and after restart.",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "README \"Storage and recovery\": \"Restart with the same directory to preserve chats, proposals, records...\"",
+   "test": "strong",
+   "test_name": "real process restart preserves task work, pending replies, confirmed changes and the saved token"
+  },
+  {
+   "id": "U-36",
+   "behaviour": "One working copy of the records: a confirmed change is seen by every reader of that record, also after restart; non-readers still cannot see it; records/ files unchanged.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "HTTP: Maya sets ORD-1004 status open → closed, Confirm; Maya \"closed\", Ana \"The status of ORD-1004 is closed.\", Theo \"I can't see a record called ORD-1004.\"; after restart Ana still \"closed\"; records/records.json byte-identical before and after.",
+   "spec": "decided-unmarked",
+   "told": "no",
+   "told_where": "",
+   "test": "strong",
+   "test_name": "confirmation commits only the reviewed record changes exactly once"
+  },
+  {
+   "id": "U-37",
+   "behaviour": "Tasks shows all of the person's tasks (every bot and conversation), newest first, each with \"Task #n\" and an Open conversation button for other conversations; never another person's.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "HTTP as Maya: \"long task: report [long]\" in conversation 1; in conversation 2 and in a new bot the view lists [1,\"report\",\"Running\"]; Theo's view tasks []. Playwright screenshot shows \"Open conversation\" on a task from another conversation.",
+   "spec": "silent",
+   "told": "no",
+   "told_where": "",
+   "test": "weak",
+   "test_name": "failed and cancelled tasks keep committed steps and ignore obsolete controls"
+  },
+  {
+   "id": "U-38",
+   "behaviour": "A second long task runs alongside the first; both shown in Tasks and both complete.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "HTTP (STANDIN_STEP_MS=300): \"long task: alpha [long]\" then \"long task: beta\" -> both replies \"I'll work on ...\"; tasks alpha Running 0/8, beta Running 0/3; later alpha Completed 8/8, beta Completed 3/3.",
+   "spec": "silent",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  },
+  {
+   "id": "U-39",
+   "behaviour": "With none running, the stand-in's \"I'll add ...\" reply is shown with a notice \"No step was added. No task is running in this conversation.\"; with several running it adds to the most recently started one and the turn says \"Step added to Task #n · <title> — <step>\" with a Show button.",
+   "handling": "acceptable",
+   "observed": true,
+   "evidence": "HTTP: \"add step: double-check\" with no task here -> reply \"I'll add \\\"double-check\\\" to the task that is running.\" + notice \"No step was added...\"; tasks unchanged; also after Cancel. Two \"long task: dup [long]\" then \"add step: extra\" -> steering to the second (Task #5: 9 steps, last result \"Done: extra\"; Task #4: 8 steps). Page code renders \"Step added to Task #5 · dup [long]\" (not seen rendered).",
+   "spec": "open",
+   "told": "yes",
+   "told_where": "README \"Try a conversation\": \"The app adds the step to the most recently started running task in the conversation and links to that task by number.\"",
+   "test": "strong",
+   "test_name": "steering returns the committed destination when tasks share a title"
+  },
+  {
+   "id": "U-40",
+   "behaviour": "No message is added to the conversation when a task ends; the result stays in the task article, which is kept after reload.",
+   "handling": "acceptable",
+   "observed": true,
+   "evidence": "HTTP: \"long task: notes\" -> Completed 3/3; conversation turns only [\"long task: notes\" / \"I'll work on \\\"notes\\\"...\"]; follow-up \"what did I ask first\" -> \"You first asked: \\\"long task: notes\\\".\"; Tasks still lists notes Completed after reload (view).",
+   "spec": "silent",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  },
+  {
+   "id": "U-41",
+   "behaviour": "Tasks keep running server-side with the page closed; after a server stop (SIGKILL or SIGTERM) a Running task becomes Interrupted with a note and Retry task, keeps its finished steps, does not count the in-flight step, and does not resume on its own; Retry continues with the next unfinished step.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "HTTP (STANDIN_STEP_MS=1000): \"long task: audit [long]\", 2/8 done, kill -9, restart -> Interrupted 2/8 \"The server stopped. Saved steps are shown below. Retry to resume with the first unfinished step.\"; 2.5 s later still Interrupted 2/8; Retry -> Completed with 8 distinct results in order. Same after SIGTERM with audit2. Page-closed progress seen in U-44 (both tasks ended while the tab was closed).",
+   "spec": "open",
+   "told": "yes",
+   "told_where": "README: \"If a task fails or is interrupted, use Retry task to continue its unfinished steps.\" and \"Any unfinished reply or running task that was stopped becomes explicitly retryable.\"",
+   "test": "strong",
+   "test_name": "real process restart preserves task work, pending replies, confirmed changes and the saved token"
+  },
+  {
+   "id": "U-42",
+   "behaviour": "Retry task resumes at the failed step; step 1 appears once.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "HTTP: \"long task: plan [fail step 2]\" -> Failed, results [\"Done: Collect what is known about plan\"], note \"Step 2 failed. Retry to continue from that step.\"; Retry -> Completed with [\"Done: Collect...\",\"Done: Compare...\",\"Done: Write...\"]; a stale-run Retry does nothing.",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "README: \"If a task fails or is interrupted, use Retry task to continue its unfinished steps.\"",
+   "test": "strong",
+   "test_name": "real process restart preserves task work, pending replies, confirmed changes and the saved token"
+  },
+  {
+   "id": "U-43",
+   "behaviour": "Cancel acts at once without asking; the in-flight step's result is discarded and the note says so; finished steps stay listed; status stays Cancelled; Cancel/Retry afterwards do nothing.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "HTTP (STANDIN_STEP_MS=3000): \"long task: big [long]\", after 4.5 s 1 step done; Cancel -> Cancelled, results [step 1], note \"Remaining work was stopped. Any in-flight step result was discarded. Completed steps are shown below.\"; 4 s later identical; Cancel again and Retry task -> still Cancelled.",
+   "spec": "open",
+   "told": "yes",
+   "told_where": "README: \"Cancel preserves finished steps and discards an in-flight result.\"",
+   "test": "strong",
+   "test_name": "failed and cancelled tasks keep committed steps and ignore obsolete controls"
+  },
+  {
+   "id": "U-44",
+   "behaviour": "\"Away\" is measured per browser and person by the task revision last seen with the Tools panel visible; on return it lists tasks changed since then plus any Running, Failed or Interrupted (failed marked \"needs attention\"); finished items drop off on the next reload, failed ones stay until resolved; waiting proposals are not reported; only the person's own tasks.",
+   "handling": "acceptable",
+   "observed": true,
+   "evidence": "Playwright (STANDIN_STEP_MS=600): first visit region absent; started \"long task: crates [fail step 2]\" and \"long task: alpha\", closed tab, reopened -> \"Task #1 · crates — Failed — needs attention | Task #2 · alpha — Completed\"; reload -> only crates line; reload after a send and while a proposal waited -> only crates line; after Retry task completed it -> \"No task updates since your last visit.\"; Ana -> region absent, after her own task and return -> \"Task #1 · ana work — Completed\".",
+   "spec": "open",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  },
+  {
+   "id": "U-45",
+   "behaviour": "At 1100 px and wider every panel is on screen; at 900 px and below Bots/Conversations fold behind a Workspace button and Saved instructions, Saved tasks, Memory and Tasks behind a Tools button; Escape closes a panel and returns focus to its button; Conversation, Message and Send stay in view; no horizontal scroll down to 375 px.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "Playwright widths 1440, 1100, 900, 768, 600, 480, 375: Conversation, Message, Send in view at all, no horizontal scroll; panels visible at 1440/1100, hidden from 900 down with Workspace and Tools buttons visible; at 375 Workspace opened Bots and Conversations (focus on New bot), Escape closed (focus Workspace), Tools showed all four regions with Message still in view (screenshot); back at 1440 all visible.",
+   "spec": "open",
+   "told": "yes",
+   "told_where": "README: \"On narrow windows, Workspace and Tools open the secondary panels. Escape closes an open panel and returns focus to its button.\"",
+   "test": "none"
+  },
+  {
+   "id": "U-46",
+   "behaviour": "A missing DATA_DIR (even nested) is created and served; an unwritable one, invalid JSON, a wrong-shape snapshot or a damaged record makes startup exit 1 with \"Cannot open the data directory. Check its permissions and restore a readable state snapshot if it is damaged.\", leaving the file untouched and records/ unchanged.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "Started with DATA_DIR=<work>/data-gF-missing/nested/deeper -> ready, state.json created, replies work. chmod 500 empty folder -> stderr message, exit 1, no files. state.json \"{not json\" and {\"hello\":\"world\"} and a record total \"lots\" -> same message, exit 1, contents unchanged. records/records.json identical to base.",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "README \"Storage and recovery\": \"If startup cannot open the saved snapshot, it stops and preserves the directory contents...\"",
+   "test": "strong",
+   "test_name": "CLI preserves unsupported and nested damaged snapshots and dangling entries"
+  },
+  {
+   "id": "U-49",
+   "behaviour": "Field names are matched case-insensitively for lookups and updates with identical replies and previews; reader rules still applied.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "HTTP as Maya: \"what is the STATUS of ORD-1002\" and \"...status...\" -> both \"The status of ORD-1002 is closed.\"; \"set the Status of ORD-1001 to open\" and \"set the status...\" -> same preview \"ORD-1001 status: shipped → open\"; as Ana both \"I can't see a record called ORD-1001.\"; \"what is the Customer of ord-1002\" -> \"The customer of ORD-1002 is Birch & Co.\"",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "README: \"Record field names are case-insensitive.\"",
+   "test": "strong",
+   "test_name": "record replies preserve casing outside field names and reject inexact or unsupported amounts"
+  },
+  {
+   "id": "U-50",
+   "behaviour": "A lookup with a suffixed id gets a notice that the identifier could not be used, with how to correct it; the stand-in's own text (given no records) reads \"I can't see a record called ORD-1001.\"; a set with a suffixed id is echoed with no proposal; ORD-1001 itself still answers.",
+   "handling": "acceptable",
+   "observed": true,
+   "evidence": "HTTP as Maya: \"what is the status of ORD-1001A\" -> reply \"I can't see a record called ORD-1001.\" + notice \"The identifier “ORD-1001A” could not be used. Check the full record ID and ask again using its letters, hyphen and digits.\"; \"set the status of ORD-1001A to closed\" -> \"You said: ...\" no proposal; \"what is the status of ORD-1001\" -> \"The status of ORD-1001 is shipped.\"",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "README: \"Field lookups use the complete record ID. If you enter a suffix such as ORD-1001A, check the ID in the lookup guidance and ask again.\"",
+   "test": "strong",
+   "test_name": "field lookups refuse entire malformed IDs and keep valid punctuation and reader filtering"
+  },
+  {
+   "id": "U-54",
+   "behaviour": "A failed write puts the server into an unavailable mode: that and every later request (including reads) return 503 with a recovery message until a restart; nothing unsaved is reported as saved; after restoring access and restarting, earlier work is present and the failed save absent.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "HTTP: proposal pending, chmod 500 DATA_DIR; save-instruction -> 503 \"Storage is unavailable and the save outcome could not be verified. Restore write access, then restart the server with the same data directory (DATA_DIR)...\"; send and confirm -> 503 same; view -> 503; after chmod 700 without restart still 503; restart -> instructions [], turns only the earlier one, proposal undecided, ORD-1001 open. Playwright: the page alert shows the same message, Use RO absent, the name and draft kept; after restart the alert clears.",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "README \"Storage and recovery\": \"If a storage failure occurs during a save, restore write access and restart with the original DATA_DIR...\"",
+   "test": "strong",
+   "test_name": "reopening storage reveals whether a failed save reached publication"
+  },
+  {
+   "id": "U-57",
+   "behaviour": "A failing task is reported on its article and everything else stays usable; a storage error inside a task step switches the whole app to the 503 unavailable mode (stderr \"Background work paused. Restart with the same data directory to recover.\"); after restart the task is Interrupted with Retry.",
+   "handling": "acceptable",
+   "observed": true,
+   "evidence": "HTTP: \"long task: crates [fail step 2]\" -> Failed with note; \"hello after failure\" -> normal reply. \"long task: other [long]\" then chmod 500 mid-task: process alive, stderr \"Background work paused...\", view and send -> 503 with the recovery message; still 503 after restoring access; restart -> crates Failed, other Interrupted.",
+   "spec": "silent",
+   "told": "yes",
+   "told_where": "README \"Storage and recovery\" (restore write access and restart)",
+   "test": "weak",
+   "test_name": "failed and cancelled tasks keep committed steps and ignore obsolete controls"
+  },
+  {
+   "id": "U-58",
+   "behaviour": "After keyboard Reject, focus moves to that proposal's new Change result heading (Enter there does nothing); after Send focus stays in Message; after Save memory focus goes to the item's Edit memory button.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "Playwright, two proposals: focus Reject changes of the first, Enter -> focus \"H3 Change result\" in that region; Enter again -> 1 proposal still pending, one result. After Send -> TEXTAREA message. After Save memory -> \"BUTTON Edit memory\".",
+   "spec": "silent",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  },
+  {
+   "id": "U-60",
+   "behaviour": "Malformed bodies get 400/404 JSON errors with readable messages and an unexpected error gets 500 \"The app could not finish the request. Try reloading.\"; nothing is written to the server output for these errors or for a storage failure in a request.",
+   "handling": "poor",
+   "observed": true,
+   "evidence": "HTTP: \"{bad json\" to /api/actions/send -> 400 \"The request could not be read.\"; [1,2] to confirm -> 400; itemId 42 -> 404; text 42 -> 400 \"Enter a message.\"; raw \"GET //[ HTTP/1.1\" -> 500 {\"error\":\"The app could not finish the request. Try reloading.\"}; server output only \"Local chat is ready at ...\"; during the U-54 storage failure the server output also stayed empty. state.json overwritten with garbage during use -> app kept serving and the next write replaced it with its in-memory state.",
+   "spec": "silent",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  }
+ ],
+ "explored": [
+  {
+   "probe": "As Maya \"what is the status of ORD-1001?\" (trailing question mark)",
+   "came_back": "The status of ORD-1001 is open.",
+   "finding": "none"
+  },
+  {
+   "probe": "\"What Is The Total Of ord-1004\"",
+   "came_back": "The total of ORD-1004 is 45.",
+   "finding": "none"
+  },
+  {
+   "probe": "Send a message that is only \"[slow]\"",
+   "came_back": "After the delay: You said: \"\". (Assistant has 3 message(s) ...) — the stand-in echo of an empty text",
+   "finding": "none"
+  },
+  {
+   "probe": "POST send with a 12,001-character text",
+   "came_back": "400 \"Use at most 12000 characters for a message.\"; no turn stored",
+   "finding": "none"
+  },
+  {
+   "probe": "rename-bot with name \"  \"",
+   "came_back": "400 \"Enter a bot name.\"",
+   "finding": "none"
+  },
+  {
+   "probe": "Run a saved task while a \"[slow]\" reply is pending in the same conversation",
+   "came_back": "409 \"A reply is on its way. Send again when it finishes.\"",
+   "finding": "none"
+  },
+  {
+   "probe": "\"one [fail once]\" fails, then send \"two\" and \"three\", then Retry the first",
+   "came_back": "one -> You said: \"one\". (... 1 message(s)), two -> 2, three -> 3; history order kept, no duplicate",
+   "finding": "none"
+  },
+  {
+   "probe": "Cancel a running task through the API while another conversation is open (scope = current conversation), then with the task's conversation",
+   "came_back": "First 404 \"This item is unavailable in the current workspace.\"; second 200 Cancelled. The page sends the task's own conversation, so the UI button works from any conversation.",
+   "finding": "none"
+  },
+  {
+   "probe": "\"create an order for Acme totalling 0\"",
+   "came_back": "Proposal: customer Acme, total 0, status open",
+   "finding": "none"
+  },
+  {
+   "probe": "\"create an order for  totalling 5\" (empty customer)",
+   "came_back": "Echo reply \"You said: ...\" with no proposal and no notice",
+   "finding": "none"
+  },
+  {
+   "probe": "\"update ORD-1002\" then \"the Total to 99\"",
+   "came_back": "Which field of ORD-1002 should I change...? then proposal ORD-1002 total: 80 → 99",
+   "finding": "none"
+  },
+  {
+   "probe": "\"update ORD-1002\", \"hmm wait\", then \"the status to closed\"",
+   "came_back": "Echo reply, no proposal (the stand-in only takes the answer right after its question)",
+   "finding": "none"
+  }
+ ],
+ "defects": [
+  {
+   "title": "A forget that matches no remembered fact is reported as done",
+   "severity": "medium",
+   "repro": "Fresh data, PROVIDER_TOKEN set, Continue as Maya. Send \"remember that likes tea\". Send \"forget tea\" (or \"forget coffee\"). Read the reply and the Memory region / GET /api/view bot.memory.",
+   "observed": "Reply \"I've forgotten \\\"tea\\\".\" with no notice, while Memory still lists \"likes tea\" (bot.memory [\"likes tea\"]); \"forget coffee\" likewise replies \"I've forgotten \\\"coffee\\\".\" with nothing removed.",
+   "expected": "The person is told that nothing matched (for example a notice like the app already adds for \"add step:\" with no task), or the loose match is applied and shown; the reply should not claim a forget that did not happen.",
+   "basis": "unstated",
+   "item": "U-23"
+  },
+  {
+   "title": "Unexpected server errors and request-time storage failures are not recorded in the server output",
+   "severity": "low",
+   "repro": "Start node server.js. Send the raw request \"GET //[ HTTP/1.1\" with a Host header (for example with nc). Separately, with the app open, chmod 500 the DATA_DIR and POST /api/actions/save-instruction. Read the server's stdout/stderr.",
+   "observed": "The client gets 500 {\"error\":\"The app could not finish the request. Try reloading.\"} and 503 storage-unavailable respectively; the server output holds only \"Local chat is ready at ...\" (the catch in server.js never logs).",
+   "expected": "The operator's output records the error (without the token) so the failure can be diagnosed.",
+   "basis": "unstated",
+   "item": "U-60"
+  }
+ ],
+ "extras": [
+  {
+   "what": "Submission receipts and a per-tab journal with a \"Recover original submission\" control for lost acknowledgements",
+   "where": "lib/chat.js receipt/reserve, public/app.js submitAttempt/checkSubmission",
+   "worth": "value",
+   "why": "Prevents a reload or lost response from starting a send, Run or long task twice; observed reconciling a lost acknowledgement to one copy."
+  },
+  {
+   "what": "Stable \"Bot #n\" references and duplicate-aware conversation labels with excerpts and \"Chat n\"",
+   "where": "lib/workspace.js botLabels/conversationLabels",
+   "worth": "value",
+   "why": "Makes same-name bots and similar conversations distinguishable visually and to screen readers."
+  },
+  {
+   "what": "Masking of sk-local- tokens typed into messages, names and memory (\"[redacted]\")",
+   "where": "lib/workspace.js scrub, public/app.js safeText",
+   "worth": "value",
+   "why": "Keeps a pasted secret out of stored history and provider input; it does change the stored text, silently."
+  },
+  {
+   "what": "Whole-app \"storage unavailable\" mode after any failed write, blocking reads too until restart",
+   "where": "lib/store.js assertReady/storageFailure",
+   "worth": "neutral",
+   "why": "Honest about unverified saves, but a transient write error takes the whole app out of service until an operator restarts it."
+  },
+  {
+   "what": "Origin/Sec-Fetch-Site checks, JSON content-type requirement, 100 kB body limit and a strict Content-Security-Policy",
+   "where": "server.js body/createServer",
+   "worth": "value",
+   "why": "Blocks cross-site requests against the local app at no cost to normal use."
+  },
+  {
+   "what": "Starter prompt buttons in an empty conversation and an \"Open conversation\" button on tasks from other conversations",
+   "where": "public/app.js emptyThread/renderTasks",
+   "worth": "value",
+   "why": "Helps first use and reaching a task's discussion."
+  },
+  {
+   "what": "Builder harness shipped with the product: acceptance/ scripts (including a Swift WebKit driver) and ratchet/ working notes",
+   "where": "acceptance/, ratchet/",
+   "worth": "neutral",
+   "why": "Not run by npm test or the app; extra material for a maintainer to understand or ignore."
+  }
+ ],
+ "spec_notes": "ratchet/spec.md marks most open questions as \"Open: The requester decides ...\" (token precedence C-14, naming C-19/C-21, restoration C-23, library sharing and conflicts C-35/C-39, edit/delete of an instruction in use C-37/C-38, pending sends C-31, interrupted replies C-34, editable fields C-50, preview ids C-51, cancel vs reject C-55, multiple proposals C-60, stale previews C-62, absence period C-68, steering target C-69, in-flight cancel C-71, interrupted tasks C-75, breakpoints C-79), yet the product then decides each of them without the spec recording the decision (for example Use copies instructions, ids at confirm, expire on stale, no auto-resume, panels fold at 900 px). The \"discovery\" clauses C-83 to C-98 are decided in ordinary requirement lines and pin this build's own mechanisms (C-86/C-93/C-94/C-95 the receipt and \"recover original submission\" flow, C-89 exact-amount refusal, C-90 refusing suffixed ids, C-97 length limits); a correct build need not share them. C-98 asks for safe overlapping launches on one DATA_DIR while the README only says to use one process per directory (not checked here). Silent on the per-browser person, memory forget matching beyond paraphrase, logging of errors, keyboard focus targets and task results in the conversation. No clause contradicts the request.",
+ "tests_notes": "Several tests are long scenarios covering many behaviours at once: \"setup, record scoping, saved workspace and transparent provider echo\" (setup, token file mode, redaction, memory edit/forget, rename, person scoping, counts, place restore), \"reply reservations, library state and original history survive navigation\" and \"confirmation commits only the reviewed record changes exactly once\"; one failure there hides which rule broke. Tied to internals: \"reopening storage reveals whether a failed save reached publication\" mocks fs.renameSync/fs.fsyncSync; \"steering returns the committed destination when tasks share a title\" builds raw workspace objects for lib/tasks launch/steer; \"CLI preserves unsupported and nested damaged snapshots\" and \"an existing damaged snapshot is never replaced\" depend on the file names state.json/provider-token and the snapshot schema; recovery and build-3 tests drive the Chat/Store classes directly. Timing: \"failed and cancelled tasks keep committed steps\" relies on STANDIN_STEP_MS=90 with a 130 ms delay. Would fail on another correct build: the \"who are you\" after edit+Use+delete expecting \"Be direct\" (pins copy-on-Use), \"what did I ask first\" containing \"STA[fail once]TUS\" (pins keeping markers), refusal of a decimal create and the exact notice texts (/whole amount/, /editable field/, /range or precision/), \"Bot #3\" references and \"Chat 2\" labels, ids assigned at confirm (ORD-1005/ORD-1006 by confirm order), 409 for a send while a reply is pending, and the 0600 provider-token file. No test covers duplicate-name refusal of saved entries, rename-through-Edit, non-matching forget, the Since you were away logic, focus, narrow layout or error logging.",
+ "maintainer": "The send path is a cross-tier protocol: lib/chat.js (submission ids, generations, receipts, attempt numbers, pending/interrupted turns) must stay in step with public/app.js (sessionStorage journal, epochs, receipt checks, recovery button), and neither side documents the contract, so a small change to either can reintroduce duplicate sends or stuck \"Checking...\" states. lib/store.js readState validates the whole snapshot shape and refuses to start on any mismatch, so every new field needs a matching validator change or existing data folders stop opening. lib/records.js recordRequest re-parses the stand-in's command grammar to fix field capitals and amounts, duplicating the provider's rules in a second place."
+}

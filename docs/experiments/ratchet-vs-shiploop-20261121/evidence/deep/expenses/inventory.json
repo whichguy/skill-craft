@@ -1,0 +1,906 @@
+{
+ "stated": [
+  {
+   "id": "S-1",
+   "text": "The service is written in Node.js, with server.js as the server."
+  },
+  {
+   "id": "S-2",
+   "text": "The service uses no npm dependencies."
+  },
+  {
+   "id": "S-3",
+   "text": "server.js listens on the port given in the PORT environment variable."
+  },
+  {
+   "id": "S-4",
+   "text": "The service keeps its data in the JSON file named by the DATA_FILE environment variable."
+  },
+  {
+   "id": "S-5",
+   "text": "Groups survive a restart of the server with the same DATA_FILE."
+  },
+  {
+   "id": "S-6",
+   "text": "Expenses survive a restart of the server with the same DATA_FILE."
+  },
+  {
+   "id": "S-7",
+   "text": "POST /groups with {\"id\": \"<group id>\", \"members\": [\"<name>\", ...]} creates a group and answers 201."
+  },
+  {
+   "id": "S-8",
+   "text": "POST /groups answers 409 if a group with that id already exists."
+  },
+  {
+   "id": "S-9",
+   "text": "POST /groups answers 400 when members holds fewer than two names."
+  },
+  {
+   "id": "S-10",
+   "text": "POST /groups answers 400 when members holds fewer than two distinct names (for example [\"Ann\", \"Ann\"])."
+  },
+  {
+   "id": "S-11",
+   "text": "POST /groups answers 400 when members holds fewer than two non-empty names (for example [\"Ann\", \"\"])."
+  },
+  {
+   "id": "S-12",
+   "text": "POST /groups/<id>/expenses records an expense paid by one member, the payer."
+  },
+  {
+   "id": "S-13",
+   "text": "An expense {\"payer\": \"<name>\", \"cents\": <positive integer>, \"split\": \"equal\"} is shared equally among all members of the group."
+  },
+  {
+   "id": "S-14",
+   "text": "For split \"equal\", any cents left over after an even division go one each to the members listed first in the group's members order."
+  },
+  {
+   "id": "S-15",
+   "text": "An expense {\"payer\": \"<name>\", \"cents\": <positive integer>, \"split\": \"exact\", \"shares\": {\"<name>\": <cents>, ...}} makes each member listed in shares owe that many whole cents."
+  },
+  {
+   "id": "S-16",
+   "text": "For split \"exact\", a share of zero is allowed."
+  },
+  {
+   "id": "S-17",
+   "text": "For split \"exact\", the shares must add up to cents."
+  },
+  {
+   "id": "S-18",
+   "text": "A recorded expense answers 201 with {\"expense\": <n>}."
+  },
+  {
+   "id": "S-19",
+   "text": "The expense number n is 1 for the group's first expense, then 2, and so on."
+  },
+  {
+   "id": "S-20",
+   "text": "POST /groups/<id>/expenses answers 400 for an unknown payer."
+  },
+  {
+   "id": "S-21",
+   "text": "POST /groups/<id>/expenses answers 400 for an unknown member (a name in shares that is not a group member)."
+  },
+  {
+   "id": "S-22",
+   "text": "POST /groups/<id>/expenses answers 400 for a non-positive amount."
+  },
+  {
+   "id": "S-23",
+   "text": "POST /groups/<id>/expenses answers 400 for a non-integer amount."
+  },
+  {
+   "id": "S-24",
+   "text": "POST /groups/<id>/expenses answers 400 for an unknown split."
+  },
+  {
+   "id": "S-25",
+   "text": "POST /groups/<id>/expenses answers 400 for shares that do not add up to cents."
+  },
+  {
+   "id": "S-26",
+   "text": "GET /groups/<id>/balances returns an object with each member's net cents."
+  },
+  {
+   "id": "S-27",
+   "text": "A member's net cents are what they paid minus what they owe."
+  },
+  {
+   "id": "S-28",
+   "text": "The balances returned by GET /groups/<id>/balances add up to 0."
+  },
+  {
+   "id": "S-29",
+   "text": "GET /groups/<id>/settlements returns a JSON array of {\"from\", \"to\", \"cents\"} payments."
+  },
+  {
+   "id": "S-30",
+   "text": "The settlement payments bring every balance to 0."
+  },
+  {
+   "id": "S-31",
+   "text": "Settlements are built by repeatedly having the member who owes most pay the member who is owed most the smaller of the two amounts."
+  },
+  {
+   "id": "S-32",
+   "text": "In settlements, ties (between debtors or between creditors) go to the member listed first."
+  },
+  {
+   "id": "S-33",
+   "text": "Every route under /groups/<id> answers 404 for an unknown group."
+  },
+  {
+   "id": "S-34",
+   "text": "Concurrent requests never lose an expense."
+  },
+  {
+   "id": "S-35",
+   "text": "The behaviour is covered by node:test tests under test/ that run with `node --test`."
+  }
+ ],
+ "unstated": [
+  {
+   "id": "U-1",
+   "text": "What status a request body that is not valid JSON gets, and whether the server keeps serving afterwards.",
+   "why": "Client code and the operator need a predictable refusal for a truncated or garbled body; a 500 or a crashed process would take down every group's service.",
+   "probe": "Start the server. POST /groups with Content-Type application/json and the raw body `{` (and separately `not json`). Create group g with [\"Ann\",\"Bob\"] and POST /groups/g/expenses with the raw body `not json`. Record each status and body. Then POST a valid new group and GET /groups/g/balances and check both still work.",
+   "fine_answers": "400 for each broken body, with or without an error message, is the fitting answer; another 4xx is acceptable. The server must stay up and answer the following valid requests; nothing is stored from the broken body.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-2",
+   "text": "What happens when a required field is missing: an expense without payer, cents or split, split \"exact\" without shares, or a group without id or members.",
+   "why": "These are the first bad requests a client sends; the stated 400 list does not name a missing field, and a throw becomes a 500 or a dead process instead of a refusal.",
+   "probe": "Create group g with [\"Ann\",\"Bob\"]. POST /groups/g/expenses with {}, with {\"payer\": \"Ann\", \"cents\": 100}, with {\"cents\": 100, \"split\": \"equal\"}, with {\"payer\": \"Ann\", \"split\": \"equal\"}, and with {\"payer\": \"Ann\", \"cents\": 100, \"split\": \"exact\"}. POST /groups with {} and with {\"id\": \"h\"}. Record each status and body, then GET /groups/g/balances.",
+   "fine_answers": "400 for each, with no expense or group stored, and the server still answering. A 500 is a worse fit; a crash is not acceptable.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-3",
+   "text": "Whether JSON values of the wrong type are refused or coerced: cents as a string, members as a string, a member that is not a string, or shares that is not an object.",
+   "why": "A client sending \"100\" instead of 100 looks like the documented call; the request's 400 list names only non-integer amounts, so the service may coerce, refuse, or crash.",
+   "probe": "POST /groups {\"id\": \"g\", \"members\": \"Ann,Bob\"} and {\"id\": \"g1\", \"members\": [\"Ann\", 7, \"Bob\"]}. Create group g2 with [\"Ann\",\"Bob\"]. POST /groups/g2/expenses with {\"payer\": \"Ann\", \"cents\": \"100\", \"split\": \"equal\"}, with {\"payer\": \"Ann\", \"cents\": 100, \"split\": \"exact\", \"shares\": [100]}. Record each status; for any 201 GET /groups/g2/balances.",
+   "fine_answers": "400 for each is fine. Coercing the string \"100\" to 100 and answering 201 is also fine if consistent. No 500 or crash; splitting the string \"Ann,Bob\" into members is not required.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-4",
+   "text": "Which group ids are accepted (empty, missing, numeric, containing '/', spaces, '%', unicode), and whether every group that got 201 can then be addressed through /groups/<id>/ by all three group routes, percent-encoded where the path needs it.",
+   "why": "The id is the only way to address a group later; a group created with an id that no later request can reach is lost to the customer.",
+   "probe": "Separately POST /groups with valid members and ids \"\", none, 1, \"a/b\", \"a b\", \"50%\" and \"café\". For each 201, GET balances and settlements and POST a valid expense at the path formed from the id, percent-encoded where needed (for example /groups/a%20b/balances, /groups/a%2Fb/balances). Record statuses.",
+   "fine_answers": "400 for empty, missing or non-string ids is fine. Rejecting awkward or overlong ids with 400, or accepting them, are both fine, as long as every id that got 201 is reachable by balances, settlements and expenses.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-5",
+   "text": "Whether exact shares may be negative or non-integer (for example {\"Ann\": 150, \"Bob\": -50} or {\"Ann\": 50.5, \"Bob\": 49.5} for cents 100), since only zero is said to be allowed and only the total is said to be checked.",
+   "why": "A negative share credits a member who paid nothing and moves debt the wrong way; fractional shares break the whole-cent balances and settlements.",
+   "probe": "Create group g with [\"Ann\",\"Bob\"]. POST /groups/g/expenses {\"payer\": \"Ann\", \"cents\": 100, \"split\": \"exact\", \"shares\": {\"Ann\": 150, \"Bob\": -50}}, then {\"payer\": \"Ann\", \"cents\": 100, \"split\": \"exact\", \"shares\": {\"Ann\": 50.5, \"Bob\": 49.5}}. Record both statuses and GET /groups/g/balances.",
+   "fine_answers": "400 for fractional shares is the fitting reading of 'whole cents'. 400 for negative shares is the expected reading; accepting integer negative shares is a judgement call only if documented. Balances stay whole cents summing to 0.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-6",
+   "text": "How a member list is handled when it holds two distinct non-empty names plus a duplicate, an empty or whitespace-only entry (for example [\"Ann\", \"Ann\", \"Bob\"] or [\"Ann\", \" \", \"Bob\"]), and whether names differing only in case or surrounding spaces count as distinct.",
+   "why": "A duplicated member counted twice changes an equal split and who gets the leftover cents; customers typing names by hand will hit these cases.",
+   "probe": "POST /groups {\"id\": \"d\", \"members\": [\"Ann\", \"Ann\", \"Bob\"]}; if 201, POST /groups/d/expenses {\"payer\": \"Ann\", \"cents\": 100, \"split\": \"equal\"} and GET /groups/d/balances. POST /groups {\"id\": \"w\", \"members\": [\"Ann\", \" \", \"Bob\"]}, {\"id\": \"s\", \"members\": [\" \", \"Bob\"]} and {\"id\": \"c\", \"members\": [\"Ann\", \"ann\"]}. Record statuses and any balances.",
+   "fine_answers": "Rejecting a list with a repeated name with 400, or accepting it and de-duplicating while keeping first-listed order, are both fine; a member must never be counted twice. Case variants being distinct is fine; whitespace-only names rejected or accepted are both defensible if consistent.",
+   "sources": [
+    "a",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-8",
+   "text": "Whether an expense or group is already safely written to DATA_FILE when its 201 is sent, and whether a crash or kill during a write can leave DATA_FILE truncated or corrupt.",
+   "why": "The customer was promised that data survives a restart and no expense is lost; an operator restarting after a crash must not find an unreadable file and lose every group.",
+   "probe": "Start with DATA_FILE set to a new path, create group g, POST an expense and send SIGKILL to the server as soon as the 201 arrives. Restart with the same DATA_FILE and GET /groups/g/balances; check the file parses as JSON. Repeat while sending many POSTs in a loop and killing mid-stream; check the file still parses and every expense that got 201 is reflected.",
+   "fine_answers": "Every acknowledged write is present after restart and the file always parses (for example a write to a temporary file then rename before replying). A synchronous write before replying without atomic rename is weaker but acceptable at this scale.",
+   "sources": [
+    "a",
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-9",
+   "text": "What the server does when DATA_FILE names a file that does not exist yet.",
+   "why": "An operator's first start is on an empty machine; the request says data lives in that file, not that it already exists.",
+   "probe": "Run server.js with PORT set and DATA_FILE set to an absent file in an existing directory. Check whether it starts, whether the file appears at startup or on the first write, then POST a valid group, stop, read the file, restart and GET the group's balances.",
+   "fine_answers": "Starting with an empty store, creating the file at startup or on the first successful write, and finding the group after restart. Failing at start is not acceptable for an absent file in a writable directory.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "should"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-10",
+   "text": "What the server does at startup when DATA_FILE is empty or holds invalid JSON.",
+   "why": "A corrupt or hand-edited file must not be silently replaced with an empty store, which would wipe the customer's data.",
+   "probe": "Write `{broken` into the DATA_FILE and start the server; record whether it refuses to start, starts empty, or starts and later overwrites the file. Repeat with an empty file; if it starts, create a group and check whether the original file content was preserved.",
+   "fine_answers": "Refusing to start with a clear error, or starting while preserving the bad file (for example renamed aside), are fine. Silently overwriting it is not.",
+   "sources": [
+    "a",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-13",
+   "text": "Whether concurrent expense posts to one group each get a distinct expense number with no repeats or gaps, and each acknowledged expense is applied exactly once.",
+   "why": "Expense numbers are how users refer to expenses; two expenses both numbered 3, or one applied twice, means the ledger is wrong.",
+   "probe": "Create group g with [\"Ann\",\"Bob\"]. Fire 100 POST /groups/g/expenses {\"payer\": \"Ann\", \"cents\": 2, \"split\": \"equal\"} at once. Collect every status and expense number, then GET /groups/g/balances.",
+   "fine_answers": "The numbers on the 201s are exactly 1..N, each once, in any order across responses; Ann's net is N and Bob's -N. Some requests failing is fine if each 201 is reflected once and failures leave nothing stored.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-15",
+   "text": "What two overlapping POST /groups calls for the same new id do.",
+   "why": "Two people can create the same group at once; two 201s, a group stored twice, or a last-write-wins member list breaks the 409 rule under the only load the request mentions.",
+   "probe": "With an empty DATA_FILE, send 20 concurrent POST /groups {\"id\": \"race\", \"members\": [\"Ann\",\"Bob\"]} (or two with different member lists). Count 201s and 409s, GET /groups/race/balances, restart with the same DATA_FILE and GET again.",
+   "fine_answers": "Exactly one 201 and the rest 409, one stored group whose members are those of the 201 request, the same after restart.",
+   "sources": [
+    "a",
+    "b"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-16",
+   "text": "Whether expense numbering continues after a restart instead of starting again at 1.",
+   "why": "Users refer to expenses by number; restarting the numbers would give two expenses the same number in one group.",
+   "probe": "Create group g, POST three expenses, restart with the same DATA_FILE, POST one more expense and record the number.",
+   "fine_answers": "The next expense is numbered 4.",
+   "sources": [
+    "a"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-21",
+   "text": "Which status POST /groups uses when the id already exists and the member list is also invalid, and whether the stored members change.",
+   "why": "A retry that reuses an id with a bad body is a normal client mistake; the caller must know which case it hit, and the original members must not be replaced.",
+   "probe": "POST /groups {\"id\": \"g\", \"members\": [\"Ann\",\"Bob\"]}. POST /groups {\"id\": \"g\", \"members\": [\"Ann\"]}. Record the status, then GET /groups/g/balances and check which names are keys.",
+   "fine_answers": "400 or 409 are both fine; the stored members stay Ann and Bob.",
+   "sources": [
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-25",
+   "text": "Whether GET /groups/<id>/balances and GET /groups/<id>/settlements only read, or also change stored state.",
+   "why": "A client that polls the settlement plan would wipe the debts if the GET recorded the payments.",
+   "probe": "Create group g with [\"Ann\",\"Bob\"], POST an equal expense paid by Ann for 100. GET balances, GET settlements, GET balances, GET settlements, and compare the bodies.",
+   "fine_answers": "Both balances bodies match and both settlements bodies match; the GETs write nothing.",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-26",
+   "text": "Whether DATA_FILE written by the server is read back to the same state: a group with both an equal and an exact expense gives the same balances, settlements and next expense number after restart.",
+   "why": "The next maintainer has to inspect or repair the only copy of the data, and a file the server cannot read back as written loses the customer's ledger.",
+   "probe": "Point DATA_FILE at a new path. Create a group, record one equal and one exact expense, and copy the balances and settlements bodies. Read DATA_FILE while the server is up. Restart with the same file, GET balances and settlements, compare, and POST one more expense.",
+   "fine_answers": "Any JSON layout the server writes and reads back with identical balances and settlements and the next number 3 is fine; balances may be stored or computed on read. A hand-written file of another shape does not have to load.",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-27",
+   "text": "Whether the tests are self-contained: they start their own server on a free port with a temporary DATA_FILE, need nothing running, leave no stray files or processes, and pass repeatedly.",
+   "why": "The next maintainer runs `node --test` on a fresh checkout or in CI; tests needing a fixed port or a real data file fail or clobber data.",
+   "probe": "On a clean checkout with nothing listening, run `node --test` from the project root twice in a row, and once while another process holds a common port such as 3000. Check the exit code is 0 each time, no new files remain in the project folder, and no node process is left running.",
+   "fine_answers": "Any self-contained approach (spawning server.js on port 0 or a free port, or importing the server) is fine.",
+   "sources": [
+    "a"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-31",
+   "text": "Whether a group creation and an expense in another group, sent at the same time, both survive a restart.",
+   "why": "Two writes that each rewrite the whole data file can drop each other; the request promises concurrent requests never lose an expense and that groups survive restarts.",
+   "probe": "With an existing group g, send at the same time POST /groups {\"id\": \"h\", \"members\": [\"Cy\",\"Di\"]} and POST /groups/g/expenses with a valid expense. After both return 201, restart with the same DATA_FILE and GET /groups/g/balances and /groups/h/balances. Repeat many times.",
+   "fine_answers": "Every time, g's balances include the expense and h exists with members Cy and Di.",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "independent": false
+  },
+  {
+   "id": "U-35",
+   "text": "What happens when a client disconnects in the middle of sending a request body.",
+   "why": "A dropped mobile connection is ordinary; an unhandled request error can crash the process or store a half-read expense.",
+   "probe": "Create group g. Open a connection, send POST /groups/g/expenses headers with Content-Length 1000 and only part of a body, then close the socket. Repeat several times, then GET /groups/g/balances and POST a valid expense.",
+   "fine_answers": "No expense is stored from the aborted requests, the server stays up, and the following requests work.",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "independent": false
+  }
+ ],
+ "rated": [
+  {
+   "id": "U-1",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-2",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-3",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-4",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-5",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-6",
+   "sources": [
+    "a",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-7",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "no",
+    "must"
+   ],
+   "kept": false,
+   "independent": true
+  },
+  {
+   "id": "U-8",
+   "sources": [
+    "a",
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-9",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "should"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-10",
+   "sources": [
+    "a",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-11",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "no",
+    "should"
+   ],
+   "kept": false,
+   "independent": true
+  },
+  {
+   "id": "U-12",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "no",
+    "should"
+   ],
+   "kept": false,
+   "independent": true
+  },
+  {
+   "id": "U-13",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-14",
+   "sources": [
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "no",
+    "must"
+   ],
+   "kept": false,
+   "independent": true
+  },
+  {
+   "id": "U-15",
+   "sources": [
+    "a",
+    "b"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-16",
+   "sources": [
+    "a"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-17",
+   "sources": [
+    "a",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "no"
+   ],
+   "kept": false,
+   "independent": true
+  },
+  {
+   "id": "U-18",
+   "sources": [
+    "a"
+   ],
+   "ratings": [
+    "should",
+    "no"
+   ],
+   "kept": false,
+   "independent": true
+  },
+  {
+   "id": "U-19",
+   "sources": [
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "no",
+    "no"
+   ],
+   "kept": false,
+   "independent": true
+  },
+  {
+   "id": "U-20",
+   "sources": [
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "no",
+    "should"
+   ],
+   "kept": false,
+   "independent": true
+  },
+  {
+   "id": "U-21",
+   "sources": [
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-22",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "no",
+    "should"
+   ],
+   "kept": false,
+   "independent": true
+  },
+  {
+   "id": "U-23",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "no",
+    "no"
+   ],
+   "kept": false,
+   "independent": true
+  },
+  {
+   "id": "U-24",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "no",
+    "no"
+   ],
+   "kept": false,
+   "independent": true
+  },
+  {
+   "id": "U-25",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-26",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-27",
+   "sources": [
+    "a"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-28",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "no",
+    "must"
+   ],
+   "kept": false,
+   "independent": false
+  },
+  {
+   "id": "U-29",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "no",
+    "no"
+   ],
+   "kept": false,
+   "independent": false
+  },
+  {
+   "id": "U-30",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "no",
+    "no"
+   ],
+   "kept": false,
+   "independent": false
+  },
+  {
+   "id": "U-31",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "kept": true,
+   "independent": false
+  },
+  {
+   "id": "U-32",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "no"
+   ],
+   "kept": false,
+   "independent": false
+  },
+  {
+   "id": "U-33",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "no",
+    "should"
+   ],
+   "kept": false,
+   "independent": false
+  },
+  {
+   "id": "U-34",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "no",
+    "no"
+   ],
+   "kept": false,
+   "independent": false
+  },
+  {
+   "id": "U-35",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "kept": true,
+   "independent": false
+  },
+  {
+   "id": "U-36",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "no",
+    "should"
+   ],
+   "kept": false,
+   "independent": false
+  }
+ ],
+ "proved": [
+  "S-1",
+  "S-4",
+  "S-10",
+  "S-17",
+  "S-22",
+  "S-24"
+ ]
+}

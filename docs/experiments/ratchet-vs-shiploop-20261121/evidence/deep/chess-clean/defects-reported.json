@@ -1,0 +1,38 @@
+{
+ "recheck": [
+  {
+   "id": "U-1",
+   "kind": "unstated",
+   "text": "What legalMoves, applyMove and status do when the FEN argument is missing, not a string, malformed (empty, wrong number of ranks or squares in a rank, unknown piece letter, bad side-to-move or other field, trailing whitespace or newline) or syntactically valid but an impossible position (a side with no king or two kings, a pawn on the first or eighth rank, the side not to move already in check).",
+   "audits_said": {
+    "pa6dbeb": "sound",
+    "pc62f4b": "poor",
+    "p72da10": "acceptable"
+   }
+  }
+ ],
+ "defects": [
+  {
+   "from": "pc62f4b",
+   "n": "pc62f4b#1",
+   "title": "Malformed FENs get confident wrong answers instead of an error",
+   "severity": "medium",
+   "repro": "const c=require('./src/chess.js'); c.status('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR x KQkq - 0 1'); c.legalMoves('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR x KQkq - 0 1'); c.applyMove('rnbqkbnr/pppppppp/9/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','e2e4'); c.legalMoves('rnbqkbnr/ppppxppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1')",
+   "observed": "'stalemate'; []; 'rnbqkbnr/pppppppp/97/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1'; 20 moves (the 'x' is echoed into later FENs)",
+   "expected": "A thrown, descriptive error for a bad side-to-move field, a rank of the wrong length or an unknown piece letter",
+   "basis": "unstated",
+   "item": "U-1"
+  },
+  {
+   "from": "pc62f4b",
+   "n": "pc62f4b#2",
+   "title": "Missing, non-string or empty FEN throws an internal TypeError with no useful message",
+   "severity": "low",
+   "repro": "const c=require('./src/chess.js'); c.legalMoves(); c.status(42); c.applyMove('', 'e2e4'); c.legalMoves('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - x 1')",
+   "observed": "TypeError \"Cannot read properties of undefined (reading 'trim')\"; TypeError 'fen.trim is not a function'; TypeError 'ranks[rank] is not iterable'; SyntaxError 'Cannot convert x to a BigInt'",
+   "expected": "An error that says the FEN is invalid (any class)",
+   "basis": "unstated",
+   "item": "U-1"
+  }
+ ]
+}

@@ -1,0 +1,182 @@
+{
+ "pairs": [
+  {
+   "pair": "Z-X",
+   "better": "X-some",
+   "advantages": [
+    {
+     "of": "X",
+     "what": "A DATA_FILE that is valid JSON without a groups ledger is refused or left intact, so startup does not wipe it and start empty.",
+     "ref": "D-1",
+     "matters_to": "operator"
+    },
+    {
+     "of": "X",
+     "what": "The README records the choices the request left open: id rules, validation, empty error bodies, atomic replace, numbering after restart, and the write queue.",
+     "ref": "spec_notes",
+     "matters_to": "operator"
+    },
+    {
+     "of": "X",
+     "what": "Group creates and expenses share one write queue and are acknowledged only after the snapshot replace, so a later await cannot drop an expense.",
+     "ref": "U-31",
+     "matters_to": "maintainer"
+    },
+    {
+     "of": "X",
+     "what": "New ids are capped at 16 KiB encoded and the header budget follows the longest saved id, so every id that got 201 stays addressable.",
+     "ref": "U-4",
+     "matters_to": "operator"
+    },
+    {
+     "of": "X",
+     "what": "An expense whose balance would pass the safe-integer range is rejected, so an ordinary JSON client is not given a cent total it will round.",
+     "ref": "extras",
+     "matters_to": "operator"
+    },
+    {
+     "of": "X",
+     "what": "A missing parent directory for DATA_FILE fails startup, instead of the process staying up and answering 500 to every write.",
+     "ref": "U-9",
+     "matters_to": "operator"
+    },
+    {
+     "of": "X",
+     "what": "A member list that repeats a name is a 400, so the equal-split divisor stays the list the client sent.",
+     "ref": "U-6",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Z",
+     "what": "The suite fails when an unknown split is treated as equal; deleting X's split check leaves all 13 tests green.",
+     "ref": "S-24",
+     "matters_to": "maintainer"
+    },
+    {
+     "of": "Z",
+     "what": "Cent checks are ordinary integer tests, without a second parse of the raw JSON spelling that must stay aligned with JSON.parse.",
+     "ref": "maintainer",
+     "matters_to": "maintainer"
+    }
+   ],
+   "lesser_lacks": [
+    "On startup, if DATA_FILE parses as JSON but is not a ledger, exit with a clear error or move the file aside, and do not overwrite it.",
+    "Add a README that states id rules, member and expense validation, status codes, atomic replace before the response, numbering after restart, and serialized writes.",
+    "Run group creates and expenses through one queue and send 201 only after the durable replace, so an added await cannot lose an expense.",
+    "Reject a new id that cannot be routed back (length cap and header budget aligned with the longest saved id).",
+    "Reject an expense whose resulting balances would not be exact safe JSON integers.",
+    "Fail startup when DATA_FILE's parent directory is missing.",
+    "Return 400 for a member list that repeats a name, and do not drop the duplicate and shrink the group."
+   ],
+   "one_task_closes": "no",
+   "why": "X is the service to run and keep: a non-ledger file stays intact, the open choices are written down, and a real write queue keeps concurrent expenses correct across later edits. Z's unknown-split test and its plain integer checks are genuine maintainer advantages. Closing the file-clobber, the missing contract, and the no-await save path is more than one hour."
+  },
+  {
+   "pair": "Z-Y",
+   "better": "Y-some",
+   "advantages": [
+    {
+     "of": "Y",
+     "what": "A DATA_FILE that is valid JSON without a groups ledger is refused or left intact, so startup does not wipe it and start empty.",
+     "ref": "D-1",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Y",
+     "what": "A README and a spec state every requested rule, including balances summing to 0, and they mark the choices the request left open instead of leaving the operator to read code.",
+     "ref": "spec_notes",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Y",
+     "what": "Group creates and expenses share one write queue and are acknowledged only after the snapshot replace, so a later await cannot drop an expense.",
+     "ref": "U-31",
+     "matters_to": "maintainer"
+    },
+    {
+     "of": "Y",
+     "what": "An expense whose balance would pass the safe-integer range is rejected, so an ordinary JSON client is not given a cent total it will round.",
+     "ref": "extras",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Y",
+     "what": "A missing parent directory for DATA_FILE fails startup, instead of the process staying up and answering 500 to every write.",
+     "ref": "U-9",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Y",
+     "what": "A member list that repeats a name is a 400, so the equal-split divisor stays the list the client sent.",
+     "ref": "U-6",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Z",
+     "what": "The suite forces a failed save and requires 500 while the previous ledger stays usable; Y's suite never opens that path.",
+     "ref": "tests_notes",
+     "matters_to": "maintainer"
+    },
+    {
+     "of": "Z",
+     "what": "Cent checks are ordinary integer tests, without a second parse of the raw JSON spelling that must stay aligned with JSON.parse.",
+     "ref": "maintainer",
+     "matters_to": "maintainer"
+    }
+   ],
+   "lesser_lacks": [
+    "On startup, if DATA_FILE parses as JSON but is not a ledger, exit with a clear error or move the file aside, and do not overwrite it.",
+    "Add a README, and a spec that includes balances summing to 0, stating id rules, validation, statuses, atomic replace, numbering after restart, and serialized writes, with builder choices marked as choices.",
+    "Run group creates and expenses through one queue and send 201 only after the durable replace, so an added await cannot lose an expense.",
+    "Reject an expense whose resulting balances would not be exact safe JSON integers.",
+    "Fail startup when DATA_FILE's parent directory is missing.",
+    "Return 400 for a member list that repeats a name, and do not drop the duplicate and shrink the group."
+   ],
+   "one_task_closes": "no",
+   "why": "Y matches Z on the requested behaviour, including the unknown-split regression, and it is safer to own. It will not overwrite a non-ledger file, it writes the contract down, and its queue keeps concurrent expenses correct across later edits. Z's tested 500 on a failed save is worth keeping, and startup safety plus that contract is more than one short task."
+  },
+  {
+   "pair": "Y-X",
+   "better": "Y-some",
+   "advantages": [
+    {
+     "of": "Y",
+     "what": "Treating an unknown split as equal fails the suite; removing X's split check still leaves all 13 tests green when the body has no shares.",
+     "ref": "S-24",
+     "matters_to": "maintainer"
+    },
+    {
+     "of": "Y",
+     "what": "The spec marks choices the request left open and does not lock storage layout, the startup line, number spellings, or this build's id-length machinery; X's spec still says Open for behaviour the README already settled and pins those private choices.",
+     "ref": "spec_notes",
+     "matters_to": "maintainer"
+    },
+    {
+     "of": "Y",
+     "what": "Tests reload saved groups through HTTP and a real data file, so they are not tied to X's hand-written shares-array ledger.",
+     "ref": "tests_notes",
+     "matters_to": "maintainer"
+    },
+    {
+     "of": "X",
+     "what": "New ids are capped at 16 KiB encoded and the header budget follows the longest saved id, so every id that got 201 stays addressable.",
+     "ref": "U-4",
+     "matters_to": "operator"
+    },
+    {
+     "of": "X",
+     "what": "The suite includes a failed ledger replacement that must answer 500 and keep the previous expense and the next number.",
+     "ref": "tests_notes",
+     "matters_to": "maintainer"
+    }
+   ],
+   "lesser_lacks": [
+    "Extend the invalid-submission test with an unknown split that still carries a shares object summing to cents, so deleting the split check fails the suite.",
+    "Revise the spec so behaviour the README already decides is not left Open, and remove clauses that require this build's number spellings, id-length rules, and rename-failure internals.",
+    "Stop hand-writing the shares-array ledger in tests; assert restart and reload through the HTTP API and a file this server wrote."
+   ],
+   "one_task_closes": "no",
+   "why": "Y and X behave the same on every probed route, race, and restart. Y is the better one to keep, because its tests catch a broken split check and its spec and fixtures leave persistence free of this build's private rules. X's 16 KiB id cap and failed-write test are real extras, and aligning the spec and the split coverage is more than an hour."
+  }
+ ]
+}

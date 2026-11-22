@@ -1,0 +1,12 @@
+{"shortfalls": [
+  {"n": 1, "title": "Imported en passant metadata can authorize an impossible capture", "severity": "high", "matches": []},
+  {"n": 2, "title": "An imported castling right can take effect after a rook moves onto its corner", "severity": "high", "matches": []}
+ ],
+ "choices": [
+  {"n": 1, "text": "FEN whitespace and rank formatting.", "matches": ["U-1"]},
+  {"n": 2, "text": "FEN field boundaries.", "matches": ["U-1"]},
+  {"n": 3, "text": "FEN counters beyond JavaScript's safe integer range.", "matches": []},
+  {"n": 4, "text": "Invalid argument reporting.", "matches": ["U-1"]},
+  {"n": 5, "text": "Validation of imported positions.", "matches": ["U-1"]},
+  {"n": 6, "text": "Draw adjudication beyond stalemate.", "matches": []}
+ ]}

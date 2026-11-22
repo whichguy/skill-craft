@@ -1,0 +1,575 @@
+{
+ "rechecks": [
+  {
+   "id": "U-9",
+   "results": {
+    "p839cd3": {
+     "grade": "poor",
+     "observed": "Empty Bot name: blocked by the browser's required-field message ('Please fill out this field.'); '   ' refused with alert 'Bot name must contain between 1 and 80 characters.'; no bot created. A second bot named Assistant is accepted with no notice; with each Assistant given a different discussion and a third bot Other open, the Bots navigation shows two buttons with accessible name 'Assistant', visible text '✦ Assistant' and title 'Assistant', nothing else; opening them in turn gave the pears and the apples discussions, so they can only be told apart by opening them. A 300-character name is refused with alert 'Bot name has 300 characters. The limit is 80, so remove 220 characters to continue.' and nothing is saved."
+    },
+    "p1f3f86": {
+     "grade": "poor",
+     "observed": "Empty Bot name: browser required-field message; '   ' refused with alert 'Bot name must contain between 1 and 80 characters.'. A second Assistant is accepted silently; the Bots navigation then shows two identical buttons 'Assistant' (text '✦ Assistant', title 'Assistant', no other detail), distinguishable only by opening each. A 300-character name typed into Bot name is cut by the field's maxlength to 80 characters with no message, and the bot is saved and listed with the 80-character name."
+    },
+    "p053318": {
+     "grade": "acceptable",
+     "observed": "Empty Bot name: browser required-field message; '   ' refused with alert 'Enter a bot name.'. A second Assistant is accepted, and each is distinguishable before selecting: the buttons read 'Assistant Bot #1 · first assistant talks about apples' and 'Assistant Bot #2 · second assistant talks about pears' (accessible name 'Assistant' with that description). A 300-character name is cut by the field's maxlength to 80 characters with no message and saved that way (shortened, not only for display; the field never holds more than 80)."
+    }
+   }
+  },
+  {
+   "id": "U-11",
+   "results": {
+    "p839cd3": {
+     "grade": "poor",
+     "observed": "Two clicks on New conversation give three buttons all named 'Untitled conversation' (same text and title). Two conversations opening 'Please look up the order details for our long-standing customer named Northwind Traders' / '...Southwind Partners' are both named 'Please look up the order details for our long-standing c' with no second line; the Alpha/Bravo pair likewise both 'Please look up the customer details for the order placed'. Newest first; the open one has aria-current=true. Same after reload. They cannot be told apart before opening."
+    },
+    "p1f3f86": {
+     "grade": "poor",
+     "observed": "Same as observed on the other Stillroom build: empty conversations are all 'Untitled conversation'; the Northwind/Southwind pair are both 'Please look up the order details for our long-standing c' and the Alpha/Bravo pair both 'Please look up the customer details for the order placed', with no distinguishing detail; open one marked aria-current=true; unchanged after reload."
+    },
+    "p053318": {
+     "grade": "sound",
+     "observed": "Empty conversations are 'Untitled chat', 'Untitled chat · Chat 2', 'Untitled chat · Chat 3'. Similar openings get a head and tail excerpt plus a chat number: 'Please look up the order details for o… · …stomer named Northwind Traders · Chat 3' and '… · …tomer named Southwind Partners · Chat 4'; '… · …ed last week by customer Alpha · Chat 5' / '… Bravo · Chat 6'. Oldest first, open one aria-current=true; same after reload."
+    }
+   }
+  },
+  {
+   "id": "U-15",
+   "results": {
+    "p839cd3": {
+     "grade": "sound",
+     "observed": "Saving instruction A='y' over A='x' without Edit is refused with alert '“A” is already saved. Choose Edit A to change it, or use another name.'; one Use A button; after Use A, 'who are you' replies 'My instructions: x'. Empty name or text: browser required-field message; blank name/text refused ('Name must contain between 1 and 80 characters.' / 'Text must contain between 1 and 6000 characters.'). Same for Save task: duplicate refused with the same alert, one Run A, Run A sends 'hello x'."
+    },
+    "p1f3f86": {
+     "grade": "poor",
+     "observed": "Saving instruction A='y' over A='x' without Edit succeeds silently: no notice, the fields clear, one Use A button, and after Use A 'who are you' replies 'My instructions: y' (x is gone). Same for Save task: Run A sends 'hello y', no notice. Empty fields: browser required-field message; blank name/text refused with alerts 'Name must contain between 1 and 80 characters.' / 'Text must contain between 1 and 6000 characters.'."
+    },
+    "p053318": {
+     "grade": "sound",
+     "observed": "Duplicate name refused with 'An entry with this name already exists. Choose Edit to change it.' for both instructions and tasks; one Use A / Run A; 'who are you' after Use A gives 'My instructions: x'; Run A sends 'hello x'. Empty fields: browser required-field message; blank name/text refused with 'Enter a name.' / 'Enter the text.'."
+    }
+   }
+  },
+  {
+   "id": "U-21",
+   "results": {
+    "p839cd3": {
+     "grade": "sound",
+     "observed": "'hello [fail once]' shows alert 'The reply could not finish. Retry to try the same message again.'; after a reload, and separately after a server restart, the alert and Retry remain and Retry gives the reply once with the message not duplicated. Sending 'next' at the alert: the failed message keeps its alert and Retry under it (also after reload); Retry then places the reply directly after the failed message. 'hello [slow]' with the server stopped during the wait: after restart the message shows 'The server restarted before this reply finished. You can retry.' with Retry (not retried automatically; still waiting after 7 s); Retry succeeds."
+    },
+    "p1f3f86": {
+     "grade": "poor",
+     "observed": "Retry after reload and after a restart both still offered and succeed without duplicating. But sending 'next' at the alert hides the failure: the transcript becomes 'third [fail once]', 'next', reply to next, with no alert, no Retry and no mark on the unanswered message, also after reload. The interrupted [slow] reply shows 'The server restarted before this reply finished. You can retry.' with a working Retry."
+    },
+    "p053318": {
+     "grade": "sound",
+     "observed": "Alert 'The reply failed. Retry to answer your original message.'; Retry kept after reload and after restart, and succeeds once. After sending 'next' instead, the failed message keeps its alert and Retry (also after reload), and Retry answers it in place. The [slow] reply interrupted by stopping the server shows 'The reply was interrupted. Retry to continue this turn.' with Retry after restart (not automatic); Retry succeeds."
+    }
+   }
+  },
+  {
+   "id": "U-39",
+   "results": {
+    "p839cd3": {
+     "grade": "poor",
+     "observed": "With no task running, 'add step: double-check' gets the stand-in reply plus the note '“double-check” was not added: no task was running in this conversation.'. With two running tasks both titled dup, 'add step: extra' asks which: buttons 'Add to dup', 'Add to dup', 'Don’t add' that cannot be told apart (both articles are 'Task: dup'). After clicking the second, the note says 'Added “extra” to the end of dup.' (does not say which); the receiving article did show 'Added “extra” to the end of the task.' and finished with 'Done: extra'."
+    },
+    "p1f3f86": {
+     "grade": "poor",
+     "observed": "No running task: 'There is no running task in this conversation to add to.'. With two running tasks titled dup, 'add step: extra' gets only the stand-in reply 'I'll add \"extra\" to the task that is running.'; no choice and no note saying which; both articles 'Task: dup' read 'Working in the background.' identically; only after both completed did the second (later) show 'Done: extra'."
+    },
+    "p053318": {
+     "grade": "sound",
+     "observed": "No running task: 'No step was added. No task is running in this conversation.'. Two tasks titled dup are labelled Task #1 and Task #2; 'add step: extra' adds to the latest with the note 'Step added to Task #2 · dup — extra' and a button 'Show Task #2 · dup'; Task #2 then counts '1 of 9 steps' and finished with 'Done: extra'."
+    }
+   }
+  },
+  {
+   "id": "U-44",
+   "results": {
+    "p839cd3": {
+     "grade": "sound",
+     "observed": "Started 'long task: crates [fail step 2]' and 'long task: alpha', closed the tab, reopened after both ended: 'Since you were away — Finished while you were away: alpha · Completed; Needs attention: crates · Failed', consistent with Task status. After a reload the finished item is gone and only 'Needs attention crates · Failed' remains (same after a send and with a proposal waiting; proposals are not listed). Reopening while one task was still running listed it under Running. Ana sees 'Nothing has changed since you were last here.' and no tasks."
+    },
+    "p1f3f86": {
+     "grade": "poor",
+     "observed": "Reopen after both ended: 'Finished alpha · Completed; Needs attention crates · Failed'. Two further reloads, a reload after a send, a reload with a proposal waiting, and closing and reopening the tab all show exactly the same list: finished items are never dismissed, so it is not an account of what changed since the last visit; waiting proposals not listed. Running tasks are listed when reopened mid-run. Ana sees an empty hidden region."
+    },
+    "p053318": {
+     "grade": "sound",
+     "observed": "Reopen after both ended: 'Task #1 · crates — Failed — needs attention; Task #2 · alpha — Completed'. After a reload only the failed task remains (needs attention); unchanged after a send or with a proposal waiting (proposals not listed). Reopening mid-run listed the still-running task as Running. Ana sees 'No task updates since your last visit.'."
+    }
+   }
+  },
+  {
+   "id": "U-46",
+   "results": {
+    "p839cd3": {
+     "grade": "poor",
+     "observed": "Missing DATA_DIR: created and served. Unwritable DATA_DIR (chmod 555): process exits with a raw Node stack trace 'Error: EACCES: permission denied, open .../.workspace-...'. '{not json' in workspace.json: exits with uncaught 'SyntaxError: Expected property name...' stack trace; '{\"hello\":\"world\"}' and '[1,2,3]': exits with 'Error: Unsupported workspace version.' stack trace. '{\"version\":1,\"users\":[],\"sessions\":null}': starts, but every request fails; the page says 'Stillroom is reconnecting. Start the local server if it is stopped.' and Continue as never works; log 'Workspace operation failed: Cannot read properties of null'. No recovery step anywhere. The damaged files were kept unchanged; records/ unchanged."
+    },
+    "p1f3f86": {
+     "grade": "poor",
+     "observed": "Missing DATA_DIR created and served. Unwritable DATA_DIR: raw EACCES stack trace and exit. Invalid JSON: uncaught SyntaxError stack trace (no file named in the message); object or array: 'Error: Unsupported workspace version.' stack trace. Version-1 file with null sessions: starts, every request fails, page 'Stillroom is reconnecting. Start the local server if it is stopped.', log only 'Workspace operation failed.'. No recovery step. Damaged files kept; records/ unchanged."
+    },
+    "p053318": {
+     "grade": "sound",
+     "observed": "Missing DATA_DIR created and served. Unwritable DATA_DIR, invalid JSON, '{\"hello\":\"world\"}', '[1,2,3]' and '{\"version\":1}' in state.json: each time the process exits with the single line 'Cannot open the data directory. Check its permissions and restore a readable state snapshot if it is damaged.' (README adds the recovery steps). The damaged state.json was kept unchanged each time; records/ unchanged."
+    }
+   }
+  },
+  {
+   "id": "U-50",
+   "results": {
+    "p839cd3": {
+     "grade": "poor",
+     "observed": "As Maya, 'what is the status of ORD-1001A' replies 'The status of ORD-1001 is open.' with nothing saying ORD-1001A does not exist, so ORD-1001's status answers a question about ORD-1001A. 'set the status of ORD-1001A to closed' gets the echo reply and no proposal. 'what is the status of ORD-1001' answers 'open'."
+    },
+    "p1f3f86": {
+     "grade": "poor",
+     "observed": "'what is the status of ORD-1001A' replies 'The status of ORD-1001 is open.' with no notice; the set command gets the echo reply, no proposal; ORD-1001 itself answers 'open'."
+    },
+    "p053318": {
+     "grade": "acceptable",
+     "observed": "'what is the status of ORD-1001A' replies 'I can't see a record called ORD-1001.' (untrue on its own: Maya can see ORD-1001) followed by the notice 'The identifier “ORD-1001A” could not be used. Check the full record ID and ask again using its letters, hyphen and digits.'; no ORD-1001 value is shown. The set command gets the echo reply, no proposal; 'what is the status of ORD-1001' answers 'open'."
+    }
+   }
+  },
+  {
+   "id": "U-54",
+   "results": {
+    "p839cd3": {
+     "grade": "poor",
+     "observed": "With DATA_DIR made read-only while open: Save instruction, Send and Confirm changes each show 'The workspace could not complete this action. Try again.' (generic, no storage cause or recovery step) and nothing is shown as saved; the server logs each EACCES error. After restoring access and restarting, the instruction and message are absent, the proposal is still pending and ORD-1001 is still open, which is truthful. But a '[slow]' reply that arrived while storage was read-only stays 'Assistant is preparing a reply…' after access is restored, after a reload and 15 s later, with Send disabled, until the server is restarted (then 'The server restarted before this reply finished. You can retry.')."
+    },
+    "p1f3f86": {
+     "grade": "poor",
+     "observed": "Read-only DATA_DIR: Save instruction, Send and Confirm each show 'The workspace could not complete this action. Try again.'; server logs only 'Workspace operation failed.'. After restart nothing of the attempted saves is present and the proposal is still pending (truthful). A '[slow]' reply arriving while read-only stays 'Assistant is preparing a reply…' with Send disabled after access is restored and after reload, until a server restart turns it into a retryable interruption."
+    },
+    "p053318": {
+     "grade": "sound",
+     "observed": "Read-only DATA_DIR: each action shows 'Storage is unavailable and the save outcome could not be verified. Restore write access, then restart the server with the same data directory (DATA_DIR). Return as the same person and check the saved item before retrying...'; nothing shown as saved; the app stays in this reported mode (reload shows the same alert) until restarted. After restart: earlier work present, the instruction absent, proposal still pending, ORD-1001 open, and the '[slow]' reply that was pending shows 'The reply was interrupted. Retry to continue this turn.' with Retry."
+    }
+   }
+  },
+  {
+   "id": "U-57",
+   "results": {
+    "p839cd3": {
+     "grade": "sound",
+     "observed": "'long task: crates [fail step 2]' ends Failed with 'Step 2 failed. Retry to continue from this step.' and Retry task; the conversation keeps working. Making DATA_DIR read-only during a step of 'long task: boxes [long]': once access was restored the task read Interrupted 'Progress could not be saved, so the task stopped. Retry to continue from the last finished step.' with Retry task; the server logged the task and the EACCES error; sending a message and running another task ('other', Completed) still worked."
+    },
+    "p1f3f86": {
+     "grade": "poor",
+     "observed": "The failing task is reported (Failed, Retry task) and the rest stays usable. But after a storage error during a step the task stays 'Running — Working in the background.' with 0 finished steps and a Cancel task button 15 s and more after access was restored, with nothing running and no Retry task; server output only 'Workspace operation failed.'. Messages and another task still work; only a restart marked it Interrupted."
+    },
+    "p053318": {
+     "grade": "acceptable",
+     "observed": "The failing task is reported on the task (Failed, Retry task). A storage error during a step puts the whole app into a reported unavailable mode: an alert 'Storage is unavailable ... restart the server with the same data directory', every request 503, after reload only that alert and the person chooser (conversations unreadable); server logs 'Background work paused. Restart with the same data directory to recover.'. The task card itself kept reading Running until the restart; after restart it read Interrupted with Retry task, which completed it."
+    }
+   }
+  },
+  {
+   "id": "U-60",
+   "results": {
+    "p839cd3": {
+     "grade": "acceptable",
+     "observed": "Malformed JSON to the send and confirm action: 400 'Send a valid JSON object.'; odd field types gave 4xx with messages, no 500s; page kept working. A workspace.json lacking records (a damaged file in use): the page shows 'The reply could not finish. Retry to try the same message again.' and Retry fails identically; server output records the error itself ('Workspace operation failed: Cannot read properties of undefined (reading 'filter')'). A version-1 file with null sessions: page says 'Stillroom is reconnecting. Start the local server if it is stopped.' although the server is running (misleading), log has the error message. No token seen in output."
+    },
+    "p1f3f86": {
+     "grade": "poor",
+     "observed": "Malformed or odd requests: 4xx with messages. Unexpected errors from a damaged workspace.json: the page shows 'The reply could not finish. Retry to try the same message again.' (Retry fails the same way) or 'Stillroom is reconnecting. Start the local server if it is stopped.' while running; the server output records only 'Workspace operation failed.' with no error detail, also for storage errors."
+    },
+    "p053318": {
+     "grade": "acceptable",
+     "observed": "Malformed JSON: 400 'The request could not be read.'; odd field types: 4xx with messages, no 500 found. A damaged state file is refused at start with a clear stderr message, so no unexpected error in use could be provoked that way. Storage failures in use are shown honestly with a recovery step; the server output records only 'Background work paused...' for a task step and nothing for a failed save or reply (the operator learns of those from the page only)."
+    }
+   }
+  }
+ ],
+ "defects": [
+  {
+   "id": "D-1",
+   "title": "Empty conversations, and conversations with the same long opening, have identical buttons",
+   "severity": "medium",
+   "merged_from": [
+    "p839cd3#1",
+    "p1f3f86#2"
+   ],
+   "repro": "Continue as Maya; click New conversation twice; read the Conversations navigation. Send 'Please look up the order details for our long-standing customer named Northwind Traders'; New conversation; send the same ending 'Southwind Partners' (and likewise '...the customer details for the order placed last week by customer Alpha' / 'Bravo'). Read button names, visually and by accessible name.",
+   "expected": "Each conversation identifiable before opening it.",
+   "note": "",
+   "results": {
+    "p839cd3": {
+     "result": "present",
+     "observed": "Three 'Untitled conversation' buttons; both Northwind/Southwind conversations named 'Please look up the order details for our long-standing c' and both Alpha/Bravo 'Please look up the customer details for the order placed', no second line, same after reload."
+    },
+    "p1f3f86": {
+     "result": "present",
+     "observed": "Three 'Untitled conversation' buttons; Northwind/Southwind both 'Please look up the order details for our long-standing c'; Alpha/Bravo both 'Please look up the customer details for the order placed'; no distinguishing detail."
+    },
+    "p053318": {
+     "result": "absent",
+     "observed": "'Untitled chat', 'Untitled chat · Chat 2', '· Chat 3'; '...for o… · …stomer named Northwind Traders · Chat 3' vs '… · …tomer named Southwind Partners · Chat 4'; Alpha/Bravo likewise distinct."
+    }
+   }
+  },
+  {
+   "id": "D-2",
+   "title": "Bots with the same name cannot be told apart",
+   "severity": "medium",
+   "merged_from": [
+    "p839cd3#2",
+    "p1f3f86#1"
+   ],
+   "repro": "Continue as a person; click New bot, enter 'Assistant', Save bot name; give each Assistant a different message; open a third bot; read the Bots navigation.",
+   "expected": "Duplicates refused, or each shown with something that distinguishes it before selecting.",
+   "note": "",
+   "results": {
+    "p839cd3": {
+     "result": "present",
+     "observed": "Two buttons, accessible name 'Assistant', text '✦ Assistant', title 'Assistant'; only opening them shows which discussion each holds."
+    },
+    "p1f3f86": {
+     "result": "present",
+     "observed": "Duplicate accepted silently; two identical 'Assistant' buttons (same text and title)."
+    },
+    "p053318": {
+     "result": "absent",
+     "observed": "Duplicate accepted; buttons read 'Assistant Bot #1 · first assistant talks about apples' and 'Assistant Bot #2 · second assistant talks about pears'."
+    }
+   }
+  },
+  {
+   "id": "D-3",
+   "title": "Adding a step with two same-titled tasks running does not identify which task got it",
+   "severity": "low",
+   "merged_from": [
+    "p839cd3#3"
+   ],
+   "repro": "In one conversation send 'long task: dup [long]' twice (STANDIN_STEP_MS=1500), then 'add step: extra'. Read the reply and any buttons; if asked, choose the second; read the note and both Task: dup articles until both finish.",
+   "expected": "The choice and the feedback identify which task received the step.",
+   "note": "",
+   "results": {
+    "p839cd3": {
+     "result": "present",
+     "observed": "Buttons 'Add to dup', 'Add to dup', 'Don’t add'; after the second, note 'Added “extra” to the end of dup.'; both articles 'Task: dup' (the receiving one did show 'Added “extra” to the end of the task.' and later 'Done: extra')."
+    },
+    "p1f3f86": {
+     "result": "present",
+     "observed": "No choice offered and no note: only 'I'll add \"extra\" to the task that is running.'; both articles 'Task: dup', 'Working in the background.'; only after completion did the second show 'Done: extra'."
+    },
+    "p053318": {
+     "result": "absent",
+     "observed": "Tasks labelled Task #1 / Task #2; note 'Step added to Task #2 · dup — extra' with 'Show Task #2 · dup'; Task #2 shows 9 steps and 'Done: extra'."
+    }
+   }
+  },
+  {
+   "id": "D-4",
+   "title": "A forget that matches no remembered fact is reported as done",
+   "severity": "medium",
+   "merged_from": [
+    "p839cd3#4",
+    "p1f3f86#5",
+    "p053318#1"
+   ],
+   "repro": "Continue as Maya; send 'remember that likes tea', then 'forget tea'. Read the reply and the Memory region (also after reload).",
+   "expected": "The app flags that nothing was forgotten, or matches loosely and shows the removal; the person is not told something was forgotten when it was not.",
+   "note": "",
+   "results": {
+    "p839cd3": {
+     "result": "present",
+     "observed": "Reply 'I've forgotten \"tea\".' with no note; Memory still lists 'likes tea', also after reload."
+    },
+    "p1f3f86": {
+     "result": "present",
+     "observed": "Reply 'I've forgotten \"tea\".' with no note; Memory still lists 'likes tea', also after reload."
+    },
+    "p053318": {
+     "result": "present",
+     "observed": "Reply 'I've forgotten \"tea\".' with no notice; Memory still lists 'likes tea', also after reload."
+    }
+   }
+  },
+  {
+   "id": "D-5",
+   "title": "A lookup of the non-existent ORD-1001A gets a reply about ORD-1001",
+   "severity": "low",
+   "merged_from": [
+    "p839cd3#5",
+    "p1f3f86#6",
+    "p053318#2"
+   ],
+   "repro": "As Maya send 'what is the status of ORD-1001A'.",
+   "expected": "A reply that ORD-1001A cannot be found and how to correct it, with no statement about ORD-1001 given as the answer.",
+   "note": "Merged: all three entries are the reply being about ORD-1001 instead of the typed ORD-1001A. On p053318 the wrong statement is followed by an accurate notice, so its effect there is smaller.",
+   "results": {
+    "p839cd3": {
+     "result": "present",
+     "observed": "'The status of ORD-1001 is open.' with nothing saying ORD-1001A does not exist."
+    },
+    "p1f3f86": {
+     "result": "present",
+     "observed": "'The status of ORD-1001 is open.' with no notice."
+    },
+    "p053318": {
+     "result": "present",
+     "observed": "'I can't see a record called ORD-1001.' (Maya can see ORD-1001), then the notice 'The identifier “ORD-1001A” could not be used. Check the full record ID and ask again...'."
+    }
+   }
+  },
+  {
+   "id": "D-6",
+   "title": "A damaged or unreadable data file gives a raw stack trace at start, or every request fails, with no recovery step",
+   "severity": "low",
+   "merged_from": [
+    "p839cd3#6",
+    "p1f3f86#10"
+   ],
+   "repro": "Put '{not json', '{\"hello\":\"world\"}' or '[1,2,3]' in the data file (workspace.json; state.json on p053318), or chmod 555 DATA_DIR, and run node server.js; also a version-1 file of the wrong shape ('{\"version\":1,\"users\":[],\"sessions\":null}'; '{\"version\":1}' on p053318), start, Continue as Maya.",
+   "expected": "Refuse to start, or report the problem, with an actionable recovery step naming the file, keeping the damaged file.",
+   "note": "",
+   "results": {
+    "p839cd3": {
+     "result": "present",
+     "observed": "Exits with uncaught SyntaxError / 'Unsupported workspace version.' / EACCES stack traces; the version-1 file starts but every request fails and the page says 'Stillroom is reconnecting. Start the local server if it is stopped.'. Damaged file kept."
+    },
+    "p1f3f86": {
+     "result": "present",
+     "observed": "Same stack-trace exits; version-1 file starts and fails every request with 'Stillroom is reconnecting...' and log 'Workspace operation failed.'. Damaged file kept."
+    },
+    "p053318": {
+     "result": "absent",
+     "observed": "Every case exits with 'Cannot open the data directory. Check its permissions and restore a readable state snapshot if it is damaged.'; damaged state.json kept unchanged."
+    }
+   }
+  },
+  {
+   "id": "D-7",
+   "title": "Keyboard focus falls to the page body after Save memory",
+   "severity": "low",
+   "merged_from": [
+    "p839cd3#7"
+   ],
+   "repro": "Send 'remember that likes tea', click Edit memory, change Memory text, press Save memory (by click, and by focusing it and pressing Enter); read document.activeElement.",
+   "expected": "Focus on a sensible nearby control (the edited item or the Memory region).",
+   "note": "",
+   "results": {
+    "p839cd3": {
+     "result": "present",
+     "observed": "document.activeElement is BODY after both the click and the keyboard Enter."
+    },
+    "p1f3f86": {
+     "result": "present",
+     "observed": "document.activeElement is BODY after both the click and the keyboard Enter."
+    },
+    "p053318": {
+     "result": "absent",
+     "observed": "Focus is on the item's Edit memory button after both."
+    }
+   }
+  },
+  {
+   "id": "D-8",
+   "title": "Saving an instruction or task under an existing name silently overwrites it",
+   "severity": "medium",
+   "merged_from": [
+    "p1f3f86#3"
+   ],
+   "repro": "Save instruction A = 'x'. Without Edit, type A / 'y' and click Save instruction; Use A and send 'who are you'. Same with Save task (requests 'hello x' / 'hello y') and Run A.",
+   "expected": "Overwrite with a notice, refuse with a message, or ask.",
+   "note": "",
+   "results": {
+    "p839cd3": {
+     "result": "absent",
+     "observed": "Refused with alert '“A” is already saved. Choose Edit A to change it, or use another name.'; 'who are you' gives 'My instructions: x'; Run A sends 'hello x'."
+    },
+    "p1f3f86": {
+     "result": "present",
+     "observed": "No notice; fields clear; 'who are you' after Use A gives 'My instructions: y'; Run A sends 'hello y'; x is gone."
+    },
+    "p053318": {
+     "result": "absent",
+     "observed": "Refused with 'An entry with this name already exists. Choose Edit to change it.'; x and 'hello x' kept."
+    }
+   }
+  },
+  {
+   "id": "D-9",
+   "title": "Sending a new message after a failed reply hides the failure and its Retry",
+   "severity": "medium",
+   "merged_from": [
+    "p1f3f86#4"
+   ],
+   "repro": "Send 'third [fail once]'; at the alert send 'next' instead of Retry. Read the conversation, reload, read again.",
+   "expected": "The person can still tell the first message's reply failed and retry or resend it, or is told to retry first.",
+   "note": "",
+   "results": {
+    "p839cd3": {
+     "result": "absent",
+     "observed": "The failed message keeps 'The reply could not finish...' and Retry under it, also after reload; Retry answers it in place."
+    },
+    "p1f3f86": {
+     "result": "present",
+     "observed": "Transcript 'third [fail once]', 'next', reply to next; no alert, no Retry, no mark on the unanswered message, also after reload."
+    },
+    "p053318": {
+     "result": "absent",
+     "observed": "The failed message keeps 'The reply failed. Retry to answer your original message.' and Retry, also after reload; Retry answers it."
+    }
+   }
+  },
+  {
+   "id": "D-10",
+   "title": "A reply that arrives while storage fails stays pending forever and blocks the conversation",
+   "severity": "medium",
+   "merged_from": [
+    "p1f3f86#7"
+   ],
+   "repro": "Start with STANDIN_SLOW_MS=3000. Send 'hello [slow]'; 1 s later make DATA_DIR read-only; restore write access 4 s later. Read the conversation, reload, try to send another message, wait 15 s, then restart the server.",
+   "expected": "The reply's failure is recorded or reported with a way to retry; no reply left pending forever.",
+   "note": "",
+   "results": {
+    "p839cd3": {
+     "result": "present",
+     "observed": "'Assistant is preparing a reply…' after restore, after reload and 15 s later; Send disabled; nothing explains it. Only a restart gives 'The server restarted before this reply finished. You can retry.'."
+    },
+    "p1f3f86": {
+     "result": "present",
+     "observed": "Same: pending 'preparing a reply…' after restore, reload and 15 s more; Send disabled; restart needed for a Retry."
+    },
+    "p053318": {
+     "result": "absent",
+     "observed": "An alert at once: 'Storage is unavailable ... restore write access, then restart the server with the same data directory'; the app stays in that reported mode; after the restart it says, the message shows 'The reply was interrupted. Retry to continue this turn.' with Retry."
+    }
+   }
+  },
+  {
+   "id": "D-11",
+   "title": "A storage error during a task step leaves the task 'Running' with nothing running",
+   "severity": "medium",
+   "merged_from": [
+    "p1f3f86#8"
+   ],
+   "repro": "Start with STANDIN_STEP_MS=1500. Send 'long task: boxes [long]'; during the first step make DATA_DIR read-only; restore it 4.5 s later. Read Task status 1 s and 15 s later and after reload; then restart.",
+   "expected": "The failure is reported on the task (Failed or Interrupted with Retry task).",
+   "note": "",
+   "results": {
+    "p839cd3": {
+     "result": "absent",
+     "observed": "Right after restore: Interrupted 'Progress could not be saved, so the task stopped. Retry to continue from the last finished step.' with Retry task."
+    },
+    "p1f3f86": {
+     "result": "present",
+     "observed": "'Running — Working in the background.', 0 finished steps, Cancel task, no Retry task, 15 s and more after restore; only a restart marked it Interrupted."
+    },
+    "p053318": {
+     "result": "present",
+     "observed": "The task card kept reading Running (0 of 8 steps) until restart, but a global alert said storage was unavailable and to restart with the same DATA_DIR, and the app refused further use (503); after restart Interrupted with Retry task. Less harmful than claimed for p1f3f86 because the person is told what to do."
+    }
+   }
+  },
+  {
+   "id": "D-12",
+   "title": "'Since you were away' lists every task forever",
+   "severity": "low",
+   "merged_from": [
+    "p1f3f86#9"
+   ],
+   "repro": "Start 'long task: crates [fail step 2]' and 'long task: alpha', close the tab, reopen after both end; reload twice; send a message and reload; leave a proposal waiting and reload; close and reopen.",
+   "expected": "An account of what changed since the person's last visit, dismissed after reading or reload.",
+   "note": "",
+   "results": {
+    "p839cd3": {
+     "result": "absent",
+     "observed": "After the first reload the finished alpha is dropped; only 'Needs attention crates · Failed' remains."
+    },
+    "p1f3f86": {
+     "result": "present",
+     "observed": "'Finished alpha · Completed; Needs attention crates · Failed' unchanged on every reload and reopen; never dismissed; waiting proposal not listed."
+    },
+    "p053318": {
+     "result": "absent",
+     "observed": "After the first reload only 'Task #1 · crates — Failed — needs attention' remains."
+    }
+   }
+  },
+  {
+   "id": "D-13",
+   "title": "Unexpected errors are logged without detail and shown as retryable",
+   "severity": "low",
+   "merged_from": [
+    "p1f3f86#11"
+   ],
+   "repro": "Start with a data file of the right version lacking 'records' ('{\"version\":1,\"users\":{},\"sessions\":{},\"token\":\"\"}' as workspace.json; for p053318 a fresh state.json with 'records' removed) and PROVIDER_TOKEN set; Continue as Maya; send 'how many orders can you see'; Retry; read the page and server output.",
+   "expected": "The page says the action failed and what to try; the server output records the error itself.",
+   "note": "",
+   "results": {
+    "p839cd3": {
+     "result": "absent",
+     "observed": "Server output records the error: 'Workspace operation failed: Cannot read properties of undefined (reading 'filter')'. The page shows 'The reply could not finish. Retry to try the same message again.' and Retry fails the same way (advice that cannot help)."
+    },
+    "p1f3f86": {
+     "result": "present",
+     "observed": "Page 'The reply could not finish. Retry to try the same message again.', Retry fails identically; server output 'Workspace operation failed.' only."
+    },
+    "p053318": {
+     "result": "absent",
+     "observed": "The damaged snapshot is refused at start: 'Cannot open the data directory. Check its permissions and restore a readable state snapshot if it is damaged.'; malformed or odd-typed requests gave 4xx with messages, no 500 could be provoked."
+    }
+   }
+  },
+  {
+   "id": "D-14",
+   "title": "Over-limit text in Task request or Bot name is cut silently",
+   "severity": "low",
+   "merged_from": [
+    "p053318#3"
+   ],
+   "repro": "Fill 12008 characters ending in 'totalling 90' into Task request, name it Long, Save task, then Edit Long and read the request; fill a 300-character Bot name and Save bot name.",
+   "expected": "Save the text intact, or tell the person it is over the limit before accepting a shortened version.",
+   "note": "",
+   "results": {
+    "p839cd3": {
+     "result": "absent",
+     "observed": "Alert 'Task request has 12,008 characters. The limit is 6,000, so remove 6,008 characters to continue.' and nothing saved; the 300-character bot name is refused with a similar alert."
+    },
+    "p1f3f86": {
+     "result": "present",
+     "observed": "The field's maxlength cut the request to 6000 characters with no message and it was saved as Long (ends 'AAAA...', 'totalling 90' lost); the bot name was cut to 80 and saved silently."
+    },
+    "p053318": {
+     "result": "present",
+     "observed": "Cut to 12000 characters with no message; the saved request ends 'AAAAAAAAAAAAAAA tota'; the bot name was cut to 80 and saved silently."
+    }
+   }
+  },
+  {
+   "id": "D-15",
+   "title": "Two server processes on one DATA_DIR both accept writes and one confirmed order is lost",
+   "severity": "medium",
+   "merged_from": [
+    "p053318#4"
+   ],
+   "repro": "Start node server.js twice on different free ports with the same DATA_DIR. In each (separate browser contexts) Continue as Maya, send 'create an order for One totalling 1' / 'create an order for Two totalling 2' and Confirm changes. Stop both, start one, ask the customer of ORD-1005 and ORD-1006 and how many orders Maya can see.",
+   "expected": "Refuse the second instance, or keep both orders.",
+   "note": "Each README says to run one server per data folder.",
+   "results": {
+    "p839cd3": {
+     "result": "present",
+     "observed": "Second server started normally; both reported 'Created ORD-1005.'; after restart ORD-1005 is Two, ORD-1006 cannot be seen, Maya sees 4 orders (One is lost)."
+    },
+    "p1f3f86": {
+     "result": "present",
+     "observed": "Second server started; both 'Created ORD-1005.'; after restart ORD-1005 is Two, no ORD-1006, 4 orders."
+    },
+    "p053318": {
+     "result": "present",
+     "observed": "Second server started; both 'Changes confirmed. Created ORD-1005.'; after restart ORD-1005 is Two, no ORD-1006, 4 orders."
+    }
+   }
+  }
+ ]
+}

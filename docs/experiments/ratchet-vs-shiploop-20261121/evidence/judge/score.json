@@ -1,0 +1,58 @@
+{
+ "verdicts": {
+  "node-chess-engine": "shiploop",
+  "shared-expenses": "ratchet",
+  "ticket-assignment": null,
+  "grokbot-local": "ratchet"
+ },
+ "rows": {
+  "node-chess-engine": {
+   "picks": [
+    "shiploop",
+    "shiploop"
+   ],
+   "preferred": "shiploop",
+   "mean_score": {
+    "shiploop": 4.6,
+    "ratchet": 3.9
+   },
+   "answers_read": 2
+  },
+  "shared-expenses": {
+   "picks": [
+    "ratchet",
+    "ratchet"
+   ],
+   "preferred": "ratchet",
+   "mean_score": {
+    "ratchet": 4.1,
+    "shiploop": 3.8
+   },
+   "answers_read": 2
+  },
+  "ticket-assignment": {
+   "picks": [
+    "shiploop",
+    "ratchet"
+   ],
+   "preferred": null,
+   "mean_score": {
+    "shiploop": 3.9,
+    "ratchet": 4.0
+   },
+   "answers_read": 2
+  },
+  "grokbot-local": {
+   "picks": [
+    "ratchet",
+    "ratchet"
+   ],
+   "preferred": "ratchet",
+   "mean_score": {
+    "shiploop": 3.5,
+    "ratchet": 4.0
+   },
+   "answers_read": 2
+  }
+ }
+}

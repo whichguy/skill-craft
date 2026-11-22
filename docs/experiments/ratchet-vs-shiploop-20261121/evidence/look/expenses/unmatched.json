@@ -1,0 +1,21 @@
+{
+ "shortfalls": [
+  {
+   "n": 1,
+   "title": "Fractional amounts enter the ledger as whole cents"
+  },
+  {
+   "n": 2,
+   "title": "A second process can erase an acknowledged expense"
+  },
+  {
+   "n": 4,
+   "title": "Some created groups cannot be used through ordinary URLs"
+  },
+  {
+   "n": 5,
+   "title": "Saving through a symlink leaves the ledger target stale"
+  }
+ ],
+ "steps_are_in": "/Users/dadleet/e2e-runs/d20261122-360a9f/look/expenses/work/docs/shiploop/look.md"
+}

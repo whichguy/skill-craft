@@ -1,0 +1,89 @@
+{
+ "probed": [
+  {
+   "n": 1,
+   "results": {
+    "pb56fe2": {
+     "result": "present",
+     "observed": "Assigned T-0001 to Dana Lee and T-0002 to Kim (both 200); GET /tickets?assignee=Dana%20Lee&assignee=Kim returned HTTP 200 with items [T-0001] and next null, so the second, incompatible assignee filter was ignored."
+    },
+    "p3a41e1": {
+     "result": "present",
+     "observed": "Assigned T-0001 to Dana Lee and T-0002 to Kim (both 200); GET /tickets?assignee=Dana%20Lee&assignee=Kim returned HTTP 200 with items [T-0001] and next null, so the second, incompatible assignee filter was ignored."
+    },
+    "p21e512": {
+     "result": "present",
+     "observed": "Assigned T-0001 to Dana Lee and T-0002 to Kim (both 200); GET /tickets?assignee=Dana%20Lee&assignee=Kim returned HTTP 200 with items [T-0001] and next null, so the second, incompatible assignee filter was ignored."
+    }
+   }
+  },
+  {
+   "n": 2,
+   "results": {
+    "pb56fe2": {
+     "result": "present",
+     "observed": "After the two assignments and a 3 s wait, NOTIFY_FILE held the ticket.assigned record for T-0001 with subject \"[T-0001] Assigned to you\" and \"to\":\"Dana Lee\" as its only recipient field (rg matched it); GET /admin/outbox listed it under sent. README.md and docs/operations.md say only that the mail relay tails NOTIFY_FILE; the operations Notifications section does not mention assignment notices at all; nothing documents how an agent name maps to a mail address or how the relay resolves it."
+    },
+    "p3a41e1": {
+     "result": "present",
+     "observed": "After the two assignments and a 3 s wait, NOTIFY_FILE held the ticket.assigned record for T-0001 with subject \"[T-0001] Assigned to you\" and \"to\":\"Dana Lee\" as its only recipient field (rg matched it); GET /admin/outbox listed it under sent. README.md and docs/operations.md say only that the mail relay tails NOTIFY_FILE; docs/operations.md says a new assignment notifies the incoming agent and that a delayed notice goes to the agent recorded when queued, but nothing documents how an agent name maps to a mail address or how the relay resolves it."
+    },
+    "p21e512": {
+     "result": "present",
+     "observed": "After the two assignments and a 3 s wait, NOTIFY_FILE held the ticket.assigned record for T-0001 with subject \"[T-0001] Assigned to you\" and \"to\":\"Dana Lee\" as its only recipient field (rg matched it); GET /admin/outbox listed it under sent. README.md and docs/operations.md say only that the mail relay tails NOTIFY_FILE; docs/operations.md says a new assignment notifies the incoming agent and that a delayed notice goes to the agent recorded when queued, but nothing documents how an agent name maps to a mail address or how the relay resolves it."
+    }
+   }
+  },
+  {
+   "n": 3,
+   "results": {
+    "pb56fe2": {
+     "result": "present",
+     "observed": "PUT {\"assignee\":\"—\"} on T-0001 and {\"assignee\":null} on T-0002 both returned 200; the API stored \"—\" and null. bin/tickets.js list printed — in the ASSIGNEE column for both rows, and README.md says an em dash indicates an unassigned ticket."
+    },
+    "p3a41e1": {
+     "result": "absent",
+     "observed": "Both PUTs returned 200 and the API stored \"—\" on T-0001 and null on T-0002, but bin/tickets.js list printed the ASSIGNEE cell as \"—\" (quoted) for T-0001 and unassigned for T-0002, matching its README (a quoted agent name or `unassigned`), so the two are distinguishable."
+    },
+    "p21e512": {
+     "result": "absent",
+     "observed": "Both PUTs returned 200 and the API stored \"—\" on T-0001 and null on T-0002, but bin/tickets.js list printed the ASSIGNEE cell as \"—\" (quoted) for T-0001 and unassigned for T-0002, matching its README (a quoted agent name or `unassigned`), so the two are distinguishable."
+    }
+   }
+  },
+  {
+   "n": 4,
+   "results": {
+    "pb56fe2": {
+     "result": "present",
+     "observed": "All three PUTs (Dana\\u2028Lee, Dana\\u2029Lee, Dana\\u0085Lee) returned 200; the stored assignee was the name with the separator embedded. list --raw split by Python splitlines gave ['T-0001\\topen\\tnormal\\tVPN\\tDana', 'Lee', 'T-0002\\topen\\tnormal\\tPrinter\\t']: three records for two tickets, with a standalone 'Lee'."
+    },
+    "p3a41e1": {
+     "result": "absent",
+     "observed": "All three PUTs (Dana\\u2028Lee, Dana\\u2029Lee, Dana\\u0085Lee) returned HTTP 400 invalid (\"assignee must be null or a single-line agent name of 1 to 64 characters\"); T-0001 stayed unassigned. list --raw split by Python splitlines gave two records, one per ticket. (This product's raw line has no assignee field: id, status, priority, title.)"
+    },
+    "p21e512": {
+     "result": "absent",
+     "observed": "All three PUTs (Dana\\u2028Lee, Dana\\u2029Lee, Dana\\u0085Lee) returned HTTP 400 invalid (\"assignee must be null or a single-line agent name of 1 to 64 characters\"); T-0001 stayed unassigned. list --raw split by Python splitlines gave two records, one per ticket. (This product's raw line has no assignee field: id, status, priority, title.)"
+    }
+   }
+  },
+  {
+   "n": 5,
+   "results": {
+    "pb56fe2": {
+     "result": "present",
+     "observed": "PUT {\"assignee\":\"\\uD800\"} returned 200 and GET /tickets/T-0001 showed assignee \"\\ud800\"; GET /tickets?assignee=%ED%A0%80 and ?assignee=%EF%BF%BD both returned 200 with items []; list --raw rendered the assignee as the replacement character."
+    },
+    "p3a41e1": {
+     "result": "absent",
+     "observed": "PUT {\"assignee\":\"\\uD800\"} returned HTTP 400 invalid (\"assignee must be null or a single-line agent name of 1 to 64 characters\"); GET /tickets/T-0001 showed assignee null. The two filter queries returned 200 with items [] since nothing is assigned, and list --raw showed T-0001 with no assignee (raw line is id, status, priority, title)."
+    },
+    "p21e512": {
+     "result": "absent",
+     "observed": "PUT {\"assignee\":\"\\uD800\"} returned HTTP 400 invalid (\"assignee must be null or a single-line agent name of 1 to 64 characters\"); GET /tickets/T-0001 showed assignee null. The two filter queries returned 200 with items [] since nothing is assigned, and list --raw showed T-0001 with no assignee (raw line is id, status, priority, title)."
+    }
+   }
+  }
+ ]
+}

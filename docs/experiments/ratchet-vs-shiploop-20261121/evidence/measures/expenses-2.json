@@ -1,0 +1,467 @@
+{
+ "label": "expenses-2",
+ "arm": "ratchet",
+ "case": "shared-expenses",
+ "base": "2b082b7db9825b623ce03edfa4efa55b419bc188",
+ "points": {
+  "first-build": "0aa6955623d8dc174596dc50144ffcd6cb532645",
+  "final": "48d7bf9b81800324b1c8381a39850b06d8f26793"
+ },
+ "commit": "d522655ae4f6a8af0b289d346aa08cf44d2e9fbe",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "time": {
+  "minutes": 46.4,
+  "seconds": 2785.8,
+  "first_build_minutes": 10.2,
+  "stop": "max-cycles",
+  "cycles": 3,
+  "sessions": 13,
+  "final_pass": true,
+  "clauses": 49,
+  "seconds_by_role": {
+   "spec": 155.5,
+   "plan": 479.8,
+   "build": 621.0,
+   "tests": 890.9,
+   "delta": 494.0
+  },
+  "finished": "2026-11-22T00:45:52-0800"
+ },
+ "tokens": {
+  "rollouts": 13,
+  "counted": 13,
+  "input": 8090812,
+  "cached": 7321088,
+  "output": 111434,
+  "reasoning": 24942,
+  "total": 8202246,
+  "uncached_input": 769724,
+  "first_build": {
+   "input": 936556,
+   "cached": 803200,
+   "output": 26349,
+   "reasoning": 5214
+  }
+ },
+ "at": {
+  "first-build": {
+   "hidden": {
+    "expenses": {
+     "observed": true,
+     "passed": 6,
+     "failed": [],
+     "of": 6
+    }
+   },
+   "static": {
+    "code": {
+     "files": 1,
+     "code_lines": 278,
+     "changed_code_lines": 278,
+     "functions": 45,
+     "named_functions": 20,
+     "longest_function": 84,
+     "longest_function_at": "server.js",
+     "over_50_lines": 0.0444,
+     "complexity_mean": 3.09,
+     "complexity_max": 17,
+     "complexity_over_10": 0.0667,
+     "duplication": {
+      "windows": 221,
+      "repeated": 0,
+      "share": 0.0
+     },
+     "syntax_failures": []
+    },
+    "comments": {
+     "named_functions": 20,
+     "with_comment_above": 0,
+     "share": 0.0
+    },
+    "surfaces": {
+     "env": [
+      "DATA_FILE",
+      "PORT"
+     ],
+     "paths": [
+      "/groups",
+      "/groups/:p/:p"
+     ],
+     "query": [],
+     "flags": [],
+     "exports": [],
+     "scripts": []
+    },
+    "docs": {
+     "user": {
+      "surfaces": 4,
+      "documented": 4,
+      "share": 1.0,
+      "missing": {}
+     },
+     "all": {
+      "surfaces": 4,
+      "documented": 4,
+      "share": 1.0,
+      "missing": {}
+     },
+     "user_words": 515,
+     "process_words": 5888,
+     "user_files": [
+      "README.md"
+     ],
+     "process_files": [
+      "ratchet/build-1.md",
+      "ratchet/plan.md",
+      "ratchet/spec.md"
+     ]
+    },
+    "product_files": [
+     "server.js"
+    ]
+   },
+   "coverage": {
+    "own": {
+     "all": {
+      "lines": 278,
+      "run": 251,
+      "functions": 45,
+      "functions_run": 39,
+      "branches": 99,
+      "branches_run": 72,
+      "line_share": 0.9029,
+      "function_share": 0.8667,
+      "branch_share": 0.7273
+     },
+     "changed": {
+      "lines": 278,
+      "run": 251,
+      "functions": 45,
+      "functions_run": 39,
+      "branches": 99,
+      "branches_run": 72,
+      "line_share": 0.9029,
+      "function_share": 0.8667,
+      "branch_share": 0.7273
+     },
+     "browser_free": {
+      "all": {
+       "lines": 278,
+       "run": 251,
+       "line_share": 0.9029,
+       "functions": 45,
+       "functions_run": 39,
+       "function_share": 0.8667
+      },
+      "changed": {
+       "lines": 278,
+       "run": 251,
+       "line_share": 0.9029,
+       "functions": 45,
+       "functions_run": 39,
+       "function_share": 0.8667
+      },
+      "left_out": []
+     },
+     "commands": 1,
+     "tests": {
+      "tests": 6,
+      "pass": 6,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+     },
+     "unloaded": []
+    },
+    "all-suites": {
+     "all": {
+      "lines": 278,
+      "run": 251,
+      "functions": 45,
+      "functions_run": 39,
+      "branches": 99,
+      "branches_run": 72,
+      "line_share": 0.9029,
+      "function_share": 0.8667,
+      "branch_share": 0.7273
+     },
+     "changed": {
+      "lines": 278,
+      "run": 251,
+      "functions": 45,
+      "functions_run": 39,
+      "branches": 99,
+      "branches_run": 72,
+      "line_share": 0.9029,
+      "function_share": 0.8667,
+      "branch_share": 0.7273
+     },
+     "browser_free": {
+      "all": {
+       "lines": 278,
+       "run": 251,
+       "line_share": 0.9029,
+       "functions": 45,
+       "functions_run": 39,
+       "function_share": 0.8667
+      },
+      "changed": {
+       "lines": 278,
+       "run": 251,
+       "line_share": 0.9029,
+       "functions": 45,
+       "functions_run": 39,
+       "function_share": 0.8667
+      },
+      "left_out": []
+     },
+     "commands": 1,
+     "tests": {
+      "tests": 6,
+      "pass": 6,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+     },
+     "unloaded": []
+    }
+   },
+   "mutation": {
+    "measured": true,
+    "sampled": 60,
+    "invalid": 0,
+    "sites_on_changed_lines": 62,
+    "failing_on_untouched": [],
+    "own": {
+     "caught": 28,
+     "survived": 32,
+     "did_not_end": 0,
+     "not_measured": 0,
+     "share": 0.467
+    }
+   }
+  },
+  "final": {
+   "hidden": {
+    "expenses": {
+     "observed": true,
+     "passed": 6,
+     "failed": [],
+     "of": 6
+    }
+   },
+   "static": {
+    "code": {
+     "files": 1,
+     "code_lines": 285,
+     "changed_code_lines": 285,
+     "functions": 45,
+     "named_functions": 20,
+     "longest_function": 92,
+     "longest_function_at": "server.js",
+     "over_50_lines": 0.0444,
+     "complexity_mean": 3.13,
+     "complexity_max": 17,
+     "complexity_over_10": 0.0667,
+     "duplication": {
+      "windows": 229,
+      "repeated": 0,
+      "share": 0.0
+     },
+     "syntax_failures": []
+    },
+    "comments": {
+     "named_functions": 20,
+     "with_comment_above": 0,
+     "share": 0.0
+    },
+    "surfaces": {
+     "env": [
+      "DATA_FILE",
+      "PORT"
+     ],
+     "paths": [
+      "/groups",
+      "/groups/:p/:p"
+     ],
+     "query": [],
+     "flags": [],
+     "exports": [],
+     "scripts": []
+    },
+    "docs": {
+     "user": {
+      "surfaces": 4,
+      "documented": 4,
+      "share": 1.0,
+      "missing": {}
+     },
+     "all": {
+      "surfaces": 4,
+      "documented": 4,
+      "share": 1.0,
+      "missing": {}
+     },
+     "user_words": 754,
+     "process_words": 13632,
+     "user_files": [
+      "README.md"
+     ],
+     "process_files": [
+      "ratchet/build-1.md",
+      "ratchet/build-2.md",
+      "ratchet/build-3.md",
+      "ratchet/delta-1.md",
+      "ratchet/delta-2.md",
+      "ratchet/delta-3.md",
+      "ratchet/plan.md",
+      "ratchet/spec.md",
+      "ratchet/tests-1.md",
+      "ratchet/tests-2.md",
+      "ratchet/tests-3.md"
+     ]
+    },
+    "product_files": [
+     "server.js"
+    ]
+   },
+   "coverage": {
+    "own": {
+     "all": {
+      "lines": 285,
+      "run": 264,
+      "functions": 45,
+      "functions_run": 40,
+      "branches": 118,
+      "branches_run": 88,
+      "line_share": 0.9263,
+      "function_share": 0.8889,
+      "branch_share": 0.7458
+     },
+     "changed": {
+      "lines": 285,
+      "run": 264,
+      "functions": 45,
+      "functions_run": 40,
+      "branches": 118,
+      "branches_run": 88,
+      "line_share": 0.9263,
+      "function_share": 0.8889,
+      "branch_share": 0.7458
+     },
+     "browser_free": {
+      "all": {
+       "lines": 285,
+       "run": 264,
+       "line_share": 0.9263,
+       "functions": 45,
+       "functions_run": 40,
+       "function_share": 0.8889
+      },
+      "changed": {
+       "lines": 285,
+       "run": 264,
+       "line_share": 0.9263,
+       "functions": 45,
+       "functions_run": 40,
+       "function_share": 0.8889
+      },
+      "left_out": []
+     },
+     "commands": 1,
+     "tests": {
+      "tests": 13,
+      "pass": 13,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+     },
+     "unloaded": []
+    },
+    "all-suites": {
+     "all": {
+      "lines": 285,
+      "run": 264,
+      "functions": 45,
+      "functions_run": 41,
+      "branches": 142,
+      "branches_run": 110,
+      "line_share": 0.9263,
+      "function_share": 0.9111,
+      "branch_share": 0.7746
+     },
+     "changed": {
+      "lines": 285,
+      "run": 264,
+      "functions": 45,
+      "functions_run": 41,
+      "branches": 142,
+      "branches_run": 110,
+      "line_share": 0.9263,
+      "function_share": 0.9111,
+      "branch_share": 0.7746
+     },
+     "browser_free": {
+      "all": {
+       "lines": 285,
+       "run": 264,
+       "line_share": 0.9263,
+       "functions": 45,
+       "functions_run": 41,
+       "function_share": 0.9111
+      },
+      "changed": {
+       "lines": 285,
+       "run": 264,
+       "line_share": 0.9263,
+       "functions": 45,
+       "functions_run": 41,
+       "function_share": 0.9111
+      },
+      "left_out": []
+     },
+     "commands": 60,
+     "tests": {
+      "tests": 13,
+      "pass": 13,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+     },
+     "unloaded": []
+    }
+   },
+   "mutation": {
+    "measured": true,
+    "sampled": 59,
+    "invalid": 0,
+    "sites_on_changed_lines": 59,
+    "failing_on_untouched": [],
+    "own": {
+     "caught": 31,
+     "survived": 28,
+     "did_not_end": 0,
+     "not_measured": 0,
+     "share": 0.525
+    },
+    "acceptance": {
+     "caught": 31,
+     "survived": 28,
+     "did_not_end": 0,
+     "not_measured": 0,
+     "share": 0.525
+    },
+    "either": {
+     "caught": 31,
+     "survived": 28,
+     "share": 0.525
+    }
+   }
+  }
+ }
+}

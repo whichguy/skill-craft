@@ -1,0 +1,45 @@
+{
+ "label": "tickets-1",
+ "arm": "shiploop",
+ "case": "ticket-assignment",
+ "base": "70461f807d340175f64b2617e8a048a90269dd88",
+ "points": {
+  "final": "5041e58702decc9d0b9e44db8ccaea2498e9ebfd"
+ },
+ "commit": "22e52c0807ca41aa0224dd81f03b84e9bba44e82",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "time": {
+  "minutes": 10.5,
+  "seconds": 627.9,
+  "resumes": 0,
+  "outcome": "PASS",
+  "pass": true,
+  "shiploop_version": "2.6.0"
+ },
+ "tokens": {
+  "rollouts": 1,
+  "counted": 1,
+  "input": 6114592,
+  "cached": 5943168,
+  "output": 20955,
+  "reasoning": 1271,
+  "total": 6135547,
+  "uncached_input": 171424
+ },
+ "measured_points": {
+  "final": "5041e58702decc9d0b9e44db8ccaea2498e9ebfd"
+ },
+ "at": {
+  "final": {
+   "hidden": {
+    "ticket-assignment": {
+     "observed": true,
+     "passed": 18,
+     "failed": [],
+     "of": 18
+    }
+   }
+  }
+ }
+}

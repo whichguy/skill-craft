@@ -1,0 +1,162 @@
+{
+ "stated": [
+  {
+   "text": "The chess rules engine is a Node.js module at src/chess.js."
+  },
+  {
+   "text": "The module is CommonJS."
+  },
+  {
+   "text": "The module has no dependencies."
+  },
+  {
+   "text": "npm test runs node --test."
+  },
+  {
+   "text": "A position is a FEN string."
+  },
+  {
+   "text": "startFen() returns the standard start position."
+  },
+  {
+   "text": "legalMoves(fen) returns an array of every legal move for the side to move."
+  },
+  {
+   "text": "The moves from legalMoves(fen) are in UCI form (for example e2e4, and e7e8q for a promotion)."
+  },
+  {
+   "text": "legalMoves(fen) returns that array sorted alphabetically."
+  },
+  {
+   "text": "applyMove(fen, move) returns the FEN after the move."
+  },
+  {
+   "text": "The FEN returned by applyMove has correct castling rights."
+  },
+  {
+   "text": "The FEN returned by applyMove has the correct en-passant square."
+  },
+  {
+   "text": "The FEN returned by applyMove has the correct halfmove clock."
+  },
+  {
+   "text": "The FEN returned by applyMove has the correct fullmove number."
+  },
+  {
+   "text": "applyMove(fen, move) throws IllegalMoveError when the move is not legal."
+  },
+  {
+   "text": "IllegalMoveError is a class the module exports."
+  },
+  {
+   "text": "The en-passant target square is set after every two-square pawn push, whether or not a capture is possible (the FEN-spec convention)."
+  },
+  {
+   "text": "status(fen) returns ongoing, check, checkmate or stalemate for the side to move."
+  },
+  {
+   "text": "All piece moves are implemented."
+  },
+  {
+   "text": "Castling is implemented on both sides."
+  },
+  {
+   "text": "Castling is never out of check."
+  },
+  {
+   "text": "Castling is never through check."
+  },
+  {
+   "text": "Castling is never into check."
+  },
+  {
+   "text": "In UCI, castling is the king's two-square move: e1g1, e1c1, e8g8, e8c8."
+  },
+  {
+   "text": "En passant is implemented."
+  },
+  {
+   "text": "Promotion to q, r, b or n is implemented."
+  },
+  {
+   "text": "Check, checkmate and stalemate are implemented."
+  },
+  {
+   "text": "The rules are covered with node --test tests in test/."
+  },
+  {
+   "text": "Those tests cover the known game fool's mate."
+  },
+  {
+   "text": "Those tests cover the known game scholar's mate."
+  },
+  {
+   "text": "Those tests cover castling."
+  },
+  {
+   "text": "Those tests cover en passant."
+  },
+  {
+   "text": "Those tests cover promotion."
+  },
+  {
+   "text": "Those tests cover stalemate."
+  },
+  {
+   "text": "Those tests cover move counts from standard test positions."
+  },
+  {
+   "text": "legalMoves on a middlegame position stays under 50 ms."
+  },
+  {
+   "text": "A depth-2 legal-move count of the start position stays under 2 seconds."
+  },
+  {
+   "text": "npm test must pass."
+  }
+ ],
+ "unstated": [
+  {
+   "text": "The request does not say what legalMoves, applyMove, or status do when the argument is missing, not a string, not a FEN, or a FEN that is not a legal position (no king, a pawn still sitting on the first or eighth rank, or the side that is not to move already in check).",
+   "why": "Callers pass FENs from files, users, and earlier bugs. Someone operating the engine, and the next person maintaining it, needs a predictable result they can catch or display.",
+   "probe": "From the directory that contains package.json, require ./src/chess.js. Call legalMoves, status, and applyMove(fen, 'e2e4') on each of: '', 'not-a-fen', null, undefined, no arguments, '8/8/8/8/8/8/8/8 w - - 0 1', '4P3/8/8/8/8/8/8/4k2K w - - 0 1', and '4k3/8/8/8/8/8/4R3/4K3 w - - 0 1'. For each call record the returned value or the thrown value's constructor name.",
+   "fine_answers": "Throwing the exported IllegalMoveError, throwing any other Error, or returning a value (an empty array, a status string, or a FEN) are all compatible with the request. The three functions may differ from each other. The request only defines these calls for a position that is a FEN string, and it only defines IllegalMoveError for a move that is not legal."
+  },
+  {
+   "text": "The request does not say whether a FEN that omits the halfmove clock and the fullmove number is accepted.",
+   "why": "Many boards and PGNs emit four FEN fields. A caller passing that shorter string needs to know whether the engine accepts it and, if it does, which clocks appear in the FEN from applyMove.",
+   "probe": "Call legalMoves and status on 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -' and on startFen(). If the short form is accepted, applyMove it with 'e2e4' and applyMove startFen() with 'e2e4', and record both returned strings, including the last two fields.",
+   "fine_answers": "Rejecting a FEN that does not have all six fields is fine. Accepting the four-field form and filling in clocks (for example halfmove 0 and fullmove 1, or any other defaults) is also fine."
+  },
+  {
+   "text": "The request does not say what happens when the castling-rights field or the en-passant field cannot match the piece placement (a rights letter whose king or rook is not on its home square, or an en-passant square with no pawn that could have just pushed two squares).",
+   "why": "Imported FENs often carry stale flags. Those flags change castling and en-passant results, or they make the call throw, so a caller and a maintainer both need the actual behavior.",
+   "probe": "Call legalMoves and status, and applyMove with 'e1e2' where that move is on the board, for '4k3/8/8/8/8/8/8/4K3 w K - 0 1' (white king on e1, rights K, no rook) and for '4k3/8/8/8/8/8/4K3/7R w K - 0 1' (white king on e2, rook on h1, rights K). Also call legalMoves and status on 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e3 0 1' (white to move, ep square e3, white pawn already on e4). Record whether each call throws and which moves, if any, are e1g1 or a capture onto the en-passant square.",
+   "fine_answers": "Omitting castling when the king or that rook is not on its home square is fine, and throwing on that FEN is also fine. For an en-passant square that no pawn could have produced, ignoring the square when listing moves is fine, and throwing on the FEN is also fine. A rights field of '-' with the king and rook still at home is already settled by the castling rules: that side has no castling move."
+  },
+  {
+   "text": "The request does not say whether IllegalMoveError extends Error, or what message or properties the thrown value carries.",
+   "why": "Callers catch the error and decide what to show. A maintainer writing tests needs to know which checks the class actually supports.",
+   "probe": "Require ./src/chess.js. Call applyMove(startFen(), 'e2e5') and applyMove(startFen(), 'a1a3') inside try/catch. For each thrown value record whether it is an instance of the exported IllegalMoveError, whether it is an instance of Error, the constructor name, the message string, and the enumerable own properties.",
+   "fine_answers": "Any message text is fine. Extra properties such as the move or the FEN are fine and so is a value with none. A class that extends Error is the usual shape. A class that does not extend Error still matches the request's words, which ask only for a class named IllegalMoveError."
+  },
+  {
+   "text": "The request does not say whether applyMove accepts anything beyond the UCI forms it gives (e2e4, e7e8q, and the four castling moves e1g1, e1c1, e8g8, e8c8). SAN, a hyphen, a capture mark, a different letter case, and a promotion with no piece letter are all unmentioned.",
+   "why": "Callers coming from PGN or from another library emit those spellings. They need to know which spellings throw IllegalMoveError and which ones move a piece.",
+   "probe": "From startFen(), call applyMove with 'e2e4', 'e4', 'e2-e4', 'e2xe4', and 'E2E4'. Then use the promotion position 'k7/4P3/8/8/8/8/8/4K3 w - - 0 1' and call applyMove with 'e7e8q', 'e7e8Q', 'e7e8', 'e7e8r', 'e7e8b', and 'e7e8n'. For each call record a thrown IllegalMoveError or the returned FEN, including the piece now on the destination square.",
+   "fine_answers": "Accepting only the lowercase UCI forms shown in the request is enough. Also accepting SAN, a hyphen, a capture mark, or an uppercase promotion letter is compatible. For a pawn move to the last rank with no piece letter, rejecting it and treating it as a queen promotion are both compatible. Promotion still has to support q, r, b and n when the letter is present, because that part is stated."
+  },
+  {
+   "text": "The request does not name the middlegame position for the 50 ms limit, does not say whether that limit is one cold call or a repeated call, and does not define the procedure for the depth-2 legal-move count. It also does not say whether npm test must enforce either limit.",
+   "why": "The customer set both limits as conditions of the engine. An operator checking them, and a maintainer keeping them, cannot tell a pass from a fail until the position and the counting procedure are chosen. A suite can pass npm test while leaving the limits unmeasured.",
+   "probe": "Require ./src/chess.js. Time one legalMoves call and a loop of 10 calls on 'r1bqkbnr/1ppp1ppp/p1n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4' and on 'r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1'. Record each elapsed time and each array length. Then, from startFen(), time the walk that adds legalMoves(applyMove(start, move)).length over every legal move, and record that sum and the elapsed time. Separately time legalMoves on the position reached by applying e2e4 and e7e5 to the start. Inspect the files in test/ and record whether any test measures time.",
+   "fine_answers": "Any position that is still a middlegame is a fair choice for the 50 ms check, including either FEN above. One call and a short repeated loop are both compatible readings. For the 2 second limit, summing the legal replies to every move from the start is one compatible reading, and counting the legal moves after one fixed line of two plies is another. A timing assertion inside npm test is fine, and so is meeting the limits without a test that measures them."
+  },
+  {
+   "text": "The request names the subjects of the tests (fool's mate, scholar's mate, castling, en passant, promotion, stalemate, and move counts from standard test positions) but does not give the move lists, the FEN fixtures, the expected counts, or the results those tests must assert.",
+   "why": "The next maintainer uses npm test as the safety net for the rules. A customer trusting a passing run needs to know whether the suite locks those rules or only mentions them. The particular standard positions decide which move counts are guarded.",
+   "probe": "Run npm test from the package root and record the exit code, the number of tests executed, and their file paths. Read every file under test/. For fool's mate and scholar's mate, record the moves or FENs used and whether the test asserts a final status of checkmate. For castling, en passant, promotion, and stalemate, record the FEN fixtures and whether the test asserts the resulting FEN fields, the UCI moves, or status. For move counts, list each FEN and the integer asserted, then compute legalMoves(fen).length for that same FEN and record both numbers. Note whether promotion assertions use q only or also r, b and n.",
+   "fine_answers": "Any real line of fool's mate, any real line of scholar's mate, and any castling, en passant, promotion, and stalemate positions are fine. Asserting the final status, the resulting FEN, and numeric move counts is a strong reading. A smaller set of assertions that still exercises each named subject is also compatible. Any positions a chess programmer would call standard are fine for the move counts. The request does not fix the fixture set, and a promotion test that only uses q still covers the test subject named promotion."
+  }
+ ]
+}

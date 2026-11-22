@@ -1,0 +1,23 @@
+{"pairs": [
+{"pair": "Z-Y", "better": "Z-much", "advantages": [
+{"of": "Z", "what": "The assignment notification goes to the assigned agent (to = dana); Y sends it to the ticket's requester with the wording 'assigned to you', so no agent is ever told and the requester is misinformed", "ref": "D-5", "matters_to": "requester"},
+{"of": "Z", "what": "Per-agent outbox keys actually reach each agent; in Y every per-agent event still goes to the requester", "ref": "U-8", "matters_to": "operator"},
+{"of": "Z", "what": "npm test passes 122/122; Y's suite exits 1 because its own notification test fails against its product", "ref": "S-21", "matters_to": "maintainer"}],
+"lesser_lacks": ["In TicketStore.assign address the ticket.assigned outbox event to the assigned agent instead of ticket.requester, so the failing notification test passes and npm test is green"],
+"one_task_closes": "yes",
+"why": "Both deliveries behave the same on every audited item except the notification, where Y fails a stated requirement (S-13, high defect D-5) by telling the requester instead of the agent. That breaks the feature's one outward-facing effect and leaves Y's own suite red. The fix is a one-argument change in assign, which Y's existing test already checks."},
+{"pair": "Z-X", "better": "Z-some", "advantages": [
+{"of": "Z", "what": "One new test file; X ships test/assignment-again.test.js, an exact copy with an 'again:' prefix that adds no check and must be kept in step", "ref": "S-20", "matters_to": "maintainer"},
+{"of": "Z", "what": "No docs/spec.md to carry; X's spec restates the request six times per sentence, decides none of the unstated conditions and records none of the built choices", "ref": "U-22", "matters_to": "maintainer"}],
+"lesser_lacks": ["Delete test/assignment-again.test.js", "Delete docs/spec.md, or replace it with a short record of the choices actually built (409 on resolved/closed, ticket.assigned for unassign, per-agent outbox key, fifth raw column, filter intersection)"],
+"one_task_closes": "yes",
+"why": "X and Z behave identically on every stated requirement, unstated condition and defect, and both leave the documents untouched. X adds only weight a maintainer must carry: a duplicated test file and a long specification that decides nothing. Removing both is a short task."},
+{"pair": "X-Y", "better": "X-much", "advantages": [
+{"of": "X", "what": "The assignment notification goes to the assigned agent; Y sends it to the requester, so no agent is told and the requester is misinformed", "ref": "D-5", "matters_to": "requester"},
+{"of": "X", "what": "npm test passes; Y's suite exits 1 on its own failing notification test", "ref": "S-21", "matters_to": "maintainer"},
+{"of": "Y", "what": "No duplicated test file to keep in step", "ref": "S-20", "matters_to": "maintainer"},
+{"of": "Y", "what": "No six-fold restating docs/spec.md to carry", "ref": "U-22", "matters_to": "maintainer"}],
+"lesser_lacks": ["In TicketStore.assign address the ticket.assigned outbox event to the assigned agent instead of ticket.requester, so the failing notification test passes and npm test is green"],
+"one_task_closes": "yes",
+"why": "Y fails the stated notification requirement (high defect D-5) and ships a red suite, while X meets every stated requirement. X's duplicated tests and empty spec are maintenance weight, not lost behaviour, so they weigh far less than a broken requirement. Y needs only the one-line recipient fix to match X's behaviour."}
+]}

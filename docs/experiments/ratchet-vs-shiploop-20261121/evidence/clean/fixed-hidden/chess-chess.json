@@ -1,0 +1,19 @@
+{
+ "observed": true,
+ "passed": [
+  "count-start-3",
+  "count-kiwipete-3",
+  "count-position3-4",
+  "count-position4-3",
+  "count-position5-3",
+  "count-position6-3",
+  "game-fens",
+  "status-positions",
+  "illegal-moves-throw",
+  "moves-sorted"
+ ],
+ "failed": {},
+ "kind": "chess",
+ "work": "/Users/dadleet/e2e-runs/d20261122-b54ea4/fix/chess/work",
+ "commit": "c4df3a7d324b051e960aa2809b8bb02e32c07511"
+}

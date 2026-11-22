@@ -1,0 +1,40 @@
+{"pairs": [
+{"pair": "Z-X", "better": "X-some",
+ "advantages": [
+  {"of": "X", "what": "CHANGELOG section and package.json version bump record the release; Z leaves both as in the base", "ref": "U-22", "matters_to": "operator"},
+  {"of": "X", "what": "Invalid UTF-8 in an assignee is refused with 400 instead of being silently altered and stored", "ref": "D-1", "matters_to": "operator"},
+  {"of": "X", "what": "Documents that lifecycle transitions keep the assignee; Z leaves transition behaviour undocumented", "ref": "U-12", "matters_to": "requester"},
+  {"of": "Z", "what": "Save-failure rollback lives in Store.apply() for every change, so the store has one failure behaviour instead of an assign-only path", "ref": "Z extras: store change rollback; X maintainer notes", "matters_to": "maintainer"},
+  {"of": "Z", "what": "No shipped acceptance/ harness or working-notes clutter and a single release instead of three internal versions", "ref": "X extras: acceptance/ harness, three release versions", "matters_to": "maintainer"},
+  {"of": "Z", "what": "Names trimmed like the requester field, so '  dana  ' and 'dana' are one agent", "ref": "U-3", "matters_to": "operator"}
+ ],
+ "lesser_lacks": [
+  "Add a CHANGELOG.md section for assignment and bump package.json version",
+  "Refuse invalid UTF-8 in the assignment body with 400 invalid, leaving ticket, audit and outbox unchanged",
+  "Document in docs/api.md that lifecycle transitions keep the assignee"
+ ],
+ "one_task_closes": "yes",
+ "why": "Both deliver every stated requirement with sound behaviour on almost every unstated condition. X adds the release record Z omits (Z's only poor rating) and closes D-1, while Z's advantages are a cleaner, uniform rollback and less tree clutter that matter only to a maintainer. The gap is small and a short task closes it."},
+{"pair": "Z-Y", "better": "same",
+ "advantages": [
+  {"of": "Z", "what": "CLI show prints the current assignee (name or em dash); Y shows it only through the last history line", "ref": "U-18", "matters_to": "operator"},
+  {"of": "Z", "what": "Save-failure rollback applies uniformly in Store.apply(); Y's is assign-only, giving the store two failure behaviours", "ref": "Z extras: store change rollback; Y maintainer notes", "matters_to": "maintainer"},
+  {"of": "Y", "what": "CHANGELOG section and package.json version 1.5.0 record the release; Z has neither", "ref": "U-22", "matters_to": "operator"},
+  {"of": "Y", "what": "Documents that lifecycle changes preserve the assignee", "ref": "U-12", "matters_to": "requester"}
+ ],
+ "lesser_lacks": [],
+ "one_task_closes": "yes",
+ "why": "Both meet every stated requirement, share defects D-1 and D-2, and handle the unstated conditions soundly with defensible differing choices. Z's show detail and uniform rollback balance Y's release record and transition documentation. Neither is materially better for the person running it."},
+{"pair": "Y-X", "better": "X-some",
+ "advantages": [
+  {"of": "X", "what": "Invalid UTF-8 in an assignee is refused with 400; Y decodes it to U+FFFD and stores it as part of the name and notification recipient", "ref": "D-1", "matters_to": "operator"},
+  {"of": "X", "what": "CLI show prints the current assignee line (quoted name or unassigned); Y shows it only through history", "ref": "U-18", "matters_to": "operator"},
+  {"of": "Y", "what": "One release version with no shipped acceptance/ harness or working-notes clutter", "ref": "X extras: acceptance/ harness, three release versions", "matters_to": "maintainer"}
+ ],
+ "lesser_lacks": [
+  "Add a strict UTF-8 check on the assignment body returning 400 invalid with nothing changed",
+  "Print an assignee line (quoted name or unassigned) in the CLI show detail"
+ ],
+ "one_task_closes": "yes",
+ "why": "X and Y made the same decisions almost everywhere and share the same structure and maintainer couplings. X additionally closes D-1 and shows the assignee in the show detail, both small but real operator benefits, against minor tree clutter. A short follow-up would bring Y level."}
+]}

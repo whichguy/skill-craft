@@ -1,0 +1,632 @@
+{
+ "code": "pe27d01",
+ "ran": {
+  "tests_command": "npm test (node --test) in work/pe27d01",
+  "tests_result": "16 tests, 16 pass, 0 fail, exit 0 (~175 ms)",
+  "started_with": "node -e / node scripts that require('./src/chess.js') from the package root (no server)"
+ },
+ "stated": [
+  {
+   "id": "S-1",
+   "built": "yes",
+   "observed": true,
+   "evidence": "node -e \"require('./src/chess.js')\" from package root: loads; Object.keys -> [startFen, legalMoves, applyMove, status, IllegalMoveError]",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "the standard position has 20 sorted moves and 400 two-ply continuations (every test requires ../src/chess.js)",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-2",
+   "built": "yes",
+   "observed": true,
+   "evidence": "require('./src/chess.js') works in plain node (CommonJS, module.exports at end of file)",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "the standard position has 20 sorted moves and 400 two-ply continuations",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-3",
+   "built": "yes",
+   "observed": true,
+   "evidence": "package.json has no dependencies field, no node_modules; grep require( in src/chess.js finds none; module loads and runs with no install",
+   "spec": "stated",
+   "test": "none",
+   "test_name": "",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-4",
+   "built": "yes",
+   "observed": true,
+   "evidence": "package.json scripts.test = \"node --test\"; npm test prints \"> node --test\" and runs test/chess.test.js",
+   "spec": "stated",
+   "test": "none",
+   "test_name": "",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-5",
+   "built": "yes",
+   "observed": true,
+   "evidence": "legalMoves/applyMove/status all take six-field FEN strings; applyMove(startFen(),\"e2e4\") -> \"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1\"",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "FEN metadata tracks double pushes, turn changes and target expiry",
+   "proved": "fails",
+   "proved_by": "formatFen: changed the field separator .join(' ') to .join(';') so applyMove no longer returns a FEN; npm test 12 of 16 fail (e.g. 'FEN metadata tracks double pushes, turn changes and target expiry', 'both colors can castle on either wing and relocate their rook'); restored, suite back to 16/16 pass"
+  },
+  {
+   "id": "S-6",
+   "built": "yes",
+   "observed": true,
+   "evidence": "startFen() -> \"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1\"",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "the standard position has 20 sorted moves and 400 two-ply continuations",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-7",
+   "built": "yes",
+   "observed": true,
+   "evidence": "legalMoves(startFen()) -> 20 moves; perft built only on legalMoves/applyMove: start d1 20, d2 400, d3 8902, d4 197281; Kiwipete d1 48, d2 2039, d3 97862; position 3 d4 43238; position 4 d3 9467; position 5 d3 62379 - all equal published values",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "the standard position has 20 sorted moves and 400 two-ply continuations; Kiwipete has 48 legal moves and 2039 two-ply continuations",
+   "proved": "fails",
+   "proved_by": "pawnMoves: removed the line pushing the two-square advance (moves.push({ from, to: double })); start position then has 16 moves; npm test 9 of 16 fail incl. 'the standard position has 20 sorted moves and 400 two-ply continuations' and 'Kiwipete has 48 legal moves and 2039 two-ply continuations'; restored, 16/16 pass"
+  },
+  {
+   "id": "S-8",
+   "built": "yes",
+   "observed": true,
+   "evidence": "legalMoves(startFen()) -> [\"a2a3\",\"a2a4\",\"b1a3\",...,\"h2h4\"], four-character from-to strings",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "the standard position has 20 sorted moves and 400 two-ply continuations",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-9",
+   "built": "yes",
+   "observed": true,
+   "evidence": "legalMoves('4k3/P7/8/8/8/8/8/4K3 w - - 0 1') a7 moves -> ['a7a8b','a7a8n','a7a8q','a7a8r']; with capture on b8 also a7b8b/n/q/r",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "promotion requires a lowercase piece choice and places it in the mover’s color",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-10",
+   "built": "yes",
+   "observed": true,
+   "evidence": "middlegame r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4: 33 moves, equal to [...moves].sort(); start list is alphabetical",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "the standard position has 20 sorted moves and 400 two-ply continuations; promotion requires a lowercase piece choice and places it in the mover’s color",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-11",
+   "built": "yes",
+   "observed": true,
+   "evidence": "applyMove(startFen(),'e2e4') -> 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1'; castles, ep and promotions return correct boards",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "FEN metadata tracks double pushes, turn changes and target expiry",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-12",
+   "built": "yes",
+   "observed": true,
+   "evidence": "On 'r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1': e1g1 -> '... b kq', h1h2 -> 'Qkq', a1a2 -> 'Kkq', e1e2 -> 'kq', h1h8 (captures rook) -> 'Qq'; black a8a1 -> 'Kk'; promotion capture b7a8q on 'r3k2r/1P6/8/8/8/8/8/4K3 w kq' -> 'k'",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "both colors can castle on either wing and relocate their rook; corner-rook captures clear both affected rights and returning a rook clears no extra rights",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-13",
+   "built": "yes",
+   "observed": true,
+   "evidence": "e2e4 -> e3; then e7e5 -> e6; a2a4 -> a3; h7h5 -> h6; e2e3 -> '-'; after e5d6 ep capture -> '-'; g1f3 after e6 -> '-'",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "FEN metadata tracks double pushes, turn changes and target expiry",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-14",
+   "built": "yes",
+   "observed": true,
+   "evidence": "g1f3 from start -> 1; then g8f6 -> 2; capture c3d5 at clock 7 -> 0; pawn d5d4 at 7 -> 0; quiet knight at 7 -> 8; castle at 0 -> 1",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "FEN metadata tracks double pushes, turn changes and target expiry; both colors can castle on either wing and relocate their rook",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-15",
+   "built": "yes",
+   "observed": true,
+   "evidence": "e2e4 keeps 1, e7e5 -> 2; black castle from fullmove 1 -> 2; black capture at 20 -> 21",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "FEN metadata tracks double pushes, turn changes and target expiry; both colors can castle on either wing and relocate their rook",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-16",
+   "built": "yes",
+   "observed": true,
+   "evidence": "applyMove(startFen(),'e2e5') -> throws IllegalMoveError 'Illegal move: e2e5'; pinned bishop e2d3 on '4k3/4r3/8/8/8/8/4B3/4K3 w' -> IllegalMoveError; e1g1 while in check -> IllegalMoveError",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "illegal UCI and moves that expose a king throw IllegalMoveError",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-17",
+   "built": "yes",
+   "observed": true,
+   "evidence": "typeof c.IllegalMoveError === 'function'; caught error: e instanceof c.IllegalMoveError true, instanceof Error true, name 'IllegalMoveError'",
+   "spec": "stated",
+   "test": "weak",
+   "test_name": "illegal UCI and moves that expose a king throw IllegalMoveError (uses the class only as the assert.throws validator)",
+   "proved": "passes",
+   "proved_by": "removed IllegalMoveError from module.exports (module.exports = { startFen, legalMoves, applyMove, status }); npm test still 16/16 pass because assert.throws(fn, undefined) only checks that something is thrown; restored, 16/16 pass"
+  },
+  {
+   "id": "S-18",
+   "built": "yes",
+   "observed": true,
+   "evidence": "applyMove(startFen(),'e2e4') sets e3 though no black pawn can capture; e7e5 sets e6; a2a4 on '4k3/8/8/8/8/8/P7/4K3 w' sets a3 with no black pawns at all",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "FEN metadata tracks double pushes, turn changes and target expiry",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-19",
+   "built": "yes",
+   "observed": true,
+   "evidence": "status: startFen() 'ongoing'; after e2e4 f7f6 d1h5 'check'; fool's mate 'checkmate'; '7k/5Q2/6K1/8/8/8/8/8 b - - 0 1' 'stalemate'",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "check with a legal reply is distinct from ongoing play; Fool’s mate checkmates White; a safe king with no legal move is stalemated",
+   "proved": "fails",
+   "proved_by": "status: changed return checked ? 'check' : 'ongoing' to return checked ? 'in-check' : 'ongoing'; npm test 2 fail ('check with a legal reply is distinct from ongoing play', 'en passant can answer a pawn check but cannot reveal a rook check'); restored, 16/16 pass"
+  },
+  {
+   "id": "S-20",
+   "built": "yes",
+   "observed": true,
+   "evidence": "perft counts at depth 3-4 on five standard positions all match published values (exercise every piece type); start list contains pawn and knight moves; Kiwipete 48",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "Kiwipete has 48 legal moves and 2039 two-ply continuations",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-21",
+   "built": "yes",
+   "observed": true,
+   "evidence": "'r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1' legal e1 moves include e1c1 and e1g1; e1g1 -> 'r3k2r/8/8/8/8/8/8/R4RK1 b kq - 1 1'; e1c1 -> '2KR3R'; black e8g8 -> 'r4rk1', e8c8 -> '2kr3r'",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "both colors can castle on either wing and relocate their rook",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-22",
+   "built": "yes",
+   "observed": true,
+   "evidence": "rook on e4 checking e1 ('r3k2r/8/8/8/4r3/8/8/R3K2R w KQkq - 0 1'): e1 moves ['e1d1','e1d2','e1f1','e1f2'], no castles; applyMove e1g1 -> IllegalMoveError",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "castling requires a safe king route, a clear path, rights and a rook",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-23",
+   "built": "yes",
+   "observed": true,
+   "evidence": "rook attacking f1 (f4): e1g1 absent, e1c1 present; rook attacking d1 (d4): e1c1 absent, e1g1 present",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "castling requires a safe king route, a clear path, rights and a rook",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-24",
+   "built": "yes",
+   "observed": true,
+   "evidence": "rook attacking g1 (g4): e1g1 absent; rook attacking c1 (c4): e1c1 absent; b1 attacked only (b4): both castles present (correct)",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "castling requires a safe king route, a clear path, rights and a rook",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-25",
+   "built": "yes",
+   "observed": true,
+   "evidence": "castles listed and accepted as e1g1, e1c1, e8g8, e8c8 (king two-square move); e1h1 -> IllegalMoveError",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "both colors can castle on either wing and relocate their rook",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-26",
+   "built": "yes",
+   "observed": true,
+   "evidence": "after e2e4 a7a6 e4e5 d7d5: legal e5d6; applyMove -> 'rnbqkbnr/1pp1pppp/p2P4/8/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 3' (d5 removed); black e4d3 after d2d4 removes d4; horizontal pin '8/8/8/K2pP2r/8/8/8/7k w - d6' e5d6 not offered",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "en passant removes the passed pawn for either color; en passant can answer a pawn check but cannot reveal a rook check",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-27",
+   "built": "yes",
+   "observed": true,
+   "evidence": "'4k3/P7/8/8/8/8/8/4K3 w - - 0 1' a7a8q/r/b/n -> Q/R/B/N on a8; black a2a1n -> 'n' on a1",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "promotion requires a lowercase piece choice and places it in the mover’s color",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-28",
+   "built": "yes",
+   "observed": true,
+   "evidence": "after e2e4 f7f6 d1h5: status 'check', legalMoves ['g7g6']; double check '4k3/8/5N2/8/8/8/8/4R2K b' -> king moves only",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "check with a legal reply is distinct from ongoing play",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-29",
+   "built": "yes",
+   "observed": true,
+   "evidence": "fool's mate f2f3 e7e5 g2g4 d8h4 -> status 'checkmate', legalMoves []; scholar's mate -> 'checkmate'",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "Fool’s mate checkmates White; Scholar’s mate checkmates Black",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-30",
+   "built": "yes",
+   "observed": true,
+   "evidence": "status('7k/5Q2/6K1/8/8/8/8/8 b - - 0 1') 'stalemate', legalMoves []; 'k7/2Q5/1K6/8/8/8/8/8 b - - 0 1' 'stalemate'",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "a safe king with no legal move is stalemated",
+   "proved": "fails",
+   "proved_by": "status: changed return checked ? 'checkmate' : 'stalemate' to return 'checkmate'; npm test 1 fail ('a safe king with no legal move is stalemated'); restored, 16/16 pass"
+  },
+  {
+   "id": "S-31",
+   "built": "yes",
+   "observed": true,
+   "evidence": "npm test runs 'Fool’s mate checkmates White' (f2f3 e7e5 g2g4 d8h4, asserts white to move, 'checkmate', legalMoves []) - passes",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "Fool’s mate checkmates White",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-32",
+   "built": "yes",
+   "observed": true,
+   "evidence": "npm test runs 'Scholar’s mate checkmates Black' (e2e4 e7e5 f1c4 b8c6 d1h5 g8f6 h5f7, asserts 'checkmate', []) - passes",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "Scholar’s mate checkmates Black",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-33",
+   "built": "yes",
+   "observed": true,
+   "evidence": "npm test runs castling tests: four castles with full FEN, out of/through/into check, blocked b1, no right, no rook, corner-rook rights - pass",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "both colors can castle on either wing and relocate their rook; castling requires a safe king route, a clear path, rights and a rook; corner-rook captures clear both affected rights and returning a rook clears no extra rights",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-34",
+   "built": "yes",
+   "observed": true,
+   "evidence": "npm test runs en passant tests for both colours with full FEN, ep answering a check, ep revealing a rook check rejected - pass",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "en passant removes the passed pawn for either color; en passant can answer a pawn check but cannot reveal a rook check",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-35",
+   "built": "yes",
+   "observed": true,
+   "evidence": "npm test runs promotion test: all four suffixes listed and applied (as captures), bare/uppercase/k suffix rejected, black underpromotion to n - passes",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "promotion requires a lowercase piece choice and places it in the mover’s color",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-36",
+   "built": "yes",
+   "observed": true,
+   "evidence": "npm test runs 'a safe king with no legal move is stalemated' ('7k/5K2/6Q1/8/8/8/8/8 b - - 0 1') - passes",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "a safe king with no legal move is stalemated",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-37",
+   "built": "yes",
+   "observed": true,
+   "evidence": "npm test asserts start 20 and 400, Kiwipete 48 and 2039 (published values; recomputed by my perft: identical)",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "the standard position has 20 sorted moves and 400 two-ply continuations; Kiwipete has 48 legal moves and 2039 two-ply continuations",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-38",
+   "built": "yes",
+   "observed": true,
+   "evidence": "fresh node process: legalMoves('r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4') 0.55 ms cold, 0.02 ms warm; Kiwipete 0.02 ms",
+   "spec": "stated",
+   "test": "none",
+   "test_name": "no timing assertion under npm test (acceptance/maintainer.cjs times it but npm test does not run that file)",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-39",
+   "built": "yes",
+   "observed": true,
+   "evidence": "fresh node process: depth-2 count from start via legalMoves+applyMove = 400 in 2.1 ms",
+   "spec": "stated",
+   "test": "none",
+   "test_name": "no timing assertion under npm test",
+   "proved": "passes",
+   "proved_by": "legalMoves: inserted Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100) (100 ms per call, depth-2 count > 2 s); npm test still 16/16 pass, only slower; restored, 16/16 pass"
+  },
+  {
+   "id": "S-40",
+   "built": "yes",
+   "observed": true,
+   "evidence": "npm test -> 16 tests, 16 pass, 0 fail, exit 0",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "npm test (whole suite)",
+   "proved": "not-asked",
+   "proved_by": ""
+  }
+ ],
+ "unstated": [
+  {
+   "id": "U-1",
+   "behaviour": "All three functions behave the same. Malformed strings throw a plain Error naming the fault: '' / 'not-a-fen' / bad side 'x' / bad castling / bad ep / non-numeric clock / 4 fields / fullmove 0 -> 'Invalid FEN fields'; 7 ranks -> 'Invalid FEN placement'; unknown letter or '9' -> 'Invalid FEN rank'; 7-square rank -> 'Invalid FEN rank width'; no king -> 'Missing king in FEN'. Non-strings (no arg, undefined, null, 42) throw TypeError with an incidental message ('Cannot read properties of undefined (reading 'trim')', 'fen.trim is not a function'). Surrounding whitespace and a trailing newline are tolerated (start moves returned). Impossible but well-formed positions return values: two white kings -> moves for both kings, 'ongoing'; pawn on 8th rank -> king moves; pawn on a1 -> offers a1a2; side not to move in check -> 'ongoing' with 16 moves and applyMove works. No hangs.",
+   "handling": "acceptable",
+   "observed": true,
+   "evidence": "node .audit-probes/p2.js (each input to legalMoves, status, applyMove(f,\"e2e4\") in try/catch); results as described",
+   "spec": "open",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  },
+  {
+   "id": "U-3",
+   "behaviour": "Only exact lowercase UCI strings from legalMoves are accepted; everything else throws IllegalMoveError: 'E2E4', ' e2e4', 'e2e4 ', 'e4', 'e2-e4', 'e2xe4', 'e2e4q', 'e2e9', '', 'e2e4e4'; 42/undefined/null -> 'Illegal move: expected a UCI string'; e1h1 on the castling board rejected. On the inventory fixture '4k3/4P3/...' every e7e8 variant is rejected because the black king blocks e8 (correct). On '7k/4P3/8/8/8/8/8/4K3 w' e7e8q/r/b/n give Q/R/B/N on e8; e7e8Q, E7E8Q, bare e7e8 and e7e8k rejected.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "node .audit-probes/p2.js and p3.js",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "README.md: 'lowercase UCI strings for moves'; applyMove bullet: throws IllegalMoveError for an illegal UCI string or a missing or non-string move; 'Append q, r, b or n for promotion'",
+   "test": "strong"
+  },
+  {
+   "id": "U-4",
+   "behaviour": "class IllegalMoveError extends Error; e instanceof c.IllegalMoveError true, instanceof Error true, constructor.name and name 'IllegalMoveError', message 'Illegal move: e2e5' / 'Illegal move: a1a3' (non-string: 'Illegal move: expected a UCI string'), stack present, own keys ['name'], no move/fen properties.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "try { c.applyMove(c.startFen(),'e2e5') } catch(e) {...} -> true true IllegalMoveError IllegalMoveError 'Illegal move: e2e5' true ['name']; same for a1a3",
+   "spec": "decided-unmarked",
+   "told": "no",
+   "told_where": "",
+   "test": "weak"
+  },
+  {
+   "id": "U-5",
+   "behaviour": "Castling rights are honoured only when king and rook stand on home squares: '4k3/8/8/8/8/8/8/4K3 w K' no castle; 'R3K3 w KQ' only e1c1 (applies to '2KR4 b - - 1 1'); king on e2 with K right no castle; '4K2R w Q' no e1c1. Impossible ep square e3 with white to move: no capture onto e3, status 'ongoing'; ep square c6/d6 without a black pawn beside: no ep move, applyMove e5c6/e5d6 -> IllegalMoveError. An ep square on the wrong rank for the side (d5) is rejected as 'Invalid FEN fields'.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "node .audit-probes/p2.js (U-5 block)",
+   "spec": "decided-unmarked",
+   "told": "no",
+   "told_where": "",
+   "test": "weak"
+  },
+  {
+   "id": "U-7",
+   "behaviour": "All counts match published values: start d3 8902, d4 197281; Kiwipete d1 48, d2 2039, d3 97862; position 3 d4 43238; also position 4 d3 9467 and position 5 d3 62379. Start d4 took 181 ms.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "node .audit-probes/perft.js (perft built only on legalMoves and applyMove)",
+   "spec": "decided-unmarked",
+   "told": "no",
+   "told_where": "",
+   "test": "weak"
+  },
+  {
+   "id": "U-9",
+   "behaviour": "npm test: exit 0, 16 tests, all in test/chess.test.js. Fool's mate f2f3 e7e5 g2g4 d8h4 and scholar's mate e2e4 e7e5 f1c4 b8c6 d1h5 g8f6 h5f7: assert side to move, status 'checkmate' and legalMoves []. Castling: full FEN after all four castles (rights, clocks), rejection with the king in check, f1 attacked and g1 attacked, blocked b1, no right, no rook, a b1 attack that still allows e1c1, corner-rook capture rights and no restoration. En passant: full FEN for both colours, ep that answers a pawn check, ep that would expose the king rejected. Promotion: all four (as captures) with exact FENs, bare/uppercase/k rejected, black a2a1n. Stalemate: one position, 'stalemate' and []. Move counts: start d1 20 (exact list) and d2 400, Kiwipete d1 48 and d2 2039 - recomputed, all match published values. No count deeper than 2.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "npm test; read test/chess.test.js; perft.js recomputation",
+   "spec": "open",
+   "told": "no",
+   "told_where": "",
+   "test": "strong"
+  },
+  {
+   "id": "U-11",
+   "behaviour": "Results depend only on the FEN and move: F = 'rnbqkbnr/1pp1pppp/p7/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 3'; legalMoves (31 moves incl. e5d6), status 'ongoing', applyMove e5d6 identical before and after interleaving another game, branching e5d6 and g1f3, and a rejected e5e7 (IllegalMoveError); identical in a fresh node process. Mutating the returned array does not affect later calls.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "node .audit-probes/p3.js (U-11 block) and a separate node -e with only F",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "README.md last paragraph: 'Save the full six-field FEN to resume play in a fresh Node.js process ... Calls on other positions and rejected moves leave the saved position usable.'",
+   "test": "strong"
+  },
+  {
+   "id": "U-12",
+   "behaviour": "Illegal and malformed moves are tested, asserting the class (illegal UCI and moves that expose a king throw IllegalMoveError: e2e5, e7e5, e2e9, a1a3, e2e4q, a pinned-rook move; promotion requires a lowercase piece choice and places it in the mover’s color: a7a8, a7a8Q, a7a8k; missing and non-string moves throw IllegalMoveError without coercion: missing, undefined, null, array, objects, String object, conversion hooks; castling requires a safe king route, a clear path, rights and a rook; en passant can answer a pawn check but cannot reveal a rook check; a saved FEN supports independent branches and resumes in a fresh process). No test passes an invalid or impossible FEN. The class assertions do not even guard the export (removing IllegalMoveError from exports leaves the suite green).",
+   "handling": "acceptable",
+   "observed": true,
+   "evidence": "read test/chess.test.js; S-17 break run",
+   "spec": "silent",
+   "told": "no",
+   "told_where": "",
+   "test": "weak"
+  }
+ ],
+ "explored": [
+  {
+   "probe": "applyMove on a checkmated position: applyMove(fool's-mate FEN, 'e2e3')",
+   "came_back": "IllegalMoveError: Illegal move: e2e3",
+   "finding": "none"
+  },
+  {
+   "probe": "castling field in non-canonical order 'kqKQ' and duplicated 'KK'",
+   "came_back": "Error 'Invalid FEN fields' (strict FEN order KQkq required)",
+   "finding": "none"
+  },
+  {
+   "probe": "halfmove clock 150: status('4k3/8/8/8/8/8/8/4K2R w - - 150 80') and applyMove h1h2",
+   "came_back": "'ongoing'; '... b - - 151 80' (no fifty-move status, which the request does not list)",
+   "finding": "none"
+  },
+  {
+   "probe": "bare kings status('4k3/8/8/8/8/8/8/4K3 w - - 0 1')",
+   "came_back": "'ongoing' with 5 king moves (no insufficient-material status; not asked)",
+   "finding": "none"
+  },
+  {
+   "probe": "double check '4k3/8/5N2/8/8/8/8/4R2K b - - 0 1'",
+   "came_back": "legalMoves ['e8d8','e8f7','e8f8'], status 'check'",
+   "finding": "none"
+  },
+  {
+   "probe": "discovered check by en passant: applyMove('8/8/8/k2pP2R/8/8/8/4K3 w - d6 0 1','e5d6') then status",
+   "came_back": "'8/8/3P4/k6R/8/8/8/4K3 b - - 0 1', status 'check', black moves a5a4 a5a6 a5b4 a5b6",
+   "finding": "none"
+  },
+  {
+   "probe": "en passant capture that resolves a pawn check: legalMoves('8/8/8/2k5/3Pp3/8/8/4K3 b - d3 0 1')",
+   "came_back": "includes e4d3 plus king moves",
+   "finding": "none"
+  },
+  {
+   "probe": "kings may not touch: legalMoves('8/8/8/3k4/8/3K4/8/8 w - - 0 1')",
+   "came_back": "['d3c2','d3c3','d3d2','d3e2','d3e3'] (no c4/d4/e4)",
+   "finding": "none"
+  },
+  {
+   "probe": "promotion capturing a rook on its corner: applyMove('r3k2r/1P6/8/8/8/8/8/4K3 w kq - 0 1','b7a8q')",
+   "came_back": "'Q3k2r/8/8/8/8/8/8/4K3 b k - 0 1' (q right removed, halfmove 0)",
+   "finding": "none"
+  },
+  {
+   "probe": "ep square of the wrong side ('4k3/8/8/8/3pP3/8/8/4K3 w - d3 0 1', white to move)",
+   "came_back": "ignored: ['e1d1','e1d2','e1e2','e1f1','e1f2','e4e5'], no backward capture",
+   "finding": "none"
+  },
+  {
+   "probe": "promotion that delivers mate: status(applyMove('k7/4P3/1K6/8/8/8/8/8 w - - 0 1','e7e8q'))",
+   "came_back": "'checkmate'",
+   "finding": "none"
+  },
+  {
+   "probe": "mutate the array returned by legalMoves(F) (push, length=0), then call legalMoves(F) again",
+   "came_back": "31 moves again; no shared state",
+   "finding": "none"
+  }
+ ],
+ "defects": [],
+ "extras": [
+  {
+   "what": "Strict FEN validation with descriptive errors (field syntax, rank count and width, both kings present, canonical KQkq order, ep rank 3/6, fullmove >= 1)",
+   "where": "src/chess.js parseFen",
+   "worth": "value",
+   "why": "Malformed FENs fail loudly instead of giving a confident wrong answer; not asked for."
+  },
+  {
+   "what": "Non-string moves rejected with IllegalMoveError without invoking or reading conversion hooks",
+   "where": "src/chess.js applyMove (strict ===), test missing and non-string moves throw IllegalMoveError without coercion, spec C-54..C-56",
+   "worth": "neutral",
+   "why": "Harmless and consistent, but guards an exotic case; the test for it is the most intricate in the suite."
+  },
+  {
+   "what": "A separate acceptance suite (rules.cjs, maintainer.cjs with the 50 ms / 2 s timing checks, suite-probe.cjs, npm-probe.cjs, fixtures.cjs) not run by npm test",
+   "where": "acceptance/",
+   "worth": "neutral",
+   "why": "Carries the only timing assertions, but npm test does not run it and README does not mention it, so a maintainer may not know it exists."
+  },
+  {
+   "what": "BigInt halfmove and fullmove counters",
+   "where": "src/chess.js parseFen/applyMove",
+   "worth": "neutral",
+   "why": "Arbitrarily large clocks round-trip exactly; no user-visible effect in normal play."
+  }
+ ],
+ "spec_notes": "The spec states every stated item (C-1 to C-52) and marks as Open the invalid/impossible FEN contract (C-3), the standard positions and depths for move counts (C-50) and the timing protocol (C-51, C-52). Decided without marking as the builder's choice: castling rights honoured only with king and rook on home squares (C-18) and ep only with the pushed pawn beside the target (C-20); rejection of every move form other than lowercase UCI including bare and uppercase promotions (C-21, C-37); the 'no conversion hooks' rule for non-string moves (C-55, C-56, sourced to discovery, not the request); the C-53 saved-FEN clause. C-31 pins the castling field to KQkq order (the product also rejects other orders on input, which the spec does not say). Nothing contradicts the request. C-52 requires the count to use applyMove, which a correct product need not share for the timing measurement.",
+ "tests_notes": "Tests cover several behaviours at once: 'a saved FEN supports independent branches and resumes in a fresh process' (branching, interleaving, rejection, non-string move, fresh process via execFileSync), 'castling requires a safe king route, a clear path, rights and a rook' (check, path, rights, rook), 'promotion requires a lowercase piece choice and places it in the mover’s color' and 'missing and non-string moves throw IllegalMoveError without coercion'. assert.throws(fn, IllegalMoveError) is the only check of the error class, so removing the export leaves every test green (S-17 proved passes). No test times legalMoves or the depth-2 count (S-38, S-39 unguarded under npm test). No invalid-FEN test. The conversion-hook test asserts that Symbol.toPrimitive/toString are never called, which another correct build that, for example, String()-coerced and then rejected would fail. Otherwise the tests use only the public API (exact FEN strings, which any correct build must produce) and are not tied to file layout, private functions or timing.",
+ "maintainer": "The rules live in one 300-line file where legality is a pseudo-legal generator plus a single isAttacked filter, and castling safety reuses boardAfter with a special crossing step; a change to boardAfter or isAttacked silently affects check, castling and en passant at once. The suite only checks perft to depth 2, so subtle generator bugs (pins, ep discoveries, corner-rook rights at depth) would pass npm test, and the timing limits are checked only in the separate acceptance/ folder that npm test does not run."
+}

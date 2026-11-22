@@ -1,0 +1,13 @@
+{"shortfalls": [
+  {"n": 1, "title": "Repeated assignee filters return tickets that fail the second filter", "severity": "high", "matches": []},
+  {"n": 2, "title": "Operators have no documented route from an agent name to a notification destination", "severity": "medium", "matches": []},
+  {"n": 3, "title": "The CLI displays an accepted assignee as unassigned", "severity": "high", "matches": []},
+  {"n": 4, "title": "Unicode line breaks pass the single-line check and split raw CLI records", "severity": "medium", "matches": []},
+  {"n": 5, "title": "An accepted assignee can be impossible to filter for", "severity": "low", "matches": []}
+ ],
+ "choices": [
+  {"n": 1, "text": "An impossible assignee search value, such as a 65-character name or a name with a tab, returns HTTP 200 with an empty page.", "matches": []},
+  {"n": 2, "text": "Lifecycle transitions retain the last assignee through resolution, closure, and reopening.", "matches": ["U-12"]},
+  {"n": 3, "text": "Unassigning creates no notification of its own.", "matches": []},
+  {"n": 4, "text": "A delayed assignment notice uses the ticket title as it was when the assignment was made", "matches": []}
+ ]}

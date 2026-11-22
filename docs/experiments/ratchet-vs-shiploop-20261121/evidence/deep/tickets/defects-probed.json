@@ -1,0 +1,73 @@
+{
+ "rechecks": [
+  {
+   "id": "U-22",
+   "results": {
+    "pb56fe2": {
+     "grade": "poor",
+     "observed": "docs/api.md documents the assignee field (null on create), PUT /tickets/:id/assignee (null clears, trimmed 1-64 code points on one line, 400/404/409), the assignee filter including assignee=, the ticket.assigned and ticket.unassigned audit actions and the worker-sent assignment notification; README documents the list ASSIGNEE column (em dash when unassigned) and list --raw with a fifth assignee field empty when unassigned; decision record 0009 added and indexed. Every one of these claims matched what I ran (e.g. \"  dana  \" stored as \"dana\", 64 emoji accepted, 409 on resolved/closed even for the same value, audit ticket.unassigned on clear, ticket.assigned line to \"dana\" in NOTIFY_FILE with the worker on, raw lines have 5 fields with an empty last field, weekly report counts unaffected, v1 data file loads with assignee null). But CHANGELOG.md is identical to the base (no new section) and package.json version is still 1.4.0: the release records are missing."
+    },
+    "p3a41e1": {
+     "grade": "sound",
+     "observed": "CHANGELOG.md gains a 1.5.0 section and package.json version is 1.5.0; docs/api.md documents the assignee field, PUT (exact assignee field only, 1-64 UTF-16 code units, controls and line/paragraph separators refused, name kept as supplied, 409 on resolved/closed even for the same value, no-op leaves timestamp/audit/notifications), the filter (exact, case and spaces significant, first of a repeated parameter, invalid nonempty value 400), the single ticket.assigned audit action for set and clear, and the incoming-agent notification; README documents the ASSIGNEE table column (quoted name or unassigned) and the unchanged four raw columns; operations.md covers v1 files, rollback and per-assignment keys; decision 0009 added. All checked by running: \"  dana  \" kept with spaces, 33 emoji (66 code units) refused, U+2028 refused, {\"assignee\":\"dana\",\"x\":1} 400, ?assignee=Dana returns only the Dana ticket, ?assignee=dana&assignee=Dana uses dana, 65-char filter 400, clear audited as ticket.assigned with no new notice, keys ticket.assigned:T-0001:<seq>, worker wrote a ticket.assigned line to dana, raw output 4 fields, v1 file loads with null, a failed save (read-only data dir) answered 500 and left ticket/audit/outbox unchanged and the retry succeeded, as decision 0009 says."
+    },
+    "p21e512": {
+     "grade": "sound",
+     "observed": "CHANGELOG.md gains 1.5.0, 1.5.1 and 1.5.2 sections and package.json version is 1.5.2; docs/api.md documents the field, PUT (valid UTF-8 required, exact assignee field, 1-64 UTF-16 code units, controls/separators refused, kept as supplied, 409 on resolved/closed even for the same value, 500 with state kept on a failed save), the filter rules, the single ticket.assigned action and the incoming-agent notification; README documents the ASSIGNEE column, show printing the assignee, the null vs \"null\" history distinction and the unchanged four raw columns; operations.md and decision 0009 added. All checked by running: same results as the claims for names, limits, extra field, filters, 409s and keys; a body with byte 0xFF answered 400 invalid; clear left the earlier pending notice queued, and a closed ticket kept its pending notice; show prints \"assignee   unassigned\" / \"\"ada li\"\" and history shows \"assignee \"null\"\" for the agent named null; worker delivered ticket.assigned to dana; v1 file loads with null; failed save answered 500 with nothing changed and the retry succeeded."
+    }
+   }
+  }
+ ],
+ "defects": [
+  {
+   "id": "D-1",
+   "title": "An assignee containing invalid UTF-8 is silently altered and accepted",
+   "severity": "low",
+   "merged_from": [
+    "p3a41e1#1"
+   ],
+   "repro": "Start the service (in memory, WORKER_INTERVAL_MS=0). POST /tickets {\"title\":\"t\",\"requester\":\"r\"}; PUT /tickets/T-0001/assignee with content-type application/json and the raw bytes {\"assignee\":\"d<0xFF>na\"}; GET the ticket, its audit and /admin/outbox.",
+   "expected": "400 invalid with the ticket, audit and outbox unchanged.",
+   "note": "Kept separate from D-2: this is the PUT accepting a lossy-decoded name; D-2 is the filter matching one.",
+   "results": {
+    "pb56fe2": {
+     "result": "present",
+     "observed": "PUT answered 200 with \"assignee\":\"d�na\"; audit gained ticket.assigned {\"assignee\":{\"from\":null,\"to\":\"d�na\"}} (2 entries) and a pending ticket.assigned to \"d�na\" was queued."
+    },
+    "p3a41e1": {
+     "result": "present",
+     "observed": "PUT answered 200 with \"assignee\":\"d�na\"; audit gained ticket.assigned to \"d�na\" (2 entries) and a pending ticket.assigned to \"d�na\" was queued."
+    },
+    "p21e512": {
+     "result": "absent",
+     "observed": "PUT answered 400 {\"error\":{\"code\":\"invalid\",\"message\":\"request body is not valid UTF-8\"}}; the ticket was unchanged, the audit held only ticket.created and the outbox only the ticket.created notice."
+    }
+   }
+  },
+  {
+   "id": "D-2",
+   "title": "A malformed UTF-8 byte in the assignee filter matches the agent whose name holds U+FFFD",
+   "severity": "low",
+   "merged_from": [
+    "p21e512#1"
+   ],
+   "repro": "Start the service. POST /tickets {\"title\":\"A\",\"requester\":\"r@example.com\"}; PUT /tickets/T-0001/assignee {\"assignee\":\"Da\\uFFFDna\"} (JSON escape, valid UTF-8); GET /tickets?assignee=Da%FFna.",
+   "expected": "400 invalid or an empty page.",
+   "note": "",
+   "results": {
+    "pb56fe2": {
+     "result": "present",
+     "observed": "PUT 200 assignee \"Da�na\"; GET /tickets?assignee=Da%FFna answered 200 with items [T-0001] (the same as the well-formed ?assignee=Da%EF%BF%BDna)."
+    },
+    "p3a41e1": {
+     "result": "present",
+     "observed": "PUT 200 assignee \"Da�na\"; GET /tickets?assignee=Da%FFna answered 200 with items [T-0001] (the same as the well-formed ?assignee=Da%EF%BF%BDna)."
+    },
+    "p21e512": {
+     "result": "present",
+     "observed": "PUT 200 assignee \"Da�na\"; GET /tickets?assignee=Da%FFna answered 200 with items [T-0001] (the same as the well-formed ?assignee=Da%EF%BF%BDna)."
+    }
+   }
+  }
+ ]
+}

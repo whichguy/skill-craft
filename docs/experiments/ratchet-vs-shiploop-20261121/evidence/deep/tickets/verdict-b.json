@@ -1,0 +1,234 @@
+{
+ "pairs": [
+  {
+   "pair": "X-Y",
+   "better": "Y-some",
+   "advantages": [
+    {
+     "of": "Y",
+     "what": "An assignee body that is not valid UTF-8 is refused with 400 and the ticket, audit and outbox stay unchanged. X accepts the bytes and stores U+FFFD.",
+     "ref": "D-1",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Y",
+     "what": "CHANGELOG and package.json 1.5.2 record assignment and that every supplied filter matches, including the status-plus-priority intersection. X is still 1.4.0 with an unchanged changelog while list results for that query changed.",
+     "ref": "U-22",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Y",
+     "what": "api.md states that lifecycle transitions keep the assignee.",
+     "ref": "U-12",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Y",
+     "what": "An assignee filter longer than 64 characters, or only whitespace, returns 400 invalid. X returns an empty 200 page.",
+     "ref": "U-13",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Y",
+     "what": "operations.md warns that a pre-assignment build drops stored assignees and cannot deliver ticket.assigned.",
+     "ref": "extras",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Y",
+     "what": "The 64-character limit counts UTF-16 code units, the same unit as requester. X counts Unicode code points, so 64 emoji is a legal assignee and an illegal requester.",
+     "ref": "U-3",
+     "matters_to": "maintainer"
+    },
+    {
+     "of": "Y",
+     "what": "CLI history quotes an agent named null and names that contain the history separators, so a clear stays distinct.",
+     "ref": "U-27",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Y",
+     "what": "README documents the assignee line that show already prints.",
+     "ref": "U-18",
+     "matters_to": "operator"
+    },
+    {
+     "of": "X",
+     "what": "Surrounding whitespace is trimmed before the length check and before storage, and the assignee filter uses that stored name, so a padded dana is dana.",
+     "ref": "U-3",
+     "matters_to": "operator"
+    },
+    {
+     "of": "X",
+     "what": "A failed save restores the ticket, audit and outbox for every change. Y restores them only inside assign(), so other mutations can leave memory ahead of the file.",
+     "ref": "extras",
+     "matters_to": "operator"
+    },
+    {
+     "of": "X",
+     "what": "A real clear is audited as ticket.unassigned. Y records clears under ticket.assigned with a null result.",
+     "ref": "U-4",
+     "matters_to": "operator"
+    },
+    {
+     "of": "X",
+     "what": "list --raw gains an assignee field, empty when unassigned, and the weekly report counts stay identical to the base build.",
+     "ref": "U-16",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Y",
+     "what": "list --raw stays four columns, id, status, priority and title, including a name that contains a space.",
+     "ref": "U-16",
+     "matters_to": "operator"
+    },
+    {
+     "of": "X",
+     "what": "The spec does not assert a filter rule the service breaks. Y clause C-52 says a malformed assignee filter must not match, and the service still matches the agent whose name holds U+FFFD.",
+     "ref": "spec_notes",
+     "matters_to": "maintainer"
+    }
+   ],
+   "lesser_lacks": [
+    "Reject an assignment body that is not valid UTF-8 with 400 invalid and leave the ticket, audit and outbox unchanged.",
+    "Add a CHANGELOG section and bump package.json past 1.4.0, stating assignment and that status and priority filters now intersect.",
+    "State in api.md that in_progress, resolved, closed and reopen keep the assignee.",
+    "Return 400 invalid for an assignee filter longer than 64 characters or made only of whitespace.",
+    "Count the assignee limit in UTF-16 code units, as the requester limit does.",
+    "Quote CLI history names that are null or contain the history separator, and document the show assignee line in the README.",
+    "Add the operations.md warning that a pre-assignment build drops assignees and cannot send ticket.assigned."
+   ],
+   "one_task_closes": "no",
+   "why": "Y is somewhat better to run and to upgrade. It is the only delivery that rejects an invalid UTF-8 assignee, and its version and changelog are the ones confirmed to record both assignment and the intersecting status and priority filters. X trims names and rolls back every failed save, and matching Y still needs the UTF-8 check, the release record, filter errors, the length unit, history quoting and the downgrade note, which is more than an hour."
+  },
+  {
+   "pair": "X-Z",
+   "better": "X-some",
+   "advantages": [
+    {
+     "of": "X",
+     "what": "Surrounding whitespace is trimmed before the length check and storage, and filtering uses that stored name.",
+     "ref": "U-3",
+     "matters_to": "operator"
+    },
+    {
+     "of": "X",
+     "what": "show prints an assignee line, the name or an em dash when unassigned.",
+     "ref": "U-18",
+     "matters_to": "operator"
+    },
+    {
+     "of": "X",
+     "what": "A failed save restores the ticket, audit and outbox on every change. Z restores them only inside assign().",
+     "ref": "extras",
+     "matters_to": "operator"
+    },
+    {
+     "of": "X",
+     "what": "A real clear is audited as ticket.unassigned, and a repeat writes nothing.",
+     "ref": "U-4",
+     "matters_to": "operator"
+    },
+    {
+     "of": "X",
+     "what": "list --raw appends assignee as a fifth field, empty when unassigned, and the weekly report counts match the base build.",
+     "ref": "U-16",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Z",
+     "what": "package.json is 1.5.0 and the evidence quotes a 1.5.0 changelog section for assignment. The same audit item is marked observed false, so the write-up is not fully confirmed.",
+     "ref": "U-22",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Z",
+     "what": "api.md states that lifecycle changes keep the assignee.",
+     "ref": "U-12",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Z",
+     "what": "An over-long or whitespace-only assignee filter returns 400 invalid. X returns an empty page for an over-long value and an empty page for whitespace.",
+     "ref": "U-13",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Z",
+     "what": "operations.md warns that rolling back to a pre-assignment build drops assignees and cannot deliver ticket.assigned.",
+     "ref": "extras",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Z",
+     "what": "Assignee length uses UTF-16 code units, the same unit as requester. X counts Unicode code points.",
+     "ref": "U-3",
+     "matters_to": "maintainer"
+    },
+    {
+     "of": "Z",
+     "what": "list --raw stays four columns, so a name with a space remains inside the title field.",
+     "ref": "U-16",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Z",
+     "what": "The table JSON-quotes names, so an agent literally named unassigned stays distinct from the bare unassigned marker.",
+     "ref": "U-17",
+     "matters_to": "operator"
+    }
+   ],
+   "lesser_lacks": [
+    "Trim surrounding whitespace on agent names, apply the length limit to the trimmed value, and match the assignee filter to that stored form.",
+    "Print the current assignee in show, with a marker for unassigned that cannot be confused with a name.",
+    "Restore the ticket, audit and outbox when a save fails for every mutation, through one path.",
+    "Record a clear as ticket.unassigned with actor and from/to, and write no audit entry when the assignee does not change."
+   ],
+   "one_task_closes": "no",
+   "why": "X is somewhat better to keep in daily use. Padded names collapse to one agent, show prints the current assignee, and a failed save rolls back every change, whereas Z stores the spaces, leaves show without an assignee field, and rolls back only on assignment. Z's 1.5.0 notes, 400 filter errors and downgrade warning matter at upgrade time, and U-22 is still marked observed false, so those notes do not outweigh the daily behaviour; trim plus store-wide rollback is more than an hour."
+  },
+  {
+   "pair": "Z-Y",
+   "better": "Y-some",
+   "advantages": [
+    {
+     "of": "Y",
+     "what": "An assignee body that is not valid UTF-8 is refused with 400 and the ticket, audit and outbox stay unchanged. Z decodes the bad byte to U+FFFD and stores it.",
+     "ref": "D-1",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Y",
+     "what": "show prints the current assignee, quoted name or the word unassigned, and the README says so. Z's show has no assignee field, so the current owner is only inferable from history.",
+     "ref": "U-18",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Y",
+     "what": "History quoting distinguishes a clear (bare null) from an agent named null and from a name that contains the history separator.",
+     "ref": "U-27",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Y",
+     "what": "The changelog and version bump were confirmed observed, through 1.5.2, including the intersecting-filter note.",
+     "ref": "U-22",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Z",
+     "what": "The release record is a single 1.5.0 section. Y publishes 1.5.0, 1.5.1 and 1.5.2 for this one delivery.",
+     "ref": "extras",
+     "matters_to": "no one"
+    }
+   ],
+   "lesser_lacks": [
+    "Reject an assignment body that is not valid UTF-8 with 400 invalid and leave the ticket, audit and outbox unchanged.",
+    "Print the current assignee in show, including a distinct unassigned marker, and document that line.",
+    "Quote history names so a clear, an agent named null, and a name containing the history separator stay distinct."
+   ],
+   "one_task_closes": "yes",
+   "why": "Y is somewhat better than Z on the same design. Both keep names untrimmed, keep four-column raw listings, intersect filters, and roll back a failed save only inside assignment; Y also refuses an invalid UTF-8 assignee and shows the current assignee on the ticket detail. Those two behaviour changes plus history quoting sit in the assignment reader and the CLI formatter, about an hour for the same builder."
+  }
+ ]
+}

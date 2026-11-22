@@ -1,0 +1,28 @@
+{
+ "c3cf105": {
+  "point": "S",
+  "variant": "reference",
+  "spec": null,
+  "own_tests_pass": true,
+  "audit_from_round": 1
+ },
+ "c9191ec": {
+  "point": "F",
+  "variant": "reference, padded",
+  "spec": "docs/spec.md",
+  "own_tests_pass": true,
+  "audit_from_round": 1
+ },
+ "ca2ce52": {
+  "point": "L",
+  "variant": "notify-requester",
+  "spec": null,
+  "own_tests_pass": false
+ },
+ "c8662b7": {
+  "point": "U",
+  "variant": "actor-ignored",
+  "spec": null,
+  "own_tests_pass": false
+ }
+}

@@ -1,0 +1,47 @@
+{"pairs": [
+{"pair": "Z-Y", "better": "Y-some",
+ "advantages": [
+  {"of": "Y", "what": "Ships a README that accurately tells the requester the id rules, member rules, error statuses, persistence and concurrency guarantees; Z delivers no customer-facing document, so nothing is told", "ref": "U-4", "matters_to": "requester"},
+  {"of": "Y", "what": "A DATA_FILE holding valid JSON without a groups array is refused rather than silently treated as empty and overwritten", "ref": "D-1", "matters_to": "operator"},
+  {"of": "Y", "what": "A DATA_FILE in a missing directory fails at startup; Z starts and answers 500 to every write", "ref": "U-9", "matters_to": "operator"},
+  {"of": "Y", "what": "Group ids capped at 16 KiB with header budget derived from saved ids, so every 201 group stays addressable", "ref": "U-4", "matters_to": "operator"},
+  {"of": "Y", "what": "Tests cover failed ledger writes, creation race and restart numbering more widely, though some pin Y's own layout and rename mechanism and the unknown-split check goes untested", "ref": "S-24", "matters_to": "maintainer"},
+  {"of": "Z", "what": "Unknown-split check is actually guarded by its tests; in Y dropping it passes the suite", "ref": "S-24", "matters_to": "maintainer"},
+  {"of": "Z", "what": "Leaner product: no shipped acceptance scripts and no stale Open points or duplicated headings in the spec for a maintainer to carry", "ref": "S-35", "matters_to": "maintainer"},
+  {"of": "Y", "what": "Concurrency rests on an explicit single write queue; Z's safety depends on there being no await in the expense route, easy to break silently", "ref": "S-34", "matters_to": "maintainer"}
+ ],
+ "lesser_lacks": [
+  "Write a README describing the routes, validation rules, error statuses, id handling and persistence guarantees",
+  "Refuse to start (or keep the file aside) when DATA_FILE is valid JSON without a groups array",
+  "Fail at startup when DATA_FILE's parent directory does not exist instead of answering 500 to every write"
+ ],
+ "one_task_closes": "yes",
+ "why": "Both meet every stated requirement and handle the unsaid conditions soundly, so the difference is in what the operator and requester are given. Y tells the requester its behaviour in an accurate README and refuses bad data files and missing directories at startup, while Z tells nothing and silently overwrites a groups-less file (D-1). Y's larger test suite partly pins its own internals and misses the split check, so its edge is modest and closable in one short task."},
+{"pair": "Z-X", "better": "X-some",
+ "advantages": [
+  {"of": "X", "what": "Ships an accurate README telling the requester id rules, member rules, error statuses and persistence guarantees; Z tells nothing to a customer", "ref": "U-4", "matters_to": "requester"},
+  {"of": "X", "what": "A DATA_FILE holding valid JSON without a groups array is refused rather than silently overwritten", "ref": "D-1", "matters_to": "operator"},
+  {"of": "X", "what": "A missing parent directory fails at startup; Z starts and returns 500 on every write", "ref": "U-9", "matters_to": "operator"},
+  {"of": "X", "what": "Spec marks the choices it made as Open or implied, so a maintainer can see which behaviours were the builder's decision; Z's spec decides them unmarked and omits S-28", "ref": "S-28", "matters_to": "maintainer"},
+  {"of": "X", "what": "Concurrency rests on one explicit global commit queue; Z relies on the absence of any await in the expense route", "ref": "S-34", "matters_to": "maintainer"},
+  {"of": "Z", "what": "Write failure answers 500 with in-memory state unchanged and no consumed number, covered by a test", "ref": "U-8", "matters_to": "operator"},
+  {"of": "Z", "what": "Accepts ordinary JSON number spellings without X's fragile re-parse of the raw body for whole-cent checks", "ref": "U-3", "matters_to": "maintainer"}
+ ],
+ "lesser_lacks": [
+  "Write a README describing the routes, validation rules, error statuses, id handling and persistence guarantees",
+  "Refuse to start (or keep the file aside) when DATA_FILE is valid JSON without a groups array",
+  "Fail at startup when DATA_FILE's parent directory does not exist"
+ ],
+ "one_task_closes": "yes",
+ "why": "Both build every stated requirement and handle every probed unsaid condition soundly. X adds an accurate README, refuses a groups-less or misplaced DATA_FILE, and its spec marks its own decisions, where Z tells the requester nothing and can silently overwrite a data file (D-1). Z's simpler number handling and write-failure test are real but smaller, and the gap is a short follow-up task."},
+{"pair": "X-Y", "better": "same",
+ "advantages": [
+  {"of": "Y", "what": "16 KiB id limit and header budget grown from saved ids guarantee every created group stays addressable", "ref": "U-4", "matters_to": "operator"},
+  {"of": "Y", "what": "Tests also exercise failed ledger writes and reopening a saved ledger, though by monkeypatching rename and hand-writing Y's own layout", "ref": "U-8", "matters_to": "maintainer"},
+  {"of": "X", "what": "Its tests catch removal of the unknown-split check; Y's suite passes with that check deleted", "ref": "S-24", "matters_to": "maintainer"},
+  {"of": "X", "what": "Smaller, cleaner maintenance surface: no shipped acceptance scripts, no spec with stale Open points and duplicated headings, fewer tests pinning internals", "ref": "S-35", "matters_to": "maintainer"}
+ ],
+ "lesser_lacks": [],
+ "one_task_closes": "yes",
+ "why": "X and Y behave identically on every stated requirement, every unsaid probe and both defects, and both document their behaviour in near-identical READMEs. Y's id-length guard and failed-write tests are offset by its untested split check, stale spec and extra material a maintainer must carry. Neither gives the person running it anything that matters which the other lacks."}
+]}

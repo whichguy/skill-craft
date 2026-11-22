@@ -1,0 +1,22 @@
+{"probed": [
+ {"n": 1, "results": {
+  "p8284f5": {"result": "present", "observed": "cents 1.5 got 400, but cents 0.99999999999999999 got 201 {\"expense\":1}, share Bea 2.0000000000000001 got 201 {\"expense\":2}, share Cam -1e-400 got 201 {\"expense\":3}; balances {\"Ada\":4,\"Bea\":-4,\"Cam\":0}."},
+  "p720d2a": {"result": "absent", "observed": "All four fractional expense requests got 400; balances {\"Ada\":0,\"Bea\":0,\"Cam\":0}."},
+  "p23566f": {"result": "absent", "observed": "All four fractional expense requests got 400; balances {\"Ada\":0,\"Bea\":0,\"Cam\":0}."}
+ }},
+ {"n": 2, "results": {
+  "p8284f5": {"result": "present", "observed": "Second process started on the same DATA_FILE and announced its port. Both concurrent expenses (4 to process 1, 7 to process 2) got 201 {\"expense\":1}. After restart balances were {\"Ada\":7,\"Bea\":-7} and the next expense got number 2; the 4-cent acknowledged expense was lost."},
+  "p720d2a": {"result": "present", "observed": "Second process started on the same DATA_FILE without refusal. Both expenses got 201 {\"expense\":1}. After restart balances {\"Ada\":7,\"Bea\":-7}, next expense number 2; the 4-cent acknowledged expense was lost."},
+  "p23566f": {"result": "present", "observed": "Second process started on the same DATA_FILE without refusal. Both expenses got 201 {\"expense\":1}. After restart balances {\"Ada\":7,\"Bea\":-7}, next expense number 2; the 4-cent acknowledged expense was lost."}
+ }},
+ {"n": 4, "results": {
+  "p8284f5": {"result": "present", "observed": "Ids '.' and '..' created with 201; fetch with dot and %2E forms collapsed to /groups/balances or /balances and got 404, curl --path-as-is /groups/./balances got 200. Lone surrogate id got 201; %ED%A0%80 and %EF%BF%BD balances both 404. 16000-char id: 201, balances 200, expense 201. 16500-char id: created 201, balances and expense both 431."},
+  "p720d2a": {"result": "present", "observed": "Ids '.' and '..' rejected with 400 and lone surrogate rejected with 400 (those parts absent), but the 16500-char id was created with 201 and then balances and expense both returned 431, so a created group is unusable through ordinary URLs. 16000-char id worked (201/200/201)."},
+  "p23566f": {"result": "absent", "observed": "Ids '.', '..' and the lone surrogate rejected with 400. 16000-char id: 201, balances 200, expense 201. 16500-char id rejected at creation with 400 (later routes 404 as the group does not exist), so every 201 group was usable."}
+ }},
+ {"n": 5, "results": {
+  "p8284f5": {"result": "present", "observed": "Started via alias.json -> target.json; read 'old' with zero balances; expense 201 {\"expense\":1}, balances {\"Ada\":1,\"Bea\":-1}. Afterwards alias.json was a regular 0600 file (102 bytes) and target.json unchanged (61 bytes); restart on target.json showed zeros, restart on alias.json showed the expense."},
+  "p720d2a": {"result": "present", "observed": "Seeded target.json in this product's ledger format ({groups:[{id,members,expenses}]}). Via alias: zero balances, expense 201 {\"expense\":1}, balances {\"Ada\":1,\"Bea\":-1}. alias.json became a regular 0600 file, target.json unchanged; restart on target.json showed zeros, restart on alias.json showed the expense."},
+  "p23566f": {"result": "present", "observed": "Seeded target.json in this product's ledger format ({groups:[{id,members,expenses}]}). Via alias: zero balances, expense 201 {\"expense\":1}, balances {\"Ada\":1,\"Bea\":-1}. alias.json became a regular 0600 file, target.json unchanged; restart on target.json showed zeros, restart on alias.json showed the expense."}
+ }}
+]}

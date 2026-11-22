@@ -1,0 +1,28 @@
+{
+ "observed": true,
+ "reason": null,
+ "passed": [
+  "ticket-lifecycle-unchanged",
+  "listing-unchanged",
+  "notifications-unchanged",
+  "restart-keeps-state",
+  "cli-raw-columns",
+  "old-data-loads",
+  "assign-and-unassign",
+  "assignee-validation",
+  "assign-state-and-missing",
+  "assign-same-agent-noop",
+  "assign-audited",
+  "assignee-notified",
+  "assignee-filter",
+  "filters-combine",
+  "assignee-filter-pages",
+  "assignee-persists",
+  "old-tickets-unassigned",
+  "cli-shows-assignee"
+ ],
+ "failed": {},
+ "kind": "ticket-assignment",
+ "work": "/Users/dadleet/e2e-runs/d20261122-b54ea4/fix/tickets/work",
+ "commit": "6ade2f096ceaf45edfa366b53d0d2d49c0f7a286"
+}

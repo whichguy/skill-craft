@@ -1,0 +1,54 @@
+{
+ "expenses": {
+  "fixer": "Claude Opus, effort xhigh (Agent subagent)",
+  "seconds": 405.1,
+  "subagent_tokens": 185190,
+  "tool_uses": 26,
+  "fixed": 3,
+  "not_changed": 2,
+  "tests": "8 of 8 (5 before)",
+  "note": "seconds and tokens from the harness's task usage line"
+ },
+ "looks": {
+  "expenses": {
+   "seconds": 269.0,
+   "model": "gpt-6.2-sol",
+   "effort": "medium"
+  },
+  "chess": {
+   "seconds": 125.1,
+   "model": "gpt-6.2-sol",
+   "effort": "medium"
+  },
+  "tickets": {
+   "seconds": 189.5,
+   "model": "gpt-6.2-sol",
+   "effort": "medium"
+  },
+  "grokbot": {
+   "seconds": 470.3,
+   "model": "gpt-6.2-sol",
+   "effort": "medium"
+  }
+ },
+ "tickets": {
+  "fixer": "Claude Opus, effort xhigh (Agent subagent)",
+  "seconds": 602.5,
+  "subagent_tokens": 239165,
+  "tool_uses": 48,
+  "fixed": 4,
+  "not_changed": 1,
+  "tests": "127 of 127 (123 before)",
+  "note": "seconds and tokens from the harness's task usage line"
+ },
+ "grokbot": {
+  "fixer": "Claude Opus, effort xhigh (Agent subagent)",
+  "seconds": 1586.5,
+  "subagent_tokens": 318410,
+  "tool_uses": 88,
+  "fixed": 13,
+  "not_changed": 2,
+  "tests": "21 of 21 (8 before)",
+  "note": "seconds and tokens from the harness's task usage line"
+ }
+}

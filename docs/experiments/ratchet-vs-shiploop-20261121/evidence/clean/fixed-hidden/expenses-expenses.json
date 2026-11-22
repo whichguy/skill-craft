@@ -1,0 +1,15 @@
+{
+ "observed": true,
+ "passed": [
+  "unit",
+  "contract",
+  "split",
+  "settle",
+  "restart",
+  "concurrency"
+ ],
+ "failed": {},
+ "kind": "expenses",
+ "work": "/Users/dadleet/e2e-runs/d20261122-b54ea4/fix/expenses/work",
+ "commit": "0ea1bfef9a44d21d1e6ebaf5f65066d995eff60e"
+}

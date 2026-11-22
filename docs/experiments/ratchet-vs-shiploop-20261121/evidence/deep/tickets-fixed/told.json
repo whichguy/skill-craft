@@ -1,0 +1,361 @@
+{
+ "told": [
+  {
+   "id": "U-1",
+   "results": {
+    "p80d329": {
+     "told": "yes",
+     "where": "docs/api.md: \"It answers 400 for invalid input, 404 for an unknown ticket, and 409 for a resolved or closed ticket.\""
+    },
+    "pb56fe2": {
+     "told": "yes",
+     "where": "docs/api.md: \"It answers 400 for invalid input, 404 for an unknown ticket, and 409 for a resolved or closed ticket.\""
+    },
+    "p21e512": {
+     "told": "yes",
+     "where": "docs/api.md: \"A `resolved` or `closed` ticket returns 409 `conflict` even when the requested value equals the current one.\""
+    }
+   }
+  },
+  {
+   "id": "U-2",
+   "results": {
+    "p80d329": {
+     "told": "no",
+     "where": ""
+    },
+    "pb56fe2": {
+     "told": "no",
+     "where": ""
+    },
+    "p21e512": {
+     "told": "yes",
+     "where": "docs/api.md: \"The body must be valid UTF-8, contain exactly the `assignee` field and fit within `MAX_BODY_BYTES` (65,536 by default). Malformed UTF-8 returns 400 `invalid` without changing the ticket, audit history or outbox.\""
+    }
+   }
+  },
+  {
+   "id": "U-3",
+   "results": {
+    "p80d329": {
+     "told": "yes",
+     "where": "docs/api.md: \"A name is trimmed and must then be 1–64 Unicode code points of well-formed text on a single line: no control characters (a tab or a newline, say), no Unicode line breaks (U+0085, U+2028, U+2029) and no unpaired surrogate (\\\"\\\\uD800\\\").\""
+    },
+    "pb56fe2": {
+     "told": "yes",
+     "where": "docs/api.md: \"A name is trimmed and must contain 1–64 Unicode code points on a single line.\""
+    },
+    "p21e512": {
+     "told": "yes",
+     "where": "docs/api.md: \"Agent names are well-formed Unicode strings of 1 through 64 UTF-16 code units with at least one non-whitespace character. Control characters and line and paragraph separators are invalid. The service preserves the name as supplied.\""
+    }
+   }
+  },
+  {
+   "id": "U-4",
+   "results": {
+    "p80d329": {
+     "told": "yes",
+     "where": "docs/api.md: \"An effective change updates the ticket and records who made the change in its audit history (`ticket.assigned` or `ticket.unassigned`). Repeating the current assignment leaves the ticket, audit and outbox as they were.\""
+    },
+    "pb56fe2": {
+     "told": "yes",
+     "where": "docs/api.md: \"An effective change updates the ticket and records who made the change in its audit history.\" and \"Actions include `ticket.created`, `ticket.updated`, `ticket.transitioned`, `ticket.assigned`, and `ticket.unassigned`.\""
+    },
+    "p21e512": {
+     "told": "yes",
+     "where": "docs/decisions/0009-ticket-assignment.md: \"Each actual change appends a `ticket.assigned` audit entry.\"; docs/api.md: \"The last action covers both setting and clearing the assignee.\""
+    }
+   }
+  },
+  {
+   "id": "U-5",
+   "results": {
+    "p80d329": {
+     "told": "yes",
+     "where": "docs/api.md: \"`updated` | when it last changed; a request that changes nothing leaves it as it was\""
+    },
+    "pb56fe2": {
+     "told": "yes",
+     "where": "docs/api.md: \"`updated` | when it last changed; a request that changes nothing leaves it as it was\""
+    },
+    "p21e512": {
+     "told": "yes",
+     "where": "docs/api.md: \"A change updates `updated` and records the previous and resulting assignee in the audit log.\""
+    }
+   }
+  },
+  {
+   "id": "U-6",
+   "results": {
+    "p80d329": {
+     "told": "yes",
+     "where": "docs/api.md: \"Repeating the current assignment leaves the ticket, audit and outbox as they were.\""
+    },
+    "pb56fe2": {
+     "told": "yes",
+     "where": "docs/api.md: \"Repeating the current assignment leaves the ticket, audit and outbox as they were.\""
+    },
+    "p21e512": {
+     "told": "yes",
+     "where": "docs/api.md: \"On an eligible ticket, repeating the current value leaves the timestamp, audit history and notifications as they were.\""
+    }
+   }
+  },
+  {
+   "id": "U-7",
+   "results": {
+    "p80d329": {
+     "told": "yes",
+     "where": "docs/operations.md: \"A `ticket.assigned` line's `to` is the agent's name exactly as the ticket was assigned (`\\\"to\\\": \\\"Dana Lee\\\"`), not a mail address: the service keeps no list of agents and never checks that the relay can deliver to a name.\""
+    },
+    "pb56fe2": {
+     "told": "yes",
+     "where": "docs/api.md: \"The worker sends each new assignee an assignment notification.\"; docs/decisions/0009-ticket-assignment.md: \"An effective assignment adds an audit entry and queues a notification addressed to the assignee.\""
+    },
+    "p21e512": {
+     "told": "yes",
+     "where": "docs/operations.md: \"A new assignment notifies the incoming agent.\"; docs/api.md: \"A change to a name queues a notification to the incoming agent.\""
+    }
+   }
+  },
+  {
+   "id": "U-8",
+   "results": {
+    "p80d329": {
+     "told": "yes",
+     "where": "docs/operations.md: \"An assignment notification's key holds the audit entry of its assignment (`ticket.assigned:T-0042:57`), so every assignment that changes the assignee is its own notification, even while an earlier one is pending.\""
+    },
+    "pb56fe2": {
+     "told": "yes",
+     "where": "docs/decisions/0009-ticket-assignment.md: \"The audit sequence gives each assignment its own event key, including repeated assignments separated by a change.\""
+    },
+    "p21e512": {
+     "told": "yes",
+     "where": "docs/operations.md: \"Each assignment to an agent has its own key based on the audit sequence.\""
+    }
+   }
+  },
+  {
+   "id": "U-11",
+   "results": {
+    "p80d329": {
+     "told": "yes",
+     "where": "docs/operations.md: \"A ticket's `assignee` must be null or a name `PUT /tickets/:id/assignee` would take; a file written before assignment existed has none, and its tickets open unassigned.\""
+    },
+    "pb56fe2": {
+     "told": "yes",
+     "where": "docs/decisions/0009-ticket-assignment.md: \"Store a nullable assignee in each ticket and interpret missing assignees as null when loading earlier data files.\"; docs/operations.md: \"A file it cannot use stops it with a message that names the record\""
+    },
+    "p21e512": {
+     "told": "yes",
+     "where": "docs/operations.md: \"Version 1 files from before assignment load tickets with a missing assignee as unassigned. An explicit assignee must be a valid agent name or `null`.\""
+    }
+   }
+  },
+  {
+   "id": "U-12",
+   "results": {
+    "p80d329": {
+     "told": "yes",
+     "where": "docs/api.md: \"A ticket keeps its assignee through its lifecycle: resolving, closing and reopening it leave the assignee as it was, and reopening sends no new assignment notification.\""
+    },
+    "pb56fe2": {
+     "told": "no",
+     "where": ""
+    },
+    "p21e512": {
+     "told": "yes",
+     "where": "docs/api.md: \"PATCH and lifecycle changes preserve the assignee.\""
+    }
+   }
+  },
+  {
+   "id": "U-13",
+   "results": {
+    "p80d329": {
+     "told": "yes",
+     "where": "docs/api.md: \"The `assignee` value is compared with each ticket's assignee exactly as given: it is not trimmed, and case counts (`Dana Lee` and `dana lee` are two agents). It is not checked either: a value no assignee can be (longer than 64 characters, with a tab, or `—`) answers 200 with no tickets, not `invalid`.\""
+    },
+    "pb56fe2": {
+     "told": "no",
+     "where": ""
+    },
+    "p21e512": {
+     "told": "yes",
+     "where": "docs/api.md: \"The assignee filter compares names exactly, including case and surrounding spaces. URL-encode names with spaces or reserved characters. A repeated parameter uses its first value. Invalid status, priority or nonempty assignee values return `invalid`.\""
+    }
+   }
+  },
+  {
+   "id": "U-14",
+   "results": {
+    "p80d329": {
+     "told": "yes",
+     "where": "docs/api.md: \"`next` is null on the last page. Otherwise, pass it as `cursor`, with the same filters, to get the next page.\""
+    },
+    "pb56fe2": {
+     "told": "yes",
+     "where": "docs/api.md: \"`next` is null on the last page. Otherwise, pass it as `cursor`, with the same filters, to get the next page.\""
+    },
+    "p21e512": {
+     "told": "yes",
+     "where": "docs/api.md: \"`next` is null on the last page. Otherwise, pass it as `cursor`, with the same filters, to get the next page.\""
+    }
+   }
+  },
+  {
+   "id": "U-15",
+   "results": {
+    "p80d329": {
+     "told": "yes",
+     "where": "docs/api.md: \"Filters combine: a ticket is listed only when it matches every filter given, so `?status=open&priority=urgent` lists the open tickets that are urgent.\""
+    },
+    "pb56fe2": {
+     "told": "yes",
+     "where": "docs/api.md: \"Filters combine: a ticket is listed only when it matches every filter given, so `?status=open&priority=urgent` lists the open tickets that are urgent.\""
+    },
+    "p21e512": {
+     "told": "yes",
+     "where": "docs/api.md: \"A ticket must match every supplied filter.\""
+    }
+   }
+  },
+  {
+   "id": "U-16",
+   "results": {
+    "p80d329": {
+     "told": "yes",
+     "where": "README.md: \"`list --raw` prints one tab-separated line per ticket in the order id, status, priority, title, assignee, the assignee field empty for an unassigned ticket.\""
+    },
+    "pb56fe2": {
+     "told": "yes",
+     "where": "README.md: \"`list --raw` prints one tab-separated line per ticket in the order id, status, priority, title, assignee. The assignee field is empty for unassigned tickets.\""
+    },
+    "p21e512": {
+     "told": "yes",
+     "where": "README.md: \"`list --raw` prints one ticket per line with four tab-separated columns in order of id, status, priority and title.\""
+    }
+   }
+  },
+  {
+   "id": "U-17",
+   "results": {
+    "p80d329": {
+     "told": "yes",
+     "where": "README.md: \"`list` prints a table with an ASSIGNEE column, and `show` prints the ticket's assignee. Both print an em dash (`—`) for an unassigned ticket\""
+    },
+    "pb56fe2": {
+     "told": "yes",
+     "where": "README.md: \"`list` prints a table with an assignee column. An em dash indicates an unassigned ticket.\""
+    },
+    "p21e512": {
+     "told": "yes",
+     "where": "README.md: \"`list` prints a table with an `ASSIGNEE` column that shows a quoted agent name or `unassigned`.\""
+    }
+   }
+  },
+  {
+   "id": "U-18",
+   "results": {
+    "p80d329": {
+     "told": "yes",
+     "where": "README.md: \"`list` prints a table with an ASSIGNEE column, and `show` prints the ticket's assignee. Both print an em dash (`—`) for an unassigned ticket\""
+    },
+    "pb56fe2": {
+     "told": "no",
+     "where": ""
+    },
+    "p21e512": {
+     "told": "yes",
+     "where": "README.md: \"`show` displays the current assignee in the ticket details above the history, using the same format.\""
+    }
+   }
+  },
+  {
+   "id": "U-20",
+   "results": {
+    "p80d329": {
+     "told": "yes",
+     "where": "docs/api.md: \"Unknown fields in a request body are refused (400), so a misspelt field is never silently ignored.\""
+    },
+    "pb56fe2": {
+     "told": "yes",
+     "where": "docs/api.md: \"Unknown fields in a request body are refused (400), so a misspelt field is never silently ignored.\""
+    },
+    "p21e512": {
+     "told": "yes",
+     "where": "docs/api.md: \"Unknown fields in a request body are refused (400), so a misspelt field is never silently ignored.\""
+    }
+   }
+  },
+  {
+   "id": "U-21",
+   "results": {
+    "p80d329": {
+     "told": "yes",
+     "where": "docs/api.md: \"The endpoint answers 200 with the ticket.\""
+    },
+    "pb56fe2": {
+     "told": "yes",
+     "where": "docs/api.md: \"The endpoint answers 200 with the ticket.\""
+    },
+    "p21e512": {
+     "told": "yes",
+     "where": "docs/api.md: \"Answers 200 with the resulting ticket.\""
+    }
+   }
+  },
+  {
+   "id": "U-22",
+   "results": {
+    "p80d329": {
+     "told": "yes",
+     "where": "CHANGELOG.md: \"## 1.5.0 (2026-11-22) - Ticket assignment (decision 9): `PUT /tickets/:id/assignee` with `{\\\"assignee\\\": \\\"<agent>\\\"}` assigns an open or in-progress ticket to an agent and `{\\\"assignee\\\": null}` unassigns it\""
+    },
+    "pb56fe2": {
+     "told": "no",
+     "where": ""
+    },
+    "p21e512": {
+     "told": "yes",
+     "where": "CHANGELOG.md: \"## 1.5.0 (2026-11-22) - Assign or clear the owner of an active ticket. Changes are audited and incoming agents receive a notification.\""
+    }
+   }
+  },
+  {
+   "id": "U-26",
+   "results": {
+    "p80d329": {
+     "told": "yes",
+     "where": "README.md: \"`bin/tickets.js` reads the data file (`DATA_FILE`, or `--data FILE`); it never changes it.\""
+    },
+    "pb56fe2": {
+     "told": "yes",
+     "where": "README.md: \"`bin/tickets.js` reads the data file (`DATA_FILE`, or `--data FILE`); it never changes it.\""
+    },
+    "p21e512": {
+     "told": "yes",
+     "where": "README.md: \"`bin/tickets.js` reads the data file (`DATA_FILE`, or `--data FILE`); it never changes it.\""
+    }
+   }
+  },
+  {
+   "id": "U-27",
+   "results": {
+    "p80d329": {
+     "told": "no",
+     "where": ""
+    },
+    "pb56fe2": {
+     "told": "no",
+     "where": ""
+    },
+    "p21e512": {
+     "told": "yes",
+     "where": "README.md: \"`show` displays the current assignee in the ticket details above the history, using the same format. History is oldest first. An assignment change ending in bare `null` clears the assignee, and `\\\"null\\\"` is an agent name.\""
+    }
+   }
+  }
+ ]
+}

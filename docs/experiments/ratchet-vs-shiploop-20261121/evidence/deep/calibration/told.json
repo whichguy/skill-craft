@@ -1,0 +1,445 @@
+{
+ "told": [
+  {
+   "id": "U-1",
+   "results": {
+    "c3cf105": {
+     "told": "no",
+     "where": ""
+    },
+    "c9191ec": {
+     "told": "no",
+     "where": ""
+    },
+    "cf491ea": {
+     "told": "no",
+     "where": ""
+    },
+    "c636a23": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-2",
+   "results": {
+    "c3cf105": {
+     "told": "no",
+     "where": ""
+    },
+    "c9191ec": {
+     "told": "no",
+     "where": ""
+    },
+    "cf491ea": {
+     "told": "no",
+     "where": ""
+    },
+    "c636a23": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-3",
+   "results": {
+    "c3cf105": {
+     "told": "no",
+     "where": ""
+    },
+    "c9191ec": {
+     "told": "no",
+     "where": ""
+    },
+    "cf491ea": {
+     "told": "no",
+     "where": ""
+    },
+    "c636a23": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-4",
+   "results": {
+    "c3cf105": {
+     "told": "no",
+     "where": ""
+    },
+    "c9191ec": {
+     "told": "no",
+     "where": ""
+    },
+    "cf491ea": {
+     "told": "no",
+     "where": ""
+    },
+    "c636a23": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-5",
+   "results": {
+    "c3cf105": {
+     "told": "no",
+     "where": ""
+    },
+    "c9191ec": {
+     "told": "no",
+     "where": ""
+    },
+    "cf491ea": {
+     "told": "no",
+     "where": ""
+    },
+    "c636a23": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-6",
+   "results": {
+    "c3cf105": {
+     "told": "no",
+     "where": ""
+    },
+    "c9191ec": {
+     "told": "no",
+     "where": ""
+    },
+    "cf491ea": {
+     "told": "no",
+     "where": ""
+    },
+    "c636a23": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-7",
+   "results": {
+    "c3cf105": {
+     "told": "no",
+     "where": ""
+    },
+    "c9191ec": {
+     "told": "no",
+     "where": ""
+    },
+    "cf491ea": {
+     "told": "no",
+     "where": ""
+    },
+    "c636a23": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-8",
+   "results": {
+    "c3cf105": {
+     "told": "no",
+     "where": ""
+    },
+    "c9191ec": {
+     "told": "no",
+     "where": ""
+    },
+    "cf491ea": {
+     "told": "no",
+     "where": ""
+    },
+    "c636a23": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-11",
+   "results": {
+    "c3cf105": {
+     "told": "no",
+     "where": ""
+    },
+    "c9191ec": {
+     "told": "no",
+     "where": ""
+    },
+    "cf491ea": {
+     "told": "no",
+     "where": ""
+    },
+    "c636a23": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-12",
+   "results": {
+    "c3cf105": {
+     "told": "no",
+     "where": ""
+    },
+    "c9191ec": {
+     "told": "no",
+     "where": ""
+    },
+    "cf491ea": {
+     "told": "no",
+     "where": ""
+    },
+    "c636a23": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-13",
+   "results": {
+    "c3cf105": {
+     "told": "no",
+     "where": ""
+    },
+    "c9191ec": {
+     "told": "no",
+     "where": ""
+    },
+    "cf491ea": {
+     "told": "no",
+     "where": ""
+    },
+    "c636a23": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-14",
+   "results": {
+    "c3cf105": {
+     "told": "no",
+     "where": ""
+    },
+    "c9191ec": {
+     "told": "no",
+     "where": ""
+    },
+    "cf491ea": {
+     "told": "no",
+     "where": ""
+    },
+    "c636a23": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-15",
+   "results": {
+    "c3cf105": {
+     "told": "yes",
+     "where": "docs/api.md: \"Filters combine: a ticket is listed only when it matches every filter given, so `?status=open&priority=urgent` lists the open tickets that are urgent.\""
+    },
+    "c9191ec": {
+     "told": "yes",
+     "where": "docs/api.md: \"Filters combine: a ticket is listed only when it matches every filter given, so `?status=open&priority=urgent` lists the open tickets that are urgent.\""
+    },
+    "cf491ea": {
+     "told": "yes",
+     "where": "docs/api.md: \"Filters combine: a ticket is listed only when it matches every filter given, so `?status=open&priority=urgent` lists the open tickets that are urgent.\""
+    },
+    "c636a23": {
+     "told": "yes",
+     "where": "docs/api.md: \"Filters combine: a ticket is listed only when it matches every filter given, so `?status=open&priority=urgent` lists the open tickets that are urgent.\""
+    }
+   }
+  },
+  {
+   "id": "U-16",
+   "results": {
+    "c3cf105": {
+     "told": "no",
+     "where": ""
+    },
+    "c9191ec": {
+     "told": "no",
+     "where": ""
+    },
+    "cf491ea": {
+     "told": "no",
+     "where": ""
+    },
+    "c636a23": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-17",
+   "results": {
+    "c3cf105": {
+     "told": "no",
+     "where": ""
+    },
+    "c9191ec": {
+     "told": "no",
+     "where": ""
+    },
+    "cf491ea": {
+     "told": "no",
+     "where": ""
+    },
+    "c636a23": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-18",
+   "results": {
+    "c3cf105": {
+     "told": "no",
+     "where": ""
+    },
+    "c9191ec": {
+     "told": "no",
+     "where": ""
+    },
+    "cf491ea": {
+     "told": "no",
+     "where": ""
+    },
+    "c636a23": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-20",
+   "results": {
+    "c3cf105": {
+     "told": "yes",
+     "where": "docs/api.md: \"Unknown fields in a request body are refused (400), so a misspelt field is never silently ignored.\""
+    },
+    "c9191ec": {
+     "told": "yes",
+     "where": "docs/api.md: \"Unknown fields in a request body are refused (400), so a misspelt field is never silently ignored.\""
+    },
+    "cf491ea": {
+     "told": "yes",
+     "where": "docs/api.md: \"Unknown fields in a request body are refused (400), so a misspelt field is never silently ignored.\""
+    },
+    "c636a23": {
+     "told": "yes",
+     "where": "docs/api.md: \"Unknown fields in a request body are refused (400), so a misspelt field is never silently ignored.\""
+    }
+   }
+  },
+  {
+   "id": "U-21",
+   "results": {
+    "c3cf105": {
+     "told": "no",
+     "where": ""
+    },
+    "c9191ec": {
+     "told": "no",
+     "where": ""
+    },
+    "cf491ea": {
+     "told": "no",
+     "where": ""
+    },
+    "c636a23": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-22",
+   "results": {
+    "c3cf105": {
+     "told": "no",
+     "where": ""
+    },
+    "c9191ec": {
+     "told": "no",
+     "where": ""
+    },
+    "cf491ea": {
+     "told": "no",
+     "where": ""
+    },
+    "c636a23": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-26",
+   "results": {
+    "c3cf105": {
+     "told": "yes",
+     "where": "README.md: \"`bin/tickets.js` reads the data file (`DATA_FILE`, or `--data FILE`); it never changes it.\""
+    },
+    "c9191ec": {
+     "told": "yes",
+     "where": "README.md: \"`bin/tickets.js` reads the data file (`DATA_FILE`, or `--data FILE`); it never changes it.\""
+    },
+    "cf491ea": {
+     "told": "yes",
+     "where": "README.md: \"`bin/tickets.js` reads the data file (`DATA_FILE`, or `--data FILE`); it never changes it.\""
+    },
+    "c636a23": {
+     "told": "yes",
+     "where": "README.md: \"`bin/tickets.js` reads the data file (`DATA_FILE`, or `--data FILE`); it never changes it.\""
+    }
+   }
+  },
+  {
+   "id": "U-27",
+   "results": {
+    "c3cf105": {
+     "told": "no",
+     "where": ""
+    },
+    "c9191ec": {
+     "told": "no",
+     "where": ""
+    },
+    "cf491ea": {
+     "told": "no",
+     "where": ""
+    },
+    "c636a23": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  }
+ ]
+}

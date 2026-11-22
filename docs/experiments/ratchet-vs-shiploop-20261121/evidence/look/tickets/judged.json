@@ -1,0 +1,45 @@
+{
+ "shortfalls": [
+  {
+   "id": "U-22",
+   "condition": "Whether the documentation and release records describe the change: docs/api.md (endpoint, ticket field, filter, audit action, notification), README command-line columns, a CHANGELOG.md section with a version bump in package.json, and a decision record if a format or rule changed.",
+   "what_it_does": "docs/api.md documents endpoint, field, filter, audit actions and notification; README documents the CLI columns; decision record 0009 added and indexed; CHANGELOG.md has no new section and package.json version stays 1.4.0"
+  }
+ ],
+ "defects": [
+  {
+   "id": "D-1",
+   "severity": "low",
+   "title": "An assignee containing invalid UTF-8 is silently altered and accepted",
+   "expected": "400 invalid with the ticket, audit and outbox unchanged."
+  },
+  {
+   "id": "D-2",
+   "severity": "low",
+   "title": "A malformed UTF-8 byte in the assignee filter matches the agent whose name holds U+FFFD",
+   "expected": "400 invalid or an empty page."
+  }
+ ],
+ "silent": [
+  {
+   "id": "U-12",
+   "condition": "What happens to the assignee when a ticket is moved to in_progress, resolved, closed or reopened, and whether the assignee filter still returns it afterwards.",
+   "what_it_does": "Assignee is kept through in_progress, resolved, closed and reopen; ?assignee=<name> keeps returning the ticket; after reopen it can be reassigned"
+  },
+  {
+   "id": "U-18",
+   "condition": "Whether the command-line ticket detail (`show`) prints the assignee.",
+   "what_it_does": "show prints an 'assignee' line, the name or an em dash for unassigned"
+  },
+  {
+   "id": "U-20",
+   "condition": "Whether `POST /tickets` and `PATCH /tickets/:id` accept an `assignee` field.",
+   "what_it_does": "POST /tickets and PATCH /tickets/:id refuse an assignee field with 400 invalid 'unknown field: assignee'"
+  },
+  {
+   "id": "U-27",
+   "condition": "The command-line ticket detail keeps showing the ticket's history in oldest-first order, including assignment changes.",
+   "what_it_does": "show lists history oldest first, matching the audit API order, with both assignment entries and the current assignee"
+  }
+ ]
+}

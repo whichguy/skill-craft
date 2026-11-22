@@ -1,0 +1,31 @@
+{"shortfalls": [
+  {"n": 1, "title": "Keyboard cancellation can stop the wrong task.", "severity": "high", "matches": []},
+  {"n": 2, "title": "A capitalized field in a record request can write the wrong field.", "severity": "high", "matches": ["U-49", "D-2"]},
+  {"n": 3, "title": "Saving a reused name silently overwrites a saved entry.", "severity": "high", "matches": ["U-15", "D-9"]},
+  {"n": 4, "title": "A temporary storage failure leaves abandoned work looking active.", "severity": "high", "matches": ["U-54", "D-5", "U-57", "D-6"]},
+  {"n": 5, "title": "Valid bot names can push chat controls outside a narrow window.", "severity": "medium", "matches": []},
+  {"n": 6, "title": "A cancellation click can disappear while a chat action is in flight.", "severity": "medium", "matches": []},
+  {"n": 7, "title": "The open page continues to report live progress when the server is down.", "severity": "medium", "matches": []},
+  {"n": 8, "title": "Reloading loses the reading position and unsent text.", "severity": "medium", "matches": []},
+  {"n": 9, "title": "Common opening questions make saved conversations indistinguishable.", "severity": "medium", "matches": ["U-11", "D-3"]},
+  {"n": 10, "title": "An incomplete clarification loses the pending record request.", "severity": "medium", "matches": []},
+  {"n": 11, "title": "Active instructions cannot be cleared from an existing bot.", "severity": "medium", "matches": []},
+  {"n": 12, "title": "Approval previews can make field boundaries ambiguous.", "severity": "medium", "matches": []},
+  {"n": 13, "title": "A total above the safe integer range can be silently rounded on update.", "severity": "medium", "matches": []},
+  {"n": 14, "title": "The composer silently drops the tail of overlong input.", "severity": "medium", "matches": []},
+  {"n": 15, "title": "Setup gives no reason when the environment token is rejected.", "severity": "low", "matches": []}
+ ],
+ "choices": [
+  {"n": 1, "text": "The initial conversation title comes from the first sent message", "matches": ["U-11"]},
+  {"n": 2, "text": "A new bot starts with one empty conversation.", "matches": ["U-8"]},
+  {"n": 3, "text": "Saved instructions and saved tasks are per-person libraries", "matches": ["U-17"]},
+  {"n": 4, "text": "Bot names and saved-entry names are limited to 80 characters.", "matches": ["U-9"]},
+  {"n": 5, "text": "Conversationally remembered facts are deduplicated case-insensitively", "matches": ["U-23"]},
+  {"n": 6, "text": "An approval compares the proposed field's original value with its current value.", "matches": ["U-33", "U-34"]},
+  {"n": 7, "text": "Existing record identity, type and reader fields are immutable through the chat.", "matches": ["U-29"]},
+  {"n": 8, "text": "Both a saved setup token and an accepted environment token configure the whole installation.", "matches": ["U-5"]},
+  {"n": 9, "text": "Several long tasks can run in one conversation.", "matches": ["U-38", "U-39"]},
+  {"n": 10, "text": "The return summary uses the browser's last-seen time for each person", "matches": ["U-44"]},
+  {"n": 11, "text": "Dark mode is a browser preference shared by profiles using that browser.", "matches": []},
+  {"n": 12, "text": "Draft text follows its conversation when switching threads in the same open tab.", "matches": []}
+ ]}

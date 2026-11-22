@@ -1,0 +1,310 @@
+{
+ "told": [
+  {
+   "id": "U-1",
+   "results": {
+    "p370f0f": {
+     "told": "yes",
+     "where": "README.md: \"400 | The body is not JSON; the payer or a name in `shares` is not a member; ...\" (POST /groups: \"The body is not a JSON object\") and \"Error answers are `{\\\"error\\\": \\\"<message>\\\"}`.\""
+    },
+    "p8284f5": {
+     "told": "no",
+     "where": ""
+    },
+    "p23566f": {
+     "told": "yes",
+     "where": "README.md: \"Invalid submissions return 400.\" ... \"Error responses have empty bodies.\""
+    }
+   }
+  },
+  {
+   "id": "U-2",
+   "results": {
+    "p370f0f": {
+     "told": "yes",
+     "where": "README.md: \"400 | ... `cents` is not a positive whole number; ... `split` is not `equal` or `exact`; an exact split has no `shares` object; ...\" and for groups \"the id is not a string with at least one non-whitespace character; or `members` is not a list of at least two distinct names\""
+    },
+    "p8284f5": {
+     "told": "no",
+     "where": ""
+    },
+    "p23566f": {
+     "told": "yes",
+     "where": "README.md: \"Invalid submissions return 400.\" with \"The payer must belong to the group. Expense amounts must be positive whole cents.\""
+    }
+   }
+  },
+  {
+   "id": "U-3",
+   "results": {
+    "p370f0f": {
+     "told": "yes",
+     "where": "README.md: \"`members` is not a list of at least two distinct names, each a string with at least one non-whitespace character\" and \"`cents` is not a positive whole number\" answer 400"
+    },
+    "p8284f5": {
+     "told": "no",
+     "where": ""
+    },
+    "p23566f": {
+     "told": "yes",
+     "where": "README.md: \"Supply at least two members, each with a distinct, nonempty string name.\" / \"Amounts and shares can use any equivalent JSON number spelling\" / \"Invalid submissions return 400.\""
+    }
+   }
+  },
+  {
+   "id": "U-4",
+   "results": {
+    "p370f0f": {
+     "told": "yes",
+     "where": "README.md: \"In a URL the id is one path segment, percent-decoded once. An id such as `room/1` is addressed as `/groups/room%2F1/balances`.\" and \"`.` and `..`: ... Only a client that sends the path unchanged (such as `curl --path-as-is`) reaches the group.\""
+    },
+    "p8284f5": {
+     "told": "no",
+     "where": ""
+    },
+    "p23566f": {
+     "told": "yes",
+     "where": "README.md: \"A group ID is a nonempty, URL-encodable string. The IDs `.` and `..` are reserved. Send the original ID in the creation body, then use `encodeURIComponent(id)` once to address it as a single path segment.\""
+    }
+   }
+  },
+  {
+   "id": "U-5",
+   "results": {
+    "p370f0f": {
+     "told": "yes",
+     "where": "README.md: \"400 | ... a share is not a whole number of 0 or more; ...\""
+    },
+    "p8284f5": {
+     "told": "no",
+     "where": ""
+    },
+    "p23566f": {
+     "told": "yes",
+     "where": "README.md: \"Every listed member must belong to the group, and the nonnegative whole-cent shares must sum to the expense amount.\""
+    }
+   }
+  },
+  {
+   "id": "U-6",
+   "results": {
+    "p370f0f": {
+     "told": "yes",
+     "where": "README.md: \"A name repeated in `members` counts once, at its first position.\" and \"Ids and names are compared exactly as sent, including case and surrounding spaces\""
+    },
+    "p8284f5": {
+     "told": "no",
+     "where": ""
+    },
+    "p23566f": {
+     "told": "yes",
+     "where": "README.md: \"Supply at least two members, each with a distinct, nonempty string name. Names match exactly, including whitespace.\""
+    }
+   }
+  },
+  {
+   "id": "U-8",
+   "results": {
+    "p370f0f": {
+     "told": "yes",
+     "where": "README.md: \"Each save writes a new file next to the ledger and renames it over the ledger\" and \"500 | The data file could not be written; nothing was recorded.\""
+    },
+    "p8284f5": {
+     "told": "no",
+     "where": ""
+    },
+    "p23566f": {
+     "told": "yes",
+     "where": "README.md: \"The service replaces the JSON snapshot atomically and acknowledges each mutation after the replacement.\""
+    }
+   }
+  },
+  {
+   "id": "U-9",
+   "results": {
+    "p370f0f": {
+     "told": "yes",
+     "where": "README.md: \"A missing file is created by the first successful write.\""
+    },
+    "p8284f5": {
+     "told": "no",
+     "where": ""
+    },
+    "p23566f": {
+     "told": "yes",
+     "where": "README.md: \"An existing, writable parent directory is sufficient for a new ledger. The first successful write creates the file.\""
+    }
+   }
+  },
+  {
+   "id": "U-10",
+   "results": {
+    "p370f0f": {
+     "told": "yes",
+     "where": "README.md: \"At startup, an existing file that is not valid JSON, or is JSON without a `groups` list ..., stops the process with an error before it listens. The file is left unchanged.\""
+    },
+    "p8284f5": {
+     "told": "no",
+     "where": ""
+    },
+    "p23566f": {
+     "told": "yes",
+     "where": "README.md: \"Invalid port configuration, an unavailable port, and unreadable or incompatible saved data cause startup to fail.\""
+    }
+   }
+  },
+  {
+   "id": "U-13",
+   "results": {
+    "p370f0f": {
+     "told": "yes",
+     "where": "README.md: \"Expenses posted to the same group at the same moment are all recorded, each with its own number.\""
+    },
+    "p8284f5": {
+     "told": "no",
+     "where": ""
+    },
+    "p23566f": {
+     "told": "yes",
+     "where": "README.md: \"Overlapping expenses receive numbers in the order their validated requests enter the write queue.\""
+    }
+   }
+  },
+  {
+   "id": "U-15",
+   "results": {
+    "p370f0f": {
+     "told": "no",
+     "where": ""
+    },
+    "p8284f5": {
+     "told": "no",
+     "where": ""
+    },
+    "p23566f": {
+     "told": "yes",
+     "where": "README.md: \"Group creations and expense submissions share a write queue across all groups.\" with \"Creating a group with a valid list and a used ID returns 409.\""
+    }
+   }
+  },
+  {
+   "id": "U-16",
+   "results": {
+    "p370f0f": {
+     "told": "no",
+     "where": ""
+    },
+    "p8284f5": {
+     "told": "no",
+     "where": ""
+    },
+    "p23566f": {
+     "told": "yes",
+     "where": "README.md: \"An expense rejected this way leaves balances and the next expense number unchanged, including after an ordinary restart.\""
+    }
+   }
+  },
+  {
+   "id": "U-21",
+   "results": {
+    "p370f0f": {
+     "told": "yes",
+     "where": "README.md: \"409 | A group with this id already exists. This is checked before the members, so a duplicate id answers 409 even when the members are invalid.\""
+    },
+    "p8284f5": {
+     "told": "no",
+     "where": ""
+    },
+    "p23566f": {
+     "told": "yes",
+     "where": "README.md: \"Invalid submissions return 400. Creating a group with a valid list and a used ID returns 409.\""
+    }
+   }
+  },
+  {
+   "id": "U-25",
+   "results": {
+    "p370f0f": {
+     "told": "no",
+     "where": ""
+    },
+    "p8284f5": {
+     "told": "no",
+     "where": ""
+    },
+    "p23566f": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-26",
+   "results": {
+    "p370f0f": {
+     "told": "yes",
+     "where": "README.md: \"`DATA_FILE` is the JSON file that holds the groups and expenses. They are read back from it at startup, so they survive a restart.\""
+    },
+    "p8284f5": {
+     "told": "no",
+     "where": ""
+    },
+    "p23566f": {
+     "told": "yes",
+     "where": "README.md: \"To keep your groups and expenses across restarts, use the same path.\" / \"Persistence covers an ordinary restart after a successful response.\""
+    }
+   }
+  },
+  {
+   "id": "U-27",
+   "results": {
+    "p370f0f": {
+     "told": "no",
+     "where": ""
+    },
+    "p8284f5": {
+     "told": "no",
+     "where": ""
+    },
+    "p23566f": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-31",
+   "results": {
+    "p370f0f": {
+     "told": "no",
+     "where": ""
+    },
+    "p8284f5": {
+     "told": "no",
+     "where": ""
+    },
+    "p23566f": {
+     "told": "yes",
+     "where": "README.md: \"Group creations and expense submissions share a write queue across all groups. The service replaces the JSON snapshot atomically and acknowledges each mutation after the replacement.\""
+    }
+   }
+  },
+  {
+   "id": "U-35",
+   "results": {
+    "p370f0f": {
+     "told": "no",
+     "where": ""
+    },
+    "p8284f5": {
+     "told": "no",
+     "where": ""
+    },
+    "p23566f": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  }
+ ]
+}

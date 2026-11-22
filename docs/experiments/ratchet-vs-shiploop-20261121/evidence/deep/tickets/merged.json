@@ -1,0 +1,396 @@
+{
+ "stated": [
+  {
+   "id": "S-1",
+   "text": "The service has no npm dependencies: package.json lists no dependencies and it runs on Node's standard library alone."
+  },
+  {
+   "id": "S-2",
+   "text": "`npm start` runs src/server.js, listening on the port in the PORT environment variable."
+  },
+  {
+   "id": "S-3",
+   "text": "`PUT /tickets/:id/assignee` with the JSON body `{\"assignee\": \"<agent>\"}` assigns the ticket to that agent: afterwards the ticket's `assignee` is that agent."
+  },
+  {
+   "id": "S-4",
+   "text": "`PUT /tickets/:id/assignee` with the JSON body `{\"assignee\": null}` unassigns the ticket: afterwards its `assignee` is null."
+  },
+  {
+   "id": "S-5",
+   "text": "An agent is a non-empty name: `{\"assignee\": \"\"}` is refused and the ticket's assignee does not change."
+  },
+  {
+   "id": "S-6",
+   "text": "An agent is a name of at most 64 characters: a 64-character name is accepted, a 65-character name is refused and the ticket's assignee does not change."
+  },
+  {
+   "id": "S-7",
+   "text": "Open and in-progress tickets can be assigned and unassigned: assigning and unassigning an `open` ticket and an `in_progress` ticket succeeds."
+  },
+  {
+   "id": "S-8",
+   "text": "A ticket that is not open or in-progress (resolved or closed) cannot be assigned: the request is refused and the ticket is left unchanged."
+  },
+  {
+   "id": "S-9",
+   "text": "A ticket that is not open or in-progress (resolved or closed) cannot be unassigned: the request is refused and the ticket keeps its assignee."
+  },
+  {
+   "id": "S-10",
+   "text": "Assigning a ticket to the agent it already has changes nothing (the ticket, its history and the notifications stay as they were)."
+  },
+  {
+   "id": "S-11",
+   "text": "Every ticket shows its `assignee`: the field is present on every ticket the API returns (`GET /tickets/:id`, each item of `GET /tickets`, and the ticket returned by create, change, transition and assignment)."
+  },
+  {
+   "id": "S-12",
+   "text": "A ticket's `assignee` is null when it is unassigned, including a newly created ticket."
+  },
+  {
+   "id": "S-13",
+   "text": "The agent a ticket is assigned to is notified that it was assigned to them."
+  },
+  {
+   "id": "S-14",
+   "text": "`GET /tickets?assignee=<agent>` keeps only that agent's tickets."
+  },
+  {
+   "id": "S-15",
+   "text": "`GET /tickets?assignee=` (empty value) keeps only the unassigned tickets."
+  },
+  {
+   "id": "S-16",
+   "text": "A ticket must match every filter given: `assignee` combined with `status` and/or `priority` lists only the tickets matching all of them."
+  },
+  {
+   "id": "S-17",
+   "text": "The command-line listing (`bin/tickets.js list`) shows each ticket's assignee."
+  },
+  {
+   "id": "S-18",
+   "text": "Everything the service already does keeps working."
+  },
+  {
+   "id": "S-19",
+   "text": "The service's existing tests still pass as they are (unmodified)."
+  },
+  {
+   "id": "S-20",
+   "text": "There are node:test tests under test/ for the new behaviour."
+  },
+  {
+   "id": "S-21",
+   "text": "`npm test` runs the new tests together with the existing ones."
+  }
+ ],
+ "unstated": [
+  {
+   "id": "U-1",
+   "text": "What a caller gets when assigning or unassigning a ticket that is not open or in-progress (resolved or closed), including a request that would change nothing there (the current agent again, or null on an unassigned ticket), and that the stored assignee stays as it was.",
+   "why": "Clients branch on the error `code`; the API's conventions (docs/api.md, decision 4) make a request the ticket's state does not allow a 409 `conflict`. Someone will try to hand a resolved ticket to another agent or clear it, and a dashboard may re-send the current value; a success answer, or a refusal that changes the ticket anyway, misleads the client.",
+   "probe": "Start the service. POST /tickets with a valid body; PUT /tickets/<id>/assignee {\"assignee\":\"dana\"}; POST /tickets/<id>/transition {\"to\":\"in_progress\"}, then {\"to\":\"resolved\"}. PUT {\"assignee\":\"lee\"}, PUT {\"assignee\":\"dana\"} and PUT {\"assignee\":null}; record each status and body, then GET the ticket, GET /tickets/<id>/audit and GET /admin/outbox. Transition to closed and repeat. Also create a second ticket, move it to resolved without assigning it, and PUT {\"assignee\":null} and {\"assignee\":\"dana\"}.",
+   "fine_answers": "Any refusal that leaves assignee, `updated`, the audit and the outbox unchanged; 409 with {\"error\":{\"code\":\"conflict\",...}} and a message naming the status matches the API's convention (400, or 200 with the unchanged ticket, leave the data alone but differ from it). For a request that changes nothing on a resolved/closed ticket, either 409 or 200 with the unchanged ticket, if consistent and documented.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ]
+  },
+  {
+   "id": "U-2",
+   "text": "What the endpoint answers for a malformed request: no `assignee` field, a non-string non-null value (a number, an object, an array), extra unknown fields, a body that is not a JSON object, a body that is not valid JSON or not valid UTF-8, and an unknown ticket id.",
+   "why": "The API refuses unknown fields and malformed bodies with 400 `invalid` and unknown tickets with 404 `not_found`; an assignment endpoint that treats `{}` as an unassign or accepts `{\"asignee\":\"dana\"}` would quietly change tickets, and a desk form will send such values.",
+   "probe": "Create a ticket; PUT /tickets/<id>/assignee with each of: {}, {\"assignee\":5}, {\"assignee\":{}}, {\"assignee\":[]}, {\"assignee\":\"dana\",\"x\":1}, [], an empty body, text that is not JSON, and a JSON body whose assignee string holds the invalid UTF-8 byte 0xFF; then PUT /tickets/T-9999/assignee {\"assignee\":\"dana\"}. Record statuses and error codes, and GET /tickets/<id> and its audit to confirm nothing changed.",
+   "fine_answers": "400 `invalid` in the error envelope for each malformed body, the ticket unchanged and no audit entry or notice (a missing field must not be treated as null); 404 `not_found` for the unknown ticket. Another error status also refuses; ignoring unknown fields is a weaker but request-compatible choice.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ]
+  },
+  {
+   "id": "U-3",
+   "text": "How an agent name is normalised and which characters it may hold: surrounding whitespace, a whitespace-only name, tabs, line breaks and other control characters, and whether the 64-character limit counts before or after trimming.",
+   "why": "Titles and requesters are trimmed and refused when they hold control characters, because a tab or newline breaks the command line's tab-separated `list --raw` output and its table; a whitespace-only name is empty in practice; ' dana' and 'dana' being different agents would split one agent's tickets across two filters.",
+   "probe": "Create a ticket; PUT /tickets/<id>/assignee with {\"assignee\":\"   \"}, {\"assignee\":\"  dana  \"}, {\"assignee\":\"da\\tna\"}, {\"assignee\":\"da\\nna\"}, and a 64-character name padded with spaces; GET the ticket after each; then GET /tickets?assignee=dana and run `node bin/tickets.js --data FILE list --raw`.",
+   "fine_answers": "Whitespace-only refused as empty; surrounding whitespace trimmed (or kept as part of the name) consistently, with filtering using the same stored form; control characters refused with 400 like title and requester, or accepted only if the human listing still shows the name on one line; the limit applied the same way the requester's is.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ]
+  },
+  {
+   "id": "U-4",
+   "text": "Whether an assignment or unassignment is recorded in the audit log, under which action, with which actor and changes, and that a no-op records nothing.",
+   "why": "Internal audit requires every change to a ticket to be traceable to a person (decision 7); 'who took this ticket off dana?' is exactly the question the log exists for. The conventions say a change that changes nothing adds no entry.",
+   "probe": "Create a ticket; PUT /tickets/<id>/assignee {\"assignee\":\"dana\"} with header X-Actor: lee; PUT the same body again; PUT {\"assignee\":null} with X-Actor: sam; PUT {\"assignee\":\"dana\"} with no X-Actor header; GET /tickets/<id>/audit and read the entries after creation.",
+   "fine_answers": "One entry per real change, e.g. action `ticket.assigned`/`ticket.unassigned` or `ticket.updated`, actor from X-Actor (`system` without it), changes {\"assignee\":{\"from\":null,\"to\":\"dana\"}}; no entry for the repeated assignment. Omitting audit entries satisfies the request's wording but not the service's convention.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ]
+  },
+  {
+   "id": "U-5",
+   "text": "Whether an assignment or unassignment moves the ticket's `updated` time, and whether a no-op leaves it as it was.",
+   "why": "`updated` is documented as when the ticket last changed, and the command-line table shows it; agents sort and triage by it.",
+   "probe": "Create a ticket and note `updated`; wait a second; PUT {\"assignee\":\"dana\"} and read `updated`; PUT {\"assignee\":\"dana\"} again and read it; PUT {\"assignee\":null} and read it.",
+   "fine_answers": "Assignment and unassignment set `updated` to the time of the change; the repeated assignment leaves it unchanged. Not moving it on assignment is a defensible alternative if documented.",
+   "sources": [
+    "a",
+    "b"
+   ]
+  },
+  {
+   "id": "U-6",
+   "text": "Whether unassigning an open or in-progress ticket that is already unassigned (including a repeated unassign) is a no-op like re-assigning the same agent.",
+   "why": "The request settles the same-agent case only; the desk will retry a clear, and a second audit entry, a newer `updated` or a notification would make an unchanged ticket look newly worked.",
+   "probe": "Start with WORKER_INTERVAL_MS=0. POST /tickets, then PUT {\"assignee\":null} twice; GET the ticket, GET /tickets/<id>/audit and GET /admin/outbox and compare with the ticket right after creation. Then assign \"dana\", unassign, unassign again and compare the same three.",
+   "fine_answers": "A successful response showing assignee null, with the same `updated`, no new audit entry and no notification. Recording an audit entry for it is also acceptable if documented.",
+   "sources": [
+    "a",
+    "b"
+   ]
+  },
+  {
+   "id": "U-7",
+   "text": "Where the assignment notification goes and whether it can be delivered: the agent is a name, not an address; each notification type needs wording; what the message says; and whether the PUT waits for delivery.",
+   "why": "Without wording for a new notification type the event can fail its retries and go dead (decision 6), so agents are never told; the mail relay reads `to` from NOTIFY_FILE lines, so the operator needs to know what `to` holds for an agent; the agent needs the ticket id and title to know which ticket it is.",
+   "probe": "Start with NOTIFY_FILE=/tmp/n.jsonl and WORKER_INTERVAL_MS=100; create a ticket; PUT /tickets/<id>/assignee {\"assignee\":\"dana\"}; wait a second; read the last line of /tmp/n.jsonl and GET /admin/outbox (pending, sent and dead).",
+   "fine_answers": "A sent notification of an assignment type (e.g. `ticket.assigned`) with `to` = the agent's name (or an address derived from it, if documented), a subject and body naming the ticket id and title, and no dead events; delivery through the outbox after the PUT returns, or sending inside the PUT, both fit.",
+   "sources": [
+    "a",
+    "b"
+   ]
+  },
+  {
+   "id": "U-8",
+   "text": "Whether every assignment notifies its agent when assignments of one ticket follow each other before the worker delivers, given that the outbox drops an enqueue whose key is still pending (the default key is type + ticket).",
+   "why": "Assigning a ticket to dana and then to lee within one worker interval (or while the relay is down) would, with the default key, leave only dana's pending notification, and lee, who now owns the ticket, is never told.",
+   "probe": "Start with WORKER_INTERVAL_MS=0; create a ticket; assign it to dana, then to lee, then unassign, then assign dana again; GET /admin/outbox and read the pending events' `to` and `key`. Then let the worker deliver them, assign lee again and check that a new pending event for lee appears.",
+   "fine_answers": "lee has a pending notification; dana either one or two. Keys that include the agent, or one notification per assignment, are both fine; losing the current assignee's notification is not.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ]
+  },
+  {
+   "id": "U-9",
+   "text": "Who, if anyone, is told when a ticket is unassigned or reassigned away from an agent, and whether the requester hears about assignments.",
+   "why": "An agent taken off a ticket may keep working it unless told; requesters receive notifications today only on creation and resolution, and extra mails to them could be unwelcome.",
+   "probe": "With WORKER_INTERVAL_MS=0: create a ticket; assign dana; assign lee; unassign; GET /admin/outbox and list each pending event's type and `to`.",
+   "fine_answers": "Only the newly assigned agent notified (nothing on unassign) is fine; telling the previous agent too is also fine. The requester not being notified of assignment is the expected default.",
+   "sources": [
+    "a",
+    "b"
+   ]
+  },
+  {
+   "id": "U-10",
+   "text": "Whether an agent who assigns a ticket to themselves (X-Actor equal to the assignee) is notified.",
+   "why": "Agents commonly pick up tickets themselves; a mail telling them what they just did is noise, but suppressing it is a behaviour someone must know about.",
+   "probe": "With WORKER_INTERVAL_MS=0: create a ticket; PUT /tickets/<id>/assignee {\"assignee\":\"dana\"} with header X-Actor: dana; GET /admin/outbox.",
+   "fine_answers": "Either notified anyway (the request says the assigned agent is notified) or not notified when actor equals assignee, if documented.",
+   "sources": [
+    "a"
+   ]
+  },
+  {
+   "id": "U-11",
+   "text": "Whether `assignee` is kept in the data file across restarts, whether a data file written before this change (tickets with no `assignee` field) still loads, and what an invalid assignee in the file does at start.",
+   "why": "The data file names every field it keeps, so a field not added there is lost at the next restart; decision 8 requires files from the previous version to keep loading with a new field at its default, since they hold a running service's data; a file the service refuses stops it at start.",
+   "probe": "Start with DATA_FILE=/tmp/t.json; create and assign a ticket; stop (SIGTERM) and start again; GET the ticket. Separately, run the previous version with DATA_FILE, create tickets, stop it, start the new version on the same file and GET /tickets; also hand-edit a ticket's assignee to 5 or a 65-character name and start.",
+   "fine_answers": "Assignee survives the restart; old files load with assignee null (no format version change, or a version bump that still reads version 1); an invalid assignee in the file is refused at start with a message naming the record.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ]
+  },
+  {
+   "id": "U-12",
+   "text": "What happens to the assignee when a ticket is moved to in_progress, resolved, closed or reopened, and whether the assignee filter still returns it afterwards.",
+   "why": "Since assignment is frozen once a ticket is resolved, a cleared or kept assignee decides whether `?assignee=dana` shows dana's finished tickets, whether leads can see who had a resolved ticket, and whether a reopened ticket goes back to dana or to the unassigned queue.",
+   "probe": "Create a ticket; assign dana; transition to in_progress, then resolved, GETting the ticket and GET /tickets?assignee=dana and /tickets?assignee= after each; transition to open (reopen) and read again, then PUT {\"assignee\":\"lee\"}; on another ticket go through resolved to closed and read again.",
+   "fine_answers": "Keeping the assignee through every transition (filters combine with status to find active work) is fine; clearing it when the ticket leaves open/in-progress is also defensible if documented and audited, with those tickets then in the empty `assignee=` filter.",
+   "sources": [
+    "a",
+    "b"
+   ]
+  },
+  {
+   "id": "U-13",
+   "text": "How the `assignee` filter value matches: exact and case-sensitive or not, whether it is trimmed, and what a value that cannot be an accepted name (longer than 64 characters, malformed) or a repeated `assignee` parameter answers.",
+   "why": "Other filter values that cannot match are refused with 400 `invalid`; agents typing 'Dana' versus 'dana' need predictable results, and the form assignment stores must be the form the filter compares.",
+   "probe": "Assign tickets to dana; GET /tickets?assignee=Dana, ?assignee=%20dana, ?assignee=<65 characters>, ?assignee=dana&assignee=lee; read statuses and items.",
+   "fine_answers": "Exact match on the stored (normalised) name, or a trimmed or case-insensitive match if assignment stores the same form; an over-long value either 400 `invalid` or an empty page; a repeated parameter treated as the existing filters treat one (e.g. the first value), or refused.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ]
+  },
+  {
+   "id": "U-14",
+   "text": "Whether a listing filtered by `assignee` still pages correctly through its cursor.",
+   "why": "The list is paged (decision 5) and must filter before paging; a later page that forgets the filter mixes in other agents' tickets or skips some of the agent's.",
+   "probe": "Assign more tickets to dana than one page holds, with other tickets in between; GET /tickets?assignee=dana&limit=2, then follow each `next` cursor with the same filter until `next` is null; do the same with `assignee=`.",
+   "fine_answers": "Every matching ticket exactly once across the pages, in id order, and no other ticket.",
+   "sources": [
+    "a",
+    "b"
+   ]
+  },
+  {
+   "id": "U-15",
+   "text": "Whether `status` and `priority` given together without `assignee` list the intersection (as docs/api.md describes) or keep what the service does today.",
+   "why": "The lead's open-and-urgent list is either the intersection the docs describe or a wider set; the request's 'match every filter' sentence and 'everything keeps working' point at this combination too.",
+   "probe": "Create an open/low ticket, an open/urgent ticket and a resolved/urgent ticket; GET /tickets?status=open&priority=urgent and compare with the same query on the previous version.",
+   "fine_answers": "Only the open/urgent ticket (every filter applied, as the request and docs say); keeping the previous version's result is also arguable under 'everything keeps working' if documented.",
+   "sources": [
+    "b"
+   ]
+  },
+  {
+   "id": "U-16",
+   "text": "Whether `list --raw` gains an assignee column, where, and how an unassigned ticket appears in it.",
+   "why": "scripts/weekly-report.js, run for the support leads' dashboard, reads `list --raw` columns by position (id, status, priority, title) and the README says they must keep their positions; a column inserted before title, or a missing field for unassigned tickets, breaks the report or downstream scripts.",
+   "probe": "With a data file holding tickets assigned (one to a name with a space, such as \"ada li\") and unassigned, run `node bin/tickets.js --data FILE list --raw` and count tab-separated fields per line; run `node scripts/weekly-report.js --data FILE --json` and compare its counts with the previous version on the same file.",
+   "fine_answers": "Raw output unchanged, or the assignee appended as a fifth column after title with an empty field (or a fixed marker) for unassigned; the weekly report's counts identical either way.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ]
+  },
+  {
+   "id": "U-17",
+   "text": "How the `list` table shows the assignee of an unassigned ticket.",
+   "why": "Operators read the table; printing `null` or `undefined` can look like a fault, and an unassigned ticket must be told apart from an assigned one.",
+   "probe": "With a data file holding an assigned and an unassigned ticket, run `node bin/tickets.js --data FILE list`.",
+   "fine_answers": "An assignee column with the name for assigned tickets and a blank, '-' or the word null for unassigned, as long as the two are distinguishable.",
+   "sources": [
+    "a",
+    "b"
+   ]
+  },
+  {
+   "id": "U-18",
+   "text": "Whether the command-line ticket detail (`show`) prints the assignee.",
+   "why": "`show` is how an operator reads one ticket in full; the request names only the listing, so an operator might not see who has the ticket.",
+   "probe": "With a data file holding an assigned and an unassigned ticket, run `node bin/tickets.js --data FILE show <id>` for each.",
+   "fine_answers": "Printing the assignee (and an explicit unassigned state) is welcome; omitting it is compatible with the request.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ]
+  },
+  {
+   "id": "U-19",
+   "text": "Whether the command line can filter its listing by assignee (`list --assignee`).",
+   "why": "Filtering by agent from the command line mirrors the new API filter but was not asked for; silently ignoring an unknown option would print every ticket as if filtered.",
+   "probe": "With a data file holding tickets for dana and others, run `node bin/tickets.js --data FILE list --assignee dana`.",
+   "fine_answers": "Either supported (only dana's tickets) or refused as an unknown option with the usage exit code (2); not silently ignored.",
+   "sources": [
+    "a"
+   ]
+  },
+  {
+   "id": "U-20",
+   "text": "Whether `POST /tickets` and `PATCH /tickets/:id` accept an `assignee` field.",
+   "why": "If they do, assignment could bypass the open/in-progress rule, the validation and the notification; if they do not, clients must know to use the PUT endpoint. Unknown fields are refused today.",
+   "probe": "POST /tickets with a valid body plus \"assignee\":\"dana\"; PATCH /tickets/<id> {\"assignee\":\"dana\"}; read statuses and the ticket.",
+   "fine_answers": "Both refuse it as an unknown field (400), or accept it with exactly the same validation, state rule, audit and notification as the PUT endpoint.",
+   "sources": [
+    "a"
+   ]
+  },
+  {
+   "id": "U-21",
+   "text": "What a successful `PUT /tickets/:id/assignee` answers.",
+   "why": "The client that assigns a ticket has only this response unless it makes another call; every other change endpoint answers 200 with the ticket.",
+   "probe": "Create a ticket; PUT /tickets/<id>/assignee {\"assignee\":\"dana\"}; record status, content-type and body and compare with GET /tickets/<id>; repeat the same PUT and compare; PUT {\"assignee\":null} and record the same.",
+   "fine_answers": "200 with the whole ticket including `assignee` (also for the no-op); 204 or another success status with an empty body is acceptable if a following GET shows the assignment; a ticket body without `assignee` is not.",
+   "sources": [
+    "a",
+    "b"
+   ]
+  },
+  {
+   "id": "U-22",
+   "text": "Whether the documentation and release records describe the change: docs/api.md (endpoint, ticket field, filter, audit action, notification), README command-line columns, a CHANGELOG.md section with a version bump in package.json, and a decision record if a format or rule changed.",
+   "why": "The next maintainer and API clients work from docs/api.md; CONTRIBUTING.md requires a version bump and a changelog section in the same change, and decision records for rules other code relies on.",
+   "probe": "Read docs/api.md, README.md, CHANGELOG.md, package.json `version` and docs/decisions/ in the delivered tree and look for the assignee endpoint, field, filter and notification.",
+   "fine_answers": "api.md documents all of it; a new changelog section and version; a decision record optional unless the data file format or a convention changed.",
+   "sources": [
+    "a"
+   ]
+  },
+  {
+   "id": "U-23",
+   "text": "A failed save of an assignment leaves the running service unchanged and ready to retry the same change.",
+   "why": "With a data file, a save can fail (full or read-only disk); if memory keeps the change while the file does not, the API shows an assignment that is lost at restart, and a retry may be treated as a no-op and never notify the agent.",
+   "probe": "Start with DATA_FILE in a directory of its own; create a ticket; make the directory read-only (chmod 555); PUT /tickets/<id>/assignee {\"assignee\":\"dana\"}; record the status and body; GET the ticket, its audit and /admin/outbox, and compare the data file with its copy from before. Restore write permission and send the same PUT without restarting; read the ticket, audit and outbox again.",
+   "fine_answers": "The failed request answers 500 `internal`; the ticket, audit, outbox and file are as before; the retry succeeds and records the assignment once, with one audit entry and one notice to dana.",
+   "sources": [
+    "arm"
+   ]
+  },
+  {
+   "id": "U-24",
+   "text": "Clearing a ticket's assignee, or resolving and closing it, keeps assignment notices that are already waiting for delivery.",
+   "why": "An agent assigned a ticket should still be told of that assignment even if it was cleared or the ticket finished before the worker ran; a notice silently dropped means the record says the agent was notified when they were not.",
+   "probe": "Start with WORKER_INTERVAL_MS=0, DATA_FILE and NOTIFY_FILE set; create two tickets and assign each to an agent; unassign the first; take the second through in_progress and resolved to closed; GET /admin/outbox; then stop and start again on the same files with WORKER_INTERVAL_MS=100, wait a second, and read GET /admin/outbox and the NOTIFY_FILE lines.",
+   "fine_answers": "Both assignment notices stay pending for their ticket and recipient and are later delivered to the agent who was assigned.",
+   "sources": [
+    "arm"
+   ]
+  },
+  {
+   "id": "U-25",
+   "text": "The supported `MAX_BODY_BYTES` settings keep working: values from 1,024 to 1,048,576 start the service, values outside are refused.",
+   "why": "Operators already run with their own body limits; an assignment change that alters the accepted range or stops the service starting would break their deployment.",
+   "probe": "Start the service with MAX_BODY_BYTES=1024, then 1048576, then 1023, then 1048577, and read whether it starts and what it prints.",
+   "fine_answers": "1024 and 1048576 start; 1023 and 1048577 stop the service at start with a message naming MAX_BODY_BYTES.",
+   "sources": [
+    "arm"
+   ]
+  },
+  {
+   "id": "U-26",
+   "text": "The command-line ticket detail (`show`) stays read-only.",
+   "why": "The README says the command line never changes the data file, which the running service owns; a write from `show` (e.g. while migrating a legacy ticket) could overwrite the service's state.",
+   "probe": "Copy a data file holding assigned and unassigned tickets; run `node bin/tickets.js --data FILE show <id>` and then `DATA_FILE=FILE node bin/tickets.js show <id>`; compare the file with the copy byte for byte after each.",
+   "fine_answers": "The file is byte-for-byte unchanged after each command.",
+   "sources": [
+    "arm"
+   ]
+  },
+  {
+   "id": "U-27",
+   "text": "The command-line ticket detail keeps showing the ticket's history in oldest-first order, including assignment changes.",
+   "why": "Operators read a ticket's history from `show`; assignment entries that are missing or out of order hide who handed the ticket on.",
+   "probe": "With DATA_FILE set, create a ticket, assign it to dana with X-Actor: lee and then to sam with X-Actor: kim; stop the service; run `node bin/tickets.js --data FILE show <id>` and compare its history with GET /tickets/<id>/audit.",
+   "fine_answers": "The existing history lines and both assignment entries appear oldest first, in the same order as the audit API, and the current assignee is visible in the detail.",
+   "sources": [
+    "arm"
+   ]
+  },
+  {
+   "id": "U-28",
+   "text": "The command-line history shows each assignment change unambiguously: a clear is distinguishable from assigning an agent literally named `null`, and names containing arrows or separators (`Sam ->`, `-> Jo`, `Agent; Relief`) read as single names in the right position.",
+   "why": "An operator reconstructing a handoff from the history must be able to tell who had the ticket before and after and whether it was left unassigned.",
+   "probe": "If such names are accepted: assign a ticket to Dana, then to the agent `null`; on another ticket assign Dana and then unassign; on others hand off from `Sam ->` to `Jo`, from `Sam` to `-> Jo`, and to `Agent; Relief`; run `node bin/tickets.js --data FILE show <id>` for each and read the history rows.",
+   "fine_answers": "Each row shows the previous and new assignee so that a clear, a name `null`, and names holding arrows or separators cannot be confused (e.g. quoted names and a distinct marker for unassigned); refusing such names at the API also settles it.",
+   "sources": [
+    "arm"
+   ]
+  }
+ ]
+}

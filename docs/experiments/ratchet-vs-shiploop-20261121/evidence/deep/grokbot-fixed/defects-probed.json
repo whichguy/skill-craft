@@ -1,0 +1,551 @@
+{
+ "rechecks": [
+  {
+   "id": "S-51",
+   "results": {
+    "p58009c": {
+     "grade": "partly",
+     "observed": "STANDIN_STEP_MS=1000; browser A as Maya started 'long task: crates [fail step 2]', 'long task: beta', 'research: Away test [long]' and closed. Returning in the same browser profile 5 s later, Since you were away listed 'beta Completed', 'crates Failed', 'Away test Running', matching Tasks (crates shows 'Step 2 failed. Retry resumes here...' with Retry task); after a reload it kept only 'crates Failed'. But the baseline is per browser: returning in a fresh browser context after only 'research: Away test [long]' had completed, the region read 'You’re caught up on background work.' while Tasks showed Away test Completed; with a failure it lists only the failed and running tasks, never what completed while away."
+    },
+    "pae93f0": {
+     "grade": "partly",
+     "observed": "Same runs, same results as observed on this product: same-browser return listed beta Completed, crates Failed, Away test Running (honest, matches Tasks); in a fresh browser context after 'research: Away test [long]' completed it read 'You’re caught up on background work.' while Tasks showed Away test Completed; completed tasks are never reported to a browser that has not shown the workspace before."
+    },
+    "pe77982": {
+     "grade": "partly",
+     "observed": "Same runs: same-browser return showed 'Task #1 · crates — Failed — needs attention', 'Task #2 · beta — Completed', 'Task #3 · Away test — Running', updating to Completed while open; after reload only the failed task remained. In a fresh browser context the Since you were away region is not rendered at all, even with crates Failed and marathon Running, and after Away test completed; only the Tasks region (which is accurate) tells the person anything."
+    }
+   }
+  },
+  {
+   "id": "U-7",
+   "results": {
+    "p58009c": {
+     "grade": "poor",
+     "observed": "Saved sk-local-abcdefghijkl through Setup (a refused 'sk-local-bad' gave an alert). The token is in plain text in DATA_DIR/workspace.json (file mode 600, folder 755). None of 22 HTTP responses, the reloaded page, the [fail once] alert ('The reply failed. Retry ...') or the server output contained it. But after removing the last 5 bytes of workspace.json, startup exits 1 with a SyntaxError that prints the file text including \"token\":\"sk-local-abcdefghijkl\" to the server output."
+    },
+    "pae93f0": {
+     "grade": "poor",
+     "observed": "Same as observed here: token plain in workspace.json (mode 600); not in 20 responses, page, alert or normal output; a 5-byte-truncated workspace.json makes startup print a SyntaxError echoing \"token\":\"sk-local-abcdefghijkl\"."
+    },
+    "pe77982": {
+     "grade": "sound",
+     "observed": "Token saved through Setup is stored in its own DATA_DIR/provider-token file (mode 600); state.json does not contain it. Not in 28 responses, the page, the [fail once] alert or the server output. A truncated state.json gives only 'Cannot open the data directory. Check its permissions and restore a readable state snapshot if it is damaged.'; a truncated provider-token file starts normally and prints nothing of it. README states where it is kept."
+    }
+   }
+  },
+  {
+   "id": "U-9",
+   "results": {
+    "p58009c": {
+     "grade": "poor",
+     "observed": "New bot with empty Bot name: the browser's required-field check blocks it ('Please fill out this field.'); spaces only: alert 'Bot name must contain between 1 and 80 characters.' A second bot named Assistant is accepted; after giving each a different discussion and opening a third bot, the Bots navigation holds two buttons both named 'Assistant' with identical text, no title or description, no current marker on either. A 300-character name is cut to 80 by the box (maxlength) and saved."
+    },
+    "pae93f0": {
+     "grade": "poor",
+     "observed": "Same as observed here: empty blocked by required check, blanks refused with 'Bot name must contain between 1 and 80 characters.', duplicate Assistant accepted and shown as two identical 'Assistant' buttons with nothing to tell them apart; 300 characters cut to 80 by the box."
+    },
+    "pe77982": {
+     "grade": "sound",
+     "observed": "Empty blocked by required check; spaces only: alert 'Enter a bot name.' A second Assistant is accepted; the two buttons are named 'Assistant' and show and describe (aria-describedby) 'Bot #1 · first assistant discussion about apple…' and 'Bot #2 · second assistant discussion about pear…', so they can be told apart before selecting. A 300-character name is cut to 80 by the box (maxlength) and saved."
+    }
+   }
+  },
+  {
+   "id": "U-11",
+   "results": {
+    "p58009c": {
+     "grade": "sound",
+     "observed": "In one bot, New conversation twice: buttons 'Untitled conversation (3)', 'Untitled conversation (2)', 'Untitled conversation' (newest first, current marked). Two conversations starting 'Please summarise the open orders for customer Acme Tools and list anything unusual about customer Zeta/Omega' are listed 'Please summarise the open orders for customer Acme Tools (2)' and '... Acme Tools', each with a title tooltip quoting the last message (Omega / Zeta). All names distinct."
+    },
+    "pae93f0": {
+     "grade": "poor",
+     "observed": "New conversation twice gives three buttons all named 'New conversation' (the same name as the New conversation control). The Zeta and Omega conversations are both named 'Please summarise the open orders for customer Acme Tools', visually, by accessible name and by title. Only order and the current marker separate them."
+    },
+    "pe77982": {
+     "grade": "sound",
+     "observed": "Empty conversations are 'Untitled chat', 'Untitled chat · Chat 2', 'Untitled chat · Chat 3' (current marked). The similar openings are 'Please summarise the open orders for c… · …ng unusual about customer Zeta · Chat 4' and '... customer Omega · Chat 5'. Each is distinct by accessible name."
+    }
+   }
+  },
+  {
+   "id": "U-15",
+   "results": {
+    "p58009c": {
+     "grade": "sound",
+     "observed": "Save instruction A='x' then A='y' without Edit: alert '“A” is already saved. Choose Edit A to change it, or use another name.', the text stays in the boxes, one Use A button; Use A then 'who are you' -> 'My instructions: x'. Empty name or text blocked by the required check; spaces only -> alert 'Instruction name must contain between 1 and 80 characters.' Saved tasks behave the same (Run A sends 'hello x'; 'Task name must contain ...')."
+    },
+    "pae93f0": {
+     "grade": "poor",
+     "observed": "Save instruction A='x' then A='y' without Edit: no alert, boxes cleared, one entry A whose text is now y ('who are you' after Use A -> 'My instructions: y'): silent overwrite. Same for tasks (Run A sent 'hello y'). Empty fields blocked by the required check; spaces only -> 'Instruction name must contain between 1 and 80 characters.' / 'Task name must contain ...'."
+    },
+    "pe77982": {
+     "grade": "sound",
+     "observed": "Second save of A without Edit: alert 'An entry with this name already exists. Choose Edit to change it.', text kept in the boxes, one Use A; 'who are you' after Use A -> 'My instructions: x'. Empty fields blocked by required check; spaces only -> 'Enter a name.' Tasks the same (Run A sent 'hello x')."
+    }
+   }
+  },
+  {
+   "id": "U-46",
+   "results": {
+    "p58009c": {
+     "grade": "poor",
+     "observed": "Missing DATA_DIR (nested path): created and served. Empty folder mode 500: exit 1 with a raw EACCES stack on .workspace-next.json. workspace.json = '{not json': exit 1, SyntaxError stack. workspace.json = {\"hello\":1}: exit 1, 'TypeError: Cannot convert undefined or null to object at visitConversations'. No message saying what is wrong or what to do. Damaged files left byte-identical; records/ files unchanged. A populated folder made read-only starts and serves."
+    },
+    "pae93f0": {
+     "grade": "poor",
+     "observed": "Same as observed here: missing folder created; mode 500 -> EACCES stack, exit 1; '{not json' -> SyntaxError stack; {\"hello\":1} -> TypeError stack at visitConversations; files left intact, records/ unchanged, no recovery guidance."
+    },
+    "pe77982": {
+     "grade": "sound",
+     "observed": "Missing folder created and served. Mode 500 folder, '{not json' and {\"hello\":1} in state.json each exit 1 with the single line 'Cannot open the data directory. Check its permissions and restore a readable state snapshot if it is damaged.' Damaged files left byte-identical, records/ unchanged; README's Storage and recovery section explains the steps."
+    }
+   }
+  },
+  {
+   "id": "U-49",
+   "results": {
+    "p58009c": {
+     "grade": "acceptable",
+     "observed": "As Maya: 'what is the STATUS of ORD-1001' -> 'ORD-1001 has no STATUS.'; 'what is the status of ORD-1001' -> 'The status of ORD-1001 is open.'. 'set the Status of ORD-1001 to closed': the bot message is the stand-in's 'I propose one change: ORD-1001 Status: nothing → closed', but no Proposed changes region or Confirm button appears; a Change result reads 'ORD-1001 has no field named Status; its field is named status. No change was made. Ask again using status.' Lowercase gives 'ORD-1001 status: open → closed' with Confirm/Reject. Confirming the capitalised request is impossible; after a later lowercase confirm 'what is the Status of ORD-1001' says 'ORD-1001 has no Status.' and the stored record has only status. As Ana every variant answers 'I can't see a record called ORD-1001.' Not the same value for each capitalisation, but a clear not-recognised message and never a new field."
+    },
+    "pae93f0": {
+     "grade": "poor",
+     "observed": "As Maya: 'what is the STATUS of ORD-1001' -> 'ORD-1001 has no STATUS.' while lowercase -> 'open'. 'set the Status of ORD-1001 to closed' shows Proposed changes 'ORD-1001 Status: ∅ → closed' with Confirm changes; confirming it (D-9 run, 'to open') stored a second field Status:'open' beside status, and later 'what is the Status' answered open while 'what is the status' answered closed. A new field is created silently (only the ∅ hints at it). Ana is refused for every variant ('I can't see a record called ORD-1001.')."
+    },
+    "pe77982": {
+     "grade": "sound",
+     "observed": "As Maya: 'what is the STATUS of ORD-1001' and 'what is the status of ORD-1001' both reply 'The status of ORD-1001 is open.'; 'set the Status of ORD-1001 to closed' and lowercase both preview exactly 'ORD-1001 status: open → closed'; rejecting each leaves status open. As Ana every variant replies 'I can't see a record called ORD-1001.'"
+    }
+   }
+  },
+  {
+   "id": "U-50",
+   "results": {
+    "p58009c": {
+     "grade": "poor",
+     "observed": "As Maya 'what is the status of ORD-1001A' replied 'The status of ORD-1001 is open.' with no notice; 'set the status of ORD-1001A to closed' was echoed ('You said: ...'), no proposal; 'what is the status of ORD-1001' -> open. ORD-1001's status is presented as the answer to ORD-1001A."
+    },
+    "pae93f0": {
+     "grade": "poor",
+     "observed": "Same as observed on this product: 'what is the status of ORD-1001A' -> 'The status of ORD-1001 is open.' with no notice; set on ORD-1001A echoed with no proposal; ORD-1001 itself answers open."
+    },
+    "pe77982": {
+     "grade": "acceptable",
+     "observed": "'what is the status of ORD-1001A' -> bot 'I can't see a record called ORD-1001.' plus a status line under it: 'The identifier “ORD-1001A” could not be used. Check the full record ID and ask again using its letters, hyphen and digits.' The set on ORD-1001A was echoed with no proposal; 'what is the status of ORD-1001' -> open. ORD-1001's value is never given for ORD-1001A, though the bot sentence names ORD-1001 rather than ORD-1001A."
+    }
+   }
+  },
+  {
+   "id": "U-54",
+   "results": {
+    "p58009c": {
+     "grade": "sound",
+     "observed": "With a proposal pending, DATA_DIR chmod 500: Save instruction, Send and Confirm changes each show alert 'The workspace could not save this action. Please try again.'; the instruction is not listed, the message stays in the box, the proposal stays pending. A reply in flight ('hello [slow]') when storage fails shows alert 'The reply could not be saved. Retry to continue without sending your message again.' with Retry; after restoring access Retry produced the reply once. After restart: earlier instruction present, the attempted ones absent, status still open, matching what the page said."
+    },
+    "pae93f0": {
+     "grade": "poor",
+     "observed": "Actions while read-only show 'The workspace could not save this action. Please try again.' and nothing is saved (checked after restart). But a reply in flight when storage fails stays 'Assistant is replying…' with no alert and no Retry, also after write access is restored and after reload; Send is disabled and a new message is not accepted. Only a server restart turned it into 'The server restarted before the reply finished. Retry ...'."
+    },
+    "pe77982": {
+     "grade": "acceptable",
+     "observed": "Actions while read-only show the alert 'Storage is unavailable and the save outcome could not be verified. Restore write access, then restart the server with the same data directory (DATA_DIR). Return as the same person and check the saved item before retrying...'; nothing was saved (checked after restart). A reply in flight keeps showing 'Assistant is preparing a reply…' beside that alert, and the app stays unavailable even after access is restored (a reload shows only the alert on the chooser, without person buttons) until the stated restart; after restart the reply reads 'The reply was interrupted. Retry ...' and Retry works."
+    }
+   }
+  },
+  {
+   "id": "U-57",
+   "results": {
+    "p58009c": {
+     "grade": "sound",
+     "observed": "'long task: crates [fail step 2]' -> Task status Failed, 'Step 2 failed. Retry resumes here...', Retry task; a follow-up message, another conversation and 'long task: second' (Completed) all work. Making DATA_DIR read-only during 'long task: crates [long]' turns it to Failed: 'Progress could not be saved. Retry resumes from the last saved step.'; after restoring access Retry task completed all 8 steps. Server stayed up."
+    },
+    "pae93f0": {
+     "grade": "poor",
+     "observed": "The failing task is reported Failed with Retry task and the rest stays usable. But with DATA_DIR read-only during 'long task: crates [long]' the task stays 'Running, 1 of 8 steps finished' with Cancel task indefinitely, also after access is restored and after reload, with no notice on the page (server output only 'Background task progress could not be saved.'); other tasks and messages keep working. A restart marks it Interrupted with Retry task."
+    },
+    "pe77982": {
+     "grade": "acceptable",
+     "observed": "The failing task is reported Failed ('Step 2 failed. Retry to continue from that step.') with Retry task and messages, other conversations and a second task keep working. A storage error during a task puts the whole app into a reported unavailable mode: the alert says to restore write access and restart; the task shows Running until then and a reload shows only the alert. After restart it is Interrupted with Retry task, which completed it. Server stayed up."
+    }
+   }
+  },
+  {
+   "id": "U-58",
+   "results": {
+    "p58009c": {
+     "grade": "sound",
+     "observed": "As Ana with two proposals (ORD-1004 status, ACC-2003 tier) on screen: Tab to the first proposal's Confirm changes, Enter -> focus moves to the Message textbox; a second Enter does nothing (ACC-2003 proposal still pending, tier still bronze). Same for Reject changes. After Enter-to-send focus stays in Message; Save memory by keyboard returns focus to the item's Edit memory button."
+    },
+    "pae93f0": {
+     "grade": "poor",
+     "observed": "Same steps: after Enter on the first proposal's Confirm changes, focus lands on the ACC-2003 proposal's Confirm changes; the second Enter confirmed it (two 'Confirmed' results, 'The tier of ACC-2003 is gold'). With Reject changes the second Enter rejected the other proposal too. After Send focus stays in Message; after Save memory it goes to Edit memory."
+    },
+    "pe77982": {
+     "grade": "sound",
+     "observed": "Same steps: after Enter on the first Confirm changes focus moves to the Change result heading ('Changes confirmed and applied.'); a second Enter does nothing, the ACC-2003 proposal stays pending and its tier stays bronze. Same for Reject. After Send focus stays in Message; after Save memory it goes to Edit memory."
+    }
+   }
+  }
+ ],
+ "defects": [
+  {
+   "id": "D-1",
+   "title": "Since you were away reports nothing new in a browser that has not shown the workspace before, although tasks finished (or failed) while the person was away",
+   "severity": "medium",
+   "merged_from": [
+    "p58009c#1",
+    "pe77982#1"
+   ],
+   "repro": "Start with PROVIDER_TOKEN=sk-local-abcdefghijkl, an empty DATA_DIR and STANDIN_STEP_MS=500. In browser context A Continue as Maya, send 'research: Away test [long]', close A, wait until it completes. Open GET / in a new browser context B, Continue as Maya, read Since you were away and Tasks. Repeat with 'long task: crates [fail step 2]' and a longer running task.",
+   "expected": "On return the person is told what finished and what needs attention, whichever browser they return in, or at least the region does not claim there is nothing new.",
+   "note": "Highest severity of the merged entries kept (medium).",
+   "results": {
+    "p58009c": {
+     "result": "present",
+     "observed": "Context B: Since you were away reads 'You’re caught up on background work.' while Tasks shows Away test Completed. With crates failed and marathon running it lists only those two, never the completed tasks."
+    },
+    "pae93f0": {
+     "result": "present",
+     "observed": "Context B: 'You’re caught up on background work.' while Tasks shows Away test Completed; with a failure it lists only failed and running tasks."
+    },
+    "pe77982": {
+     "result": "present",
+     "observed": "Context B: no region named Since you were away is rendered at all, with Away test Completed, and also with crates Failed and marathon Running, which Tasks shows."
+    }
+   }
+  },
+  {
+   "id": "D-2",
+   "title": "A damaged data file makes startup print the saved provider token to the server output",
+   "severity": "medium",
+   "merged_from": [
+    "p58009c#2"
+   ],
+   "repro": "Start with an empty DATA_DIR and no PROVIDER_TOKEN; Continue as Maya; save sk-local-abcdefghijkl in Setup; send a message; stop the server; remove the last 5 bytes of the app's data file (workspace.json; state.json for the product that uses it, and also its provider-token file); run node server.js and read the output.",
+   "expected": "The token is never written to logs or error output; startup reports the damaged file without its contents.",
+   "note": "",
+   "results": {
+    "p58009c": {
+     "result": "present",
+     "observed": "Exit 1; output starts '<anonymous_script>:1' followed by the file text including \"token\":\"sk-local-abcdefghijkl\", then a SyntaxError stack."
+    },
+    "pae93f0": {
+     "result": "present",
+     "observed": "Exit 1; output echoes the file text including \"token\":\"sk-local-abcdefghijkl\", then a SyntaxError stack."
+    },
+    "pe77982": {
+     "result": "absent",
+     "observed": "The token is in a separate provider-token file, not in state.json. Truncated state.json: exit 1 with only 'Cannot open the data directory. Check its permissions and restore a readable state snapshot if it is damaged.' Truncated provider-token: starts normally; the output never contains the token."
+    }
+   }
+  },
+  {
+   "id": "D-3",
+   "title": "An unwritable or damaged data folder crashes startup with a raw stack trace and no recovery step",
+   "severity": "low",
+   "merged_from": [
+    "p58009c#3",
+    "pae93f0#10"
+   ],
+   "repro": "Run node server.js with DATA_DIR set to (a) an empty folder with mode 500, (b) a folder whose data file holds '{not json', (c) one whose data file holds {\"hello\":1}; read the output and check the files afterwards.",
+   "expected": "Refuse to start with a plain message naming the problem and how to recover, keeping the damaged file.",
+   "note": "",
+   "results": {
+    "p58009c": {
+     "result": "present",
+     "observed": "(a) exit 1, 'Error: EACCES: permission denied, open .../.workspace-next.json' stack; (b) exit 1, SyntaxError stack; (c) exit 1, 'TypeError: Cannot convert undefined or null to object at visitConversations'. No guidance; files untouched."
+    },
+    "pae93f0": {
+     "result": "present",
+     "observed": "(a) EACCES stack, (b) SyntaxError stack, (c) TypeError stack at visitConversations, each exit 1 with no guidance; files untouched."
+    },
+    "pe77982": {
+     "result": "absent",
+     "observed": "(a), (b) and (c) each exit 1 with one line: 'Cannot open the data directory. Check its permissions and restore a readable state snapshot if it is damaged.'; files untouched."
+    }
+   }
+  },
+  {
+   "id": "D-4",
+   "title": "Bots with the same name cannot be told apart",
+   "severity": "low",
+   "merged_from": [
+    "p58009c#4",
+    "pae93f0#8"
+   ],
+   "repro": "Continue as Maya; send a message to Assistant; New bot, Bot name 'Assistant', Save bot name; send a message; open another bot; read the Bots navigation visually and by accessible name.",
+   "expected": "Duplicates refused, or each bot distinguishable before selecting it.",
+   "note": "",
+   "results": {
+    "p58009c": {
+     "result": "present",
+     "observed": "Two buttons named 'Assistant' with identical text, no title or description."
+    },
+    "pae93f0": {
+     "result": "present",
+     "observed": "Two buttons named 'Assistant' with identical text, no title or description."
+    },
+    "pe77982": {
+     "result": "absent",
+     "observed": "Both named 'Assistant' but showing and described as 'Bot #1 · first assistant discussion about apple…' and 'Bot #2 · second assistant discussion about pear…'."
+    }
+   }
+  },
+  {
+   "id": "D-5",
+   "title": "A forget that matches no remembered fact is reported as done",
+   "severity": "medium",
+   "merged_from": [
+    "p58009c#5",
+    "pae93f0#4",
+    "pe77982#2"
+   ],
+   "repro": "Fresh data, token set, Continue as Maya. Send 'remember that likes tea', then 'forget tea', then 'forget coffee'. Read each reply, any notice, and the Memory region.",
+   "expected": "The person is told nothing matched, or a loose match is applied and shown; the reply does not claim a forget that did not happen.",
+   "note": "",
+   "results": {
+    "p58009c": {
+     "result": "present",
+     "observed": "Replies 'I've forgotten \"tea\".' and 'I've forgotten \"coffee\".' with no alert or notice; Memory still lists 'likes tea' (its README admits 'The reply says it has forgotten either way')."
+    },
+    "pae93f0": {
+     "result": "present",
+     "observed": "Replies 'I've forgotten \"tea\".' and 'I've forgotten \"coffee\".' with no notice; Memory still lists 'likes tea'."
+    },
+    "pe77982": {
+     "result": "present",
+     "observed": "Replies 'I've forgotten \"tea\".' and 'I've forgotten \"coffee\".' with no notice or status line; Memory still lists 'likes tea'."
+    }
+   }
+  },
+  {
+   "id": "D-6",
+   "title": "A question about ORD-1001A is answered with ORD-1001's value",
+   "severity": "low",
+   "merged_from": [
+    "p58009c#6",
+    "pae93f0#11"
+   ],
+   "repro": "As Maya send 'what is the status of ORD-1001A'.",
+   "expected": "A reply or notice that ORD-1001A cannot be found and how to correct the request.",
+   "note": "",
+   "results": {
+    "p58009c": {
+     "result": "present",
+     "observed": "Reply 'The status of ORD-1001 is open.' with no notice."
+    },
+    "pae93f0": {
+     "result": "present",
+     "observed": "Reply 'The status of ORD-1001 is open.' with no notice."
+    },
+    "pe77982": {
+     "result": "absent",
+     "observed": "Reply 'I can't see a record called ORD-1001.' plus status 'The identifier “ORD-1001A” could not be used. Check the full record ID and ask again using its letters, hyphen and digits.' ORD-1001's value is not given."
+    }
+   }
+  },
+  {
+   "id": "D-7",
+   "title": "Unexpected server errors and request-time storage failures are not recorded in the server output",
+   "severity": "low",
+   "merged_from": [
+    "p58009c#7",
+    "pae93f0#12",
+    "pe77982#3"
+   ],
+   "repro": "Start node server.js; Continue as Maya; chmod 500 the DATA_DIR; Save instruction, send a message and Confirm changes in the page; send the raw request 'GET //[ HTTP/1.1' with a Host header; read the server's stdout/stderr.",
+   "expected": "The server output records each failure (without the token) so the operator can see what went wrong.",
+   "note": "",
+   "results": {
+    "p58009c": {
+     "result": "present",
+     "observed": "The three actions each got 'The workspace could not save this action. Please try again.' and the raw request got 500 with the same text; the server output held only 'Stillpoint is ready at ...'. (Background failures print a bare 'Reply progress could not be saved.' / 'Background task progress could not be saved.' with no cause.)"
+    },
+    "pae93f0": {
+     "result": "present",
+     "observed": "Same: three 500 action failures and a 500 for 'GET //['; server output only the ready line. Background failures print one bare line without the cause."
+    },
+    "pe77982": {
+     "result": "present",
+     "observed": "The actions got the storage-unavailable alert and 'GET //[' got 500 'The app could not finish the request. Try reloading.'; the server output held only 'Local chat is ready at ...'. Background failures print 'Background work paused. Restart with the same data directory to recover.' without the cause."
+    }
+   }
+  },
+  {
+   "id": "D-8",
+   "title": "Keyboard Confirm/Reject moves focus onto the next proposal's same-named button, so a second Enter decides another proposal",
+   "severity": "medium",
+   "merged_from": [
+    "pae93f0#1"
+   ],
+   "repro": "As Ana send 'set the status of ORD-1004 to closed' and 'set the tier of ACC-2003 to gold'. Tab to the first proposal's Confirm changes, Enter, Enter again; ask 'what is the tier of ACC-2003'. Repeat on fresh data with Reject changes.",
+   "expected": "Focus moves to the Change result or the composer, never onto another proposal's decision button; the second proposal stays pending.",
+   "note": "",
+   "results": {
+    "p58009c": {
+     "result": "absent",
+     "observed": "After the first Enter focus is in the Message textbox; the second Enter does nothing; one proposal still pending; tier bronze. Same with Reject."
+    },
+    "pae93f0": {
+     "result": "present",
+     "observed": "After the first Enter focus is on Confirm changes inside the ACC-2003 proposal; the second Enter confirmed it ('The tier of ACC-2003 is gold'). With Reject the second Enter rejected the ACC-2003 proposal too (0 pending)."
+    },
+    "pe77982": {
+     "result": "absent",
+     "observed": "After the first Enter focus is on the Change result heading; the second Enter does nothing; ACC-2003 proposal still pending, tier bronze. Same with Reject."
+    }
+   }
+  },
+  {
+   "id": "D-9",
+   "title": "A capitalised field name in a change request creates a second field instead of changing the existing one",
+   "severity": "medium",
+   "merged_from": [
+    "pae93f0#2"
+   ],
+   "repro": "Fresh data, as Maya: 'set the Status of ORD-1001 to open', Confirm changes; 'set the status of ORD-1001 to closed', Confirm changes; ask 'what is the status of ORD-1001' and 'what is the Status of ORD-1001'; read the working record in DATA_DIR.",
+   "expected": "Same field and same preview regardless of capitals, or a message that Status is not a field of ORD-1001.",
+   "note": "",
+   "results": {
+    "p58009c": {
+     "result": "absent",
+     "observed": "The capitalised request shows no Proposed changes or Confirm button; Change result: 'ORD-1001 has no field named Status; its field is named status. No change was made. Ask again using status.' After the lowercase confirm: status -> closed, 'what is the Status' -> 'ORD-1001 has no Status.'; stored ORD-1001 is {status:'closed'} with no Status field."
+    },
+    "pae93f0": {
+     "result": "present",
+     "observed": "Preview 'ORD-1001 Status: ∅ → open', Confirm -> 'Confirmed. The proposed changes were applied.'; then lowercase closed confirmed. 'what is the status' -> closed, 'what is the Status' -> 'The Status of ORD-1001 is open.'; the working ORD-1001 in workspace.json is {..., status:'closed', ..., Status:'open'}: two fields."
+    },
+    "pe77982": {
+     "result": "absent",
+     "observed": "Preview for 'set the Status ... to open' is 'ORD-1001 status: open → open'; after confirming both, 'what is the status' and 'what is the Status' both reply 'The status of ORD-1001 is closed.'; stored ORD-1001 has status:'closed' and no Status field."
+    }
+   }
+  },
+  {
+   "id": "D-10",
+   "title": "Conversations cannot be told apart before opening: empty ones and ones with the same long opening share a name",
+   "severity": "medium",
+   "merged_from": [
+    "pae93f0#3"
+   ],
+   "repro": "Click New conversation twice; read the Conversations navigation. Start two conversations whose first messages are 'Please summarise the open orders for customer Acme Tools and list anything unusual about customer Zeta' and '... customer Omega'; read the names.",
+   "expected": "Each conversation identifiable before selecting it (distinct label, time or number).",
+   "note": "",
+   "results": {
+    "p58009c": {
+     "result": "absent",
+     "observed": "Empty ones: 'Untitled conversation', '(2)', '(3)'; similar ones: '... Acme Tools' and '... Acme Tools (2)', with titles quoting the last message."
+    },
+    "pae93f0": {
+     "result": "present",
+     "observed": "Three buttons named 'New conversation' and two named 'Please summarise the open orders for customer Acme Tools', identical text, accessible name and title."
+    },
+    "pe77982": {
+     "result": "absent",
+     "observed": "'Untitled chat', 'Untitled chat · Chat 2', 'Untitled chat · Chat 3'; '... customer Zeta · Chat 4' and '... customer Omega · Chat 5'."
+    }
+   }
+  },
+  {
+   "id": "D-11",
+   "title": "After a storage write failure a pending reply stays pending and blocks the conversation until a restart",
+   "severity": "medium",
+   "merged_from": [
+    "pae93f0#5"
+   ],
+   "repro": "Start with STANDIN_SLOW_MS=2000. Send 'hello [slow]'; 0.3 s later chmod 500 the DATA_DIR; wait 5 s; chmod 700; read the page; send another message; reload; then restart the server and look again.",
+   "expected": "The reply is marked failed (or retried) once it cannot be saved, with a storage error the person can act on; never left pending.",
+   "note": "On pe77982 the pending state comes with an explicit storage-unavailable alert that names the recovery (restart), so the impact there is milder than the auditor described for pae93f0.",
+   "results": {
+    "p58009c": {
+     "result": "absent",
+     "observed": "Alert 'The reply could not be saved. Retry to continue without sending your message again.' with Retry while still read-only; after restoring access Retry gave the reply once. A new send before Retry is refused with the same alert, text kept in the box."
+    },
+    "pae93f0": {
+     "result": "present",
+     "observed": "Status 'Assistant is replying…' stays, no alert, no Retry, during and after restoring access and after reload; Send disabled, 'next message' not accepted. Server log 'Reply progress could not be saved.' Only after a restart: 'The server restarted before the reply finished. Retry ...'."
+    },
+    "pe77982": {
+     "result": "present",
+     "observed": "Status 'Assistant is preparing a reply…' stays, no Retry, after access is restored; an alert says storage is unavailable and to restore write access and restart the server; a new send is not accepted and a reload shows only the alert. After restart: 'The reply was interrupted. Retry to continue this turn.' and Retry works."
+    }
+   }
+  },
+  {
+   "id": "D-12",
+   "title": "A storage failure during a long task leaves the task showing Running with no progress until a restart",
+   "severity": "low",
+   "merged_from": [
+    "pae93f0#6"
+   ],
+   "repro": "STANDIN_STEP_MS=500. Send 'long task: crates [long]'; immediately chmod 500 the DATA_DIR; wait 3 s; chmod 700; wait 4 s; read Tasks; reload and read again.",
+   "expected": "The task is reported as Failed or Interrupted with Retry task once progress cannot be saved.",
+   "note": "On pe77982 a page-wide storage-unavailable alert with a restart step accompanies the Running status.",
+   "results": {
+    "p58009c": {
+     "result": "absent",
+     "observed": "Task: crates turned Failed with 'Progress could not be saved. Retry resumes from the last saved step.' and Retry task; after restoring access Retry task completed all 8 steps."
+    },
+    "pae93f0": {
+     "result": "present",
+     "observed": "Task: crates stays 'Running, 1 of 8 steps finished' with Cancel task, after restoring access and after reload; nothing runs. Log 'Background task progress could not be saved.' A restart marks it Interrupted with Retry task."
+    },
+    "pe77982": {
+     "result": "present",
+     "observed": "Task: crates stays 'Running, 0 of 8 steps finished' with Cancel task beside the storage-unavailable alert, also after access is restored; after reload the page shows only the alert. A restart marks it Interrupted with Retry task, which completes it."
+    }
+   }
+  },
+  {
+   "id": "D-13",
+   "title": "After a refused rename the instruction form stays silently bound to the edited entry, so the next 'new' instruction replaces it",
+   "severity": "medium",
+   "merged_from": [
+    "pae93f0#7"
+   ],
+   "repro": "Save instruction Tone='Be brief' and Zed='x'. Edit Tone, set Instruction name to Zed, Save instruction (refused). Clear both boxes, enter Formal / 'Be formal', Save instruction; read Saved instructions, reload and read again.",
+   "expected": "Either the edit is visibly in progress and can be cancelled, or a new name after a failed edit saves a new entry; no saved entry silently lost.",
+   "note": "",
+   "results": {
+    "p58009c": {
+     "result": "present",
+     "observed": "Rename refused ('“Zed” is already saved...'). Nothing on screen showed an edit in progress (no Cancel, no 'Editing' label). After saving Formal the list is A, Formal, Zed: Tone and 'Be brief' are gone, also after reload."
+    },
+    "pae93f0": {
+     "result": "present",
+     "observed": "Rename refused ('That name is already in use.'), no sign of an edit in progress; after saving Formal the list is A, Formal, Zed: Tone is gone, also after reload."
+    },
+    "pe77982": {
+     "result": "absent",
+     "observed": "Rename refused ('An entry with this name already exists. Choose Edit to change it.'). A 'Cancel edit' button stays visible next to Save instruction from Edit Tone onward, also after the boxes are cleared, so the edit is visibly in progress and cancellable; saving Formal then renamed Tone to Formal (list A, Formal, Zed). The form does not say which entry it is editing."
+    }
+   }
+  },
+  {
+   "id": "D-14",
+   "title": "Saving an instruction or task under an existing name silently overwrites it",
+   "severity": "low",
+   "merged_from": [
+    "pae93f0#9"
+   ],
+   "repro": "Save instruction A='x', then without Edit save A='y'; Use A, send 'who are you'. Same with Save task A ('hello x' then 'hello y') and Run A.",
+   "expected": "Overwrite with a notice, refuse, or ask.",
+   "note": "",
+   "results": {
+    "p58009c": {
+     "result": "absent",
+     "observed": "Refused with alert '“A” is already saved. Choose Edit A to change it, or use another name.'; 'who are you' -> 'My instructions: x'; Run A sent 'hello x'."
+    },
+    "pae93f0": {
+     "result": "present",
+     "observed": "No notice, form cleared; 'who are you' after Use A -> 'My instructions: y'; Run A sent 'hello y'. One entry, old text gone."
+    },
+    "pe77982": {
+     "result": "absent",
+     "observed": "Refused with alert 'An entry with this name already exists. Choose Edit to change it.'; 'who are you' -> 'My instructions: x'; Run A sent 'hello x'."
+    }
+   }
+  }
+ ]
+}

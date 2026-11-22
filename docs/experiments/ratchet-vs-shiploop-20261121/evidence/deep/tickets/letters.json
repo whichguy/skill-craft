@@ -1,0 +1,28 @@
+{
+ "a": {
+  "letters": {
+   "p21e512": "X",
+   "p3a41e1": "Y",
+   "pb56fe2": "Z"
+  },
+  "pairs": [
+   "Z-X",
+   "Z-Y",
+   "Y-X"
+  ],
+  "characters": 94344
+ },
+ "b": {
+  "letters": {
+   "pb56fe2": "X",
+   "p21e512": "Y",
+   "p3a41e1": "Z"
+  },
+  "pairs": [
+   "X-Y",
+   "X-Z",
+   "Z-Y"
+  ],
+  "characters": 94344
+ }
+}

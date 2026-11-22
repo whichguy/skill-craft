@@ -1,0 +1,222 @@
+{
+ "stated": [
+  {
+   "text": "The service is built in Node.js."
+  },
+  {
+   "text": "The service has no npm dependencies."
+  },
+  {
+   "text": "server.js listens on the port in the PORT environment variable."
+  },
+  {
+   "text": "The service keeps its data in the JSON file named by the DATA_FILE environment variable."
+  },
+  {
+   "text": "Groups survive a restart."
+  },
+  {
+   "text": "Expenses survive a restart."
+  },
+  {
+   "text": "POST /groups with {\"id\": \"<group id>\", \"members\": [\"<name>\", ...]} creates a group."
+  },
+  {
+   "text": "POST /groups answers 201 when it creates a group."
+  },
+  {
+   "text": "POST /groups answers 409 if the id exists."
+  },
+  {
+   "text": "POST /groups answers 400 unless members holds at least two names."
+  },
+  {
+   "text": "POST /groups answers 400 unless the members are distinct."
+  },
+  {
+   "text": "POST /groups answers 400 unless the members are non-empty names."
+  },
+  {
+   "text": "POST /groups/<id>/expenses records an expense paid by one member."
+  },
+  {
+   "text": "An expense {\"payer\": \"<name>\", \"cents\": <positive integer>, \"split\": \"equal\"} shares it equally among all members."
+  },
+  {
+   "text": "Any cents left over after an even division go one each to the members listed first."
+  },
+  {
+   "text": "An expense {\"payer\": \"<name>\", \"cents\": <positive integer>, \"split\": \"exact\", \"shares\": {\"<name>\": <cents>, ...}} makes each member listed in shares owe that many whole cents."
+  },
+  {
+   "text": "In an exact split, a share of zero is allowed."
+  },
+  {
+   "text": "The shares must add up to cents."
+  },
+  {
+   "text": "A recorded expense answers 201 with {\"expense\": <n>}."
+  },
+  {
+   "text": "n is 1 for the group's first expense, then 2, and so on."
+  },
+  {
+   "text": "POST /groups/<id>/expenses answers 400 for an unknown payer."
+  },
+  {
+   "text": "POST /groups/<id>/expenses answers 400 for an unknown member."
+  },
+  {
+   "text": "POST /groups/<id>/expenses answers 400 for a non-positive amount."
+  },
+  {
+   "text": "POST /groups/<id>/expenses answers 400 for a non-integer amount."
+  },
+  {
+   "text": "POST /groups/<id>/expenses answers 400 for an unknown split."
+  },
+  {
+   "text": "POST /groups/<id>/expenses answers 400 for shares that do not add up."
+  },
+  {
+   "text": "GET /groups/<id>/balances returns an object with each member's net cents."
+  },
+  {
+   "text": "A member's net cents are what they paid minus what they owe."
+  },
+  {
+   "text": "The balances add up to 0."
+  },
+  {
+   "text": "GET /groups/<id>/settlements returns a JSON array of {\"from\", \"to\", \"cents\"} payments."
+  },
+  {
+   "text": "Those payments bring every balance to 0."
+  },
+  {
+   "text": "Settlements are produced by repeatedly having the member who owes most pay the member who is owed most the smaller of the two amounts."
+  },
+  {
+   "text": "Ties go to the member listed first."
+  },
+  {
+   "text": "Every route under /groups/<id> answers 404 for an unknown group."
+  },
+  {
+   "text": "Concurrent requests must never lose an expense."
+  },
+  {
+   "text": "The behaviour is covered with node:test tests under test/ that run with `node --test`."
+  }
+ ],
+ "unstated": [
+  {
+   "text": "What body, if any, POST /groups returns with its 201, and whether a Location header is set. The request only names the status.",
+   "why": "A client or a test has to know whether to parse JSON, read an empty body, or follow a Location header after creating a group.",
+   "probe": "Start the server with PORT and DATA_FILE set. POST /groups with {\"id\": \"g\", \"members\": [\"Ann\", \"Bob\"]}. Record the status, the response headers, and the raw body.",
+   "fine_answers": "An empty body, plain text, or a JSON object (for example echoing id and members) are all fine. A Location header may be present or absent."
+  },
+  {
+   "text": "What body a 400, a 409, or a 404 carries. The request names those statuses and not the payload.",
+   "why": "Whoever calls the API, or the next person debugging a failure, cannot tell a refusal from a crash if the body is unspecified, and a client may try to parse it as JSON.",
+   "probe": "POST /groups with {\"id\": \"g\", \"members\": [\"Ann\"]}. POST a valid group {\"id\": \"g\", \"members\": [\"Ann\", \"Bob\"]}, then POST that same body again. GET /groups/missing/balances. POST /groups/g/expenses with {\"payer\": \"Ann\", \"cents\": 0, \"split\": \"equal\"}. Record each status and raw body.",
+   "fine_answers": "An empty body, a plain-text reason, or a JSON error object are all fine, and the three statuses need not share one shape."
+  },
+  {
+   "text": "Which status is used when POST /groups is both a duplicate id and an invalid member list, and whether the stored members change.",
+   "why": "A retry that creates the same id with a bad body is a normal client mistake. The caller cannot know whether to treat it as a validation failure or as 'already exists', and an operator needs the original members to stay or to be replaced.",
+   "probe": "POST /groups {\"id\": \"g\", \"members\": [\"Ann\", \"Bob\"]} and expect the create to succeed. POST /groups again with {\"id\": \"g\", \"members\": [\"Ann\"]}. Record the status. GET /groups/g/balances and see which names are keys.",
+   "fine_answers": "400 or 409 are both fine. The stored members remaining Ann and Bob is the outcome that fits a refused create; the request never says the second call can replace them."
+  },
+  {
+   "text": "Which status is used when the group is unknown and the expense body is also invalid.",
+   "why": "The request says 404 for an unknown group and 400 for a bad expense, separately. A client that branches on status has to know which check wins when both apply.",
+   "probe": "POST /groups/no-such/expenses with {}. POST /groups/no-such/expenses with {\"payer\": \"Ann\", \"cents\": -5, \"split\": \"equal\"}. Record both statuses and do not create that group first.",
+   "fine_answers": "404 or 400 are both fine for each call. A valid expense body for an unknown group is a different, stated case."
+  },
+  {
+   "text": "On split \"exact\", whether every member must appear in shares, or a member who is left out owes nothing, when the listed shares already add up to cents.",
+   "why": "This changes the status and the balances. Someone recording a cost that only some people share will either succeed with the others at zero or be rejected.",
+   "probe": "POST /groups {\"id\": \"g\", \"members\": [\"Ann\", \"Bob\", \"Cho\"]}. POST /groups/g/expenses {\"payer\": \"Ann\", \"cents\": 100, \"split\": \"exact\", \"shares\": {\"Ann\": 40, \"Bob\": 60}}. Record the status. If it is 201, GET /groups/g/balances.",
+   "fine_answers": "201 with Cho at net 0 is fine (Cho paid nothing and owes nothing, Ann net 60, Bob net -60). 400 because Cho is absent from shares is also fine. Charging Cho some further share after the listed shares already add up to 100 is not a fit."
+  },
+  {
+   "text": "Whether a negative share, or a share that is not a whole number, is rejected as a bad amount. Zero shares are allowed, and the 400 rule says 'a non-positive or non-integer amount' without saying it applies to each share.",
+   "why": "The person entering an exact split, and the balances that follow, depend on it. A negative share that still sums to cents moves debt in the opposite direction from a normal share.",
+   "probe": "On group Ann, Bob, Cho, POST payer Ann, cents 100, split exact, shares {\"Ann\": 150, \"Bob\": -25, \"Cho\": -25}. Then POST payer Ann, cents 100, split exact, shares {\"Ann\": 50.5, \"Bob\": 25.5, \"Cho\": 24}. Record both statuses and, for any 201, GET balances.",
+   "fine_answers": "400 for the negative shares is fine, and 201 that applies those integer shares is also fine. 400 for the fractional shares is the fitting reading of 'whole cents'; accepting fractions that still add to 100 is a second outcome the wording does not clearly settle."
+  },
+  {
+   "text": "What happens when an expense omits payer, cents, or split, or uses split \"exact\" and omits shares.",
+   "why": "Those calls are the first bad requests a client sends. The 400 list names an unknown split, a bad amount, and shares that do not add up, and it does not name a missing field. A throw here becomes a 500 or a dead process instead of a refusal.",
+   "probe": "Create group g with Ann and Bob. POST /groups/g/expenses four times, with {}, with {\"payer\": \"Ann\", \"cents\": 100}, with {\"payer\": \"Ann\", \"cents\": 100, \"split\": \"exact\"}, and with {\"cents\": 100, \"split\": \"equal\"}. Record each status and body. GET /groups/g/balances.",
+   "fine_answers": "400 for each, with no expense stored, is the fine answer. The request does not name this case, so a 500 can appear; it is a worse fit than 400."
+  },
+  {
+   "text": "Whether values are coerced when the JSON types differ from the documented ones, such as cents as a string or members as a string.",
+   "why": "A client that sends numbers as strings still looks like the documented call. Coercion accepts it; a strict type check returns 400. The request's 400 list does not mention types other than non-integer amounts.",
+   "probe": "POST /groups {\"id\": \"g\", \"members\": \"Ann,Bob\"}. POST /groups {\"id\": \"g2\", \"members\": [\"Ann\", \"Bob\"]}. POST /groups/g2/expenses {\"payer\": \"Ann\", \"cents\": \"100\", \"split\": \"equal\"}. Record the statuses and, if the expense returns 201, GET /groups/g2/balances.",
+   "fine_answers": "400 for the string members and 400 for the string cents are both fine. Coercing the cents string \"100\" to the integer 100 and returning 201 is also fine. Splitting the string \"Ann,Bob\" into two members is not required."
+  },
+  {
+   "text": "Whether extra fields on an otherwise valid body are ignored, stored, or rejected. That includes a shares object sent with split \"equal\".",
+   "why": "Clients add notes and titles. A strict server answers 400 and the call fails. A server that also applies shares on an equal split can change who owes what, or reject a split the request says to share equally.",
+   "probe": "POST /groups {\"id\": \"g\", \"members\": [\"Ann\", \"Bob\"], \"title\": \"Trip\"}. If that returns 201, POST /groups/g/expenses {\"payer\": \"Ann\", \"cents\": 100, \"split\": \"equal\", \"note\": \"dinner\", \"shares\": {\"Ann\": 10, \"Bob\": 10}}. Record both statuses. GET /groups/g/balances. Read DATA_FILE and see whether title or note is there.",
+   "fine_answers": "201 while ignoring extra fields is fine. 201 while keeping title or note in the file is fine. 400 for an unexpected field is fine. If the equal split is accepted, Ann's net is 50 and Bob's is -50, because the extra shares are not part of the equal-split rule; rejecting it because those shares do not add up to 100 is also fine."
+  },
+  {
+   "text": "Which strings are accepted as a group id, and how that id is written in the path afterwards. The request puts id in the JSON body and again in /groups/<id>/, and it does not say what happens for an empty id, a missing id, a slash, or a space.",
+   "why": "The id is the only way to address the group later. An id that is accepted and then cannot be fetched, or that is split into extra path segments, makes the group unusable.",
+   "probe": "Separately try POST /groups with {\"id\": \"\", \"members\": [\"Ann\", \"Bob\"]}, with {\"id\": \"a/b\", \"members\": [\"Ann\", \"Bob\"]}, with {\"id\": \"a b\", \"members\": [\"Ann\", \"Bob\"]}, with {\"members\": [\"Ann\", \"Bob\"]}, and with {\"id\": 1, \"members\": [\"Ann\", \"Bob\"]}. For each 201, GET balances at the path you would form from that id, and for the space also GET /groups/a%20b/balances.",
+   "fine_answers": "400 for an empty id, a missing id, a slash, a space, or a numeric id is fine. Accepting any of those is also fine when a later GET, percent-encoded if the path needs it, still finds that same group. A 201 whose group no later request can address is a poor fit."
+  },
+  {
+   "text": "What server.js does when PORT is unset, empty, or not a port number, including PORT=0.",
+   "why": "The person starting the process has only the request's statement that it listens on PORT. A missing or bad value is the usual first start, and they need to know whether it exits, picks a default, or binds an ephemeral port.",
+   "probe": "Run node server.js with PORT unset and DATA_FILE set to a writable path. Repeat with PORT=abc, then with PORT=0. Each time record the exit status and, if it stays up, which port accepts a connection.",
+   "fine_answers": "Exiting with a non-zero status when PORT is missing or not a number is fine, and listening on a default port is also fine. For PORT=0, exiting or listening on an ephemeral port are both fine."
+  },
+  {
+   "text": "What the process does when DATA_FILE is unset, and when it names a file that does not exist yet.",
+   "why": "An operator has to start the service on an empty machine. The request says data is kept in that file and does not say the file already exists or what the default path is.",
+   "probe": "Run node server.js with DATA_FILE unset and PORT set. Then run it with DATA_FILE set to a path in an existing directory where that file is absent. If it stays up, POST a valid group and see whether that path appears before the POST, after the POST, or not at all. Stop the process and read the file.",
+   "fine_answers": "If DATA_FILE is unset, exiting with an error is fine, and listening while using some default path is also fine. If the path is missing, creating the file at startup as JSON, or creating it on the first successful write, are both fine."
+  },
+  {
+   "text": "Whether a JSON body must be sent as Content-Type: application/json.",
+   "why": "The documented calls are JSON. A client or a curl command that omits the header, or sends text/plain, is either accepted or refused, and the request does not say which.",
+   "probe": "POST /groups a valid {\"id\": \"g\", \"members\": [\"Ann\", \"Bob\"]} with no Content-Type header. POST another id with Content-Type: text/plain and the same kind of body. Record both statuses.",
+   "fine_answers": "201 for both is fine. 400 unless the header is application/json is also fine."
+  },
+  {
+   "text": "What status a body that is not valid JSON gets, and whether a later valid request still works.",
+   "why": "A truncated client write is ordinary. The operator cares whether that call is a 400 or a 500, and whether the process is still a server afterwards. The request's 400 list is about groups and expenses, not about parsing.",
+   "probe": "POST /groups with Content-Type: application/json and the raw body `{`. Record the status. Then POST a valid group and record the status. Then GET that group's balances.",
+   "fine_answers": "400 or 500 for the broken body are both fine. The valid group afterwards still being created is the fitting behaviour for a service that keeps listening. The request does not discuss a process that exits on a bad body."
+  },
+  {
+   "text": "Whether GET /groups/<id>/balances and GET /groups/<id>/settlements only return data, or also change stored balances.",
+   "why": "Someone checking a settlement plan, or a client that polls it, will wipe the debts if the GET records the payments. The request says these routes return an object and an array, and it never says they write.",
+   "probe": "Create group g with Ann and Bob. POST an equal expense, payer Ann, cents 100. GET balances and save the body. GET settlements and save the body. GET balances again. GET settlements again. Compare the four bodies.",
+   "fine_answers": "No write is the fine answer: the second balances body matches the first, and the second settlements body matches the first. The request does not say these GETs apply the payments."
+  },
+  {
+   "text": "Whether every overlapping valid expense POST must succeed, and whether a balances read in the middle of those POSTs can fail to add up to 0. The request only says a concurrent request must never lose an expense.",
+   "why": "Two people adding expenses at once is the case the request calls out. A client needs to know if a failed response means 'try again, it was not stored' or 'it was stored but the number was lost', and a balances view that does not sum to 0 cannot be shown.",
+   "probe": "Create group g with Ann and Bob. At the same time, send 20 POSTs of {\"payer\": \"Ann\", \"cents\": 100, \"split\": \"equal\"} without waiting. Record every status and every expense number. While they are in flight, GET /groups/g/balances several times and sum the nets. After they finish, GET balances again.",
+   "fine_answers": "It is fine if all 20 return 201, and it is also fine if some fail, as long as each 201 is reflected once and no expense is applied twice. Final nets: Ann is 50 times the number of 201s, Bob is the negative of that, and they sum to 0. The expense numbers on the stored expenses are 1 through that count, each once, in any order across the responses. A balances response during the burst may omit a POST that has not finished; its nets still summing to 0 is the fitting answer. The request does not require a mid-update response to include an unfinished POST."
+  },
+  {
+   "text": "What two overlapping POST /groups calls for the same new id do. Concurrency is stated only as 'never lose an expense', while 409 is stated for an id that already exists.",
+   "why": "Two people can create the same group at the same moment. Both can receive 201, one group can be stored twice, or the member list can be whichever write finished last. That breaks the 409 rule under the only load the request mentions.",
+   "probe": "With an empty DATA_FILE, send two POST /groups requests at the same time, both {\"id\": \"race\", \"members\": [\"Ann\", \"Bob\"]}. Record both statuses and bodies. GET /groups/race/balances. Restart the server with the same DATA_FILE and GET balances again.",
+   "fine_answers": "The outcome that fits the stated 409 rule is one 201 and one 409, one stored group, and members Ann and Bob. The request does not say this for overlapping creates, so both returning 201, or a restart that fails to read the file, is what the probe is there to expose."
+  },
+  {
+   "text": "The JSON layout inside DATA_FILE: which keys exist, whether expenses are stored or only balances, and whether a file this process wrote is what it reads back. The request says the file is JSON and that groups and expenses survive a restart, and it does not fix a schema.",
+   "why": "The next person to maintain the service has to inspect or repair the only copy of the data. They cannot know the property names, or whether editing a balance in the file does anything, until they see a file the server itself wrote.",
+   "probe": "Point DATA_FILE at a new path. Create a group and record one equal expense and one exact expense. Copy the balances and settlements bodies. Read DATA_FILE while the server is still up. Stop the server, start it again with the same file, and GET balances and settlements again. Compare them to the copies and to the file.",
+   "fine_answers": "Any JSON layout that this same server writes and later reads back, with the same balances and settlements, is fine. Balances and settlements may be stored or computed on read. A file written by hand in some other shape does not have to load."
+  }
+ ]
+}

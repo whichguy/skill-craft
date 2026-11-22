@@ -1,0 +1,573 @@
+{
+ "label": "tickets-2",
+ "arm": "ratchet",
+ "case": "ticket-assignment",
+ "base": "d3c4a65f26f6c1f6ec691d3498d4f60bba52cc9b",
+ "points": {
+  "first-build": "7ef18e5c1d5b996e82248cf45e0ffb9406fedac3",
+  "final": "92a2c1ee524c751d4cc0c967565a6bb1cf5c9ef1"
+ },
+ "commit": "d522655ae4f6a8af0b289d346aa08cf44d2e9fbe",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "time": {
+  "minutes": 100.4,
+  "seconds": 6025.9,
+  "first_build_minutes": 11.1,
+  "stop": "max-cycles",
+  "cycles": 3,
+  "sessions": 13,
+  "final_pass": true,
+  "clauses": 52,
+  "seconds_by_role": {
+   "spec": 159.7,
+   "plan": 541.8,
+   "build": 3216.5,
+   "tests": 1287.0,
+   "delta": 499.5
+  },
+  "finished": "2026-11-22T01:39:53-0800"
+ },
+ "tokens": {
+  "rollouts": 13,
+  "counted": 13,
+  "input": 12390215,
+  "cached": 11481728,
+  "output": 132054,
+  "reasoning": 24329,
+  "total": 12522269,
+  "uncached_input": 908487,
+  "first_build": {
+   "input": 2593277,
+   "cached": 2374400,
+   "output": 28708,
+   "reasoning": 2609
+  }
+ },
+ "at": {
+  "first-build": {
+   "hidden": {
+    "ticket-assignment": {
+     "observed": true,
+     "passed": 18,
+     "failed": [],
+     "of": 18
+    }
+   },
+   "static": {
+    "code": {
+     "files": 8,
+     "code_lines": 522,
+     "changed_code_lines": 67,
+     "functions": 9,
+     "named_functions": 6,
+     "longest_function": 25,
+     "longest_function_at": "src/store.js",
+     "over_50_lines": 0.0,
+     "complexity_mean": 2.56,
+     "complexity_max": 5,
+     "complexity_over_10": 0.0,
+     "duplication": {
+      "windows": 495,
+      "repeated": 0,
+      "share": 0.0
+     },
+     "syntax_failures": []
+    },
+    "comments": {
+     "named_functions": 6,
+     "with_comment_above": 3,
+     "share": 0.5
+    },
+    "surfaces": {
+     "env": [],
+     "paths": [
+      "/tickets/:p/assignee"
+     ],
+     "query": [
+      "assignee"
+     ],
+     "flags": [],
+     "exports": [],
+     "scripts": []
+    },
+    "docs": {
+     "user": {
+      "surfaces": 2,
+      "documented": 2,
+      "share": 1.0,
+      "missing": {}
+     },
+     "all": {
+      "surfaces": 2,
+      "documented": 2,
+      "share": 1.0,
+      "missing": {}
+     },
+     "user_words": 5301,
+     "process_words": 6264,
+     "user_files": [
+      "CHANGELOG.md",
+      "CONTRIBUTING.md",
+      "README.md",
+      "docs/api.md",
+      "docs/decisions/0001-record-decisions.md",
+      "docs/decisions/0002-prefixed-sequential-ids.md",
+      "docs/decisions/0003-offset-pagination.md",
+      "docs/decisions/0004-error-envelope.md",
+      "docs/decisions/0005-cursor-pagination.md",
+      "docs/decisions/0006-notification-outbox.md",
+      "docs/decisions/0007-append-only-audit-log.md",
+      "docs/decisions/0008-json-data-file.md",
+      "docs/decisions/0009-ticket-assignment.md",
+      "docs/decisions/README.md",
+      "docs/decisions/template.md",
+      "docs/operations.md"
+     ],
+     "process_files": [
+      "ratchet/build-1.md",
+      "ratchet/plan.md",
+      "ratchet/spec.md"
+     ]
+    },
+    "product_files": [
+     "src/app.js",
+     "src/format.js",
+     "src/persistence.js",
+     "src/store.js",
+     "src/templates.js",
+     "src/tickets/assignees.js",
+     "src/tickets/query.js",
+     "src/tickets/validate.js"
+    ]
+   },
+   "coverage": {
+    "own": {
+     "all": {
+      "lines": 1241,
+      "run": 1147,
+      "functions": 214,
+      "functions_run": 201,
+      "branches": 295,
+      "branches_run": 251,
+      "line_share": 0.9243,
+      "function_share": 0.9393,
+      "branch_share": 0.8508
+     },
+     "changed": {
+      "lines": 67,
+      "run": 67,
+      "functions": 9,
+      "functions_run": 9,
+      "branches": 33,
+      "branches_run": 32,
+      "line_share": 1.0,
+      "function_share": 1.0,
+      "branch_share": 0.9697
+     },
+     "browser_free": {
+      "all": {
+       "lines": 1241,
+       "run": 1147,
+       "line_share": 0.9243,
+       "functions": 214,
+       "functions_run": 201,
+       "function_share": 0.9393
+      },
+      "changed": {
+       "lines": 67,
+       "run": 67,
+       "line_share": 1.0,
+       "functions": 9,
+       "functions_run": 9,
+       "function_share": 1.0
+      },
+      "left_out": []
+     },
+     "commands": 1,
+     "tests": {
+      "tests": 127,
+      "pass": 127,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+     },
+     "unloaded": []
+    },
+    "all-suites": {
+     "all": {
+      "lines": 1241,
+      "run": 1147,
+      "functions": 214,
+      "functions_run": 201,
+      "branches": 295,
+      "branches_run": 251,
+      "line_share": 0.9243,
+      "function_share": 0.9393,
+      "branch_share": 0.8508
+     },
+     "changed": {
+      "lines": 67,
+      "run": 67,
+      "functions": 9,
+      "functions_run": 9,
+      "branches": 33,
+      "branches_run": 32,
+      "line_share": 1.0,
+      "function_share": 1.0,
+      "branch_share": 0.9697
+     },
+     "browser_free": {
+      "all": {
+       "lines": 1241,
+       "run": 1147,
+       "line_share": 0.9243,
+       "functions": 214,
+       "functions_run": 201,
+       "function_share": 0.9393
+      },
+      "changed": {
+       "lines": 67,
+       "run": 67,
+       "line_share": 1.0,
+       "functions": 9,
+       "functions_run": 9,
+       "function_share": 1.0
+      },
+      "left_out": []
+     },
+     "commands": 1,
+     "tests": {
+      "tests": 127,
+      "pass": 127,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+     },
+     "unloaded": []
+    }
+   },
+   "mutation": {
+    "measured": true,
+    "sampled": 20,
+    "invalid": 0,
+    "sites_on_changed_lines": 20,
+    "failing_on_untouched": [],
+    "own": {
+     "caught": 19,
+     "survived": 0,
+     "did_not_end": 1,
+     "not_measured": 0,
+     "share": 1.0
+    }
+   },
+   "calibrated": {
+    "measured": true,
+    "caught": 18,
+    "pool": 27,
+    "missed": [
+     "backoff-linear",
+     "cli-no-assignee",
+     "empty-filter-ignored",
+     "filter-or",
+     "name-limit-off-by-one",
+     "raw-column-inserted",
+     "update-rejects-resolved",
+     "validate-renamed"
+    ],
+    "not_judged": [
+     "filter-after-page"
+    ],
+    "failing_on_reference": [
+     "a failed data file replacement restores the running ticket, audit and outbox before retry",
+     "assignee, status and priority intersect before cursor pagination",
+     "assignment notices retry on the normal schedule and can recover or become dead",
+     "assignment validates payload, actor and body size before changing anything",
+     "the CLI shows assigned and legacy rows and the weekly report still reads four raw fields",
+     "the background worker delivers pending assignments to the captured recipients"
+    ],
+    "test_files": [
+     "test/assignment-delivery.test.js",
+     "test/assignment.test.js"
+    ]
+   }
+  },
+  "final": {
+   "hidden": {
+    "ticket-assignment": {
+     "observed": true,
+     "passed": 18,
+     "failed": [],
+     "of": 18
+    }
+   },
+   "static": {
+    "code": {
+     "files": 9,
+     "code_lines": 582,
+     "changed_code_lines": 92,
+     "functions": 14,
+     "named_functions": 9,
+     "longest_function": 25,
+     "longest_function_at": "src/store.js",
+     "over_50_lines": 0.0,
+     "complexity_mean": 2.43,
+     "complexity_max": 5,
+     "complexity_over_10": 0.0,
+     "duplication": {
+      "windows": 554,
+      "repeated": 0,
+      "share": 0.0
+     },
+     "syntax_failures": []
+    },
+    "comments": {
+     "named_functions": 9,
+     "with_comment_above": 5,
+     "share": 0.5556
+    },
+    "surfaces": {
+     "env": [],
+     "paths": [
+      "/tickets/:p/assignee"
+     ],
+     "query": [
+      "assignee"
+     ],
+     "flags": [],
+     "exports": [],
+     "scripts": []
+    },
+    "docs": {
+     "user": {
+      "surfaces": 2,
+      "documented": 2,
+      "share": 1.0,
+      "missing": {}
+     },
+     "all": {
+      "surfaces": 2,
+      "documented": 2,
+      "share": 1.0,
+      "missing": {}
+     },
+     "user_words": 5516,
+     "process_words": 13230,
+     "user_files": [
+      "CHANGELOG.md",
+      "CONTRIBUTING.md",
+      "README.md",
+      "docs/api.md",
+      "docs/decisions/0001-record-decisions.md",
+      "docs/decisions/0002-prefixed-sequential-ids.md",
+      "docs/decisions/0003-offset-pagination.md",
+      "docs/decisions/0004-error-envelope.md",
+      "docs/decisions/0005-cursor-pagination.md",
+      "docs/decisions/0006-notification-outbox.md",
+      "docs/decisions/0007-append-only-audit-log.md",
+      "docs/decisions/0008-json-data-file.md",
+      "docs/decisions/0009-ticket-assignment.md",
+      "docs/decisions/README.md",
+      "docs/decisions/template.md",
+      "docs/operations.md"
+     ],
+     "process_files": [
+      "ratchet/build-1.md",
+      "ratchet/build-2.md",
+      "ratchet/build-3.md",
+      "ratchet/delta-1.md",
+      "ratchet/delta-2.md",
+      "ratchet/delta-3.md",
+      "ratchet/plan.md",
+      "ratchet/spec.md",
+      "ratchet/tests-1.md",
+      "ratchet/tests-2.md",
+      "ratchet/tests-3.md"
+     ]
+    },
+    "product_files": [
+     "src/app.js",
+     "src/format.js",
+     "src/http.js",
+     "src/persistence.js",
+     "src/store.js",
+     "src/templates.js",
+     "src/tickets/assignees.js",
+     "src/tickets/query.js",
+     "src/tickets/validate.js"
+    ]
+   },
+   "coverage": {
+    "own": {
+     "all": {
+      "lines": 1259,
+      "run": 1210,
+      "functions": 219,
+      "functions_run": 212,
+      "branches": 322,
+      "branches_run": 269,
+      "line_share": 0.9611,
+      "function_share": 0.968,
+      "branch_share": 0.8354
+     },
+     "changed": {
+      "lines": 92,
+      "run": 92,
+      "functions": 14,
+      "functions_run": 14,
+      "branches": 48,
+      "branches_run": 47,
+      "line_share": 1.0,
+      "function_share": 1.0,
+      "branch_share": 0.9792
+     },
+     "browser_free": {
+      "all": {
+       "lines": 1259,
+       "run": 1210,
+       "line_share": 0.9611,
+       "functions": 219,
+       "functions_run": 212,
+       "function_share": 0.968
+      },
+      "changed": {
+       "lines": 92,
+       "run": 92,
+       "line_share": 1.0,
+       "functions": 14,
+       "functions_run": 14,
+       "function_share": 1.0
+      },
+      "left_out": []
+     },
+     "commands": 1,
+     "tests": {
+      "tests": 134,
+      "pass": 134,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+     },
+     "unloaded": []
+    },
+    "all-suites": {
+     "all": {
+      "lines": 1259,
+      "run": 1210,
+      "functions": 219,
+      "functions_run": 212,
+      "branches": 324,
+      "branches_run": 270,
+      "line_share": 0.9611,
+      "function_share": 0.968,
+      "branch_share": 0.8333
+     },
+     "changed": {
+      "lines": 92,
+      "run": 92,
+      "functions": 14,
+      "functions_run": 14,
+      "branches": 49,
+      "branches_run": 48,
+      "line_share": 1.0,
+      "function_share": 1.0,
+      "branch_share": 0.9796
+     },
+     "browser_free": {
+      "all": {
+       "lines": 1259,
+       "run": 1210,
+       "line_share": 0.9611,
+       "functions": 219,
+       "functions_run": 212,
+       "function_share": 0.968
+      },
+      "changed": {
+       "lines": 92,
+       "run": 92,
+       "line_share": 1.0,
+       "functions": 14,
+       "functions_run": 14,
+       "function_share": 1.0
+      },
+      "left_out": []
+     },
+     "commands": 60,
+     "tests": {
+      "tests": 134,
+      "pass": 134,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+     },
+     "unloaded": []
+    }
+   },
+   "mutation": {
+    "measured": true,
+    "sampled": 27,
+    "invalid": 0,
+    "sites_on_changed_lines": 27,
+    "failing_on_untouched": [],
+    "own": {
+     "caught": 24,
+     "survived": 1,
+     "did_not_end": 2,
+     "not_measured": 0,
+     "share": 0.96
+    },
+    "acceptance": {
+     "caught": 26,
+     "survived": 1,
+     "did_not_end": 0,
+     "not_measured": 0,
+     "share": 0.963
+    },
+    "either": {
+     "caught": 26,
+     "survived": 1,
+     "share": 0.963
+    }
+   },
+   "calibrated": {
+    "measured": true,
+    "caught": 19,
+    "pool": 27,
+    "missed": [
+     "backoff-linear",
+     "cli-no-assignee",
+     "filter-after-page",
+     "filter-or",
+     "name-limit-off-by-one",
+     "raw-column-inserted",
+     "update-rejects-resolved",
+     "validate-renamed"
+    ],
+    "not_judged": [],
+    "failing_on_reference": [
+     "CLI show reads the current assignee above history for assigned, cleared and legacy tickets",
+     "CLI show reads the selected file and displays assignment history in audit order",
+     "a failed assignment save returns the old state and allows the same HTTP request to succeed on retry",
+     "a failed data file replacement restores the running ticket, audit and outbox before retry",
+     "a malformed UTF-8 handoff leaves the live ticket, audit, outbox and saved state intact",
+     "assignee, status and priority intersect before cursor pagination",
+     "assignment notices retry on the normal schedule and can recover or become dead",
+     "assignment validates payload, actor and body size before changing anything",
+     "the CLI shows assigned and legacy rows and the weekly report still reads four raw fields",
+     "the background worker delivers pending assignments to the captured recipients",
+     "the strict JSON reader validates the complete bounded byte stream"
+    ],
+    "test_files": [
+     "test/assignment-delivery.test.js",
+     "test/assignment-input-history.test.js",
+     "test/assignment-regressions.test.js",
+     "test/assignment.test.js"
+    ]
+   }
+  }
+ }
+}

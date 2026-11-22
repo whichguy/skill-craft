@@ -1,0 +1,769 @@
+{
+ "told": [
+  {
+   "id": "U-1",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-2",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-3",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-5",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "yes",
+     "where": "README.md: \"`PROVIDER_TOKEN` | An accepted environment token takes precedence.\""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"`PROVIDER_TOKEN` | An accepted environment token takes precedence.\""
+    }
+   }
+  },
+  {
+   "id": "U-6",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "yes",
+     "where": "README.md: \"A refused environment value falls back to an accepted saved token, or to Setup if neither works.\""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"A refused environment value falls back to an accepted saved token, or to Setup if neither works.\""
+    }
+   }
+  },
+  {
+   "id": "U-7",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "yes",
+     "where": "README.md: \"When setup saves a token, the app stores it in a separate restricted `provider-token` file.\""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"When setup saves a token, the app stores it in a separate restricted `provider-token` file.\""
+    }
+   }
+  },
+  {
+   "id": "U-8",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-9",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"Bots can share a name. Each has a stable number shown in the Bots list and the chat header.\""
+    }
+   }
+  },
+  {
+   "id": "U-11",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"In Conversations, similar openings show a distinguishing excerpt where available and a chat number. When openings are identical, later entries get a chat number.\""
+    }
+   }
+  },
+  {
+   "id": "U-13",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-14",
+   "results": {
+    "pae93f0": {
+     "told": "yes",
+     "where": "README.md: \"Each profile has its own bots, chats, saved entries, and task activity.\""
+    },
+    "p8e1ce4": {
+     "told": "yes",
+     "where": "README.md: \"Saved instructions and saved tasks are available across your bots.\""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"Saved instructions and saved tasks are available across your bots.\""
+    }
+   }
+  },
+  {
+   "id": "U-15",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-16",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-17",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "yes",
+     "where": "README.md: \"Use copies the saved instruction into the current bot. Select Use again to activate an edit.\""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"Use copies the saved instruction into the current bot. Select Use again to activate an edit.\""
+    }
+   }
+  },
+  {
+   "id": "U-20",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"If a send or saved-task Run loses its acknowledgement, return to the originating conversation in the same tab, reloading if needed. The app checks whether the server received it.\""
+    }
+   }
+  },
+  {
+   "id": "U-21",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "yes",
+     "where": "README.md: \"Any unfinished reply or running task that was stopped becomes explicitly retryable.\""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"If the original message was received and its reply failed, use **Retry** on that turn to continue it.\""
+    }
+   }
+  },
+  {
+   "id": "U-22",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-23",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-25",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-26",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-27",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-29",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-30",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"The app offers a preview only when it can represent the amount exactly and gives correction guidance for unsupported changes.\""
+    }
+   }
+  },
+  {
+   "id": "U-31",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "yes",
+     "where": "README.md: \"Leaving the conversation preserves the pending decision.\""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"Leaving the conversation preserves the pending decision.\""
+    }
+   }
+  },
+  {
+   "id": "U-32",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "yes",
+     "where": "README.md: \"The app assigns new order IDs at confirmation and reports the final ID.\""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"The app assigns new order IDs at confirmation and reports the final ID.\""
+    }
+   }
+  },
+  {
+   "id": "U-33",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "yes",
+     "where": "README.md: \"A stale preview expires and requires a fresh request.\""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"A stale preview expires and requires a fresh request.\""
+    }
+   }
+  },
+  {
+   "id": "U-34",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "yes",
+     "where": "README.md: \"The app assigns new order IDs at confirmation and reports the final ID.\""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"The app assigns new order IDs at confirmation and reports the final ID.\""
+    }
+   }
+  },
+  {
+   "id": "U-35",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-36",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-37",
+   "results": {
+    "pae93f0": {
+     "told": "yes",
+     "where": "README.md: \"Tasks shows background work across your conversations.\""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-38",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-39",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"The app adds the step to the most recently started running task in the conversation and links to that task by number.\""
+    }
+   }
+  },
+  {
+   "id": "U-40",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-41",
+   "results": {
+    "pae93f0": {
+     "told": "yes",
+     "where": "README.md: \"If the process stops, the next launch marks unfinished work as interrupted.\""
+    },
+    "p8e1ce4": {
+     "told": "yes",
+     "where": "README.md: \"Any unfinished reply or running task that was stopped becomes explicitly retryable.\""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"Any unfinished reply or running task that was stopped becomes explicitly retryable.\""
+    }
+   }
+  },
+  {
+   "id": "U-42",
+   "results": {
+    "pae93f0": {
+     "told": "yes",
+     "where": "README.md: \"Retry resumes from the last saved step.\""
+    },
+    "p8e1ce4": {
+     "told": "yes",
+     "where": "README.md: \"If a task fails or is interrupted, use Retry task to continue its unfinished steps.\""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"If a task fails or is interrupted, use Retry task to continue its unfinished steps.\""
+    }
+   }
+  },
+  {
+   "id": "U-43",
+   "results": {
+    "pae93f0": {
+     "told": "yes",
+     "where": "README.md: \"Cancelling preserves completed steps and discards pending output.\""
+    },
+    "p8e1ce4": {
+     "told": "yes",
+     "where": "README.md: \"Cancel preserves finished steps and discards an in-flight result.\""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"Cancel preserves finished steps and discards an in-flight result.\""
+    }
+   }
+  },
+  {
+   "id": "U-44",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-45",
+   "results": {
+    "pae93f0": {
+     "told": "yes",
+     "where": "README.md: \"On a narrow screen, use the header buttons to open navigation or workspace tools. Escape closes the open panel.\""
+    },
+    "p8e1ce4": {
+     "told": "yes",
+     "where": "README.md: \"On narrow windows, Workspace and Tools open the secondary panels. Escape closes an open panel and returns focus to its button.\""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"On narrow windows, Workspace and Tools open the secondary panels. Escape closes an open panel and returns focus to its button.\""
+    }
+   }
+  },
+  {
+   "id": "U-46",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"If startup cannot open the saved snapshot, it stops and preserves the directory contents.\""
+    }
+   }
+  },
+  {
+   "id": "U-49",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"Record field names are case-insensitive.\""
+    }
+   }
+  },
+  {
+   "id": "U-50",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"If you enter a suffix such as **ORD-1001A**, check the ID in the lookup guidance and ask again.\""
+    }
+   }
+  },
+  {
+   "id": "U-54",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "yes",
+     "where": "README.md: \"If the server reports storage is unavailable, check the directory permissions and restart with the same directory.\""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"If a storage failure occurs during a save, restore write access and restart with the original `DATA_DIR`.\""
+    }
+   }
+  },
+  {
+   "id": "U-57",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-58",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-60",
+   "results": {
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "p8e1ce4": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  }
+ ]
+}

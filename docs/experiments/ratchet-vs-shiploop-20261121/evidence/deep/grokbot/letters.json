@@ -1,0 +1,28 @@
+{
+ "a": {
+  "letters": {
+   "pae93f0": "X",
+   "pe77982": "Y",
+   "p8e1ce4": "Z"
+  },
+  "pairs": [
+   "X-Y",
+   "X-Z",
+   "Z-Y"
+  ],
+  "characters": 318206
+ },
+ "b": {
+  "letters": {
+   "pae93f0": "X",
+   "pe77982": "Y",
+   "p8e1ce4": "Z"
+  },
+  "pairs": [
+   "X-Y",
+   "X-Z",
+   "Z-Y"
+  ],
+  "characters": 318206
+ }
+}

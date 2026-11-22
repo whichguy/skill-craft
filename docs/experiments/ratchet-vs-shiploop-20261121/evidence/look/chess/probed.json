@@ -1,0 +1,38 @@
+{
+ "probed": [
+  {
+   "n": 1,
+   "results": {
+    "pe10ff4": {
+     "result": "present",
+     "observed": "Ran the steps in this product copy: for 4k3/3n4/8/3pP3/8/8/8/4K3 w - d6 0 15 (knight on d7) legalMoves includes e5d6 (true) and applyMove returns 4k3/3n4/3P4/8/8/8/8/4K3 b - - 0 15; for 4k3/8/8/3pP3/8/8/8/4K3 w - d6 1 15 (halfmove clock 1) legalMoves includes e5d6 (true) and applyMove returns 4k3/8/3P4/8/8/8/8/4K3 b - - 0 15. Neither FEN is rejected and no IllegalMoveError is thrown. Control (d7 empty, clock 0) also allows the capture."
+    },
+    "pa46eb8": {
+     "result": "present",
+     "observed": "Ran the steps in this product copy: for 4k3/3n4/8/3pP3/8/8/8/4K3 w - d6 0 15 (knight on d7) legalMoves includes e5d6 (true) and applyMove returns 4k3/3n4/3P4/8/8/8/8/4K3 b - - 0 15; for 4k3/8/8/3pP3/8/8/8/4K3 w - d6 1 15 (halfmove clock 1) legalMoves includes e5d6 (true) and applyMove returns 4k3/8/3P4/8/8/8/8/4K3 b - - 0 15. Neither FEN is rejected and no IllegalMoveError is thrown. Control (d7 empty, clock 0) also allows the capture."
+    },
+    "pe27d01": {
+     "result": "present",
+     "observed": "Ran the steps in this product copy: for 4k3/3n4/8/3pP3/8/8/8/4K3 w - d6 0 15 (knight on d7) legalMoves includes e5d6 (true) and applyMove returns 4k3/3n4/3P4/8/8/8/8/4K3 b - - 0 15; for 4k3/8/8/3pP3/8/8/8/4K3 w - d6 1 15 (halfmove clock 1) legalMoves includes e5d6 (true) and applyMove returns 4k3/8/3P4/8/8/8/8/4K3 b - - 0 15. Neither FEN is rejected and no IllegalMoveError is thrown. Control (d7 empty, clock 0) also allows the capture."
+    }
+   }
+  },
+  {
+   "n": 2,
+   "results": {
+    "pe10ff4": {
+     "result": "present",
+     "observed": "Ran the steps in this product copy: on 4k3/8/8/8/8/8/7R/4K3 w K - 0 20 e1g1 is absent (false); after h2h1, e8d8 the FEN is 3k4/8/8/8/8/8/8/4K2R w K - 2 21 (stale K right kept); e1g1 is then listed (true) and applyMove returns 3k4/8/8/8/8/8/8/5RK1 b - - 3 21. Control with - instead of K: e1g1 stays absent and applyMove throws IllegalMoveError."
+    },
+    "pa46eb8": {
+     "result": "present",
+     "observed": "Ran the steps in this product copy: on 4k3/8/8/8/8/8/7R/4K3 w K - 0 20 e1g1 is absent (false); after h2h1, e8d8 the FEN is 3k4/8/8/8/8/8/8/4K2R w K - 2 21 (stale K right kept); e1g1 is then listed (true) and applyMove returns 3k4/8/8/8/8/8/8/5RK1 b - - 3 21. Control with - instead of K: e1g1 stays absent and applyMove throws IllegalMoveError."
+    },
+    "pe27d01": {
+     "result": "present",
+     "observed": "Ran the steps in this product copy: on 4k3/8/8/8/8/8/7R/4K3 w K - 0 20 e1g1 is absent (false); after h2h1, e8d8 the FEN is 3k4/8/8/8/8/8/8/4K2R w K - 2 21 (stale K right kept); e1g1 is then listed (true) and applyMove returns 3k4/8/8/8/8/8/8/5RK1 b - - 3 21. Control with - instead of K: e1g1 stays absent and applyMove throws IllegalMoveError."
+    }
+   }
+  }
+ ]
+}

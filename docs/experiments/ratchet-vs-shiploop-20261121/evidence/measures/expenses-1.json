@@ -1,0 +1,183 @@
+{
+ "label": "expenses-1",
+ "arm": "shiploop",
+ "case": "shared-expenses",
+ "base": null,
+ "points": {
+  "final": "bc5099f3c9f4b13489c599fe661b1dd2a7ac8d50"
+ },
+ "commit": "d522655ae4f6a8af0b289d346aa08cf44d2e9fbe",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "time": {
+  "minutes": 14.3,
+  "seconds": 855.9,
+  "resumes": 0,
+  "outcome": "PASS",
+  "pass": true,
+  "shiploop_version": "2.4.1"
+ },
+ "tokens": {
+  "rollouts": 1,
+  "counted": 1,
+  "input": 10720404,
+  "cached": 10572416,
+  "output": 27535,
+  "reasoning": 2840,
+  "total": 10747939,
+  "uncached_input": 147988
+ },
+ "at": {
+  "final": {
+   "hidden": {
+    "expenses": {
+     "observed": true,
+     "passed": 6,
+     "failed": [],
+     "of": 6
+    }
+   },
+   "static": {
+    "code": {
+     "files": 1,
+     "code_lines": 165,
+     "changed_code_lines": 165,
+     "functions": 17,
+     "named_functions": 10,
+     "longest_function": 51,
+     "longest_function_at": "server.js",
+     "over_50_lines": 0.0588,
+     "complexity_mean": 4.18,
+     "complexity_max": 22,
+     "complexity_over_10": 0.1176,
+     "duplication": {
+      "windows": 130,
+      "repeated": 0,
+      "share": 0.0
+     },
+     "syntax_failures": []
+    },
+    "comments": {
+     "named_functions": 10,
+     "with_comment_above": 0,
+     "share": 0.0
+    },
+    "surfaces": {
+     "env": [
+      "DATA_FILE",
+      "PORT"
+     ],
+     "paths": [
+      "/groups"
+     ],
+     "query": [],
+     "flags": [],
+     "exports": [],
+     "scripts": []
+    },
+    "docs": {
+     "user": {
+      "surfaces": 3,
+      "documented": 0,
+      "share": 0.0,
+      "missing": {
+       "env": [
+        "DATA_FILE",
+        "PORT"
+       ],
+       "paths": [
+        "/groups"
+       ]
+      }
+     },
+     "all": {
+      "surfaces": 3,
+      "documented": 3,
+      "share": 1.0,
+      "missing": {}
+     },
+     "user_words": 0,
+     "process_words": 1351,
+     "user_files": [],
+     "process_files": [
+      "docs/shiploop/architecture.md",
+      "docs/shiploop/environment.md",
+      "docs/shiploop/spec.md"
+     ]
+    },
+    "product_files": [
+     "server.js"
+    ]
+   },
+   "coverage": {
+    "own": {
+     "all": {
+      "lines": 165,
+      "run": 156,
+      "functions": 17,
+      "functions_run": 17,
+      "branches": 74,
+      "branches_run": 65,
+      "line_share": 0.9455,
+      "function_share": 1.0,
+      "branch_share": 0.8784
+     },
+     "changed": {
+      "lines": 165,
+      "run": 156,
+      "functions": 17,
+      "functions_run": 17,
+      "branches": 74,
+      "branches_run": 65,
+      "line_share": 0.9455,
+      "function_share": 1.0,
+      "branch_share": 0.8784
+     },
+     "browser_free": {
+      "all": {
+       "lines": 165,
+       "run": 156,
+       "line_share": 0.9455,
+       "functions": 17,
+       "functions_run": 17,
+       "function_share": 1.0
+      },
+      "changed": {
+       "lines": 165,
+       "run": 156,
+       "line_share": 0.9455,
+       "functions": 17,
+       "functions_run": 17,
+       "function_share": 1.0
+      },
+      "left_out": []
+     },
+     "commands": 1,
+     "tests": {
+      "tests": 5,
+      "pass": 5,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+     },
+     "unloaded": []
+    }
+   },
+   "mutation": {
+    "measured": true,
+    "sampled": 60,
+    "invalid": 0,
+    "sites_on_changed_lines": 68,
+    "failing_on_untouched": [],
+    "own": {
+     "caught": 49,
+     "survived": 11,
+     "did_not_end": 0,
+     "not_measured": 0,
+     "share": 0.817
+    }
+   }
+  }
+ }
+}

@@ -1,0 +1,1258 @@
+diff --git a/README.md b/README.md
+index db9c295..49fda91 100644
+--- a/README.md
++++ b/README.md
+@@ -19,6 +19,50 @@ Set `PORT` to choose a different port and `DATA_DIR` to choose a data folder. Th
+ 
+ The provider is deterministic and supports the documented prompt patterns. Other prompts receive its general echo response. See [the provider guide](provider/README.md) and [the records guide](records/README.md) for examples and permissions.
+ 
++## What to expect
++
++**Bots, conversations and saved items**
++
++- Bot names can repeat; each one is a separate bot. Messages show the bot's current name, so renaming a bot also relabels its earlier messages.
++- A conversation's title is the first message sent in it, with spaces and line breaks collapsed, cut to 56 characters. When two of the open bot's conversations have the same title, the list also shows the latest message you sent in each. New bots and conversations are listed first.
++- Saved instructions and saved tasks belong to the person and are shared by all of that person's bots. Each bot uses at most one instruction at a time. Editing or deleting an instruction changes every bot that uses it.
++- Saving an instruction or task under a name that is already saved is refused with an alert, and the saved one is unchanged. Choose **Edit <name>** to change it, or pick another name.
++- Limits: bot, instruction and task names 80 characters; instruction text and task requests 6,000; messages and memory text 12,000. A field over its limit says how much to remove and cannot be sent or saved until it is shortened. Nothing is cut off.
++
++**Your place in a conversation**
++
++- The starter examples put a prompt in the composer for you to review and send. They ask before replacing a message you have not sent.
++- Unsent drafts and your reading position in each conversation are kept in this browser's storage, per person, so a reload or a later visit opens the same place. **Switch person** clears them from this browser.
++- A failed reply keeps its alert and **Retry** under its message, even after you send later messages. The retried reply appears directly after the message it answers.
++
++**Memory**
++
++- Remembering and forgetting treat facts that differ only in capitals as the same fact. Forgetting removes the memory entry; the conversation where it was said is unchanged.
++
++**Records and proposals**
++
++- Only these fields of existing records can change: an order's `customer`, `status` and `total`, and an account's `name`, `tier` and `owner`. A new value keeps the field's type (a number for `total`).
++- The provider matches field names exactly as written, so write them in lowercase. `What is the STATUS of ORD-1001?` gets "ORD-1001 has no STATUS.", and `set the Status of ORD-1001 to closed` is refused with a **Change result** that lists the fields you can change.
++- `create an order for <customer> totalling <number>` takes whole numbers only. With a decimal such as `35.50` the provider gives its echo reply and no proposal. `set the total of ORD-1001 to 35.50` works and shows `35.5`.
++- Amounts larger than 9007199254740991 cannot be kept exactly, so they are refused before **Confirm changes** is offered.
++- A pending creation reserves the order ID it shows, across people and conversations. Rejecting it frees that ID for the next preview; other open previews keep the IDs they show.
++- **Confirm changes** checks that each field still has the value you reviewed. If a field was changed and then changed back to that value, the earlier proposal still applies.
++
++**Long tasks**
++
++- `add step: ...` adds to the task running in the same conversation. When more than one is running, the app asks which one gets the step (**Add to <task>** or **Don’t add**). A note under the reply says where the step went, or that it was not added.
++- If progress cannot be saved, for example because the data folder became unavailable, the task turns **Interrupted** once saving works again, and **Retry task** continues from the last finished step. Node logs the task and the error.
++- **Since you were away** lists running tasks, tasks that need attention, and tasks that finished while you were away (since this browser last closed or hid the page), apart from those that finished during this visit. In a browser that has not opened the app before, every finished task counts as finished while away. Selecting a task opens its conversation and moves to the task.
++
++**What the stand-in provider answers**
++
++- Questions outside the provider guide's patterns, such as "Which of my open orders has the biggest total?", get its echo reply ("You said: ..."), not an answer.
++- A finished research task lists one acknowledgment per step, such as `Done: Write the summary of monthly order review`. The provider does not return findings or a written summary.
++
++**The provider token**
++
++- A valid `PROVIDER_TOKEN` takes precedence over a saved token; an invalid one is ignored and the saved token is used. A token saved through **Setup** is stored as plain text in `workspace.json` under `DATA_DIR`, a file only the account running Node can read. The app never shows it in a page or response.
++
+ ## Verify
+ 
+ Run `npm test` for the native Node suite. The optional browser check, `node test/browser.cjs`, needs Chrome. Set `CHROME_BIN` if Chrome is installed at a nonstandard path.
+diff --git a/docs/shiploop/environment.md b/docs/shiploop/environment.md
+index 5a7c8fe..af211d9 100644
+--- a/docs/shiploop/environment.md
++++ b/docs/shiploop/environment.md
+@@ -18,7 +18,7 @@ node --check server.js && node --check public/app.js
+ 
+ Local release uses ShipLoop's guarded source return, followed by `node server.js` from the returned checkout. Probe GET / on its configured loopback port. Node writes the startup address to stdout and unexpected operation failures to stderr. The conversation carries reply recovery, task checkpoints and record decision receipts. Restart with the same DATA_DIR to retain this state. Stop the recorded server PID before replacing or rolling back the source. For this first fast-forward, with the original branch checked out and no later commits, the rollback command is `git reset --keep 54a3191d9e3075e5f85d0419f1ef6737e57f50cd`. The application data folder remains available for recovery.
+ 
+-Use a local Chrome executable for the browser command. The focused server suite runs all nine named rule and HTTP cases. The full native suite requires no Chrome.
++Use a local Chrome executable for the browser command. The focused server suite runs the named rule and HTTP cases TC-1 through TC-22. The full native suite requires no Chrome.
+ 
+ ## Platform facts
+ 
+@@ -38,10 +38,10 @@ Planned: node:test unit rules for records, task and store transitions. Component
+ 
+ ## ID convention
+ 
+-Test titles carry the standalone identifier TC-1 through TC-9.
++Test titles carry the standalone identifier TC-1 through TC-22. TC-10 through TC-22 cover the fixes in docs/shiploop/fix.md.
+ 
+ Node and headless Chrome start using installed binaries. The no-suite Node run emits a zero-test summary. Disposable HTTP tests use an ephemeral loopback port and separate DATA_DIR.
+ 
+-The implemented Node component suite runs nine checks with npm test. UI-1 observes the browser workflow by running node test/browser.cjs against a temporary local server. It requires Chrome and uses a disposable browser profile.
++The implemented Node component suite runs TC-1 through TC-22 with npm test; browser rules in public/rules.js are tested as a module. UI-1 observes the browser workflow by running node test/browser.cjs against a temporary local server. It requires Chrome and uses a disposable browser profile.
+ 
+ The assembled system verification reuses the native HTTP and explicit Chrome commands above. Run both in the candidate and repeat in the clean returned consumer copy. Each command owns its local ephemeral server and disposable fixture data.
+diff --git a/docs/shiploop/fix.md b/docs/shiploop/fix.md
+new file mode 100644
+index 0000000..a2b294e
+--- /dev/null
++++ b/docs/shiploop/fix.md
+@@ -0,0 +1,39 @@
++# Fix pass
++
++Each shortfall in look.md was reproduced first, in the page with Playwright (headless Chromium at 1440 and 390 pixels) or through the HTTP API, then rechecked the same way after the change. `npm test` passed before the pass (10 of 10) and after it (23 of 23). Browser-only rules live in `public/rules.js` so the suite can test them as a module. Keyboard focus can only be shown in a browser, so its check is in the product's browser check `node test/browser.cjs` (UI-1), which `npm test` does not run.
++
++## Shortfalls
++
++- high, a duplicate save overwrites a saved item: fixed. A save that is not an edit is refused with an alert naming **Edit <name>**, and the saved item is kept. Test: TC-10 a new save under an existing name keeps the saved entry until the person chooses Edit.
++- high, reopening a conversation loses the draft and reading position: fixed. Drafts and reading positions are kept per person in browser storage and restored on reload; **Switch person** clears them. Test: TC-11 unsent drafts and reading positions are kept per person across a reload (module rule and the served `/rules.js`).
++- high, a starter example overwrites an unsent message: fixed. The example asks before replacing a draft. Test: TC-12 a starter example asks before replacing an unsent message (module rule).
++- high, a follow-up makes an earlier failed reply unrecoverable: fixed. Any failed message keeps its alert and **Retry**, and the retried reply is placed after that message. Test: TC-13 an earlier failed reply stays retryable after later messages.
++- high, over-limit input silently drops the tail: fixed. The silent `maxlength` is gone. A field over its limit shows how much to remove and blocks its form until shortened. Test: TC-14 text over a field limit is reported instead of cut short (module rule and the page's limits).
++- high, steering can add work to the wrong task: fixed. With more than one running task the app asks which gets the step (**Add to <task>** or **Don’t add**), and a note under the reply says where it went. Test: TC-15 a step added while several tasks run goes only to the task the person chooses.
++- high, a task stays Running after its worker stopped: fixed. When progress cannot be saved, the task turns Interrupted once saving works again, keeps its checkpoint, offers **Retry task**, and the log names the task and the error. Test: TC-16 a task whose progress cannot be saved becomes Interrupted, logged and retryable.
++- high, a large total is rounded before approval: fixed. Amounts beyond 9007199254740991 are refused with an explanation before **Confirm changes** is offered. Test: TC-17 an amount that cannot be kept exactly is refused before approval is offered.
++- medium, capitalized fields and decimal creates: partly fixed. A change to a field spelled differently is now refused with a **Change result** that lists the fields that can change. Test: TC-18 a change to a field spelled differently names the fields that can change. Not changed: the reply to `What is the STATUS of ...` and the echo for a decimal create come from the required stand-in's parsing, which must not be changed or worked around. README documents lowercase field names and whole-number creates.
++- medium, a rejected step's outcome disappears: fixed. The outcome is stored with the bot's reply and stays in the conversation. Test: TC-19 whether an added step went anywhere stays in the conversation.
++- medium, the return summary has no time boundary and its links leave the task offscreen: fixed. **Since you were away** separates work that finished while away (since this browser last closed or hid the page) from work that finished during this visit, and a task link scrolls to and focuses the task. Tests: TC-20 the return summary separates work finished while away from work finished before or after (module rule), and UI-1 (the summary link focuses the task).
++- medium, a remembered entry cannot be corrected at its saved length: fixed. Memory text may be as long as a message (12,000), the most a remembered fact can be. Test: TC-21 a remembered fact can be corrected at its saved length.
++- medium, conversations are indistinguishable in navigation: fixed. When titles repeat, each button also shows the latest message the person sent there. Test: TC-22 conversations that open the same way are told apart by their latest message.
++- low, keyboard focus falls to the page body: fixed. Opening a conversation from the list moves focus to **Message**, and cancelling a task moves focus to its card. Test: UI-1 browser workspace in `test/browser.cjs` (needs Chrome; `npm test` has no browser).
++- medium, ordinary questions and completed research give no usable answer: not changed. Every reply must come from the required stand-in, which echoes unknown questions and returns only step acknowledgments for research. Writing answers in the app would replace the provider. README says so.
++
++## Choices documented in README.md
++
++Each was checked against the running product before it was written down.
++
++- Bot names can repeat. Messages show the bot's current name, so a rename relabels earlier messages.
++- Conversation titles are the first message, whitespace collapsed, cut to 56 characters. Repeated titles also show the latest message. New bots and conversations come first.
++- Starter examples fill the composer for review and ask before replacing a draft.
++- Saved instructions and tasks are shared across a person's bots. Each bot uses one instruction, and editing or deleting it affects every bot using it. Duplicate names are refused.
++- Field limits, and that nothing is cut off.
++- Drafts and reading positions are kept in this browser per person, and **Switch person** clears them. Failed replies keep **Retry** under their message.
++- Memory matches facts without regard to capitals. Forgetting leaves the transcript intact.
++- Editable fields and their types. Field names must be lowercase. Creation takes whole numbers. The largest exact amount.
++- Pending creations reserve their order ID, and rejecting one frees it.
++- Confirmation compares reviewed values, so a change followed by a change back still lets an earlier proposal apply.
++- How steering picks a task. Interruption after a storage error. What **Since you were away** counts as away, including a browser that has not opened the app before.
++- The stand-in's echo replies and step-only research results.
++- Token precedence: a valid `PROVIDER_TOKEN` comes first, and an invalid one falls back to the saved token. A token saved through Setup is stored as plain text in the owner-only `workspace.json`.
+diff --git a/lib/records.js b/lib/records.js
+index b77d363..018fdcf 100644
+--- a/lib/records.js
++++ b/lib/records.js
+@@ -8,6 +8,14 @@ const businessFields = {
+   account: ['name', 'tier', 'owner']
+ };
+ 
++/** A number past the safe-integer range may already have been rounded, so it is never offered for approval. */
++function checkExact(value) {
++  if (typeof value === 'number' && Math.abs(value) > Number.MAX_SAFE_INTEGER) {
++    throw new AppError('This amount is too large to keep exactly, so it was not offered for confirmation. ' +
++      'Use an amount of at most ' + Number.MAX_SAFE_INTEGER + '.');
++  }
++}
++
+ function visibleRecords(records, person) {
+   return records.filter(record => record.readers.includes(person));
+ }
+@@ -38,6 +46,7 @@ function prepareProposal(state, person, input, id) {
+   for (const change of input.changes) {
+     if (change.create) {
+       const { type, customer, status, total } = change.create;
++      checkExact(total);
+       if (reservedId || type !== 'order' || typeof customer !== 'string' || !customer.trim() ||
+           status !== 'open' || !Number.isFinite(total) || total < 0) {
+         throw new AppError('This order proposal has invalid fields.');
+@@ -48,12 +57,15 @@ function prepareProposal(state, person, input, id) {
+     }
+     const record = records.find(item => item.id === change.record);
+     const field = change.field;
+-    if (!record || !businessFields[record.type]?.includes(field)) {
+-      throw new AppError('This proposal cannot change that record field.');
++    if (!record) throw new AppError('This proposal refers to a record you cannot read.');
++    if (!businessFields[record.type]?.includes(field)) {
++      throw new AppError('This proposal cannot change “' + field + '” on ' + record.id + '. The fields you can change are ' +
++        (businessFields[record.type] ?? []).join(', ') + ', spelled exactly like that.');
+     }
+     if (!isDeepStrictEqual(record[field], change.from)) {
+       throw new AppError('The record changed while the reply was being prepared. Ask for a fresh proposal.');
+     }
++    checkExact(change.to);
+     if (typeof change.to !== typeof record[field] ||
+         (typeof change.to === 'number' && !Number.isFinite(change.to))) {
+       throw new AppError('The proposed value must match the field’s existing type.');
+diff --git a/lib/tasks.js b/lib/tasks.js
+index 48f793b..08af5f5 100644
+--- a/lib/tasks.js
++++ b/lib/tasks.js
+@@ -30,15 +30,35 @@ function recoverInterrupted(state) {
+   }
+ }
+ 
+-function steerTask(thread, step) {
+-  const task = thread.tasks.findLast(item => item.status === 'Running');
+-  if (!task) {
+-    thread.notice = 'There is no running task in this conversation to add to.';
+-    return;
+-  }
++function addStep(task, step) {
+   task.plan.steps.push(step);
+   task.updatedAt = Date.now();
+-  task.detail = 'Added a step to the end of the task.';
++  task.detail = 'Added “' + step + '” to the end of the task.';
++  return { step, taskId: task.id, outcome: 'Added “' + step + '” to the end of ' + task.plan.title + '.' };
++}
++
++/** Add a step only when the target is unambiguous; the outcome stays with the reply that asked for it. */
++function steerTask(thread, step) {
++  const running = thread.tasks.filter(item => item.status === 'Running');
++  if (!running.length) return { step, outcome: '“' + step + '” was not added: no task was running in this conversation.' };
++  if (running.length > 1) {
++    return {
++      step, choices: running.map(task => task.id),
++      outcome: 'Not added yet: more than one task is running here. Choose the task for “' + step + '”.'
++    };
++  }
++  return addStep(running[0], step);
++}
++
++function chooseSteer(thread, steer, taskId) {
++  if (!steer?.choices) return steer;
++  if (!taskId) return { step: steer.step, outcome: '“' + steer.step + '” was not added to any task.' };
++  if (!steer.choices.includes(taskId)) throw new AppError('That task was not one of the choices.', 404);
++  const task = thread.tasks.find(item => item.id === taskId);
++  if (task?.status !== 'Running') {
++    return { step: steer.step, outcome: '“' + steer.step + '” was not added: ' + (task?.plan.title ?? 'that task') + ' had stopped running.' };
++  }
++  return addStep(task, steer.step);
+ }
+ 
+ function changeTask(task, action) {
+@@ -104,14 +124,35 @@ function createWorker(store, runStep, token, reportError) {
+     }
+   }
+ 
++  /** A worker that stops on a storage error leaves the task Interrupted, retrying until the write succeeds. */
++  function interrupt(id) {
++    if (stopped) return;
++    try {
++      store.write(state => {
++        const task = find(state, id);
++        if (task.status !== 'Running') return;
++        task.status = 'Interrupted';
++        task.updatedAt = Date.now();
++        task.detail = 'Progress could not be saved, so the task stopped. Retry to continue from the last finished step.';
++      });
++    } catch (error) {
++      if (!(error instanceof AppError)) setTimeout(() => interrupt(id), 1000).unref();
++    }
++  }
++
+   return {
+     start(id) {
+       if (stopped || active.has(id)) return;
+       active.add(id);
+-      run(id).catch(reportError).finally(() => active.delete(id));
++      run(id).catch(error => {
++        let title = '';
++        try { title = find(store.read(), id).plan.title; } catch { /* the task id still identifies it */ }
++        reportError(error, 'task ' + JSON.stringify(title) + ' (' + id + ')');
++        interrupt(id);
++      }).finally(() => active.delete(id));
+     },
+     stop() { stopped = true; }
+   };
+ }
+ 
+-module.exports = { changeTask, createTask, createWorker, recoverInterrupted, steerTask };
++module.exports = { changeTask, chooseSteer, createTask, createWorker, recoverInterrupted, steerTask };
+diff --git a/lib/workspace.js b/lib/workspace.js
+index 3bd1853..52e7639 100644
+--- a/lib/workspace.js
++++ b/lib/workspace.js
+@@ -3,11 +3,11 @@
+ const { randomUUID } = require('node:crypto');
+ const { AppError, redact } = require('./store');
+ const { decideProposal, prepareProposal, visibleRecords } = require('./records');
+-const { changeTask, createTask, createWorker, steerTask } = require('./tasks');
++const { changeTask, chooseSteer, createTask, createWorker, steerTask } = require('./tasks');
+ const people = require('../records/people.json');
+ 
+ function newThread() {
+-  return { id: randomUUID(), title: 'New conversation', messages: [], proposals: [], tasks: [], notice: '' };
++  return { id: randomUUID(), title: 'New conversation', messages: [], proposals: [], tasks: [] };
+ }
+ 
+ function newBot(name) {
+@@ -26,6 +26,16 @@ function byId(list, id) {
+   return item;
+ }
+ 
++/** When conversations share a title, the latest message the person sent tells them apart. */
++function conversationList(threads) {
++  const titles = new Map();
++  for (const thread of threads) titles.set(thread.title, (titles.get(thread.title) ?? 0) + 1);
++  return threads.map(({ id, title, messages }) => {
++    const latest = messages.findLast(item => item.from === 'person')?.text.replace(/\s+/g, ' ').trim().slice(0, 56) ?? '';
++    return { id, title, detail: titles.get(title) > 1 && latest !== title ? latest : '' };
++  });
++}
++
+ function locate(state, person, input) {
+   const user = state.users[person.id];
+   const bot = byId(user.bots, input.botId ?? user.botId);
+@@ -40,12 +50,15 @@ function inputText(value, field, limit, token) {
+   return redact(value.trim(), token);
+ }
+ 
++const messageLimit = 12000;
++
++/** A save without an edit target never replaces an entry; the person chooses Edit <name> to change one. */
+ function saveEntry(list, input, clean) {
+   const name = clean(input.name, 'Name', 80);
+   const text = clean(input.text, 'Text', 6000);
+-  const existing = input.id ? byId(list, input.id) : list.find(item => item.name === name);
++  const existing = input.id ? byId(list, input.id) : undefined;
+   if (list.some(item => item !== existing && item.name === name)) {
+-    throw new AppError('An entry with that name already exists.', 409);
++    throw new AppError('“' + name + '” is already saved. Choose Edit ' + name + ' to change it, or use another name.', 409);
+   }
+   if (existing) Object.assign(existing, { name, text });
+   else list.push({ id: randomUUID(), name, text });
+@@ -69,7 +82,7 @@ function createWorkspace(store, provider, envToken, reportError) {
+       person, configured: provider.check(token()),
+       bots: user.bots.map(({ id, name }) => ({ id, name })),
+       bot: { id: bot.id, name: bot.name, memory: bot.memory, instructionId: bot.instructionId },
+-      conversations: bot.threads.map(({ id, title }) => ({ id, title })),
++      conversations: conversationList(bot.threads),
+       conversation: { ...thread, messages: thread.messages.map(({ requestId, ...message }) => message) },
+       instructions: user.instructions, savedTasks: user.savedTasks,
+       taskOverview: user.bots.flatMap(item => item.threads.flatMap(discussion => discussion.tasks.map(task => ({
+@@ -100,9 +113,9 @@ function createWorkspace(store, provider, envToken, reportError) {
+       const { bot, thread } = locate(state, person, target);
+       const index = thread.messages.findIndex(item => item.id === messageId);
+       const message = thread.messages[index];
+-      thread.messages.splice(index + 1, 0, { id: randomUUID(), from: 'bot', text: redact(output.text, token()) });
++      const reply = { id: randomUUID(), from: 'bot', text: redact(output.text, token()) };
++      thread.messages.splice(index + 1, 0, reply);
+       message.reply = { status: 'completed', attempt: message.reply.attempt };
+-      thread.notice = '';
+       for (const fact of output.remember ?? []) {
+         if (!bot.memory.some(entry => entry.text.toLowerCase() === fact.toLowerCase())) {
+           bot.memory.push({ id: randomUUID(), text: fact });
+@@ -119,7 +132,7 @@ function createWorkspace(store, provider, envToken, reportError) {
+           thread.proposals.push({ id: messageId, status: 'invalid', changes: [], result: error.message });
+         }
+       }
+-      if (output.steer) steerTask(thread, output.steer.add);
++      if (output.steer) reply.steer = steerTask(thread, redact(String(output.steer.add), token()));
+       if (output.task) {
+         thread.tasks.push(createTask(messageId, output.task));
+         return messageId;
+@@ -163,10 +176,13 @@ function createWorkspace(store, provider, envToken, reportError) {
+   function messageAction(state, person, input, action, clean) {
+     const { bot, thread, user } = locate(state, person, input);
+     const last = thread.messages.findLast(item => item.from === 'person');
++    const pending = thread.messages.some(item => item.reply?.status === 'pending');
+     if (action === 'retry') {
+-      if (!last || last.id !== input.id || last.reply.status !== 'failed') return;
+-      last.reply = { status: 'pending', attempt: last.reply.attempt + 1 };
+-      return { botId: bot.id, threadId: thread.id, messageId: last.id };
++      const failed = thread.messages.find(item => item.id === input.id && item.from === 'person');
++      if (failed?.reply.status !== 'failed') return;
++      if (pending) throw new AppError('Wait for the current reply before retrying.', 409);
++      failed.reply = { status: 'pending', attempt: failed.reply.attempt + 1 };
++      return { botId: bot.id, threadId: thread.id, messageId: failed.id };
+     }
+     if (typeof input.requestId !== 'string' || !/^[a-zA-Z0-9-]{12,80}$/.test(input.requestId)) {
+       throw new AppError('Message request ID is invalid.');
+@@ -175,8 +191,8 @@ function createWorkspace(store, provider, envToken, reportError) {
+       discussion.messages.some(message => message.requestId === input.requestId)));
+     if (duplicate) return;
+     if (!provider.check(token())) throw new AppError('Save a valid provider token before sending a message.', 409);
+-    if (last?.reply.status === 'pending') throw new AppError('Wait for the current reply before sending again.', 409);
+-    const text = action === 'runSavedTask' ? byId(user.savedTasks, input.id).text : clean(input.text, 'Message', 12000);
++    if (pending) throw new AppError('Wait for the current reply before sending again.', 409);
++    const text = action === 'runSavedTask' ? byId(user.savedTasks, input.id).text : clean(input.text, 'Message', messageLimit);
+     const messageId = randomUUID();
+     thread.messages.push({ id: messageId, requestId: input.requestId, from: 'person', text, reply: { status: 'pending', attempt: 1 } });
+     if (!last) thread.title = text.replace(/\s+/g, ' ').slice(0, 56);
+@@ -235,12 +251,18 @@ function createWorkspace(store, provider, envToken, reportError) {
+           return;
+         }
+         case 'useInstruction': bot.instructionId = byId(user.instructions, input.id).id; return;
+-        case 'editMemory': byId(bot.memory, input.id).text = clean(input.text, 'Memory text', 6000); return;
++        // A remembered fact comes from one message, so a correction may be as long as a message.
++        case 'editMemory': byId(bot.memory, input.id).text = clean(input.text, 'Memory text', messageLimit); return;
+         case 'forgetMemory': {
+           const entry = byId(bot.memory, input.id);
+           bot.memory = bot.memory.filter(item => item !== entry);
+           return;
+         }
++        case 'chooseSteer': {
++          const reply = byId(thread.messages, input.id);
++          reply.steer = chooseSteer(thread, reply.steer, input.taskId);
++          return;
++        }
+         case 'confirmProposal':
+         case 'rejectProposal':
+           decideProposal(state, person.id, byId(thread.proposals, input.id), name === 'confirmProposal');
+diff --git a/public/app.js b/public/app.js
+index 5549814..ad3878e 100644
+--- a/public/app.js
++++ b/public/app.js
+@@ -1,9 +1,9 @@
+ 'use strict';
+ 
+ const $ = id => document.getElementById(id);
++const { awayGroups, createPlaces, limitNotice, replacesDraft } = window.StillroomRules;
+ const rendered = new Map();
+-const drafts = new Map();
+-const positions = new Map();
++const limitHints = new Map();
+ const edits = { instruction: null, task: null, memory: null };
+ let state;
+ let mutating = false;
+@@ -12,6 +12,17 @@ let revision = 0;
+ let botMode = 'create';
+ let sendRetry;
+ let openPanel = '';
++let places = null;
++let awaySince = 0;
++let returnedAt = Date.now();
++
++function browserStorage() {
++  try {
++    return window.localStorage;
++  } catch {
++    return null;
++  }
++}
+ 
+ function element(tag, text = '', attributes = {}) {
+   const node = document.createElement(tag);
+@@ -104,16 +115,26 @@ function resetEditors() {
+   $('memory-form').hidden = true;
+ }
+ 
+-function navItem(label, glyph, current, id, click) {
++function navItem(label, glyph, current, id, click, detail = '') {
+   const node = button('', click, {
+-    class: 'nav-item', title: label, 'aria-current': String(current), 'data-focus': id
++    class: 'nav-item', title: detail ? label + ' — ' + detail : label, 'aria-current': String(current), 'data-focus': id
+   });
+-  node.append(element('span', glyph, { class: 'nav-icon', 'aria-hidden': 'true' }), element('span', label));
++  const text = element('span', label);
++  if (detail) text.append(element('small', detail, { class: 'nav-detail' }));
++  node.append(element('span', glyph, { class: 'nav-icon', 'aria-hidden': 'true' }), text);
+   return node;
+ }
+ 
+ async function openDiscussion(botId, threadId) {
+-  if (await act('selectConversation', { botId, threadId })) setPanel('');
++  const opened = await act('selectConversation', { botId, threadId });
++  if (opened) setPanel('');
++  return opened;
++}
++
++function focusTask(id) {
++  const card = Array.from($('tasks').querySelectorAll('[data-task]')).find(node => node.dataset.task === id);
++  card?.scrollIntoView({ block: 'nearest' });
++  card?.focus({ preventScroll: true });
+ }
+ 
+ function renderNavigation(snapshot) {
+@@ -123,7 +144,9 @@ function renderNavigation(snapshot) {
+     })));
+   replace('conversation-list', [snapshot.bot.id, snapshot.conversation.id, snapshot.conversations],
+     ([botId, current, threads]) => threads.map(thread =>
+-      navItem(thread.title === 'New conversation' ? 'Untitled conversation' : thread.title, '◫', current === thread.id, thread.id, () => openDiscussion(botId, thread.id))));
++      navItem(thread.title === 'New conversation' ? 'Untitled conversation' : thread.title, '◫', current === thread.id, thread.id, async () => {
++        if (await openDiscussion(botId, thread.id)) $('message').focus();
++      }, thread.detail)));
+ }
+ 
+ function renderThread(snapshot) {
+@@ -131,32 +154,63 @@ function renderThread(snapshot) {
+   $('header-bot').textContent = bot.name;
+   $('header-thread').textContent = thread.title;
+   $('starter').hidden = thread.messages.length > 0;
+-  const parts = thread.messages.map(({ from, text }) => [from === 'person' ? person.name : bot.name, from, text]);
+-  const addedMessages = replace('transcript', parts, messages => messages.map(([name, from, text]) => {
+-    const article = element('article', '', { class: 'message message-' + from, 'aria-label': 'Message from ' + name });
+-    article.append(element('strong', name, { class: 'message-label' }), element('p', text, { class: 'message-content' }));
+-    return article;
+-  }));
+-
+   const last = thread.messages.findLast(message => message.from === 'person');
++  // An earlier message keeps its own reply state, so a failure stays retryable after later messages.
++  const parts = thread.messages.map(message => [
++    message.id, message.from === 'person' ? person.name : bot.name, message.from, message.text,
++    message.from === 'person' && message.id !== last?.id && message.reply?.status !== 'completed'
++      ? [message.reply.status, message.reply.error] : null,
++    message.steer ? [message.steer, (message.steer.choices ?? []).map(id => {
++      const task = thread.tasks.find(item => item.id === id);
++      return { id, title: task?.plan.title ?? 'a task', running: task?.status === 'Running' };
++    })] : null
++  ]);
++  const addedMessages = replace('transcript', [bot.name, parts], ([botName, messages]) =>
++    messages.flatMap(([id, name, from, text, reply, steer]) => {
++      const article = element('article', '', { class: 'message message-' + from, 'aria-label': 'Message from ' + name });
++      article.append(element('strong', name, { class: 'message-label' }), element('p', text, { class: 'message-content' }));
++      const nodes = [article];
++      if (reply) nodes.push(replyFeedback(id, reply[0], reply[1], botName));
++      if (steer) nodes.push(steerNote(id, ...steer));
++      return nodes;
++    }));
++
+   const answerState = last?.reply?.status;
+-  const changedReply = replace('reply-state', [last?.id, answerState, last?.reply?.error, thread.notice, bot.name],
+-    ([id, status, error, notice, name]) => {
+-      if (status === 'pending') return [element('p', name + ' is preparing a reply…', { role: 'status', class: 'reply-feedback' })];
+-      if (status === 'failed') {
+-        const feedback = element('div', '', { class: 'reply-feedback' });
+-        feedback.append(element('p', error, { role: 'alert', class: 'alert' }),
+-          button('Retry', () => act('retry', { ...context(), id }), { class: 'small' }));
+-        return [feedback];
+-      }
+-      return notice ? [element('p', notice, { role: 'status', class: 'reply-feedback' })] : [];
+-    });
++  const changedReply = replace('reply-state', [last?.id, answerState, last?.reply?.error, bot.name],
++    ([id, status, error, name]) => ['pending', 'failed'].includes(status) ? [replyFeedback(id, status, error, name)] : []);
+ 
+   const changedProposal = replace('proposals', thread.proposals, proposals => proposals.map(proposal => renderProposal(proposal)));
+   const changedTask = replace('tasks', thread.tasks, tasks => tasks.map(renderTask));
+   return addedMessages || changedReply || changedProposal || changedTask;
+ }
+ 
++function replyFeedback(id, status, error, name) {
++  if (status === 'pending') return element('p', name + ' is preparing a reply…', { role: 'status', class: 'reply-feedback' });
++  const feedback = element('div', '', { class: 'reply-feedback' });
++  feedback.append(element('p', error, { role: 'alert', class: 'alert' }),
++    button('Retry', () => act('retry', { ...context(), id }), { class: 'small', 'data-focus': 'retry-' + id }));
++  return feedback;
++}
++
++/** Where an added step went stays beside the reply that promised it; several running tasks ask for a choice. */
++function steerNote(id, steer, choices) {
++  const note = element('div', '', { class: 'message-note' });
++  const open = choices.filter(choice => choice.running);
++  note.append(element('p', steer.choices && !open.length
++    ? '“' + steer.step + '” was not added: the tasks stopped running before one was chosen.' : steer.outcome));
++  if (steer.choices && open.length) {
++    const controls = element('div', '', { class: 'controls' });
++    for (const choice of open) {
++      controls.append(button('Add to ' + choice.title, () => act('chooseSteer', { ...context(), id, taskId: choice.id }),
++        { class: 'small', 'data-focus': 'steer-' + id + '-' + choice.id }));
++    }
++    controls.append(button('Don’t add', () => act('chooseSteer', { ...context(), id, taskId: null }),
++      { class: 'small', 'data-focus': 'steer-' + id }));
++    note.append(controls);
++  }
++  return note;
++}
++
+ function renderProposal(proposal) {
+   if (proposal.status !== 'pending') {
+     const result = region('Change result');
+@@ -194,7 +248,7 @@ function renderProposal(proposal) {
+ }
+ 
+ function renderTask(task) {
+-  const article = element('article', '', { class: 'card', 'aria-label': 'Task: ' + task.plan.title });
++  const article = element('article', '', { class: 'card', 'aria-label': 'Task: ' + task.plan.title, 'data-task': task.id, tabindex: '-1' });
+   const heading = element('div', '', { class: 'task-heading' });
+   const needsAttention = ['Failed', 'Interrupted'].includes(task.status);
+   heading.append(element('h2', task.plan.title), element('span', task.status, {
+@@ -209,9 +263,10 @@ function renderTask(task) {
+   if (task.status === 'Running' || needsAttention) {
+     const run = task.status === 'Running';
+     const controls = element('div', '', { class: 'controls' });
+-    controls.append(button(run ? 'Cancel task' : 'Retry task',
+-      () => act(run ? 'cancelTask' : 'retryTask', { ...context(), id: task.id }),
+-      { class: 'small', 'data-focus': task.id }));
++    controls.append(button(run ? 'Cancel task' : 'Retry task', async () => {
++      if (await act(run ? 'cancelTask' : 'retryTask', { ...context(), id: task.id }) &&
++          !$('tasks').contains(document.activeElement)) focusTask(task.id);
++    }, { class: 'small', 'data-focus': task.id }));
+     article.append(controls);
+   }
+   return article;
+@@ -246,6 +301,7 @@ function libraryRow(kind, item, active) {
+       edits[kind] = item.id;
+       $(config.name).value = item.name;
+       $(config.text).value = item.text;
++      checkLimits();
+       $(config.name).focus();
+     }, { class: 'text-button', 'aria-label': 'Edit ' + item.name, 'data-focus': 'edit-' + item.id }),
+     button('Delete', async () => {
+@@ -273,6 +329,7 @@ function renderTools(snapshot) {
+         edits.memory = item.id;
+         $('memory-text').value = item.text;
+         $('memory-form').hidden = false;
++        checkLimits();
+         $('memory-text').focus();
+       }, { class: 'text-button', 'data-focus': 'edit-' + item.id }), button('Forget', async () => {
+         if (await act('forgetMemory', { ...context(), id: item.id }) && edits.memory === item.id) {
+@@ -286,22 +343,19 @@ function renderTools(snapshot) {
+     return [list];
+   });
+   $('away').hidden = !snapshot.taskOverview.length;
+-  replace('away', snapshot.taskOverview, overview => {
+-    const groups = [
+-      ['Running', item => item.status === 'Running'],
+-      ['Finished', item => ['Completed', 'Cancelled'].includes(item.status)],
+-      ['Needs attention', item => ['Failed', 'Interrupted'].includes(item.status)]
+-    ];
++  replace('away', [snapshot.taskOverview, awaySince, returnedAt], ([overview, since, back]) => {
+     const output = [element('h2', 'Since you were away')];
+-    for (const [label, include] of groups) {
+-      const items = overview.filter(include).sort((a, b) => b.updatedAt - a.updatedAt);
+-      if (!items.length) continue;
++    const groups = awayGroups(overview, since, back);
++    if (!groups.length) output.push(element('p', 'Nothing has changed since you were last here.', { class: 'detail' }));
++    for (const [label, items] of groups) {
+       const group = element('div', '', { class: 'away-items' });
+       group.append(element('h3', label));
+       const list = element('ul');
+       for (const item of items) {
+         const row = element('li');
+-        row.append(button(item.title + ' · ' + item.status, () => openDiscussion(item.botId, item.threadId),
++        row.append(button(item.title + ' · ' + item.status, async () => {
++          if (await openDiscussion(item.botId, item.threadId)) focusTask(item.id);
++        },
+           { class: 'text-button', 'data-focus': 'task-' + item.id }));
+         list.append(row);
+       }
+@@ -312,10 +366,25 @@ function renderTools(snapshot) {
+   });
+ }
+ 
++/** Fields have no silent maxlength: one over its limit says so and blocks its form until it is shortened. */
++function checkLimits() {
++  for (const [field, hint] of limitHints) {
++    const notice = limitNotice(field.getAttribute('aria-label'), field.value.length, Number(field.dataset.limit));
++    field.setCustomValidity(notice);
++    field.setAttribute('aria-invalid', String(Boolean(notice)));
++    if (notice) field.setAttribute('aria-describedby', hint.id);
++    else field.removeAttribute('aria-describedby');
++    if (hint.textContent !== notice) hint.textContent = notice;
++    hint.hidden = !notice;
++  }
++}
++
+ function updateComposer() {
++  checkLimits();
+   if (!state?.person) return;
+-  const last = state.conversation.messages.findLast(item => item.from === 'person');
+-  $('send').disabled = mutating || !state.configured || last?.reply.status === 'pending' || !$('message').value.trim();
++  const pending = state.conversation.messages.some(item => item.reply?.status === 'pending');
++  const field = $('message');
++  $('send').disabled = mutating || !state.configured || pending || !field.value.trim() || !field.validity.valid;
+ }
+ 
+ function render(snapshot) {
+@@ -326,10 +395,12 @@ function render(snapshot) {
+   const scroller = $('chat-scroll');
+   const threadChanged = previousThread !== currentThread;
+   const nearEnd = scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop < 96;
+-  if (threadChanged && previousThread) positions.set(previousThread, scroller.scrollTop);
++  if (threadChanged && previousThread) places?.setPosition(previousThread, nearEnd ? null : scroller.scrollTop);
+   if (changedPerson) {
+-    drafts.clear();
+-    positions.clear();
++    places?.save();
++    places = snapshot.person ? createPlaces(browserStorage(), snapshot.person.id) : null;
++    awaySince = places?.leftAt() ?? 0;
++    returnedAt = Date.now();
+     rendered.clear();
+     resetEditors();
+     alertAt('action-error');
+@@ -359,7 +430,7 @@ function render(snapshot) {
+     edits.memory = null;
+     $('memory-form').hidden = true;
+   }
+-  if (threadChanged) $('message').value = drafts.get(currentThread) || '';
++  if (threadChanged) $('message').value = places.draft(currentThread);
+   $('profile-name').textContent = snapshot.person.name;
+   $('profile-avatar').textContent = snapshot.person.name[0];
+   $('setup').hidden = snapshot.configured;
+@@ -371,7 +442,7 @@ function render(snapshot) {
+   renderTools(snapshot);
+   updateComposer();
+ 
+-  if (threadChanged) scroller.scrollTop = positions.get(currentThread) ?? (snapshot.configured ? scroller.scrollHeight : 0);
++  if (threadChanged) scroller.scrollTop = places.position(currentThread) ?? (snapshot.configured ? scroller.scrollHeight : 0);
+   else if (threadUpdated && nearEnd) scroller.scrollTop = scroller.scrollHeight;
+ }
+ 
+@@ -411,7 +482,12 @@ async function refresh() {
+ $('open-chats').addEventListener('click', () => setPanel(openPanel === 'chats' ? '' : 'chats'));
+ $('open-tools').addEventListener('click', () => setPanel(openPanel === 'tools' ? '' : 'tools'));
+ $('switch-person').addEventListener('click', async () => {
+-  if (await act('switchPerson')) $('people').querySelector('button')?.focus();
++  const leaving = places;
++  if (await act('switchPerson')) {
++    leaving?.forget();
++    leaving?.leave(Date.now());
++    $('people').querySelector('button')?.focus();
++  }
+ });
+ $('new-bot').addEventListener('click', () => {
+   botMode = 'create';
+@@ -467,16 +543,38 @@ $('memory-form').addEventListener('submit', async event => {
+ 
+ for (const example of document.querySelectorAll('[data-example]')) {
+   example.addEventListener('click', () => {
++    if (replacesDraft($('message').value, example.dataset.example) &&
++        !window.confirm('Replace your unsent message with this example?')) {
++      $('message').focus();
++      return;
++    }
+     $('message').value = example.dataset.example;
+-    drafts.set(state.conversation.id, $('message').value);
++    places?.setDraft(state.conversation.id, $('message').value);
+     updateComposer();
+     $('message').focus();
+   });
+ }
+ $('message').addEventListener('input', () => {
+-  if (state?.conversation) drafts.set(state.conversation.id, $('message').value);
++  if (state?.conversation) places?.setDraft(state.conversation.id, $('message').value);
+   updateComposer();
+ });
++for (const field of document.querySelectorAll('[data-limit]')) {
++  const hint = element('p', '', { class: 'alert limit-alert', role: 'alert', id: field.id + '-limit' });
++  hint.hidden = true;
++  if (field.id === 'message') $('composer').before(hint);
++  else field.form.append(hint);
++  limitHints.set(field, hint);
++}
++document.addEventListener('input', event => {
++  if (limitHints.has(event.target)) checkLimits();
++});
++document.addEventListener('reset', () => queueMicrotask(checkLimits), true);
++$('chat-scroll').addEventListener('scroll', () => {
++  if (!places || !state?.conversation) return;
++  const scroller = $('chat-scroll');
++  const nearEnd = scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop < 96;
++  places.setPosition(state.conversation.id, nearEnd ? null : scroller.scrollTop);
++}, { passive: true });
+ $('message').addEventListener('keydown', event => {
+   if (event.key !== 'Enter' || event.shiftKey || event.isComposing) return;
+   event.preventDefault();
+@@ -491,16 +589,26 @@ $('composer').addEventListener('submit', async event => {
+     sendRetry = { threadId, text, requestId: crypto.randomUUID() };
+   }
+   if (await act('send', { botId, ...sendRetry })) {
+-    if (drafts.get(threadId) === text) drafts.delete(threadId);
++    if (places?.draft(threadId) === text) places.setDraft(threadId, '');
+     if (state.conversation.id === threadId && $('message').value === text) $('message').value = '';
+     sendRetry = undefined;
+     updateComposer();
+     $('message').focus();
+   }
+ });
++function leavePage() {
++  places?.leave(Date.now());
++}
+ document.addEventListener('visibilitychange', () => {
+-  if (document.hidden) window.clearTimeout(timer);
+-  else refresh();
++  if (document.hidden) {
++    window.clearTimeout(timer);
++    leavePage();
++  } else {
++    awaySince = places?.leftAt() ?? 0;
++    returnedAt = Date.now();
++    refresh();
++  }
+ });
++window.addEventListener('pagehide', leavePage);
+ window.addEventListener('online', refresh);
+ refresh();
+diff --git a/public/index.html b/public/index.html
+index 9a51a1d..63c370f 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -6,6 +6,7 @@
+   <meta name="color-scheme" content="light dark">
+   <title>Stillroom — Local chat</title>
+   <link rel="stylesheet" href="/style.css">
++  <script src="/rules.js" defer></script>
+   <script src="/app.js" defer></script>
+ </head>
+ <body>
+@@ -32,7 +33,7 @@
+           <div class="rail-heading"><h2>Bots</h2><button type="button" id="new-bot" class="text-button">New bot</button></div>
+           <div id="bot-list" class="nav-list"></div>
+           <form id="bot-form" class="quick-form">
+-            <input id="bot-name" aria-label="Bot name" placeholder="Bot name" maxlength="80" required>
++            <input id="bot-name" aria-label="Bot name" placeholder="Bot name" data-limit="80" required>
+             <button class="small" type="submit">Save bot name</button>
+           </form>
+           <button type="button" id="rename-bot" class="text-button rename">Rename bot</button>
+@@ -85,7 +86,7 @@
+       <div class="composer-area">
+         <p id="action-error" class="alert" role="alert" hidden></p>
+         <form id="composer" class="composer">
+-          <textarea id="message" aria-label="Message" placeholder="Ask anything…" rows="2" maxlength="12000" required></textarea>
++          <textarea id="message" aria-label="Message" placeholder="Ask anything…" rows="2" data-limit="12000" required></textarea>
+           <button id="send" class="send" type="submit" aria-label="Send" title="Send"><span aria-hidden="true">↑</span></button>
+         </form>
+         <div class="composer-hint">Enter to send <span aria-hidden="true">·</span> Shift+Enter for a new line</div>
+@@ -98,8 +99,8 @@
+         <div class="tool-heading"><span aria-hidden="true">≡</span><h2>Saved instructions</h2></div>
+         <div id="instructions-list" class="entry-list"></div>
+         <form id="instructions-form" class="tool-form">
+-          <input id="instruction-name" aria-label="Instruction name" placeholder="Instruction name" maxlength="80" required>
+-          <textarea id="instruction-text" aria-label="Instruction text" placeholder="Instruction text" rows="2" maxlength="6000" required></textarea>
++          <input id="instruction-name" aria-label="Instruction name" placeholder="Instruction name" data-limit="80" required>
++          <textarea id="instruction-text" aria-label="Instruction text" placeholder="Instruction text" rows="2" data-limit="6000" required></textarea>
+           <button type="submit" class="small">Save instruction</button>
+         </form>
+       </section>
+@@ -107,8 +108,8 @@
+         <div class="tool-heading"><span aria-hidden="true">↗</span><h2>Saved tasks</h2></div>
+         <div id="saved-tasks-list" class="entry-list"></div>
+         <form id="saved-tasks-form" class="tool-form">
+-          <input id="task-name" aria-label="Task name" placeholder="Task name" maxlength="80" required>
+-          <textarea id="task-request" aria-label="Task request" placeholder="Task request" rows="2" maxlength="6000" required></textarea>
++          <input id="task-name" aria-label="Task name" placeholder="Task name" data-limit="80" required>
++          <textarea id="task-request" aria-label="Task request" placeholder="Task request" rows="2" data-limit="6000" required></textarea>
+           <button type="submit" class="small">Save task</button>
+         </form>
+       </section>
+@@ -116,7 +117,7 @@
+         <div class="tool-heading"><span aria-hidden="true">◎</span><h2>Memory</h2></div>
+         <div id="memory-list"></div>
+         <form id="memory-form" class="tool-form" hidden>
+-          <textarea id="memory-text" aria-label="Memory text" placeholder="Memory text" rows="2" maxlength="6000" required></textarea>
++          <textarea id="memory-text" aria-label="Memory text" placeholder="Memory text" rows="2" data-limit="12000" required></textarea>
+           <button type="submit" class="small">Save memory</button>
+         </form>
+       </section>
+diff --git a/public/rules.js b/public/rules.js
+new file mode 100644
+index 0000000..05fc401
+--- /dev/null
++++ b/public/rules.js
+@@ -0,0 +1,82 @@
++'use strict';
++
++/* Browser rules that the page follows, kept apart from the DOM so node:test can check them. */
++(function (exports) {
++  const count = (number, word) => number.toLocaleString('en-US') + ' ' + word + (number === 1 ? '' : 's');
++
++  /** A field over its limit is reported before anything is sent, instead of being cut short. */
++  function limitNotice(label, length, limit) {
++    if (length <= limit) return '';
++    return label + ' has ' + count(length, 'character') + '. The limit is ' + limit.toLocaleString('en-US') +
++      ', so remove ' + count(length - limit, 'character') + ' to continue.';
++  }
++
++  /** A starter example only replaces the composer after the person agrees, when it holds an unsent message. */
++  function replacesDraft(draft, example) {
++    return Boolean(draft.trim()) && draft !== example;
++  }
++
++  /**
++   * Each person's unsent drafts, reading positions and the time they last left the page, kept in browser storage
++   * so a reload or a return opens the same place. A null position means "follow the end of the conversation".
++   */
++  function createPlaces(storage, personId) {
++    const key = 'stillroom.place.' + personId;
++    let saved = {};
++    try {
++      saved = JSON.parse(storage?.getItem(key) || '{}') || {};
++    } catch {
++      saved = {};
++    }
++    const drafts = { ...saved.drafts };
++    const positions = { ...saved.positions };
++    let leftAt = Number.isFinite(saved.leftAt) ? saved.leftAt : 0;
++    function save() {
++      try {
++        storage?.setItem(key, JSON.stringify({ drafts, positions, leftAt }));
++      } catch {
++        // Storage can be full or disabled; the page keeps working with what is in memory.
++      }
++    }
++    return {
++      draft: threadId => drafts[threadId] ?? '',
++      setDraft(threadId, text) {
++        if (text) drafts[threadId] = text;
++        else delete drafts[threadId];
++        save();
++      },
++      position: threadId => positions[threadId] ?? null,
++      setPosition(threadId, top) {
++        if (top === null) delete positions[threadId];
++        else positions[threadId] = top;
++      },
++      leftAt: () => leftAt,
++      leave(time) {
++        leftAt = time;
++        save();
++      },
++      /** Switching person drops drafts and positions from this browser but remembers when the person left. */
++      forget() {
++        for (const id of Object.keys(drafts)) delete drafts[id];
++        for (const id of Object.keys(positions)) delete positions[id];
++        save();
++      },
++      save
++    };
++  }
++
++  /** Group the task overview for a return: what is running, what needs attention, and what finished when. */
++  function awayGroups(overview, since, returnedAt) {
++    const finished = item => ['Completed', 'Cancelled'].includes(item.status);
++    const groups = [
++      ['Running', item => item.status === 'Running'],
++      ['Finished while you were away', item => finished(item) && item.updatedAt > since && item.updatedAt <= returnedAt],
++      ['Finished during this visit', item => finished(item) && item.updatedAt > returnedAt],
++      ['Needs attention', item => ['Failed', 'Interrupted'].includes(item.status)]
++    ];
++    return groups.map(([label, include]) => [label, overview.filter(include).sort((a, b) => b.updatedAt - a.updatedAt)])
++      .filter(([, items]) => items.length);
++  }
++
++  Object.assign(exports, { awayGroups, createPlaces, limitNotice, replacesDraft });
++})(typeof module === 'object' && module.exports ? module.exports : (globalThis.StillroomRules = {}));
+diff --git a/public/style.css b/public/style.css
+index 44c7f65..3245123 100644
+--- a/public/style.css
++++ b/public/style.css
+@@ -86,6 +86,7 @@ ul,ol { margin: 0; padding-left: 21px; }
+ .nav-item[aria-current="true"] { background: var(--selected); color: var(--ink); }
+ .nav-item span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+ .nav-icon { width: 16px; flex: none; color: var(--accent); text-align: center; }
++.nav-detail { display: block; overflow: hidden; text-overflow: ellipsis; color: var(--muted); font-size: 11px; font-weight: 400; }
+ .quick-form { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+ .sidebar .quick-form input { font-size: 12px; }
+ .rename { display: block; margin-top: 4px; }
+@@ -132,6 +133,9 @@ ul,ol { margin: 0; padding-left: 21px; }
+ .message-person .message-content { padding: 9px 14px; border-radius: 15px 15px 4px 15px; background: var(--tint); }
+ .reply-feedback { margin-top: 16px; font-size: 13px; color: var(--muted); }
+ .reply-feedback button { margin-top: 8px; }
++.message-person + .reply-feedback { justify-self: end; max-width: min(90%, 600px); margin-top: -10px; }
++.message-note { justify-self: start; max-width: 100%; margin-top: -10px; padding-left: 10px; border-left: 2px solid var(--line); color: var(--muted); font-size: 13px; }
++.message-note .controls { margin-top: 6px; }
+ #proposals,#tasks { display: grid; gap: 9px; }
+ #proposals:not(:empty),#tasks:not(:empty) { margin-top: 17px; }
+ .change-list { margin: 8px 0; }
+@@ -150,6 +154,8 @@ ul,ol { margin: 0; padding-left: 21px; }
+ .send { height: 37px; width: 37px; flex: none; border-radius: 11px; padding: 0; display: grid; place-items: center; font-size: 23px; }
+ .composer-hint { margin-top: 6px; text-align: center; color: var(--muted); font-size: 11px; }
+ .alert { padding: 8px 10px; border-radius: 8px; background: var(--error-bg); color: var(--attention); margin-bottom: 7px; overflow-wrap: anywhere; }
++.limit-alert { flex-basis: 100%; margin: 0; font-size: 12px; }
++.composer-area .limit-alert { margin-bottom: 7px; }
+ .connection-error { position: fixed; z-index: 4; left: 15px; right: 15px; bottom: 12px; width: fit-content; max-width: calc(100% - 30px); margin-inline: auto; padding: 8px 13px; color: var(--attention); background: var(--error-bg); border: 1px solid var(--attention); border-radius: 9px; }
+ .tools { min-height: 0; overflow-y: auto; padding: 21px 17px 18px; background: var(--rail); border-left: 1px solid var(--line); min-width: 0; }
+ .tools-title { margin: 0 0 13px 2px; font: 600 24px/1.1 var(--serif); letter-spacing: -.02em; }
+diff --git a/server.js b/server.js
+index 4bed14e..e3615e9 100644
+--- a/server.js
++++ b/server.js
+@@ -4,13 +4,14 @@ const http = require('node:http');
+ const fs = require('node:fs');
+ const path = require('node:path');
+ const provider = require('./provider/standin');
+-const { AppError, openStore } = require('./lib/store');
++const { AppError, openStore, redact } = require('./lib/store');
+ const { recoverInterrupted } = require('./lib/tasks');
+ const { createWorkspace } = require('./lib/workspace');
+ 
+ const assets = {
+   '/': ['index.html', 'text/html; charset=utf-8'],
+   '/app.js': ['app.js', 'text/javascript; charset=utf-8'],
++  '/rules.js': ['rules.js', 'text/javascript; charset=utf-8'],
+   '/style.css': ['style.css', 'text/css; charset=utf-8']
+ };
+ const cookieName = 'stillroom_session';
+@@ -46,7 +47,8 @@ async function requestBody(request) {
+ function createServer(options = {}) {
+   const directory = options.directory ?? process.env.DATA_DIR ?? './data';
+   const store = openStore(directory);
+-  const reportError = () => console.error('Workspace operation failed.');
++  const reportError = (error, subject) => console.error('Workspace operation failed' + (subject ? ' for ' + subject : '') +
++    (error ? ': ' + redact(String(error.message ?? error), '') : '.'));
+   store.write(recoverInterrupted);
+   const workspace = createWorkspace(store, provider, options.token ?? process.env.PROVIDER_TOKEN, reportError);
+ 
+@@ -103,7 +105,7 @@ function createServer(options = {}) {
+     } catch (error) {
+       if (error instanceof AppError) json(error.status, { error: error.message });
+       else {
+-        reportError();
++        reportError(error);
+         json(500, { error: 'The workspace could not complete this action. Try again.' });
+       }
+     }
+diff --git a/test/app.test.js b/test/app.test.js
+index fc13c67..1b5f46f 100644
+--- a/test/app.test.js
++++ b/test/app.test.js
+@@ -8,6 +8,7 @@ const { setTimeout: delay } = require('node:timers/promises');
+ const { randomUUID } = require('node:crypto');
+ const { test } = require('node:test');
+ const { createServer } = require('../server');
++const rules = require('../public/rules.js');
+ 
+ process.env.STANDIN_STEP_MS = '35';
+ process.env.STANDIN_SLOW_MS = '60';
+@@ -58,7 +59,7 @@ async function client(t, token = valid) {
+     return action('send', { requestId: randomUUID(), text, ...fields });
+   }
+   const replied = state => state.conversation.messages.findLast(item => item.from === 'person')?.reply.status !== 'pending';
+-  return { call, action, send, until, replied, start, stop, url: () => base };
++  return { call, action, send, until, replied, start, stop, url: () => base, directory };
+ }
+ 
+ test('TC-1 person selection, bot creation, thread selection and restart continuity', async t => {
+@@ -228,3 +229,223 @@ test('TC-9 task failure and interruption retain checkpoints across retry and res
+   assert.equal(done.finished.length, 8);
+   assert.equal(done.finished[0], failed.finished[0]);
+ });
++
++function memoryStorage() {
++  const data = new Map();
++  return { getItem: key => data.get(key) ?? null, setItem: (key, value) => data.set(key, String(value)) };
++}
++
++test('TC-10 a new save under an existing name keeps the saved entry until the person chooses Edit', async t => {
++  const c = await client(t);
++  await c.action('continueAs', { id: 'maya' });
++  const task = (await c.action('saveTask', { name: 'Weekly', text: 'How many orders can you see?' })).savedTasks[0];
++  assert.match((await c.action('saveTask', { name: 'Weekly', text: 'How many accounts can you see?' }, 409)).error, /Edit Weekly/);
++  assert.deepEqual((await c.call()).savedTasks, [task]);
++  const instruction = (await c.action('saveInstruction', { name: 'Tone', text: 'First text' })).instructions[0];
++  await c.action('saveInstruction', { name: 'Tone', text: 'Second text' }, 409);
++  assert.deepEqual((await c.call()).instructions, [instruction]);
++  const edited = await c.action('saveTask', { id: task.id, name: 'Weekly', text: 'How many accounts can you see?' });
++  assert.deepEqual(edited.savedTasks, [{ ...task, text: 'How many accounts can you see?' }]);
++});
++
++test('TC-11 unsent drafts and reading positions are kept per person across a reload', async t => {
++  const c = await client(t);
++  assert.equal((await fetch(c.url() + '/rules.js')).status, 200);
++  const storage = memoryStorage();
++  const maya = rules.createPlaces(storage, 'maya');
++  maya.setDraft('thread-1', 'Unsent follow up draft');
++  maya.setPosition('thread-1', 1234);
++  maya.leave(1000);
++  const reloaded = rules.createPlaces(storage, 'maya');
++  assert.equal(reloaded.draft('thread-1'), 'Unsent follow up draft');
++  assert.equal(reloaded.position('thread-1'), 1234);
++  assert.equal(reloaded.position('thread-2'), null);
++  assert.equal(rules.createPlaces(storage, 'theo').draft('thread-1'), '');
++  reloaded.forget();
++  const switched = rules.createPlaces(storage, 'maya');
++  assert.deepEqual([switched.draft('thread-1'), switched.position('thread-1'), switched.leftAt()], ['', null, 1000]);
++  const denied = { getItem() { throw new Error('denied'); }, setItem() { throw new Error('denied'); } };
++  const memoryOnly = rules.createPlaces(denied, 'maya');
++  memoryOnly.setDraft('thread-1', 'kept in memory');
++  assert.equal(memoryOnly.draft('thread-1'), 'kept in memory');
++});
++
++test('TC-12 a starter example asks before replacing an unsent message', () => {
++  assert.equal(rules.replacesDraft('Quarterly draft I have not sent', 'how many orders can you see'), true);
++  assert.equal(rules.replacesDraft('', 'how many orders can you see'), false);
++  assert.equal(rules.replacesDraft('  \n', 'how many orders can you see'), false);
++  assert.equal(rules.replacesDraft('how many orders can you see', 'how many orders can you see'), false);
++});
++
++test('TC-13 an earlier failed reply stays retryable after later messages', async t => {
++  const c = await client(t);
++  await c.action('continueAs', { id: 'maya' });
++  await c.send('First lost reply [fail once]');
++  const failed = (await c.until(c.replied)).conversation.messages.at(-1);
++  assert.equal(failed.reply.status, 'failed');
++  await c.send('what did I ask first');
++  await c.until(c.replied);
++  await c.action('retry', { id: failed.id });
++  await c.action('retry', { id: failed.id });
++  const settled = await c.until(state => state.conversation.messages.every(item => item.reply?.status !== 'pending'));
++  const messages = settled.conversation.messages;
++  assert.deepEqual(messages.map(item => [item.from, item.reply?.status]),
++    [['person', 'completed'], ['bot', undefined], ['person', 'completed'], ['bot', undefined]]);
++  assert.match(messages[1].text, /You said: "First lost reply"/);
++});
++
++test('TC-14 text over a field limit is reported instead of cut short', () => {
++  assert.equal(rules.limitNotice('Message', 12000, 12000), '');
++  assert.equal(rules.limitNotice('Message', 12001, 12000),
++    'Message has 12,001 characters. The limit is 12,000, so remove 1 character to continue.');
++  assert.match(rules.limitNotice('Task name', 83, 80), /remove 3 characters/);
++  const html = fs.readFileSync(path.join(__dirname, '..', 'public', 'index.html'), 'utf8');
++  assert.doesNotMatch(html, /maxlength/i);
++  const limits = Object.fromEntries(Array.from(html.matchAll(/id="([\w-]+)"[^>]*data-limit="(\d+)"/g), match => [match[1], Number(match[2])]));
++  assert.deepEqual(limits, {
++    'bot-name': 80, message: 12000, 'instruction-name': 80, 'instruction-text': 6000,
++    'task-name': 80, 'task-request': 6000, 'memory-text': 12000
++  });
++});
++
++test('TC-15 a step added while several tasks run goes only to the task the person chooses', async t => {
++  process.env.STANDIN_STEP_MS = '80';
++  t.after(() => { process.env.STANDIN_STEP_MS = '35'; });
++  const c = await client(t);
++  await c.action('continueAs', { id: 'maya' });
++  const task = (state, title) => state.conversation.tasks.find(item => item.plan.title === title);
++  await c.send('research: Alpha [long]');
++  await c.until(c.replied);
++  await c.send('research: Beta [long]');
++  await c.until(c.replied);
++  await c.send('add step: check Alpha invoices');
++  const asked = await c.until(c.replied);
++  const reply = asked.conversation.messages.at(-1);
++  assert.deepEqual(reply.steer.choices, [task(asked, 'Alpha').id, task(asked, 'Beta').id]);
++  assert.equal(task(asked, 'Beta').plan.steps.length, 8);
++  const chosen = await c.action('chooseSteer', { id: reply.id, taskId: task(asked, 'Alpha').id });
++  assert.equal(chosen.conversation.messages.at(-1).steer.outcome, 'Added “check Alpha invoices” to the end of Alpha.');
++  const done = await c.until(state => ['Alpha', 'Beta'].every(title => task(state, title).status === 'Completed'));
++  assert.equal(task(done, 'Alpha').finished.at(-1), 'Done: check Alpha invoices');
++  assert.equal(task(done, 'Beta').finished.length, 8);
++});
++
++test('TC-16 a task whose progress cannot be saved becomes Interrupted, logged and retryable', async t => {
++  process.env.STANDIN_STEP_MS = '300';
++  t.after(() => { process.env.STANDIN_STEP_MS = '35'; });
++  const logged = [];
++  const original = console.error;
++  console.error = (...args) => logged.push(args.join(' '));
++  t.after(() => { console.error = original; });
++  const c = await client(t);
++  await c.action('continueAs', { id: 'maya' });
++  const lastTask = state => state.conversation.tasks.at(-1);
++  await c.send('research: storage recovery');
++  const started = lastTask(await c.until(state => lastTask(state)?.finished.length === 1));
++  fs.renameSync(c.directory, c.directory + '-offline');
++  try {
++    await delay(700);
++  } finally {
++    fs.renameSync(c.directory + '-offline', c.directory);
++  }
++  let task = lastTask(await c.call());
++  for (let i = 0; i < 100 && task.status !== 'Interrupted'; i += 1) {
++    await delay(50);
++    task = lastTask(await c.call());
++  }
++  assert.equal(task.status, 'Interrupted');
++  assert.match(task.detail, /Retry to continue from the last finished step/);
++  assert.ok(task.finished.length < 3);
++  assert.equal(task.finished[0], started.finished[0]);
++  assert.ok(logged.some(line => line.includes(task.id) && line.includes('storage recovery') && line.includes('ENOENT')), logged.join('\n'));
++  await c.action('retryTask', { id: task.id });
++  assert.equal(lastTask(await c.until(state => lastTask(state).status === 'Completed')).finished.length, 3);
++});
++
++test('TC-17 an amount that cannot be kept exactly is refused before approval is offered', async t => {
++  const c = await client(t);
++  await c.action('continueAs', { id: 'maya' });
++  async function propose(text) {
++    await c.send(text);
++    return (await c.until(c.replied)).conversation.proposals.at(-1);
++  }
++  for (const text of ['create an order for Precision Test totalling 9007199254740993', 'set the total of ORD-1001 to 9007199254740993']) {
++    const refused = await propose(text);
++    assert.equal(refused.status, 'invalid');
++    assert.deepEqual(refused.changes, []);
++    assert.match(refused.result, /too large to keep exactly/);
++  }
++  const largest = await propose('create an order for Edge totalling 9007199254740991');
++  assert.equal(largest.status, 'pending');
++  assert.equal(largest.changes[0].create.total, Number.MAX_SAFE_INTEGER);
++});
++
++test('TC-18 a change to a field spelled differently names the fields that can change', async t => {
++  const c = await client(t);
++  await c.action('continueAs', { id: 'maya' });
++  await c.send('set the Status of ORD-1001 to closed');
++  const proposal = (await c.until(c.replied)).conversation.proposals.at(-1);
++  assert.equal(proposal.status, 'invalid');
++  assert.equal(proposal.result, 'This proposal cannot change “Status” on ORD-1001. The fields you can change are customer, status, total, spelled exactly like that.');
++});
++
++test('TC-19 whether an added step went anywhere stays in the conversation', async t => {
++  const c = await client(t);
++  await c.action('continueAs', { id: 'maya' });
++  await c.send('add step: check payment');
++  await c.until(c.replied);
++  await c.send('hello there');
++  const later = (await c.until(c.replied)).conversation.messages;
++  assert.equal(later[1].steer.outcome, '“check payment” was not added: no task was running in this conversation.');
++  await c.send('research: Gamma [long]');
++  await c.until(c.replied);
++  await c.send('add step: wrap up');
++  const added = (await c.until(c.replied)).conversation;
++  assert.equal(added.messages.at(-1).steer.outcome, 'Added “wrap up” to the end of Gamma.');
++  assert.equal(added.tasks.at(-1).plan.steps.at(-1), 'wrap up');
++});
++
++test('TC-20 the return summary separates work finished while away from work finished before or after', () => {
++  const overview = [
++    { id: 'before', status: 'Completed', updatedAt: 50 },
++    { id: 'away', status: 'Completed', updatedAt: 150 },
++    { id: 'visit', status: 'Cancelled', updatedAt: 250 },
++    { id: 'running', status: 'Running', updatedAt: 10 },
++    { id: 'attention', status: 'Interrupted', updatedAt: 20 }
++  ];
++  assert.deepEqual(rules.awayGroups(overview, 100, 200).map(([label, items]) => [label, items.map(item => item.id)]), [
++    ['Running', ['running']], ['Finished while you were away', ['away']],
++    ['Finished during this visit', ['visit']], ['Needs attention', ['attention']]
++  ]);
++  assert.deepEqual(rules.awayGroups([overview[0]], 100, 200), []);
++});
++
++test('TC-21 a remembered fact can be corrected at its saved length', async t => {
++  const c = await client(t);
++  await c.action('continueAs', { id: 'maya' });
++  await c.send('remember that ' + 'm'.repeat(6001));
++  const memory = (await c.until(c.replied)).bot.memory[0];
++  assert.equal(memory.text.length, 6001);
++  const corrected = 'n' + 'm'.repeat(6000);
++  assert.equal((await c.action('editMemory', { id: memory.id, text: corrected })).bot.memory[0].text, corrected);
++  await c.action('editMemory', { id: memory.id, text: 'm'.repeat(12001) }, 400);
++});
++
++test('TC-22 conversations that open the same way are told apart by their latest message', async t => {
++  const c = await client(t);
++  await c.action('continueAs', { id: 'maya' });
++  async function say(text) {
++    await c.send(text);
++    return c.until(c.replied);
++  }
++  await say('Hello there');
++  await say('Notes about quarterly planning');
++  await c.action('createConversation');
++  await say('Hello there');
++  await say('Notes about next week');
++  await c.action('createConversation');
++  const state = await say('Something else');
++  assert.deepEqual(state.conversations.map(({ title, detail }) => [title, detail]), [
++    ['Something else', ''], ['Hello there', 'Notes about next week'], ['Hello there', 'Notes about quarterly planning']
++  ]);
++});
+diff --git a/test/browser.cjs b/test/browser.cjs
+index ad034f0..b1e242e 100644
+--- a/test/browser.cjs
++++ b/test/browser.cjs
+@@ -225,6 +225,8 @@ async function run() {
+     await call('Page.navigate', { url });
+     await view(text('[aria-label="Task status"]', 'Completed'), 'Background task did not complete across navigation');
+     await view(text('#away', 'browser workflow · Completed'), 'Return summary did not show the outcome');
++    await evaluate("Array.from(document.querySelectorAll('#away button')).find(node => node.textContent === 'browser workflow · Completed').click()");
++    await view("document.activeElement?.getAttribute('aria-label') === 'Task: browser workflow'", 'Return summary did not take focus to the task');
+ 
+     await checkLayout(390, 'light');
+     await checkLayout(390, 'dark');
+@@ -240,6 +242,19 @@ async function run() {
+     await click('#open-tools');
+     assert.equal(await evaluate(visible('#tools')), true);
+     await click('#open-tools');
++    async function pressEnter() {
++      await call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', text: '\r', unmodifiedText: '\r', windowsVirtualKeyCode: 13 });
++      await call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
++    }
++    await click('#open-chats');
++    await evaluate(query('#conversation-list [aria-current="false"]') + '.focus()');
++    await pressEnter();
++    await view("document.activeElement === document.querySelector('#message') && !" + visible('#sidebar'), 'Opening a conversation did not move focus to Message');
++    await send('research: focus check [long]', 'in the background');
++    await view(visible('[aria-label="Task: focus check"] .controls button'), 'Cancel task did not render');
++    await evaluate(query('[aria-label="Task: focus check"] .controls button') + '.focus()');
++    await pressEnter();
++    await view("document.activeElement?.getAttribute('aria-label') === 'Task: focus check'", 'Cancelling a task lost keyboard focus');
+     await evaluate("document.querySelector('#message').focus()");
+     assert.equal(await evaluate("getComputedStyle(document.activeElement).outlineStyle"), 'solid');
+     await call('Input.insertText', { text: 'first line' });

@@ -1,0 +1,14 @@
+{
+ "ratings": [
+  {
+   "n": 1,
+   "rating": "should",
+   "why": "A careful builder would omit e5d6 or reject the FEN when the double-push origin is occupied or the halfmove clock is already nonzero, because that capture deletes a pawn, and the cost is limited to imported positions the request does not ask the engine to prove reachable."
+  },
+  {
+   "n": 2,
+   "rating": "should",
+   "why": "A careful builder would clear a kingside right while the rook is off h1, because leaving it lets h2h1 become a later e1g1 with a rook that has just moved, and that cost is confined to an imported position that was already inconsistent."
+  }
+ ]
+}

@@ -1,0 +1,144 @@
+{
+ "ratings": [
+  {
+   "id": "U-1",
+   "rating": "must",
+   "why": "Assigning or unassigning a resolved or closed ticket, including a body that would change nothing, must be a 409 conflict that leaves the assignee untouched, because clients branch on code and a success or a write misleads them."
+  },
+  {
+   "id": "U-2",
+   "rating": "must",
+   "why": "A missing assignee, a non-string value, an unknown field, a non-object or unreadable body, and an unknown ticket must stay 400 invalid or 404 not_found, because treating {} or a misspelt name as an unassign quietly changes tickets."
+  },
+  {
+   "id": "U-3",
+   "rating": "should",
+   "why": "Agent names should be trimmed, refused when blank or when they contain control characters, and limited to 64 characters after trimming, because that is how titles stay one filter key and one listing row, while the request only says non-empty and at most 64 characters."
+  },
+  {
+   "id": "U-4",
+   "rating": "must",
+   "why": "A real assignment or unassignment must append an audit entry with the X-Actor and the assignee from and to, and a no-op must append nothing, because decision 7 exists to answer who took a ticket off an agent."
+  },
+  {
+   "id": "U-5",
+   "rating": "must",
+   "why": "A real assignment must advance updated and a no-op must leave it, because updated is defined as the last change and agents triage the listing by it."
+  },
+  {
+   "id": "U-6",
+   "rating": "should",
+   "why": "Unassigning an open or in-progress ticket that is already unassigned should be a no-op with no audit row, no new updated, and no notification, because a retried clear would otherwise make an untouched ticket look newly worked."
+  },
+  {
+   "id": "U-7",
+   "rating": "must",
+   "why": "The PUT must enqueue, and not wait for, a notification that has a template, names the ticket id and title, and sets to to the agent name, because there is no address on file and a missing template goes dead after its retries."
+  },
+  {
+   "id": "U-8",
+   "rating": "must",
+   "why": "Each new assignee must still be notified when an earlier assignment notice for that ticket is pending, because the default outbox key is only the type and the ticket and would leave the current owner untold."
+  },
+  {
+   "id": "U-9",
+   "rating": "no",
+   "why": "The request notifies only the agent who receives the ticket, and telling the previous agent or the requester would add mail the product does not send today."
+  },
+  {
+   "id": "U-10",
+   "rating": "no",
+   "why": "An agent who assigns a ticket to themselves is still the assignee the request says to notify, and skipping that mail is an unasked extra rule."
+  },
+  {
+   "id": "U-11",
+   "rating": "must",
+   "why": "The data file must keep assignee, a previous file with no assignee field must load as null, and an assignee the service could not have written must stop startup, because otherwise assignments disappear on restart or the running service will not start."
+  },
+  {
+   "id": "U-12",
+   "rating": "should",
+   "why": "Transitions should leave the assignee in place so the filter still returns the ticket afterward, and the customer should be told that, because clearing it would hide finished work and put a reopened ticket back in the unassigned queue."
+  },
+  {
+   "id": "U-13",
+   "rating": "should",
+   "why": "The assignee filter should compare the same canonical name that was stored, refuse a value that can never be a name with 400 invalid, and accept a repeated parameter the way status already does, because a different comparison makes an agent's queue look empty."
+  },
+  {
+   "id": "U-14",
+   "rating": "must",
+   "why": "The assignee filter must be applied before the cursor is taken, because a later page that drops it mixes in other agents' tickets or skips some of this agent's."
+  },
+  {
+   "id": "U-15",
+   "rating": "must",
+   "why": "status and priority together, with no assignee, must return the intersection documented in docs/api.md and restated by the request, because the current any-match implementation shows the lead a wider open-and-urgent list."
+  },
+  {
+   "id": "U-16",
+   "rating": "must",
+   "why": "list --raw must keep id, status, priority, and title in those positions, because the weekly report reads them by position, so an assignee column can only be added after title and an unassigned cell must not contain a tab."
+  },
+  {
+   "id": "U-17",
+   "rating": "should",
+   "why": "The list table should render an unassigned ticket as a blank or another plain marker, because every current ticket is unassigned and a printed null looks like a broken cell."
+  },
+  {
+   "id": "U-18",
+   "rating": "should",
+   "why": "show should print the assignee with the other fields, because that is the operator's full-ticket view and the request only required the listing to show it."
+  },
+  {
+   "id": "U-19",
+   "rating": "no",
+   "why": "A command-line assignee filter was not requested, and an unknown option already ends in a usage error so the full list is not shown by mistake."
+  },
+  {
+   "id": "U-20",
+   "rating": "must",
+   "why": "POST /tickets and PATCH /tickets/:id must keep rejecting assignee as an unknown field, because accepting it would skip the open and in-progress rule and the notification, and PATCH still allows resolved tickets."
+  },
+  {
+   "id": "U-21",
+   "rating": "should",
+   "why": "A successful PUT should answer 200 with the ticket, because every other change endpoint does and this response is all the assigning client has unless it fetches again."
+  },
+  {
+   "id": "U-22",
+   "rating": "should",
+   "why": "docs/api.md, the README if a column changes, a CHANGELOG section, the package version, and a decision record for the new assignment rule should ship with the change, because clients and the next maintainer work from those and CONTRIBUTING requires the version bump and changelog together."
+  },
+  {
+   "id": "U-23",
+   "rating": "no",
+   "why": "A failed save already leaves memory ahead of the file for every store change, so a rollback that exists only for assignment is extra machinery this request does not ask for."
+  },
+  {
+   "id": "U-24",
+   "rating": "no",
+   "why": "A notice already waiting in the outbox should go out on its normal retries, and cancelling it when the ticket is cleared or closed would be a delivery rule the request never adds."
+  },
+  {
+   "id": "U-25",
+   "rating": "must",
+   "why": "MAX_BODY_BYTES must still accept 1024 through 1048576 and refuse anything outside that, because operators already start the service with their own limits and a narrower range stops the deployment."
+  },
+  {
+   "id": "U-26",
+   "rating": "must",
+   "why": "show must stay read-only, because the command line is documented never to write the data file the running service owns and a legacy backfill could overwrite that state."
+  },
+  {
+   "id": "U-27",
+   "rating": "should",
+   "why": "show should keep history oldest first and include assignment changes in that order, because operators read a handoff from that view and the audit log is already stored that way."
+  },
+  {
+   "id": "U-28",
+   "rating": "no",
+   "why": "The existing history line already shows a clear as a change whose new value is null, and quoting an agent literally named null or a name that contains arrows is a case this desk has no evidence of hitting."
+  }
+ ]
+}

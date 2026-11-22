@@ -1,0 +1,876 @@
+diff --git a/README.md b/README.md
+index b21e55d..7c28f86 100644
+--- a/README.md
++++ b/README.md
+@@ -28,6 +28,39 @@ Tasks shows background work across your conversations. A browser window can clos
+ 
+ The passwordless profile chooser is for this local synthetic workspace. The app binds to loopback. Each profile has its own bots, chats, saved entries, and task activity. A bot's memory is scoped to that bot.
+ 
++## What to expect
++
++**Setup.** Once a token is saved in Setup, or a valid `PROVIDER_TOKEN` is set, the app is set up for every person. If `PROVIDER_TOKEN` is set but the provider refuses it, Setup says so without showing it, and you can save a token there instead.
++
++**Bots and conversations.**
++- A new bot starts with one empty conversation, listed as **Untitled conversation**. After the first message, a conversation is named after that message, with line breaks and runs of spaces made single spaces, cut to 56 characters. The newest conversation is listed first.
++- When two conversations of a bot would have the same name, the later one gets a number, for example **How many orders can you see? (2)**. Pointing at a conversation shows your latest message in it.
++- Your unsent text and reading position are kept for each conversation while the browser tab stays open, including across a reload. A new tab starts with an empty message box.
++- Dark mode is remembered by the browser, so it applies to every person who uses that browser.
++
++**Limits.** Bot names and saved-entry names take up to 80 characters, and saved-entry text and memory text up to 12,000; those boxes stop accepting text at the limit. A message longer than 12,000 characters is not sent: an alert says so and your text stays in the box. Spaces at the start and end of names and text are removed when saved. An action request over 64 KB is refused with "That request is too large."
++
++**Saved instructions and tasks.**
++- They belong to you and are shared by all your bots; other people do not see them.
++- **Use** copies the instruction's current text onto the open bot. Editing or deleting the saved entry later does not change a bot that already uses it until you use it again. **Clear instructions**, under the active instructions, returns the open bot to having none and keeps its conversations.
++- Saving under a name that is already saved, without choosing **Edit** first, is refused, and the saved entry stays as it was.
++
++**Memory.** Asking the bot to remember a fact it already has (capitals aside) adds no second copy. Asking it to forget removes a fact only when you give the whole fact (capitals aside). The reply says it has forgotten either way, so check Memory.
++
++**Records and changes.**
++- Questions and changes use the record's own field names, such as `status`. A field written in other capitals is not matched: **What is the STATUS of ORD-1001** gets "ORD-1001 has no STATUS.", and **set the STATUS of ORD-1001 to closed** proposes nothing. Its Change result names the right field.
++- After **Update ORD-1001**, give the field and the value in one answer, such as **the status to closed**. Any other answer, such as just **status**, is echoed back and the question is not asked again; send **Update ORD-1001** again. Other phrasings, such as "Could you close order ORD-1001 for me?", are echoed too; say **set the status of ORD-1001 to closed**.
++- In Proposed changes, a value that contains `·`, `→` or quotation marks, or that could be read as a number or as empty (`∅`), is shown in quotation marks.
++- A number larger than 9007199254740991 cannot be stored exactly, so no change is proposed for it. The id, type and readers of a record cannot be changed through the chat.
++- **Confirm changes** applies nothing if a field no longer has the value the proposal started from, or if a new order's number has been taken; the Change result asks for a fresh proposal.
++
++**Background tasks.**
++- Several long tasks can run in one conversation. **Add step** adds its step to the end of the most recently started task that is still running in that conversation.
++- **Since you were away** compares with the last time this browser showed your workspace. It lists tasks that finished or were cancelled after that, and every task that is running, failed or interrupted.
++- While the page waits for the server to answer an action (normally a few milliseconds), it ignores other clicks. A **Cancel task** pressed at that moment does nothing; the task still shows Running with its Cancel task button, so press it again.
++- If the page cannot reach the server, an alert says that what you see is the last known state, until the server answers again.
++- If the data folder cannot be written, actions are refused with an alert, and a reply or task that could not save its progress stops and shows as failed. Once the folder can be written again, use **Retry** or **Retry task**.
++
+ ## Verify
+ 
+ ```sh
+diff --git a/docs/shiploop/fix.md b/docs/shiploop/fix.md
+new file mode 100644
+index 0000000..a95cc2d
+--- /dev/null
++++ b/docs/shiploop/fix.md
+@@ -0,0 +1,44 @@
++# Fix pass
++
++Before: `npm test` passed 8 of 8. After: 21 of 21. Every shortfall was first reproduced in headless Chromium against a real `node server.js` with disposable data. Each new test was run against the original product files and failed there.
++
++The suite has no browser. For page-only fixes, the rule that carries the fix now lives in `public/rules.js`, which the page loads before `app.js` and the suite requires directly (TC-15 to TC-19). TC-20 and TC-21 check the served stylesheet and page. The page behaviour itself was checked again in Chromium after each fix.
++
++## Shortfalls
++
++- **high · Keyboard cancellation can stop the wrong task.** Fixed: task, proposal and memory buttons carry a key, and a refresh returns focus to the control with the same key, never to another task's. Test: `TC-15 returns keyboard focus to the same task control when the task list reorders`.
++- **high · A capitalized field can write the wrong field.** Fixed: a change naming a field that differs only in capitals from the record's field is refused, nothing is written, and the Change result names the right field. Test: `TC-9 refuses a field whose capitals differ from the record field and leaves the record alone`. The read reply "ORD-1001 has no STATUS." comes from the stand-in and is unchanged; it is documented.
++- **high · Saving a reused name silently overwrites a saved entry.** Fixed: saving a name that is already saved without choosing Edit is refused with an alert, and the entry is kept. Test: `TC-11 keeps a saved entry when a blank form reuses its name`.
++- **high · A temporary storage failure leaves abandoned work looking active.** Fixed: a reply or task that cannot save its progress shows as failed with Retry or Retry task at once, and that state is saved on the next request after storage accepts writes again. Test: `TC-12 marks work stopped by a storage failure as recoverable and saves that once storage returns`.
++- **medium · Valid bot names can push chat controls outside a narrow window.** Fixed: the chat column can no longer grow wider than its space, and a long bot name is cut with an ellipsis. Send and the tools toggle stay in view at 390, 1100 and 1440 pixels. Test: `TC-20 keeps the chat column within a narrow window whatever the bot name`.
++- **medium · A cancellation click can disappear while a chat action is in flight.** Not changed. It reproduces only when the action's response is held on purpose. A local action round trip measured about 6 ms. The card keeps showing Running and Cancel task, and a second press cancels, so a fix would be speculative hardening. Documented in README.
++- **medium · The open page reports live progress while the server is down.** Fixed: an alert says that what is shown is the last known state, and it clears when the server answers again. Test: `TC-18 labels a lost connection as the last known state until the server answers again`.
++- **medium · Reloading loses the reading position and unsent text.** Fixed: each person's draft and reading position in each conversation are kept for the browser tab and restored after a reload. Test: `TC-19 restores each conversation draft and reading position after a reload`.
++- **medium · Common opening questions make saved conversations indistinguishable.** Fixed: an empty conversation is listed as Untitled conversation, a repeated name gets a number such as "(2)", and the tooltip shows your latest message. Only the creation button is now named New conversation. Test: `TC-17 gives conversations with the same opening message distinct names`.
++- **medium · An incomplete clarification loses the pending record request.** Not changed. Every reply comes from the stand-in, which the request says to use as it is; the app would have to write replies of its own to re-ask. Sending `Update ORD-1001` again recovers. The phrasing it needs is documented in README.
++- **medium · Active instructions cannot be cleared from an existing bot.** Fixed: a Clear instructions button under the active instructions returns the open bot to having none and keeps its conversations. Test: `TC-13 clears the open bot instructions and keeps its conversations`.
++- **medium · Approval previews can make field boundaries ambiguous.** Fixed: a value containing `·`, `→` or a quotation mark is shown in quotation marks. Test: `TC-16 shows proposed values with unambiguous boundaries`.
++- **medium · A total above the safe integer range can be silently rounded.** Fixed: a number larger than 9007199254740991 is refused before any proposal, and the record is left alone. Test: `TC-10 refuses a number that cannot be stored exactly instead of proposing a rounded one`.
++- **medium · The composer silently drops the tail of overlong input.** Fixed: the Message box no longer cuts pasted text. Sending more than 12,000 characters shows the server's alert, sends nothing and keeps the text. Test: `TC-21 refuses an overlong message with a reason instead of cutting it short`.
++- **low · Setup gives no reason when the environment token is rejected.** Fixed: Setup shows an alert that the provider refused the `PROVIDER_TOKEN` token, without showing it. Test: `TC-14 tells setup that the environment token was refused without showing it`.
++
++## Choices documented in README
++
++Each was checked against the running product:
++- how conversations are named (first message, 56 characters, newest first), the Untitled and numbered names, and the tooltip;
++- a new bot's one empty conversation;
++- drafts and reading positions kept per tab across reloads;
++- dark mode shared by everyone using the browser;
++- the 80 and 12,000 character limits, trimming and the 64 KB request limit;
++- saved instructions and tasks being per person and shared across that person's bots, Use copying text, and Clear instructions;
++- refusal of a reused name;
++- memory deduplication and whole-fact forgetting, whose reply confirms either way;
++- exact field names, and the capitalized read reply;
++- the phrasing that follow-ups to `Update` need;
++- quoting in previews and the largest number allowed;
++- immutable id, type and readers, and the conflict check on confirm;
++- one token serving every person, and the refused environment token;
++- several tasks per conversation, and which one Add step extends;
++- what Since you were away compares with;
++- clicks ignored while an action is in flight (not changed);
++- the lost-connection alert, and what happens when the data folder cannot be written.
+diff --git a/lib/records.js b/lib/records.js
+index 710383c..fa777ea 100644
+--- a/lib/records.js
++++ b/lib/records.js
+@@ -41,6 +41,14 @@ function preview(records, person, changes) {
+     if (!/^[a-z][a-z0-9_]*$/i.test(change.field) || protectedFields.has(change.field.toLowerCase())) {
+       throw new Error('Record identity and access fields cannot be changed.');
+     }
++    const existing = Object.keys(record).find(key => key.toLowerCase() === change.field.toLowerCase());
++    if (existing && existing !== change.field) {
++      throw new Error(record.id + ' has no field named ' + change.field + '; its field is named ' + existing +
++        '. No change was made. Ask again using ' + existing + '.');
++    }
++    if (typeof change.to === 'number' && Math.abs(change.to) > Number.MAX_SAFE_INTEGER) {
++      throw new Error('Numbers larger than ' + Number.MAX_SAFE_INTEGER + ' cannot be stored exactly. No change was made.');
++    }
+     if (!scalar(change.to) || !isDeepStrictEqual(current(record, change.field), change.from)) {
+       throw new Error('The record changed before the preview was ready. Ask for a fresh proposal.');
+     }
+diff --git a/lib/workspace.js b/lib/workspace.js
+index eb2b703..0f9f2c2 100644
+--- a/lib/workspace.js
++++ b/lib/workspace.js
+@@ -46,11 +46,18 @@ function navigate(user, data = {}) {
+   return { bot, conversation: get(bot.conversations, data.conversationId ?? bot.activeConversation) };
+ }
+ 
++function findConversation(state, personId, { botId, conversationId }) {
++  const bot = byId(state.users[personId]?.bots || [], botId);
++  return bot && byId(bot.conversations, conversationId);
++}
++
+ function replaceEntry(list, data, label) {
+   const name = input(data.name, label + ' name', 80);
+   const text = input(data.text, label + ' text', 12000);
+-  const item = data.id ? get(list, data.id) : list.find(entry => entry.name === name);
+-  if (list.some(entry => entry !== item && entry.name === name)) reject('That name is already in use.');
++  const item = data.id ? get(list, data.id) : undefined;
++  if (list.some(entry => entry !== item && entry.name === name)) {
++    reject('“' + name + '” is already saved. Choose Edit ' + name + ' to change it, or use another name.');
++  }
+   if (item) Object.assign(item, { name, text });
+   else list.push({ id: randomUUID(), name, text });
+ }
+@@ -85,10 +92,42 @@ function createWorkspace(directory, envToken) {
+     return { cookie: id + '.' + signature(id), person: identity };
+   }
+ 
++  // Work whose progress could not be saved has stopped. Each entry marks it recoverable; the marks are shown at
++  // once and saved as soon as storage accepts a write again.
++  const unsaved = new Map();
++
++  function settle() {
++    if (!unsaved.size) return true;
++    try {
++      store.transact(state => { for (const mark of unsaved.values()) mark(state); });
++      unsaved.clear();
++      return true;
++    } catch {
++      return false;
++    }
++  }
++
++  function stalled(key, mark) {
++    unsaved.set(key, mark);
++    return settle();
++  }
++
+   function view(identity) {
+-    const state = store.read();
++    settle();
++    let state = store.read();
+     if (!identity || !state.users[identity.id]) return { people };
+-    return { person: identity, configured: provider.check(token()), workspace: state.users[identity.id], version: state.version, clock: now() };
++    if (unsaved.size) {
++      state = structuredClone(state);
++      for (const mark of unsaved.values()) mark(state);
++    }
++    return {
++      person: identity,
++      configured: provider.check(token()),
++      environmentTokenRefused: Boolean(envToken) && !provider.check(envToken),
++      workspace: state.users[identity.id],
++      version: state.version,
++      clock: now(),
++    };
+   }
+ 
+   const recoveryMessage = 'The server restarted before the reply finished. Retry to continue this conversation.';
+@@ -152,14 +191,14 @@ function createWorkspace(directory, envToken) {
+ 
+   function startWork(personId, botId, conversationId, task) {
+     work(personId, botId, conversationId, task.id, task.runId).catch(() => {
+-      try {
+-        updateTask(personId, botId, conversationId, task.id, task.runId, entry => {
+-          entry.status = 'Failed';
+-          entry.detail = 'Progress could not be saved. Retry resumes from the last saved step.';
+-        });
+-      } catch {
+-        console.error('Background task progress could not be saved.');
+-      }
++      const at = now();
++      const mark = state => {
++        const entry = byId(findConversation(state, personId, { botId, conversationId })?.tasks || [], task.id);
++        if (entry?.runId === task.runId && entry.status === 'Running') {
++          Object.assign(entry, { status: 'Failed', updated: at, detail: 'Progress could not be saved. Retry resumes from the last saved step.' });
++        }
++      };
++      if (!stalled('task:' + task.runId, mark)) console.error('Background task progress could not be saved.');
+     });
+   }
+ 
+@@ -232,13 +271,22 @@ function createWorkspace(directory, envToken) {
+   }
+ 
+   function startReply(identity, bot, conversation) {
+-    reply(identity, bot.id, conversation.id, conversation.reply.attempt).catch(() => {
+-      console.error('Reply progress could not be saved.');
++    const { id: requestId, attempt } = conversation.reply;
++    const scope = { botId: bot.id, conversationId: conversation.id };
++    reply(identity, bot.id, conversation.id, attempt).catch(() => {
++      const mark = state => {
++        const thread = findConversation(state, identity.id, scope);
++        if (thread?.reply?.id === requestId && thread.reply.attempt === attempt && thread.reply.status === 'pending') {
++          Object.assign(thread.reply, { status: 'failed', error: 'The reply could not be saved. Retry to continue without sending your message again.' });
++        }
++      };
++      if (!stalled('reply:' + requestId + ':' + attempt, mark)) console.error('Reply progress could not be saved.');
+     });
+   }
+ 
+   function action(identity, data) {
+     if (!identity) reject('Choose a person to continue.', 401);
++    settle();
+     const { action: name } = data;
+     if (name === 'setup') {
+       if (provider.check(token())) return;
+@@ -296,6 +344,9 @@ function createWorkspace(directory, envToken) {
+         case 'useInstruction':
+           bot.instructions = get(target.instructions, data.id).text;
+           break;
++        case 'clearInstructions':
++          bot.instructions = '';
++          break;
+         case 'deleteInstruction':
+           get(target.instructions, data.id);
+           target.instructions = target.instructions.filter(entry => entry.id !== data.id);
+diff --git a/public/app.js b/public/app.js
+index 36af17d..20db24d 100644
+--- a/public/app.js
++++ b/public/app.js
+@@ -1,8 +1,11 @@
+ 'use strict';
+ 
++const { focusTarget, changeLine, conversationLabels, connectionAlert, createPlaces } = window.StillpointRules;
+ const $ = id => document.getElementById(id);
+ const keyed = new Map();
+-const drafts = new Map();
++const places = createPlaces((() => {
++  try { return window.sessionStorage; } catch { return null; }
++})());
+ let state;
+ let bot;
+ let thread;
+@@ -35,11 +38,12 @@ function update(id, source, make) {
+   const node = $(id);
+   const active = document.activeElement;
+   const hadFocus = node.contains(active) && active !== node;
+-  const accessibleName = hadFocus ? active.getAttribute('aria-label') || active.textContent : '';
++  const describe = item => ({ key: item.dataset.key, name: item.getAttribute('aria-label') || item.textContent });
++  const previous = hadFocus ? describe(active) : undefined;
+   node.replaceChildren(...make());
+   if (hadFocus) {
+-    const replacement = [...node.querySelectorAll('button')].find(item =>
+-      (item.getAttribute('aria-label') || item.textContent) === accessibleName);
++    const buttons = [...node.querySelectorAll('button')];
++    const replacement = buttons[focusTarget(buttons.map(describe), previous)];
+     const fallback = id === 'messages' || id === 'reply-state' ? $('message') :
+       id === 'tasks' ? $('tasks-title') : node.querySelector('button');
+     if (replacement) replacement.focus({ preventScroll: true });
+@@ -110,8 +114,11 @@ function resetForms() {
+ }
+ 
+ function allTasks(workspace) {
+-  return workspace.bots.flatMap(item => item.conversations.flatMap(chat =>
+-    chat.tasks.map(task => ({ task, botId: item.id, conversationId: chat.id, bot: item.name, conversation: chat.title }))));
++  return workspace.bots.flatMap(item => {
++    const labels = conversationLabels(item.conversations);
++    return item.conversations.flatMap((chat, index) => chat.tasks.map(task =>
++      ({ task, botId: item.id, conversationId: chat.id, bot: item.name, conversation: labels[index].label })));
++  });
+ }
+ 
+ function accept(next) {
+@@ -125,7 +132,6 @@ function accept(next) {
+     $('thread-title').textContent = 'New conversation';
+     composerId = undefined;
+     pendingSend = undefined;
+-    drafts.clear();
+     awaySince = nextId ? local('seen.' + nextId) : null;
+     awaySnapshot = nextId ? allTasks(next.workspace).filter(({ task }) =>
+       (task.status === 'Completed' || task.status === 'Cancelled') && awaySince && task.updated > awaySince) : [];
+@@ -153,21 +159,25 @@ function accept(next) {
+   thread = bot.conversations.find(item => item.id === bot.activeConversation);
+   const switchedThread = composerId !== thread.id;
+   if (switchedThread) {
+-    if (composerId) drafts.set(composerId, $('message').value);
+     composerId = thread.id;
+-    $('message').value = drafts.get(composerId) || '';
++    $('message').value = places.recall(personId, composerId).draft || '';
+   }
+   if (previousBot?.id !== bot.id) {
+     $('memory-form').hidden = true;
+     $('memory-form').reset();
+     selectBotMode('newBot', false);
+   }
+-  document.title = thread.title + ' — Stillpoint';
++  const threadLabel = conversationLabels(bot.conversations)[bot.conversations.indexOf(thread)].label;
++  document.title = threadLabel + ' — Stillpoint';
+   $('profile-initial').textContent = next.person.name[0];
+   $('profile-name').textContent = next.person.name;
+   $('active-bot').textContent = bot.name;
+-  $('thread-title').textContent = thread.title;
++  $('thread-title').textContent = threadLabel;
+   $('setup').hidden = next.configured;
++  const environmentNote = !next.configured && next.environmentTokenRefused
++    ? 'The provider refused the token set in the PROVIDER_TOKEN environment variable, so it is not in use. Enter a token here, or correct the variable and restart the server.'
++    : '';
++  if ($('setup-env').textContent !== environmentNote) alertAt('setup-env', environmentNote);
+   $('empty').hidden = Boolean(thread.messages.length) || !next.configured;
+   $('message').readOnly = !next.configured;
+   $('send').disabled = !next.configured || Boolean(thread.reply && thread.reply.status !== 'complete');
+@@ -187,23 +197,17 @@ function renderNavigation() {
+       'aria-label': item.name,
+       'aria-current': item.id === bot.id ? 'true' : 'false',
+     })));
+-  const threads = bot.conversations.map(({ id, title }) => ({ id, title }));
++  const labels = conversationLabels(bot.conversations);
++  const threads = bot.conversations.map(({ id }, index) => ({ id, ...labels[index] }));
+   update('threads', [thread.id, threads], () => [...threads].reverse().map(item =>
+-    button(item.title, () => act('selectConversation', scope({ conversationId: item.id }), { done: focusChat }), {
++    button(item.label, () => act('selectConversation', scope({ conversationId: item.id }), { done: focusChat }), {
+       class: 'nav-item thread-item',
+-      'aria-label': item.title,
++      'aria-label': item.label,
+       'aria-current': item.id === thread.id ? 'true' : 'false',
+-      title: item.title,
++      title: item.hint,
+     })));
+ }
+ 
+-function currentValue(value) {
+-  if (value === null) return '∅';
+-  if (typeof value !== 'string') return JSON.stringify(value);
+-  return value !== value.trim() || !value || /[\t\n\r]/.test(value) || /^(?:∅|-?\d+(?:\.\d+)?)$/.test(value)
+-    ? JSON.stringify(value) : value;
+-}
+-
+ function proposalCard(proposal) {
+   if (proposal.status !== 'pending') {
+     const result = element('section', undefined, { class: 'change-result surface', 'aria-label': 'Change result' });
+@@ -213,20 +217,13 @@ function proposalCard(proposal) {
+ 
+   const card = element('section', undefined, { class: 'proposal surface', 'aria-label': 'Proposed changes' });
+   const list = element('ul');
+-  for (const change of proposal.changes) {
+-    if (change.create) {
+-      const { id, type, customer, status, total, readers } = change.create;
+-      list.append(element('li', 'Create ' + id + ' · type: ' + type + ' · customer: ' +
+-        currentValue(customer) + ' · status: ' + status + ' · total: ' + total + ' · readers: ' + JSON.stringify(readers)));
+-    } else {
+-      list.append(element('li', change.record + ' ' + change.field + ': ' +
+-        currentValue(change.from) + ' → ' + currentValue(change.to)));
+-    }
+-  }
++  list.append(...proposal.changes.map(change => element('li', changeLine(change))));
+   const actions = element('div', undefined, { class: 'actions' });
+   actions.append(
+-    button('Confirm changes', () => act('decideProposal', scope({ id: proposal.id, confirm: true })), { class: 'primary' }),
+-    button('Reject changes', () => act('decideProposal', scope({ id: proposal.id, confirm: false }))),
++    button('Confirm changes', () => act('decideProposal', scope({ id: proposal.id, confirm: true })),
++      { class: 'primary', 'data-key': 'proposal:' + proposal.id + ':confirm' }),
++    button('Reject changes', () => act('decideProposal', scope({ id: proposal.id, confirm: false })),
++      { 'data-key': 'proposal:' + proposal.id + ':reject' }),
+   );
+   card.append(element('strong', 'Proposed changes'), list, actions);
+   return card;
+@@ -256,7 +253,10 @@ function renderConversation(switched) {
+     }
+     return [];
+   });
+-  if (switched || atBottom) scroll.scrollTop = scroll.scrollHeight;
++  if (switched) {
++    const place = places.recall(personId, thread.id);
++    scroll.scrollTop = place.scroll === undefined || place.atBottom ? scroll.scrollHeight : place.scroll;
++  } else if (atBottom) scroll.scrollTop = scroll.scrollHeight;
+ }
+ 
+ function emptyState(text) {
+@@ -296,7 +296,12 @@ function elementList(items, make) {
+ function renderTools() {
+   const { instructions, shortcuts } = state.workspace;
+   update('instructions-list', [bot.id, instructions, bot.instructions], () => [
+-    ...(bot.instructions ? [emptyState('Active on ' + bot.name + ': ' + bot.instructions)] : []),
++    ...(bot.instructions ? [
++      emptyState('Active on ' + bot.name + ': ' + bot.instructions),
++      button('Clear instructions', () => act('clearInstructions', scope(), {
++        done: () => notify(bot.name + ' has no special instructions now.'),
++      }), { class: 'clear-instructions' }),
++    ] : []),
+     ...savedItems('instruction', instructions),
+   ]);
+   update('shortcuts-list', shortcuts, () => savedItems('shortcut', shortcuts));
+@@ -308,11 +313,11 @@ function renderTools() {
+       $('memory-form').hidden = false;
+       $('memory-text').value = memory.text;
+       $('memory-text').focus();
+-    }), button('Forget', () => act('forgetMemory', scope({ id: memory.id }), {
++    }, { 'data-key': 'memory:' + memory.id + ':edit' }), button('Forget', () => act('forgetMemory', scope({ id: memory.id }), {
+       done: () => {
+         if ($('memory-form').dataset.edit === memory.id) $('memory-form').hidden = true;
+       },
+-    })));
++    }), { 'data-key': 'memory:' + memory.id + ':forget' }));
+     row.append(element('p', memory.text), actions);
+     return row;
+   })] : [emptyState(bot.name + ' has no saved memories.')]);
+@@ -340,8 +345,12 @@ function renderTools() {
+       card.append(list);
+     }
+     if (task.detail) card.append(emptyState(task.detail));
+-    if (task.status === 'Running') card.append(button('Cancel task', () => act('cancelTask', task.target)));
+-    if (task.status === 'Failed' || task.status === 'Interrupted') card.append(button('Retry task', () => act('retryTask', task.target)));
++    if (task.status === 'Running') {
++      card.append(button('Cancel task', () => act('cancelTask', task.target), { 'data-key': 'task:' + task.id + ':cancel' }));
++    }
++    if (task.status === 'Failed' || task.status === 'Interrupted') {
++      card.append(button('Retry task', () => act('retryTask', task.target), { 'data-key': 'task:' + task.id + ':retry' }));
++    }
+     return card;
+   }) : [emptyState('No background tasks yet.')]);
+ 
+@@ -408,13 +417,21 @@ async function send(action, data) {
+   const identity = JSON.stringify([thread.id, action, data]);
+   if (pendingSend?.identity !== identity) pendingSend = { identity, requestId: crypto.randomUUID() };
+   const requestId = pendingSend.requestId;
++  const threadId = thread.id;
+   const ok = await act(action, scope({ requestId, ...data }), { done: focusChat });
+   if (ok) {
+     pendingSend = undefined;
+-    if (action === 'send' && $('message').value === data.text) $('message').value = '';
++    if (action === 'send' && $('message').value === data.text) {
++      $('message').value = '';
++      places.remember(personId, threadId, { draft: '' });
++    }
+   }
+ }
+ 
++function keepDraft() {
++  if (personId && thread) places.remember(personId, thread.id, { draft: $('message').value });
++}
++
+ function submitMessage(event) {
+   event.preventDefault();
+   if (!$('send').disabled && $('message').value.trim()) send('send', { text: $('message').value });
+@@ -424,9 +441,19 @@ $('compose').addEventListener('submit', submitMessage);
+ $('message').addEventListener('keydown', event => {
+   if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) submitMessage(event);
+ });
++$('message').addEventListener('input', keepDraft);
++$('conversation').addEventListener('scroll', () => {
++  const scroll = $('conversation');
++  if (personId && thread) {
++    places.remember(personId, thread.id, {
++      scroll: scroll.scrollTop,
++      atBottom: scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight < 90,
++    });
++  }
++});
+ $('examples').addEventListener('click', event => {
+   const prompt = event.target.closest('[data-prompt]')?.dataset.prompt;
+-  if (prompt) { $('message').value = prompt; focusChat(); }
++  if (prompt) { $('message').value = prompt; keepDraft(); focusChat(); }
+ });
+ $('setup-form').addEventListener('submit', event => {
+   event.preventDefault();
+@@ -473,6 +500,11 @@ function setTheme(dark) {
+ setTheme(local('theme') === 'dark');
+ $('theme').addEventListener('click', () => setTheme(document.documentElement.dataset.theme !== 'dark'));
+ 
++function showConnection(reachable) {
++  const text = connectionAlert($('app-error').textContent, reachable);
++  if (text !== $('app-error').textContent) alertAt('app-error', text);
++}
++
+ let fetching = false;
+ async function refresh() {
+   if (fetching || commandInFlight || document.hidden) return;
+@@ -480,12 +512,14 @@ async function refresh() {
+   fetching = true;
+   try {
+     const next = await api();
++    showConnection(true);
+     if (requestGeneration === generation && !commandInFlight) {
+       if (!state) alertAt('entry-error');
+       accept(next);
+     }
+   } catch {
+     if (!state) alertAt('entry-error', 'Could not reach the local server. Reconnecting…');
++    else if (personId) showConnection(false);
+   } finally {
+     fetching = false;
+   }
+diff --git a/public/index.html b/public/index.html
+index 8e5b7bc..7b59ece 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -6,6 +6,7 @@
+   <meta name="color-scheme" content="light dark">
+   <title>Stillpoint — Chat workspace</title>
+   <link rel="stylesheet" href="/style.css">
++  <script src="/rules.js" defer></script>
+   <script src="/app.js" defer></script>
+ </head>
+ <body>
+@@ -65,6 +66,7 @@
+               <button type="submit" class="primary">Save token</button>
+             </form>
+             <p id="setup-error" role="alert" class="error" hidden></p>
++            <p id="setup-env" role="alert" class="error" hidden></p>
+           </section>
+           <div id="empty" class="empty">
+             <span class="mark hero-mark" aria-hidden="true">✳</span>
+@@ -84,7 +86,7 @@
+         <p id="app-error" class="error" role="alert" hidden></p>
+         <form id="compose" class="composer">
+           <label for="message" class="sr-only">Message</label>
+-          <textarea id="message" rows="2" maxlength="12000" placeholder="Message your assistant…" required></textarea>
++          <textarea id="message" rows="2" placeholder="Message your assistant…" required></textarea>
+           <button id="send" class="send" type="submit" aria-label="Send" title="Send">↑</button>
+         </form>
+         <p class="composer-hint">Enter to send <span aria-hidden="true">·</span> Shift + Enter for a new line</p>
+diff --git a/public/rules.js b/public/rules.js
+new file mode 100644
+index 0000000..50fb0ac
+--- /dev/null
++++ b/public/rules.js
+@@ -0,0 +1,77 @@
++'use strict';
++
++// Rules the page follows. The browser loads this file before app.js; the node:test suite requires it directly.
++(function (rules) {
++  // After a list re-renders, focus returns to the same control: the one with the same key when the control had a
++  // key (a task, proposal or memory button), otherwise the first one with the same name. -1 means none matches.
++  rules.focusTarget = function focusTarget(controls, previous) {
++    if (previous.key) return controls.findIndex(control => control.key === previous.key);
++    return controls.findIndex(control => control.name === previous.name);
++  };
++
++  // A proposed value is quoted whenever it could be misread: blank or padded text, the empty sign, text that looks
++  // like a number, or text that contains the separators the preview itself uses.
++  rules.shownValue = function shownValue(value) {
++    if (value === null) return '∅';
++    if (typeof value !== 'string') return JSON.stringify(value);
++    return value !== value.trim() || !value || /[\t\n\r·→"]/.test(value) || /^(?:∅|-?\d+(?:\.\d+)?)$/.test(value)
++      ? JSON.stringify(value) : value;
++  };
++
++  rules.changeLine = function changeLine(change) {
++    if (change.create) {
++      const { id, type, customer, status, total, readers } = change.create;
++      return 'Create ' + id + ' · type: ' + type + ' · customer: ' + rules.shownValue(customer) + ' · status: ' + status +
++        ' · total: ' + total + ' · readers: ' + JSON.stringify(readers);
++    }
++    return change.record + ' ' + change.field + ': ' + rules.shownValue(change.from) + ' → ' + rules.shownValue(change.to);
++  };
++
++  // Conversation buttons get distinct names: an empty conversation is "Untitled conversation", and a name that is
++  // already taken (including the New conversation button's) gets the next number, in the order they were created.
++  // The hint (the button's tooltip) adds the person's latest message in that conversation.
++  rules.conversationLabels = function conversationLabels(conversations) {
++    const used = new Set(['New conversation']);
++    return conversations.map(({ title, messages }) => {
++      const base = messages.length ? title : 'Untitled conversation';
++      let label = base;
++      for (let number = 2; used.has(label); number += 1) label = base + ' (' + number + ')';
++      used.add(label);
++      const latest = messages.findLast(message => message.from === 'person')?.text.replace(/\s+/g, ' ').slice(0, 120);
++      return { label, hint: latest ? label + ' — you last wrote: ' + latest : label };
++    });
++  };
++
++  // While the server cannot be reached, the page says that it shows the last known state; the notice goes away on
++  // the next successful refresh and leaves any other message alone.
++  rules.offlineNotice = 'The local server is not responding. What you see is the last known state and may be out of date. Reconnecting…';
++  rules.connectionAlert = function connectionAlert(current, reachable) {
++    if (!reachable) return rules.offlineNotice;
++    return current === rules.offlineNotice ? '' : current;
++  };
++
++  // Each person's unsent draft and reading position in each conversation, kept for this browser tab so that a reload
++  // returns to them. Without usable storage they last until the tab closes.
++  rules.createPlaces = function createPlaces(storage) {
++    const memory = new Map();
++    const key = (personId, conversationId) => 'stillpoint.place.' + personId + '.' + conversationId;
++    function recall(personId, conversationId) {
++      const name = key(personId, conversationId);
++      if (memory.has(name)) return memory.get(name);
++      try {
++        const saved = storage.getItem(name);
++        if (saved) return JSON.parse(saved);
++      } catch { /* Storage may be unavailable or hold an unreadable value. */ }
++      return {};
++    }
++    function remember(personId, conversationId, change) {
++      const name = key(personId, conversationId);
++      const next = { ...recall(personId, conversationId), ...change };
++      memory.set(name, next);
++      try {
++        storage.setItem(name, JSON.stringify(next));
++      } catch { /* Keep the copy for this tab. */ }
++    }
++    return { recall, remember };
++  };
++})(typeof module === 'object' ? module.exports : (window.StillpointRules = {}));
+diff --git a/public/style.css b/public/style.css
+index 032e885..a9f4b78 100644
+--- a/public/style.css
++++ b/public/style.css
+@@ -212,7 +212,7 @@ nav { display: grid; gap: 3px; }
+   font-weight: 750;
+   font-size: .8rem;
+ }
+-.chat { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0,1fr) auto; }
++.chat { min-width: 0; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0,1fr) auto; }
+ .chat-top {
+   min-height: 70px;
+   display: flex;
+@@ -222,7 +222,7 @@ nav { display: grid; gap: 3px; }
+   border-bottom: 1px solid var(--line);
+ }
+ .thread-meta { flex: 1; min-width: 0; }
+-.thread-meta span { color: var(--muted); font-size: .74rem; font-weight: 700; }
++.thread-meta span { display: block; color: var(--muted); font-size: .74rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+ .thread-meta h1 { font-size: 1.03rem; letter-spacing: -.027em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+ .local-status { white-space: nowrap; color: var(--muted); font-size: .75rem; }
+ .local-status i { display: inline-block; width: 6px; height: 6px; margin-right: 4px; border-radius: 50%; background: var(--accent); }
+@@ -331,6 +331,7 @@ nav { display: grid; gap: 3px; }
+ .actions { display: flex; flex-wrap: wrap; gap: 5px; }
+ .item-list .actions { margin-top: 5px; }
+ .actions button, .task button { min-height: 27px; padding: 3px 8px; font-size: .74rem; }
++.clear-instructions { margin: 5px 0 2px; min-height: 27px; padding: 3px 8px; font-size: .74rem; }
+ #memory-form { margin-top: 8px; }
+ .task { padding: 7px 0; font-size: .78rem; overflow-wrap: anywhere; }
+ .task + .task { border-top: 1px solid var(--line); }
+diff --git a/server.js b/server.js
+index ecd492b..f20b89e 100644
+--- a/server.js
++++ b/server.js
+@@ -7,6 +7,7 @@ const { createWorkspace, RequestError } = require('./lib/workspace');
+ 
+ const assets = new Map([
+   ['/', ['index.html', 'text/html; charset=utf-8']],
++  ['/rules.js', ['rules.js', 'text/javascript; charset=utf-8']],
+   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
+   ['/style.css', ['style.css', 'text/css; charset=utf-8']],
+ ]);
+diff --git a/test/app.test.js b/test/app.test.js
+index a6fd397..76bf7a2 100644
+--- a/test/app.test.js
++++ b/test/app.test.js
+@@ -3,12 +3,14 @@
+ const assert = require('node:assert/strict');
+ const test = require('node:test');
+ const { randomUUID } = require('node:crypto');
+-const { mkdtemp, rm } = require('node:fs/promises');
++const { mkdtemp, readFile, rename, rm, writeFile } = require('node:fs/promises');
+ const { once } = require('node:events');
+ const { tmpdir } = require('node:os');
+ const { join } = require('node:path');
+ const { setTimeout: delay } = require('node:timers/promises');
+ const { createServer } = require('../server');
++// The page's own rules (public/rules.js), loaded when a test needs them.
++const rules = () => require('../public/rules');
+ 
+ const token = 'sk-local-' + 'NativeTest1234';
+ const bot = state => state.workspace.bots.find(entry => entry.id === state.workspace.activeBot);
+@@ -44,6 +46,7 @@ async function environment(t, configured = token) {
+   });
+   await start(configured);
+   return {
++    dataDir,
+     url: () => url,
+     client: () => client(() => url),
+     restart: async (value = configured) => { await stop(); await start(value); },
+@@ -300,3 +303,186 @@ test('TC-8 serves the named workspace and limits static files and action origin'
+   const choice = await browser.request('continue', { personId: 'maya' });
+   assert.match(choice.setCookie, /HttpOnly; SameSite=Strict/);
+ });
++
++test('TC-9 refuses a field whose capitals differ from the record field and leaves the record alone', async t => {
++  const env = await environment(t);
++  const maya = env.client();
++  await maya.login('maya');
++  const refused = proposal(await maya.say('set the STATUS of ORD-1001 to closed'));
++  assert.equal(refused.status, 'conflict');
++  assert.deepEqual(refused.changes, []);
++  assert.match(refused.result, /no field named STATUS; its field is named status/);
++  await maya.say('update ORD-1001');
++  assert.equal(proposal(await maya.say('the STATUS to closed')).status, 'conflict');
++  assert.match(last(await maya.say('what is the status of ORD-1001')), /status of ORD-1001 is open/);
++  assert.match(last(await maya.say('what is the STATUS of ORD-1001')), /has no STATUS/);
++  const exact = proposal(await maya.say('set the status of ORD-1001 to closed'));
++  assert.deepEqual(exact.changes, [{ record: 'ORD-1001', field: 'status', from: 'open', to: 'closed' }]);
++});
++
++test('TC-10 refuses a number that cannot be stored exactly instead of proposing a rounded one', async t => {
++  const env = await environment(t);
++  const maya = env.client();
++  await maya.login('maya');
++  const rounded = proposal(await maya.say('set the total of ORD-1001 to 9007199254740993'));
++  assert.equal(rounded.status, 'conflict');
++  assert.match(rounded.result, /cannot be stored exactly/);
++  assert.match(last(await maya.say('what is the total of ORD-1001')), /total of ORD-1001 is 125\./);
++  const largest = proposal(await maya.say('set the total of ORD-1001 to 9007199254740991'));
++  assert.equal(largest.status, 'pending');
++  assert.equal(largest.changes[0].to, 9007199254740991);
++});
++
++test('TC-11 keeps a saved entry when a blank form reuses its name', async t => {
++  const env = await environment(t);
++  const maya = env.client();
++  await maya.login('maya');
++  const instruction = (await maya.act('saveInstruction', { name: 'Review rules', text: 'First version' })).workspace.instructions[0];
++  const instructionTaken = await maya.request('saveInstruction', { name: 'Review rules', text: 'Third without edit' });
++  assert.equal(instructionTaken.status, 400);
++  assert.match(instructionTaken.state.error, /already saved. Choose Edit Review rules/);
++  const shortcut = (await maya.act('saveShortcut', { name: 'Check size', text: 'how many orders can you see' })).workspace.shortcuts[0];
++  assert.equal((await maya.request('saveShortcut', { name: 'Check size', text: 'who are you' })).status, 400);
++  const kept = await maya.act();
++  assert.deepEqual(kept.workspace.instructions, [instruction]);
++  assert.deepEqual(kept.workspace.shortcuts, [shortcut]);
++  const edited = await maya.act('saveInstruction', { id: instruction.id, name: 'Review rules', text: 'Second via edit' });
++  assert.deepEqual(edited.workspace.instructions, [{ ...instruction, text: 'Second via edit' }]);
++});
++
++test('TC-12 marks work stopped by a storage failure as recoverable and saves that once storage returns', async t => {
++  const env = await environment(t);
++  const maya = env.client();
++  await maya.login('maya');
++  const task = job(await maya.say('research: storage outage [long]'));
++  await maya.act('send', { text: 'who are you [slow]', requestId: 'outage-reply' });
++  const moved = env.dataDir + '-moved';
++  t.after(() => rm(moved, { recursive: true, force: true }));
++  await rename(env.dataDir, moved);
++  await writeFile(env.dataDir, 'not a folder');
++  const during = await maya.until(state => job(state).status !== 'Running' && thread(state).reply.status !== 'pending');
++  assert.equal(job(during).status, 'Failed');
++  assert.match(job(during).detail, /could not be saved/);
++  assert.equal(thread(during).reply.status, 'failed');
++  assert.match(thread(during).reply.error, /could not be saved. Retry/);
++  await rm(env.dataDir);
++  await rename(moved, env.dataDir);
++  await maya.act();
++  const stored = JSON.parse(await readFile(join(env.dataDir, 'workspace.json'), 'utf8')).users.maya.bots[0].conversations[0];
++  assert.equal(stored.tasks.at(-1).status, 'Failed');
++  assert.equal(stored.reply.status, 'failed');
++  await maya.act('retryReply');
++  await maya.act('retryTask', { id: task.id });
++  const finished = await maya.until(state => job(state).status === 'Completed' && thread(state).reply.status === 'complete');
++  assert.equal(thread(finished).messages.filter(message => message.id === 'outage-reply').length, 1);
++  assert.match(last(finished), /I am Assistant/);
++});
++
++test('TC-13 clears the open bot instructions and keeps its conversations', async t => {
++  const env = await environment(t);
++  const maya = env.client();
++  await maya.login('maya');
++  const saved = (await maya.act('saveInstruction', { name: 'Review rules', text: 'Second via edit' })).workspace.instructions[0];
++  await maya.act('useInstruction', { id: saved.id });
++  await maya.act('deleteInstruction', { id: saved.id });
++  assert.match(last(await maya.say('who are you')), /My instructions: Second via edit/);
++  assert.equal(bot(await maya.act('clearInstructions')).instructions, '');
++  assert.match(last(await maya.say('who are you')), /I have no special instructions/);
++  assert.equal(thread(await maya.act()).messages.length, 4);
++});
++
++test('TC-14 tells setup that the environment token was refused without showing it', async t => {
++  const refused = await environment(t, 'sk-local-tooShort');
++  const maya = refused.client();
++  const state = await maya.login('maya');
++  assert.equal(state.configured, false);
++  assert.equal(state.environmentTokenRefused, true);
++  assert.doesNotMatch(JSON.stringify(state), /tooShort/);
++  assert.equal((await maya.act('setup', { token })).configured, true);
++  assert.equal((await (await environment(t)).client().login('ana')).environmentTokenRefused, false);
++  assert.equal((await (await environment(t, '')).client().login('theo')).environmentTokenRefused, false);
++});
++
++test('TC-15 returns keyboard focus to the same task control when the task list reorders', async t => {
++  const env = await environment(t);
++  const page = await (await fetch(env.url())).text();
++  assert.ok(page.includes('<script src="/rules.js" defer></script>'));
++  assert.ok(page.indexOf('src="/rules.js"') < page.indexOf('src="/app.js"'));
++  assert.match((await fetch(env.url() + '/rules.js')).headers.get('content-type'), /javascript/);
++  assert.match(await (await fetch(env.url() + '/app.js')).text(), /'Cancel task'.*'data-key': 'task:' \+ task\.id \+ ':cancel'/);
++  const { focusTarget } = rules();
++  const before = [{ key: 'task:b:cancel', name: 'Cancel task' }, { key: 'task:a:cancel', name: 'Cancel task' }];
++  assert.equal(focusTarget([...before].reverse(), before[0]), 1);
++  assert.equal(focusTarget([{ key: 'task:a:cancel', name: 'Cancel task' }], before[0]), -1);
++  assert.equal(focusTarget([{ name: 'Send' }, { name: 'Retry' }], { name: 'Retry' }), 1);
++});
++
++test('TC-16 shows proposed values with unambiguous boundaries', () => {
++  const { changeLine } = rules();
++  assert.equal(changeLine({ record: 'ORD-1001', field: 'status', from: 'open', to: 'closed' }), 'ORD-1001 status: open → closed');
++  assert.equal(changeLine({ record: 'ORD-1001', field: 'customer', from: 'Acme Tools', to: 'Acme → North' }),
++    'ORD-1001 customer: Acme Tools → "Acme → North"');
++  assert.equal(changeLine({ create: {
++    id: 'ORD-1005', type: 'order', customer: 'Order lead · status: closed · total: 999', status: 'open', total: 27, readers: ['maya'],
++  } }), 'Create ORD-1005 · type: order · customer: "Order lead · status: closed · total: 999" · status: open · total: 27 · readers: ["maya"]');
++  assert.equal(changeLine({ record: 'ORD-1001', field: 'note', from: null, to: '"quoted"' }), 'ORD-1001 note: ∅ → "\\"quoted\\""');
++});
++
++test('TC-17 gives conversations with the same opening message distinct names', () => {
++  const { conversationLabels } = rules();
++  const opening = { from: 'person', text: 'How many orders can you see?' };
++  const labels = conversationLabels([
++    { title: 'How many orders can you see?', messages: [opening, { from: 'person', text: 'first follow-up' }] },
++    { title: 'How many orders can you see?', messages: [opening, { from: 'person', text: 'second follow-up' }, { from: 'bot', text: 'ok' }] },
++    { title: 'New conversation', messages: [] },
++    { title: 'New conversation', messages: [] },
++  ]);
++  assert.deepEqual(labels.map(item => item.label), [
++    'How many orders can you see?', 'How many orders can you see? (2)', 'Untitled conversation', 'Untitled conversation (2)',
++  ]);
++  assert.equal(labels[1].hint, 'How many orders can you see? (2) — you last wrote: second follow-up');
++  assert.equal(conversationLabels([{ title: 'New conversation', messages: [opening] }])[0].label, 'New conversation (2)');
++});
++
++test('TC-18 labels a lost connection as the last known state until the server answers again', () => {
++  const { connectionAlert, offlineNotice } = rules();
++  assert.equal(connectionAlert('', false), offlineNotice);
++  assert.match(offlineNotice, /last known state/);
++  assert.equal(connectionAlert(offlineNotice, true), '');
++  assert.equal(connectionAlert('That name is already in use.', true), 'That name is already in use.');
++});
++
++test('TC-19 restores each conversation draft and reading position after a reload', () => {
++  const { createPlaces } = rules();
++  const saved = new Map();
++  const tab = { getItem: name => saved.get(name) ?? null, setItem: (name, value) => saved.set(name, value) };
++  const page = createPlaces(tab);
++  page.remember('maya', 'chat-1', { draft: 'Draft survives?' });
++  page.remember('maya', 'chat-1', { scroll: 300, atBottom: false });
++  const reloaded = createPlaces(tab);
++  assert.deepEqual(reloaded.recall('maya', 'chat-1'), { draft: 'Draft survives?', scroll: 300, atBottom: false });
++  assert.deepEqual(reloaded.recall('maya', 'chat-2'), {});
++  assert.deepEqual(reloaded.recall('theo', 'chat-1'), {});
++  const blocked = createPlaces({ getItem() { throw new Error('blocked'); }, setItem() { throw new Error('blocked'); } });
++  blocked.remember('maya', 'chat-1', { draft: 'kept for this tab' });
++  assert.equal(blocked.recall('maya', 'chat-1').draft, 'kept for this tab');
++});
++
++test('TC-20 keeps the chat column within a narrow window whatever the bot name', async t => {
++  const env = await environment(t);
++  const css = await (await fetch(env.url() + '/style.css')).text();
++  assert.match(css, /\.chat \{[^}]*grid-template-columns: minmax\(0, 1fr\)/);
++  assert.match(css, /\.thread-meta span \{[^}]*overflow: hidden; text-overflow: ellipsis;/);
++});
++
++test('TC-21 refuses an overlong message with a reason instead of cutting it short', async t => {
++  const env = await environment(t);
++  const page = await (await fetch(env.url())).text();
++  assert.doesNotMatch(/<textarea id="message"[^>]*>/.exec(page)[0], /maxlength/);
++  const maya = env.client();
++  await maya.login('maya');
++  const overlong = await maya.request('send', { text: 'a'.repeat(12000) + 'Do not send this until Friday', requestId: 'too-long' });
++  assert.equal(overlong.status, 400);
++  assert.match(overlong.state.error, /Message must contain between 1 and 12000 characters/);
++  assert.deepEqual(thread(await maya.act()).messages, []);
++});

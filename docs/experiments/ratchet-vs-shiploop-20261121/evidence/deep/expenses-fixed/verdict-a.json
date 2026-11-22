@@ -1,0 +1,29 @@
+{"pairs": [
+{"pair": "Z-X", "better": "same", "advantages": [
+{"of": "X", "what": "Ids '.' and '..' are refused at creation, so every created group is reachable; Z creates them and only documents that ordinary clients cannot reach them", "ref": "D-1", "matters_to": "requester"},
+{"of": "X", "what": "Overflowing amounts are refused so balances stay exact plain numbers; Z emits BigInt totals via JSON.rawJSON that need a recent Node and a precision-preserving client", "ref": "X extras (safe-integer guard); Z extras (BigInt/JSON.rawJSON)", "matters_to": "operator"},
+{"of": "X", "what": "A DATA_FILE in a missing directory stops startup instead of starting and failing writes later", "ref": "U-9", "matters_to": "operator"},
+{"of": "Z", "what": "The unknown-split check is guarded by the tests; in X dropping it goes unnoticed", "ref": "S-24", "matters_to": "maintainer"},
+{"of": "Z", "what": "Error answers carry a message ({\"error\": ...}); X's error bodies are empty", "ref": "U-1", "matters_to": "requester"},
+{"of": "Z", "what": "Less code for a maintainer to carry: no raw-body re-parse, no header-size budget tied to saved ids, no builder acceptance scripts in the product, and a spec that is not left full of Open points the product already settled", "ref": "X maintainer, X extras (acceptance/*.cjs), X spec_notes", "matters_to": "maintainer"}],
+"lesser_lacks": [],
+"one_task_closes": "yes",
+"why": "Both meet every stated requirement, handle every unsaid condition soundly or acceptably, and document their behaviour for the operator. X shuts the low-severity '.'/'..' hole and avoids BigInt output, while Z has the better test guard on unknown splits, error messages and a lighter codebase. These offset; neither is clearly ahead."},
+{"pair": "Z-Y", "better": "Z-some", "advantages": [
+{"of": "Z", "what": "A README tells the operator and client the statuses, validation rules, id encoding, duplicate-name handling, persistence and startup refusals; Y ships no customer-facing document at all", "ref": "U-1..U-10, U-13, U-21, U-26 told (Z yes, Y no); Y spec_notes", "matters_to": "operator"},
+{"of": "Z", "what": "A DATA_FILE holding valid JSON that is not a ledger stops startup and the file is kept; Y treats it as empty and overwrites it", "ref": "D-2", "matters_to": "operator"}],
+"lesser_lacks": ["Write a README covering the routes, statuses, validation rules, id encoding, duplicate and whitespace name handling, persistence and startup failures", "At startup refuse (with a message naming the file) a DATA_FILE whose JSON has no groups list, leaving the file unchanged, with a test"],
+"one_task_closes": "yes",
+"why": "The code is nearly the same design and both meet every stated requirement with sound handling of the unsaid conditions. Z adds a README that tells whoever runs it what to expect and refuses to overwrite a non-ledger DATA_FILE, while Y documents nothing and has D-2. Both gaps are small and an hour of work closes them."},
+{"pair": "Y-X", "better": "X-some", "advantages": [
+{"of": "X", "what": "A README tells the operator and client the validation rules, id rules, persistence guarantees, write queue and startup failures; Y ships no customer-facing document", "ref": "U-1..U-16, U-21, U-26, U-31 told (X yes, Y no); Y spec_notes", "matters_to": "operator"},
+{"of": "X", "what": "Startup validates the saved ledger and refuses JSON without groups instead of silently overwriting it", "ref": "D-2", "matters_to": "operator"},
+{"of": "X", "what": "Ids '.' and '..' are refused at creation, so every created group is reachable", "ref": "D-1", "matters_to": "requester"},
+{"of": "X", "what": "A DATA_FILE in a missing directory stops startup; Y starts and answers 500 to every write", "ref": "U-9", "matters_to": "operator"},
+{"of": "Y", "what": "The unknown-split check is guarded by the tests; in X it is not", "ref": "S-24", "matters_to": "maintainer"},
+{"of": "Y", "what": "Error answers carry a message; X's error bodies are empty", "ref": "U-1", "matters_to": "requester"},
+{"of": "Y", "what": "Less code to carry: no raw-body number re-parsing, no header-size budget from saved ids, no acceptance scripts shipped", "ref": "X maintainer, X extras", "matters_to": "maintainer"}],
+"lesser_lacks": ["Write a README covering routes, statuses, validation, id encoding, duplicate-name handling, persistence and startup failures", "At startup refuse a DATA_FILE whose JSON lacks a groups list, leaving it unchanged", "Answer 400 at creation for ids '.' and '..'", "Fail at startup when DATA_FILE's directory does not exist"],
+"one_task_closes": "yes",
+"why": "Both meet every stated requirement and handle concurrency, crash safety and the unsaid inputs soundly. X tells its operator everything in a README and closes D-1 and D-2, which Y leaves open with no documentation at all, while Y's edge is a test on unknown splits, error messages and less code to maintain. The gaps are low-severity and a short task closes them."}
+]}

@@ -1,0 +1,34 @@
+{
+ "2": {
+  "case": "node-chess-engine",
+  "labels": {
+   "X": "shiploop",
+   "Y": "ratchet"
+  },
+  "chars": 40316
+ },
+ "1": {
+  "case": "shared-expenses",
+  "labels": {
+   "X": "ratchet",
+   "Y": "shiploop"
+  },
+  "chars": 53921
+ },
+ "3": {
+  "case": "ticket-assignment",
+  "labels": {
+   "X": "shiploop",
+   "Y": "ratchet"
+  },
+  "chars": 99853
+ },
+ "4": {
+  "case": "grokbot-local",
+  "labels": {
+   "X": "shiploop",
+   "Y": "ratchet"
+  },
+  "chars": 180381
+ }
+}

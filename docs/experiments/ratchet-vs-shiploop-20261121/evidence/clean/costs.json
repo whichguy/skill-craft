@@ -1,0 +1,60 @@
+{
+ "chess": {
+  "fixer": "Claude Opus, effort xhigh (Agent subagent)",
+  "seconds": 248.6,
+  "subagent_tokens": 166897,
+  "tool_uses": 20,
+  "fixed": 1,
+  "not_changed": 0,
+  "tests": "11 of 11 (10 before)"
+ },
+ "expenses": {
+  "fixer": "Claude Opus, effort xhigh (Agent subagent)",
+  "seconds": 379.4,
+  "subagent_tokens": 179410,
+  "tool_uses": 19,
+  "fixed": 4,
+  "not_changed": 1,
+  "tests": "10 of 10 (6 before)"
+ },
+ "tickets": {
+  "fixer": "Claude Opus, effort xhigh (Agent subagent)",
+  "seconds": 845.1,
+  "subagent_tokens": 276756,
+  "tool_uses": 70,
+  "fixed": 4,
+  "not_changed": 3,
+  "tests": "126 of 126 (122 before)"
+ },
+ "grokbot": {
+  "fixer": "Claude Opus, effort xhigh (Agent subagent)",
+  "seconds": 1482.3,
+  "subagent_tokens": 338858,
+  "tool_uses": 74,
+  "fixed": 14,
+  "not_changed": 1,
+  "tests": "23 of 23 (10 before)"
+ },
+ "looks": {
+  "expenses": {
+   "seconds": 233.1,
+   "model": "gpt-6.2-sol",
+   "effort": "medium"
+  },
+  "chess": {
+   "seconds": 96.7,
+   "model": "gpt-6.2-sol",
+   "effort": "medium"
+  },
+  "tickets": {
+   "seconds": 198.4,
+   "model": "gpt-6.2-sol",
+   "effort": "medium"
+  },
+  "grokbot": {
+   "seconds": 500.9,
+   "model": "gpt-6.2-sol",
+   "effort": "medium"
+  }
+ }
+}

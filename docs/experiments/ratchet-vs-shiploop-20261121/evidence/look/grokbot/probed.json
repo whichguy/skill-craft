@@ -1,0 +1,191 @@
+{
+ "probed": [
+  {
+   "n": 1,
+   "results": {
+    "pae93f0": {
+     "result": "present",
+     "observed": "Sent Research: keyboard A [long] and B [long]; both Running; cards ordered B then A. Focused Cancel task on the lower card (A). After a progress refresh focus had moved to B's Cancel task; Space cancelled B while A kept Running."
+    },
+    "p8e1ce4": {
+     "result": "absent",
+     "observed": "Same steps: focused Cancel task on the lower card (A); after a progress refresh focus stayed on A's Cancel task; Space cancelled A and B kept Running."
+    },
+    "pe77982": {
+     "result": "absent",
+     "observed": "Same steps: focus stayed on the lower card (A) Cancel task through a progress refresh; Space cancelled A, B kept Running."
+    }
+   }
+  },
+  {
+   "n": 5,
+   "results": {
+    "pae93f0": {
+     "result": "present",
+     "observed": "Created bot named 80 N at 1440 wide, resized to 390x700: page clips at 390 but the Conversation region spans 871 px; Send at x=753-790 and Toggle workspace tools at x=827 are outside the window (elementFromPoint at Send center is not Send); Message textbox runs to x=743."
+    },
+    "p8e1ce4": {
+     "result": "absent",
+     "observed": "Same steps: at 390x700 the chat and Conversation region are 390 wide (no overflow); heading truncated to 208 px; Send at x=290-366 and Tools toggle at x=330-382 are within the window and hittable."
+    },
+    "pe77982": {
+     "result": "absent",
+     "observed": "Same steps: at 390x700 chat is 390 wide, no overflow; Send at x=290-366 and Tools at x=330-382 in view and hittable."
+    }
+   }
+  },
+  {
+   "n": 6,
+   "results": {
+    "pae93f0": {
+     "result": "present",
+     "observed": "Started Research: cancel probe [long]. Intercepted POST /api/action (action send), let it reach the server (200) and held the response; sent ping outstanding request; Cancel task was enabled and clicked with no alert or status change. After release the reply arrived but the task stayed Running 3 s later."
+    },
+    "p8e1ce4": {
+     "result": "present",
+     "observed": "Same steps with POST /api/actions/send held: Cancel task enabled, click gave no feedback (no alert/status); after release the echo reply arrived and the task was still Running."
+    },
+    "pe77982": {
+     "result": "present",
+     "observed": "Same steps with POST /api/actions/send held: only status shown was \"Checking whether your submission was received…\" (about the send); Cancel task enabled, click gave no feedback; after release reply arrived and the task remained Running."
+    }
+   }
+  },
+  {
+   "n": 7,
+   "results": {
+    "pae93f0": {
+     "result": "present",
+     "observed": "Started Research: interruption audit [long], sent Who are you [slow] (slow 9 s); stopped the server by PID. 4 s later page still showed \"Assistant is replying…\" and Task status Running, no alert or reconnect text. After restart it showed Interrupted with Retry and Retry task."
+    },
+    "p8e1ce4": {
+     "result": "absent",
+     "observed": "Same steps: 4 s after stopping the server an alert \"The local server is unavailable. Reconnecting…\" was shown (the preparing-reply and Running statuses remained, not labelled last-known). After restart: Interrupted, Retry and Retry task."
+    },
+    "pe77982": {
+     "result": "absent",
+     "observed": "Same steps: while down an alert \"The local server is unavailable. Reconnecting…\" was visible (statuses still showed preparing/Running, not labelled last-known). After restart: Interrupted with Retry and Retry task."
+    }
+   }
+  },
+  {
+   "n": 8,
+   "results": {
+    "pae93f0": {
+     "result": "present",
+     "observed": "Sent seven long messages, scrolled the Conversation to 300, typed Draft survives? and reloaded: scroll returned to the bottom (5558) and the Message box was empty."
+    },
+    "p8e1ce4": {
+     "result": "absent",
+     "observed": "Same steps: after reload the Conversation scrollTop was 300 again and the Message box held \"Draft survives?\"."
+    },
+    "pe77982": {
+     "result": "absent",
+     "observed": "Same steps: after reload scrollTop was 300 and the draft \"Draft survives?\" was restored."
+    }
+   }
+  },
+  {
+   "n": 10,
+   "results": {
+    "pae93f0": {
+     "result": "present",
+     "observed": "Update ORD-1001 -> \"Which field of ORD-1001 should I change, and to what value?\"; answer status -> echo You said: \"status\"; then the status to closed -> echo, no Proposed changes. Could you close order ORD-1001 for me? -> plain echo with no guidance."
+    },
+    "p8e1ce4": {
+     "result": "present",
+     "observed": "Same: clarify question, then status echoed, the status to closed echoed with no proposal; the ordinary-language close request was a plain echo."
+    },
+    "pe77982": {
+     "result": "present",
+     "observed": "Same: clarify question, status echoed, the status to closed echoed with no proposal; ordinary-language close request echoed with no pointer to supported phrasing."
+    }
+   }
+  },
+  {
+   "n": 11,
+   "results": {
+    "pae93f0": {
+     "result": "present",
+     "observed": "Saved Review rules, edited to Second via edit, clicked Use Review rules, then Delete Review rules: entry gone but \"Active on Assistant: Second via edit\" remains and who are you replies \"My instructions: Second via edit\". Visible buttons include no clear/remove-instructions control."
+    },
+    "p8e1ce4": {
+     "result": "present",
+     "observed": "Same: after deleting the entry, \"Custom instructions active for Assistant.\" remains and who are you reports \"Second via edit\"; no control to clear the active instructions."
+    },
+    "pe77982": {
+     "result": "present",
+     "observed": "Same: after deleting, \"Custom instructions active for Assistant.\" stays, who are you reports \"Second via edit\"; no clear control among visible buttons."
+    }
+   }
+  },
+  {
+   "n": 12,
+   "results": {
+    "pae93f0": {
+     "result": "present",
+     "observed": "Create preview: \"Create ORD-1005 · type: order · customer: Order lead · status: closed · total: 999 · status: open · total: 27 · readers: [\\\"maya\\\"]\" inline. Update preview: \"ORD-1001 customer: Acme Tools → Acme → North\"."
+    },
+    "p8e1ce4": {
+     "result": "present",
+     "observed": "Create preview puts each field on its own line (\"Customer: Order lead · status: closed · total: 999\" / \"Total: 27\" / \"Status: open\"), but the customer value is undelimited; update preview reads \"ORD-1001 customer: Acme Tools → Acme → North\", ambiguous."
+    },
+    "pe77982": {
+     "result": "present",
+     "observed": "Same as p8e1ce4: create preview line-separated but customer value undelimited (\"Customer: Order lead · status: closed · total: 999\"); update preview \"ORD-1001 customer: Acme Tools → Acme → North\", ambiguous."
+    }
+   }
+  },
+  {
+   "n": 13,
+   "results": {
+    "pae93f0": {
+     "result": "present",
+     "observed": "set the total of ORD-1001 to 9007199254740993 -> preview \"ORD-1001 total: 125 → 9007199254740992\" with no flag; confirmed; what is the total of ORD-1001 -> 9007199254740992; workspace.json holds 9007199254740992."
+    },
+    "p8e1ce4": {
+     "result": "present",
+     "observed": "Same: preview offered 125 → 9007199254740992 unflagged; confirmed (\"Changes confirmed and applied.\"); reply and state.json show 9007199254740992."
+    },
+    "pe77982": {
+     "result": "absent",
+     "observed": "No Proposed changes region; a status says \"There is no change to confirm for this request…If the amount exceeds the supported range or precision, use a smaller amount\". Total stayed 125."
+    }
+   }
+  },
+  {
+   "n": 14,
+   "results": {
+    "pae93f0": {
+     "result": "present",
+     "observed": "Inserted 12,000 a + \"Do not send this until Friday\" in one insertText: box kept 12,000 chars, no alert/status; Enter sent the 12,000-a message without the suffix."
+    },
+    "p8e1ce4": {
+     "result": "present",
+     "observed": "Same: box kept 12,000 chars silently (maxlength), no alert; Enter sent it without the suffix."
+    },
+    "pe77982": {
+     "result": "absent",
+     "observed": "Box kept all 12,029 chars; status \"Message exceeds the 12,000-character limit. Shorten it before sending.\" shown; Enter sent nothing and the draft stayed."
+    }
+   }
+  },
+  {
+   "n": 15,
+   "results": {
+    "pae93f0": {
+     "result": "present",
+     "observed": "Empty data dir, PROVIDER_TOKEN=sk-local-tooShort, continued as Maya: ordinary Setup form, no alert or reason; token not shown. A valid token entered there worked."
+    },
+    "p8e1ce4": {
+     "result": "present",
+     "observed": "Same: Setup shown with generic text, no alert about the refused environment token; valid token entered there worked."
+    },
+    "pe77982": {
+     "result": "present",
+     "observed": "Same: plain Setup form, no alert or reason for the refused environment token; a valid token then worked."
+    }
+   }
+  }
+ ]
+}

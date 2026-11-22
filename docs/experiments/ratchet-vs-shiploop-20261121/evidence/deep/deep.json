@@ -1,0 +1,4219 @@
+{
+ "expenses": {
+  "facts": {
+   "S": {
+    "stated": 35,
+    "built": 35,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 33,
+    "unstated": 16,
+    "handled": 16,
+    "short": [],
+    "told": 0,
+    "told_or_marked": 0,
+    "unstated_strong_test_read": 7,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 2,
+    "defect_ids": [
+     "D-1",
+     "D-2"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 2,
+     "neutral": 2,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 35,
+    "built": 35,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 34,
+    "unstated": 16,
+    "handled": 16,
+    "short": [],
+    "told": 14,
+    "told_or_marked": 14,
+    "unstated_strong_test_read": 8,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 1,
+    "defect_ids": [
+     "D-2"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 3,
+     "neutral": 3,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 35,
+    "built": 35,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 33,
+    "unstated": 16,
+    "handled": 16,
+    "short": [],
+    "told": 14,
+    "told_or_marked": 14,
+    "unstated_strong_test_read": 9,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 1,
+    "defect_ids": [
+     "D-2"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 3,
+     "neutral": 4,
+     "liability": 0
+    }
+   }
+  },
+  "facts_with_arm_items": {
+   "S": {
+    "stated": 35,
+    "built": 35,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 33,
+    "unstated": 18,
+    "handled": 18,
+    "short": [],
+    "told": 0,
+    "told_or_marked": 0,
+    "unstated_strong_test_read": 7,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 2,
+    "defect_ids": [
+     "D-1",
+     "D-2"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 2,
+     "neutral": 2,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 35,
+    "built": 35,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 34,
+    "unstated": 18,
+    "handled": 18,
+    "short": [],
+    "told": 15,
+    "told_or_marked": 15,
+    "unstated_strong_test_read": 9,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 1,
+    "defect_ids": [
+     "D-2"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 3,
+     "neutral": 3,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 35,
+    "built": 35,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 33,
+    "unstated": 18,
+    "handled": 18,
+    "short": [],
+    "told": 15,
+    "told_or_marked": 15,
+    "unstated_strong_test_read": 10,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 1,
+    "defect_ids": [
+     "D-2"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 3,
+     "neutral": 4,
+     "liability": 0
+    }
+   }
+  },
+  "pairs": {
+   "S-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": "second",
+     "D5": null,
+     "D6": "second"
+    },
+    "gate": null,
+    "better": "L",
+    "verdicts": {
+     "a": {
+      "side": "L",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "Both meet every stated requirement and handle the unsaid conditions soundly, so the difference is in what the operator and requester are given. Y tells the requester its behaviour in an accurate README and refuses bad data files and missing directories at startup, while Z tells nothing and silently overwrites a groups-less file (D-1). Y's larger test suite partly pins its own internals and misses the split check, so its edge is modest and closable in one short task.",
+      "lesser_lacks": [
+       "Write a README describing the routes, validation rules, error statuses, id handling and persistence guarantees",
+       "Refuse to start (or keep the file aside) when DATA_FILE is valid JSON without a groups array",
+       "Fail at startup when DATA_FILE's parent directory does not exist instead of answering 500 to every write"
+      ]
+     },
+     "b": {
+      "side": "L",
+      "strength": "some",
+      "one_task_closes": "no",
+      "why": "X is the service to run and keep: a non-ledger file stays intact, the open choices are written down, and a real write queue keeps concurrent expenses correct across later edits. Z's unknown-split test and its plain integer checks are genuine maintainer advantages. Closing the file-clobber, the missing contract, and the no-await save path is more than one hour.",
+      "lesser_lacks": [
+       "On startup, if DATA_FILE parses as JSON but is not a ledger, exit with a clear error or move the file aside, and do not overwrite it.",
+       "Add a README that states id rules, member and expense validation, status codes, atomic replace before the response, numbering after restart, and serialized writes.",
+       "Run group creates and expenses through one queue and send 201 only after the durable replace, so an added await cannot lose an expense.",
+       "Reject a new id that cannot be routed back (length cap and header budget aligned with the longest saved id).",
+       "Reject an expense whose resulting balances would not be exact safe JSON integers.",
+       "Fail startup when DATA_FILE's parent directory is missing.",
+       "Return 400 for a member list that repeats a name, and do not drop the duplicate and shrink the group."
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": false
+   },
+   "S-F": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": "second",
+     "D5": null,
+     "D6": "second"
+    },
+    "gate": null,
+    "better": "F",
+    "verdicts": {
+     "a": {
+      "side": "F",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "Both build every stated requirement and handle every probed unsaid condition soundly. X adds an accurate README, refuses a groups-less or misplaced DATA_FILE, and its spec marks its own decisions, where Z tells the requester nothing and can silently overwrite a data file (D-1). Z's simpler number handling and write-failure test are real but smaller, and the gap is a short follow-up task.",
+      "lesser_lacks": [
+       "Write a README describing the routes, validation rules, error statuses, id handling and persistence guarantees",
+       "Refuse to start (or keep the file aside) when DATA_FILE is valid JSON without a groups array",
+       "Fail at startup when DATA_FILE's parent directory does not exist"
+      ]
+     },
+     "b": {
+      "side": "F",
+      "strength": "some",
+      "one_task_closes": "no",
+      "why": "Y matches Z on the requested behaviour, including the unknown-split regression, and it is safer to own. It will not overwrite a non-ledger file, it writes the contract down, and its queue keeps concurrent expenses correct across later edits. Z's tested 500 on a failed save is worth keeping, and startup safety plus that contract is more than one short task.",
+      "lesser_lacks": [
+       "On startup, if DATA_FILE parses as JSON but is not a ledger, exit with a clear error or move the file aside, and do not overwrite it.",
+       "Add a README, and a spec that includes balances summing to 0, stating id rules, validation, statuses, atomic replace, numbering after restart, and serialized writes, with builder choices marked as choices.",
+       "Run group creates and expenses through one queue and send 201 only after the durable replace, so an added await cannot lose an expense.",
+       "Reject an expense whose resulting balances would not be exact safe JSON integers.",
+       "Fail startup when DATA_FILE's parent directory is missing.",
+       "Return 400 for a member list that repeats a name, and do not drop the duplicate and shrink the group."
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": false
+   },
+   "F-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": null,
+     "D5": null,
+     "D6": null
+    },
+    "gate": null,
+    "better": null,
+    "verdicts": {
+     "a": {
+      "side": null,
+      "strength": "same",
+      "one_task_closes": "yes",
+      "why": "X and Y behave identically on every stated requirement, every unsaid probe and both defects, and both document their behaviour in near-identical READMEs. Y's id-length guard and failed-write tests are offset by its untested split check, stale spec and extra material a maintainer must carry. Neither gives the person running it anything that matters which the other lacks.",
+      "lesser_lacks": []
+     },
+     "b": {
+      "side": "F",
+      "strength": "some",
+      "one_task_closes": "no",
+      "why": "Y and X behave the same on every probed route, race, and restart. Y is the better one to keep, because its tests catch a broken split check and its spec and fixtures leave persistence free of this build's private rules. X's 16 KiB id cap and failed-write test are real extras, and aligning the spec and the split coverage is more than an hour.",
+      "lesser_lacks": [
+       "Extend the invalid-submission test with an unknown split that still carries a shares object summing to cents, so deleting the split check fails the suite.",
+       "Revise the spec so behaviour the README already decides is not left Open, and remove clauses that require this build's number spellings, id-length rules, and rename-failure internals.",
+       "Stop hand-writing the shares-array ledger in tests; assert restart and reload through the HTTP API and a file this server wrote."
+      ]
+     }
+    },
+    "judges_agree": false,
+    "one_task_closes_both": false
+   }
+  },
+  "nearly_competitive": false,
+  "rechecked_items": [],
+  "inventory": {
+   "stated": 35,
+   "proved": [
+    "S-1",
+    "S-4",
+    "S-10",
+    "S-17",
+    "S-22",
+    "S-24"
+   ],
+   "unstated_rated": 36,
+   "independent": 27,
+   "independent_kept": 16,
+   "arm_only": 9,
+   "arm_only_kept": 2
+  }
+ },
+ "chess": {
+  "facts": {
+   "S": {
+    "stated": 40,
+    "built": 40,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 37,
+    "unstated": 6,
+    "handled": 6,
+    "short": [],
+    "told": 0,
+    "told_or_marked": 0,
+    "unstated_strong_test_read": 4,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 0,
+    "defect_ids": [],
+    "serious": 0,
+    "extras": {
+     "value": 1,
+     "neutral": 2,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 40,
+    "built": 40,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 4,
+    "strong_test_read": 35,
+    "unstated": 6,
+    "handled": 6,
+    "short": [],
+    "told": 0,
+    "told_or_marked": 1,
+    "unstated_strong_test_read": 1,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 0,
+    "defect_ids": [],
+    "serious": 0,
+    "extras": {
+     "value": 2,
+     "neutral": 2,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 40,
+    "built": 40,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 4,
+    "strong_test_read": 35,
+    "unstated": 6,
+    "handled": 6,
+    "short": [],
+    "told": 1,
+    "told_or_marked": 3,
+    "unstated_strong_test_read": 2,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 0,
+    "defect_ids": [],
+    "serious": 0,
+    "extras": {
+     "value": 1,
+     "neutral": 3,
+     "liability": 0
+    }
+   }
+  },
+  "facts_with_arm_items": {
+   "S": {
+    "stated": 40,
+    "built": 40,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 37,
+    "unstated": 8,
+    "handled": 8,
+    "short": [],
+    "told": 0,
+    "told_or_marked": 0,
+    "unstated_strong_test_read": 5,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 0,
+    "defect_ids": [],
+    "serious": 0,
+    "extras": {
+     "value": 1,
+     "neutral": 2,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 40,
+    "built": 40,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 4,
+    "strong_test_read": 35,
+    "unstated": 8,
+    "handled": 8,
+    "short": [],
+    "told": 0,
+    "told_or_marked": 1,
+    "unstated_strong_test_read": 1,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 0,
+    "defect_ids": [],
+    "serious": 0,
+    "extras": {
+     "value": 2,
+     "neutral": 2,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 40,
+    "built": 40,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 4,
+    "strong_test_read": 35,
+    "unstated": 8,
+    "handled": 8,
+    "short": [],
+    "told": 2,
+    "told_or_marked": 4,
+    "unstated_strong_test_read": 3,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 0,
+    "defect_ids": [],
+    "serious": 0,
+    "extras": {
+     "value": 1,
+     "neutral": 3,
+     "liability": 0
+    }
+   }
+  },
+  "pairs": {
+   "S-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": null,
+     "D5": null,
+     "D6": "first"
+    },
+    "gate": null,
+    "better": null,
+    "verdicts": {
+     "a": {
+      "side": "S",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "Both engines are fully correct on every stated requirement and every perft count, so the difference lies in what the delivered suite guards. Y's npm test guards timing, deeper move generation and invalid FENs, which X leaves unguarded, while X offers a README and avoids pinning wording. Y's guards matter more to whoever keeps the engine working, but an hour of tests would close the gap.",
+      "lesser_lacks": [
+       "Add a timing test for the 50 ms legalMoves and 2 s depth-2 limits to the npm test suite (or have npm test run acceptance/)",
+       "Add depth-3 perft assertions (start 8902, Kiwipete 97862, position 3)",
+       "Add tests that invalid FENs throw, asserting the error class",
+       "Give non-string FEN input a deliberate TypeError message"
+      ]
+     },
+     "b": {
+      "side": "S",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "Y is the engine to keep because the suite npm test runs locks depth-3 move counts, the two-second budget, and invalid-FEN failures. X is the same correct rules engine, documents exact UCI and saved-FEN resume, tests that resume, and does not freeze parser sentences. Those missing guards are assertions plus a small validation change on an engine the audit already found correct through depth 4.",
+      "lesser_lacks": [
+       "Assert published depth-3 counts in npm test: start 8902, Kiwipete 97862, and position 3 depth 3 equal to 2812.",
+       "Assert in npm test that a depth-2 legal-move count from the start position finishes in under 2 seconds.",
+       "Add invalid-FEN tests that require an error for a malformed FEN and a kingless FEN, checking the error class only.",
+       "Reject two kings of the same color as an invalid FEN, and throw a descriptive TypeError for a non-string FEN."
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   },
+   "S-F": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": null,
+     "D5": null,
+     "D6": "first"
+    },
+    "gate": null,
+    "better": null,
+    "verdicts": {
+     "a": {
+      "side": "S",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "The two products behave identically and correctly on everything audited. Y's suite guards timing, deeper perft and invalid FENs that Z's suite leaves open, against Z's README. The test gap is small and closes in one short task.",
+      "lesser_lacks": [
+       "Add a timing test for the 50 ms and 2 s limits to npm test",
+       "Add depth-3 perft assertions including position 3",
+       "Add tests that invalid FENs throw, asserting the error class",
+       "Give non-string FEN input a deliberate TypeError message"
+      ]
+     },
+     "b": {
+      "side": "S",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "Y beats Z on custody of the rules: the running suite covers depth-3 perft, the two-second limit, and bad FENs, while Z stops at depth 2 and never feeds the parser a bad FEN. Z's README is the operator note Y lacks, and Z does not freeze Y's error wording. Matching Y is one sitting of assertions and a small validation change, because Z's deeper perft already matches the published figures.",
+      "lesser_lacks": [
+       "Assert published depth-3 counts in npm test: start 8902, Kiwipete 97862, and position 3 depth 3 equal to 2812.",
+       "Assert in npm test that a depth-2 legal-move count from the start position finishes in under 2 seconds.",
+       "Add invalid-FEN tests that require an error for a malformed FEN and a kingless FEN, checking the error class only.",
+       "Reject two kings of the same color as an invalid FEN, and throw a descriptive TypeError for a non-string FEN."
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   },
+   "F-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": null,
+     "D5": null,
+     "D6": null
+    },
+    "gate": null,
+    "better": null,
+    "verdicts": {
+     "a": {
+      "side": null,
+      "strength": "same",
+      "one_task_closes": "yes",
+      "why": "X and Z have the same behaviour, the same depth-2 suite, the same unguarded export, timing and invalid-FEN paths, and both ship a README. The remaining differences are small and offset each other.",
+      "lesser_lacks": []
+     },
+     "b": {
+      "side": null,
+      "strength": "same",
+      "one_task_closes": "yes",
+      "why": "X and Z are the same feature to run and to keep: perft, castling, en passant, promotion, and status agree, and both leave depth 3, the time limit, and invalid FENs out of npm test. X also documents and tests saved-FEN resume and exact lowercase UCI, while Z does not carry X's conversion-hook assertion. Neither difference changes a result a caller gets from a legal position.",
+      "lesser_lacks": []
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   }
+  },
+  "nearly_competitive": true,
+  "rechecked_items": [],
+  "inventory": {
+   "stated": 40,
+   "proved": [
+    "S-5",
+    "S-7",
+    "S-17",
+    "S-19",
+    "S-30",
+    "S-39"
+   ],
+   "unstated_rated": 12,
+   "independent": 10,
+   "independent_kept": 6,
+   "arm_only": 2,
+   "arm_only_kept": 2
+  }
+ },
+ "tickets": {
+  "facts": {
+   "S": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 16,
+    "unstated": 19,
+    "handled": 18,
+    "short": [
+     "U-22"
+    ],
+    "told": 15,
+    "told_or_marked": 15,
+    "unstated_strong_test_read": 16,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 2,
+    "defect_ids": [
+     "D-1",
+     "D-2"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 3,
+     "neutral": 1,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 16,
+    "unstated": 19,
+    "handled": 19,
+    "short": [],
+    "told": 17,
+    "told_or_marked": 18,
+    "unstated_strong_test_read": 17,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 2,
+    "defect_ids": [
+     "D-1",
+     "D-2"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 5,
+     "neutral": 1,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 16,
+    "unstated": 19,
+    "handled": 19,
+    "short": [],
+    "told": 18,
+    "told_or_marked": 18,
+    "unstated_strong_test_read": 18,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 1,
+    "defect_ids": [
+     "D-2"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 5,
+     "neutral": 2,
+     "liability": 0
+    }
+   }
+  },
+  "facts_with_arm_items": {
+   "S": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 16,
+    "unstated": 21,
+    "handled": 20,
+    "short": [
+     "U-22"
+    ],
+    "told": 16,
+    "told_or_marked": 16,
+    "unstated_strong_test_read": 16,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 2,
+    "defect_ids": [
+     "D-1",
+     "D-2"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 3,
+     "neutral": 1,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 16,
+    "unstated": 21,
+    "handled": 21,
+    "short": [],
+    "told": 18,
+    "told_or_marked": 19,
+    "unstated_strong_test_read": 17,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 2,
+    "defect_ids": [
+     "D-1",
+     "D-2"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 5,
+     "neutral": 1,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 16,
+    "unstated": 21,
+    "handled": 21,
+    "short": [],
+    "told": 20,
+    "told_or_marked": 20,
+    "unstated_strong_test_read": 20,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 1,
+    "defect_ids": [
+     "D-2"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 5,
+     "neutral": 2,
+     "liability": 0
+    }
+   }
+  },
+  "pairs": {
+   "S-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": "second",
+     "D5": null,
+     "D6": "second"
+    },
+    "gate": null,
+    "better": "L",
+    "verdicts": {
+     "a": {
+      "side": "L",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "Both deliver every stated requirement with sound behaviour on almost every unstated condition. X adds the release record Z omits (Z's only poor rating) and closes D-1, while Z's advantages are a cleaner, uniform rollback and less tree clutter that matter only to a maintainer. The gap is small and a short task closes it.",
+      "lesser_lacks": [
+       "Add a CHANGELOG.md section for assignment and bump package.json version",
+       "Refuse invalid UTF-8 in the assignment body with 400 invalid, leaving ticket, audit and outbox unchanged",
+       "Document in docs/api.md that lifecycle transitions keep the assignee"
+      ]
+     },
+     "b": {
+      "side": "L",
+      "strength": "some",
+      "one_task_closes": "no",
+      "why": "Y is somewhat better to run and to upgrade. It is the only delivery that rejects an invalid UTF-8 assignee, and its version and changelog are the ones confirmed to record both assignment and the intersecting status and priority filters. X trims names and rolls back every failed save, and matching Y still needs the UTF-8 check, the release record, filter errors, the length unit, history quoting and the downgrade note, which is more than an hour.",
+      "lesser_lacks": [
+       "Reject an assignment body that is not valid UTF-8 with 400 invalid and leave the ticket, audit and outbox unchanged.",
+       "Add a CHANGELOG section and bump package.json past 1.4.0, stating assignment and that status and priority filters now intersect.",
+       "State in api.md that in_progress, resolved, closed and reopen keep the assignee.",
+       "Return 400 invalid for an assignee filter longer than 64 characters or made only of whitespace.",
+       "Count the assignee limit in UTF-16 code units, as the requester limit does.",
+       "Quote CLI history names that are null or contain the history separator, and document the show assignee line in the README.",
+       "Add the operations.md warning that a pre-assignment build drops assignees and cannot send ticket.assigned."
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": false
+   },
+   "S-F": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": "second",
+     "D5": null,
+     "D6": null
+    },
+    "gate": null,
+    "better": null,
+    "verdicts": {
+     "a": {
+      "side": null,
+      "strength": "same",
+      "one_task_closes": "yes",
+      "why": "Both meet every stated requirement, share defects D-1 and D-2, and handle the unstated conditions soundly with defensible differing choices. Z's show detail and uniform rollback balance Y's release record and transition documentation. Neither is materially better for the person running it.",
+      "lesser_lacks": []
+     },
+     "b": {
+      "side": "S",
+      "strength": "some",
+      "one_task_closes": "no",
+      "why": "X is somewhat better to keep in daily use. Padded names collapse to one agent, show prints the current assignee, and a failed save rolls back every change, whereas Z stores the spaces, leaves show without an assignee field, and rolls back only on assignment. Z's 1.5.0 notes, 400 filter errors and downgrade warning matter at upgrade time, and U-22 is still marked observed false, so those notes do not outweigh the daily behaviour; trim plus store-wide rollback is more than an hour.",
+      "lesser_lacks": [
+       "Trim surrounding whitespace on agent names, apply the length limit to the trimmed value, and match the assignee filter to that stored form.",
+       "Print the current assignee in show, with a marker for unassigned that cannot be confused with a name.",
+       "Restore the ticket, audit and outbox when a save fails for every mutation, through one path.",
+       "Record a clear as ticket.unassigned with actor and from/to, and write no audit entry when the assignee does not change."
+      ]
+     }
+    },
+    "judges_agree": false,
+    "one_task_closes_both": false
+   },
+   "F-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": null,
+     "D5": null,
+     "D6": "second"
+    },
+    "gate": null,
+    "better": null,
+    "verdicts": {
+     "a": {
+      "side": "L",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "X and Y made the same decisions almost everywhere and share the same structure and maintainer couplings. X additionally closes D-1 and shows the assignee in the show detail, both small but real operator benefits, against minor tree clutter. A short follow-up would bring Y level.",
+      "lesser_lacks": [
+       "Add a strict UTF-8 check on the assignment body returning 400 invalid with nothing changed",
+       "Print an assignee line (quoted name or unassigned) in the CLI show detail"
+      ]
+     },
+     "b": {
+      "side": "L",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "Y is somewhat better than Z on the same design. Both keep names untrimmed, keep four-column raw listings, intersect filters, and roll back a failed save only inside assignment; Y also refuses an invalid UTF-8 assignee and shows the current assignee on the ticket detail. Those two behaviour changes plus history quoting sit in the assignment reader and the CLI formatter, about an hour for the same builder.",
+      "lesser_lacks": [
+       "Reject an assignment body that is not valid UTF-8 with 400 invalid and leave the ticket, audit and outbox unchanged.",
+       "Print the current assignee in show, including a distinct unassigned marker, and document that line.",
+       "Quote history names so a clear, an agent named null, and a name containing the history separator stay distinct."
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   }
+  },
+  "nearly_competitive": false,
+  "rechecked_items": [
+   "U-22"
+  ],
+  "inventory": {
+   "stated": 21,
+   "proved": [
+    "S-4",
+    "S-8",
+    "S-9",
+    "S-10",
+    "S-14",
+    "S-15"
+   ],
+   "unstated_rated": 28,
+   "independent": 22,
+   "independent_kept": 19,
+   "arm_only": 6,
+   "arm_only_kept": 2
+  }
+ },
+ "grokbot": {
+  "facts": {
+   "S": {
+    "stated": 108,
+    "built": 108,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 2,
+    "strong_test_read": 62,
+    "unstated": 39,
+    "handled": 33,
+    "short": [
+     "U-9",
+     "U-11",
+     "U-15",
+     "U-23",
+     "U-39",
+     "U-46"
+    ],
+    "told": 6,
+    "told_or_marked": 6,
+    "unstated_strong_test_read": 11,
+    "defects": 6,
+    "defects_high": [],
+    "defects_low": 7,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-5",
+     "D-6",
+     "D-7",
+     "D-8",
+     "D-9",
+     "D-10",
+     "D-11",
+     "D-12",
+     "D-13"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 5,
+     "neutral": 1,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 108,
+    "built": 108,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 2,
+    "strong_test_read": 64,
+    "unstated": 39,
+    "handled": 35,
+    "short": [
+     "U-9",
+     "U-11",
+     "U-23",
+     "U-39"
+    ],
+    "told": 14,
+    "told_or_marked": 23,
+    "unstated_strong_test_read": 16,
+    "defects": 2,
+    "defects_high": [],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-3",
+     "D-4",
+     "D-8",
+     "D-11",
+     "D-12",
+     "D-13",
+     "D-14"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 4,
+     "neutral": 2,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 108,
+    "built": 108,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 4,
+    "strong_test_read": 59,
+    "unstated": 39,
+    "handled": 38,
+    "short": [
+     "U-23"
+    ],
+    "told": 20,
+    "told_or_marked": 26,
+    "unstated_strong_test_read": 22,
+    "defects": 1,
+    "defects_high": [],
+    "defects_low": 2,
+    "defect_ids": [
+     "D-4",
+     "D-12",
+     "D-14"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 5,
+     "neutral": 2,
+     "liability": 0
+    }
+   }
+  },
+  "facts_with_arm_items": {
+   "S": {
+    "stated": 108,
+    "built": 108,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 2,
+    "strong_test_read": 62,
+    "unstated": 45,
+    "handled": 33,
+    "short": [
+     "U-9",
+     "U-11",
+     "U-15",
+     "U-23",
+     "U-39",
+     "U-46",
+     "U-49",
+     "U-50",
+     "U-54",
+     "U-57",
+     "U-58",
+     "U-60"
+    ],
+    "told": 6,
+    "told_or_marked": 6,
+    "unstated_strong_test_read": 11,
+    "defects": 6,
+    "defects_high": [],
+    "defects_low": 7,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-5",
+     "D-6",
+     "D-7",
+     "D-8",
+     "D-9",
+     "D-10",
+     "D-11",
+     "D-12",
+     "D-13"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 5,
+     "neutral": 1,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 108,
+    "built": 108,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 2,
+    "strong_test_read": 64,
+    "unstated": 45,
+    "handled": 39,
+    "short": [
+     "U-9",
+     "U-11",
+     "U-23",
+     "U-39",
+     "U-50",
+     "U-60"
+    ],
+    "told": 15,
+    "told_or_marked": 24,
+    "unstated_strong_test_read": 16,
+    "defects": 2,
+    "defects_high": [],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-3",
+     "D-4",
+     "D-8",
+     "D-11",
+     "D-12",
+     "D-13",
+     "D-14"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 4,
+     "neutral": 2,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 108,
+    "built": 108,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 4,
+    "strong_test_read": 59,
+    "unstated": 45,
+    "handled": 43,
+    "short": [
+     "U-23",
+     "U-60"
+    ],
+    "told": 23,
+    "told_or_marked": 29,
+    "unstated_strong_test_read": 25,
+    "defects": 1,
+    "defects_high": [],
+    "defects_low": 2,
+    "defect_ids": [
+     "D-4",
+     "D-12",
+     "D-14"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 5,
+     "neutral": 2,
+     "liability": 0
+    }
+   }
+  },
+  "pairs": {
+   "S-L": {
+    "readings": {
+     "D1": null,
+     "D2": "second",
+     "D3": "second",
+     "D4": "second",
+     "D5": "second",
+     "D6": "second"
+    },
+    "gate": null,
+    "better": "L",
+    "verdicts": {
+     "a": {
+      "side": "L",
+      "strength": "much",
+      "one_task_closes": "no",
+      "why": "Both meet every stated requirement, but X carries ten more defects, two of them in the confirm path the request stresses: a second keyboard Enter decides a proposal the person did not choose, and a capitalised field name silently adds a field. X also hangs replies and tasks on storage failure and silently loses saved entries, while Y handles each of these; X's only real edges are the browser-independent away summary and the visible active instruction text. Closing that list takes several separate fixes across the client, records and storage layers, well over an hour.",
+      "lesser_lacks": [
+       "Move focus after Confirm/Reject to that proposal's Change result instead of the next same-named button",
+       "Match record field names without regard to capitals in lookups and changes",
+       "Mark a pending reply failed and a running task Interrupted/Failed when progress cannot be saved, with a storage error the person can act on",
+       "Refuse saving an instruction or task under an existing name without Edit, and clear the edit binding after a refused rename",
+       "Give empty and similarly-opened conversations distinct labels, and make same-named bots distinguishable",
+       "Refuse to start on a damaged or unwritable data folder with a plain message and recovery step",
+       "Tell the person a suffixed id such as ORD-1001A cannot be found",
+       "Identify which of two same-titled tasks received an added step",
+       "Validate proposed values and say how to correct them"
+      ]
+     },
+     "b": {
+      "side": "L",
+      "strength": "much",
+      "one_task_closes": "no",
+      "why": "Y is the one to keep in service. Keyboard decisions stay on the proposal you chose, field capitals and suffixed ids stay on the real field and record, saved instructions are not silently replaced, and a failed disk write is reported instead of freezing the conversation or a task. X still reports Since you were away with no stored baseline and shows the instruction text in use, and bringing X up to Y is a set of separate client, record, startup and test fixes.",
+      "lesser_lacks": [
+       "Move focus after Confirm changes and Reject changes to that proposal's Change result or the message box.",
+       "Map a capitalised field name onto the existing field, or refuse it, so confirming cannot create a second field.",
+       "Give every conversation a distinct accessible name, including empty ones and ones that share an opening.",
+       "On a failed save, mark the pending reply failed and the affected task Failed or Interrupted, with a storage error and a way to retry.",
+       "After a refused instruction rename, drop the hidden edit binding so the next save cannot replace that entry.",
+       "Distinguish bots that share a name before selection, or refuse the duplicate name.",
+       "Refuse or ask before saving an instruction or task over an existing name.",
+       "Refuse a damaged or unwritable data folder at startup with a plain message, the file name, and a recovery step, leaving the file unchanged.",
+       "Answer an id such as ORD-1001A as not found, with how to correct it.",
+       "Name which running task received an added step when titles match.",
+       "Refuse a non-numeric total, an unknown field, and a decimal create, and say how to correct each.",
+       "Make npm test fail when DATA_DIR is ignored and when a bot's memory is split by conversation."
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": false
+   },
+   "S-F": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": "second",
+     "D5": "second",
+     "D6": "second"
+    },
+    "gate": null,
+    "better": "F",
+    "verdicts": {
+     "a": {
+      "side": "F",
+      "strength": "much",
+      "one_task_closes": "no",
+      "why": "Z avoids seven of X's defects, including the two in the confirm path (keyboard focus deciding another proposal, a capitalised field silently adding a field) and the stuck reply and task after a storage failure. X's edges over Z are small: a browser-independent away summary and showing the active instruction text. The fixes X needs reach the client focus handling, the records layer, storage error paths and startup, too much for one short task.",
+      "lesser_lacks": [
+       "Move focus after Confirm/Reject to that proposal's Change result instead of the next same-named button",
+       "Stop a capitalised field name from creating a second field (match case-insensitively or refuse with a notice)",
+       "Mark a pending reply failed and a running task Failed/Interrupted when progress cannot be saved, and report the storage error",
+       "Refuse saving under an existing name without Edit, and clear the edit binding after a refused rename",
+       "Refuse to start on a damaged or unwritable data folder with a plain message and recovery step",
+       "Refuse or warn on non-numeric totals and unknown fields before Confirm"
+      ]
+     },
+     "b": {
+      "side": "F",
+      "strength": "much",
+      "one_task_closes": "no",
+      "why": "Z is the one to keep in service between these two. Confirm focus, field capitals, storage errors, instruction edits and a damaged data folder stay honest, so a second change is not applied by accident and a failed save does not freeze the chat. X still reports Since you were away in a fresh browser and shows the live instruction text, and both still leave similar conversations indistinguishable and answer ORD-1001A with ORD-1001, so matching Z crosses the client, the record writer and startup.",
+      "lesser_lacks": [
+       "Move focus after Confirm changes and Reject changes to that proposal's Change result or the message box.",
+       "Stop a capitalised field name from creating a second field, by refusing it or mapping it onto the existing field.",
+       "On a failed save, mark the pending reply failed and the affected task Failed or Interrupted, with a storage error the person can act on.",
+       "After a refused instruction rename, drop the hidden edit binding so the next save cannot replace that entry.",
+       "Refuse or ask before saving an instruction or task over an existing name.",
+       "Refuse a damaged or unwritable data folder at startup with a plain message, the file name, and a recovery step, leaving the file unchanged.",
+       "Refuse a non-numeric total and a field the record does not have, instead of applying the preview."
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": false
+   },
+   "F-L": {
+    "readings": {
+     "D1": null,
+     "D2": "second",
+     "D3": null,
+     "D4": "second",
+     "D5": null,
+     "D6": "second"
+    },
+    "gate": null,
+    "better": "L",
+    "verdicts": {
+     "a": {
+      "side": "L",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "The two share the same core behaviour and handle storage failure, damaged data and the confirm flow equally well; Y adds a set of naming and identification fixes (conversation labels, bot numbers, task numbers in steer feedback, suffixed ids) and friendlier record-request handling. Each gap in Z is a small, local labelling or parsing change, so one short follow-up would close them. Y carries somewhat more code and shipped harness for a maintainer, which tempers the margin.",
+      "lesser_lacks": [
+       "Give empty and similarly-opened conversations distinct labels (number or distinguishing excerpt)",
+       "Show a stable number or other cue for same-named bots",
+       "Tell the person a suffixed id such as ORD-1001A cannot be found instead of answering for ORD-1001",
+       "Name the receiving task by number in add step feedback",
+       "Match field names case-insensitively and give correction guidance on refused values"
+      ]
+     },
+     "b": {
+      "side": "L",
+      "strength": "some",
+      "one_task_closes": "no",
+      "why": "Y is somewhat better to run day to day. Conversations, duplicate bots and same-titled tasks can be told apart before you act, a suffixed id is rejected with a correction, and a capitalised field or a refused amount still leads to the real record. Z already matches Y on proposal focus, failed saves, startup and saved-instruction edits, and closing the rest is label work plus record-request handling, which is more than one hour.",
+      "lesser_lacks": [
+       "Give every conversation a distinct accessible name, including empty ones and ones that share an opening.",
+       "Distinguish bots that share a name before selection, or refuse the duplicate name.",
+       "Answer an id such as ORD-1001A as not found, with how to correct it, and leave ORD-1001's value on ORD-1001.",
+       "Name which running task received an added step when titles match.",
+       "Treat a real field name as the same field in any capitalization, and when a total, unknown field, or decimal create is refused, say how to correct it.",
+       "Make npm test fail when DATA_DIR is ignored and when a new bot does not become the open bot."
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": false
+   }
+  },
+  "nearly_competitive": false,
+  "rechecked_items": [
+   "U-11",
+   "U-15",
+   "U-39",
+   "U-46",
+   "U-49",
+   "U-50",
+   "U-54",
+   "U-57",
+   "U-58",
+   "U-60",
+   "U-9"
+  ],
+  "inventory": {
+   "stated": 108,
+   "proved": [
+    "S-5",
+    "S-31",
+    "S-33",
+    "S-67",
+    "S-72",
+    "S-88"
+   ],
+   "unstated_rated": 61,
+   "independent": 46,
+   "independent_kept": 39,
+   "arm_only": 15,
+   "arm_only_kept": 6
+  }
+ },
+ "expenses-fixed": {
+  "facts": {
+   "S": {
+    "stated": 35,
+    "built": 35,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 33,
+    "unstated": 16,
+    "handled": 16,
+    "short": [],
+    "told": 12,
+    "told_or_marked": 12,
+    "unstated_strong_test_read": 8,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 2,
+    "defect_ids": [
+     "D-1",
+     "D-3"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 3,
+     "neutral": 4,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 35,
+    "built": 35,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 33,
+    "unstated": 16,
+    "handled": 16,
+    "short": [],
+    "told": 0,
+    "told_or_marked": 0,
+    "unstated_strong_test_read": 7,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 3,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 2,
+     "neutral": 2,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 35,
+    "built": 35,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 33,
+    "unstated": 16,
+    "handled": 16,
+    "short": [],
+    "told": 14,
+    "told_or_marked": 15,
+    "unstated_strong_test_read": 9,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 1,
+    "defect_ids": [
+     "D-3"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 3,
+     "neutral": 4,
+     "liability": 0
+    }
+   }
+  },
+  "facts_with_arm_items": {
+   "S": {
+    "stated": 35,
+    "built": 35,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 33,
+    "unstated": 18,
+    "handled": 18,
+    "short": [],
+    "told": 12,
+    "told_or_marked": 12,
+    "unstated_strong_test_read": 8,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 2,
+    "defect_ids": [
+     "D-1",
+     "D-3"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 3,
+     "neutral": 4,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 35,
+    "built": 35,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 33,
+    "unstated": 18,
+    "handled": 18,
+    "short": [],
+    "told": 0,
+    "told_or_marked": 0,
+    "unstated_strong_test_read": 7,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 3,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 2,
+     "neutral": 2,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 35,
+    "built": 35,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 33,
+    "unstated": 18,
+    "handled": 18,
+    "short": [],
+    "told": 15,
+    "told_or_marked": 16,
+    "unstated_strong_test_read": 10,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 1,
+    "defect_ids": [
+     "D-3"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 3,
+     "neutral": 4,
+     "liability": 0
+    }
+   }
+  },
+  "pairs": {
+   "S-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": "second",
+     "D5": null,
+     "D6": null
+    },
+    "gate": null,
+    "better": null,
+    "verdicts": {
+     "a": {
+      "side": null,
+      "strength": "same",
+      "one_task_closes": "yes",
+      "why": "Both meet every stated requirement, handle every unsaid condition soundly or acceptably, and document their behaviour for the operator. X shuts the low-severity '.'/'..' hole and avoids BigInt output, while Z has the better test guard on unknown splits, error messages and a lighter codebase. These offset; neither is clearly ahead.",
+      "lesser_lacks": []
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   },
+   "S-F": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": "first",
+     "D5": null,
+     "D6": "first"
+    },
+    "gate": null,
+    "better": "S",
+    "verdicts": {
+     "a": {
+      "side": "S",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "The code is nearly the same design and both meet every stated requirement with sound handling of the unsaid conditions. Z adds a README that tells whoever runs it what to expect and refuses to overwrite a non-ledger DATA_FILE, while Y documents nothing and has D-2. Both gaps are small and an hour of work closes them.",
+      "lesser_lacks": [
+       "Write a README covering the routes, statuses, validation rules, id encoding, duplicate and whitespace name handling, persistence and startup failures",
+       "At startup refuse (with a message naming the file) a DATA_FILE whose JSON has no groups list, leaving the file unchanged, with a test"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   },
+   "F-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": "second",
+     "D5": null,
+     "D6": "second"
+    },
+    "gate": null,
+    "better": "L",
+    "verdicts": {
+     "a": {
+      "side": "L",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "Both meet every stated requirement and handle concurrency, crash safety and the unsaid inputs soundly. X tells its operator everything in a README and closes D-1 and D-2, which Y leaves open with no documentation at all, while Y's edge is a test on unknown splits, error messages and less code to maintain. The gaps are low-severity and a short task closes them.",
+      "lesser_lacks": [
+       "Write a README covering routes, statuses, validation, id encoding, duplicate-name handling, persistence and startup failures",
+       "At startup refuse a DATA_FILE whose JSON lacks a groups list, leaving it unchanged",
+       "Answer 400 at creation for ids '.' and '..'",
+       "Fail at startup when DATA_FILE's directory does not exist"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   }
+  },
+  "nearly_competitive": true,
+  "rechecked_items": [],
+  "inventory": {
+   "stated": 35,
+   "proved": [
+    "S-1",
+    "S-4",
+    "S-10",
+    "S-17",
+    "S-22",
+    "S-24"
+   ],
+   "unstated_rated": 36,
+   "independent": 27,
+   "independent_kept": 16,
+   "arm_only": 9,
+   "arm_only_kept": 2
+  }
+ },
+ "tickets-fixed": {
+  "facts": {
+   "S": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 19,
+    "unstated": 19,
+    "handled": 19,
+    "short": [],
+    "told": 18,
+    "told_or_marked": 18,
+    "unstated_strong_test_read": 17,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 3,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 5,
+     "neutral": 1,
+     "liability": 1
+    }
+   },
+   "F": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 16,
+    "unstated": 19,
+    "handled": 18,
+    "short": [
+     "U-22"
+    ],
+    "told": 14,
+    "told_or_marked": 14,
+    "unstated_strong_test_read": 16,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 2,
+    "defect_ids": [
+     "D-1",
+     "D-3"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 3,
+     "neutral": 1,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 16,
+    "unstated": 19,
+    "handled": 19,
+    "short": [],
+    "told": 19,
+    "told_or_marked": 19,
+    "unstated_strong_test_read": 18,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 1,
+    "defect_ids": [
+     "D-3"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 5,
+     "neutral": 2,
+     "liability": 0
+    }
+   }
+  },
+  "facts_with_arm_items": {
+   "S": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 19,
+    "unstated": 21,
+    "handled": 21,
+    "short": [],
+    "told": 19,
+    "told_or_marked": 19,
+    "unstated_strong_test_read": 17,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 3,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 5,
+     "neutral": 1,
+     "liability": 1
+    }
+   },
+   "F": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 16,
+    "unstated": 21,
+    "handled": 20,
+    "short": [
+     "U-22"
+    ],
+    "told": 15,
+    "told_or_marked": 15,
+    "unstated_strong_test_read": 16,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 2,
+    "defect_ids": [
+     "D-1",
+     "D-3"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 3,
+     "neutral": 1,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 16,
+    "unstated": 21,
+    "handled": 21,
+    "short": [],
+    "told": 21,
+    "told_or_marked": 21,
+    "unstated_strong_test_read": 20,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 1,
+    "defect_ids": [
+     "D-3"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 5,
+     "neutral": 2,
+     "liability": 0
+    }
+   }
+  },
+  "pairs": {
+   "S-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": null,
+     "D5": null,
+     "D6": "second"
+    },
+    "gate": null,
+    "better": null,
+    "verdicts": {
+     "a": {
+      "side": "L",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "Both deliver every stated requirement with sound audit, notification, persistence and docs; the difference is in edges. X changes an existing query's answer (D-2) and stores replacement characters from bad UTF-8 (D-1), while Z's main cost is keeping untrimmed names, which the inventory accepts. Two small fixes bring X level.",
+      "lesser_lacks": [
+       "Make a repeated status/priority/assignee parameter use its first value again, as 1.4.0 did, and drop the all-values test",
+       "Read the PUT /tickets/:id/assignee body with a strict UTF-8 check and answer 400 invalid for a malformed byte"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   },
+   "S-F": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": "first",
+     "D5": null,
+     "D6": null
+    },
+    "gate": null,
+    "better": null,
+    "verdicts": {
+     "a": {
+      "side": null,
+      "strength": "same",
+      "one_task_closes": "yes",
+      "why": "The two builds behave almost identically, with the same trimming, 409 rule, audit, per-assignment notification keys and UTF-8 gap. X documents and versions the release fully but changes repeated-filter behaviour; Y keeps that behaviour but ships no changelog or version and leaves several choices untold. The trade-offs are small and roughly balance.",
+      "lesser_lacks": [
+       "For Y: add a CHANGELOG 1.5.0 section and bump package.json to 1.5.0",
+       "For Y: document in docs/api.md that the assignee survives transitions and how the assignee filter matches (exact, untrimmed, first value of a repeat)",
+       "For X: restore first-value handling of a repeated filter parameter"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   },
+   "F-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": "second",
+     "D5": null,
+     "D6": "second"
+    },
+    "gate": null,
+    "better": "L",
+    "verdicts": {
+     "a": {
+      "side": "L",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "Both meet every stated requirement and keep existing behaviour. Z additionally refuses malformed UTF-8 names and ships a complete changelog and documentation, while Y's only edge is trimming names, which matters only for padded input. A short follow-up on Y's docs, version and UTF-8 check would close the gap.",
+      "lesser_lacks": [
+       "Add a CHANGELOG section and bump package.json version",
+       "Read the assignment body with a strict UTF-8 check and answer 400 invalid for a malformed byte",
+       "Document in docs/api.md the assignee filter matching rules and that the assignee survives transitions, and in README the show assignee line"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   }
+  },
+  "nearly_competitive": true,
+  "rechecked_items": [
+   "U-22"
+  ],
+  "inventory": {
+   "stated": 21,
+   "proved": [
+    "S-4",
+    "S-8",
+    "S-9",
+    "S-10",
+    "S-14",
+    "S-15"
+   ],
+   "unstated_rated": 28,
+   "independent": 22,
+   "independent_kept": 19,
+   "arm_only": 6,
+   "arm_only_kept": 2
+  }
+ },
+ "grokbot-fixed": {
+  "facts": {
+   "S": {
+    "stated": 108,
+    "built": 107,
+    "not_built": [
+     "S-51"
+    ],
+    "proved_of": 6,
+    "proved": 3,
+    "strong_test_read": 68,
+    "unstated": 39,
+    "handled": 35,
+    "short": [
+     "U-7",
+     "U-9",
+     "U-23",
+     "U-46"
+    ],
+    "told": 21,
+    "told_or_marked": 21,
+    "unstated_strong_test_read": 16,
+    "defects": 4,
+    "defects_high": [],
+    "defects_low": 4,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-5",
+     "D-6",
+     "D-7",
+     "D-13"
+    ],
+    "serious": 1,
+    "extras": {
+     "value": 5,
+     "neutral": 3,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 108,
+    "built": 107,
+    "not_built": [
+     "S-51"
+    ],
+    "proved_of": 6,
+    "proved": 2,
+    "strong_test_read": 62,
+    "unstated": 39,
+    "handled": 33,
+    "short": [
+     "U-7",
+     "U-9",
+     "U-11",
+     "U-15",
+     "U-23",
+     "U-46"
+    ],
+    "told": 7,
+    "told_or_marked": 7,
+    "unstated_strong_test_read": 11,
+    "defects": 8,
+    "defects_high": [],
+    "defects_low": 6,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-5",
+     "D-6",
+     "D-7",
+     "D-8",
+     "D-9",
+     "D-10",
+     "D-11",
+     "D-12",
+     "D-13",
+     "D-14"
+    ],
+    "serious": 1,
+    "extras": {
+     "value": 5,
+     "neutral": 1,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 108,
+    "built": 107,
+    "not_built": [
+     "S-51"
+    ],
+    "proved_of": 6,
+    "proved": 4,
+    "strong_test_read": 59,
+    "unstated": 39,
+    "handled": 38,
+    "short": [
+     "U-23"
+    ],
+    "told": 23,
+    "told_or_marked": 29,
+    "unstated_strong_test_read": 22,
+    "defects": 3,
+    "defects_high": [],
+    "defects_low": 2,
+    "defect_ids": [
+     "D-1",
+     "D-5",
+     "D-7",
+     "D-11",
+     "D-12"
+    ],
+    "serious": 1,
+    "extras": {
+     "value": 5,
+     "neutral": 2,
+     "liability": 0
+    }
+   }
+  },
+  "facts_with_arm_items": {
+   "S": {
+    "stated": 108,
+    "built": 107,
+    "not_built": [
+     "S-51"
+    ],
+    "proved_of": 6,
+    "proved": 3,
+    "strong_test_read": 68,
+    "unstated": 45,
+    "handled": 39,
+    "short": [
+     "U-7",
+     "U-9",
+     "U-23",
+     "U-46",
+     "U-50",
+     "U-60"
+    ],
+    "told": 24,
+    "told_or_marked": 24,
+    "unstated_strong_test_read": 19,
+    "defects": 4,
+    "defects_high": [],
+    "defects_low": 4,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-5",
+     "D-6",
+     "D-7",
+     "D-13"
+    ],
+    "serious": 1,
+    "extras": {
+     "value": 5,
+     "neutral": 3,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 108,
+    "built": 107,
+    "not_built": [
+     "S-51"
+    ],
+    "proved_of": 6,
+    "proved": 2,
+    "strong_test_read": 62,
+    "unstated": 45,
+    "handled": 33,
+    "short": [
+     "U-7",
+     "U-9",
+     "U-11",
+     "U-15",
+     "U-23",
+     "U-46",
+     "U-49",
+     "U-50",
+     "U-54",
+     "U-57",
+     "U-58",
+     "U-60"
+    ],
+    "told": 7,
+    "told_or_marked": 7,
+    "unstated_strong_test_read": 11,
+    "defects": 8,
+    "defects_high": [],
+    "defects_low": 6,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-5",
+     "D-6",
+     "D-7",
+     "D-8",
+     "D-9",
+     "D-10",
+     "D-11",
+     "D-12",
+     "D-13",
+     "D-14"
+    ],
+    "serious": 1,
+    "extras": {
+     "value": 5,
+     "neutral": 1,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 108,
+    "built": 107,
+    "not_built": [
+     "S-51"
+    ],
+    "proved_of": 6,
+    "proved": 4,
+    "strong_test_read": 59,
+    "unstated": 45,
+    "handled": 43,
+    "short": [
+     "U-23",
+     "U-60"
+    ],
+    "told": 26,
+    "told_or_marked": 32,
+    "unstated_strong_test_read": 25,
+    "defects": 3,
+    "defects_high": [],
+    "defects_low": 2,
+    "defect_ids": [
+     "D-1",
+     "D-5",
+     "D-7",
+     "D-11",
+     "D-12"
+    ],
+    "serious": 1,
+    "extras": {
+     "value": 5,
+     "neutral": 2,
+     "liability": 0
+    }
+   }
+  },
+  "pairs": {
+   "S-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": null,
+     "D5": null,
+     "D6": "second"
+    },
+    "gate": null,
+    "better": null,
+    "verdicts": {
+     "a": {
+      "side": "L",
+      "strength": "some",
+      "one_task_closes": "no",
+      "why": "Y avoids five defects Z has, including the token printed to the server output and silent loss of a saved instruction, and it also validates proposed values. Z handles storage failures more gracefully (D-11, D-12) and shows the active instruction, but those cover rarer conditions. Y's heavier send protocol and shipped harness cost the maintainer something, though not enough to reverse the balance.",
+      "lesser_lacks": [
+       "Catch damaged or unwritable data at startup and print a plain message naming the problem and the recovery step, never the file contents or token (D-2, D-3)",
+       "Distinguish same-named bots in the Bots navigation (number or description) or refuse duplicates (D-4)",
+       "Add a notice when a typed record id such as ORD-1001A does not exist instead of passing through ORD-1001's value (D-6)",
+       "Clear the instruction/task form binding after a refused rename so a new entry is not saved over the edited one (D-13)",
+       "Validate proposed values (numeric totals, existing fields) with correction guidance before offering a proposal (U-30)",
+       "Optionally match field names case-insensitively (U-49)"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": false
+   },
+   "S-F": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": "first",
+     "D5": "first",
+     "D6": "first"
+    },
+    "gate": null,
+    "better": "S",
+    "verdicts": {
+     "a": {
+      "side": "S",
+      "strength": "much",
+      "one_task_closes": "no",
+      "why": "Both meet the stated requirements, but X carries six more defects, four of them medium. Two put records at risk: a keyboard Enter can confirm the wrong proposal, and a capitalised field silently splits a record. X shows no advantage over Z, and fixing its storage-failure paths and focus handling is more than one short task.",
+      "lesser_lacks": [
+       "Stop focus restoration by accessible name from landing on another proposal's Confirm/Reject button (D-8)",
+       "Match or refuse field names in other capitals so a change never creates a second field (D-9)",
+       "Give empty and similar conversations distinct labels or descriptions (D-10)",
+       "Mark an in-flight reply failed with Retry when its progress cannot be saved (D-11)",
+       "Mark a task Failed with Retry task when its step progress cannot be saved (D-12)",
+       "Refuse or announce saving an instruction or task under an existing name (D-14)"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": false
+   },
+   "F-L": {
+    "readings": {
+     "D1": null,
+     "D2": "second",
+     "D3": "second",
+     "D4": "second",
+     "D5": "second",
+     "D6": "second"
+    },
+    "gate": null,
+    "better": "L",
+    "verdicts": {
+     "a": {
+      "side": "L",
+      "strength": "much",
+      "one_task_closes": "no",
+      "why": "Y avoids nine defects X has, including the two that can change records the person did not mean to change (D-8, D-9) and the token printed to the server output. X's only gains are a smaller codebase and a less drastic reaction to storage failure. The gap covers many separate fixes on both server and client.",
+      "lesser_lacks": [
+       "Plain startup error for damaged or unwritable data without the file contents or token (D-2, D-3)",
+       "Distinguish same-named bots and similar conversations (D-4, D-10)",
+       "Notice for a nonexistent suffixed record id (D-6)",
+       "Fix focus after keyboard Confirm/Reject so it never lands on another proposal (D-8)",
+       "Case-insensitive field matching or refusal (D-9)",
+       "Clear the form binding after a refused rename and refuse or announce duplicate saved names (D-13, D-14)",
+       "Validate proposed values with correction guidance (U-30)"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": false
+   }
+  },
+  "nearly_competitive": true,
+  "rechecked_items": [
+   "S-51",
+   "U-11",
+   "U-15",
+   "U-46",
+   "U-49",
+   "U-50",
+   "U-54",
+   "U-57",
+   "U-58",
+   "U-7",
+   "U-9"
+  ],
+  "inventory": {
+   "stated": 108,
+   "proved": [
+    "S-5",
+    "S-31",
+    "S-33",
+    "S-67",
+    "S-72",
+    "S-88"
+   ],
+   "unstated_rated": 61,
+   "independent": 46,
+   "independent_kept": 39,
+   "arm_only": 15,
+   "arm_only_kept": 6
+  }
+ },
+ "expenses-clean": {
+  "facts": {
+   "S": {
+    "stated": 35,
+    "built": 35,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 32,
+    "unstated": 16,
+    "handled": 16,
+    "short": [],
+    "told": 13,
+    "told_or_marked": 13,
+    "unstated_strong_test_read": 7,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 0,
+    "defect_ids": [],
+    "serious": 0,
+    "extras": {
+     "value": 3,
+     "neutral": 3,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 35,
+    "built": 35,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 31,
+    "unstated": 16,
+    "handled": 16,
+    "short": [],
+    "told": 0,
+    "told_or_marked": 2,
+    "unstated_strong_test_read": 6,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 0,
+    "defect_ids": [],
+    "serious": 0,
+    "extras": {
+     "value": 2,
+     "neutral": 3,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 35,
+    "built": 35,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 34,
+    "unstated": 16,
+    "handled": 16,
+    "short": [],
+    "told": 15,
+    "told_or_marked": 15,
+    "unstated_strong_test_read": 9,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 0,
+    "defect_ids": [],
+    "serious": 0,
+    "extras": {
+     "value": 4,
+     "neutral": 3,
+     "liability": 0
+    }
+   }
+  },
+  "facts_with_arm_items": {
+   "S": {
+    "stated": 35,
+    "built": 35,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 32,
+    "unstated": 18,
+    "handled": 18,
+    "short": [],
+    "told": 14,
+    "told_or_marked": 14,
+    "unstated_strong_test_read": 7,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 0,
+    "defect_ids": [],
+    "serious": 0,
+    "extras": {
+     "value": 3,
+     "neutral": 3,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 35,
+    "built": 35,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 31,
+    "unstated": 18,
+    "handled": 18,
+    "short": [],
+    "told": 0,
+    "told_or_marked": 2,
+    "unstated_strong_test_read": 6,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 0,
+    "defect_ids": [],
+    "serious": 0,
+    "extras": {
+     "value": 2,
+     "neutral": 3,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 35,
+    "built": 35,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 34,
+    "unstated": 18,
+    "handled": 18,
+    "short": [],
+    "told": 16,
+    "told_or_marked": 17,
+    "unstated_strong_test_read": 10,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 0,
+    "defect_ids": [],
+    "serious": 0,
+    "extras": {
+     "value": 4,
+     "neutral": 3,
+     "liability": 0
+    }
+   }
+  },
+  "pairs": {
+   "S-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": "second",
+     "D5": null,
+     "D6": null
+    },
+    "gate": null,
+    "better": null,
+    "verdicts": {
+     "a": {
+      "side": null,
+      "strength": "same",
+      "one_task_closes": "yes",
+      "why": "Both deliver every stated requirement and every unsaid condition soundly or acceptably, with no defects and both documented in a README. Z gives clearer error replies and slightly tidier edge handling with less code; Y gives a sturdier write path, stricter startup loading and a test that guards the amount check. The differences are small and pull in opposite directions.",
+      "lesser_lacks": [
+       "(same) Y: return JSON error bodies and the group in the 201 body",
+       "(same) Z: add a test sending zero and negative cents with split equal",
+       "(same) Z: validate the shape of the loaded DATA_FILE at startup"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   },
+   "S-F": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": "first",
+     "D5": null,
+     "D6": "first"
+    },
+    "gate": null,
+    "better": "S",
+    "verdicts": {
+     "a": {
+      "side": "S",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "X and Z are nearly the same build and both pass every requirement and condition with no defects. Z adds a README that tells an operator the choices X leaves unsaid, and handles an empty data file and near-integer amounts better. These are modest gains that a short follow-up to X would close.",
+      "lesser_lacks": [
+       "Write a README telling the request's unsaid choices: error statuses, id and member rules, data-file and durability behaviour",
+       "Start with no groups when DATA_FILE is empty or whitespace",
+       "Check numbers against their JSON source text so near-integer floats are refused"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   },
+   "F-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": "second",
+     "D5": null,
+     "D6": "second"
+    },
+    "gate": null,
+    "better": "L",
+    "verdicts": {
+     "a": {
+      "side": "L",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "Both are correct with no defects, but Y tells the operator its choices, guards the amount check in tests, and has a sturdier write and load path. X answers with clearer error messages and carries less extra code. Y's edge is real but modest, and an hour of work on X would close it.",
+      "lesser_lacks": [
+       "Write a README telling the unsaid choices: error statuses, id and member rules, data-file and durability behaviour",
+       "Add a test sending zero and negative cents with split equal",
+       "Validate the shape of the loaded DATA_FILE at startup and refuse a foreign file",
+       "Serialise mutations explicitly or document the no-await invariant in recordExpense and createGroup"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   }
+  },
+  "nearly_competitive": true,
+  "rechecked_items": [],
+  "inventory": {
+   "stated": 35,
+   "proved": [
+    "S-1",
+    "S-4",
+    "S-10",
+    "S-17",
+    "S-22",
+    "S-24"
+   ],
+   "unstated_rated": 36,
+   "independent": 27,
+   "independent_kept": 16,
+   "arm_only": 9,
+   "arm_only_kept": 2
+  }
+ },
+ "chess-clean": {
+  "facts": {
+   "S": {
+    "stated": 40,
+    "built": 40,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 38,
+    "unstated": 6,
+    "handled": 6,
+    "short": [],
+    "told": 4,
+    "told_or_marked": 4,
+    "unstated_strong_test_read": 4,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 0,
+    "defect_ids": [],
+    "serious": 0,
+    "extras": {
+     "value": 1,
+     "neutral": 2,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 40,
+    "built": 40,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 37,
+    "unstated": 6,
+    "handled": 5,
+    "short": [
+     "U-1"
+    ],
+    "told": 0,
+    "told_or_marked": 0,
+    "unstated_strong_test_read": 3,
+    "defects": 1,
+    "defects_high": [],
+    "defects_low": 1,
+    "defect_ids": [
+     "D-1",
+     "D-2"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 0,
+     "neutral": 0,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 40,
+    "built": 40,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 4,
+    "strong_test_read": 35,
+    "unstated": 6,
+    "handled": 6,
+    "short": [],
+    "told": 1,
+    "told_or_marked": 2,
+    "unstated_strong_test_read": 1,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 1,
+    "defect_ids": [
+     "D-2"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 2,
+     "neutral": 3,
+     "liability": 0
+    }
+   }
+  },
+  "facts_with_arm_items": {
+   "S": {
+    "stated": 40,
+    "built": 40,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 38,
+    "unstated": 8,
+    "handled": 8,
+    "short": [],
+    "told": 4,
+    "told_or_marked": 4,
+    "unstated_strong_test_read": 5,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 0,
+    "defect_ids": [],
+    "serious": 0,
+    "extras": {
+     "value": 1,
+     "neutral": 2,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 40,
+    "built": 40,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 37,
+    "unstated": 8,
+    "handled": 7,
+    "short": [
+     "U-1"
+    ],
+    "told": 0,
+    "told_or_marked": 0,
+    "unstated_strong_test_read": 3,
+    "defects": 1,
+    "defects_high": [],
+    "defects_low": 1,
+    "defect_ids": [
+     "D-1",
+     "D-2"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 0,
+     "neutral": 0,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 40,
+    "built": 40,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 4,
+    "strong_test_read": 35,
+    "unstated": 8,
+    "handled": 8,
+    "short": [],
+    "told": 2,
+    "told_or_marked": 3,
+    "unstated_strong_test_read": 2,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 1,
+    "defect_ids": [
+     "D-2"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 2,
+     "neutral": 3,
+     "liability": 0
+    }
+   }
+  },
+  "pairs": {
+   "S-L": {
+    "readings": {
+     "D1": null,
+     "D2": "first",
+     "D3": null,
+     "D4": "first",
+     "D5": null,
+     "D6": "first"
+    },
+    "gate": null,
+    "better": "S",
+    "verdicts": {
+     "a": {
+      "side": "S",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "Both engines are correct on every stated requirement and every perft count; Z adds a clean error for non-string FENs, guards its FEN validation and its two speed limits with tests, and documents more of its behaviour. Y's only edge is a README line on resuming from a saved FEN, and it carries a shipped acceptance harness. The gap is a small, well-defined follow-up.",
+      "lesser_lacks": [
+       "Check the FEN is a non-empty string up front and throw a descriptive invalid-FEN error",
+       "Add tests that pass malformed FENs to legalMoves, status and applyMove and assert the thrown error",
+       "Add a test that times legalMoves on a middlegame position and the depth-2 start count against the stated limits",
+       "Document FEN validation, impossible-position handling, the IllegalMoveError shape and castling/en-passant field handling in the README",
+       "Remove or explain the acceptance/ directory"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   },
+   "S-F": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": "first",
+     "D5": null,
+     "D6": "first"
+    },
+    "gate": null,
+    "better": "S",
+    "verdicts": {
+     "a": {
+      "side": "S",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "The engines, test coverage of the named subjects and timing guards are equivalent, and every perft count matches in both. X has no FEN validation, so malformed input gets confident wrong answers (D-1) or raw TypeErrors (D-2), with nothing documented and no test for that path. Adding a validating parser, its tests and README lines is about an hour of work.",
+      "lesser_lacks": [
+       "Validate FEN syntax (string type, eight ranks of eight squares, known piece letters, side, castling, en-passant and clock fields) and throw a descriptive invalid-FEN error from all three functions",
+       "Add tests passing malformed FENs to legalMoves, status and applyMove asserting that error",
+       "Document in the README the FEN validation, impossible-position tolerance, move-string strictness and the IllegalMoveError shape"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   },
+   "F-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": null,
+     "D5": null,
+     "D6": "second"
+    },
+    "gate": null,
+    "better": null,
+    "verdicts": {
+     "a": {
+      "side": "L",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "Both engines are correct on all stated requirements and perft counts, and both leave non-string FENs to an internal TypeError (D-2). Y validates malformed FENs and documents its contract, which matters to whoever runs it; X's edge is a timing test and a cleaner shipped tree, which matter to a maintainer but less. X closes the gap by adding a validating parser and README lines.",
+      "lesser_lacks": [
+       "Validate FEN syntax and throw descriptive errors for malformed FENs from all three functions",
+       "Add README sections on the call contract, the move-string rules and resuming from a saved FEN"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   }
+  },
+  "nearly_competitive": true,
+  "rechecked_items": [
+   "U-1"
+  ],
+  "inventory": {
+   "stated": 40,
+   "proved": [
+    "S-5",
+    "S-7",
+    "S-17",
+    "S-19",
+    "S-30",
+    "S-39"
+   ],
+   "unstated_rated": 12,
+   "independent": 10,
+   "independent_kept": 6,
+   "arm_only": 2,
+   "arm_only_kept": 2
+  }
+ },
+ "tickets-clean": {
+  "facts": {
+   "S": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 15,
+    "unstated": 19,
+    "handled": 19,
+    "short": [],
+    "told": 18,
+    "told_or_marked": 19,
+    "unstated_strong_test_read": 14,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 2,
+    "defect_ids": [
+     "D-1",
+     "D-3"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 2,
+     "neutral": 3,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 18,
+    "unstated": 19,
+    "handled": 18,
+    "short": [
+     "U-22"
+    ],
+    "told": 13,
+    "told_or_marked": 13,
+    "unstated_strong_test_read": 14,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 3,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 1,
+     "neutral": 2,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 16,
+    "unstated": 19,
+    "handled": 19,
+    "short": [],
+    "told": 18,
+    "told_or_marked": 18,
+    "unstated_strong_test_read": 18,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 1,
+    "defect_ids": [
+     "D-3"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 5,
+     "neutral": 1,
+     "liability": 0
+    }
+   }
+  },
+  "facts_with_arm_items": {
+   "S": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 15,
+    "unstated": 21,
+    "handled": 21,
+    "short": [],
+    "told": 20,
+    "told_or_marked": 21,
+    "unstated_strong_test_read": 14,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 2,
+    "defect_ids": [
+     "D-1",
+     "D-3"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 2,
+     "neutral": 3,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 18,
+    "unstated": 21,
+    "handled": 20,
+    "short": [
+     "U-22"
+    ],
+    "told": 14,
+    "told_or_marked": 14,
+    "unstated_strong_test_read": 14,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 3,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 1,
+     "neutral": 2,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 16,
+    "unstated": 21,
+    "handled": 21,
+    "short": [],
+    "told": 20,
+    "told_or_marked": 20,
+    "unstated_strong_test_read": 20,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 1,
+    "defect_ids": [
+     "D-3"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 5,
+     "neutral": 1,
+     "liability": 0
+    }
+   }
+  },
+  "pairs": {
+   "S-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": null,
+     "D5": null,
+     "D6": null
+    },
+    "gate": null,
+    "better": null,
+    "verdicts": {
+     "a": {
+      "side": null,
+      "strength": "same",
+      "one_task_closes": "yes",
+      "why": "Both deliver every stated requirement with sound audit, timestamps, per-assignment notification keys, persistence and paging, and both document and version the release. X's edges (strict UTF-8, refusing impossible filter values, a decision record) are balanced by Y's (trimmed names consistent with the requester rule, rollback on every failed save, notification addressing documented) and each carries a small cost (X ships harness cruft and untrimmed names, Y changes repeated-filter behaviour). No difference here would change how an operator runs or keeps the feature.",
+      "lesser_lacks": []
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   },
+   "S-F": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": "first",
+     "D5": null,
+     "D6": "first"
+    },
+    "gate": null,
+    "better": "S",
+    "verdicts": {
+     "a": {
+      "side": "S",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "Behaviour is nearly identical: both have the same audit, no-op, 409, notification-key, persistence and CLI choices, and both store invalid UTF-8 as U+FFFD. Y adds release records and operator documentation Z lacks, plus a real fix for failed saves, at the cost of a changed repeated-filter rule and more store machinery. The gap is mostly documentation and release bookkeeping, which one short task closes.",
+      "lesser_lacks": [
+       "Add a CHANGELOG section for the assignment feature and bump package.json to 1.5.0",
+       "Document in docs/operations.md the notification recipient (bare agent name) and per-assignment outbox key, legacy data-file loading and refusal of a bad saved assignee",
+       "Document in docs/api.md and README that transitions keep the assignee and that show prints the assignee and assignment history",
+       "Optionally make a failed save roll back the in-memory change and answer 500, with a test"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   },
+   "F-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": "second",
+     "D5": null,
+     "D6": "second"
+    },
+    "gate": null,
+    "better": "L",
+    "verdicts": {
+     "a": {
+      "side": "L",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "Both meet every stated requirement and handle the unsaid conditions soundly with the same audit, 409, no-op and notification-key choices. X adds strict UTF-8 validation, release records and operator documentation that Z lacks, while Z's trimming matches the service's existing name rule and it carries no shipped harness cruft. The gap is a small validation fix plus documentation, closable in one short task.",
+      "lesser_lacks": [
+       "Reject an assignment body that is not valid UTF-8 with 400 invalid, leaving the ticket, audit and outbox unchanged, with a test",
+       "Add a CHANGELOG section for the assignment feature and bump package.json's version",
+       "Document in docs/operations.md the per-assignment notification key, legacy data-file loading and refusal of a bad saved assignee; document in api.md/README that transitions keep the assignee and what show prints",
+       "Optionally roll back the in-memory change when saving an assignment fails, with a test"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   }
+  },
+  "nearly_competitive": true,
+  "rechecked_items": [
+   "U-22"
+  ],
+  "inventory": {
+   "stated": 21,
+   "proved": [
+    "S-4",
+    "S-8",
+    "S-9",
+    "S-10",
+    "S-14",
+    "S-15"
+   ],
+   "unstated_rated": 28,
+   "independent": 22,
+   "independent_kept": 19,
+   "arm_only": 6,
+   "arm_only_kept": 2
+  }
+ },
+ "grokbot-clean": {
+  "facts": {
+   "S": {
+    "stated": 108,
+    "built": 108,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 3,
+    "strong_test_read": 62,
+    "unstated": 39,
+    "handled": 34,
+    "short": [
+     "U-9",
+     "U-11",
+     "U-23",
+     "U-39",
+     "U-46"
+    ],
+    "told": 17,
+    "told_or_marked": 17,
+    "unstated_strong_test_read": 14,
+    "defects": 5,
+    "defects_high": [],
+    "defects_low": 4,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-5",
+     "D-6",
+     "D-7",
+     "D-10",
+     "D-15"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 5,
+     "neutral": 3,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 108,
+    "built": 108,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 2,
+    "strong_test_read": 59,
+    "unstated": 39,
+    "handled": 31,
+    "short": [
+     "U-9",
+     "U-11",
+     "U-15",
+     "U-21",
+     "U-23",
+     "U-39",
+     "U-44",
+     "U-46"
+    ],
+    "told": 2,
+    "told_or_marked": 4,
+    "unstated_strong_test_read": 8,
+    "defects": 8,
+    "defects_high": [],
+    "defects_low": 7,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-5",
+     "D-6",
+     "D-7",
+     "D-8",
+     "D-9",
+     "D-10",
+     "D-11",
+     "D-12",
+     "D-13",
+     "D-14",
+     "D-15"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 4,
+     "neutral": 2,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 108,
+    "built": 108,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 4,
+    "strong_test_read": 67,
+    "unstated": 39,
+    "handled": 38,
+    "short": [
+     "U-23"
+    ],
+    "told": 18,
+    "told_or_marked": 24,
+    "unstated_strong_test_read": 19,
+    "defects": 3,
+    "defects_high": [],
+    "defects_low": 2,
+    "defect_ids": [
+     "D-4",
+     "D-5",
+     "D-11",
+     "D-14",
+     "D-15"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 4,
+     "neutral": 3,
+     "liability": 0
+    }
+   }
+  },
+  "facts_with_arm_items": {
+   "S": {
+    "stated": 108,
+    "built": 108,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 3,
+    "strong_test_read": 62,
+    "unstated": 45,
+    "handled": 38,
+    "short": [
+     "U-9",
+     "U-11",
+     "U-23",
+     "U-39",
+     "U-46",
+     "U-50",
+     "U-54"
+    ],
+    "told": 19,
+    "told_or_marked": 19,
+    "unstated_strong_test_read": 15,
+    "defects": 5,
+    "defects_high": [],
+    "defects_low": 4,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-5",
+     "D-6",
+     "D-7",
+     "D-10",
+     "D-15"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 5,
+     "neutral": 3,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 108,
+    "built": 108,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 2,
+    "strong_test_read": 59,
+    "unstated": 45,
+    "handled": 33,
+    "short": [
+     "U-9",
+     "U-11",
+     "U-15",
+     "U-21",
+     "U-23",
+     "U-39",
+     "U-44",
+     "U-46",
+     "U-50",
+     "U-54",
+     "U-57",
+     "U-60"
+    ],
+    "told": 2,
+    "told_or_marked": 4,
+    "unstated_strong_test_read": 8,
+    "defects": 8,
+    "defects_high": [],
+    "defects_low": 7,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-5",
+     "D-6",
+     "D-7",
+     "D-8",
+     "D-9",
+     "D-10",
+     "D-11",
+     "D-12",
+     "D-13",
+     "D-14",
+     "D-15"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 4,
+     "neutral": 2,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 108,
+    "built": 108,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 4,
+    "strong_test_read": 67,
+    "unstated": 45,
+    "handled": 44,
+    "short": [
+     "U-23"
+    ],
+    "told": 21,
+    "told_or_marked": 27,
+    "unstated_strong_test_read": 22,
+    "defects": 3,
+    "defects_high": [],
+    "defects_low": 2,
+    "defect_ids": [
+     "D-4",
+     "D-5",
+     "D-11",
+     "D-14",
+     "D-15"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 4,
+     "neutral": 3,
+     "liability": 0
+    }
+   }
+  },
+  "pairs": {
+   "S-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": "second",
+     "D4": null,
+     "D5": "second",
+     "D6": "second"
+    },
+    "gate": null,
+    "better": "L",
+    "verdicts": {
+     "a": {
+      "side": "L",
+      "strength": "some",
+      "one_task_closes": "no",
+      "why": "Both meet every stated requirement. X avoids six defects Z has (three medium: indistinguishable conversations, indistinguishable same-name bots, and a reply left pending forever during a storage failure), while Z avoids two that X has (a task left Running after a storage error, and silent clipping) and has simpler internals. The edge-case gap favours X, but it is spread across several separate fixes rather than one.",
+      "lesser_lacks": [
+       "Give each conversation button a distinguishing label for empty conversations and for conversations with similar openings (D-1)",
+       "Make bots with the same name distinguishable in the Bots navigation, or refuse duplicate names (D-2)",
+       "Name which task received an added step when several same-titled tasks run (D-3)",
+       "At startup, report a damaged or unreadable data file with a recovery step that names the file, instead of a stack trace or a server that fails every request (D-6)",
+       "Move focus to the edited memory item or the Memory region after Save memory (D-7)",
+       "Record or report a reply whose save fails during a storage error, with Retry, so it never stays pending (D-10)",
+       "Optionally, match record field names regardless of capitals (U-49)"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": false
+   },
+   "S-F": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": "first",
+     "D5": "first",
+     "D6": "first"
+    },
+    "gate": null,
+    "better": "S",
+    "verdicts": {
+     "a": {
+      "side": "S",
+      "strength": "some",
+      "one_task_closes": "no",
+      "why": "Both meet every stated requirement and share the same remaining defects (D-1 to D-7, D-10, D-15). Z also avoids six defects Y has, three of them medium (silent overwrite of saved entries, a failed reply hidden after a new send, a task stuck in Running), and its Since you were away actually reports what happened while the person was away. Closing the gap needs six separate changes across the library, reply, task, away and logging code, more than one short task.",
+      "lesser_lacks": [
+       "Refuse, or notify on, a save under an existing instruction or task name without Edit (D-8)",
+       "Keep a failed reply's alert and Retry after later messages are sent (D-9)",
+       "Mark a task Interrupted or Failed with Retry task when a step's save fails, instead of leaving it Running (D-11)",
+       "Limit Since you were away to changes since the person's last visit, dismissed after reading or a reload (D-12)",
+       "Log the detail of unexpected errors to server output (D-13)",
+       "Tell the person when Bot name or Task request is over the limit instead of clipping it (D-14)"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": false
+   },
+   "F-L": {
+    "readings": {
+     "D1": null,
+     "D2": "second",
+     "D3": "second",
+     "D4": "second",
+     "D5": "second",
+     "D6": "second"
+    },
+    "gate": null,
+    "better": "L",
+    "verdicts": {
+     "a": {
+      "side": "L",
+      "strength": "much",
+      "one_task_closes": "no",
+      "why": "Both meet every stated requirement, but X avoids ten defects Y has (six medium) and Y avoids none that X has. The two defects X still has (D-11, D-14) Y has too. Y would need about ten separate fixes to match X, so the gap is wide and well beyond one short task.",
+      "lesser_lacks": [
+       "Give conversation buttons distinguishing labels (D-1)",
+       "Make same-name bots distinguishable or refuse duplicates (D-2)",
+       "Name the task that received an added step (D-3)",
+       "Report a damaged or unreadable data file at startup with a recovery step (D-6)",
+       "Fix focus after Save memory (D-7)",
+       "Refuse or notify on a duplicate saved-entry name (D-8)",
+       "Keep a failed reply's alert and Retry after later sends (D-9)",
+       "Report a reply whose save fails during a storage error, with Retry, instead of leaving it pending (D-10)",
+       "Limit Since you were away to changes since the last visit (D-12)",
+       "Log unexpected errors with detail and show an honest failure message (D-13)"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": false
+   }
+  },
+  "nearly_competitive": false,
+  "rechecked_items": [
+   "U-11",
+   "U-15",
+   "U-21",
+   "U-39",
+   "U-44",
+   "U-46",
+   "U-50",
+   "U-54",
+   "U-57",
+   "U-60",
+   "U-9"
+  ],
+  "inventory": {
+   "stated": 108,
+   "proved": [
+    "S-5",
+    "S-31",
+    "S-33",
+    "S-67",
+    "S-72",
+    "S-88"
+   ],
+   "unstated_rated": 61,
+   "independent": 46,
+   "independent_kept": 39,
+   "arm_only": 15,
+   "arm_only_kept": 6
+  }
+ },
+ "calibration": {
+  "facts": {
+   "S": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 14,
+    "unstated": 19,
+    "handled": 18,
+    "short": [
+     "U-22"
+    ],
+    "told": 2,
+    "told_or_marked": 2,
+    "unstated_strong_test_read": 3,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-7"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 2,
+     "neutral": 1,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 11,
+    "unstated": 19,
+    "handled": 18,
+    "short": [
+     "U-22"
+    ],
+    "told": 2,
+    "told_or_marked": 2,
+    "unstated_strong_test_read": 3,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-7"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 2,
+     "neutral": 0,
+     "liability": 1
+    }
+   },
+   "L": {
+    "stated": 21,
+    "built": 20,
+    "not_built": [
+     "S-6"
+    ],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 14,
+    "unstated": 19,
+    "handled": 18,
+    "short": [
+     "U-22"
+    ],
+    "told": 2,
+    "told_or_marked": 2,
+    "unstated_strong_test_read": 4,
+    "defects": 1,
+    "defects_high": [],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-5",
+     "D-7"
+    ],
+    "serious": 1,
+    "extras": {
+     "value": 2,
+     "neutral": 1,
+     "liability": 0
+    }
+   },
+   "U": {
+    "stated": 21,
+    "built": 20,
+    "not_built": [
+     "S-18"
+    ],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 13,
+    "unstated": 19,
+    "handled": 17,
+    "short": [
+     "U-16",
+     "U-22"
+    ],
+    "told": 2,
+    "told_or_marked": 2,
+    "unstated_strong_test_read": 2,
+    "defects": 1,
+    "defects_high": [
+     "D-6"
+    ],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-6",
+     "D-7"
+    ],
+    "serious": 2,
+    "extras": {
+     "value": 1,
+     "neutral": 0,
+     "liability": 0
+    }
+   }
+  },
+  "facts_with_arm_items": {
+   "S": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 14,
+    "unstated": 21,
+    "handled": 20,
+    "short": [
+     "U-22"
+    ],
+    "told": 3,
+    "told_or_marked": 3,
+    "unstated_strong_test_read": 3,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-7"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 2,
+     "neutral": 1,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 11,
+    "unstated": 21,
+    "handled": 20,
+    "short": [
+     "U-22"
+    ],
+    "told": 3,
+    "told_or_marked": 3,
+    "unstated_strong_test_read": 3,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-7"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 2,
+     "neutral": 0,
+     "liability": 1
+    }
+   },
+   "L": {
+    "stated": 21,
+    "built": 20,
+    "not_built": [
+     "S-6"
+    ],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 14,
+    "unstated": 21,
+    "handled": 20,
+    "short": [
+     "U-22"
+    ],
+    "told": 3,
+    "told_or_marked": 3,
+    "unstated_strong_test_read": 4,
+    "defects": 1,
+    "defects_high": [],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-5",
+     "D-7"
+    ],
+    "serious": 1,
+    "extras": {
+     "value": 2,
+     "neutral": 1,
+     "liability": 0
+    }
+   },
+   "U": {
+    "stated": 21,
+    "built": 20,
+    "not_built": [
+     "S-18"
+    ],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 13,
+    "unstated": 21,
+    "handled": 19,
+    "short": [
+     "U-16",
+     "U-22"
+    ],
+    "told": 3,
+    "told_or_marked": 3,
+    "unstated_strong_test_read": 2,
+    "defects": 1,
+    "defects_high": [
+     "D-6"
+    ],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-6",
+     "D-7"
+    ],
+    "serious": 2,
+    "extras": {
+     "value": 1,
+     "neutral": 0,
+     "liability": 0
+    }
+   }
+  },
+  "pairs": {
+   "S-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": null,
+     "D5": null,
+     "D6": "first"
+    },
+    "gate": "S",
+    "better": "S",
+    "verdicts": {
+     "a": {
+      "side": "S",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "The two deliveries behave the same everywhere the audits looked except that Z refuses a valid 64-character agent name, breaking a stated requirement (D-5). Z's somewhat stronger test assertions on the response and notification do not outweigh a wrong stated rule. The fix is a one-line constant change plus a boundary test.",
+      "lesser_lacks": [
+       "Change LIMITS.assignee in src/tickets/validate.js from 63 to 64",
+       "Add a test that a 64-character name is accepted and a 65-character one refused"
+      ]
+     },
+     "b": {
+      "side": "S",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "On every audited path except name length, Y and Z assign, unassign, notify, filter, audit, and persist the same way, and they share the same document, UTF-8, and test gaps. Y fails the stated 64-character rule because its limit is 63. That single constant is the gap.",
+      "lesser_lacks": [
+       "Change the assignee maximum from 63 characters to 64, so a 64-character name is stored and only 65 or more is refused without changing the ticket."
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   },
+   "S-F": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": null,
+     "D5": null,
+     "D6": "first"
+    },
+    "gate": null,
+    "better": null,
+    "verdicts": {
+     "a": {
+      "side": "S",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "X and Y behave identically and share every defect, so the difference is only what a maintainer must carry. X adds a duplicated test file and a long specification that decides nothing, both pure cost. Deleting them is a short task.",
+      "lesser_lacks": [
+       "Delete test/assignment-again.test.js",
+       "Remove docs/spec.md or replace it with a short record of the choices made (409 on resolved/closed, ticket.assigned audit action, per-agent outbox key, fifth raw column, status+priority intersection)"
+      ]
+     },
+     "b": {
+      "side": "S",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "X and Z run the same feature, including a correct 64-character limit, and the shared defects do not separate them. X adds a duplicate of the new tests and a specification that decides nothing. Z leaves one test file and no empty spec for the maintainer to carry.",
+      "lesser_lacks": [
+       "Delete test/assignment-again.test.js.",
+       "Delete docs/spec.md."
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   },
+   "F-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": null,
+     "D5": null,
+     "D6": "first"
+    },
+    "gate": "F",
+    "better": "F",
+    "verdicts": {
+     "a": {
+      "side": "F",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "Z breaks a stated requirement by refusing valid 64-character agent names (D-5), which the requester and operator would hit; X builds every stated requirement correctly. X's duplicate test file and empty-calorie specification are maintenance cost but change no behaviour, so a wrong stated rule weighs more. Z closes the gap with a constant change and a boundary test.",
+      "lesser_lacks": [
+       "Change LIMITS.assignee in src/tickets/validate.js from 63 to 64",
+       "Add a test that a 64-character name is accepted and a 65-character one refused"
+      ]
+     },
+     "b": {
+      "side": "F",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "X meets the stated 64-character rule and Y does not; that is the only behavioural difference between them. Y is lighter to keep because its tests are not duplicated and it adds no empty specification. A wrong limit on a stated rule outweighs that maintenance cost, and changing the constant removes it.",
+      "lesser_lacks": [
+       "Change the assignee maximum from 63 characters to 64, so a 64-character name is stored and only 65 or more is refused without changing the ticket."
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   }
+  },
+  "nearly_competitive": true,
+  "rechecked_items": [
+   "S-18",
+   "S-6",
+   "U-16"
+  ],
+  "inventory": {
+   "stated": 21,
+   "proved": [
+    "S-4",
+    "S-8",
+    "S-9",
+    "S-10",
+    "S-14",
+    "S-15"
+   ],
+   "unstated_rated": 28,
+   "independent": 22,
+   "independent_kept": 19,
+   "arm_only": 6,
+   "arm_only_kept": 2
+  }
+ },
+ "calibration2": {
+  "facts": {
+   "S": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 14,
+    "unstated": 19,
+    "handled": 18,
+    "short": [
+     "U-22"
+    ],
+    "told": 2,
+    "told_or_marked": 2,
+    "unstated_strong_test_read": 3,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-6"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 2,
+     "neutral": 1,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 11,
+    "unstated": 19,
+    "handled": 18,
+    "short": [
+     "U-22"
+    ],
+    "told": 2,
+    "told_or_marked": 2,
+    "unstated_strong_test_read": 3,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-6"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 2,
+     "neutral": 0,
+     "liability": 1
+    }
+   },
+   "L": {
+    "stated": 21,
+    "built": 20,
+    "not_built": [
+     "S-13"
+    ],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 14,
+    "unstated": 19,
+    "handled": 16,
+    "short": [
+     "U-7",
+     "U-8",
+     "U-22"
+    ],
+    "told": 2,
+    "told_or_marked": 2,
+    "unstated_strong_test_read": 4,
+    "defects": 1,
+    "defects_high": [
+     "D-5"
+    ],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-5",
+     "D-6"
+    ],
+    "serious": 2,
+    "extras": {
+     "value": 3,
+     "neutral": 1,
+     "liability": 0
+    }
+   },
+   "U": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 11,
+    "unstated": 19,
+    "handled": 17,
+    "short": [
+     "U-4",
+     "U-22"
+    ],
+    "told": 2,
+    "told_or_marked": 2,
+    "unstated_strong_test_read": 3,
+    "defects": 1,
+    "defects_high": [
+     "D-7"
+    ],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-6",
+     "D-7"
+    ],
+    "serious": 1,
+    "extras": {
+     "value": 2,
+     "neutral": 0,
+     "liability": 0
+    }
+   }
+  },
+  "facts_with_arm_items": {
+   "S": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 14,
+    "unstated": 21,
+    "handled": 20,
+    "short": [
+     "U-22"
+    ],
+    "told": 3,
+    "told_or_marked": 3,
+    "unstated_strong_test_read": 3,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-6"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 2,
+     "neutral": 1,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 11,
+    "unstated": 21,
+    "handled": 20,
+    "short": [
+     "U-22"
+    ],
+    "told": 3,
+    "told_or_marked": 3,
+    "unstated_strong_test_read": 3,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-6"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 2,
+     "neutral": 0,
+     "liability": 1
+    }
+   },
+   "L": {
+    "stated": 21,
+    "built": 20,
+    "not_built": [
+     "S-13"
+    ],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 14,
+    "unstated": 21,
+    "handled": 18,
+    "short": [
+     "U-7",
+     "U-8",
+     "U-22"
+    ],
+    "told": 3,
+    "told_or_marked": 3,
+    "unstated_strong_test_read": 4,
+    "defects": 1,
+    "defects_high": [
+     "D-5"
+    ],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-5",
+     "D-6"
+    ],
+    "serious": 2,
+    "extras": {
+     "value": 3,
+     "neutral": 1,
+     "liability": 0
+    }
+   },
+   "U": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 11,
+    "unstated": 21,
+    "handled": 19,
+    "short": [
+     "U-4",
+     "U-22"
+    ],
+    "told": 3,
+    "told_or_marked": 3,
+    "unstated_strong_test_read": 3,
+    "defects": 1,
+    "defects_high": [
+     "D-7"
+    ],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-6",
+     "D-7"
+    ],
+    "serious": 1,
+    "extras": {
+     "value": 2,
+     "neutral": 0,
+     "liability": 0
+    }
+   }
+  },
+  "pairs": {
+   "S-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": "first",
+     "D4": null,
+     "D5": null,
+     "D6": "first"
+    },
+    "gate": "S",
+    "better": "S",
+    "verdicts": {
+     "a": {
+      "side": "S",
+      "strength": "much",
+      "one_task_closes": "yes",
+      "why": "Both deliveries behave the same on every audited item except the notification, where Y fails a stated requirement (S-13, high defect D-5) by telling the requester instead of the agent. That breaks the feature's one outward-facing effect and leaves Y's own suite red. The fix is a one-argument change in assign, which Y's existing test already checks.",
+      "lesser_lacks": [
+       "In TicketStore.assign address the ticket.assigned outbox event to the assigned agent instead of ticket.requester, so the failing notification test passes and npm test is green"
+      ]
+     },
+     "b": {
+      "side": "S",
+      "strength": "much",
+      "one_task_closes": "yes",
+      "why": "X delivers the notice to the named agent and the assignment suite is green. Y delivers that same notice to the ticket requester, with the subject 'Assigned to you', so the agent never hears about the work (D-5, high; S-13, U-7, U-8). The recipient is one hard-coded argument and the failing test already expects the agent name, so one edit closes the gap.",
+      "lesser_lacks": [
+       "In TicketStore.assign, pass the assignee as the notification recipient instead of ticket.requester, then re-run npm test so the existing outbox assertion passes."
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   },
+   "S-F": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": null,
+     "D5": null,
+     "D6": "first"
+    },
+    "gate": null,
+    "better": null,
+    "verdicts": {
+     "a": {
+      "side": "S",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "X and Z behave identically on every stated requirement, unstated condition and defect, and both leave the documents untouched. X adds only weight a maintainer must carry: a duplicated test file and a long specification that decides nothing. Removing both is a short task.",
+      "lesser_lacks": [
+       "Delete test/assignment-again.test.js",
+       "Delete docs/spec.md, or replace it with a short record of the choices actually built (409 on resolved/closed, ticket.assigned for unassign, per-agent outbox key, fifth raw column, filter intersection)"
+      ]
+     },
+     "b": {
+      "side": "S",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "Every stated requirement and every re-tried defect lands the same way on X and Z, including missing docs, the '-' list marker, lossy UTF-8, weak file-load checks, and the UTF-16 length count. Z's only extras are a duplicated test file the audit marks a liability and a specification that decides nothing. Both are maintainer costs; deleting the two files is one short task and leaves the running feature as X shipped it.",
+      "lesser_lacks": [
+       "Delete test/assignment-again.test.js.",
+       "Delete docs/spec.md."
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   },
+   "F-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": "first",
+     "D4": null,
+     "D5": null,
+     "D6": "first"
+    },
+    "gate": "F",
+    "better": "F",
+    "verdicts": {
+     "a": {
+      "side": "F",
+      "strength": "much",
+      "one_task_closes": "yes",
+      "why": "Y fails the stated notification requirement (high defect D-5) and ships a red suite, while X meets every stated requirement. X's duplicated tests and empty spec are maintenance weight, not lost behaviour, so they weigh far less than a broken requirement. Y needs only the one-line recipient fix to match X's behaviour.",
+      "lesser_lacks": [
+       "In TicketStore.assign address the ticket.assigned outbox event to the assigned agent instead of ticket.requester, so the failing notification test passes and npm test is green"
+      ]
+     },
+     "b": {
+      "side": "F",
+      "strength": "much",
+      "one_task_closes": "yes",
+      "why": "Z notifies the assigned agent and npm test passes; Y notifies the requester, which breaks a stated requirement and leaves the suite red. Y is easier to keep only because it has one test file and no empty specification. Fixing Y's recipient closes the gap that decides the pair; copying Z's extra files would not.",
+      "lesser_lacks": [
+       "In TicketStore.assign, address ticket.assigned to the assignee instead of the requester so the existing notification test passes and npm test exits 0."
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   }
+  },
+  "nearly_competitive": true,
+  "rechecked_items": [
+   "S-13",
+   "U-4",
+   "U-7",
+   "U-8"
+  ],
+  "inventory": {
+   "stated": 21,
+   "proved": [
+    "S-4",
+    "S-8",
+    "S-9",
+    "S-10",
+    "S-14",
+    "S-15"
+   ],
+   "unstated_rated": 28,
+   "independent": 22,
+   "independent_kept": 19,
+   "arm_only": 6,
+   "arm_only_kept": 2
+  }
+ }
+}

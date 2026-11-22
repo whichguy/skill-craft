@@ -1,0 +1,280 @@
+{
+ "rechecks": [
+  {
+   "id": "S-6",
+   "results": {
+    "c3cf105": {
+     "grade": "yes",
+     "observed": "PUT T-0001/assignee with 64 x 'a': 200, GET shows a 64-character assignee. T-0002 assigned dana (200), then 65 x 'a': 400 {\"error\":{\"code\":\"invalid\",\"message\":\"assignee must be at most 64 characters\"}}, GET still shows assignee \"dana\". 65 x 'a' on T-0001: 400, assignee length afterwards 64."
+    },
+    "c9191ec": {
+     "grade": "yes",
+     "observed": "PUT T-0001/assignee with 64 x 'a': 200, GET shows a 64-character assignee. T-0002 assigned dana (200), then 65 x 'a': 400 {\"error\":{\"code\":\"invalid\",\"message\":\"assignee must be at most 64 characters\"}}, GET still shows assignee \"dana\". 65 x 'a' on T-0001: 400, assignee length afterwards 64."
+    },
+    "cf491ea": {
+     "grade": "wrong",
+     "observed": "PUT T-0001/assignee with 64 x 'a': 400 {\"error\":{\"code\":\"invalid\",\"message\":\"assignee must be at most 63 characters\"}}, assignee stays null. T-0002 assigned dana (200), then 65 x 'a': 400 {\"error\":{\"code\":\"invalid\",\"message\":\"assignee must be at most 63 characters\"}}, GET still shows assignee \"dana\". 65 x 'a' on T-0001: 400, assignee length afterwards null."
+    },
+    "c636a23": {
+     "grade": "yes",
+     "observed": "PUT T-0001/assignee with 64 x 'a': 200, GET shows a 64-character assignee. T-0002 assigned dana (200), then 65 x 'a': 400 {\"error\":{\"code\":\"invalid\",\"message\":\"assignee must be at most 64 characters\"}}, GET still shows assignee \"dana\". 65 x 'a' on T-0001: 400, assignee length afterwards 64."
+    }
+   }
+  },
+  {
+   "id": "S-18",
+   "results": {
+    "c3cf105": {
+     "grade": "yes",
+     "observed": "Ran the same 28 pre-existing API steps (create incl. invalid bodies, PATCH, transitions incl. reopen, list with each filter, paging, GET, 404, audit, outbox with worker and NOTIFY_FILE), a restart from DATA_FILE, CLI show/list --raw and weekly-report on the base and on this product, assignee field ignored. Differences: GET /tickets?status=open&priority=high; cli rawOpen. status=open&priority=high now gives only the 2 matching tickets (base gave 3, the OR of the filters: the request's 'match every filter'); list --raw appends an empty fifth field. weekly-report --json on the same file: product {\"total\":4,\"byStatus\":{\"open\":3,\"in_progress\":0,\"resolved\":0,\"closed\":1},\"byPriority\":{\"low\":1,\"normal\":1,\"high\":2,\"urgent\":0}} vs base {\"total\":4,\"byStatus\":{\"open\":3,\"in_progress\":0,\"resolved\":0,\"closed\":1},\"byPriority\":{\"low\":1,\"normal\":1,\"high\":2,\"urgent\":0}} (identical). Notifications, audit, restart, show, 404 identical. Existing test files unmodified; they pass on this product (116 pass, 0 fail); npm test 122/122 pass."
+    },
+    "c9191ec": {
+     "grade": "yes",
+     "observed": "Ran the same 28 pre-existing API steps (create incl. invalid bodies, PATCH, transitions incl. reopen, list with each filter, paging, GET, 404, audit, outbox with worker and NOTIFY_FILE), a restart from DATA_FILE, CLI show/list --raw and weekly-report on the base and on this product, assignee field ignored. Differences: GET /tickets?status=open&priority=high; cli rawOpen. status=open&priority=high now gives only the 2 matching tickets (base gave 3, the OR of the filters: the request's 'match every filter'); list --raw appends an empty fifth field. weekly-report --json on the same file: product {\"total\":4,\"byStatus\":{\"open\":3,\"in_progress\":0,\"resolved\":0,\"closed\":1},\"byPriority\":{\"low\":1,\"normal\":1,\"high\":2,\"urgent\":0}} vs base {\"total\":4,\"byStatus\":{\"open\":3,\"in_progress\":0,\"resolved\":0,\"closed\":1},\"byPriority\":{\"low\":1,\"normal\":1,\"high\":2,\"urgent\":0}} (identical). Notifications, audit, restart, show, 404 identical. Existing test files unmodified; they pass on this product (116 pass, 0 fail); npm test 127/127 pass."
+    },
+    "cf491ea": {
+     "grade": "yes",
+     "observed": "Ran the same 28 pre-existing API steps (create incl. invalid bodies, PATCH, transitions incl. reopen, list with each filter, paging, GET, 404, audit, outbox with worker and NOTIFY_FILE), a restart from DATA_FILE, CLI show/list --raw and weekly-report on the base and on this product, assignee field ignored. Differences: GET /tickets?status=open&priority=high; cli rawOpen. status=open&priority=high now gives only the 2 matching tickets (base gave 3, the OR of the filters: the request's 'match every filter'); list --raw appends an empty fifth field. weekly-report --json on the same file: product {\"total\":4,\"byStatus\":{\"open\":3,\"in_progress\":0,\"resolved\":0,\"closed\":1},\"byPriority\":{\"low\":1,\"normal\":1,\"high\":2,\"urgent\":0}} vs base {\"total\":4,\"byStatus\":{\"open\":3,\"in_progress\":0,\"resolved\":0,\"closed\":1},\"byPriority\":{\"low\":1,\"normal\":1,\"high\":2,\"urgent\":0}} (identical). Notifications, audit, restart, show, 404 identical. Existing test files unmodified; they pass on this product (116 pass, 0 fail); npm test 122/122 pass."
+    },
+    "c636a23": {
+     "grade": "partly",
+     "observed": "Ran the same 28 pre-existing API steps (create incl. invalid bodies, PATCH, transitions incl. reopen, list with each filter, paging, GET, 404, audit, outbox with worker and NOTIFY_FILE), a restart from DATA_FILE, CLI show/list --raw and weekly-report on the base and on this product, assignee field ignored. Differences: GET /tickets?status=open&priority=high; cli rawOpen; cli report. status=open&priority=high now gives only the 2 matching tickets (base gave 3, the OR of the filters: the request's 'match every filter'); list --raw puts the assignee in column 2. weekly-report --json on the same file: product {\"total\":4,\"byStatus\":{\"open\":0,\"in_progress\":0,\"resolved\":0,\"closed\":0},\"byPriority\":{\"low\":0,\"normal\":0,\"high\":0,\"urgent\":0}} vs base {\"total\":4,\"byStatus\":{\"open\":3,\"in_progress\":0,\"resolved\":0,\"closed\":1},\"byPriority\":{\"low\":1,\"normal\":1,\"high\":2,\"urgent\":0}} -- the existing weekly report now counts every status and priority as 0. Notifications, audit, restart, show, 404 identical. Existing test files unmodified; they pass on this product (116 pass, 0 fail); npm test 122/122 pass."
+    }
+   }
+  },
+  {
+   "id": "U-16",
+   "results": {
+    "c3cf105": {
+     "grade": "acceptable",
+     "observed": "Data file with T-0001 dana, T-0002 unassigned, T-0003 'ada li' (in_progress), T-0004 unassigned (resolved). list --raw: \"T-0001\\topen\\thigh\\tPrinter jams\\tdana\\nT-0002\\topen\\turgent\\tVPN down\\t\\nT-0003\\tin_progress\\tlow\\tNew laptop\\tada li\\nT-0004\\tresolved\\tnormal\\tMail quota\\t\\n\"; fields per line [5,5,5,5]. The assignee is appended as a fifth column after title, empty for unassigned; 'ada li' stays one field; weekly-report --json {\"total\":4,\"byStatus\":{\"open\":2,\"in_progress\":1,\"resolved\":1,\"closed\":0},\"byPriority\":{\"low\":1,\"normal\":1,\"high\":1,\"urgent\":1}}, identical to the base's on the same file. README still says the raw columns are id, status, priority, title."
+    },
+    "c9191ec": {
+     "grade": "acceptable",
+     "observed": "Data file with T-0001 dana, T-0002 unassigned, T-0003 'ada li' (in_progress), T-0004 unassigned (resolved). list --raw: \"T-0001\\topen\\thigh\\tPrinter jams\\tdana\\nT-0002\\topen\\turgent\\tVPN down\\t\\nT-0003\\tin_progress\\tlow\\tNew laptop\\tada li\\nT-0004\\tresolved\\tnormal\\tMail quota\\t\\n\"; fields per line [5,5,5,5]. The assignee is appended as a fifth column after title, empty for unassigned; 'ada li' stays one field; weekly-report --json {\"total\":4,\"byStatus\":{\"open\":2,\"in_progress\":1,\"resolved\":1,\"closed\":0},\"byPriority\":{\"low\":1,\"normal\":1,\"high\":1,\"urgent\":1}}, identical to the base's on the same file. README still says the raw columns are id, status, priority, title."
+    },
+    "cf491ea": {
+     "grade": "acceptable",
+     "observed": "Data file with T-0001 dana, T-0002 unassigned, T-0003 'ada li' (in_progress), T-0004 unassigned (resolved). list --raw: \"T-0001\\topen\\thigh\\tPrinter jams\\tdana\\nT-0002\\topen\\turgent\\tVPN down\\t\\nT-0003\\tin_progress\\tlow\\tNew laptop\\tada li\\nT-0004\\tresolved\\tnormal\\tMail quota\\t\\n\"; fields per line [5,5,5,5]. The assignee is appended as a fifth column after title, empty for unassigned; 'ada li' stays one field; weekly-report --json {\"total\":4,\"byStatus\":{\"open\":2,\"in_progress\":1,\"resolved\":1,\"closed\":0},\"byPriority\":{\"low\":1,\"normal\":1,\"high\":1,\"urgent\":1}}, identical to the base's on the same file. README still says the raw columns are id, status, priority, title."
+    },
+    "c636a23": {
+     "grade": "poor",
+     "observed": "Data file with T-0001 dana, T-0002 unassigned, T-0003 'ada li' (in_progress), T-0004 unassigned (resolved). list --raw: \"T-0001\\tdana\\topen\\thigh\\tPrinter jams\\nT-0002\\t\\topen\\turgent\\tVPN down\\nT-0003\\tada li\\tin_progress\\tlow\\tNew laptop\\nT-0004\\t\\tresolved\\tnormal\\tMail quota\\n\"; fields per line [5,5,5,5]. The assignee is inserted as column 2 (empty for unassigned), pushing status and priority to columns 3-4; weekly-report --json gives {\"total\":4,\"byStatus\":{\"open\":0,\"in_progress\":0,\"resolved\":0,\"closed\":0},\"byPriority\":{\"low\":0,\"normal\":0,\"high\":0,\"urgent\":0}} vs the base's {\"total\":4,\"byStatus\":{\"open\":2,\"in_progress\":1,\"resolved\":1,\"closed\":0},\"byPriority\":{\"low\":1,\"normal\":1,\"high\":1,\"urgent\":1}} on the same file."
+    }
+   }
+  }
+ ],
+ "defects": [
+  {
+   "id": "D-1",
+   "title": "Delivered documents not updated; README misstates the list --raw columns",
+   "severity": "low",
+   "merged_from": [
+    "c3cf105#1",
+    "c9191ec#1",
+    "cf491ea#2",
+    "c636a23#2"
+   ],
+   "repro": "Read README.md \"Command line\", docs/api.md, CHANGELOG.md and package.json version in the delivered tree; run node bin/tickets.js --data FILE list --raw on a file with tickets.",
+   "expected": "docs/api.md documents the endpoint, assignee field, filter, audit action and notification; README describes the raw columns as output; a CHANGELOG section and a version bump.",
+   "note": "Same defect reported for all four products.",
+   "results": {
+    "c3cf105": {
+     "result": "present",
+     "observed": "README.md, docs/api.md and CHANGELOG.md byte-identical to the base (true, true, true); none mentions assignee; version 1.4.0; README still says raw columns are 'id, status, priority, title' while list --raw prints 5 fields (\"T-0001\\topen\\tnormal\\tPrinter jams\\tdana\\nT-0002\\topen\\tnormal\\tVPN down\\t\\n\")."
+    },
+    "c9191ec": {
+     "result": "present",
+     "observed": "README.md, docs/api.md and CHANGELOG.md byte-identical to the base (true, true, true); none mentions assignee; version 1.4.0; README still says raw columns are 'id, status, priority, title' while list --raw prints 5 fields (\"T-0001\\topen\\tnormal\\tPrinter jams\\tdana\\nT-0002\\topen\\tnormal\\tVPN down\\t\\n\"). docs/spec.md was added but only restates the request sentences; it is not API documentation."
+    },
+    "cf491ea": {
+     "result": "present",
+     "observed": "README.md, docs/api.md and CHANGELOG.md byte-identical to the base (true, true, true); none mentions assignee; version 1.4.0; README still says raw columns are 'id, status, priority, title' while list --raw prints 5 fields (\"T-0001\\topen\\tnormal\\tPrinter jams\\tdana\\nT-0002\\topen\\tnormal\\tVPN down\\t\\n\")."
+    },
+    "c636a23": {
+     "result": "present",
+     "observed": "README.md, docs/api.md and CHANGELOG.md byte-identical to the base (true, true, true); none mentions assignee; version 1.4.0; README still says raw columns are 'id, status, priority, title' while list --raw prints 5 fields (\"T-0001\\tdana\\topen\\tnormal\\tPrinter jams\\nT-0002\\t\\topen\\tnormal\\tVPN down\\n\")."
+    }
+   }
+  },
+  {
+   "id": "D-2",
+   "title": "An assignee holding invalid UTF-8 is silently altered (U+FFFD) and accepted",
+   "severity": "low",
+   "merged_from": [
+    "c3cf105#2",
+    "c9191ec#2",
+    "c636a23#4"
+   ],
+   "repro": "POST /tickets {\"title\":\"t\",\"requester\":\"r\"}; PUT /tickets/T-0001/assignee with the raw bytes {\"assignee\":\"da\\xFFna\"}; GET the ticket, its audit and /admin/outbox.",
+   "expected": "400 invalid, the ticket unchanged.",
+   "note": "On every product a title holding 0xFF on POST /tickets is also accepted (201, stored with U+FFFD), so this follows the service's existing body decoding; severity kept low.",
+   "results": {
+    "c3cf105": {
+     "result": "present",
+     "observed": "PUT returned 200; stored assignee code points [\"64\",\"61\",\"fffd\",\"6e\",\"61\"] (0xFF became U+FFFD); audit gained ticket.assigned; outbox has a pending ticket.assigned to the altered name. Same-convention check: POST with a 0xFF title -> 201, title \"pr�nter\"."
+    },
+    "c9191ec": {
+     "result": "present",
+     "observed": "PUT returned 200; stored assignee code points [\"64\",\"61\",\"fffd\",\"6e\",\"61\"] (0xFF became U+FFFD); audit gained ticket.assigned; outbox has a pending ticket.assigned to the altered name. Same-convention check: POST with a 0xFF title -> 201, title \"pr�nter\"."
+    },
+    "cf491ea": {
+     "result": "present",
+     "observed": "PUT returned 200; stored assignee code points [\"64\",\"61\",\"fffd\",\"6e\",\"61\"] (0xFF became U+FFFD); audit gained ticket.assigned; outbox has a pending ticket.assigned to the altered name. Same-convention check: POST with a 0xFF title -> 201, title \"pr�nter\"."
+    },
+    "c636a23": {
+     "result": "present",
+     "observed": "PUT returned 200; stored assignee code points [\"64\",\"61\",\"fffd\",\"6e\",\"61\"] (0xFF became U+FFFD); audit gained ticket.assigned; outbox has a pending ticket.assigned to the altered name. Same-convention check: POST with a 0xFF title -> 201, title \"pr�nter\"."
+    }
+   }
+  },
+  {
+   "id": "D-3",
+   "title": "An agent named '-' cannot be told from an unassigned ticket in the list table",
+   "severity": "low",
+   "merged_from": [
+    "c3cf105#3",
+    "c636a23#5"
+   ],
+   "repro": "With DATA_FILE: POST /tickets twice; PUT /tickets/T-0001/assignee {\"assignee\":\"-\"}; stop the service; node bin/tickets.js --data FILE list.",
+   "expected": "An assigned and an unassigned ticket are distinguishable in the table.",
+   "note": "",
+   "results": {
+    "c3cf105": {
+     "result": "present",
+     "observed": "PUT '-' -> 200 (assignee \"-\"); table: \"ID      STATUS  PRIORITY  ASSIGNEE  REQUESTER  UPDATED           TITLE\\nT-0001  open    normal    -         pat        2026-11-22 14:35  Printer jams\\nT-0002  open    normal    -         pat        2026-11-22 14:35  Printer jams\\n\" -- both rows show '-' in ASSIGNEE."
+    },
+    "c9191ec": {
+     "result": "present",
+     "observed": "PUT '-' -> 200 (assignee \"-\"); table: \"ID      STATUS  PRIORITY  ASSIGNEE  REQUESTER  UPDATED           TITLE\\nT-0001  open    normal    -         pat        2026-11-22 14:36  Printer jams\\nT-0002  open    normal    -         pat        2026-11-22 14:36  Printer jams\\n\" -- both rows show '-' in ASSIGNEE."
+    },
+    "cf491ea": {
+     "result": "present",
+     "observed": "PUT '-' -> 200 (assignee \"-\"); table: \"ID      STATUS  PRIORITY  ASSIGNEE  REQUESTER  UPDATED           TITLE\\nT-0001  open    normal    -         pat        2026-11-22 14:36  Printer jams\\nT-0002  open    normal    -         pat        2026-11-22 14:36  Printer jams\\n\" -- both rows show '-' in ASSIGNEE."
+    },
+    "c636a23": {
+     "result": "present",
+     "observed": "PUT '-' -> 200 (assignee \"-\"); table: \"ID      STATUS  PRIORITY  ASSIGNEE  REQUESTER  UPDATED           TITLE\\nT-0001  open    normal    -         pat        2026-11-22 14:36  Printer jams\\nT-0002  open    normal    -         pat        2026-11-22 14:36  Printer jams\\n\" -- both rows show '-' in ASSIGNEE."
+    }
+   }
+  },
+  {
+   "id": "D-4",
+   "title": "A data file with an over-long, control-character or blank assignee loads at start",
+   "severity": "low",
+   "merged_from": [
+    "c3cf105#4",
+    "c9191ec#3",
+    "c636a23#6"
+   ],
+   "repro": "With DATA_FILE, create and assign a ticket and stop; edit tickets[0].assignee to a 65-character name, \"da\\tna\" or \"   \"; start with DATA_FILE=that file; GET the ticket; stop; node bin/tickets.js --data FILE list --raw.",
+   "expected": "Start refused with a message naming tickets[0].assignee, as it is for 5 or \"\".",
+   "note": "",
+   "results": {
+    "c3cf105": {
+     "result": "present",
+     "observed": "assignee 5 -> exit 2 ('tickets[0].assignee is not a non-empty string'); \"\" -> exit 2; 65 characters -> started, served a 65-character assignee; \"da\\tna\" -> started, served it, list --raw line has 6 tab-separated fields; \"   \" -> started, served \"   \"."
+    },
+    "c9191ec": {
+     "result": "present",
+     "observed": "assignee 5 -> exit 2 ('tickets[0].assignee is not a non-empty string'); \"\" -> exit 2; 65 characters -> started, served a 65-character assignee; \"da\\tna\" -> started, served it, list --raw line has 6 tab-separated fields; \"   \" -> started, served \"   \"."
+    },
+    "cf491ea": {
+     "result": "present",
+     "observed": "assignee 5 -> exit 2 ('tickets[0].assignee is not a non-empty string'); \"\" -> exit 2; 65 characters -> started, served a 65-character assignee; \"da\\tna\" -> started, served it, list --raw line has 6 tab-separated fields; \"   \" -> started, served \"   \"."
+    },
+    "c636a23": {
+     "result": "present",
+     "observed": "assignee 5 -> exit 2 ('tickets[0].assignee is not a non-empty string'); \"\" -> exit 2; 65 characters -> started, served a 65-character assignee; \"da\\tna\" -> started, served it, list --raw line has 6 tab-separated fields; \"   \" -> started, served \"   \"."
+    }
+   }
+  },
+  {
+   "id": "D-5",
+   "title": "A 64-character agent name is refused: the limit is 63",
+   "severity": "medium",
+   "merged_from": [
+    "cf491ea#1"
+   ],
+   "repro": "Start the service; POST /tickets {\"title\":\"t\",\"requester\":\"r\"}; PUT /tickets/T-0001/assignee {\"assignee\":\"<64 x 'a'>\"}.",
+   "expected": "200 with assignee set to the 64-character name; only 65 or more refused.",
+   "note": "",
+   "results": {
+    "c3cf105": {
+     "result": "absent",
+     "observed": "200; GET shows the 64-character assignee; 65 characters refused with 400 \"assignee must be at most 64 characters\"."
+    },
+    "c9191ec": {
+     "result": "absent",
+     "observed": "200; GET shows the 64-character assignee; 65 characters refused with 400 \"assignee must be at most 64 characters\"."
+    },
+    "cf491ea": {
+     "result": "present",
+     "observed": "400 {\"error\":{\"code\":\"invalid\",\"message\":\"assignee must be at most 63 characters\"}}; GET shows assignee null."
+    },
+    "c636a23": {
+     "result": "absent",
+     "observed": "200; GET shows the 64-character assignee; 65 characters refused with 400 \"assignee must be at most 64 characters\"."
+    }
+   }
+  },
+  {
+   "id": "D-6",
+   "title": "list --raw inserts the assignee as column 2, so the weekly report counts every status and priority as 0",
+   "severity": "high",
+   "merged_from": [
+    "c636a23#1"
+   ],
+   "repro": "Start with DATA_FILE=FILE; POST /tickets twice; PUT /tickets/T-0001/assignee {\"assignee\":\"dana\"}; stop; node bin/tickets.js --data FILE list --raw; node scripts/weekly-report.js --data FILE --json.",
+   "expected": "Raw columns 2 and 3 stay status and priority; report open 2, normal 2 as the base gives on the same file.",
+   "note": "",
+   "results": {
+    "c3cf105": {
+     "result": "absent",
+     "observed": "list --raw: \"T-0001\\topen\\tnormal\\tPrinter jams\\tdana\\nT-0002\\topen\\tnormal\\tVPN down\\t\\n\"; weekly-report --json: {\"total\":2,\"byStatus\":{\"open\":2,\"in_progress\":0,\"resolved\":0,\"closed\":0},\"byPriority\":{\"low\":0,\"normal\":2,\"high\":0,\"urgent\":0}}; the base's report on the same file: {\"total\":2,\"byStatus\":{\"open\":2,\"in_progress\":0,\"resolved\":0,\"closed\":0},\"byPriority\":{\"low\":0,\"normal\":2,\"high\":0,\"urgent\":0}}."
+    },
+    "c9191ec": {
+     "result": "absent",
+     "observed": "list --raw: \"T-0001\\topen\\tnormal\\tPrinter jams\\tdana\\nT-0002\\topen\\tnormal\\tVPN down\\t\\n\"; weekly-report --json: {\"total\":2,\"byStatus\":{\"open\":2,\"in_progress\":0,\"resolved\":0,\"closed\":0},\"byPriority\":{\"low\":0,\"normal\":2,\"high\":0,\"urgent\":0}}; the base's report on the same file: {\"total\":2,\"byStatus\":{\"open\":2,\"in_progress\":0,\"resolved\":0,\"closed\":0},\"byPriority\":{\"low\":0,\"normal\":2,\"high\":0,\"urgent\":0}}."
+    },
+    "cf491ea": {
+     "result": "absent",
+     "observed": "list --raw: \"T-0001\\topen\\tnormal\\tPrinter jams\\tdana\\nT-0002\\topen\\tnormal\\tVPN down\\t\\n\"; weekly-report --json: {\"total\":2,\"byStatus\":{\"open\":2,\"in_progress\":0,\"resolved\":0,\"closed\":0},\"byPriority\":{\"low\":0,\"normal\":2,\"high\":0,\"urgent\":0}}; the base's report on the same file: {\"total\":2,\"byStatus\":{\"open\":2,\"in_progress\":0,\"resolved\":0,\"closed\":0},\"byPriority\":{\"low\":0,\"normal\":2,\"high\":0,\"urgent\":0}}."
+    },
+    "c636a23": {
+     "result": "present",
+     "observed": "list --raw: \"T-0001\\tdana\\topen\\tnormal\\tPrinter jams\\nT-0002\\t\\topen\\tnormal\\tVPN down\\n\"; weekly-report --json: {\"total\":2,\"byStatus\":{\"open\":0,\"in_progress\":0,\"resolved\":0,\"closed\":0},\"byPriority\":{\"low\":0,\"normal\":0,\"high\":0,\"urgent\":0}}; the base's report on the same file: {\"total\":2,\"byStatus\":{\"open\":2,\"in_progress\":0,\"resolved\":0,\"closed\":0},\"byPriority\":{\"low\":0,\"normal\":2,\"high\":0,\"urgent\":0}}."
+    }
+   }
+  },
+  {
+   "id": "D-7",
+   "title": "Agent name limit counts UTF-16 code units, not characters",
+   "severity": "low",
+   "merged_from": [
+    "c636a23#3"
+   ],
+   "repro": "POST /tickets; PUT /tickets/T-0001/assignee with an assignee of 33 copies of U+1F600 (33 characters, 66 UTF-16 code units).",
+   "expected": "Accepted: a name of at most 64 characters.",
+   "note": "The reporter's basis that requester already counts characters is contradicted: on every product POST /tickets with a requester of 33 U+1F600 is refused the same way ('requester must be at most 64 characters'), so the assignee follows the existing convention. Kept low.",
+   "results": {
+    "c3cf105": {
+     "result": "present",
+     "observed": "PUT -> 400 {\"error\":{\"code\":\"invalid\",\"message\":\"assignee must be at most 64 characters\"}}; assignee stays null; requester of the same 33 emoji on POST -> 400 {\"error\":{\"code\":\"invalid\",\"message\":\"requester must be at most 64 characters\"}}."
+    },
+    "c9191ec": {
+     "result": "present",
+     "observed": "PUT -> 400 {\"error\":{\"code\":\"invalid\",\"message\":\"assignee must be at most 64 characters\"}}; assignee stays null; requester of the same 33 emoji on POST -> 400 {\"error\":{\"code\":\"invalid\",\"message\":\"requester must be at most 64 characters\"}}."
+    },
+    "cf491ea": {
+     "result": "present",
+     "observed": "PUT -> 400 {\"error\":{\"code\":\"invalid\",\"message\":\"assignee must be at most 63 characters\"}}; assignee stays null; requester of the same 33 emoji on POST -> 400 {\"error\":{\"code\":\"invalid\",\"message\":\"requester must be at most 64 characters\"}}."
+    },
+    "c636a23": {
+     "result": "present",
+     "observed": "PUT -> 400 {\"error\":{\"code\":\"invalid\",\"message\":\"assignee must be at most 64 characters\"}}; assignee stays null; requester of the same 33 emoji on POST -> 400 {\"error\":{\"code\":\"invalid\",\"message\":\"requester must be at most 64 characters\"}}."
+    }
+   }
+  }
+ ]
+}

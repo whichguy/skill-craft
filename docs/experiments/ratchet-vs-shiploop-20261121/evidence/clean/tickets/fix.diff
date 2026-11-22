@@ -1,0 +1,510 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index b3c4639..45042ee 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,5 +1,27 @@
+ # Changelog
+ 
++## 1.5.0 (2026-11-22)
++
++- Ticket assignment. `PUT /tickets/:id/assignee` with `{"assignee": "Ada Lovelace"}` assigns an open or in-progress
++  ticket to an agent, and `{"assignee": null}` unassigns it; a resolved or closed ticket is 409 `conflict`. Assigning
++  the agent the ticket already has changes nothing. Every ticket has an `assignee`, `null` when it is unassigned, and
++  keeps it when it is resolved, closed or reopened.
++- The agent a ticket is assigned to is notified (`ticket.assigned`, addressed to the agent's name as assigned). Every
++  actual assignment has its own notification, delivered even if the ticket is reassigned or unassigned before it goes
++  out. Unassigning notifies no one. Both are recorded in the audit log as `ticket.assigned`.
++- `GET /tickets?assignee=Ada%20Lovelace` lists that agent's tickets and `?assignee=` the unassigned ones.
++- Filters combine as documented: a ticket is listed only when it matches every filter given (1.4.0 listed a ticket
++  that matched any one of them). A filter given more than once must match each of its values, so two different values
++  list nothing.
++- The command line's `list` and `show` print the assignee; `list --raw` adds it as a fifth column, after the four the
++  weekly report reads.
++- Text limits count Unicode code points, so a character such as `𠮷` or `😀` counts as one, not two, and text that is
++  not valid Unicode is `invalid`: for titles and requesters as for agent names.
++- When the data file cannot be written, a `PATCH`, a transition or an assignment is answered 500 and not made, so the
++  same request sent again saves it. Before, the change stayed in the running service without being saved, and the same
++  request sent again did not save it: it answered 200 for an assignment or a `PATCH`, and 409 for a transition.
++- The data file is still version 1; a ticket saved without an `assignee` loads as unassigned.
++
+ ## 1.4.0 (2025-09-15)
+ 
+ - The operator command line, `bin/tickets.js` (`list`, `show`), and the weekly report, `scripts/weekly-report.js`.
+diff --git a/README.md b/README.md
+index 5a61ed6..2435774 100644
+--- a/README.md
++++ b/README.md
+@@ -70,7 +70,17 @@ node bin/tickets.js --data data/tickets.json show T-0042
+ `list` prints a table with an assignee column. Unassigned tickets show `-` in the table.
+ `list --raw` prints one ticket per line with five tab-separated columns in this order: id, status, priority, title,
+ assignee. The last column is empty for unassigned tickets. `scripts/weekly-report.js` reads the original columns by
+-position.
++position. `list` filters by `--status` and `--priority`; it has no assignee filter.
++
++`show` prints the assignee the same way, `-` for an unassigned ticket, and its history prints each assignment as a
++change of `assignee`: the first one as `assignee Ada`, a reassignment as `assignee Ada -> Ben` and a cleared one as
++`assignee Ada -> null`. Names are printed as they are, so two cases look alike:
++
++- An agent whose name is `-` shows as `-`, like an unassigned ticket, in `list` and `show`. `list --raw` tells them
++  apart: `-` in the last column for the agent, an empty last column for an unassigned ticket.
++- In `show`'s history, clearing an assignment and assigning the ticket to an agent whose name is `null` both print
++  `assignee Ada -> null`. `GET /tickets/:id/audit` tells them apart: JSON `null` for a cleared assignment, the string
++  `"null"` for the agent.
+ 
+ ```sh
+ DATA_FILE=data/tickets.json npm run report:weekly
+diff --git a/docs/api.md b/docs/api.md
+index 3334546..0f8b92e 100644
+--- a/docs/api.md
++++ b/docs/api.md
+@@ -29,6 +29,10 @@ Every error is answered in one envelope ([decision 4](decisions/0004-error-envel
+ 
+ The message is for people; clients branch on `code`.
+ 
++When the data file cannot be written, a `PATCH`, a transition or an assignment is answered 500 `internal` and is not
++made: the ticket, its history and its notifications stay as they were, and the same request sent again, once the file
++can be written, makes the change and saves it.
++
+ ## The ticket
+ 
+ ```json
+@@ -51,10 +55,17 @@ The message is for people; clients branch on `code`.
+ | `priority` | `low`, `normal`, `high` or `urgent` |
+ | `requester` | who reported it (usually an email address), at most 64 characters |
+ | `status` | `open`, `in_progress`, `resolved` or `closed` |
+-| `assignee` | the assigned agent, or `null` for an unassigned ticket |
++| `assignee` | the name of the agent the ticket is assigned to, or `null` for an unassigned ticket; it stays as it is when the ticket is resolved, closed or reopened |
+ | `created` | when it was opened |
+ | `updated` | when it last changed; a request that changes nothing leaves it as it was |
+ 
++The text fields (`title`, `requester` and an agent's name) are trimmed. Their limits count characters as Unicode code
++points, so a character such as `𠮷` or `😀` counts as one; a symbol made of several code points, such as the flag `🇳🇴`
++(two), counts as that many. Text that is not valid Unicode (an unpaired surrogate,
++such as a lone `\ud800` escape in the JSON) is `invalid`. "One line" means no tab, line feed or other control character
++from U+0000 to U+001F, and no U+007F; anything else is kept as sent, including the Unicode line and paragraph
++separators U+2028 and U+2029 and C1 control characters such as U+0085.
++
+ ## Endpoints
+ 
+ ### Create a ticket: `POST /tickets`
+@@ -79,6 +90,15 @@ that the ticket was received.
+ Filters combine: a ticket is listed only when it matches every filter given, so `?status=open&priority=urgent` lists the
+ open tickets that are urgent. A filter value that is not a status or a priority is `invalid`.
+ 
++A filter given more than once must match each of its values. The same value twice is that value once, and two different
++values list no ticket, because a ticket has one status, one priority and one assignee: `?assignee=Ada&assignee=Ben` is
++an empty list.
++
++The `assignee` value is compared with the saved name exactly: case and spaces count, and the value is not trimmed
++(`?assignee=ada%20lovelace` and `?assignee=%20Ada%20Lovelace` do not find `Ada Lovelace`). A value no agent name can
++have, such as one over 64 characters or one with a tab, is not refused: it lists no ticket. The filter keeps tickets in
++every status, so a resolved or closed ticket is listed under the agent it was assigned to when it left `in_progress`.
++
+ Tickets come in id order, a page at a time ([decision 5](decisions/0005-cursor-pagination.md)):
+ 
+ ```json
+@@ -122,12 +142,19 @@ not a status is 400 `invalid`. `closed` is final. When a ticket is resolved, its
+ { "assignee": "Ada Lovelace" }
+ ```
+ 
+-Send `{ "assignee": null }` to clear the assignment. Agent names are trimmed and must contain one to 64 characters
+-on a single line. Answers 200 with the ticket. Only `open` and `in_progress` tickets allow this operation. A missing
+-ticket is 404 `not_found`, and an inactive ticket is 409 `conflict`.
++Send `{ "assignee": null }` to clear the assignment. An agent's name is trimmed, and must then be one to 64 characters
++of valid Unicode on one line (see [the ticket](#the-ticket) for what that means); any other name is 400 `invalid` and
++changes nothing. The body takes no other field. Answers 200 with the ticket. Only `open` and `in_progress` tickets
++can be assigned or unassigned. A missing ticket is 404 `not_found`, and a resolved or closed ticket is 409 `conflict`.
++Assigning a ticket does not change its status, and a transition does not change its assignee: a resolved, closed or
++reopened ticket keeps the agent it had.
+ 
+-Each new assignment records the change and queues a notification to the new agent. Clearing an assignment records
+-the change. Repeating the current assignee leaves the ticket, audit log, and notifications as they were.
++Each actual change of agent, from unassigned or from another agent, is recorded in the audit log as `ticket.assigned`
++and queues a notification to the new agent, addressed to the name exactly as assigned (the service looks up no mail
++address). Clearing an assignment is recorded under the same action, `ticket.assigned`, with `null` as the new value, and
++notifies no one. A notification already queued for an earlier assignment is still delivered after the ticket is
++reassigned or unassigned, and each names the title the ticket had when it was assigned. Repeating the current
++assignee, or `null` on an unassigned ticket, changes nothing: no audit entry, no notification, and `updated` stays.
+ 
+ ### A ticket's history: `GET /tickets/:id/audit`
+ 
+@@ -146,7 +173,9 @@ Every change to the ticket, oldest first ([decision 7](decisions/0007-append-onl
+ ```
+ 
+ `seq` numbers the entries of the whole log. `changes` holds, for each field the change touched, its value before and
+-after. Actions include `ticket.created`, `ticket.updated`, `ticket.transitioned`, and `ticket.assigned`.
++after. Actions include `ticket.created`, `ticket.updated`, `ticket.transitioned`, and `ticket.assigned`. A
++`ticket.assigned` entry records an assignment and an unassignment alike: `changes.assignee.from` is the agent before
++(JSON `null` when there was none) and `changes.assignee.to` the agent after (JSON `null` when the assignment was cleared).
+ 
+ ### The outbox: `GET /admin/outbox`
+ 
+@@ -164,7 +193,9 @@ For operators. Every notification the service has enqueued, by state:
+ }
+ ```
+ 
+-[Operations](operations.md) explains pending, sent and dead.
++An assignment's notification has type `ticket.assigned`, `to` set to the agent's name as assigned (`"Ada Lovelace"`),
++and a key with the `seq` of the assignment's audit entry, such as `ticket.assigned:T-0042:31`, so every assignment has
++a notification of its own. [Operations](operations.md) explains pending, sent and dead.
+ 
+ ### Health: `GET /health`
+ 
+diff --git a/docs/operations.md b/docs/operations.md
+index 064acc4..fb756ef 100644
+--- a/docs/operations.md
++++ b/docs/operations.md
+@@ -22,14 +22,26 @@ state before the change or the state after it.
+   example `data/tickets.json: tickets[3].priority is not a priority`. Fix the record, or restore the backup.
+ - Ticket numbers are never reused: the file keeps the next number, and a file whose next number is not above every
+   ticket's is refused.
++- The file is still version 1. A ticket with no `assignee` (every ticket in a file written before 1.5.0) loads as
++  unassigned, and the next save writes `assignee` on every ticket. A saved assignee is checked like an assignment
++  (one to 64 characters of valid Unicode on one line), so a bad one stops the service like any other bad record:
++  `data/tickets.json: tickets[0].assignee must be at most 64 characters`.
++- When the file cannot be written, the service logs the error, answers the request 500 `internal` and, for a `PATCH`,
++  a transition or an assignment, undoes the change in memory too: the ticket, its history and its notifications stay
++  as they were, both in the running service and in the file. Once the file can be written again, sending the same
++  request again makes the change and saves it.
+ - The file grows with the audit log, which is never trimmed. At the help desk's volume that is a few megabytes a year.
+ 
+ ## Notifications
+ 
+-A change that should tell someone something (a ticket received, a ticket resolved) enqueues a notification in the outbox
+-as part of the change ([decision 6](decisions/0006-notification-outbox.md)). The worker runs every `WORKER_INTERVAL_MS`
+-and delivers the notifications that are due: with `NOTIFY_FILE` set, it appends one JSON line per notification to that
+-file, which the mail relay tails.
++A change that should tell someone something (a ticket received, a ticket resolved, a ticket assigned to an agent)
++enqueues a notification in the outbox as part of the change ([decision 6](decisions/0006-notification-outbox.md)). The
++worker runs every `WORKER_INTERVAL_MS` and delivers the notifications that are due: with `NOTIFY_FILE` set, it appends
++one JSON line per notification to that file, which the mail relay tails.
++
++An assignment's notification is addressed to the agent's name exactly as it was assigned: its line's `to` is
++`Ada Lovelace` for a ticket assigned to `Ada Lovelace`. The service looks up no mail address, so the relay receives the
++name. Clearing an assignment notifies no one.
+ 
+ - **Pending** notifications are waiting to be delivered. A failed delivery is tried again 1 s later, then 2 s, 4 s and
+   8 s after the next failures (never more than five minutes).
+@@ -38,6 +50,10 @@ file, which the mail relay tails.
+ - **Sent** notifications stay too, as a record.
+ - A notification has a key. While a notification with a key is pending, enqueueing the same key again changes nothing,
+   so a ticket resolved, reopened and resolved again within a few seconds sends one "resolved" notification, not two.
++- An assignment's key ends with the sequence number of its audit entry (`ticket.assigned:T-0042:31`), so every actual
++  assignment has its own notification: a ticket assigned to Ada, then Ben, then Ada again sends three. A notification
++  still pending when the ticket is reassigned or unassigned is delivered all the same, and it names the title the ticket
++  had when it was assigned, not a title changed since.
+ 
+ `GET /admin/outbox` lists them all by state. With `WORKER_INTERVAL_MS=0` the worker does not run and notifications stay
+ pending; that is how to look at what a change enqueues.
+diff --git a/docs/shiploop/fix.md b/docs/shiploop/fix.md
+new file mode 100644
+index 0000000..25eb81b
+--- /dev/null
++++ b/docs/shiploop/fix.md
+@@ -0,0 +1,27 @@
++# Fix pass on the assignment change
++
++`npm test` before the pass: 122 tests, 122 pass. After it: 126 tests, 126 pass. Each shortfall in look.md was reproduced
++on the running service (`node src/server.js` with a scratch `DATA_FILE` and `NOTIFY_FILE`, `WORKER_INTERVAL_MS=0`) before
++it was judged. The four new tests, in `test/assignment-fixes.test.js`, fail without the source changes and pass with them.
++
++## Shortfalls
++
++- **A successful retry can lose the assignment (high):** fixed. A change whose save fails now restores the store to its state before the change (`TicketStore.apply`), so the 500 leaves nothing in memory and the same PUT, sent again, assigns and saves it; this also covers `PATCH` and transitions, which share the step. Test: `an assignment whose save fails changes nothing, and the same request sent again is saved`.
++- **The list silently drops a second assignee filter (high):** fixed. A filter given more than once must match each of its values (`filterValue` in `src/tickets/query.js`), so `?assignee=Ada%20Lovelace&assignee=Ben` lists nothing; the same rule covers `status` and `priority`, which dropped a second value the same way. Test: `a filter given more than once lists only the tickets that match every value`.
++- **A name with 64 characters can be rejected (medium):** fixed. Text limits count Unicode code points (`text` in `src/tickets/validate.js`), so `"a" x 63 + "𠮷"` is accepted; titles and requesters share the rule. Test: `an agent name is at most 64 characters counted as Unicode code points`.
++- **Unicode line breaks pass the single-line name check (low):** not changed. The request sets no line rule for names; the product's one-line rule (since 1.4.0, for titles and requesters too) exists to keep the command line's tab-separated output whole, and U+2028, U+2029 and U+0085 do not break it, so refusing them is hardening the request does not ask for. Documented what "one line" refuses and accepts.
++- **An invalid Unicode name can be saved but cannot be selected by its exact value (medium):** fixed. Text that is not valid Unicode (an unpaired surrogate) is 400 `invalid` before anything changes, so every accepted name can be found by the exact `assignee` filter. Test: `an agent name that is not valid Unicode is refused before it changes the ticket`.
++- **The CLI displays an assigned ticket as unassigned (high):** not changed. It needs an agent literally named `-`; the request allows any non-empty name, so refusing `-` would add a rule it does not have, and the delivered tests fix `-` as the table's unassigned marker. Documented that the table and `show` print both as `-`, and that `list --raw` tells them apart.
++- **The CLI history makes assignment and unassignment look the same (low):** not changed. It needs an agent literally named `null`, and any other marker for a cleared value could be some agent's name too; `GET /tickets/:id/audit` tells them apart. Documented in the README.
++
++## Choices documented
++
++- **Lifecycle and ownership** (the assignee is kept through resolve, close and reopen; the filter finds inactive tickets): docs/api.md, the ticket's `assignee` field, "Assign or unassign a ticket" and "List tickets"; CHANGELOG.md 1.5.0.
++- **Existing data** (a version 1 ticket with no `assignee` loads as unassigned; a bad saved assignee stops the start): docs/operations.md, "The data file"; CHANGELOG.md 1.5.0.
++- **Assignee filter validation** (an impossible value such as 65 characters or a tab lists nothing, with 200; the value is exact and not trimmed): docs/api.md, "List tickets".
++- **Notification recipient** (`to` is the name verbatim, no address lookup): docs/api.md, "Assign or unassign a ticket" and "The outbox"; docs/operations.md, "Notifications"; CHANGELOG.md 1.5.0.
++- **Queued notifications after another change** (a key per assignment with its audit `seq`; pending notices still go out after reassignment or clearing, with the title at assignment time): docs/api.md, "Assign or unassign a ticket" and "The outbox"; docs/operations.md, "Notifications"; CHANGELOG.md 1.5.0.
++- **Auditing an unassignment** (same `ticket.assigned` action, `to` is JSON `null`; clearing notifies no one): docs/api.md, "Assign or unassign a ticket" and "A ticket's history"; CHANGELOG.md 1.5.0.
++- **Unchanged shortfalls:** the one-line rule and the separators it accepts (docs/api.md, "The ticket"); `-` for both an unassigned ticket and an agent named `-`, and `assignee Ada -> null` for both a clearing and an agent named `null` (README.md, "Command line").
++- **The fixes themselves:** a failed save answered 500 and undone (docs/api.md, "Errors"; docs/operations.md, "The data file"); a filter given twice (docs/api.md, "List tickets"); code-point limits and valid Unicode (docs/api.md, "The ticket").
++- **Release record:** CHANGELOG.md gains 1.5.0 for the whole assignment change, including that filters now combine as documented (1.4.0 listed a ticket matching any one filter); package.json is 1.5.0, as CONTRIBUTING.md asks.
+diff --git a/package.json b/package.json
+index 30ad02e..d469dd7 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "helpdesk-tickets",
+-  "version": "1.4.0",
++  "version": "1.5.0",
+   "private": true,
+   "description": "The IT help desk's ticket service: an HTTP API, an audit log, requester notifications and an operator command line.",
+   "license": "UNLICENSED",
+diff --git a/src/store.js b/src/store.js
+index 0af0b15..f0e3cb4 100644
+--- a/src/store.js
++++ b/src/store.js
+@@ -28,13 +28,9 @@ class TicketStore {
+    * @param {object|null} [options.state] a saved state to start from; an empty store without one
+    */
+   constructor({ clock, persistence = null, state = null }) {
+-    const initial = state || { nextNumber: 1, tickets: [], audit: [], outbox: {} };
+     this.clock = clock;
+     this.persistence = persistence;
+-    this.nextNumber = initial.nextNumber;
+-    this.tickets = new Map(initial.tickets.map((ticket) => [ticket.id, { ...ticket, assignee: ticket.assignee ?? null }]));
+-    this.audit = new AuditLog(initial.audit);
+-    this.outbox = new Outbox(initial.outbox);
++    this.restore(state || { nextNumber: 1, tickets: [], audit: [], outbox: {} });
+   }
+ 
+   /** A store holding what `persistence` saved (nothing on a first start), saving back to it. */
+@@ -153,19 +149,35 @@ class TicketStore {
+ 
+   /**
+    * Apply `changes` ({ field: { from, to } }) to `ticket` as one audited change, run `effects(at)` (the notifications
+-   * the change causes) and save. When nothing changes there is no audit entry and nothing else happens.
++   * the change causes) and save. When nothing changes there is no audit entry and nothing else happens. When the save
++   * fails, the store goes back to the state before the change and the error is thrown: the request fails whole, and
++   * the same request sent again makes the change and saves it instead of finding it already made but never saved.
+    */
+   apply(ticket, action, changes, actor, effects = () => {}) {
+     if (Object.keys(changes).length === 0) return { ...ticket };
++    const before = this.persistence ? this.snapshot() : null;
+     const at = this.now();
+     for (const [field, { to }] of Object.entries(changes)) ticket[field] = to;
+     ticket.updated = at;
+     const entry = this.audit.append({ ticket: ticket.id, action, actor, at, changes });
+     effects(at, entry);
+-    this.save();
++    try {
++      this.save();
++    } catch (error) {
++      this.restore(before);
++      throw error;
++    }
+     return { ...ticket };
+   }
+ 
++  /** Put the store in `state`, the plain data of snapshot() or of the data file. */
++  restore(state) {
++    this.nextNumber = state.nextNumber;
++    this.tickets = new Map(state.tickets.map((ticket) => [ticket.id, { ...ticket, assignee: ticket.assignee ?? null }]));
++    this.audit = new AuditLog(state.audit);
++    this.outbox = new Outbox(state.outbox);
++  }
++
+   /**
+    * Enqueue notification `type` about `ticket` for `to`. The outbox key, by default the type and the ticket, makes a
+    * second notification with the same key wait for the first instead of being queued twice.
+diff --git a/src/tickets/query.js b/src/tickets/query.js
+index 47c8e3a..1faa11d 100644
+--- a/src/tickets/query.js
++++ b/src/tickets/query.js
+@@ -18,19 +18,31 @@ const MAX_LIMIT = 100;
+ function parseListQuery(params) {
+   const filters = {};
+   if (params.has('status')) {
+-    const status = params.get('status');
+-    if (!isStatus(status)) throw new InvalidError(`status must be one of ${STATUSES.join(', ')}`);
+-    filters.status = status;
++    filters.status = filterValue(params, 'status', (status) => {
++      if (!isStatus(status)) throw new InvalidError(`status must be one of ${STATUSES.join(', ')}`);
++      return status;
++    });
+   }
+   if (params.has('priority')) {
+-    const priority = params.get('priority');
+-    if (!isPriority(priority)) throw new InvalidError(`priority must be one of ${PRIORITIES.join(', ')}`);
+-    filters.priority = priority;
++    filters.priority = filterValue(params, 'priority', (priority) => {
++      if (!isPriority(priority)) throw new InvalidError(`priority must be one of ${PRIORITIES.join(', ')}`);
++      return priority;
++    });
+   }
+-  if (params.has('assignee')) filters.assignee = params.get('assignee') || null;
++  if (params.has('assignee')) filters.assignee = filterValue(params, 'assignee', (assignee) => assignee || null);
+   return { filters, limit: parseLimit(params), after: params.has('cursor') ? decodeCursor(params.get('cursor')) : null };
+ }
+ 
++/**
++ * The value of filter `name`, each value given read by `read`. A ticket must match every filter given, so a filter given
++ * more than once is a filter on each of its values: the same value repeated is that value, and different values come
++ * back as a list that no ticket can match (a ticket has one status, one priority and one assignee). None is dropped.
++ */
++function filterValue(params, name, read) {
++  const values = [...new Set(params.getAll(name).map(read))];
++  return values.length === 1 ? values[0] : values;
++}
++
+ function parseLimit(params) {
+   if (!params.has('limit')) return DEFAULT_LIMIT;
+   const text = params.get('limit');
+@@ -39,9 +51,13 @@ function parseLimit(params) {
+   return limit;
+ }
+ 
+-/** Whether `ticket` passes the listing's `filters` ({ field: value }). With no filter, every ticket passes. */
++/**
++ * Whether `ticket` passes the listing's `filters` ({ field: value }, or { field: [values] } for a filter given with
++ * different values, all of which the ticket must match). With no filter, every ticket passes.
++ */
+ function matchesFilters(ticket, filters) {
+-  return Object.entries(filters).every(([field, value]) => value === undefined || ticket[field] === value);
++  return Object.entries(filters).every(([field, value]) =>
++    value === undefined || [].concat(value).every((one) => ticket[field] === one));
+ }
+ 
+ module.exports = { DEFAULT_LIMIT, MAX_LIMIT, matchesFilters, parseListQuery };
+diff --git a/src/tickets/validate.js b/src/tickets/validate.js
+index 2e3ebb9..8171c2c 100644
+--- a/src/tickets/validate.js
++++ b/src/tickets/validate.js
+@@ -13,13 +13,20 @@ const LIMITS = Object.freeze({ title: 200, requester: 64, assignee: 64 });
+ // Tabs and line breaks would break the command line's tab-separated output (README.md, "Command line").
+ const CONTROL = /[\u0000-\u001f\u007f]/;
+ 
+-/** A required single-line text field: trimmed, not empty, at most `max` characters, no control characters. */
++/**
++ * A required single-line text field: trimmed, not empty, valid Unicode, at most `max` characters, no control
++ * characters. A character is a Unicode code point, so one outside the Basic Multilingual Plane (such as 𠮷 or 😀)
++ * counts once, not as the two UTF-16 units JavaScript's `length` counts. Valid Unicode means no
++ * unpaired surrogate (a JSON `\ud800` escape on its own): no URL can carry one, so an agent saved with one could never
++ * be found again by the listing's assignee filter.
++ */
+ function text(body, name, max) {
+   const value = body[name];
+   if (typeof value !== 'string') throw new InvalidError(`${name} must be a string`);
+   const trimmed = value.trim();
+   if (trimmed === '') throw new InvalidError(`${name} must not be empty`);
+-  if (trimmed.length > max) throw new InvalidError(`${name} must be at most ${max} characters`);
++  if (!trimmed.isWellFormed()) throw new InvalidError(`${name} must be valid Unicode text`);
++  if ([...trimmed].length > max) throw new InvalidError(`${name} must be at most ${max} characters`);
+   if (CONTROL.test(trimmed)) throw new InvalidError(`${name} must be a single line of text`);
+   return trimmed;
+ }
+diff --git a/test/assignment-fixes.test.js b/test/assignment-fixes.test.js
+new file mode 100644
+index 0000000..c951245
+--- /dev/null
++++ b/test/assignment-fixes.test.js
+@@ -0,0 +1,118 @@
++'use strict';
++
++/**
++ * The assignment change's review fixes (docs/shiploop/look.md, "Shortfalls"): a failed save, a filter given twice and
++ * agent names outside the Basic Multilingual Plane or not valid Unicode.
++ */
++
++const assert = require('node:assert/strict');
++const fs = require('node:fs');
++const os = require('node:os');
++const path = require('node:path');
++const { test } = require('node:test');
++const { ticketBody, withService } = require('./helpers');
++
++const endpoint = (id) => `/tickets/${id}/assignee`;
++const ids = (response) => response.body.items.map(({ id }) => id);
++
++function folder(t) {
++  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tickets-assignment-fixes-'));
++  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
++  return dir;
++}
++
++test('an assignment whose save fails changes nothing, and the same request sent again is saved', async (t) => {
++  const dataFile = path.join(folder(t), 'tickets.json');
++  // The data file is written to this temporary file first (src/persistence.js); a folder in its place makes the save fail.
++  const blocked = `${dataFile}.${process.pid}.tmp`;
++  const saved = () => JSON.parse(fs.readFileSync(dataFile, 'utf8'));
++  await withService({ dataFile }, async (api) => {
++    await api.post('/tickets', ticketBody());
++    const before = { ticket: (await api.get('/tickets/T-0001')).body, audit: (await api.get('/tickets/T-0001/audit')).body };
++
++    fs.mkdirSync(blocked);
++    const failed = await api.put(endpoint('T-0001'), { assignee: 'Ada' });
++    assert.equal(failed.status, 500);
++    assert.equal(failed.body.error.code, 'internal');
++    assert.deepEqual((await api.get('/tickets/T-0001')).body, before.ticket);
++    assert.deepEqual((await api.get('/tickets/T-0001/audit')).body, before.audit);
++    assert.deepEqual((await api.get('/admin/outbox')).body.pending.map(({ type }) => type), ['ticket.created']);
++    fs.rmdirSync(blocked);
++
++    const retried = await api.put(endpoint('T-0001'), { assignee: 'Ada' });
++    assert.equal(retried.status, 200);
++    assert.equal(retried.body.assignee, 'Ada');
++    const file = saved();
++    assert.equal(file.tickets[0].assignee, 'Ada');
++    assert.deepEqual(file.audit.map(({ seq, action }) => [seq, action]), [[1, 'ticket.created'], [2, 'ticket.assigned']]);
++    assert.deepEqual(file.outbox.events.filter(({ status }) => status === 'pending').map(({ type, to }) => [type, to]),
++      [['ticket.created', 'maria@example.com'], ['ticket.assigned', 'Ada']]);
++  });
++  // A service started again from the file has the assignment and its pending notice.
++  await withService({ dataFile }, async (api) => {
++    assert.equal((await api.get('/tickets/T-0001')).body.assignee, 'Ada');
++    assert.equal((await api.get('/admin/outbox')).body.pending.find(({ type }) => type === 'ticket.assigned').to, 'Ada');
++  });
++});
++
++test('a filter given more than once lists only the tickets that match every value', async () => {
++  await withService({}, async (api) => {
++    for (const priority of ['urgent', 'normal', 'normal']) await api.post('/tickets', ticketBody({ priority }));
++    assert.equal((await api.put(endpoint('T-0001'), { assignee: 'Ada Lovelace' })).status, 200);
++    assert.equal((await api.put(endpoint('T-0002'), { assignee: 'Ben' })).status, 200);
++    const listing = async (query) => {
++      const response = await api.get(`/tickets?${query}`);
++      assert.equal(response.status, 200, query);
++      return ids(response);
++    };
++
++    assert.deepEqual(await listing('assignee=Ada%20Lovelace&assignee=Ben'), []);
++    assert.deepEqual(await listing('assignee=Ben&assignee=Ada%20Lovelace'), []);
++    assert.deepEqual(await listing('assignee=&assignee=Ben'), []);
++    assert.deepEqual(await listing('assignee=Ben&assignee=Ben'), ['T-0002']);
++    assert.deepEqual(await listing('assignee=&assignee='), ['T-0003']);
++    assert.deepEqual(await listing('status=open&status=closed'), []);
++    assert.deepEqual(await listing('status=open&status=open&priority=normal'), ['T-0002', 'T-0003']);
++    assert.deepEqual(await listing('priority=urgent&priority=normal'), []);
++    const bad = await api.get('/tickets?status=open&status=done');
++    assert.equal(bad.status, 400);
++    assert.equal(bad.body.error.code, 'invalid');
++  });
++});
++
++test('an agent name is at most 64 characters counted as Unicode code points', async () => {
++  await withService({}, async (api) => {
++    await api.post('/tickets', ticketBody());
++    const name = `${'a'.repeat(63)}𠮷`;
++    assert.equal(name.length, 65);
++    const assigned = await api.put(endpoint('T-0001'), { assignee: name });
++    assert.equal(assigned.status, 200);
++    assert.equal(assigned.body.assignee, name);
++    assert.deepEqual(ids(await api.get(`/tickets?assignee=${encodeURIComponent(name)}`)), ['T-0001']);
++
++    const tooLong = await api.put(endpoint('T-0001'), { assignee: `${'a'.repeat(64)}𠮷` });
++    assert.equal(tooLong.status, 400);
++    assert.equal(tooLong.body.error.message, 'assignee must be at most 64 characters');
++  });
++});
++
++test('an agent name that is not valid Unicode is refused before it changes the ticket', async () => {
++  await withService({}, async (api) => {
++    await api.post('/tickets', ticketBody());
++    const before = { ticket: (await api.get('/tickets/T-0001')).body, audit: (await api.get('/tickets/T-0001/audit')).body };
++    for (const body of ['{"assignee":"\\ud800"}', '{"assignee":"Ada \\udfb7"}', '{"assignee":"\\ud842Ada"}']) {
++      const response = await api.put(endpoint('T-0001'), body);
++      assert.equal(response.status, 400, body);
++      assert.equal(response.body.error.code, 'invalid');
++      assert.equal(response.body.error.message, 'assignee must be valid Unicode text');
++    }
++    assert.deepEqual((await api.get('/tickets/T-0001')).body, before.ticket);
++    assert.deepEqual((await api.get('/tickets/T-0001/audit')).body, before.audit);
++
++    // A surrogate pair written as JSON escapes is a valid character.
++    const paired = await api.put(endpoint('T-0001'), '{"assignee":"\\ud842\\udfb7"}');
++    assert.equal(paired.status, 200);
++    assert.equal(paired.body.assignee, '𠮷');
++    assert.deepEqual(ids(await api.get(`/tickets?assignee=${encodeURIComponent('𠮷')}`)), ['T-0001']);
++  });
++});

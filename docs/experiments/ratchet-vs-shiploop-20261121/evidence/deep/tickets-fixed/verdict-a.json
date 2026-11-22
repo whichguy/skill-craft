@@ -1,0 +1,44 @@
+{"pairs": [
+{"pair": "X-Z", "better": "Z-some",
+ "advantages": [
+  {"of": "Z", "what": "A repeated status or priority filter keeps the 1.4.0 answer (first value); X changed an existing query's result beyond the request", "ref": "D-2", "matters_to": "requester"},
+  {"of": "Z", "what": "Invalid UTF-8 in the assignment body is refused with 400 instead of storing a replacement character in the name and the notification recipient", "ref": "D-1", "matters_to": "operator"},
+  {"of": "X", "what": "Names are trimmed, so an assignment sent as '  dana  ' is stored and found by ?assignee=dana; Z keeps the spaces and the plain filter misses it", "ref": "U-3", "matters_to": "operator"},
+  {"of": "X", "what": "One rollback path in apply() for every mutation, and no shipped acceptance/ harness or working notes; Z has an assign-only rollback and extra clutter in the tree", "ref": "maintainer", "matters_to": "maintainer"},
+  {"of": "Z", "what": "show history and assignment quoting documented in README; X leaves the history behaviour untold", "ref": "U-27", "matters_to": "no one"}
+ ],
+ "lesser_lacks": [
+  "Make a repeated status/priority/assignee parameter use its first value again, as 1.4.0 did, and drop the all-values test",
+  "Read the PUT /tickets/:id/assignee body with a strict UTF-8 check and answer 400 invalid for a malformed byte"
+ ],
+ "one_task_closes": "yes",
+ "why": "Both deliver every stated requirement with sound audit, notification, persistence and docs; the difference is in edges. X changes an existing query's answer (D-2) and stores replacement characters from bad UTF-8 (D-1), while Z's main cost is keeping untrimmed names, which the inventory accepts. Two small fixes bring X level."},
+{"pair": "X-Y", "better": "same",
+ "advantages": [
+  {"of": "X", "what": "CHANGELOG 1.5.0 section and package.json version bump; Y leaves both at 1.4.0", "ref": "U-22", "matters_to": "operator"},
+  {"of": "X", "what": "Documents lifecycle keeping of the assignee, filter matching rules and the show assignee line; Y implements them but does not say so", "ref": "U-12", "matters_to": "operator"},
+  {"of": "Y", "what": "A repeated status or priority filter keeps the 1.4.0 answer (first value); X changed it", "ref": "D-2", "matters_to": "requester"}
+ ],
+ "lesser_lacks": [
+  "For Y: add a CHANGELOG 1.5.0 section and bump package.json to 1.5.0",
+  "For Y: document in docs/api.md that the assignee survives transitions and how the assignee filter matches (exact, untrimmed, first value of a repeat)",
+  "For X: restore first-value handling of a repeated filter parameter"
+ ],
+ "one_task_closes": "yes",
+ "why": "The two builds behave almost identically, with the same trimming, 409 rule, audit, per-assignment notification keys and UTF-8 gap. X documents and versions the release fully but changes repeated-filter behaviour; Y keeps that behaviour but ships no changelog or version and leaves several choices untold. The trade-offs are small and roughly balance."},
+{"pair": "Y-Z", "better": "Z-some",
+ "advantages": [
+  {"of": "Z", "what": "CHANGELOG sections and a version bump; Y leaves CHANGELOG and version at 1.4.0", "ref": "U-22", "matters_to": "operator"},
+  {"of": "Z", "what": "Invalid UTF-8 in the assignment body is refused with 400 instead of being stored with a replacement character", "ref": "D-1", "matters_to": "operator"},
+  {"of": "Z", "what": "Documents filter matching, the lifecycle rule and the show assignee line; Y leaves them untold", "ref": "U-13", "matters_to": "operator"},
+  {"of": "Y", "what": "Names are trimmed, so a padded assignment is found by the plain filter; Z stores and matches untrimmed names", "ref": "U-3", "matters_to": "operator"},
+  {"of": "Y", "what": "No acceptance/ harness or working notes shipped, and rollback lives in one apply() path", "ref": "maintainer", "matters_to": "maintainer"}
+ ],
+ "lesser_lacks": [
+  "Add a CHANGELOG section and bump package.json version",
+  "Read the assignment body with a strict UTF-8 check and answer 400 invalid for a malformed byte",
+  "Document in docs/api.md the assignee filter matching rules and that the assignee survives transitions, and in README the show assignee line"
+ ],
+ "one_task_closes": "yes",
+ "why": "Both meet every stated requirement and keep existing behaviour. Z additionally refuses malformed UTF-8 names and ships a complete changelog and documentation, while Y's only edge is trimming names, which matters only for padded input. A short follow-up on Y's docs, version and UTF-8 check would close the gap."}
+]}

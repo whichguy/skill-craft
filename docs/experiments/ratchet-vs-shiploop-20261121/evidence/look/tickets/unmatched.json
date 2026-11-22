@@ -1,0 +1,25 @@
+{
+ "shortfalls": [
+  {
+   "n": 1,
+   "title": "Repeated assignee filters return tickets that fail the second filter"
+  },
+  {
+   "n": 2,
+   "title": "Operators have no documented route from an agent name to a notification destination"
+  },
+  {
+   "n": 3,
+   "title": "The CLI displays an accepted assignee as unassigned"
+  },
+  {
+   "n": 4,
+   "title": "Unicode line breaks pass the single-line check and split raw CLI records"
+  },
+  {
+   "n": 5,
+   "title": "An accepted assignee can be impossible to filter for"
+  }
+ ],
+ "steps_are_in": "/Users/dadleet/e2e-runs/d20261122-360a9f/look/tickets/work/docs/shiploop/look.md"
+}

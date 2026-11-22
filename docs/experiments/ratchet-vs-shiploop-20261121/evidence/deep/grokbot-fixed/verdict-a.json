@@ -1,0 +1,75 @@
+{"pairs": [
+{"pair": "Z-Y", "better": "Y-some",
+ "advantages": [
+  {"of": "Y", "what": "A damaged data file does not print the saved provider token to the server output", "ref": "D-2", "matters_to": "operator"},
+  {"of": "Y", "what": "Unwritable or damaged data folder stops startup with a plain message and a recovery step instead of a raw stack trace", "ref": "D-3", "matters_to": "operator"},
+  {"of": "Y", "what": "Bots with the same name are told apart by a stable Bot #n and conversation label, visually and by description", "ref": "D-4", "matters_to": "requester"},
+  {"of": "Y", "what": "A lookup of ORD-1001A gets a notice that the identifier could not be used and how to correct it, not ORD-1001's value", "ref": "D-6", "matters_to": "requester"},
+  {"of": "Y", "what": "After a refused rename the instruction form is not left silently bound to the edited entry, so no saved entry is lost", "ref": "D-13", "matters_to": "requester"},
+  {"of": "Y", "what": "Proposed values are validated (non-numeric totals, unknown fields, decimal creates refused with correction guidance) instead of applying 'total: 125 -> banana'", "ref": "U-30", "matters_to": "requester"},
+  {"of": "Y", "what": "Field names match regardless of capitals with the same value and preview (Z refuses with guidance)", "ref": "U-49", "matters_to": "requester"},
+  {"of": "Y", "what": "Tests catch a broken DATA_DIR default and per-conversation memory filtering, which Z's suite misses", "ref": "S-5", "matters_to": "maintainer"},
+  {"of": "Z", "what": "After a storage write failure a pending reply is marked failed with Retry instead of blocking the conversation", "ref": "D-11", "matters_to": "requester"},
+  {"of": "Z", "what": "A storage failure during a task marks only that task Failed with Retry task; Y puts the whole app into a 503 mode, reads included, until an operator restarts it", "ref": "D-12", "matters_to": "operator"},
+  {"of": "Z", "what": "The instruction in force is shown with its text and a Clear instructions button", "ref": "U-17", "matters_to": "requester"},
+  {"of": "Y", "what": "Cross-tier submission-receipt protocol, strict snapshot validator, re-parsed stand-in grammar and a shipped acceptance/ harness are extra code a maintainer must carry", "ref": "maintainer", "matters_to": "maintainer"}
+ ],
+ "lesser_lacks": [
+  "Catch damaged or unwritable data at startup and print a plain message naming the problem and the recovery step, never the file contents or token (D-2, D-3)",
+  "Distinguish same-named bots in the Bots navigation (number or description) or refuse duplicates (D-4)",
+  "Add a notice when a typed record id such as ORD-1001A does not exist instead of passing through ORD-1001's value (D-6)",
+  "Clear the instruction/task form binding after a refused rename so a new entry is not saved over the edited one (D-13)",
+  "Validate proposed values (numeric totals, existing fields) with correction guidance before offering a proposal (U-30)",
+  "Optionally match field names case-insensitively (U-49)"
+ ],
+ "one_task_closes": "no",
+ "why": "Y avoids five defects Z has, including the token printed to the server output and silent loss of a saved instruction, and it also validates proposed values. Z handles storage failures more gracefully (D-11, D-12) and shows the active instruction, but those cover rarer conditions. Y's heavier send protocol and shipped harness cost the maintainer something, though not enough to reverse the balance."},
+{"pair": "Z-X", "better": "Z-much",
+ "advantages": [
+  {"of": "Z", "what": "Keyboard Confirm/Reject moves focus to Message, so a second Enter cannot decide another proposal", "ref": "D-8", "matters_to": "requester"},
+  {"of": "Z", "what": "A capitalised field name in a change request is refused with the right field named, instead of creating a second Status field in the record", "ref": "D-9", "matters_to": "requester"},
+  {"of": "Z", "what": "Conversations are distinguishable before opening (numbered duplicates, tooltip with latest message)", "ref": "D-10", "matters_to": "requester"},
+  {"of": "Z", "what": "After a storage write failure the pending reply is marked failed with Retry, not left pending until restart", "ref": "D-11", "matters_to": "requester"},
+  {"of": "Z", "what": "A storage failure during a task marks it Failed with Retry task instead of Running forever", "ref": "D-12", "matters_to": "operator"},
+  {"of": "Z", "what": "Saving under an existing name without Edit is refused with a message instead of silently overwriting", "ref": "D-14", "matters_to": "requester"},
+  {"of": "Z", "what": "README tells many of the decided behaviours (duplicate saves, forget matching, Since you were away, storage failures, field capitals)", "ref": "U-23", "matters_to": "requester"},
+  {"of": "Z", "what": "21 tests against X's 8; Z's suite catches a server-side break of token refusal that X's does not test", "ref": "S-67", "matters_to": "maintainer"}
+ ],
+ "lesser_lacks": [
+  "Stop focus restoration by accessible name from landing on another proposal's Confirm/Reject button (D-8)",
+  "Match or refuse field names in other capitals so a change never creates a second field (D-9)",
+  "Give empty and similar conversations distinct labels or descriptions (D-10)",
+  "Mark an in-flight reply failed with Retry when its progress cannot be saved (D-11)",
+  "Mark a task Failed with Retry task when its step progress cannot be saved (D-12)",
+  "Refuse or announce saving an instruction or task under an existing name (D-14)"
+ ],
+ "one_task_closes": "no",
+ "why": "Both meet the stated requirements, but X carries six more defects, four of them medium. Two put records at risk: a keyboard Enter can confirm the wrong proposal, and a capitalised field silently splits a record. X shows no advantage over Z, and fixing its storage-failure paths and focus handling is more than one short task."},
+{"pair": "X-Y", "better": "Y-much",
+ "advantages": [
+  {"of": "Y", "what": "No token printed to the server output on a damaged data file", "ref": "D-2", "matters_to": "operator"},
+  {"of": "Y", "what": "Plain startup refusal with a recovery step for damaged or unwritable data", "ref": "D-3", "matters_to": "operator"},
+  {"of": "Y", "what": "Same-named bots distinguishable", "ref": "D-4", "matters_to": "requester"},
+  {"of": "Y", "what": "Suffixed record id gets a correction notice rather than another record's value", "ref": "D-6", "matters_to": "requester"},
+  {"of": "Y", "what": "Keyboard decision moves focus to that proposal's Change result, never to another proposal's button", "ref": "D-8", "matters_to": "requester"},
+  {"of": "Y", "what": "Field names are case-insensitive, so no stray second field is created", "ref": "D-9", "matters_to": "requester"},
+  {"of": "Y", "what": "Conversations get distinguishing labels and chat numbers", "ref": "D-10", "matters_to": "requester"},
+  {"of": "Y", "what": "No silent loss of an instruction after a refused rename", "ref": "D-13", "matters_to": "requester"},
+  {"of": "Y", "what": "Duplicate saved names are refused rather than silently overwritten", "ref": "D-14", "matters_to": "requester"},
+  {"of": "Y", "what": "Proposed values validated with correction guidance", "ref": "U-30", "matters_to": "requester"},
+  {"of": "Y", "what": "19 tests that catch a broken DATA_DIR default and memory scoping, which X's 8 miss", "ref": "S-33", "matters_to": "maintainer"},
+  {"of": "X", "what": "A task storage failure leaves the rest of the app readable, while Y switches the whole app to 503 until restart (both still leave the reply and task stuck)", "ref": "U-57", "matters_to": "operator"},
+  {"of": "X", "what": "Simpler code without Y's cross-tier receipt protocol and shipped acceptance harness", "ref": "maintainer", "matters_to": "maintainer"}
+ ],
+ "lesser_lacks": [
+  "Plain startup error for damaged or unwritable data without the file contents or token (D-2, D-3)",
+  "Distinguish same-named bots and similar conversations (D-4, D-10)",
+  "Notice for a nonexistent suffixed record id (D-6)",
+  "Fix focus after keyboard Confirm/Reject so it never lands on another proposal (D-8)",
+  "Case-insensitive field matching or refusal (D-9)",
+  "Clear the form binding after a refused rename and refuse or announce duplicate saved names (D-13, D-14)",
+  "Validate proposed values with correction guidance (U-30)"
+ ],
+ "one_task_closes": "no",
+ "why": "Y avoids nine defects X has, including the two that can change records the person did not mean to change (D-8, D-9) and the token printed to the server output. X's only gains are a smaller codebase and a less drastic reaction to storage failure. The gap covers many separate fixes on both server and client."}
+]}

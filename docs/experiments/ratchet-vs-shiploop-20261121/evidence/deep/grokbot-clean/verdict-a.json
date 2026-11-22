@@ -1,0 +1,81 @@
+{"pairs": [
+{"pair": "Z-X", "better": "X-some",
+ "advantages": [
+  {"of": "X", "what": "Empty conversations and conversations with the same long opening get distinguishing labels (excerpt, Chat n), so each can be identified before opening", "ref": "D-1", "matters_to": "requester"},
+  {"of": "X", "what": "Bots with the same name are told apart (Bot #n and the open conversation's label)", "ref": "D-2", "matters_to": "requester"},
+  {"of": "X", "what": "With two same-titled tasks running, the add-step feedback names the task that got the step (Task #n)", "ref": "D-3", "matters_to": "requester"},
+  {"of": "X", "what": "A damaged or unreadable data file stops startup with an actionable recovery message and keeps the file; Z gives a raw stack trace, or starts and fails every request", "ref": "D-6", "matters_to": "operator"},
+  {"of": "X", "what": "Focus lands on a sensible control after Save memory, not on the page body", "ref": "D-7", "matters_to": "requester"},
+  {"of": "X", "what": "A reply that arrives while storage fails does not stay pending forever and block the conversation; the failure is reported with a recovery step", "ref": "D-10", "matters_to": "requester"},
+  {"of": "X", "what": "Field names in record requests match regardless of capitals (STATUS works like status)", "ref": "U-49", "matters_to": "requester"},
+  {"of": "X", "what": "npm test catches a broken DATA_DIR and memory that stops being shared across a bot's conversations; Z's suite misses both", "ref": "S-5", "matters_to": "maintainer"},
+  {"of": "Z", "what": "A storage error during a task step turns the task Interrupted with Retry task once saving works again; X leaves it Running and takes the whole app out of service until a restart", "ref": "D-11", "matters_to": "operator"},
+  {"of": "Z", "what": "Over-limit text in Bot name or Task request is not cut silently; a notice says how much to remove", "ref": "D-14", "matters_to": "requester"},
+  {"of": "Z", "what": "The bot follows the saved instruction by reference, so an edit or delete takes effect at once; X keeps the copy taken at Use and does not show which text is active", "ref": "U-17", "matters_to": "requester"},
+  {"of": "Z", "what": "Simpler internals: X adds a browser submission journal and receipt protocol and re-implements the stand-in's command grammar in lib/records.js, which must be kept in step with the stand-in", "ref": "U-20", "matters_to": "maintainer"}
+ ],
+ "lesser_lacks": [
+  "Give each conversation button a distinguishing label for empty conversations and for conversations with similar openings (D-1)",
+  "Make bots with the same name distinguishable in the Bots navigation, or refuse duplicate names (D-2)",
+  "Name which task received an added step when several same-titled tasks run (D-3)",
+  "At startup, report a damaged or unreadable data file with a recovery step that names the file, instead of a stack trace or a server that fails every request (D-6)",
+  "Move focus to the edited memory item or the Memory region after Save memory (D-7)",
+  "Record or report a reply whose save fails during a storage error, with Retry, so it never stays pending (D-10)",
+  "Optionally, match record field names regardless of capitals (U-49)"
+ ],
+ "one_task_closes": "no",
+ "why": "Both meet every stated requirement. X avoids six defects Z has (three medium: indistinguishable conversations, indistinguishable same-name bots, and a reply left pending forever during a storage failure), while Z avoids two that X has (a task left Running after a storage error, and silent clipping) and has simpler internals. The edge-case gap favours X, but it is spread across several separate fixes rather than one."},
+{"pair": "Z-Y", "better": "Z-some",
+ "advantages": [
+  {"of": "Z", "what": "Saving an instruction or task under an existing name is refused with an alert instead of silently overwriting it", "ref": "D-8", "matters_to": "requester"},
+  {"of": "Z", "what": "After a failed reply, sending a new message keeps the failed message's alert and Retry; in Y the failure and its Retry disappear and the message is left unanswered", "ref": "D-9", "matters_to": "requester"},
+  {"of": "Z", "what": "A storage error during a task step turns the task Interrupted with Retry task once saving works; Y leaves it Running with nothing running until a restart", "ref": "D-11", "matters_to": "operator"},
+  {"of": "Z", "what": "Since you were away reports what changed since the last visit and drops finished items after a reload; Y lists every task forever", "ref": "D-12", "matters_to": "requester"},
+  {"of": "Z", "what": "Unexpected errors are logged with their message (and the task name), so the operator can see what failed", "ref": "D-13", "matters_to": "operator"},
+  {"of": "Z", "what": "Over-limit text is not cut silently; a notice says how much to remove", "ref": "D-14", "matters_to": "requester"},
+  {"of": "Z", "what": "Since you were away entries open the task's conversation and focus the task; when several tasks run, an Add to <task> choice is offered", "ref": "U-37", "matters_to": "requester"},
+  {"of": "Y", "what": "A stale tab whose person was switched in another tab has its send refused instead of being silently moved to the new person", "ref": "U-1", "matters_to": "requester"},
+  {"of": "Z", "what": "The README records most of the unstated choices (token precedence, name conflicts, away period, field-name case); Y tells almost none of them", "ref": "U-15", "matters_to": "operator"}
+ ],
+ "lesser_lacks": [
+  "Refuse, or notify on, a save under an existing instruction or task name without Edit (D-8)",
+  "Keep a failed reply's alert and Retry after later messages are sent (D-9)",
+  "Mark a task Interrupted or Failed with Retry task when a step's save fails, instead of leaving it Running (D-11)",
+  "Limit Since you were away to changes since the person's last visit, dismissed after reading or a reload (D-12)",
+  "Log the detail of unexpected errors to server output (D-13)",
+  "Tell the person when Bot name or Task request is over the limit instead of clipping it (D-14)"
+ ],
+ "one_task_closes": "no",
+ "why": "Both meet every stated requirement and share the same remaining defects (D-1 to D-7, D-10, D-15). Z also avoids six defects Y has, three of them medium (silent overwrite of saved entries, a failed reply hidden after a new send, a task stuck in Running), and its Since you were away actually reports what happened while the person was away. Closing the gap needs six separate changes across the library, reply, task, away and logging code, more than one short task."},
+{"pair": "Y-X", "better": "X-much",
+ "advantages": [
+  {"of": "X", "what": "Conversations are identifiable before opening, including empty ones and ones with similar openings", "ref": "D-1", "matters_to": "requester"},
+  {"of": "X", "what": "Bots with the same name are distinguishable", "ref": "D-2", "matters_to": "requester"},
+  {"of": "X", "what": "Add-step feedback names which of several same-titled tasks got the step", "ref": "D-3", "matters_to": "requester"},
+  {"of": "X", "what": "A damaged data file gives an actionable startup message and is kept; Y exits with a raw stack trace", "ref": "D-6", "matters_to": "operator"},
+  {"of": "X", "what": "Focus lands sensibly after Save memory", "ref": "D-7", "matters_to": "requester"},
+  {"of": "X", "what": "A duplicate instruction or task name is refused with a message, not silently overwritten", "ref": "D-8", "matters_to": "requester"},
+  {"of": "X", "what": "A failed reply keeps its alert and Retry after a new message is sent", "ref": "D-9", "matters_to": "requester"},
+  {"of": "X", "what": "A reply arriving during a storage failure is reported with a recovery step, not left pending and blocking the conversation", "ref": "D-10", "matters_to": "requester"},
+  {"of": "X", "what": "Since you were away reports changes since the last visit instead of every task forever", "ref": "D-12", "matters_to": "requester"},
+  {"of": "X", "what": "Unexpected errors are reported honestly to the person and are not shown as merely retryable", "ref": "D-13", "matters_to": "operator"},
+  {"of": "X", "what": "Field names in record requests match regardless of capitals", "ref": "U-49", "matters_to": "requester"},
+  {"of": "X", "what": "npm test catches a broken DATA_DIR and memory that stops being shared across conversations; Y's suite misses both", "ref": "S-33", "matters_to": "maintainer"},
+  {"of": "Y", "what": "The bot follows the saved instruction by reference and the list marks the one in use; X keeps the copy taken at Use", "ref": "U-17", "matters_to": "requester"},
+  {"of": "Y", "what": "Simpler internals without X's submission journal and receipt protocol or a re-implementation of the stand-in's grammar", "ref": "U-20", "matters_to": "maintainer"}
+ ],
+ "lesser_lacks": [
+  "Give conversation buttons distinguishing labels (D-1)",
+  "Make same-name bots distinguishable or refuse duplicates (D-2)",
+  "Name the task that received an added step (D-3)",
+  "Report a damaged or unreadable data file at startup with a recovery step (D-6)",
+  "Fix focus after Save memory (D-7)",
+  "Refuse or notify on a duplicate saved-entry name (D-8)",
+  "Keep a failed reply's alert and Retry after later sends (D-9)",
+  "Report a reply whose save fails during a storage error, with Retry, instead of leaving it pending (D-10)",
+  "Limit Since you were away to changes since the last visit (D-12)",
+  "Log unexpected errors with detail and show an honest failure message (D-13)"
+ ],
+ "one_task_closes": "no",
+ "why": "Both meet every stated requirement, but X avoids ten defects Y has (six medium) and Y avoids none that X has. The two defects X still has (D-11, D-14) Y has too. Y would need about ten separate fixes to match X, so the gap is wide and well beyond one short task."}
+]}

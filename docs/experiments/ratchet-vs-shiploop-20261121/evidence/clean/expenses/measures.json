@@ -1,0 +1,45 @@
+{
+ "label": "expenses-1",
+ "arm": "shiploop",
+ "case": "shared-expenses",
+ "base": null,
+ "points": {
+  "final": "f1cf291eb93314905a86380baf8dfbd2d79b21db"
+ },
+ "commit": "22e52c0807ca41aa0224dd81f03b84e9bba44e82",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "time": {
+  "minutes": 10.1,
+  "seconds": 606.9,
+  "resumes": 0,
+  "outcome": "PASS",
+  "pass": true,
+  "shiploop_version": "2.6.0"
+ },
+ "tokens": {
+  "rollouts": 1,
+  "counted": 1,
+  "input": 6664840,
+  "cached": 6524288,
+  "output": 21233,
+  "reasoning": 712,
+  "total": 6686073,
+  "uncached_input": 140552
+ },
+ "measured_points": {
+  "final": "f1cf291eb93314905a86380baf8dfbd2d79b21db"
+ },
+ "at": {
+  "final": {
+   "hidden": {
+    "expenses": {
+     "observed": true,
+     "passed": 6,
+     "failed": [],
+     "of": 6
+    }
+   }
+  }
+ }
+}

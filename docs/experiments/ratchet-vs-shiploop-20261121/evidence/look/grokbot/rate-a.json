@@ -1,0 +1,13 @@
+{"ratings": [
+{"n": 1, "rating": "must", "why": "Pressing Cancel on one task stops a different running task, which destroys work the user meant to keep and breaks the requested keyboard use."},
+{"n": 5, "rating": "should", "why": "The request says writing a message must stay in view in a narrow window, and a valid long name pushes Send out of reach, though only with an unusual unbroken name."},
+{"n": 6, "rating": "should", "why": "A cancel click that is silently dropped leaves the task running with no feedback, a real but timing-dependent cost to steering work."},
+{"n": 7, "rating": "should", "why": "Showing live progress and a pending reply while the server is down misleads a little, but a restart shows the right state and nothing is lost."},
+{"n": 8, "rating": "should", "why": "The request asks to return without losing my place, and losing the scroll position and an unsent draft on reload is a real but modest annoyance."},
+{"n": 10, "rating": "must", "why": "The request asks the bot to ask clarifying questions and follow up, yet answering its own clarifying question just echoes and drops the pending update, a plain defect in a core flow."},
+{"n": 11, "rating": "should", "why": "Without a way to clear active instructions the user cannot return a bot to no instructions short of making a new bot, a real gap in changing them as needs change."},
+{"n": 12, "rating": "should", "why": "The request wants each change stated exactly, and undelimited values can make a preview misleading, though only for values that contain separator-like text."},
+{"n": 13, "rating": "should", "why": "An update quietly rounds a huge total, inconsistent with the create flow's refusal, though the preview does show the rounded value and the input is extreme."},
+{"n": 14, "rating": "should", "why": "Silently cutting the end off an overlong message and sending it changes what the user said with no notice, though it takes over 12,000 characters."},
+{"n": 15, "rating": "should", "why": "The request says a refused token shows an alert, and an operator whose environment token is silently ignored cannot tell why setup reappeared."}
+]}

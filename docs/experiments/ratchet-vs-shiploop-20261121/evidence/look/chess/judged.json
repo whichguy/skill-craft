@@ -1,0 +1,46 @@
+{
+ "shortfalls": [],
+ "defects": [],
+ "silent": [
+  {
+   "id": "U-1",
+   "condition": "What legalMoves, applyMove and status do when the FEN argument is missing, not a string, malformed (empty, wrong number of ranks or squares in a rank, unknown piece letter, bad side-to-move or other field, trailing whitespace or newline) or syntactically valid but an impossible position (a side with no king or two kings, a pawn on the first or eighth rank, the side not to move already in check).",
+   "what_it_does": "Non-strings (no arg, undefined, null, 42) throw TypeError 'Expected a FEN string' from legalMoves/status/applyMove (applyMove with no arguments at all throws IllegalMoveError 'Expected a legal UCI move string' because the move is checked first). '', 'not-a-fen', 7 ranks, side 'x', bad castling/ep/counter fields throw Error 'Invalid FEN fields'; '9' or unknown piece or long rank 'Invalid FEN placement'; no kings / two white kings 'Invalid FEN kings'. Leading/trailing whitespace and newline tolerated. Impossible but parseable positions (pawn on 8th or 1st rank, side not to move in check) return values: pawn on e8 ignored for moves, status 'ongoing'; side-not-to-move-in-check gives 'ongoing' and 16 moves."
+  },
+  {
+   "id": "U-3",
+   "condition": "How applyMove treats move values that are not exactly one of the lowercase UCI strings legalMoves returns: uppercase ('E2E4', 'e7e8Q'), surrounding spaces, SAN ('e4'), a hyphen or capture mark ('e2-e4', 'e2xe4'), a promotion with no piece letter ('e7e8'), a promotion letter on a non-promoting move ('e2e4q'), off-board squares ('e2e9'), a non-string value, and king-takes-rook castling ('e1h1').",
+   "what_it_does": "Only exact lowercase UCI strings from legalMoves are accepted. 'E2E4', ' e2e4', 'e2e4 ', 'e4', 'e2-e4', 'e2xe4', 'e2e4q', 'e2e9' -> IllegalMoveError 'Illegal move: <move>'; 42/undefined -> IllegalMoveError 'Expected a legal UCI move string'. On '4k3/4P3/...' every e7e8x is illegal (e8 is occupied by the king, so the probe's promotions are correctly refused); on '3k4/4P3/8/8/8/8/8/4K3 w - - 0 1' e7e8q/r/b/n give Q/R/B/N on e8, 'e7e8Q' and bare 'e7e8' rejected. 'e1h1' rejected."
+  },
+  {
+   "id": "U-4",
+   "condition": "What the exported IllegalMoveError looks like to a caller: whether it extends Error, its name, its message (whether it names the rejected move) and any properties it carries.",
+   "what_it_does": "class IllegalMoveError extends Error; instanceof IllegalMoveError and Error both true; constructor.name and name 'IllegalMoveError'; message 'Illegal move: e2e5' / 'Illegal move: a1a3'; stack present; own keys ['name']; non-string move message 'Expected a legal UCI move string'."
+  },
+  {
+   "id": "U-5",
+   "condition": "Whether the FEN's castling-rights and en-passant fields are trusted when they cannot match the board (a rights letter whose king or rook is not on its home square; an en-passant square that no pawn could have produced with a two-square push).",
+   "what_it_does": "Castling right letters are not trusted without the king on e1/e8 and the rook on its corner: 'K' with no rook, KQ with no h1 rook, king on e2 -> no e1g1, applyMove e1g1 throws IllegalMoveError, status 'ongoing'. En-passant square is used only when it is on the capturing side's ep rank and the passed pawn is present: 'e3' with white to move ignored (no capture onto e3); d6 with no d5 pawn -> e5d6 not listed and refused."
+  },
+  {
+   "id": "U-7",
+   "condition": "Whether move generation is correct beyond depth 2: counts on published perft positions at depth 3 or more, which exercise pins, discovered check by en passant, loss of castling rights when a rook is captured on its corner, and promotion captures.",
+   "what_it_does": "All published perft counts match: start d3 8902, d4 197281; Kiwipete d1 48, d2 2039, d3 97862; position 3 d4 43238; plus position 4 d3 9467, position 5 d3 62379, position 6 d3 89890."
+  },
+  {
+   "id": "U-9",
+   "condition": "What the test suite actually asserts for each named subject: the move lists or FENs for fool's mate and scholar's mate and whether a final checkmate is asserted; the fixtures and asserted results (FEN fields, UCI moves, status) for castling, en passant, promotion (q only or also r, b, n) and stalemate; and which standard positions, depths and counts the move-count tests check.",
+   "what_it_does": "npm test: exit 0, 8 tests in test/chess.test.js. Fool's/Scholar's mate: exact UCI move lines, exact final FENs, status checkmate and empty legalMoves asserted. Castling (TC-4): four castles with exact FENs, seven refusals (in check, f1/g1 attacked, black through d8, b1 blocked, missing rook, no rights) both by legalMoves and IllegalMoveError, b-file-attacked queenside allowed, rights after h1h2, e1e2, a1a8 capture. En passant (TC-5): white and black, exact FENs, expiry, missing-pawn target, horizontally pinned ep. Promotion (TC-6): b/n/q/r quiet and capture for both colors, exact FENs, bare and 'k' suffix refused. Stalemate (TC-3): one FEN, status and []. Move counts (TC-7): start 20/400/8902, Kiwipete 48/2039/97862, position 3 14/191/2812, recomputed and matching published values."
+  },
+  {
+   "id": "U-11",
+   "condition": "A saved FEN is enough to resume or branch play: results depend only on the FEN and move given, not on earlier calls, other games or a rejected move.",
+   "what_it_does": "Stateless: same FEN gives the same legal moves, status and applyMove result after interleaved calls on another game, after a rejected move (e5e7 -> IllegalMoveError) and in a fresh Node process."
+  },
+  {
+   "id": "U-12",
+   "condition": "Whether the delivered tests exercise the error paths: invalid FENs and illegal or malformed moves, asserting the error thrown.",
+   "what_it_does": "Tests cover both error paths: illegal/malformed/non-string moves asserted with IllegalMoveError class (TC-2 'e2e5','e7e5','a1a3','e1e2','e2e4q','E2E4','e2e4\\n',null; TC-2 pinned rook; TC-4 refused castles; TC-5; TC-6 bare and 'k' promotion), and invalid FENs (TC-2: legalMoves(null) TypeError; no kings /Invalid FEN kings/; '4K4' /Invalid FEN rank width/; halfmove 'x' /Invalid FEN fields/) asserted by message regex."
+  }
+ ]
+}

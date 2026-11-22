@@ -3,7 +3,7 @@
 changed, run against that delivery's tests. No model is called.
 
     python3 mutate.py LABEL TREE FIXTURE OUT.json [--sample N] [--manifest] [--unchanged] [--workers N]
-                                                  [--own-from REPORT.json]
+                                                  [--own-from REPORT.json] [--own-command CMD]
 
 TREE is a delivered product (a Git work folder); FIXTURE is the folder it started from. The faults are the E2E
 harness's own catalog (test/shiploop_e2e/quality.py, `sites`: flipped comparisons, moved bounds, flipped logic and
@@ -139,8 +139,11 @@ def copy_tree(tree, scratch, label):
     return folder
 
 
+OWN_COMMAND = "npm test"  # --own-command replaces it, for a product whose tests run another way (node --test)
+
+
 def suites(folder, manifest):
-    found = {"own": ["npm test"]}
+    found = {"own": [OWN_COMMAND]}
     if manifest:
         entries = json.loads((folder / "ratchet" / "acceptance.json").read_text())
         found["acceptance"] = [entry["command"] for entry in entries.values()]
@@ -202,6 +205,10 @@ def main(argv=None):
         del argv[argv.index("--own-from"):argv.index("--own-from") + 2]
         known = {(row["file"], row["line"], row["op"], row["old"], row["new"]): row.get("own")
                  for row in json.loads(own_from.read_text())["faults"] if not row.get("invalid")}
+    if "--own-command" in argv:
+        global OWN_COMMAND
+        OWN_COMMAND = argv[argv.index("--own-command") + 1]
+        del argv[argv.index("--own-command"):argv.index("--own-command") + 2]
     argv = [arg for arg in argv if arg not in ("--manifest", "--unchanged")]
     if len(argv) != 4:
         raise SystemExit(__doc__)

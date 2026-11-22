@@ -1,0 +1,73 @@
+{
+ "rechecks": [
+  {
+   "id": "U-1",
+   "results": {
+    "pa6dbeb": {
+     "grade": "sound",
+     "observed": "Run in work/probe/pa6dbeb with all 13 probe inputs on legalMoves, status and applyMove(f,'e2e4'). No argument, undefined, null, 42: all three throw Error 'Invalid FEN: expected a string'. '' and 'not-a-fen': Error 'Invalid FEN: expected 6 fields, got 1'. 7 ranks: Error 'Invalid FEN: expected 8 ranks, got 7'. Side 'x': Error 'Invalid FEN: active color must be w or b'. Also bad castling field, bad en-passant field, counter 'x', rank of 7 squares, rank '9', unknown letter: each a descriptive 'Invalid FEN: ...' Error. startFen()+'\\n' tolerated (20 moves, ongoing, e2e4 gives the correct FEN). Impossible positions return values: no kings -> [] / 'stalemate' / IllegalMoveError; two white kings -> 8 moves / ongoing; pawn on 8th -> 3 moves / ongoing; side not to move in check -> 16 moves / ongoing / applyMove e2e4 returns '4k3/8/8/8/4R3/8/8/4K3 b - - 1 1'. Consistent across the three functions; no hangs."
+    },
+    "pc62f4b": {
+     "grade": "poor",
+     "observed": "Run in work/probe/pc62f4b with the same inputs. No argument/undefined/null: TypeError \"Cannot read properties of undefined/null (reading 'trim')\"; 42: TypeError 'fen.trim is not a function'; '', 'not-a-fen', 7 ranks: TypeError 'ranks[rank] is not iterable' (internal, not descriptive). Side 'x' (malformed): confident wrong answer, legalMoves [] and status 'stalemate', applyMove IllegalMoveError. Extra malformed inputs also accepted silently: castling 'XYZ' -> 20 moves/ongoing; en-passant 'z9' -> 20 moves/ongoing; a rank '7' (7 squares) -> 20 moves/ongoing; rank '9' -> applyMove returns 'rnbqkbnr/pppppppp/97/8/...'; unknown letter 'x' -> 20 moves and applyMove echoes 'ppppxppp'. Counter 'x' -> SyntaxError 'Cannot convert x to a BigInt'. Trailing newline tolerated. Impossible positions return values identical to the other products (no kings -> stalemate, etc.). No hangs, but several malformed FENs get confident wrong answers, which the inventory calls not fine."
+    },
+    "p72da10": {
+     "grade": "acceptable",
+     "observed": "Run in work/probe/p72da10 with the same inputs. No argument/undefined/null: TypeError \"Cannot read properties of undefined/null (reading 'trim')\"; 42: TypeError 'fen.trim is not a function' (a TypeError for a non-string, though the message is internal). '', 'not-a-fen', side 'x': Error 'Invalid FEN fields'; 7 ranks: Error 'Invalid FEN placement'; also castling 'XYZ', en-passant 'z9', counter 'x' -> 'Invalid FEN fields'; rank of 7 squares -> 'Invalid FEN rank width'; rank '9' and unknown letter -> 'Invalid FEN rank'. Trailing newline tolerated. No kings -> Error 'Missing king in FEN' from all three; two white kings -> 8 moves/ongoing; pawn on 8th -> 3 moves/ongoing; side not to move in check -> 16 moves/ongoing/applyMove returns a FEN. Consistent across functions, no confident wrong answer for malformed text, no hang; only the non-string case lacks a descriptive message."
+    }
+   }
+  }
+ ],
+ "defects": [
+  {
+   "id": "D-1",
+   "title": "Malformed FENs get confident wrong answers instead of an error",
+   "severity": "medium",
+   "merged_from": [
+    "pc62f4b#1"
+   ],
+   "repro": "const c=require('./src/chess.js'); c.status('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR x KQkq - 0 1'); c.legalMoves('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR x KQkq - 0 1'); c.applyMove('rnbqkbnr/pppppppp/9/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','e2e4'); c.legalMoves('rnbqkbnr/ppppxppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1')",
+   "expected": "A thrown, descriptive error for a bad side-to-move field, a rank of the wrong length or an unknown piece letter",
+   "note": "Merged with nothing: pc62f4b#2 is a different behaviour (an uninformative internal error, not a wrong answer).",
+   "results": {
+    "pa6dbeb": {
+     "result": "absent",
+     "observed": "status/legalMoves on side 'x': Error 'Invalid FEN: active color must be w or b'; applyMove on rank '9': Error 'Invalid FEN: rank 6 is not a valid rank'; legalMoves with letter 'x': Error 'Invalid FEN: rank 7 is not a valid rank'."
+    },
+    "pc62f4b": {
+     "result": "present",
+     "observed": "status side 'x' -> 'stalemate'; legalMoves side 'x' -> []; applyMove rank '9' -> 'rnbqkbnr/pppppppp/97/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1'; legalMoves with letter 'x' -> 20 moves, and applyMove e2e4 on it returns 'rnbqkbnr/ppppxppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1'. Also castling 'XYZ', en-passant 'z9' and a 7-square rank each give 20 moves/ongoing."
+    },
+    "p72da10": {
+     "result": "absent",
+     "observed": "status/legalMoves on side 'x': Error 'Invalid FEN fields'; applyMove on rank '9': Error 'Invalid FEN rank'; legalMoves with letter 'x': Error 'Invalid FEN rank'."
+    }
+   }
+  },
+  {
+   "id": "D-2",
+   "title": "Missing, non-string or empty FEN throws an internal TypeError with no useful message",
+   "severity": "low",
+   "merged_from": [
+    "pc62f4b#2"
+   ],
+   "repro": "const c=require('./src/chess.js'); c.legalMoves(); c.status(42); c.applyMove('', 'e2e4'); c.legalMoves('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - x 1')",
+   "expected": "An error that says the FEN is invalid (any class)",
+   "note": "On p72da10 only the first two calls (missing argument, non-string) show it; the empty FEN and the bad counter give 'Invalid FEN fields'.",
+   "results": {
+    "pa6dbeb": {
+     "result": "absent",
+     "observed": "legalMoves() and status(42): Error 'Invalid FEN: expected a string'; applyMove('', 'e2e4'): Error 'Invalid FEN: expected 6 fields, got 1'; halfmove 'x': Error 'Invalid FEN: halfmove and fullmove counters must be whole numbers'."
+    },
+    "pc62f4b": {
+     "result": "present",
+     "observed": "legalMoves(): TypeError \"Cannot read properties of undefined (reading 'trim')\"; status(42): TypeError 'fen.trim is not a function'; applyMove('', 'e2e4'): TypeError 'ranks[rank] is not iterable'; halfmove 'x': SyntaxError 'Cannot convert x to a BigInt'."
+    },
+    "p72da10": {
+     "result": "present",
+     "observed": "legalMoves(): TypeError \"Cannot read properties of undefined (reading 'trim')\"; status(42): TypeError 'fen.trim is not a function' (internal messages that do not say the FEN is invalid); applyMove('', 'e2e4'): Error 'Invalid FEN fields'; halfmove 'x': Error 'Invalid FEN fields'. Present for the missing and non-string cases only."
+    }
+   }
+  }
+ ]
+}
