@@ -2,6 +2,17 @@
 
 Written by scripts/release.py.
 
+## 2026-11-22
+
+### skill-craft 4.3.0
+
+- Skills: shiploop 2.5.0
+
+### shiploop 2.5.0
+
+- At `release-verify`, where the consumer checks run in a clean copy of the returned result, ShipLoop now also runs each regression command of the last work item whose step plan records one, where no check already is that command, and it must pass there. A delivery whose own suite fails in the clean copy is refused whatever consumer checks were written; the packet and the refusal mark the added commands. The refusal names two exits: `send-back` when the release plan lacks a step the suite needs there (install, build), `add-work` when the delivery must change. No test count is compared.
+- A file moved or renamed during the work is now committed whole. ShipLoop's commit helper lists staged changes with rename detection off and takes a deletion that is already staged, and the commit before the return lists changed paths the same way. Before, the old path's deletion was left staged and uncommitted, so the return could not fast-forward and the user's checkout received the delivery as uncommitted changes.
+
 ## 2026-11-21
 
 ### skill-craft 4.2.1

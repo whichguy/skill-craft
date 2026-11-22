@@ -1341,7 +1341,10 @@ def commit_leftovers(workspace_root: Path) -> shiploop_git.Committed:
     worktree = _resolved_directory(Path(manifest["worktree"]), label="workspace worktree")
     if _branch(worktree) != manifest["branch"]:
         _fail("workspace branch changed after preparation")
-    tracked = [name for name in _git_bytes(worktree, "diff", "--name-only", "-z", "HEAD").decode(
+    # Renames off: a staged move is two changes, and with rename detection the listing names only its new path, so
+    # the old path's deletion stayed staged, the candidate kept a tracked change and the return could not
+    # fast-forward (a live delivery, 2026-11-21).
+    tracked = [name for name in _git_bytes(worktree, "diff", "--name-only", "--no-renames", "-z", "HEAD").decode(
         "utf-8", "surrogateescape").split("\0") if name]
     paths = sorted({*tracked, *(row["path"] for row in _untracked(worktree))})
     chosen = [path for path in paths if not never_committed(path, manifest["excluded"])]
@@ -2174,7 +2177,8 @@ def follow_up_knowledge_return(workspace_root: Path) -> Optional[Dict[str, Any]]
     head = str((receipt.get("candidate_fingerprint") or {}).get("head") or "")
     if not _SHA.fullmatch(head):
         return None
-    changed = [name for name in _git_bytes(worktree, "diff", "--name-only", "-z", head, "HEAD").decode(
+    # Renames off, as above: a file moved into the knowledge home is also a change outside it.
+    changed = [name for name in _git_bytes(worktree, "diff", "--name-only", "--no-renames", "-z", head, "HEAD").decode(
         "utf-8", "surrogateescape").split("\0") if name]
     dirty = [line[3:] for line in _git_bytes(worktree, "status", "--porcelain=v1", "--untracked-files=all").decode(
         "utf-8", "surrogateescape").splitlines() if line and not _forbidden(line[3:])]
