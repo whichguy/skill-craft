@@ -1,0 +1,39 @@
+{
+ "code": "M08",
+ "repeat": 2,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "The work delivers the two files by returning them to the local source checkout.",
+   "alternative": "The requester may have expected a branch or pull request they could review and merge.",
+   "where": "repo/docs/shiploop/environment.md, Targets and runtimes (line 5) and Harnesses and suites (line 30)."
+  },
+  {
+   "decision": "The supported way to run the script is to invoke Python 3 explicitly with `python3 hello.py` from the checkout.",
+   "alternative": "The requester may have expected `./hello.py` to work directly as an executable command.",
+   "where": "repo/docs/shiploop/spec.md, R-1 Print the greeting (line 7)."
+  },
+  {
+   "decision": "The script must return a successful exit status in addition to producing the requested output.",
+   "alternative": "The requester may have intended the output to be the entire acceptance check, leaving the process exit status unspecified.",
+   "where": "repo/docs/shiploop/spec.md, R-1 Print the greeting (line 7)."
+  },
+  {
+   "decision": "The regression test exercises the script as a subprocess and checks its complete stdout, so a missing script also fails the test.",
+   "alternative": "The requester may have intended a unittest that imports and calls the greeting code and checks the stdout it produces within the test process.",
+   "where": "record/01-intake.md, result summary (line 93), and repo/docs/shiploop/spec.md, R-1 and R-2 (lines 7 and 11)."
+  },
+  {
+   "decision": "The test must be discoverable from the checkout by the standard unittest runner without naming the test module.",
+   "alternative": "The requester may have expected to run the test by naming `test_hello` explicitly.",
+   "where": "repo/docs/shiploop/spec.md, R-2 Supply a unittest regression test (line 11)."
+  }
+ ]
+}

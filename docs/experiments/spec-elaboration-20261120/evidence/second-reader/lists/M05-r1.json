@@ -1,0 +1,49 @@
+{
+ "code": "M05",
+ "repeat": 1,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "The documented launch is `python3 hello.py` from the repository root, using Python 3 on PATH and its standard library with no arguments.",
+   "alternative": "The requester might have expected to launch `./hello.py` directly as an executable script.",
+   "where": "repo/docs/shiploop/environment.md, Targets and runtimes and Commands (lines 3\u20139), and repo/docs/shiploop/spec.md, R-1 and Non-functional requirements (lines 9 and 19)."
+  },
+  {
+   "decision": "The files are to be delivered to the current local checkout.",
+   "alternative": "The requester might have expected a Git commit they could review or cherry-pick.",
+   "where": "repo/docs/shiploop/environment.md, Targets and runtimes (line 5), and record/01-intake.md, Q4 and summary (lines 99\u2013105 and 117)."
+  },
+  {
+   "decision": "The unittest launches `hello.py` in a subprocess and checks the output of that invocation.",
+   "alternative": "The requester might have meant to test an importable greeting function directly, leaving command-line behavior outside the regression test.",
+   "where": "repo/docs/shiploop/spec.md, R-2 (line 15), and record/01-intake.md, Q3 (lines 89\u201396)."
+  },
+  {
+   "decision": "Command acceptance requires a successful process exit as well as the expected output.",
+   "alternative": "The requester might have meant the output check to pass whenever the greeting is correct, regardless of the exit status.",
+   "where": "repo/docs/shiploop/spec.md, R-1 (line 9)."
+  },
+  {
+   "decision": "The output check compares the complete stdout stream and leaves stderr outside the assertion.",
+   "alternative": "The requester might have meant the greeting to be the only visible terminal output and expected the test to fail if anything appeared on stderr.",
+   "where": "repo/docs/shiploop/spec.md, R-1 and R-2 (lines 9 and 15)."
+  },
+  {
+   "decision": "The acceptance check compares raw stdout bytes against a fixed byte sequence.",
+   "alternative": "The requester might have meant to compare the decoded text with platform line endings normalized.",
+   "where": "repo/docs/shiploop/spec.md, R-1 and R-2 (lines 9 and 15), and record/03-research.md, summary (line 14)."
+  },
+  {
+   "decision": "The documented test command uses default unittest discovery from the repository root.",
+   "alternative": "The requester might have expected the verification command to target `test_hello.py` explicitly so that it runs only the greeting test module.",
+   "where": "repo/docs/shiploop/spec.md, R-2 (line 15), and repo/docs/shiploop/environment.md, Commands (line 9)."
+  }
+ ]
+}

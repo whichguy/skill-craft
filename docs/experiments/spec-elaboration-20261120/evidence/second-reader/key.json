@@ -1,0 +1,306 @@
+{
+ "M01": {
+  "name": "k3",
+  "delivery": "/Users/dadleet/e2e-runs/r-20261122-ffb3fb/k3",
+  "run": "/Users/dadleet/e2e-runs/r-20261122-ffb3fb/k3/.shiploop-runs/work-20261122-142452-a5b7a1/run",
+  "case": "due",
+  "wording": "latest",
+  "commit": "9351e9bc49003c0858d50f6d50329d5687cd3c7e",
+  "found_by": "subject",
+  "record": [
+   "01-intake.md",
+   "02-discovery.md",
+   "03-research.md",
+   "04-spec.md"
+  ],
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "rows": [
+   "1. R-1 How do I set hours? Decided: Use one DUE_HOURS_<PRIORITY> variable per priority, in positive whole hours. Otherwise: Use one JSON setting, requiring operators to format the whole policy as JSON.",
+   "2. R-2 Is a ticket overdue at exactly its due timestamp? Decided: It becomes overdue once the clock passes that timestamp. Otherwise: Include equality and show the ticket one millisecond sooner.",
+   "3. R-3 How do I prepare a legacy file? Decided: Run an offline backfill against DATA_FILE using the existing stored priority, then enable. Otherwise: Auto-backfill during normal startup, coupling activation to the first migration write."
+  ],
+  "told_sha256": "cf0b481c492b8ffa5affa9d85631209324076c7ddceb71d4e0c877b5a9cd6a39"
+ },
+ "M02": {
+  "name": "k4",
+  "delivery": "/Users/dadleet/e2e-runs/r-20261122-ffb3fb/k4",
+  "run": "/Users/dadleet/e2e-runs/r-20261122-ffb3fb/k4/.shiploop-runs/work-20261122-142444-b50915/run",
+  "case": "due",
+  "wording": "latest",
+  "commit": "237fc86047e284607ab98d27aa9ef506b8c24b83",
+  "found_by": "time",
+  "record": [
+   "01-intake.md",
+   "02-discovery.md",
+   "03-research.md",
+   "04-spec.md"
+  ],
+  "model": "claude-sonnet-5-5",
+  "effort": "medium",
+  "rows": [
+   "1. R-2 How does the help desk set the hours without a code change, and how large may they be? Decided: Four environment variables DUE_HOURS_URGENT/HIGH/NORMAL/LOW, whole hours from 1 to 87600 (ten years), read at start; unset keeps 4/24/72/168; a value outside that range or not a number stops the service at start naming the variable. Otherwise: A hours file (JSON) the service reads at start: adds a file to manage; or no upper bound, which lets a huge value crash ticket creation.",
+   "2. R-5 What does overdue=false or another value of overdue do? Decided: overdue=false means no filter; any other value is rejected 400 in the error envelope; unknown values of other parameters are still ignored as today. Otherwise: Treat every value other than true as no filter: fewer errors for clients, but a typo like overdue=ture silently lists every ticket.",
+   "3. R-6 When do the existing production tickets get their due times, given the switch is turned on only afterwards? Decided: At the first start of the new release on the data file, whether DUE_TIMES is on or off; the file is saved at once if any ticket was backfilled; operators deploy with DUE_TIMES off, check the file holds due, then set on. Otherwise: A separate one-time migration command operators run: one more step to remember and a service that would start without due times.",
+   "4. R-7 Which values of DUE_TIMES switch due times on? Decided: Only the exact value on; unset, empty or anything else (even ON or 1) leaves them off and the service answers as today. Otherwise: Accept on/ON/1/true: friendlier, but a stray value could expose due times early.",
+   "5. R-8 What happens to due times when operators roll back to 1.4.0 and later forward again? Decided: 1.4.0 starts and shows every ticket but drops due times at its first save; the new release backfills them again on the next start from created and the hours then configured. Documented for operators. Otherwise: Add a second version-1 field or sidecar file that 1.4.0 preserves: keeps original due times across a rollback but is a larger change to the format with no way for 1.4.0 to preserve it.",
+   "6. R-7 Does the command line show due times? Decided: No: bin/tickets.js, its table and `list --raw` stay exactly as today, with the flag on or off. Otherwise: Show due in `show` when DUE_TIMES=on: operators see it, but the command line would need to read the switch and the request does not ask for it."
+  ],
+  "told_sha256": "1282a71162a1140d53c0812e850abea4497dbc26b018aec886a55d6c1bfffbb2"
+ },
+ "M03": {
+  "name": "s1",
+  "delivery": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w3/s1",
+  "run": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w3/s1/.shiploop-runs/work-20261122-080001-a002e7/run",
+  "case": "due",
+  "wording": "final",
+  "commit": "6bb34eede85e0c7b095c814d0802136948d155e5",
+  "found_by": "time",
+  "record": [
+   "01-intake.md",
+   "02-discovery.md",
+   "03-research.md",
+   "04-spec.md"
+  ],
+  "model": "claude-sonnet-5-5",
+  "effort": "medium",
+  "rows": [
+   "1. R-2 How does the help desk change the hours? Decided: Operators set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL, DUE_HOURS_LOW in the service's environment and restart; unset means 4/24/72/168; a bad value stops start with a message naming it. Each value must be a whole number from 1 to 100000 hours, else start stops. Otherwise: A settings file or an API to edit hours live; it would add a new file or endpoint to maintain.",
+   "2. R-5 Is a ticket due exactly now overdue, and what does overdue=false do? Decided: Overdue means due strictly before now; overdue=true narrows the list; overdue=false or any other value gets a 400 invalid error. Otherwise: Accept overdue=false as 'only tickets not overdue'; it would add a second filter meaning.",
+   "3. R-7 What happens with DUE_TIMES unset, off or misspelt? Decided: Only the exact value on switches it on; anything else acts as off: no due in answers and overdue ignored. The service still stores due times in the data file. Otherwise: Refuse to start on an unknown value; a typo would stop the service instead of silently staying off.",
+   "4. R-6 When do existing tickets receive due times and what hours are used? Decided: At the first start of the new release, whatever DUE_TIMES says, using the hours set at that moment; the file is rewritten once with no audit entries. Otherwise: A separate migration command run by operators before the switch; it adds a step that can be forgotten.",
+   "5. R-8 What do operators lose by rolling back? Decided: 1.4.0 starts and shows every ticket, but its next save drops the due times; the next upgrade recomputes them from created time and priority with the hours then in force. Otherwise: Keep due in a side file that 1.4.0 never touches; it adds a second file to back up.",
+   "6. R-2 What is the largest number of hours accepted? Decided: 100000 hours (about 11 years); a larger value stops the service at start with a message naming the variable. Otherwise: No limit; an absurd value would make a due time that is not a valid date and fail at ticket creation."
+  ],
+  "told_sha256": "164b01557b8b01e591b95f966f2f01be28727c1d6afe6d4b27e172ff1578acee"
+ },
+ "M04": {
+  "name": "d4",
+  "delivery": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w2/d4",
+  "run": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w2/d4/.shiploop-runs/work-20261122-074041-ee67fb/run",
+  "case": "due",
+  "wording": "final",
+  "commit": "a2fe29bc2d7c6009b91d8962b05d31eff7caadda",
+  "found_by": "subject",
+  "record": [
+   "01-intake.md",
+   "02-discovery.md",
+   "03-research.md",
+   "04-spec.md"
+  ],
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "rows": [
+   "1. R-1 How do I change the hours? Decided: Set SLA_HOURS_URGENT, SLA_HOURS_HIGH, SLA_HOURS_NORMAL or SLA_HOURS_LOW to positive whole hours. Otherwise: Use a single JSON environment value.",
+   "2. R-2 Is a ticket overdue exactly at its due time? Decided: It is overdue only after that instant. Otherwise: Count it at the exact instant as overdue.",
+   "3. R-3 How do I prepare the data file? Decided: Run the one-shot backfill with the service stopped, then enable the feature. Enabled startup also fills missing dues before listening. Otherwise: Rely entirely on startup backfill.",
+   "4. R-2 What happens with other overdue query values? Decided: Only the literal true activates the extra filter. Otherwise: Reject other values with 400."
+  ],
+  "told_sha256": "bc58345b70c8576c4f8e07fee3f7399bc08ca05aca69f84361326aa4f518a223"
+ },
+ "M05": {
+  "name": "k1",
+  "delivery": "/Users/dadleet/e2e-runs/r-20261122-ffb3fb/k1",
+  "run": "/Users/dadleet/e2e-runs/r-20261122-ffb3fb/k1/.shiploop-runs/work-20261122-142445-860e63/run",
+  "case": "hello",
+  "wording": "latest",
+  "commit": "05ea7e06b91e1b8960f3f242d0a8a058c0fb2c7b",
+  "found_by": "subject",
+  "record": [
+   "01-intake.md",
+   "02-discovery.md",
+   "03-research.md",
+   "04-spec.md"
+  ],
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "rows": [
+   "1. R-1 Should the greeting end with a newline? Decided: The greeting appears on one complete line. Otherwise: Omit the newline so the next terminal output starts on the same line."
+  ],
+  "told_sha256": "895ae9f9edaec05797f0929ba2317f71ffeece48568bed0f220e4cb94045e666"
+ },
+ "M06": {
+  "name": "d2",
+  "delivery": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w1/d2",
+  "run": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w1/d2/.shiploop-runs/work-20261122-071056-71df7d/run",
+  "case": "due",
+  "wording": "first",
+  "commit": "e6c7cd1e85b8913bbf2cf49612b8b60cae802099",
+  "found_by": "subject",
+  "record": [
+   "01-intake.md",
+   "02-discovery.md",
+   "03-research.md",
+   "04-spec.md"
+  ],
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "rows": [
+   "1. R-1 How do operators enter the hours? Decided: One positive whole-hour variable per priority. Otherwise: A JSON setting updates all priorities as one value.",
+   "2. R-2 Does the exact deadline count as overdue? Decided: It counts once the clock is later than the deadline. Otherwise: Count the deadline instant itself as overdue.",
+   "3. R-3 How do existing files get prepared before enabling? Decided: Run one offline migration command, then enable the switch. Otherwise: Start a preparatory release that migrates its file during startup."
+  ],
+  "told_sha256": "847028b10e332f966c4cd15d543d74a70ed2aa35151f8050b61013a8a9fae7bf"
+ },
+ "M07": {
+  "name": "d1",
+  "delivery": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w1/d1",
+  "run": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w1/d1/.shiploop-runs/work-20261122-071053-b97af2/run",
+  "case": "due",
+  "wording": "first",
+  "commit": "c94eac32710e9f3aba316f46b262eae74dfbe9d2",
+  "found_by": "subject",
+  "record": [
+   "01-intake.md",
+   "02-discovery.md",
+   "03-research.md",
+   "04-spec.md"
+  ],
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "rows": [
+   "1. R-1 How do operators override the response hours? Decided: Set positive whole hours in DUE_HOURS_<PRIORITY> at startup. Otherwise: A single JSON environment variable would require supplying a mapping.",
+   "2. R-2 When is a ticket past due? Decided: A ticket is overdue strictly after its timestamp. Otherwise: An inclusive boundary would surface the ticket at the exact due instant.",
+   "3. R-2 What changes for CLI users? Decided: The human list and show can display due with the flag on. Raw output stays at four fields. Otherwise: Adding a fifth raw field would change the column contract for scripts.",
+   "4. R-3 When does existing data get filled? Decided: The first new startup fills missing values before listening, even with the flag off. Otherwise: A separate offline migration would add an operator command."
+  ],
+  "told_sha256": "bf2bffbebd60fe99819c0f84562641c16bf06126b80cd12bea54e35547295c5e"
+ },
+ "M08": {
+  "name": "h1",
+  "delivery": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w1/h1",
+  "run": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w1/h1/.shiploop-runs/work-20261122-071047-e163e7/run",
+  "case": "hello",
+  "wording": "first",
+  "commit": "096b53c819f192e6d7911b0e38aebbac1e27b936",
+  "found_by": "subject",
+  "record": [
+   "01-intake.md",
+   "02-discovery.md",
+   "03-research.md",
+   "04-spec.md"
+  ],
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "rows": [
+   "1. R-1 Should the printed greeting end with a newline? Decided: The greeting is one line ending in a newline. Otherwise: Omit the trailing newline, which would leave the next terminal prompt on the same line."
+  ],
+  "told_sha256": "813ff357ca45aa296d1494f24dcdff912b4d8f1f35b39969ba38fd1e210d0c59"
+ },
+ "M09": {
+  "name": "h2",
+  "delivery": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w2/h2",
+  "run": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w2/h2/.shiploop-runs/work-20261122-074033-57cbca/run",
+  "case": "hello",
+  "wording": "final",
+  "commit": "f424f4384a952a4d1912fc96299040bde5e369df",
+  "found_by": "subject",
+  "record": [
+   "01-intake.md",
+   "02-discovery.md",
+   "03-research.md",
+   "04-spec.md"
+  ],
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "rows": [
+   "1. R-1 Should the greeting end with a newline? Decided: The greeting appears as one complete line followed by a newline. Otherwise: Write the greeting without a newline, leaving the next terminal prompt on the same line."
+  ],
+  "told_sha256": "ba3be2e8a79adad79cdcf86c42fe349136fd31abfcfc92755cd81c7be9a4f6c8"
+ },
+ "M10": {
+  "name": "d3",
+  "delivery": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w1/d3",
+  "run": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w1/d3/.shiploop-runs/work-20261122-071055-2f005b/run",
+  "case": "due",
+  "wording": "first",
+  "commit": "802bc5084f9637e2611b7302004c2b707c2bca9d",
+  "found_by": "subject",
+  "record": [
+   "01-intake.md",
+   "02-discovery.md",
+   "03-research.md",
+   "04-spec.md"
+  ],
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "rows": [
+   "1. R-1 How do operators override the hours? Decided: Use one DUE_HOURS_<PRIORITY> environment setting per priority, with positive whole hours. Otherwise: Use a separate configuration file that the operator edits and distributes.",
+   "2. R-2 Does a ticket count as overdue at the exact due instant? Decided: It counts from the first instant after due. Otherwise: Include tickets at the exact due instant.",
+   "3. R-3 How do operators populate deadlines before activation? Decided: Stop the writer, run an explicit backfill, then start with the flag on. Otherwise: Run migration automatically before the new server listens."
+  ],
+  "told_sha256": "06ce7102d13aa8d32b20428a0af4037674a8d241b0a25a956489588983af78a3"
+ },
+ "M11": {
+  "name": "k2",
+  "delivery": "/Users/dadleet/e2e-runs/r-20261122-ffb3fb/k2",
+  "run": "/Users/dadleet/e2e-runs/r-20261122-ffb3fb/k2/.shiploop-runs/work-20261122-142505-548fbc/run",
+  "case": "due",
+  "wording": "latest",
+  "commit": "859c33f4b7b8cff4ca521cd83ae64782f761b239",
+  "found_by": "subject",
+  "record": [
+   "01-intake.md",
+   "02-discovery.md",
+   "03-research.md",
+   "04-spec.md"
+  ],
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "rows": [
+   "1. R-1 How do operators configure hours? Decided: Set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL or DUE_HOURS_LOW to positive whole hours; empty uses defaults. Otherwise: Use a JSON map setting.",
+   "2. R-2 What happens at the deadline and for other values? Decided: Only the literal true requests the filter, using a strictly past deadline and narrowing the existing listing. Otherwise: Treat exact due time as overdue and reject other values.",
+   "3. R-3 How do operators prepare and reveal deadlines? Decided: Run the offline command, then start with DUE_TIMES=on. An incomplete persisted file blocks enabled startup. Otherwise: Backfill as part of enabled startup before listening.",
+   "4. R-3 Where does the CLI show deadlines? Decided: Human list and show include due when enabled; the raw report stays stable. Otherwise: Make all CLI output add a column.",
+   "5. R-4 How can a rollback preserve original due values if 1.4.0 writes? Decided: Keep a pre-rollback snapshot and supply it to the migration on roll-forward; merge only matching deadlines and calculate for other tickets. Otherwise: Allow 1.4.0 writes to discard previously assigned deadlines."
+  ],
+  "told_sha256": "a30550037582fce9580340e7733bc55b68c79930c1b1abf9d61a64859f253248"
+ },
+ "M12": {
+  "name": "d6",
+  "delivery": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w2/d6",
+  "run": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w2/d6/.shiploop-runs/work-20261122-074050-1dcb56/run",
+  "case": "due",
+  "wording": "final",
+  "commit": "b61de8c619ed97d5eb9549ecea3cd2ac2b9f0edd",
+  "found_by": "subject",
+  "record": [
+   "01-intake.md",
+   "02-discovery.md",
+   "03-research.md",
+   "04-spec.md"
+  ],
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "rows": [
+   "1. R-1 How do operators set response hours? Decided: Use DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL and DUE_HOURS_LOW for positive whole hours. Otherwise: Use a single JSON settings variable, requiring an operator to edit a JSON object.",
+   "2. R-3 Is a ticket overdue at the exact deadline? Decided: It enters the overdue list once the deadline has passed. Existing filters still apply. Otherwise: Include the ticket at equality, changing results at the exact timestamp.",
+   "3. R-4 What command prepares the data? Decided: Startup prepares missing deadlines before opening the port, including startup with the flag off. Otherwise: Use a separate offline migration command, requiring a separate operator invocation."
+  ],
+  "told_sha256": "9c4a37e1814c68006a1d9eb775469daac521caee467954cad588e2f622c8cd58"
+ },
+ "M13": {
+  "name": "d5",
+  "delivery": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w2/d5",
+  "run": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w2/d5/.shiploop-runs/work-20261122-074040-ca4ae6/run",
+  "case": "due",
+  "wording": "final",
+  "commit": "d06191af778253c0425d81f3c90350c7da0dff73",
+  "found_by": "subject",
+  "record": [
+   "01-intake.md",
+   "02-discovery.md",
+   "03-research.md",
+   "04-spec.md"
+  ],
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "rows": [
+   "1. R-1 How are response hours configured? Decided: Set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL or DUE_HOURS_LOW to positive whole hours. Otherwise: Use one JSON environment value for all priorities.",
+   "2. R-2 What happens with other overdue values and existing filters? Decided: Only exact true activates it. The filter intersects the existing status/priority result before paging. Otherwise: Reject values other than true and false.",
+   "3. R-3 How does rollout populate the file? Decided: Run npm run backfill:due while the writer is stopped. Enabled startup also fills any missing deadlines before serving. Otherwise: Require a separate backfill and refuse startup when any value is missing.",
+   "4. R-2 What changes in the CLI? Decided: Human list and show display due with the flag on; raw output keeps its four-column contract. Otherwise: Show due only in HTTP."
+  ],
+  "told_sha256": "8e938df311159299a22c1e9f332f753d92ec4d59ad2b1030190ea72ae9bcd3d5"
+ }
+}

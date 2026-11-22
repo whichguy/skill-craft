@@ -1,0 +1,44 @@
+{
+ "code": "M05",
+ "repeat": 2,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "The work chose the local checkout as the delivery target.",
+   "alternative": "The requester might have expected a commit that reviewers could pull from a shared repository.",
+   "where": "repo/docs/shiploop/environment.md, Targets and runtimes, line 5; record/02-discovery.md, result.summary, line 16."
+  },
+  {
+   "decision": "The documented commands use the Python 3 interpreter found as python3 on PATH.",
+   "alternative": "The requester might have expected the commands to use the active environment's Python launcher, including systems where it is exposed as python.",
+   "where": "repo/docs/shiploop/environment.md, Targets and runtimes and Commands, lines 5 and 9."
+  },
+  {
+   "decision": "The acceptance check compares stdout byte for byte using a fixed LF line ending.",
+   "alternative": "The requester might have expected the platform's native line ending to qualify as the same complete greeting line.",
+   "where": "repo/docs/shiploop/spec.md, R-1 Command output and R-2 Output regression test, lines 9 and 15."
+  },
+  {
+   "decision": "The command acceptance check uses stdout and the process exit status as its only observations.",
+   "alternative": "The requester might have expected the check to reject any extra messages on stderr too.",
+   "where": "repo/docs/shiploop/spec.md, R-1 Command output, line 9."
+  },
+  {
+   "decision": "The unittest verifies the command-line behavior by running hello.py in a subprocess.",
+   "alternative": "The requester might have expected a unit test that imports a callable and checks what it prints in the test process.",
+   "where": "repo/docs/shiploop/spec.md, R-2 Output regression test, line 15; record/01-intake.md, Q3, lines 90\u201396."
+  },
+  {
+   "decision": "The documented test entry point uses unittest discovery from the repository root with python3 -B -m unittest -v.",
+   "alternative": "The requester might have expected test_hello.py to run its test when invoked directly.",
+   "where": "repo/docs/shiploop/spec.md, R-2 Output regression test, line 15."
+  }
+ ]
+}

@@ -1,0 +1,23 @@
+{
+ "case": "B",
+ "told": "# What the requester has been told\n\nThe work recorded these decisions as taken on the requester's behalf and showed them to the requester.\n\n1. (R-1) Should the printed greeting end with a newline?\n   Decided: The greeting is one line ending in a newline.\n   Otherwise: Omit the trailing newline, which would leave the next terminal prompt on the same line.\n",
+ "specification": "# Hello World specification\n\n## Requirements\n\n### R-1 Print the greeting\n\nThe request dated 2026-11-21 asks for hello.py to print \u201cHello, world!\u201d when run. From the checkout, `python3 hello.py` must exit successfully and emit exactly `Hello, world!\\n` on stdout. The trailing newline is the 2026-11-21 default. Additional stdout, incorrect punctuation and unsuccessful exit fail the check. Confirm with a subprocess reading complete stdout. This is new work in an empty baseline. Implementation and verification are pending at specification.\n\n### R-2 Supply a unittest regression test\n\nThe same request asks for a unittest in test_hello.py that verifies the output. `python3 -B -m unittest -v` must discover and run the test. It must pass with the requested script and fail with a missing script or altered greeting. There are no additional input branches. Confirm with the unittest runner and the negative check. Implementation and verification are pending at specification.\n\n## Non-functional requirements\n\nThe local command is deterministic and uses the Python standard library. It does not require networking or persistent state. The fixed output contract defines the entire display surface. No separate interface or latency target was requested.\n",
+ "items": [
+  {
+   "decision": "The specified way to run the greeting is `python3 hello.py` from the checkout, using a locally available Python 3 interpreter.",
+   "alternative": "The requester might have expected to run `./hello.py` directly, with the file executable and configured to select its interpreter."
+  },
+  {
+   "decision": "The greeting check requires exact stdout and a successful exit, with no check for output on stderr.",
+   "alternative": "The requester might have meant that a normal run should produce only the greeting across both output streams, so the check should also require empty stderr."
+  },
+  {
+   "decision": "The unittest is specified to launch the script in a subprocess and check its complete stdout.",
+   "alternative": "The requester might have meant an in-process unittest that executes the script and captures its output without spawning a child process."
+  },
+  {
+   "decision": "The specified test entry point uses unittest discovery from the checkout via `python3 -B -m unittest -v`.",
+   "alternative": "The requester might have expected `python3 test_hello.py` to run the test directly."
+  }
+ ]
+}

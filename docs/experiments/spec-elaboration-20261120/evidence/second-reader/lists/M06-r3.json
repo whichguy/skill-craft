@@ -1,0 +1,79 @@
+{
+ "code": "M06",
+ "repeat": 3,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "The release stores due dates on the version-1 ticket records, so preserving those dates through a 1.4.0 rollback that rewrites the file depends on operators keeping a pre-rollback copy and merging its deadlines back on re-upgrade.",
+   "alternative": "The requester may have expected the release to restore the original deadlines automatically after rollback while retaining changes made under 1.4.0.",
+   "where": "repo/docs/shiploop/spec.md, R-4, line 21; record/03-research.md, result.summary, line 16"
+  },
+  {
+   "decision": "The enabled service refuses to start if the existing data file is missing any ticket deadlines.",
+   "alternative": "The requester may have expected an incomplete file to leave the service running in its old mode with an error for operators, so ticket access continues until the file is ready.",
+   "where": "repo/docs/shiploop/spec.md, R-3, line 17"
+  },
+  {
+   "decision": "The service assigns new tickets permanent deadlines even while due-time display and filtering are switched off.",
+   "alternative": "The requester may have expected tickets created before activation to receive deadlines in the backfill, using the response-hour settings in effect for the launch.",
+   "where": "repo/docs/shiploop/spec.md, R-1 and R-2, lines 9 and 13; record/03-research.md, result.summary, line 16"
+  },
+  {
+   "decision": "An invalid response-hours override fails configuration and the error names the offending variable.",
+   "alternative": "The requester may have expected the service to start with the documented default for the affected priority and warn operators about the invalid value.",
+   "where": "repo/docs/shiploop/spec.md, R-1, line 9"
+  },
+  {
+   "decision": "The backfill uses the priority stored on the ticket at migration time, including any priority changes made since creation.",
+   "alternative": "The requester may have intended legacy deadlines to use the original priority recorded in the ticket's creation audit entry.",
+   "where": "repo/docs/shiploop/spec.md, R-3, line 17; repo/src/store.js, create and update, lines 74\u201395"
+  },
+  {
+   "decision": "Delivery ends with a local source handoff, and operations owns the production migration and switch activation.",
+   "alternative": "The requester may have expected delivery to include arranging and carrying out the production rollout with operations.",
+   "where": "repo/docs/shiploop/environment.md, Targets and runtimes, line 6; record/04-spec.md, result.summary, line 45"
+  },
+  {
+   "decision": "Overdue filtering is an additional requirement on top of the existing status-or-priority match when both filters are supplied.",
+   "alternative": "The requester may have expected an overdue ticket to match both status and priority when both filters are supplied, as the API documentation describes.",
+   "where": "record/03-research.md, result.summary, line 16; repo/src/tickets/query.js, matchesFilters, lines 41\u201346; repo/docs/api.md, List tickets"
+  },
+  {
+   "decision": "The backfill assigns missing deadlines while leaving ticket history and queued notifications intact.",
+   "alternative": "The requester may have expected the migration to append a ticket history entry for each newly assigned deadline.",
+   "where": "repo/docs/shiploop/spec.md, R-3, line 17"
+  },
+  {
+   "decision": "The overdue filter runs before cursor pagination, so pages and their continuation cursors are based on matching tickets.",
+   "alternative": "The requester may have expected cursors to advance through the same ticket pages as an unfiltered list, with each page showing only its overdue matches.",
+   "where": "repo/docs/shiploop/spec.md, R-2, line 13; record/02-discovery.md, result.summary, line 19"
+  },
+  {
+   "decision": "Enabled `list --raw` keeps its existing four-column output for consumers such as the weekly report.",
+   "alternative": "The requester may have intended enabled raw output to expose the due date too, for example in an appended fifth column that lets the report keep reading its existing positions.",
+   "where": "repo/docs/shiploop/spec.md, R-2 and Non-functional requirements, lines 13 and 29; repo/src/format.js, RAW_COLUMNS, lines 8\u201316"
+  },
+  {
+   "decision": "The human-facing CLI displays due dates under the same `DUE_TIMES=on` switch as the HTTP ticket responses.",
+   "alternative": "The requester may have intended display to change only in HTTP responses, leaving operators' interactive `list` and `show` output as it was.",
+   "where": "repo/docs/shiploop/spec.md, R-2, line 13; repo/bin/tickets.js, list and show, lines 65\u201383"
+  },
+  {
+   "decision": "With due times enabled, query values other than the literal `overdue=true` keep the existing list behavior.",
+   "alternative": "The requester may have expected a misspelled overdue value to return a 400 error, like an invalid status or priority filter.",
+   "where": "repo/docs/shiploop/spec.md, R-2, line 13; repo/docs/api.md, List tickets"
+  },
+  {
+   "decision": "The due timestamp uses an ISO 8601 string in UTC, following the service's existing time format.",
+   "alternative": "The requester may have expected a numeric timestamp for clients that calculate the time remaining.",
+   "where": "repo/docs/shiploop/spec.md, R-1, line 9; repo/docs/api.md, Conventions"
+  }
+ ]
+}

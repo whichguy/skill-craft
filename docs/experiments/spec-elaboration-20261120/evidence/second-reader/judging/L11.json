@@ -1,0 +1,27 @@
+{
+ "case": "A",
+ "told": "# What the requester has been told\n\nThe work recorded these decisions as taken on the requester's behalf and showed them to the requester.\n\n1. (R-1) How do operators enter the hours?\n   Decided: One positive whole-hour variable per priority.\n   Otherwise: A JSON setting updates all priorities as one value.\n\n2. (R-2) Does the exact deadline count as overdue?\n   Decided: It counts once the clock is later than the deadline.\n   Otherwise: Count the deadline instant itself as overdue.\n\n3. (R-3) How do existing files get prepared before enabling?\n   Decided: Run one offline migration command, then enable the switch.\n   Otherwise: Start a preparatory release that migrates its file during startup.\n",
+ "specification": "# Help desk ticket service\n\n## Requirements\n\nBasis for R-1 through R-5 is the response-time request of 2026-11-21. Baseline is 1.4.0 at 8c526a1, documented in README.md, docs/api.md and docs/operations.md.\n\n### R-1 Immutable due time\n\nEach creation records an ISO UTC due time based on its creation timestamp and priority, with 4, 24, 72 and 168 hour defaults and per-priority environment overrides (positive whole hours by default). Verify all four priorities, an override, restart and a priority edit on a real HTTP response and file. A priority edit and different hours leave assigned deadlines intact. Invalid hours fail configuration with the variable named.\n\n### R-2 Enabled ticket views and overdue listing\n\nTicket responses and human CLI views show due only when DUE_TIMES is exactly on. Raw CLI columns remain stable. HTTP overdue=true selects open and in_progress tickets strictly before the current clock (default interpretation), intersects status/priority filters, and runs before pagination. Other values retain existing query semantics. Verify with a fixed clock, terminal states, filter intersections and cursor pages.\n\n### R-3 Existing tickets and activation\n\nOperator runs a separate, offline migration before enabling a previously used data file (default procedure). Backfill missing due from stored creation time and priority, preserve dates already assigned and preserve IDs, audit and outbox. The enabled service refuses to start on an incomplete existing file. Verify file contents, retry, and readiness through the actual migration and service entry points. The service remains the sole writer during operation.\n\n### R-4 Rollback\n\nThe 1.4.0 program starts on the migrated file and lists the same tickets. Verify by booting the original source. An operator may preserve the pre-rollback version-1 file and reuse its deadlines during re-upgrade while retaining ticket updates made under 1.4.0.\n\n### R-5 Existing surfaces\n\nFeature off preserves HTTP and CLI output and ignores overdue. Verify on new and migrated data and run the 117 existing tests unmodified alongside added node:test coverage.\n\n## Non-functional requirements\n\nRetain the dependency-free Node runtime, version-1 data and atomic file replacement. Compare legacy and enabled CLI output, preserving existing layout and raw column positions. The scope adds no network dependency, identity, cache, new processor or graphical UI.\n\n## Retired\n\nNone.\n",
+ "items": [
+  {
+   "decision": "Deadlines live in an optional ticket field in the version-1 file, which 1.4.0 drops when it writes, so preserving the original deadlines on re-upgrade relies on operators keeping a pre-rollback copy and recovering the deadlines from it while retaining updates made under 1.4.0.",
+   "alternative": "The requester might have expected a return to the new release to recover assigned deadlines automatically after 1.4.0 has written ticket updates."
+  },
+  {
+   "decision": "With DUE_TIMES=on, the service refuses to start if an existing data file is missing any ticket deadlines.",
+   "alternative": "The requester might have wanted the service to keep answering in legacy mode and warn operators until the file is ready."
+  },
+  {
+   "decision": "An invalid response-hours override causes configuration to fail and the error names the variable.",
+   "alternative": "The requester might have wanted the service to start with the default hours for that priority and log a warning."
+  },
+  {
+   "decision": "The new release assigns a deadline when a ticket is created even with DUE_TIMES off, with the switch controlling when the deadline is exposed.",
+   "alternative": "The requester might have wanted tickets created during the disabled rollout window to receive their deadlines in the backfill immediately before activation."
+  },
+  {
+   "decision": "The backfill uses each legacy ticket's priority as stored at migration time to calculate its deadline from its creation timestamp.",
+   "alternative": "The requester might have wanted the priority at creation, recoverable from the ticket's audit history, to determine the deadline for a ticket whose priority has since changed."
+  }
+ ]
+}

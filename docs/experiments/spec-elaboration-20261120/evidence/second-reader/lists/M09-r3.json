@@ -1,0 +1,44 @@
+{
+ "code": "M09",
+ "repeat": 3,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "The work targets the original local checkout for delivery and local verification.",
+   "alternative": "The requester might have expected delivery to include a CI job that runs the unittest on future changes.",
+   "where": "repo/docs/shiploop/environment.md:3\u201310 (Targets and runtimes, Commands), record/02-discovery.md:14 (summary)"
+  },
+  {
+   "decision": "The documented way to run the greeting is with `python3 hello.py`, using Python 3 with no third-party dependencies.",
+   "alternative": "The requester might have expected `hello.py` to be directly executable as `./hello.py`, with the script selecting the Python interpreter.",
+   "where": "repo/docs/shiploop/spec.md:9 (R-1 Greeting output) and :20 (Non-functional requirements)"
+  },
+  {
+   "decision": "The specification requires exact stdout bytes and has the unittest compare the output at that level.",
+   "alternative": "The requester might have meant exact greeting text after normal platform newline translation, allowing a platform-native line ending.",
+   "where": "repo/docs/shiploop/spec.md:9\u201310 (R-1 Greeting output)"
+  },
+  {
+   "decision": "The unittest launches `hello.py` as a subprocess and observes its stdout.",
+   "alternative": "The requester might have wanted a unit test that imports and calls a greeting function in-process and checks what it prints.",
+   "where": "repo/docs/shiploop/spec.md:16 (R-2 Executable verification), repo/docs/shiploop/environment.md:18 (Harnesses and suites)"
+  },
+  {
+   "decision": "The unittest requires the script to exit successfully as well as emit the expected output.",
+   "alternative": "The requester might have wanted this particular test to assert only the greeting, leaving exit-status coverage outside its scope.",
+   "where": "repo/docs/shiploop/spec.md:16 (R-2 Executable verification)"
+  },
+  {
+   "decision": "The test must be discoverable by a checkout-level `python3 -B -m unittest -v` run.",
+   "alternative": "The requester might have been satisfied with a unittest run by explicitly naming `test_hello`.",
+   "where": "repo/docs/shiploop/spec.md:16 (R-2 Executable verification)"
+  }
+ ]
+}

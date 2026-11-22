@@ -1,0 +1,27 @@
+{
+ "case": "A",
+ "told": "# What the requester has been told\n\nThe work recorded these decisions as taken on the requester's behalf and showed them to the requester.\n\n1. (R-1) How do operators override the response hours?\n   Decided: Set positive whole hours in DUE_HOURS_<PRIORITY> at startup.\n   Otherwise: A single JSON environment variable would require supplying a mapping.\n\n2. (R-2) When is a ticket past due?\n   Decided: A ticket is overdue strictly after its timestamp.\n   Otherwise: An inclusive boundary would surface the ticket at the exact due instant.\n\n3. (R-2) What changes for CLI users?\n   Decided: The human list and show can display due with the flag on. Raw output stays at four fields.\n   Otherwise: Adding a fifth raw field would change the column contract for scripts.\n\n4. (R-3) When does existing data get filled?\n   Decided: The first new startup fills missing values before listening, even with the flag off.\n   Otherwise: A separate offline migration would add an operator command.\n",
+ "specification": "# Ticket service requirements\n\n## R-1 Configurable immutable deadlines\n\n- S2\u2013S4: With default settings, a new urgent, high, normal or low ticket is due 4, 24, 72 or 168 whole hours after creation, respectively. Request an HTTP ticket of each priority with the test clock fixed and compare exact UTC ISO times.\n- Set any of DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL and DUE_HOURS_LOW to positive whole hours before start. Test an override and named rejection of invalid values. Test priority edits and restarts with changed settings against the initial timestamp.\n\n## R-2 Gated ticket output and overdue query\n\n- S5, S7: Only exact DUE_TIMES=on exposes due on ticket HTTP responses and human CLI output. Test get, create, list, patch and transition, and compare flag-off ticket output against the legacy shape. Keep the four raw CLI fields stable.\n- With the switch on, overdue=true selects only open and in_progress tickets strictly past due, before cursor pagination and in addition to existing filters. Exercise all four states, an equal time, a future time and a multi-page list using the test clock. With the switch off, the query behaves like an unknown parameter.\n\n## R-3 Compatible startup migration and rollback\n\n- S6\u2013S8: On the new release, load and validate the v1 file, fill missing deadlines from each persisted creation time and priority, and atomically save before listening. Test a legacy file, a file with some due times, a restart with different hours and unmodified audit/outbox/IDs.\n- Run the actual 1.4.0 HTTP service and CLI against the new release's file and show that every ticket is readable. Document single writer, dark rollout and preserving deadline values through rollback writes.\n\n## R-4 Existing interfaces and suite\n\n- S1, S9\u2013S10: Preserve npm start, PORT, Node standard-library-only operation, CLI/weekly report, existing request and worker behavior, and existing tests. Add node:test coverage under test/ and run npm test unchanged.\n\n## Scope\n\nMaintain local delivery, startup integrity, cursor semantics, and compatibility of existing clients. The whole-file operation remains linear in ticket count and only rewrites on startup if data changed. No new identity, dependencies, browser UI or production access.\n",
+ "items": [
+  {
+   "decision": "The new release stores deadlines as optional fields on tickets in the existing version 1 JSON file, which 1.4.0 can read but will strip on any save, so operators must retain the upgraded data to carry those deadlines forward when they reactivate the feature.",
+   "alternative": "The requester might have expected to roll back, keep accepting ticket changes, and later upgrade again with both those changes and all previously assigned deadlines preserved automatically."
+  },
+  {
+   "decision": "An invalid response-hours override is rejected at startup with an error naming the offending variable, which can stop a flag-off rollout before the service listens.",
+   "alternative": "The requester might have wanted the service to stay available using the default for that priority and warn operators about the invalid override."
+  },
+  {
+   "decision": "The migration replaces the whole data file atomically when it adds deadlines and retains the one-writer-per-file deployment model during rollout and rollback.",
+   "alternative": "The requester might have expected a rollout that lets the old release keep accepting ticket writes while the new release prepares the deadlines and coordinates the handoff."
+  },
+  {
+   "decision": "Backfill calculates each missing deadline using the priority currently stored on the ticket, even when that priority has changed since the ticket was created.",
+   "alternative": "The requester might have meant to use the original priority from ticket history so the deadline reflects the response time associated with the ticket when it arrived."
+  },
+  {
+   "decision": "Backfill uses the response hours configured at the startup that first fills each missing deadline.",
+   "alternative": "The requester might have meant to apply the stated default hours to legacy tickets and reserve overrides for newly created tickets."
+  }
+ ]
+}

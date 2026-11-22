@@ -1,0 +1,64 @@
+{
+ "code": "M13",
+ "repeat": 2,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "Rollback to 1.4.0 uses the same version-1 data file and can lose saved deadlines on a write, with operators expected to retain a separate copy.",
+   "alternative": "The requester could have meant that operators can keep taking and editing tickets on 1.4.0 and later return to the new release with every previously assigned deadline intact.",
+   "where": "repo/docs/shiploop/spec.md, R-4, line 19; record/03-research.md, result summary, line 18"
+  },
+  {
+   "decision": "Backfill uses each legacy ticket's priority as stored when the backfill runs.",
+   "alternative": "The requester could have meant to use the priority recorded when each ticket was created, including for tickets whose priority has since changed.",
+   "where": "repo/docs/shiploop/spec.md, R-3, line 15"
+  },
+  {
+   "decision": "Backfill applies the response-hour settings in effect when it assigns a missing deadline.",
+   "alternative": "The requester could have meant for legacy tickets to use the original 4-, 24-, 72-, and 168-hour schedule even if operators configure different hours for new tickets.",
+   "where": "repo/docs/shiploop/spec.md, R-1 and R-3, lines 7 and 15"
+  },
+  {
+   "decision": "The service persists a deadline at creation for every new ticket even while DUE_TIMES is off.",
+   "alternative": "The requester could have meant for tickets created while the flag is off to receive their first deadline during rollout backfill.",
+   "where": "record/03-research.md, result summary, line 18; repo/docs/shiploop/spec.md, R-2, line 11"
+  },
+  {
+   "decision": "An invalid response-hour setting is a startup error that names the offending environment variable.",
+   "alternative": "The requester could have meant for the service to start with the default for that priority and log a warning about the invalid setting.",
+   "where": "repo/docs/shiploop/spec.md, R-1, line 7"
+  },
+  {
+   "decision": "Backfill adds deadlines while leaving ticket metadata, the audit log, and the notification outbox otherwise untouched.",
+   "alternative": "The requester could have meant for each newly assigned deadline to appear as a system action in that ticket's audit history.",
+   "where": "repo/docs/shiploop/spec.md, R-3, line 15"
+  },
+  {
+   "decision": "Backfill reports a corrupt data file as an error.",
+   "alternative": "The requester could have meant for backfill to process readable records and report the records that need manual repair.",
+   "where": "repo/docs/shiploop/spec.md, R-3, line 15"
+  },
+  {
+   "decision": "An unset or blank response-hour setting uses the default for that priority.",
+   "alternative": "The requester could have meant for an explicitly blank setting to be treated as a configuration error while an unset setting uses the default.",
+   "where": "repo/docs/shiploop/spec.md, R-1, line 7"
+  },
+  {
+   "decision": "The due field uses an ISO 8601 timestamp string in UTC.",
+   "alternative": "The requester could have meant for API clients to receive a numeric Unix timestamp.",
+   "where": "repo/docs/shiploop/spec.md, R-1 and R-2, lines 7 and 11"
+  },
+  {
+   "decision": "An otherwise eligible ticket becomes overdue only when the current time is strictly later than its due time.",
+   "alternative": "The requester could have meant for the ticket to count as overdue at the exact deadline.",
+   "where": "repo/docs/shiploop/spec.md, R-2, line 11"
+  }
+ ]
+}

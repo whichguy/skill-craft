@@ -1,0 +1,64 @@
+{
+ "code": "M04",
+ "repeat": 2,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "Rollback uses the version-1 file with optional due fields that 1.4.0 strips on its next save, so operators are expected to keep a due-bearing copy and protect ticket changes made during rollback when upgrading again.",
+   "alternative": "The requester might have expected original due times and all ticket changes to survive a writable rollback and re-upgrade automatically.",
+   "where": "repo/docs/shiploop/spec.md:19 (R-4); record/03-research.md:14 (rollback probe summary)"
+  },
+  {
+   "decision": "The specification assigns and saves due times for new tickets even while DUE_TIMES is off, with the flag controlling what the HTTP API exposes.",
+   "alternative": "The requester might have meant for tickets created while the flag is off to receive their first due time during backfill, under the policy and priority in effect then.",
+   "where": "repo/docs/shiploop/spec.md:7 (R-1), :11 (R-2), and :15 (R-3)"
+  },
+  {
+   "decision": "Due times use continuous elapsed hours, including nights, weekends and holidays.",
+   "alternative": "The requester might have meant for the promised hours to count only while the help desk is open.",
+   "where": "repo/docs/shiploop/spec.md:7 (R-1, elapsed hours)"
+  },
+  {
+   "decision": "The overdue filter narrows the results of the current status-or-priority matching rule, so a ticket that is overdue can match just one of those two parameters.",
+   "alternative": "The requester might have expected a combined query to require the ticket to match overdue, status and priority together, as the existing API documentation describes for its filters.",
+   "where": "repo/docs/shiploop/spec.md:11 (R-2); repo/src/tickets/query.js:42 (matchesFilters); repo/docs/api.md:76 (documented filter behavior)"
+  },
+  {
+   "decision": "Unset SLA hour overrides use the stated defaults, while an invalid override is treated as a configuration error that identifies the offending variable.",
+   "alternative": "The requester might have preferred the service to start with the default for that priority and warn the operator about the invalid override.",
+   "where": "repo/docs/shiploop/spec.md:7 (R-1, unset and invalid values); repo/src/config.js:21 (existing configuration error convention)"
+  },
+  {
+   "decision": "The delivery is a local handoff with rollout instructions and fixture-based verification, with production rollout left to operators.",
+   "alternative": "The requester might have expected an operator-assisted rehearsal with a copy of the production data before accepting the release.",
+   "where": "record/01-intake.md:173 (delivery summary); record/04-spec.md:51 (verification and production authority); repo/docs/shiploop/environment.md:20 (available access)"
+  },
+  {
+   "decision": "Backfill adds due times without changing ticket update timestamps, adding audit entries or queuing notifications.",
+   "alternative": "The requester might have wanted backfilled due times to appear in the ticket history so operators could see when they were assigned.",
+   "where": "repo/docs/shiploop/spec.md:15 (R-3, backfill effects)"
+  },
+  {
+   "decision": "The enabled HTTP ticket responses expose due times, while the existing CLI table, ticket details and raw report output keep their current fields.",
+   "alternative": "The requester might have meant for operators to see due times in the human-readable CLI list and ticket details while preserving the script-facing raw output.",
+   "where": "repo/docs/shiploop/spec.md:11 (R-2), :23 (R-5), and :27 (CLI contracts); repo/src/format.js:12, :22, and :47 (current output fields)"
+  },
+  {
+   "decision": "The overdue list retains ticket ID order and the existing cursor pagination.",
+   "alternative": "The requester might have wanted the most overdue tickets to appear first, with pagination following due-time order.",
+   "where": "repo/docs/shiploop/spec.md:11 (R-2, sort and cursor); repo/docs/api.md:79 (existing order)"
+  },
+  {
+   "decision": "The API represents due as an ISO 8601 timestamp in UTC, following the convention for its other timestamps.",
+   "alternative": "The requester might have expected a numeric Unix timestamp for direct comparison in consuming systems.",
+   "where": "repo/docs/shiploop/spec.md:11 (R-2, ISO due); repo/docs/api.md:10 (UTC timestamp convention)"
+  }
+ ]
+}

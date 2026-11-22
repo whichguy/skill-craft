@@ -1,0 +1,74 @@
+{
+ "code": "M11",
+ "repeat": 3,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "Backfill uses the priority stored when migration runs, so a ticket reprioritized before migration gets the response time for its latest priority.",
+   "alternative": "Backfill could use the priority at creation from the ticket's audit history so a later reprioritization has no effect on its original response commitment.",
+   "where": "repo/docs/shiploop/spec.md:18 (R-3, first bullet)"
+  },
+  {
+   "decision": "New tickets get their deadline at creation even while due times are hidden, because the flag gates API exposure and query behavior.",
+   "alternative": "Tickets created before activation could receive their first deadline in the migration using the hours selected for rollout.",
+   "where": "repo/docs/shiploop/spec.md:7 and 18\u201320 (R-1 creation rule and R-3 feature gate)"
+  },
+  {
+   "decision": "The work ends with a local source handoff and leaves production backfill, enablement, and verification on production data to the operators.",
+   "alternative": "The requester could have expected delivery to include coordinating and verifying the production rollout with the release manager.",
+   "where": "repo/docs/shiploop/spec.md:30 (R-5); record/02-discovery.md:17 and record/04-spec.md:57 (stage summaries)"
+  },
+  {
+   "decision": "Operators must stop the service that owns the production file before running the migration against it.",
+   "alternative": "Operators could have expected to prepare the backfill from a copy while serving traffic and reconcile changes at cutover.",
+   "where": "record/03-research.md:14 (research summary); repo/docs/shiploop/spec.md:19 (R-3, single-writer migration)"
+  },
+  {
+   "decision": "An unusable deadline-hours setting makes startup fail with an error naming the variable.",
+   "alternative": "The service could warn the operator, use the documented hours for that priority, and start serving requests.",
+   "where": "repo/docs/shiploop/spec.md:8 (R-1, configuration and startup)"
+  },
+  {
+   "decision": "Backfill leaves the audit history and notification outbox untouched when populating deadlines.",
+   "alternative": "The rollout could record the initial deadline assignment in each affected ticket's audit history so agents can see when it was set.",
+   "where": "repo/docs/shiploop/spec.md:18 (R-3, backfill preservation)"
+  },
+  {
+   "decision": "Deadline data is stored as an optional field on each ticket record in the version-1 JSON file.",
+   "alternative": "A deadline map keyed by ticket ID inside the same version-1 file could preserve the exact record shape for tools that consume ticket records directly.",
+   "where": "record/02-discovery.md:17 (discovery summary, version-1 optional field); record/03-research.md:12\u201314 (legacy-reader result and format decision)"
+  },
+  {
+   "decision": "With DUE_TIMES=on, an in-memory store or a new empty store can start without prior migration.",
+   "alternative": "The flag could require a prepared persistent file even on an empty instance, so a missing data-file configuration prevents startup.",
+   "where": "repo/docs/shiploop/spec.md:19 (R-3, empty-store behavior)"
+  },
+  {
+   "decision": "The overdue filter runs before cursor pagination, so the page size and next cursor apply to the overdue matches.",
+   "alternative": "The filter could screen each ordinary page after pagination, preserving its page boundaries for clients that use them.",
+   "where": "repo/docs/shiploop/spec.md:14 (R-2, filter and pagination order)"
+  },
+  {
+   "decision": "Overdue status is evaluated against the clock for each request, including requests for subsequent cursor pages.",
+   "alternative": "A cursor could carry the first page's cutoff time so every page in a scan uses the same definition of overdue.",
+   "where": "repo/docs/shiploop/spec.md:13\u201314 (R-2, request clock and pagination)"
+  },
+  {
+   "decision": "The API treats due as a server-assigned field that clients cannot set.",
+   "alternative": "Clients could be allowed to echo the exact server-calculated value when submitting ticket objects, while the server still controls the deadline.",
+   "where": "repo/docs/shiploop/spec.md:9 (R-1, final sentence); repo/docs/api.md:13 (unknown body fields)"
+  },
+  {
+   "decision": "The API returns due as an ISO 8601 timestamp in UTC.",
+   "alternative": "The requester could have expected the API to return the deadline with the help desk's local offset for display in operator tools.",
+   "where": "repo/docs/shiploop/spec.md:7 (R-1, API output); repo/docs/api.md:10 (timestamp convention)"
+  }
+ ]
+}

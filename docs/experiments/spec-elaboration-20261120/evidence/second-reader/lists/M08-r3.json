@@ -1,0 +1,34 @@
+{
+ "code": "M08",
+ "repeat": 3,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "The specified way to run the greeting is `python3 hello.py` from the checkout, using a locally available Python 3 interpreter.",
+   "alternative": "The requester might have expected to run `./hello.py` directly, with the file executable and configured to select its interpreter.",
+   "where": "repo/docs/shiploop/spec.md:7 (R-1) and repo/docs/shiploop/environment.md:3\u201310 (Targets and runtimes, Commands)"
+  },
+  {
+   "decision": "The greeting check requires exact stdout and a successful exit, with no check for output on stderr.",
+   "alternative": "The requester might have meant that a normal run should produce only the greeting across both output streams, so the check should also require empty stderr.",
+   "where": "repo/docs/shiploop/spec.md:7 (R-1)"
+  },
+  {
+   "decision": "The unittest is specified to launch the script in a subprocess and check its complete stdout.",
+   "alternative": "The requester might have meant an in-process unittest that executes the script and captures its output without spawning a child process.",
+   "where": "record/01-intake.md:93 (summary), record/03-research.md:15 (summary), and repo/docs/shiploop/spec.md:7 (R-1)"
+  },
+  {
+   "decision": "The specified test entry point uses unittest discovery from the checkout via `python3 -B -m unittest -v`.",
+   "alternative": "The requester might have expected `python3 test_hello.py` to run the test directly.",
+   "where": "repo/docs/shiploop/spec.md:11 (R-2) and repo/docs/shiploop/environment.md:10 (Commands)"
+  }
+ ]
+}

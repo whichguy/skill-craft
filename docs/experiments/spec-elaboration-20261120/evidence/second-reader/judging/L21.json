@@ -1,0 +1,27 @@
+{
+ "case": "B",
+ "told": "# What the requester has been told\n\nThe work recorded these decisions as taken on the requester's behalf and showed them to the requester.\n\n1. (R-1) Should the greeting end with a newline?\n   Decided: The greeting appears on one complete line.\n   Otherwise: Omit the newline so the next terminal output starts on the same line.\n",
+ "specification": "# Hello world specification\n\n## Requirements\n\n### R-1 Command output\n\nBasis: November 22, 2026 request for hello.py to print exactly \u201cHello, world!\u201d when run. This creates a new program on an empty baseline. The conventional single trailing newline is the November 22, 2026 default.\n\n- From the repository root, run `python3 hello.py`. Expect stdout bytes `b'Hello, world!\\n'`; missing or extra bytes fail the check. Observe the subprocess stdout and a successful exit. No arguments or persistent state are required.\n\n### R-2 Output regression test\n\nBasis: November 22, 2026 request for a unittest in test_hello.py. The empty baseline provides no test coverage.\n\n- Run `python3 -B -m unittest -v` from the repository root. The suite discovers a test in test_hello.py that runs hello.py and compares its complete stdout against the R-1 value. A missing script or mismatched output fails the suite.\n\n## Non-functional requirements\n\nThe program uses the installed Python standard library and emits one plain-text line. There is no graphical UI, storage, external service, or requested performance bound.\n\n## Retired\n\nNone.\n",
+ "items": [
+  {
+   "decision": "The work chose the local checkout as the delivery target.",
+   "alternative": "The requester might have expected a commit that reviewers could pull from a shared repository."
+  },
+  {
+   "decision": "The documented commands use the Python 3 interpreter found as python3 on PATH.",
+   "alternative": "The requester might have expected the commands to use the active environment's Python launcher, including systems where it is exposed as python."
+  },
+  {
+   "decision": "The acceptance check compares stdout byte for byte using a fixed LF line ending.",
+   "alternative": "The requester might have expected the platform's native line ending to qualify as the same complete greeting line."
+  },
+  {
+   "decision": "The command acceptance check uses stdout and the process exit status as its only observations.",
+   "alternative": "The requester might have expected the check to reject any extra messages on stderr too."
+  },
+  {
+   "decision": "The unittest verifies the command-line behavior by running hello.py in a subprocess.",
+   "alternative": "The requester might have expected a unit test that imports a callable and checks what it prints in the test process."
+  }
+ ]
+}

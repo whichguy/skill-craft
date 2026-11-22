@@ -1,0 +1,74 @@
+{
+ "code": "M10",
+ "repeat": 2,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "A writable rollback to 1.4.0 depends on operators saving a copy of the data file before rollback and using it to restore missing deadlines by ticket ID when reactivating, because 1.4.0 drops the extra deadline field when it rewrites the file.",
+   "alternative": "Assigned deadlines could survive writes by 1.4.0 without operators having to save a copy and merge the deadlines back.",
+   "where": "repo/docs/shiploop/spec.md:25 (R-5) and record/03-research.md:17 (reader and writer findings)"
+  },
+  {
+   "decision": "If DUE_TIMES=on and an existing data file has tickets with missing deadlines, the server refuses to start serving.",
+   "alternative": "The server could keep serving the old contract and report that activation is blocked until the missing deadlines are populated.",
+   "where": "repo/docs/shiploop/spec.md:17 (R-3)"
+  },
+  {
+   "decision": "The work will deliver the source and procedure locally and verify migration and rollback on disposable files, leaving production backfill and activation to the help-desk operator.",
+   "alternative": "The requested delivery could include arranging access and carrying out the backfill and activation on the live production file.",
+   "where": "record/04-spec.md:46 (production ownership and verification) and repo/docs/shiploop/environment.md:5 (delivery target)"
+  },
+  {
+   "decision": "Backfill uses each ticket\u2019s stored creation time and the priority on its current record.",
+   "alternative": "Backfill could use the priority recorded when the ticket was opened, even if it was subsequently reprioritized.",
+   "where": "repo/docs/shiploop/spec.md:17 (R-3) and record/03-research.md:17 (stored priority)"
+  },
+  {
+   "decision": "Invalid deadline-hour settings fail when due times are active.",
+   "alternative": "The service could warn operators and start with the standard hours for any priority with an invalid override.",
+   "where": "repo/docs/shiploop/spec.md:9 (R-1)"
+  },
+  {
+   "decision": "The server permits enabled startup against an absent data file or in memory by treating either case as an empty store.",
+   "alternative": "Operators could be required to initialize a persistent data file before starting with due times enabled, so a missing file cannot silently start an empty service.",
+   "where": "repo/docs/shiploop/spec.md:17 (R-3)"
+  },
+  {
+   "decision": "The overdue condition is mandatory and is combined with the existing either-match behavior for status and priority when both filters are supplied.",
+   "alternative": "An overdue query could require every supplied filter to match, so overdue tickets must satisfy both the requested status and the requested priority when both are given.",
+   "where": "repo/docs/shiploop/spec.md:13 (R-2) and record/02-discovery.md:25 (existing status and priority semantics)"
+  },
+  {
+   "decision": "Overdue results use the existing ticket-ID ordering and cursor pagination.",
+   "alternative": "The overdue view could page through the earliest deadlines first so agents see the longest-overdue tickets at the top.",
+   "where": "repo/docs/shiploop/spec.md:13 (R-2) and repo/docs/api.md (List tickets, ordering and cursors)"
+  },
+  {
+   "decision": "Backfill populates deadlines while leaving the audit log intact.",
+   "alternative": "Backfill could append an audit entry for each deadline it sets so operators can see when existing tickets acquired their deadlines.",
+   "where": "repo/docs/shiploop/spec.md:17 (R-3)"
+  },
+  {
+   "decision": "The human-readable CLI displays due only when DUE_TIMES=on and a deadline is stored on the ticket.",
+   "alternative": "Operators could see stored deadlines in the CLI before activation so they can inspect the backfill while HTTP clients still see the old contract.",
+   "where": "repo/docs/shiploop/spec.md:21 (R-4)"
+  },
+  {
+   "decision": "The spec puts deadline display in the human-readable CLI and preserves the existing positional columns of the raw output.",
+   "alternative": "The raw CLI could also offer a trailing due column so scripts can read deadlines while the existing columns keep their positions.",
+   "where": "repo/docs/shiploop/spec.md:21 (R-4) and repo/README.md (Command line, raw columns)"
+  },
+  {
+   "decision": "The API represents due as an ISO 8601 timestamp in UTC, following the existing ticket timestamp convention.",
+   "alternative": "Clients could receive due as a numeric Unix timestamp.",
+   "where": "repo/docs/shiploop/spec.md:9 (R-1 example) and repo/docs/api.md (Conventions, Times)"
+  }
+ ]
+}

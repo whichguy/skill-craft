@@ -1,0 +1,84 @@
+{
+ "code": "M02",
+ "repeat": 2,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "A malformed stored `due` stops the entire service at startup with an error identifying the ticket field, even with `DUE_TIMES` off.",
+   "alternative": "The requester might have wanted the service to start with due times disabled and report the bad field for operators to repair before enabling them.",
+   "where": "repo/docs/shiploop/spec.md, R-6 behavior and malformed-time acceptance case (lines 29\u201330)"
+  },
+  {
+   "decision": "The initial backfill uses each existing ticket's priority as it stands when the new service starts.",
+   "alternative": "The requester might have wanted the priority recorded at creation so that later priority changes have no effect on the deadline assigned to an older ticket.",
+   "where": "repo/docs/shiploop/spec.md, R-6 behavior (line 29)"
+  },
+  {
+   "decision": "The initial backfill uses the response hours configured at the time of backfill.",
+   "alternative": "The requester might have wanted the stated 4, 24, 72 and 168 hour schedule applied to the pre-release backlog, with configured overrides applying only to new tickets.",
+   "where": "record/01-intake.md, Q2 default (line 81); repo/docs/shiploop/spec.md, R-2 and R-6 behavior (lines 13 and 29)"
+  },
+  {
+   "decision": "Tickets opened while `DUE_TIMES` is off still have their deadlines set and saved at creation, using the hours in effect then.",
+   "alternative": "The requester might have wanted tickets opened during the disabled rollout period to receive their deadlines in a final backfill using the schedule approved for activation.",
+   "where": "repo/docs/shiploop/spec.md, R-1 acceptance boundary (line 10); record/04-spec.md, review summary (line 67)"
+  },
+  {
+   "decision": "The audit history omits deadlines both when they are first assigned to new tickets and when existing tickets are backfilled.",
+   "alternative": "The requester might have wanted the audit history to record the initial deadline assignment so staff can verify what response time was promised.",
+   "where": "repo/docs/shiploop/spec.md, R-4 behavior and acceptance (lines 21\u201322), and R-6 behavior (line 29)"
+  },
+  {
+   "decision": "With `overdue=true`, a ticket must be overdue and match the existing status-or-priority filter when both of those filters are supplied.",
+   "alternative": "The requester might have wanted an overdue ticket to match both the requested status and priority, in line with the documented list semantics.",
+   "where": "repo/docs/shiploop/spec.md, R-5 behavior (line 25); repo/docs/shiploop/environment.md, Platform facts (line 15); repo/docs/api.md, List tickets (lines 76\u201377)"
+  },
+  {
+   "decision": "An explicitly empty `DUE_HOURS_*` variable uses the built-in hours for that priority.",
+   "alternative": "The requester might have wanted a blank override to fail startup so operators discover a missing configuration value before deadlines are assigned.",
+   "where": "repo/docs/shiploop/spec.md, R-2 behavior (line 13)"
+  },
+  {
+   "decision": "Existing requester notifications keep their current content when due times are on.",
+   "alternative": "The requester might have wanted the ticket receipt to include the promised response deadline when due times are on.",
+   "where": "repo/docs/shiploop/spec.md, R-9 behavior (line 41); repo/docs/api.md, Create a ticket (lines 58\u201365)"
+  },
+  {
+   "decision": "The overdue list uses the ordinary ticket-ID order and cursor pagination after applying the overdue filter.",
+   "alternative": "The requester might have wanted overdue tickets paginated by earliest due time so staff see the longest-overdue tickets first.",
+   "where": "repo/docs/shiploop/spec.md, R-5 behavior and acceptance (lines 25\u201326) and R-9 behavior (line 41); repo/docs/api.md, List tickets (lines 79\u201386)"
+  },
+  {
+   "decision": "The `due` field is an ISO 8601 UTC string in the same format as `created`.",
+   "alternative": "The requester might have wanted a numeric Unix timestamp for clients that compare deadlines numerically.",
+   "where": "repo/docs/shiploop/spec.md, R-1 behavior and acceptance (lines 9\u201310)"
+  },
+  {
+   "decision": "A PATCH body containing `due` is rejected with HTTP 400 as an unknown field.",
+   "alternative": "The requester might have wanted clients to be able to send back an unchanged `due` in a PATCH body while still rejecting attempts to change it.",
+   "where": "repo/docs/shiploop/spec.md, R-3 behavior (line 17); record/01-intake.md, Q7 default (line 126)"
+  },
+  {
+   "decision": "A ticket enters the overdue list only once the current time is strictly later than its deadline.",
+   "alternative": "The requester might have wanted a ticket to count as overdue at the instant its deadline is reached.",
+   "where": "repo/docs/shiploop/spec.md, R-5 behavior and equality acceptance case (lines 25\u201326)"
+  },
+  {
+   "decision": "The change is assigned release number 1.5.0 in the package and changelog.",
+   "alternative": "The requester might have wanted to choose the new version with the release team and make the bump in a separate release step.",
+   "where": "record/01-intake.md, Q10 default (line 153); repo/docs/shiploop/spec.md, R-10 behavior (line 45)"
+  },
+  {
+   "decision": "The ordinary `npm test` run must exercise rollback with real 1.4.0 code even in a source checkout without Git history.",
+   "alternative": "The requester might have wanted the real 1.4.0 compatibility check to run separately against the release artifact during release validation.",
+   "where": "repo/docs/shiploop/spec.md, R-8 acceptance (line 38); record/04-spec.md, review summary (line 67)"
+  }
+ ]
+}

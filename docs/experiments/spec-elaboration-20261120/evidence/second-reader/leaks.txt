@@ -1,0 +1,1 @@
+39 lister session folders; sessions whose stream names a delivery's real folder: none

@@ -1,0 +1,79 @@
+{
+ "code": "M10",
+ "repeat": 1,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "Before a writable rollback to 1.4.0, operators must copy the current data file so reactivation can recover previously assigned deadlines by ticket ID while keeping changes made during the rollback.",
+   "alternative": "They might have wanted deadline storage that survives 1.4.0 writes and supports reactivation without a separate operator-managed copy.",
+   "where": "repo/docs/shiploop/spec.md:25 (R-5); record/03-research.md:17 (1.4.0 rewrite behavior)"
+  },
+  {
+   "decision": "Backfill uses the priority currently stored on each ticket, even if it changed after creation.",
+   "alternative": "They might have meant to use the ticket's original priority, recovered from its creation audit entry where available.",
+   "where": "repo/docs/shiploop/spec.md:17 (R-3); record/03-research.md:17 (stored priority for legacy rows)"
+  },
+  {
+   "decision": "Backfill uses the response-hour settings in effect when it assigns a missing deadline.",
+   "alternative": "They might have wanted legacy tickets backfilled with the initially specified hours and overrides applied only to new tickets.",
+   "where": "repo/docs/shiploop/spec.md:9 (R-1 settings) and :17 (R-3 backfill and changed settings)"
+  },
+  {
+   "decision": "With DUE_TIMES=on, an existing file with missing deadlines causes the entire service to fail before it starts listening.",
+   "alternative": "They might have wanted the service to keep answering with due times disabled and to report that activation was blocked until operators fixed the file.",
+   "where": "repo/docs/shiploop/spec.md:17 (R-3 startup check); record/03-research.md:17 (startup refusal)"
+  },
+  {
+   "decision": "An enabled service may start empty when the configured data file is absent or when it runs in memory.",
+   "alternative": "They might have wanted enabled startup to require a prepared data file unless the operator explicitly authorizes an empty start.",
+   "where": "repo/docs/shiploop/spec.md:17 (R-3 empty-start exceptions)"
+  },
+  {
+   "decision": "The specification assigns deadlines on the enabled ticket-creation path and leaves tickets created while disabled to receive deadlines through backfill.",
+   "alternative": "They might have wanted deadlines recorded at creation even while disabled, with the flag controlling only whether the API shows and filters by them.",
+   "where": "repo/docs/shiploop/spec.md:9 (R-1 enabled creation), :17 (R-3 missing deadlines), and :21 (R-4 disabled writes)"
+  },
+  {
+   "decision": "Invalid response-hour settings cause a clear failure when due times are active.",
+   "alternative": "They might have wanted the service to warn about invalid settings and continue using the documented hours for the affected priorities.",
+   "where": "repo/docs/shiploop/spec.md:9 (R-1 invalid active configuration)"
+  },
+  {
+   "decision": "Backfill replaces the data file atomically and leaves the original file intact if the run fails.",
+   "alternative": "They might have wanted backfill to save completed batches so operators could resume from a partial migration after a failure.",
+   "where": "repo/docs/shiploop/spec.md:33 (Non-functional requirements); record/03-research.md:17 (atomic persistence path)"
+  },
+  {
+   "decision": "The overdue filter requires an active, past-due ticket and keeps the existing rule that a ticket can match either status or priority when both filters are supplied.",
+   "alternative": "They might have wanted an overdue search with both filters to require a match on both status and priority, as the API documentation describes for combined filters.",
+   "where": "repo/docs/shiploop/spec.md:13 (R-2 existing filter behavior); record/02-discovery.md:25 (existing OR behavior); repo/docs/api.md:76 (documented filter behavior)"
+  },
+  {
+   "decision": "Overdue results use the existing ticket-ID order and cursor pagination.",
+   "alternative": "They might have wanted the earliest deadlines first so operators could work from the most overdue tickets.",
+   "where": "repo/docs/shiploop/spec.md:13 (R-2 cursor behavior); repo/docs/api.md:79 (existing order and pagination)"
+  },
+  {
+   "decision": "Backfill adds deadlines while leaving the existing audit history in place without recording a deadline assignment for each ticket.",
+   "alternative": "They might have wanted each backfilled deadline recorded in the ticket history so operators could trace when it was assigned.",
+   "where": "repo/docs/shiploop/spec.md:17 (R-3 audit preservation) and :29 (R-6 audit compatibility)"
+  },
+  {
+   "decision": "The raw CLI output keeps the existing column positions when due times are enabled.",
+   "alternative": "They might have wanted a due column next to priority and been willing to update the weekly report and other positional consumers.",
+   "where": "repo/docs/shiploop/spec.md:21 (R-4 raw columns); repo/scripts/weekly-report.js:8 (positional consumer)"
+  },
+  {
+   "decision": "The human-readable CLI shows a deadline only when DUE_TIMES is on and the file contains the value.",
+   "alternative": "They might have wanted the CLI to show stored deadlines before activation so operators could inspect the backfill with the flag still off.",
+   "where": "repo/docs/shiploop/spec.md:21 (R-4 human CLI output)"
+  }
+ ]
+}

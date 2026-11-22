@@ -1,0 +1,27 @@
+{
+ "case": "A",
+ "told": "# What the requester has been told\n\nThe work recorded these decisions as taken on the requester's behalf and showed them to the requester.\n\n1. (R-1) How do I set hours?\n   Decided: Use one DUE_HOURS_<PRIORITY> variable per priority, in positive whole hours.\n   Otherwise: Use one JSON setting, requiring operators to format the whole policy as JSON.\n\n2. (R-2) Is a ticket overdue at exactly its due timestamp?\n   Decided: It becomes overdue once the clock passes that timestamp.\n   Otherwise: Include equality and show the ticket one millisecond sooner.\n\n3. (R-3) How do I prepare a legacy file?\n   Decided: Run an offline backfill against DATA_FILE using the existing stored priority, then enable.\n   Otherwise: Auto-backfill during normal startup, coupling activation to the first migration write.\n",
+ "specification": "# Specification\n\n## Requirements\n\n### R-1 Immutable due times\nHelp-desk response commitments use creation time plus 4 / 24 / 72 / 168 elapsed hours for urgent / high / normal / low. Operators may override these hours by environment at start. Persist the computed ISO timestamp once, including for new tickets while the switch is off. HTTP and restart tests confirm all defaults, overrides, and unchanged values across priority, status and configuration changes.\n\n### R-2 Gated exposure and overdue retrieval\nOnly exact DUE_TIMES=on exposes due on HTTP ticket representations and human CLI views. An exact overdue=true restricts the HTTP listing before pagination to open and in_progress tickets with due strictly earlier than now, in addition to existing filters with their current OR semantics. Other values follow existing unknown-query behavior. HTTP and CLI checks cover the gate, time equality, statuses, filter composition, page boundaries and legacy output.\n\n### R-3 Backfill and rollback\nOperators stop the sole writer and use an idempotent command to populate missing due values from each stored creation time and priority; existing values remain. Activation refuses an incomplete existing file. The unchanged 1.4.0 release can start on the new file and list every ticket. Disk/restart command tests and a release probe using unchanged 1.4.0 confirm these outcomes.\n\n### R-4 Current service behavior\nPreserve standard-library Node, PORT and npm start, raw CLI columns and weekly report, API/audit/outbox behavior, and the existing node:test suite without changes. Run new cases and existing cases together with npm test.\n\n## Non-functional requirements\nThe service continues to own the JSON file as one writer. Migrate offline with existing same-directory rename; no external services, schema version bump or new access. The current in-memory list scan and per-write JSON serialization remain appropriate at current documented volume.\n\n## Open questions\nProduction scheduling and file location belong to operations during rollout.\n",
+ "items": [
+  {
+   "decision": "Rollback lets 1.4.0 serve the upgraded data file, but its first rewrite drops the stored due times, so operators must retain an upgraded copy for recovery when they upgrade again.",
+   "alternative": "They might have expected a rollback and subsequent upgrade to preserve original deadlines automatically alongside tickets created or changed during the rollback."
+  },
+  {
+   "decision": "With DUE_TIMES=on, the service refuses to start if the existing data file is missing any ticket's due time.",
+   "alternative": "They might have wanted the service to start with legacy responses while reporting that due times could not be enabled."
+  },
+  {
+   "decision": "New tickets get a permanent due time at creation even while DUE_TIMES is off.",
+   "alternative": "They might have wanted tickets created during the disabled rollout window to get their first due times when the production backfill runs."
+  },
+  {
+   "decision": "The deadline clock counts elapsed hours through nights, weekends, and holidays.",
+   "alternative": "They might have intended response hours to count only when the help desk is staffed."
+  },
+  {
+   "decision": "The work ends with a local handoff and leaves production scheduling and activation to Operations.",
+   "alternative": "They might have meant for the work to include coordinating and carrying out the production rollout."
+  }
+ ]
+}

@@ -1,0 +1,82 @@
+Second reader: score. The rule reads the `final` set; the `all` set is reported beside it.
+
+== set final (the set the rule reads: wordings final and latest) ==
+  lists by case: {'due': 21, 'hello': 6}
+  list lengths by case: {'due': [9, 10, 10, 10, 10, 11, 11, 11, 12, 12, 13, 13, 14, 14, 14, 14, 14, 15, 15, 15, 17], 'hello': [6, 6, 6, 7, 7, 7]}
+  A  way back, where told does not tell it: placed 1-3 by both judges in 12 of 12 due lists -> filled
+  B1 way back, where told tells it: placed by either judge in 0 of 9 due lists -> not repeated  (due lists the judges disagree on told_way_back: 0, counted in neither)
+  B2 items both judges class told: 2 of 105 shown in due lists -> does not repeat rows
+  C  items new by both, per due list: [2, 2, 2, 4, 2, 4, 2, 1, 3, 3, 2, 2, 2, 4, 4, 0, 2, 1, 4, 0, 3] (median 2) -> in between
+  D  hello lists: lengths [7, 7, 6, 6, 7, 6] (median 6.5), new by both [1, 1, 1, 1, 1, 1] (median 1.0) -> floods
+  E  refusal, where the specification refuses and told does not tell it: placed 1-3 by both judges in 3 of 3 due lists -> too few lists to read
+  OVERALL (final): mixed: described, no proposal
+  classes of the shown items: opus {'unfounded': 7, 'told': 2, 'settled': 38, 'unseen': 31, 'new': 57}; astra {'unfounded': 8, 'told': 2, 'settled': 29, 'unseen': 9, 'new': 87}
+  the two judges give the same class to 94 of 135 shown items
+
+== set all (every list) ==
+  lists by case: {'due': 30, 'hello': 9}
+  list lengths by case: {'due': [8, 9, 10, 10, 10, 10, 10, 10, 10, 11, 11, 11, 12, 12, 12, 12, 12, 13, 13, 13, 13, 14, 14, 14, 14, 14, 15, 15, 15, 17], 'hello': [4, 5, 6, 6, 6, 7, 7, 7, 7]}
+  A  way back, where told does not tell it: placed 1-3 by both judges in 21 of 21 due lists -> filled
+  B1 way back, where told tells it: placed by either judge in 0 of 9 due lists -> not repeated  (due lists the judges disagree on told_way_back: 0, counted in neither)
+  B2 items both judges class told: 2 of 150 shown in due lists -> does not repeat rows
+  C  items new by both, per due list: [4, 2, 2, 2, 3, 4, 2, 2, 4, 4, 2, 2, 1, 3, 3, 4, 2, 2, 2, 4, 3, 4, 4, 4, 0, 2, 1, 4, 0, 3] (median 2.5) -> in between
+  D  hello lists: lengths [5, 7, 7, 7, 6, 6, 7, 4, 6] (median 6), new by both [1, 2, 1, 1, 1, 1, 1, 1, 1] (median 1) -> floods
+  E  refusal, where the specification refuses and told does not tell it: placed 1-3 by both judges in 8 of 9 due lists -> completes it
+  OVERALL (all): mixed: described, no proposal
+  classes of the shown items: opus {'unfounded': 7, 'told': 2, 'settled': 48, 'unseen': 44, 'new': 93}; astra {'unfounded': 10, 'told': 2, 'settled': 41, 'unseen': 13, 'new': 128}
+  the two judges give the same class to 142 of 194 shown items
+
+== per delivery (opus/astra) ==
+d1 (due, first, 4 rows told)
+   r1 (M07-r1, L10): 8 items (5 shown); way_back 1/1; refusal 0/0; new by both 2; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M07-r2, L26): 10 items (5 shown); way_back 1/1; refusal 0/0; new by both 3; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M07-r3, L15): 10 items (5 shown); way_back 1/1; refusal 0/0; new by both 2; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+d2 (due, first, 3 rows told)
+   r1 (M06-r1, L19): 10 items (5 shown); way_back 1/1; refusal 2/2; new by both 4; told_way_back F/F; spec_refuses T/T; told_refusal F/F
+   r2 (M06-r2, L11): 12 items (5 shown); way_back 1/1; refusal 2/2; new by both 4; told_way_back F/F; spec_refuses T/T; told_refusal F/F
+   r3 (M06-r3, L01): 13 items (5 shown); way_back 1/1; refusal 2/2; new by both 4; told_way_back F/F; spec_refuses T/T; told_refusal F/F
+d3 (due, first, 3 rows told)
+   r1 (M10-r1, L27): 13 items (5 shown); way_back 1/1; refusal 4/4; new by both 4; told_way_back F/F; spec_refuses T/T; told_refusal F/F
+   r2 (M10-r2, L07): 12 items (5 shown); way_back 1/1; refusal 2/2; new by both 3; told_way_back F/F; spec_refuses T/T; told_refusal F/F
+   r3 (M10-r3, L31): 12 items (5 shown); way_back 1/1; refusal 2/2; new by both 4; told_way_back F/F; spec_refuses T/T; told_refusal F/F
+d4 (due, final, 4 rows told)
+   r1 (M04-r1, L36): 10 items (5 shown); way_back 1/1; refusal 0/0; new by both 4; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M04-r2, L09): 10 items (5 shown); way_back 1/1; refusal 0/0; new by both 2; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M04-r3, L18): 10 items (5 shown); way_back 1/1; refusal 0/0; new by both 3; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+d5 (due, final, 4 rows told)
+   r1 (M13-r1, L39): 11 items (5 shown); way_back 1/1; refusal 0/0; new by both 3; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M13-r2, L30): 10 items (5 shown); way_back 1/1; refusal 0/0; new by both 4; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M13-r3, L12): 11 items (5 shown); way_back 1/1; refusal 0/0; new by both 4; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+d6 (due, final, 3 rows told)
+   r1 (M12-r1, L23): 15 items (5 shown); way_back 1/1; refusal 0/0; new by both 2; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M12-r2, L34): 9 items (5 shown); way_back 1/1; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M12-r3, L24): 14 items (5 shown); way_back 1/1; refusal 0/0; new by both 2; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+h1 (hello, first, 1 rows told)
+   r1 (M08-r1, L06): 7 items (5 shown); way_back 0/0; refusal 0/0; new by both 2; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M08-r2, L02): 5 items (5 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M08-r3, L35): 4 items (4 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+h2 (hello, final, 1 rows told)
+   r1 (M09-r1, L13): 7 items (5 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M09-r2, L28): 6 items (5 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M09-r3, L37): 6 items (5 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+k1 (hello, latest, 1 rows told)
+   r1 (M05-r1, L20): 7 items (5 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M05-r2, L21): 6 items (5 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M05-r3, L29): 7 items (5 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+k2 (due, latest, 5 rows told)
+   r1 (M11-r1, L03): 11 items (5 shown); way_back 0/0; refusal 0/0; new by both 2; told_way_back T/T; spec_refuses T/T; told_refusal T/T
+   r2 (M11-r2, L33): 14 items (5 shown); way_back 0/0; refusal 0/0; new by both 2; told_way_back T/T; spec_refuses T/T; told_refusal T/T
+   r3 (M11-r3, L22): 12 items (5 shown); way_back 0/0; refusal 0/0; new by both 2; told_way_back T/T; spec_refuses T/T; told_refusal T/T
+k3 (due, latest, 3 rows told)
+   r1 (M01-r1, L04): 14 items (5 shown); way_back 1/1; refusal 2/2; new by both 2; told_way_back F/F; spec_refuses T/T; told_refusal F/F
+   r2 (M01-r2, L05): 15 items (5 shown); way_back 1/1; refusal 2/2; new by both 2; told_way_back F/F; spec_refuses T/T; told_refusal F/F
+   r3 (M01-r3, L14): 13 items (5 shown); way_back 1/1; refusal 2/2; new by both 2; told_way_back F/F; spec_refuses T/T; told_refusal F/F
+k4 (due, latest, 6 rows told)
+   r1 (M02-r1, L25): 13 items (5 shown); way_back 0/0; refusal 0/0; new by both 4; told_way_back T/T; spec_refuses F/F; told_refusal F/F
+   r2 (M02-r2, L08): 14 items (5 shown); way_back 0/0; refusal 0/0; new by both 4; told_way_back T/T; spec_refuses F/F; told_refusal F/F
+   r3 (M02-r3, L17): 17 items (5 shown); way_back 0/0; refusal 0/0; new by both 3; told_way_back T/T; spec_refuses F/F; told_refusal F/F
+s1 (due, final, 6 rows told)
+   r1 (M03-r1, L32): 12 items (5 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back T/T; spec_refuses F/F; told_refusal F/F
+   r2 (M03-r2, L38): 14 items (5 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back T/T; spec_refuses F/F; told_refusal F/F
+   r3 (M03-r3, L16): 15 items (5 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back T/T; spec_refuses F/F; told_refusal F/F
+wanted lists without a list: none

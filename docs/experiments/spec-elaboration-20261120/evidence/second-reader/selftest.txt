@@ -1,0 +1,330 @@
+selftest folder /private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/second-reader/selftest-wt/selftest-7f08eb
+M01: d1 (due, first): commit c94eac3271 found by subject, 4 rows told
+M11: d2 (due, first): commit e6c7cd1e85 found by subject, 3 rows told
+M09: d3 (due, first): commit 802bc5084f found by subject, 3 rows told
+M13: h1 (hello, first): commit 096b53c819 found by subject, 1 rows told
+M08: d4 (due, final): commit a2fe29bc2d found by subject, 4 rows told
+M12: d5 (due, final): commit d06191af77 found by subject, 4 rows told
+M05: d6 (due, final): commit b61de8c619 found by subject, 3 rows told
+M04: h2 (hello, final): commit f424f4384a found by subject, 1 rows told
+M10: s1 (due, final): commit 6bb34eede8 found by time, 6 rows told
+M03: k1 (hello, latest): commit 05ea7e06b9 found by subject, 1 rows told
+M07: k2 (due, latest): commit 859c33f4b7 found by subject, 5 rows told
+M02: k3 (due, latest): commit 9351e9bc49 found by subject, 3 rows told
+M06: k4 (due, latest): commit 237fc86047 found by time, 6 rows told
+ok   snap: the snapshots are cut
+ok   1 every delivery of the manifest has one snapshot (13 of 13); commit found by subject: d1, d2, d3, d4, d5, d6, h1, h2, k1, k2, k3; by time: k4, s1
+     s1: by time, commit 6bb34eede8 at 1795334597 ('docs(shiploop): polish two spec phrases'); spec accepted at 1795334609.809
+     k4: by time, commit 237fc86047 at 1795357678 ('spec: make R-5 and R-6 oracles replayable (resolved-overdue case, byte-identical before stop)'); spec accepted at 1795357697.352
+ok   2 the time rule gives the subject's commit for 11 of 11 deliveries found by subject
+ok   3 no text file of a snapshot names the home path (704 files)
+ok   4 every snapshot has request.md, told.md (one block a row told) and the spec, and its one -spec.md record is its last
+     rows.txt not at shiploop-defaults-2c3d50 for: h1, h2, k1, k2, k3, k4 (not a failure)
+ok   5 the rows equal the other session's rows.txt for 7 of 7 compared
+ok   6 snap refuses a second run on the same root
+39 lists packed under shuffled codes in /private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/second-reader/selftest-wt/selftest-7f08eb/root/judging (cases {'due': 'A', 'hello': 'B'}); wanted lists without a list: none
+ok   7 pack: the made-up lists are packed
+ok   7 the judges' folder: rule.md is RULE, cases ['A', 'B'] (due A, hello B), 39 L files of at most five items with no `where`, the key's shown and length right
+ok   7 each case's product/ is its deliveries' first commit (60 files for due, 0 for hello)
+ok   A2 the judges' request.md files hold no '$skill-craft:shiploop' and equal every snapshot's request without it
+ok   6 pack refuses a second run
+ok   7 check_verdict takes the made-up verdicts of opus
+ok   7 check_verdict takes the made-up verdicts of astra
+ok   7 judge refuses a judge that has read the lists
+Second reader: score. The rule reads the `final` set; the `all` set is reported beside it.
+
+== set final (the set the rule reads: wordings final and latest) ==
+  lists by case: {'due': 21, 'hello': 6}
+  list lengths by case: {'due': [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 7, 7, 7, 7, 7, 7], 'hello': [7, 7, 7, 7, 7, 7]}
+  A  way back, where told does not tell it: placed 1-3 by both judges in 18 of 18 due lists -> filled
+  B1 way back, where told tells it: placed by either judge in 0 of 3 due lists -> not repeated  (due lists the judges disagree on told_way_back: 0, counted in neither)
+  B2 items both judges class told: 6 of 90 shown in due lists -> does not repeat rows
+  C  items new by both, per due list: [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3] (median 3) -> adds real open points
+  D  hello lists: lengths [7, 7, 7, 7, 7, 7] (median 7.0), new by both [1, 1, 1, 1, 1, 1] (median 1.0) -> floods
+  E  refusal, where the specification refuses and told does not tell it: placed 1-3 by both judges in 6 of 6 due lists -> completes it
+  OVERALL (final): earns a trial in ShipLoop
+  classes of the shown items: opus {'unfounded': 0, 'told': 6, 'settled': 18, 'unseen': 27, 'new': 69}; astra {'unfounded': 0, 'told': 6, 'settled': 18, 'unseen': 27, 'new': 69}
+  the two judges give the same class to 120 of 120 shown items
+
+== set all (every list) ==
+  lists by case: {'due': 30, 'hello': 9}
+  list lengths by case: {'due': [0, 2, 2, 2, 2, 2, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 7, 7, 7, 7, 7, 7], 'hello': [1, 1, 1, 7, 7, 7, 7, 7, 7]}
+  A  way back, where told does not tell it: placed 1-3 by both judges in 18 of 24 due lists -> partly
+  B1 way back, where told tells it: placed by either judge in 0 of 3 due lists -> not repeated  (due lists the judges disagree on told_way_back: 3, counted in neither)
+  B2 items both judges class told: 14 of 109 shown in due lists -> does not repeat rows
+  C  items new by both, per due list: [1, 3, 0, 3, 3, 1, 1, 3, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0, 3, 1, 3, 3, 3, 0, 3, 3, 1] (median 3.0) -> adds real open points
+  D  hello lists: lengths [1, 7, 1, 7, 7, 7, 1, 7, 7] (median 7), new by both [0, 1, 0, 1, 1, 1, 0, 1, 1] (median 1) -> floods
+  E  refusal, where the specification refuses and told does not tell it: placed 1-3 by both judges in 6 of 6 due lists -> completes it
+  OVERALL (all): mixed: described, no proposal
+  classes of the shown items: opus {'unfounded': 3, 'told': 14, 'settled': 18, 'unseen': 30, 'new': 77}; astra {'unfounded': 3, 'told': 14, 'settled': 21, 'unseen': 30, 'new': 74}
+  the two judges give the same class to 139 of 142 shown items
+
+== per delivery (opus/astra) ==
+d1 (due, first, 4 rows told)
+   r1 (M01-r1, L11): 0 items (0 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M01-r2, L31): 2 items (2 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M01-r3, L39): 2 items (2 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+d2 (due, first, 3 rows told)
+   r1 (M11-r1, L06): 3 items (3 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back T/F; spec_refuses F/F; told_refusal F/F
+   r2 (M11-r2, L01): 3 items (3 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back T/F; spec_refuses F/F; told_refusal F/F
+   r3 (M11-r3, L08): 3 items (3 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back T/F; spec_refuses F/F; told_refusal F/F
+d3 (due, first, 3 rows told)
+   r1 (M09-r1, L28): 2 items (2 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M09-r2, L03): 2 items (2 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M09-r3, L35): 2 items (2 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+d4 (due, final, 4 rows told)
+   r1 (M08-r1, L24): 4 items (4 shown); way_back 0/0; refusal 0/0; new by both 3; told_way_back T/T; spec_refuses F/F; told_refusal F/F
+   r2 (M08-r2, L23): 4 items (4 shown); way_back 0/0; refusal 0/0; new by both 3; told_way_back T/T; spec_refuses F/F; told_refusal F/F
+   r3 (M08-r3, L32): 4 items (4 shown); way_back 0/0; refusal 0/0; new by both 3; told_way_back T/T; spec_refuses F/F; told_refusal F/F
+d5 (due, final, 4 rows told)
+   r1 (M12-r1, L33): 7 items (5 shown); way_back 1/1; refusal 2/2; new by both 3; told_way_back F/F; spec_refuses T/T; told_refusal F/F
+   r2 (M12-r2, L17): 7 items (5 shown); way_back 1/1; refusal 2/2; new by both 3; told_way_back F/F; spec_refuses T/T; told_refusal F/F
+   r3 (M12-r3, L34): 7 items (5 shown); way_back 1/1; refusal 2/2; new by both 3; told_way_back F/F; spec_refuses T/T; told_refusal F/F
+d6 (due, final, 3 rows told)
+   r1 (M05-r1, L36): 7 items (5 shown); way_back 1/1; refusal 2/2; new by both 3; told_way_back F/F; spec_refuses T/T; told_refusal F/F
+   r2 (M05-r2, L21): 7 items (5 shown); way_back 1/1; refusal 2/2; new by both 3; told_way_back F/F; spec_refuses T/T; told_refusal F/F
+   r3 (M05-r3, L26): 7 items (5 shown); way_back 1/1; refusal 2/2; new by both 3; told_way_back F/F; spec_refuses T/T; told_refusal F/F
+h1 (hello, first, 1 rows told)
+   r1 (M13-r1, L25): 1 items (1 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M13-r2, L13): 1 items (1 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M13-r3, L07): 1 items (1 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+h2 (hello, final, 1 rows told)
+   r1 (M04-r1, L30): 7 items (5 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M04-r2, L14): 7 items (5 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M04-r3, L37): 7 items (5 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+k1 (hello, latest, 1 rows told)
+   r1 (M03-r1, L20): 7 items (5 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M03-r2, L10): 7 items (5 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M03-r3, L18): 7 items (5 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+k2 (due, latest, 5 rows told)
+   r1 (M07-r1, L19): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 3; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M07-r2, L04): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 3; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M07-r3, L29): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 3; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+k3 (due, latest, 3 rows told)
+   r1 (M02-r1, L05): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 3; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M02-r2, L09): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 3; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M02-r3, L16): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 3; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+k4 (due, latest, 6 rows told)
+   r1 (M06-r1, L12): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 3; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M06-r2, L02): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 3; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M06-r3, L15): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 3; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+s1 (due, final, 6 rows told)
+   r1 (M10-r1, L38): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 3; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M10-r2, L22): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 3; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M10-r3, L27): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 3; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+wanted lists without a list: none
+ok   7 score: the made-up verdicts are scored
+ok   7 the final set scores as built: A filled (18 of 18), B1 not repeated (the rows of d4 judged to tell the way back), B2 does not repeat rows, C adds real open points, D floods, E completes it (d5, d6 judged to refuse, untold), overall earns a trial
+ok   7 the all set counts the judges' splits: 3 due lists split on told_way_back, the same class on 139 of 142 shown items
+Second reader: score. The rule reads the `final` set; the `all` set is reported beside it.
+
+== set final (the set the rule reads: wordings final and latest) ==
+  lists by case: {'due': 21, 'hello': 6}
+  list lengths by case: {'due': [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 7, 7, 7, 7, 7, 7], 'hello': [7, 7, 7, 7, 7, 7]}
+  A  way back, where told does not tell it: placed 1-3 by both judges in 18 of 18 due lists -> filled
+  B1 way back, where told tells it: placed by either judge in 0 of 3 due lists -> not repeated  (due lists the judges disagree on told_way_back: 0, counted in neither)
+  B2 items both judges class told: 0 of 90 shown in due lists -> does not repeat rows
+  C  items new by both, per due list: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] (median 0) -> adds noise
+  D  hello lists: lengths [7, 7, 7, 7, 7, 7] (median 7.0), new by both [1, 1, 1, 1, 1, 1] (median 1.0) -> floods
+  E  refusal, where the specification refuses and told does not tell it: placed 1-3 by both judges in 6 of 6 due lists -> completes it
+  OVERALL (final): does not earn one
+  classes of the shown items: opus {'unfounded': 0, 'told': 0, 'settled': 6, 'unseen': 108, 'new': 6}; astra {'unfounded': 0, 'told': 0, 'settled': 6, 'unseen': 108, 'new': 6}
+  the two judges give the same class to 120 of 120 shown items
+
+== set all (every list) ==
+  lists by case: {'due': 30, 'hello': 9}
+  list lengths by case: {'due': [0, 2, 2, 2, 2, 2, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 7, 7, 7, 7, 7, 7], 'hello': [1, 1, 1, 7, 7, 7, 7, 7, 7]}
+  A  way back, where told does not tell it: placed 1-3 by both judges in 18 of 24 due lists -> partly
+  B1 way back, where told tells it: placed by either judge in 0 of 3 due lists -> not repeated  (due lists the judges disagree on told_way_back: 3, counted in neither)
+  B2 items both judges class told: 0 of 109 shown in due lists -> does not repeat rows
+  C  items new by both, per due list: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] (median 0.0) -> adds noise
+  D  hello lists: lengths [1, 7, 1, 7, 7, 7, 1, 7, 7] (median 7), new by both [0, 1, 0, 1, 1, 1, 0, 1, 1] (median 1) -> floods
+  E  refusal, where the specification refuses and told does not tell it: placed 1-3 by both judges in 6 of 6 due lists -> completes it
+  OVERALL (all): does not earn one
+  classes of the shown items: opus {'unfounded': 0, 'told': 0, 'settled': 6, 'unseen': 130, 'new': 6}; astra {'unfounded': 0, 'told': 0, 'settled': 6, 'unseen': 130, 'new': 6}
+  the two judges give the same class to 142 of 142 shown items
+
+== per delivery (opus/astra) ==
+d1 (due, first, 4 rows told)
+   r1 (M01-r1, L11): 0 items (0 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M01-r2, L31): 2 items (2 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M01-r3, L39): 2 items (2 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+d2 (due, first, 3 rows told)
+   r1 (M11-r1, L06): 3 items (3 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back T/F; spec_refuses F/F; told_refusal F/F
+   r2 (M11-r2, L01): 3 items (3 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back T/F; spec_refuses F/F; told_refusal F/F
+   r3 (M11-r3, L08): 3 items (3 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back T/F; spec_refuses F/F; told_refusal F/F
+d3 (due, first, 3 rows told)
+   r1 (M09-r1, L28): 2 items (2 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M09-r2, L03): 2 items (2 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M09-r3, L35): 2 items (2 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+d4 (due, final, 4 rows told)
+   r1 (M08-r1, L24): 4 items (4 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back T/T; spec_refuses F/F; told_refusal F/F
+   r2 (M08-r2, L23): 4 items (4 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back T/T; spec_refuses F/F; told_refusal F/F
+   r3 (M08-r3, L32): 4 items (4 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back T/T; spec_refuses F/F; told_refusal F/F
+d5 (due, final, 4 rows told)
+   r1 (M12-r1, L33): 7 items (5 shown); way_back 1/1; refusal 2/2; new by both 0; told_way_back F/F; spec_refuses T/T; told_refusal F/F
+   r2 (M12-r2, L17): 7 items (5 shown); way_back 1/1; refusal 2/2; new by both 0; told_way_back F/F; spec_refuses T/T; told_refusal F/F
+   r3 (M12-r3, L34): 7 items (5 shown); way_back 1/1; refusal 2/2; new by both 0; told_way_back F/F; spec_refuses T/T; told_refusal F/F
+d6 (due, final, 3 rows told)
+   r1 (M05-r1, L36): 7 items (5 shown); way_back 1/1; refusal 2/2; new by both 0; told_way_back F/F; spec_refuses T/T; told_refusal F/F
+   r2 (M05-r2, L21): 7 items (5 shown); way_back 1/1; refusal 2/2; new by both 0; told_way_back F/F; spec_refuses T/T; told_refusal F/F
+   r3 (M05-r3, L26): 7 items (5 shown); way_back 1/1; refusal 2/2; new by both 0; told_way_back F/F; spec_refuses T/T; told_refusal F/F
+h1 (hello, first, 1 rows told)
+   r1 (M13-r1, L25): 1 items (1 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M13-r2, L13): 1 items (1 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M13-r3, L07): 1 items (1 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+h2 (hello, final, 1 rows told)
+   r1 (M04-r1, L30): 7 items (5 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M04-r2, L14): 7 items (5 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M04-r3, L37): 7 items (5 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+k1 (hello, latest, 1 rows told)
+   r1 (M03-r1, L20): 7 items (5 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M03-r2, L10): 7 items (5 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M03-r3, L18): 7 items (5 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+k2 (due, latest, 5 rows told)
+   r1 (M07-r1, L19): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M07-r2, L04): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M07-r3, L29): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+k3 (due, latest, 3 rows told)
+   r1 (M02-r1, L05): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M02-r2, L09): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M02-r3, L16): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+k4 (due, latest, 6 rows told)
+   r1 (M06-r1, L12): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M06-r2, L02): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M06-r3, L15): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+s1 (due, final, 6 rows told)
+   r1 (M10-r1, L38): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M10-r2, L22): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M10-r3, L27): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+wanted lists without a list: none
+ok   7 a second construction (noise) gives another overall reading: does not earn one (C adds noise, B1 not repeated)
+Second reader: score. The rule reads the `final` set; the `all` set is reported beside it.
+
+== set final (the set the rule reads: wordings final and latest) ==
+  lists by case: {'due': 21, 'hello': 6}
+  list lengths by case: {'due': [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 7, 7, 7, 7, 7, 7], 'hello': [7, 7, 7, 7, 7, 7]}
+  A  way back, where told does not tell it: placed 1-3 by both judges in 18 of 18 due lists -> filled
+  B1 way back, where told tells it: placed by either judge in 3 of 3 due lists -> repeated  (due lists the judges disagree on told_way_back: 0, counted in neither)
+  B2 items both judges class told: 6 of 90 shown in due lists -> does not repeat rows
+  C  items new by both, per due list: [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3] (median 3) -> adds real open points
+  D  hello lists: lengths [7, 7, 7, 7, 7, 7] (median 7.0), new by both [1, 1, 1, 1, 1, 1] (median 1.0) -> floods
+  E  refusal, where the specification refuses and told does not tell it: placed 1-3 by both judges in 6 of 6 due lists -> completes it
+  OVERALL (final): mixed: described, no proposal
+  classes of the shown items: opus {'unfounded': 0, 'told': 6, 'settled': 18, 'unseen': 27, 'new': 69}; astra {'unfounded': 0, 'told': 6, 'settled': 18, 'unseen': 27, 'new': 69}
+  the two judges give the same class to 120 of 120 shown items
+
+== set all (every list) ==
+  lists by case: {'due': 30, 'hello': 9}
+  list lengths by case: {'due': [0, 2, 2, 2, 2, 2, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 7, 7, 7, 7, 7, 7], 'hello': [1, 1, 1, 7, 7, 7, 7, 7, 7]}
+  A  way back, where told does not tell it: placed 1-3 by both judges in 18 of 24 due lists -> partly
+  B1 way back, where told tells it: placed by either judge in 3 of 3 due lists -> repeated  (due lists the judges disagree on told_way_back: 3, counted in neither)
+  B2 items both judges class told: 14 of 109 shown in due lists -> does not repeat rows
+  C  items new by both, per due list: [1, 3, 0, 3, 3, 1, 1, 3, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0, 3, 1, 3, 3, 3, 0, 3, 3, 1] (median 3.0) -> adds real open points
+  D  hello lists: lengths [1, 7, 1, 7, 7, 7, 1, 7, 7] (median 7), new by both [0, 1, 0, 1, 1, 1, 0, 1, 1] (median 1) -> floods
+  E  refusal, where the specification refuses and told does not tell it: placed 1-3 by both judges in 6 of 6 due lists -> completes it
+  OVERALL (all): mixed: described, no proposal
+  classes of the shown items: opus {'unfounded': 3, 'told': 14, 'settled': 18, 'unseen': 30, 'new': 77}; astra {'unfounded': 3, 'told': 14, 'settled': 21, 'unseen': 30, 'new': 74}
+  the two judges give the same class to 139 of 142 shown items
+
+== per delivery (opus/astra) ==
+d1 (due, first, 4 rows told)
+   r1 (M01-r1, L11): 0 items (0 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M01-r2, L31): 2 items (2 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M01-r3, L39): 2 items (2 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+d2 (due, first, 3 rows told)
+   r1 (M11-r1, L06): 3 items (3 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back T/F; spec_refuses F/F; told_refusal F/F
+   r2 (M11-r2, L01): 3 items (3 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back T/F; spec_refuses F/F; told_refusal F/F
+   r3 (M11-r3, L08): 3 items (3 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back T/F; spec_refuses F/F; told_refusal F/F
+d3 (due, first, 3 rows told)
+   r1 (M09-r1, L28): 2 items (2 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M09-r2, L03): 2 items (2 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M09-r3, L35): 2 items (2 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+d4 (due, final, 4 rows told)
+   r1 (M08-r1, L24): 4 items (4 shown); way_back 1/0; refusal 0/0; new by both 3; told_way_back T/T; spec_refuses F/F; told_refusal F/F
+   r2 (M08-r2, L23): 4 items (4 shown); way_back 1/0; refusal 0/0; new by both 3; told_way_back T/T; spec_refuses F/F; told_refusal F/F
+   r3 (M08-r3, L32): 4 items (4 shown); way_back 1/0; refusal 0/0; new by both 3; told_way_back T/T; spec_refuses F/F; told_refusal F/F
+d5 (due, final, 4 rows told)
+   r1 (M12-r1, L33): 7 items (5 shown); way_back 1/1; refusal 2/2; new by both 3; told_way_back F/F; spec_refuses T/T; told_refusal F/F
+   r2 (M12-r2, L17): 7 items (5 shown); way_back 1/1; refusal 2/2; new by both 3; told_way_back F/F; spec_refuses T/T; told_refusal F/F
+   r3 (M12-r3, L34): 7 items (5 shown); way_back 1/1; refusal 2/2; new by both 3; told_way_back F/F; spec_refuses T/T; told_refusal F/F
+d6 (due, final, 3 rows told)
+   r1 (M05-r1, L36): 7 items (5 shown); way_back 1/1; refusal 2/2; new by both 3; told_way_back F/F; spec_refuses T/T; told_refusal F/F
+   r2 (M05-r2, L21): 7 items (5 shown); way_back 1/1; refusal 2/2; new by both 3; told_way_back F/F; spec_refuses T/T; told_refusal F/F
+   r3 (M05-r3, L26): 7 items (5 shown); way_back 1/1; refusal 2/2; new by both 3; told_way_back F/F; spec_refuses T/T; told_refusal F/F
+h1 (hello, first, 1 rows told)
+   r1 (M13-r1, L25): 1 items (1 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M13-r2, L13): 1 items (1 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M13-r3, L07): 1 items (1 shown); way_back 0/0; refusal 0/0; new by both 0; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+h2 (hello, final, 1 rows told)
+   r1 (M04-r1, L30): 7 items (5 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M04-r2, L14): 7 items (5 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M04-r3, L37): 7 items (5 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+k1 (hello, latest, 1 rows told)
+   r1 (M03-r1, L20): 7 items (5 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M03-r2, L10): 7 items (5 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M03-r3, L18): 7 items (5 shown); way_back 0/0; refusal 0/0; new by both 1; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+k2 (due, latest, 5 rows told)
+   r1 (M07-r1, L19): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 3; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M07-r2, L04): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 3; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M07-r3, L29): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 3; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+k3 (due, latest, 3 rows told)
+   r1 (M02-r1, L05): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 3; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M02-r2, L09): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 3; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M02-r3, L16): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 3; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+k4 (due, latest, 6 rows told)
+   r1 (M06-r1, L12): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 3; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M06-r2, L02): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 3; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M06-r3, L15): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 3; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+s1 (due, final, 6 rows told)
+   r1 (M10-r1, L38): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 3; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r2 (M10-r2, L22): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 3; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+   r3 (M10-r3, L27): 4 items (4 shown); way_back 2/2; refusal 0/0; new by both 3; told_way_back F/F; spec_refuses F/F; told_refusal F/F
+wanted lists without a list: none
+ok   7 a second construction (repeated) gives another overall reading: mixed: described, no proposal (C adds real open points, B1 repeated)
+ok   8 check_verdict refuses a missing list (one fault)
+ok   8 check_verdict refuses a list named twice (one fault)
+ok   8 check_verdict refuses a class outside the five (one fault)
+ok   8 check_verdict refuses classes longer than the items shown (one fault)
+ok   8 check_verdict refuses a way_back past the items shown (one fault)
+ok   8 check_verdict refuses a boolean given as a string (one fault)
+ok   8 check_verdict refuses true where a place is expected (one fault)
+ok   8 check_verdict refuses lists that are not a list (one fault)
+ok   9 the five texts equal texts.md character for character, each ending in one newline
+ok   10 the readings on their boundaries
+ok   11 a list with no decision (d1 r1, L11) is packed with no item, judged with empty classes and places 0, and scored with length 0
+0 lister session folders; sessions whose stream names a delivery's real folder: none
+ok   12 leaks: no session folder is none
+DONE M01-r1.json: 2 decisions
+FAIL M02 r1: rc=1 no verdict.json (session folder /private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/second-reader/selftest-wt/selftest-7f08eb/sessions-root/sessions/M02-r1-02abc2)
+DONE M03-r1.json: 0 decisions
+DONE M04-r1.json: 2 decisions
+DONE M05-r1.json: 2 decisions
+DONE M06-r1.json: 2 decisions
+DONE M07-r1.json: 2 decisions
+DONE M08-r1.json: 2 decisions
+DONE M09-r1.json: 2 decisions
+DONE M10-r1.json: 2 decisions
+DONE M11-r1.json: 2 decisions
+DONE M12-r1.json: 2 decisions
+DONE M13-r1.json: 2 decisions
+ok   13 ask: an empty list is kept, an unusable one is asked once more, a failing one twice and then reported
+kept M01-r1.json
+FAIL M02 r1: rc=1 no verdict.json (session folder /private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/second-reader/selftest-wt/selftest-7f08eb/sessions-root/sessions/M02-r1-719ea9)
+kept M03-r1.json
+kept M04-r1.json
+kept M05-r1.json
+kept M06-r1.json
+kept M07-r1.json
+kept M08-r1.json
+kept M09-r1.json
+kept M10-r1.json
+kept M11-r1.json
+kept M12-r1.json
+kept M13-r1.json
+ok   13 ask again: kept lists stay, only the missing one is launched (twice)
+12 lists packed under shuffled codes in /private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/second-reader/selftest-wt/selftest-7f08eb/sessions-root/judging (cases {'due': 'A', 'hello': 'B'}); wanted lists without a list: ['M02-r1']
+DONE judge opus: 12 lists; way_back placed in 0, refusal in 0; told_way_back true in 0
+ok   13 judge: a whole verdict is written with the judge's model, a verdict missing a list writes nothing
+
+all held

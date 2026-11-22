@@ -1,0 +1,49 @@
+{
+ "code": "M08",
+ "repeat": 1,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "The work will deliver the files to the local source checkout and verify them there.",
+   "alternative": "The requester might have expected a pushed branch that teammates could check out and verify.",
+   "where": "repo/docs/shiploop/environment.md, Targets and runtimes (line 5) and Harnesses and suites (line 30)"
+  },
+  {
+   "decision": "The script and tests target Python 3 and its standard library.",
+   "alternative": "The requester might have needed the script and test suite to support both Python 2 and Python 3.",
+   "where": "repo/docs/shiploop/environment.md, Targets and runtimes (line 5), and record/01-intake.md, Q2 (lines 84\u201390)"
+  },
+  {
+   "decision": "The specified way to run the greeting is to invoke `python3 hello.py` from the checkout.",
+   "alternative": "The requester might have expected to launch it directly as `./hello.py`, which would require an executable file with an interpreter directive.",
+   "where": "repo/docs/shiploop/spec.md, R-1 (line 7)"
+  },
+  {
+   "decision": "The specification checks the greeting on stdout and does not require stderr to be empty.",
+   "alternative": "The requester might have meant that a successful run should display only the greeting, with no diagnostics on stderr.",
+   "where": "repo/docs/shiploop/spec.md, R-1 (line 7)"
+  },
+  {
+   "decision": "The output check requires a successful process exit even when stdout matches the greeting exactly.",
+   "alternative": "The requester might have wanted the unittest to assert the printed text alone and leave exit status outside the check.",
+   "where": "repo/docs/shiploop/spec.md, R-1 (line 7)"
+  },
+  {
+   "decision": "The unittest verifies the greeting by launching `hello.py` in a subprocess and reading its complete stdout.",
+   "alternative": "The requester might have wanted an in-process unittest that captures stdout while calling the greeting code, so the test can run without starting a child process.",
+   "where": "record/01-intake.md, summary (line 93), and repo/docs/shiploop/spec.md, R-1 (line 7)"
+  },
+  {
+   "decision": "The test must be discoverable by the standard unittest runner using `python3 -B -m unittest -v`.",
+   "alternative": "The requester might have expected `test_hello.py` to run as a standalone test script with `python3 test_hello.py`.",
+   "where": "repo/docs/shiploop/spec.md, R-2 (line 11)"
+  }
+ ]
+}

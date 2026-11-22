@@ -1,0 +1,84 @@
+{
+ "code": "M12",
+ "repeat": 3,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "Rollback compatibility covers starting 1.4.0 and reading every ticket from the new file, although a subsequent save by 1.4.0 drops the stored deadlines.",
+   "alternative": "The requester might have expected previously assigned deadlines to survive writes made during rollback and be available when the new release is restored.",
+   "where": "repo/docs/shiploop/spec.md:16\u201317 (R-5); record/02-discovery.md:22 (summary); repo/src/persistence.js:66\u201374 and 98\u2013108 (1.4.0 save projection)"
+  },
+  {
+   "decision": "Backfill uses each ticket\u2019s stored priority at migration time, so a priority change made before migration affects its first deadline.",
+   "alternative": "The requester might have expected the original priority recorded at ticket creation to determine the deadline for tickets that were later reprioritized.",
+   "where": "repo/docs/shiploop/spec.md:14\u201315 (R-4); repo/src/store.js:74\u201382 (priority in the creation audit entry)"
+  },
+  {
+   "decision": "Backfill uses the response-hour settings in effect when missing deadlines are first assigned, so overrides at that startup can set deadlines for existing tickets.",
+   "alternative": "The requester might have intended the stated 4, 24, 72 and 168 hours to govern all existing tickets and any overrides to apply only to tickets created afterward.",
+   "where": "repo/docs/shiploop/spec.md:5\u20138 and 14\u201315 (R-1 and R-4)"
+  },
+  {
+   "decision": "An invalid response-hours override is rejected as a startup configuration error that names the setting.",
+   "alternative": "The requester might have wanted startup to continue using the default for that priority and log a warning about the invalid override.",
+   "where": "repo/docs/shiploop/spec.md:5\u20138 (R-1); repo/src/server.js:61\u201370 (startup handling of configuration errors)"
+  },
+  {
+   "decision": "Local delivery uses a copied data file and real HTTP to verify rollback, while production deployment and verification of the actual data file are left to operators before enablement.",
+   "alternative": "The requester might have considered the work complete only after someone verified the actual production file and enabled due times on the production service.",
+   "where": "repo/docs/shiploop/spec.md:16\u201317 and 20\u201322 (R-5 and production ownership); record/03-research.md:14 (production execution and enablement)"
+  },
+  {
+   "decision": "The service assigns deadlines to newly created tickets even while the feature flag is off, using the hours and priority in effect when the ticket is created.",
+   "alternative": "The requester might have expected tickets opened during the flag-off period to receive their first deadlines during preparation for enablement, using the settings and priorities at that point.",
+   "where": "repo/docs/shiploop/spec.md:5\u201310 and 14\u201315 (R-1, R-2 and R-4)"
+  },
+  {
+   "decision": "When an overdue query supplies both status and priority, an overdue ticket can match either of those two filters under the service\u2019s existing behavior.",
+   "alternative": "The requester might have expected an overdue ticket to match both filters, as the API documentation says for combined status and priority queries.",
+   "where": "record/02-discovery.md:22 and record/03-research.md:14 (preserve the union); repo/docs/shiploop/spec.md:12\u201313 (R-3); repo/docs/api.md:76\u201377 (documented behavior)"
+  },
+  {
+   "decision": "Operators apply changes to response hours for future tickets by restarting the service with the new environment values.",
+   "alternative": "The requester might have expected a way to apply new hours to future tickets without interrupting the running service.",
+   "where": "repo/docs/shiploop/spec.md:5\u20138 (R-1); repo/src/server.js:61\u201365 (environment configuration loaded at startup)"
+  },
+  {
+   "decision": "Deadline assignment leaves ticket audit history as it was, including during backfill.",
+   "alternative": "The requester might have expected agents to be able to see when a deadline was assigned by consulting the ticket\u2019s audit history.",
+   "where": "repo/docs/shiploop/spec.md:9\u201311 and 14\u201315 (R-2 and R-4)"
+  },
+  {
+   "decision": "The feature leaves the notification outbox as it was and adds no deadline information to ticket notifications.",
+   "alternative": "The requester might have expected the ticket-received notification to tell the person who opened the ticket when a response is due.",
+   "where": "repo/docs/shiploop/spec.md:9\u201311 and 14\u201315 (R-2 and R-4); repo/src/store.js:153\u2013159 (existing notification data)"
+  },
+  {
+   "decision": "With the flag on, the service filters for overdue tickets before building cursor pages, so page size and continuation are based on matching tickets.",
+   "alternative": "The requester might have expected an overdue view of each ordinary ticket page, retaining ordinary list cursors even when the displayed page is sparse or empty.",
+   "where": "repo/docs/shiploop/spec.md:12\u201313 (R-3)"
+  },
+  {
+   "decision": "Enabling due times adds the deadline to human-readable CLI output as well as to HTTP ticket responses.",
+   "alternative": "The requester might have intended the new field for HTTP clients only and expected the operator CLI to keep its existing display.",
+   "where": "repo/docs/shiploop/spec.md:9\u201310 (R-2)"
+  },
+  {
+   "decision": "The raw CLI format and the weekly report keep their existing output even after due times are enabled.",
+   "alternative": "The requester might have expected an opt-in way for scripts and the weekly report to consume deadlines while preserving the existing output by default.",
+   "where": "repo/docs/shiploop/spec.md:9\u201311 (R-2); repo/README.md:70\u201372 (weekly report dependency on raw CLI columns)"
+  },
+  {
+   "decision": "The new due value uses a UTC ISO 8601 timestamp, following the API\u2019s existing convention for ticket times.",
+   "alternative": "The requester might have expected the new field to be a numeric Unix timestamp for clients that compare deadlines directly.",
+   "where": "repo/docs/shiploop/spec.md:5\u20136 (R-1); repo/docs/api.md:6\u201310 (time convention)"
+  }
+ ]
+}

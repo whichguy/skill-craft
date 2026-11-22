@@ -1,0 +1,89 @@
+{
+ "code": "M01",
+ "repeat": 2,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "Release 1.4.0 can read the upgraded data file and list every ticket, but its first rewrite drops the stored deadlines, so operators must keep an upgraded copy for recovery when they re-upgrade.",
+   "alternative": "The requester might have expected rollback to support continued writes and a later re-upgrade with the original deadlines and all intervening ticket changes intact.",
+   "where": "record/03-research.md:15, summary on rollback recovery; record/02-discovery.md:15, Q11; repo/src/persistence.js:66\u201382 and 98\u2013108, the 1.4.0 ticket serializer"
+  },
+  {
+   "decision": "The service refuses to start with due times enabled if the existing file still has tickets without a deadline.",
+   "alternative": "The requester might have expected the service to start in legacy mode and report the incomplete file while continuing to serve tickets.",
+   "where": "repo/docs/shiploop/spec.md:11\u201312, R-3; record/03-research.md:15, summary"
+  },
+  {
+   "decision": "The deadline clock counts elapsed hours continuously, including nights, weekends and holidays.",
+   "alternative": "The help desk might have meant hours during its staffed schedule, with the clock paused outside that schedule.",
+   "where": "repo/docs/shiploop/spec.md:5\u20136, R-1"
+  },
+  {
+   "decision": "The new release stamps and saves deadlines for newly created tickets even while due times are switched off.",
+   "alternative": "The requester might have expected tickets created during the dark rollout to receive their first deadline under the policy in force at backfill or activation.",
+   "where": "repo/docs/shiploop/spec.md:5\u20136, R-1; record/03-research.md:15, summary"
+  },
+  {
+   "decision": "Changes to the response-hour settings take effect when the service starts, so applying a new policy to future tickets requires a restart.",
+   "alternative": "The help desk might have expected policy changes to take effect for future tickets while the service stayed up.",
+   "where": "repo/docs/shiploop/spec.md:5\u20136, R-1"
+  },
+  {
+   "decision": "The work ends with a local handoff, with production scheduling, file selection and activation left to operations.",
+   "alternative": "The requester might have expected the work to include carrying out the migration and activation on the live service.",
+   "where": "repo/docs/shiploop/environment.md:16\u201317, Release; repo/docs/shiploop/spec.md:20\u201321, Open questions; record/04-spec.md:42, summary"
+  },
+  {
+   "decision": "An overdue listing with both status and priority filters returns overdue tickets matching either of those two filters, following the current implementation.",
+   "alternative": "The requester might have expected only overdue tickets matching both filters, as the existing API documentation describes for combined filters.",
+   "where": "repo/docs/shiploop/spec.md:8\u20139, R-2; repo/src/tickets/query.js:41\u201346, matchesFilters; repo/docs/api.md:67\u201377, List tickets"
+  },
+  {
+   "decision": "The backfill can be retried on a partly stamped file and fills only missing deadlines.",
+   "alternative": "The requester might have expected a one-time migration that refuses partly migrated input and requires operators to restart from a clean backup after an incomplete run.",
+   "where": "repo/docs/shiploop/spec.md:11\u201312, R-3; record/03-research.md:15, summary"
+  },
+  {
+   "decision": "With due times enabled, only the exact query value overdue=true applies the overdue filter, and other values are silently ignored.",
+   "alternative": "The requester might have expected the API to reject invalid overdue values with a 400 so a mistyped filter could not silently return a broader list.",
+   "where": "repo/docs/shiploop/spec.md:8\u20139, R-2; record/02-discovery.md:15, Q3"
+  },
+  {
+   "decision": "The overdue restriction applies before pagination, so the page limit and next cursor are based on the eligible tickets.",
+   "alternative": "The requester might have wanted pages and cursors aligned with the ordinary listing, with each page showing only its overdue entries even when that leaves the page short or empty.",
+   "where": "repo/docs/shiploop/spec.md:8\u20139, R-2; record/02-discovery.md:15, Q10"
+  },
+  {
+   "decision": "Due-time assignment stays out of the ticket's audit history.",
+   "alternative": "The requester might have wanted an audit entry showing the deadline assigned at creation or backfill so staff could verify what was promised.",
+   "where": "repo/docs/shiploop/spec.md:8\u201315, R-2 through R-4; repo/docs/api.md:116\u2013133, A ticket's history"
+  },
+  {
+   "decision": "Requester notifications keep their existing content, which omits the deadline.",
+   "alternative": "The help desk might have wanted the ticket-received notification to include the promised response deadline.",
+   "where": "repo/docs/shiploop/spec.md:8\u201315, R-2 through R-4; repo/docs/api.md:58\u201365, Create a ticket"
+  },
+  {
+   "decision": "The enable switch also controls whether deadlines appear in the human-readable CLI list and detail views.",
+   "alternative": "The requester might have intended the switch to control only HTTP exposure, so operators could inspect stamped deadlines in the CLI before enabling the API feature.",
+   "where": "repo/docs/shiploop/spec.md:8\u20139, R-2; record/02-discovery.md:15, Q1 and Q2"
+  },
+  {
+   "decision": "The raw CLI listing keeps its existing four columns and provides no deadline column even after activation.",
+   "alternative": "The requester might have wanted the enabled raw listing to append a deadline column while keeping the four existing columns in their current positions.",
+   "where": "repo/docs/shiploop/spec.md:8\u201315, R-2 and R-4; record/03-research.md:15, summary; repo/README.md:60\u201372, Command line"
+  },
+  {
+   "decision": "The deadline is stored as an ISO timestamp and exposed using the API's ISO 8601 UTC convention.",
+   "alternative": "The requester might have wanted the new deadline field as an epoch value for systems that compare deadlines numerically.",
+   "where": "repo/docs/shiploop/spec.md:5\u20139, R-1 and R-2; repo/docs/api.md:6\u201310, Conventions"
+  }
+ ]
+}

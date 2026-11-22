@@ -1,0 +1,1398 @@
+{
+ "read_set": "final",
+ "sets": {
+  "final": {
+   "lists_by_case": {
+    "due": 21,
+    "hello": 6
+   },
+   "lengths_by_case": {
+    "due": [
+     9,
+     10,
+     10,
+     10,
+     10,
+     11,
+     11,
+     11,
+     12,
+     12,
+     13,
+     13,
+     14,
+     14,
+     14,
+     14,
+     14,
+     15,
+     15,
+     15,
+     17
+    ],
+    "hello": [
+     6,
+     6,
+     6,
+     7,
+     7,
+     7
+    ]
+   },
+   "A": {
+    "considered": 12,
+    "hit": 12,
+    "reading": "filled"
+   },
+   "B1": {
+    "lists": 9,
+    "repeats": 0,
+    "due_lists_judges_disagree_told_way_back": 0,
+    "reading": "not repeated"
+   },
+   "B2": {
+    "items": 105,
+    "told": 2,
+    "reading": "does not repeat rows"
+   },
+   "C": {
+    "new_counts": [
+     2,
+     2,
+     2,
+     4,
+     2,
+     4,
+     2,
+     1,
+     3,
+     3,
+     2,
+     2,
+     2,
+     4,
+     4,
+     0,
+     2,
+     1,
+     4,
+     0,
+     3
+    ],
+    "median": 2,
+    "reading": "in between"
+   },
+   "D": {
+    "lengths": [
+     7,
+     7,
+     6,
+     6,
+     7,
+     6
+    ],
+    "median_length": 6.5,
+    "new_counts": [
+     1,
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "median_new": 1.0,
+    "reading": "floods"
+   },
+   "E": {
+    "lists": 3,
+    "hit": 3,
+    "reading": "too few lists to read"
+   },
+   "overall": "mixed: described, no proposal",
+   "classes": {
+    "opus": {
+     "unfounded": 7,
+     "told": 2,
+     "settled": 38,
+     "unseen": 31,
+     "new": 57
+    },
+    "astra": {
+     "unfounded": 8,
+     "told": 2,
+     "settled": 29,
+     "unseen": 9,
+     "new": 87
+    }
+   },
+   "same_class": {
+    "same": 94,
+    "of": 135
+   }
+  },
+  "all": {
+   "lists_by_case": {
+    "due": 30,
+    "hello": 9
+   },
+   "lengths_by_case": {
+    "due": [
+     8,
+     9,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     10,
+     11,
+     11,
+     11,
+     12,
+     12,
+     12,
+     12,
+     12,
+     13,
+     13,
+     13,
+     13,
+     14,
+     14,
+     14,
+     14,
+     14,
+     15,
+     15,
+     15,
+     17
+    ],
+    "hello": [
+     4,
+     5,
+     6,
+     6,
+     6,
+     7,
+     7,
+     7,
+     7
+    ]
+   },
+   "A": {
+    "considered": 21,
+    "hit": 21,
+    "reading": "filled"
+   },
+   "B1": {
+    "lists": 9,
+    "repeats": 0,
+    "due_lists_judges_disagree_told_way_back": 0,
+    "reading": "not repeated"
+   },
+   "B2": {
+    "items": 150,
+    "told": 2,
+    "reading": "does not repeat rows"
+   },
+   "C": {
+    "new_counts": [
+     4,
+     2,
+     2,
+     2,
+     3,
+     4,
+     2,
+     2,
+     4,
+     4,
+     2,
+     2,
+     1,
+     3,
+     3,
+     4,
+     2,
+     2,
+     2,
+     4,
+     3,
+     4,
+     4,
+     4,
+     0,
+     2,
+     1,
+     4,
+     0,
+     3
+    ],
+    "median": 2.5,
+    "reading": "in between"
+   },
+   "D": {
+    "lengths": [
+     5,
+     7,
+     7,
+     7,
+     6,
+     6,
+     7,
+     4,
+     6
+    ],
+    "median_length": 6,
+    "new_counts": [
+     1,
+     2,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "median_new": 1,
+    "reading": "floods"
+   },
+   "E": {
+    "lists": 9,
+    "hit": 8,
+    "reading": "completes it"
+   },
+   "overall": "mixed: described, no proposal",
+   "classes": {
+    "opus": {
+     "unfounded": 7,
+     "told": 2,
+     "settled": 48,
+     "unseen": 44,
+     "new": 93
+    },
+    "astra": {
+     "unfounded": 10,
+     "told": 2,
+     "settled": 41,
+     "unseen": 13,
+     "new": 128
+    }
+   },
+   "same_class": {
+    "same": 142,
+    "of": 194
+   }
+  }
+ },
+ "deliveries": {
+  "d1": {
+   "case": "due",
+   "wording": "first",
+   "rows": 4,
+   "lists": {
+    "M07-r1": {
+     "list": "L10",
+     "length": 8,
+     "shown": 5,
+     "new_by_both": 2,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      false,
+      false
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      1,
+      1
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    },
+    "M07-r2": {
+     "list": "L26",
+     "length": 10,
+     "shown": 5,
+     "new_by_both": 3,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      false,
+      false
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      1,
+      1
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    },
+    "M07-r3": {
+     "list": "L15",
+     "length": 10,
+     "shown": 5,
+     "new_by_both": 2,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      false,
+      false
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      1,
+      1
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "d2": {
+   "case": "due",
+   "wording": "first",
+   "rows": 3,
+   "lists": {
+    "M06-r1": {
+     "list": "L19",
+     "length": 10,
+     "shown": 5,
+     "new_by_both": 4,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      true,
+      true
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      1,
+      1
+     ],
+     "refusal": [
+      2,
+      2
+     ]
+    },
+    "M06-r2": {
+     "list": "L11",
+     "length": 12,
+     "shown": 5,
+     "new_by_both": 4,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      true,
+      true
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      1,
+      1
+     ],
+     "refusal": [
+      2,
+      2
+     ]
+    },
+    "M06-r3": {
+     "list": "L01",
+     "length": 13,
+     "shown": 5,
+     "new_by_both": 4,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      true,
+      true
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      1,
+      1
+     ],
+     "refusal": [
+      2,
+      2
+     ]
+    }
+   }
+  },
+  "d3": {
+   "case": "due",
+   "wording": "first",
+   "rows": 3,
+   "lists": {
+    "M10-r1": {
+     "list": "L27",
+     "length": 13,
+     "shown": 5,
+     "new_by_both": 4,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      true,
+      true
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      1,
+      1
+     ],
+     "refusal": [
+      4,
+      4
+     ]
+    },
+    "M10-r2": {
+     "list": "L07",
+     "length": 12,
+     "shown": 5,
+     "new_by_both": 3,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      true,
+      true
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      1,
+      1
+     ],
+     "refusal": [
+      2,
+      2
+     ]
+    },
+    "M10-r3": {
+     "list": "L31",
+     "length": 12,
+     "shown": 5,
+     "new_by_both": 4,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      true,
+      true
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      1,
+      1
+     ],
+     "refusal": [
+      2,
+      2
+     ]
+    }
+   }
+  },
+  "d4": {
+   "case": "due",
+   "wording": "final",
+   "rows": 4,
+   "lists": {
+    "M04-r1": {
+     "list": "L36",
+     "length": 10,
+     "shown": 5,
+     "new_by_both": 4,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      false,
+      false
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      1,
+      1
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    },
+    "M04-r2": {
+     "list": "L09",
+     "length": 10,
+     "shown": 5,
+     "new_by_both": 2,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      false,
+      false
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      1,
+      1
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    },
+    "M04-r3": {
+     "list": "L18",
+     "length": 10,
+     "shown": 5,
+     "new_by_both": 3,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      false,
+      false
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      1,
+      1
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "d5": {
+   "case": "due",
+   "wording": "final",
+   "rows": 4,
+   "lists": {
+    "M13-r1": {
+     "list": "L39",
+     "length": 11,
+     "shown": 5,
+     "new_by_both": 3,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      false,
+      false
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      1,
+      1
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    },
+    "M13-r2": {
+     "list": "L30",
+     "length": 10,
+     "shown": 5,
+     "new_by_both": 4,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      false,
+      false
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      1,
+      1
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    },
+    "M13-r3": {
+     "list": "L12",
+     "length": 11,
+     "shown": 5,
+     "new_by_both": 4,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      false,
+      false
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      1,
+      1
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "d6": {
+   "case": "due",
+   "wording": "final",
+   "rows": 3,
+   "lists": {
+    "M12-r1": {
+     "list": "L23",
+     "length": 15,
+     "shown": 5,
+     "new_by_both": 2,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      false,
+      false
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      1,
+      1
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    },
+    "M12-r2": {
+     "list": "L34",
+     "length": 9,
+     "shown": 5,
+     "new_by_both": 1,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      false,
+      false
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      1,
+      1
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    },
+    "M12-r3": {
+     "list": "L24",
+     "length": 14,
+     "shown": 5,
+     "new_by_both": 2,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      false,
+      false
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      1,
+      1
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "h1": {
+   "case": "hello",
+   "wording": "first",
+   "rows": 1,
+   "lists": {
+    "M08-r1": {
+     "list": "L06",
+     "length": 7,
+     "shown": 5,
+     "new_by_both": 2,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      false,
+      false
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      0,
+      0
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    },
+    "M08-r2": {
+     "list": "L02",
+     "length": 5,
+     "shown": 5,
+     "new_by_both": 1,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      false,
+      false
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      0,
+      0
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    },
+    "M08-r3": {
+     "list": "L35",
+     "length": 4,
+     "shown": 4,
+     "new_by_both": 1,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      false,
+      false
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      0,
+      0
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "h2": {
+   "case": "hello",
+   "wording": "final",
+   "rows": 1,
+   "lists": {
+    "M09-r1": {
+     "list": "L13",
+     "length": 7,
+     "shown": 5,
+     "new_by_both": 1,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      false,
+      false
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      0,
+      0
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    },
+    "M09-r2": {
+     "list": "L28",
+     "length": 6,
+     "shown": 5,
+     "new_by_both": 1,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      false,
+      false
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      0,
+      0
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    },
+    "M09-r3": {
+     "list": "L37",
+     "length": 6,
+     "shown": 5,
+     "new_by_both": 1,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      false,
+      false
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      0,
+      0
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "k1": {
+   "case": "hello",
+   "wording": "latest",
+   "rows": 1,
+   "lists": {
+    "M05-r1": {
+     "list": "L20",
+     "length": 7,
+     "shown": 5,
+     "new_by_both": 1,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      false,
+      false
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      0,
+      0
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    },
+    "M05-r2": {
+     "list": "L21",
+     "length": 6,
+     "shown": 5,
+     "new_by_both": 1,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      false,
+      false
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      0,
+      0
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    },
+    "M05-r3": {
+     "list": "L29",
+     "length": 7,
+     "shown": 5,
+     "new_by_both": 1,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      false,
+      false
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      0,
+      0
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "k2": {
+   "case": "due",
+   "wording": "latest",
+   "rows": 5,
+   "lists": {
+    "M11-r1": {
+     "list": "L03",
+     "length": 11,
+     "shown": 5,
+     "new_by_both": 2,
+     "told_way_back": [
+      true,
+      true
+     ],
+     "spec_refuses": [
+      true,
+      true
+     ],
+     "told_refusal": [
+      true,
+      true
+     ],
+     "way_back": [
+      0,
+      0
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    },
+    "M11-r2": {
+     "list": "L33",
+     "length": 14,
+     "shown": 5,
+     "new_by_both": 2,
+     "told_way_back": [
+      true,
+      true
+     ],
+     "spec_refuses": [
+      true,
+      true
+     ],
+     "told_refusal": [
+      true,
+      true
+     ],
+     "way_back": [
+      0,
+      0
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    },
+    "M11-r3": {
+     "list": "L22",
+     "length": 12,
+     "shown": 5,
+     "new_by_both": 2,
+     "told_way_back": [
+      true,
+      true
+     ],
+     "spec_refuses": [
+      true,
+      true
+     ],
+     "told_refusal": [
+      true,
+      true
+     ],
+     "way_back": [
+      0,
+      0
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "k3": {
+   "case": "due",
+   "wording": "latest",
+   "rows": 3,
+   "lists": {
+    "M01-r1": {
+     "list": "L04",
+     "length": 14,
+     "shown": 5,
+     "new_by_both": 2,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      true,
+      true
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      1,
+      1
+     ],
+     "refusal": [
+      2,
+      2
+     ]
+    },
+    "M01-r2": {
+     "list": "L05",
+     "length": 15,
+     "shown": 5,
+     "new_by_both": 2,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      true,
+      true
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      1,
+      1
+     ],
+     "refusal": [
+      2,
+      2
+     ]
+    },
+    "M01-r3": {
+     "list": "L14",
+     "length": 13,
+     "shown": 5,
+     "new_by_both": 2,
+     "told_way_back": [
+      false,
+      false
+     ],
+     "spec_refuses": [
+      true,
+      true
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      1,
+      1
+     ],
+     "refusal": [
+      2,
+      2
+     ]
+    }
+   }
+  },
+  "k4": {
+   "case": "due",
+   "wording": "latest",
+   "rows": 6,
+   "lists": {
+    "M02-r1": {
+     "list": "L25",
+     "length": 13,
+     "shown": 5,
+     "new_by_both": 4,
+     "told_way_back": [
+      true,
+      true
+     ],
+     "spec_refuses": [
+      false,
+      false
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      0,
+      0
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    },
+    "M02-r2": {
+     "list": "L08",
+     "length": 14,
+     "shown": 5,
+     "new_by_both": 4,
+     "told_way_back": [
+      true,
+      true
+     ],
+     "spec_refuses": [
+      false,
+      false
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      0,
+      0
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    },
+    "M02-r3": {
+     "list": "L17",
+     "length": 17,
+     "shown": 5,
+     "new_by_both": 3,
+     "told_way_back": [
+      true,
+      true
+     ],
+     "spec_refuses": [
+      false,
+      false
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      0,
+      0
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "s1": {
+   "case": "due",
+   "wording": "final",
+   "rows": 6,
+   "lists": {
+    "M03-r1": {
+     "list": "L32",
+     "length": 12,
+     "shown": 5,
+     "new_by_both": 0,
+     "told_way_back": [
+      true,
+      true
+     ],
+     "spec_refuses": [
+      false,
+      false
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      0,
+      0
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    },
+    "M03-r2": {
+     "list": "L38",
+     "length": 14,
+     "shown": 5,
+     "new_by_both": 0,
+     "told_way_back": [
+      true,
+      true
+     ],
+     "spec_refuses": [
+      false,
+      false
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      0,
+      0
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    },
+    "M03-r3": {
+     "list": "L16",
+     "length": 15,
+     "shown": 5,
+     "new_by_both": 1,
+     "told_way_back": [
+      true,
+      true
+     ],
+     "spec_refuses": [
+      false,
+      false
+     ],
+     "told_refusal": [
+      false,
+      false
+     ],
+     "way_back": [
+      0,
+      0
+     ],
+     "refusal": [
+      0,
+      0
+     ]
+    }
+   }
+  }
+ },
+ "no_list": []
+}

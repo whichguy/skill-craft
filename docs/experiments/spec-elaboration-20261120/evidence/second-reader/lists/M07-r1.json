@@ -1,0 +1,54 @@
+{
+ "code": "M07",
+ "repeat": 1,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "The work will store deadlines as optional fields in the existing version 1 ticket file and rely on operators to retain the upgraded data for reactivation because 1.4.0 can read the file but drops deadlines when it saves.",
+   "alternative": "The requester may have expected original deadlines to survive normal 1.4.0 writes and a later re-upgrade without operators having to retain deadline data separately.",
+   "where": "record/03-research.md:16 (summary) and repo/docs/shiploop/spec.md:16 (R-3)"
+  },
+  {
+   "decision": "An invalid response-hours override will stop startup and the error will name the setting.",
+   "alternative": "The requester may have wanted the service to start with the default hours for that priority and warn the operator about the invalid override.",
+   "where": "repo/docs/shiploop/spec.md:6 (R-1)"
+  },
+  {
+   "decision": "For a legacy ticket whose priority was edited before rollout, the backfill will use the priority in the saved ticket record.",
+   "alternative": "The requester may have intended to use the priority at creation, recovered from the ticket's audit history.",
+   "where": "repo/docs/shiploop/spec.md:15 (R-3)"
+  },
+  {
+   "decision": "When an overdue query includes both status and priority, a ticket must be overdue and match either of those two filters, preserving the service's existing OR behavior.",
+   "alternative": "The requester may have expected overdue tickets to match both supplied filters, as the existing API documentation describes for status and priority.",
+   "where": "record/03-research.md:16 (summary) and repo/docs/shiploop/spec.md:11 (R-2)"
+  },
+  {
+   "decision": "The work will deliver the source locally and leave production activation to the operators.",
+   "alternative": "The requester may have expected delivery to include preparing the production service configuration and carrying out the staged activation.",
+   "where": "record/04-spec.md:50 (summary) and repo/docs/shiploop/environment.md:7 and :25 (Targets and runtimes, Access and accounts)"
+  },
+  {
+   "decision": "The startup backfill will assign deadlines without adding entries to ticket audit histories.",
+   "alternative": "The requester may have expected each backfilled ticket's history to record when its deadline was assigned.",
+   "where": "repo/docs/shiploop/spec.md:15 (R-3)"
+  },
+  {
+   "decision": "The overdue filter will run before cursor pagination, so the cursor and page size apply to matching tickets.",
+   "alternative": "The requester may have wanted the filter to narrow each existing ticket page while keeping the unfiltered page boundaries.",
+   "where": "repo/docs/shiploop/spec.md:11 (R-2)"
+  },
+  {
+   "decision": "The HTTP API will return due as an ISO 8601 timestamp string in UTC.",
+   "alternative": "The requester may have expected the API to return a numeric Unix timestamp.",
+   "where": "repo/docs/shiploop/spec.md:5 (R-1) and repo/docs/api.md:10 (Conventions)"
+  }
+ ]
+}

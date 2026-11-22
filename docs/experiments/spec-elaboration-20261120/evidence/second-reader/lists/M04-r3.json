@@ -1,0 +1,64 @@
+{
+ "code": "M04",
+ "repeat": 3,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "Rollback uses the same version-1 data file even though a 1.4.0 save strips due times, so operators must keep a copy containing the assigned dues and preserve subsequent ticket changes when upgrading again.",
+   "alternative": "The requester may have expected assigned due times to survive writes by 1.4.0 automatically while operators continue working on the rolled-back release.",
+   "where": "repo/docs/shiploop/spec.md:17\u201319 (R-4); record/03-research.md:14 (rollback probe summary); repo/docs/shiploop/environment.md:26"
+  },
+  {
+   "decision": "Response times run in elapsed hours, including nights, weekends and holidays.",
+   "alternative": "The help desk may have meant hours during its staffed schedule so the response clock pauses outside working hours.",
+   "where": "repo/docs/shiploop/spec.md:5\u20137 (R-1)"
+  },
+  {
+   "decision": "New tickets get their due time at creation even with DUE_TIMES off, and the flag controls whether the HTTP API exposes or uses that time.",
+   "alternative": "The requester may have wanted tickets created while the feature is off to get their first due time during backfill under the policy chosen for activation.",
+   "where": "repo/docs/shiploop/spec.md:5\u201315 (R-1 assignment and toggle retention, R-2 exposure and R-3 off-mode behavior)"
+  },
+  {
+   "decision": "Backfill uses each ticket\u2019s currently stored priority.",
+   "alternative": "The requester may have meant to use the priority the ticket had when it was created, looking it up in the audit history for tickets that were reprioritized.",
+   "where": "repo/docs/shiploop/spec.md:13\u201315 (R-3); repo/src/store.js:74\u201395 (creation and priority history)"
+  },
+  {
+   "decision": "An invalid SLA hours setting is treated as a configuration error that names the variable and prevents startup under the service\u2019s existing configuration convention.",
+   "alternative": "Operators may have wanted the service to warn and start using the built-in hours for that priority.",
+   "where": "repo/docs/shiploop/spec.md:5\u20137 (R-1); repo/README.md:22\u201335 (configuration); repo/src/server.js:61\u201372 (startup configuration errors)"
+  },
+  {
+   "decision": "When status and priority are both supplied, an overdue ticket can match either filter, preserving the running service\u2019s OR behavior.",
+   "alternative": "The requester may have expected overdue tickets to match both supplied filters, as the API documentation describes for status and priority.",
+   "where": "repo/docs/shiploop/spec.md:9\u201311 (R-2); repo/src/tickets/query.js:41\u201345 (running behavior); repo/docs/api.md:67\u201377 (documented behavior)"
+  },
+  {
+   "decision": "The work is handed back locally with fixture-based release checks and rollout instructions, leaving production preparation and activation to operators.",
+   "alternative": "The requester may have expected an operator-assisted rehearsal on a copy of production data before accepting the handoff.",
+   "where": "record/01-intake.md:173 (delivery summary); record/04-spec.md:51 (verification scope and production authority); repo/docs/shiploop/environment.md:3\u20136,18\u201320"
+  },
+  {
+   "decision": "Backfill writes due times without adding audit entries or outbox notifications or changing ticket update timestamps.",
+   "alternative": "The requester may have wanted the initial due assignment on existing tickets recorded as a visible event in their history.",
+   "where": "repo/docs/shiploop/spec.md:13\u201315 (R-3); repo/docs/api.md:116\u2013133 (ticket history)"
+  },
+  {
+   "decision": "The enabled HTTP API shows ISO-formatted due times on ticket responses, while the existing CLI output and weekly report contracts are preserved.",
+   "alternative": "The requester may have intended operators to see due times in the human-readable CLI views too, while keeping the raw columns used by the weekly report intact.",
+   "where": "repo/docs/shiploop/spec.md:9\u201311 (R-2), 21\u201327 (R-5 and CLI contract); repo/README.md:60\u201376 (CLI and weekly report)"
+  },
+  {
+   "decision": "The overdue list keeps the existing ticket ID order and cursor pagination.",
+   "alternative": "The requester may have wanted the overdue view ordered by earliest due time so agents see the oldest missed deadlines first.",
+   "where": "repo/docs/shiploop/spec.md:9\u201311 (R-2); repo/docs/api.md:67\u201386 (list ordering and pagination)"
+  }
+ ]
+}

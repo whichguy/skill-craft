@@ -1,0 +1,59 @@
+{
+ "code": "M12",
+ "repeat": 2,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "Rollback compatibility covers 1.4.0 starting and showing all tickets from the updated file, even though a save by 1.4.0 strips the stored deadlines.",
+   "alternative": "They might have meant that operators can keep taking and updating tickets on 1.4.0 and still recover the exact deadlines when they upgrade again.",
+   "where": "repo/docs/shiploop/spec.md:17 (R-5); record/02-discovery.md:22 (summary on old saves); record/03-research.md:14 (format-v1 compatibility)"
+  },
+  {
+   "decision": "The work uses local data fixtures for delivery verification and leaves production data verification and enablement to operators after handoff.",
+   "alternative": "They might have meant that a rehearsal using a copy of the production data file must pass before the release is handed off.",
+   "where": "repo/docs/shiploop/spec.md:17 and :22 (R-5 and non-functional requirements); record/03-research.md:14 and record/04-spec.md:44 (summaries)"
+  },
+  {
+   "decision": "An invalid response-hours override is rejected as a configuration error that names the setting and prevents startup.",
+   "alternative": "They might have meant that the service should start with the default hours for that priority and warn the operator about the invalid override.",
+   "where": "repo/docs/shiploop/spec.md:7 (R-1 invalid-setting rejection); repo/README.md:35 and repo/src/server.js:61\u201369 (startup configuration error behavior)"
+  },
+  {
+   "decision": "For legacy tickets, the deadline uses the priority stored on the ticket when backfill runs, even if that priority differs from what the ticket had at creation.",
+   "alternative": "They might have meant to calculate the legacy deadline using the original priority recorded in the ticket's creation audit entry.",
+   "where": "repo/docs/shiploop/spec.md:15 (R-4 stored creation time and priority); repo/docs/api.md:123\u2013125 (creation audit fields)"
+  },
+  {
+   "decision": "An overdue query with both status and priority keeps an overdue ticket if either of those two filters matches, with the overdue constraint applied before pagination.",
+   "alternative": "They might have meant that an overdue ticket must match both supplied filters, as the existing API documentation says for combined filters.",
+   "where": "record/02-discovery.md:22 (observed filter union and overdue intersection); repo/docs/shiploop/spec.md:13 (R-3); repo/docs/api.md:76\u201377 (documented filter combination)"
+  },
+  {
+   "decision": "The work keeps the audit history as it is when deadlines are assigned, including during backfill.",
+   "alternative": "They might have meant that the audit history should record the initial deadline so agents can trace when it was assigned.",
+   "where": "repo/docs/shiploop/spec.md:11 and :15 (R-2 audit contract and R-4 backfill verification)"
+  },
+  {
+   "decision": "The work keeps the outbox and existing ticket notifications as they are when the feature is enabled.",
+   "alternative": "They might have meant that the ticket receipt should include the promised response deadline so the person who opened the ticket can see it.",
+   "where": "repo/docs/shiploop/spec.md:11 and :15 (R-2 outbox contract and R-4 backfill verification); repo/src/store.js:74\u201383 and :157\u2013158 (existing receipt and outbox payload)"
+  },
+  {
+   "decision": "With DUE_TIMES=on, ticket deadlines appear in human-readable CLI output as well as HTTP ticket responses.",
+   "alternative": "They might have meant for the new field to appear only in the HTTP API, with the operators' CLI display staying as it is.",
+   "where": "repo/docs/shiploop/spec.md:10 (R-2 ticket output)"
+  },
+  {
+   "decision": "The deadline is omitted from the CLI's raw output and the weekly report keeps its existing format even with the feature enabled.",
+   "alternative": "They might have meant for operators to be able to export deadlines through an opt-in raw format while keeping the current weekly report working.",
+   "where": "repo/docs/shiploop/spec.md:11 (R-2 raw CLI and weekly report contracts); repo/README.md:70\u201372 (positional raw columns)"
+  }
+ ]
+}

@@ -1,0 +1,69 @@
+{
+ "code": "M11",
+ "repeat": 1,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260",
+ "cost_usd": null,
+ "decisions": [
+  {
+   "decision": "Backfill uses the priority stored on each legacy ticket at migration time, including tickets whose priority changed after creation.",
+   "alternative": "The requester may have meant to use the original priority from the ticket's creation audit entry so the deadline reflects the priority assigned when the ticket was opened.",
+   "where": "repo/docs/shiploop/spec.md:18 (R-3)"
+  },
+  {
+   "decision": "Operators must stop the service that owns the data file before running the backfill.",
+   "alternative": "The requester may have expected to prepare the data while the service kept accepting tickets, with a coordinated cutover that preserves intervening writes.",
+   "where": "record/03-research.md:14 (research summary)"
+  },
+  {
+   "decision": "The design assigns deadlines to new tickets at creation even when DUE_TIMES is off, with the flag controlling what the service exposes.",
+   "alternative": "The requester may have meant for tickets opened during the disabled period to receive their deadlines in the backfill, using the settings in effect at that time.",
+   "where": "repo/docs/shiploop/spec.md:7 and :20 (R-1 and R-3)"
+  },
+  {
+   "decision": "An unusable response-hour setting prevents startup and the error names the offending environment variable.",
+   "alternative": "The requester may have preferred the service to start with the affected priority's default and log a warning.",
+   "where": "repo/docs/shiploop/spec.md:8 (R-1)"
+  },
+  {
+   "decision": "Enabled startup is allowed for an in-memory store or a new empty store without a completed backfill.",
+   "alternative": "The requester may have meant to require a prepared persistent file for every enabled start so a missing production file cannot silently yield an empty service.",
+   "where": "repo/docs/shiploop/spec.md:19 (R-3)"
+  },
+  {
+   "decision": "Delivery and verification use local source and isolated data files, with production promotion left to operators.",
+   "alternative": "The requester may have expected the change to include verification against the actual production data and execution of the production rollout.",
+   "where": "repo/docs/shiploop/spec.md:30 (R-5); repo/docs/shiploop/environment.md:5 and :19"
+  },
+  {
+   "decision": "Operators apply changed response-hour settings to future tickets by restarting the service.",
+   "alternative": "The requester may have expected operators to update the response hours on a running service.",
+   "where": "record/02-discovery.md:17 (loadConfig choice); repo/src/server.js:61 (startup configuration); repo/docs/shiploop/spec.md:9 (R-1)"
+  },
+  {
+   "decision": "Backfill writes deadlines while leaving the ticket audit history and notification outbox as they were.",
+   "alternative": "The requester may have wanted an audit entry for each migrated deadline so operators can see when and how it was assigned.",
+   "where": "repo/docs/shiploop/spec.md:18 (R-3)"
+  },
+  {
+   "decision": "The specification preserves existing requester notifications when due times are enabled.",
+   "alternative": "The requester may have expected the ticket receipt to tell the person who opened the ticket when a response is due.",
+   "where": "repo/docs/shiploop/spec.md:20 and :29 (R-3 and R-5); repo/src/templates.js:9 (ticket receipt)"
+  },
+  {
+   "decision": "The API treats due as a read-only field and leaves it outside the fields clients can submit.",
+   "alternative": "The requester may have wanted the API to accept an echoed due value from a client submitting an update while keeping the server-calculated deadline authoritative.",
+   "where": "repo/docs/shiploop/spec.md:9 (R-1); repo/docs/api.md:13 (request field validation)"
+  },
+  {
+   "decision": "The API represents due as an ISO 8601 timestamp in UTC.",
+   "alternative": "The requester may have wanted a numeric epoch timestamp for clients consuming the new field.",
+   "where": "repo/docs/shiploop/spec.md:7 (R-1); repo/docs/api.md:10 (timestamp convention)"
+  }
+ ]
+}
