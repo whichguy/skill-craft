@@ -3965,3 +3965,15 @@ the product and its own tests are the same files under every suite. The acceptan
 as before. The odd-numbered lines remain the yardstick for every arm; the proof of failure showed sessions faults
 from all 52 sites on even lines, so nothing held out was shown. What is lost: the twelve sites beyond the first
 forty.
+
+### Part C, the census by script: how it is run, written at 19:15 before its count exists
+
+The registered command (`prove_fail.py WORK - OUT --only sabotage`) runs every check twice over, on the build and on
+the sabotaged copy. On six suites it took up to several minutes each on a machine other sessions were also using,
+and was stopped twice to protect live sessions. `program/sabotage_census.py` asks the same question and stops at
+the first check that notices: it runs the manifest's commands on the sabotaged copy, last entry first, and when
+one fails it runs that one on an untouched copy; passing there makes the copy *noticed*, and a suite whose every
+command still passes on the sabotaged copy is *unnoticed*. Tried on the two suites whose truth is known: q-plan-1
+unnoticed, q-base-2 noticed by its last entry after one command (20 seconds for both). The six suites measured the
+registered way stay on file as a cross-check: three stand-in-rules suites unnoticed, ticket assignment and due
+times noticed, one product with no test file to sabotage.
