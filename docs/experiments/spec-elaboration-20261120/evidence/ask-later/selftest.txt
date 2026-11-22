@@ -1,0 +1,77 @@
+N02: sol-medium-due-p2 at S (after the specification was accepted): commit 7909b10fb6, 4 record files
+N08: sol-medium-due-p2 at P (the plan and the item's test cases written, nothing built): commit 8e4465dbfe, 10 record files
+N01: sol-medium-due-p2 at T (after the item's tests ran): commit 70d759eb5e, 12 record files
+N04: sol-high-due-p1 at S (after the specification was accepted): commit 6af3b69844, 4 record files
+N06: sol-high-due-p1 at P (the plan and the item's test cases written, nothing built): commit 91b079f5ac, 10 record files
+N05: sol-high-due-p1 at T (after the item's tests ran): commit 5740ce105d, 15 record files
+N09: sol-high-due-p2 at S (after the specification was accepted): commit cb4aa22d17, 4 record files
+N07: sol-high-due-p2 at P (the plan and the item's test cases written, nothing built): commit 82a1158a01, 10 record files
+N03: sol-high-due-p2 at T (after the item's tests ran): commit d74bc317fd, 15 record files
+ok    snapshots are cut for every delivery and point
+ok    three snapshots a delivery, each point once
+ok    no file of a snapshot names a path under the owner's home
+ok    each later point's record holds the earlier point's and more
+ok    nothing of the build is in a snapshot cut before it (no due-times test file at S or P)
+ok    refused: cutting the snapshots twice
+DONE N01-r1.json: 3 decisions
+DONE N02-r1.json: 3 decisions
+DONE N03-r1.json: 3 decisions
+DONE N04-r1.json: 3 decisions
+DONE N05-r1.json: 3 decisions
+DONE N06-r1.json: 3 decisions
+DONE N07-r1.json: 3 decisions
+DONE N08-r1.json: 3 decisions
+DONE N09-r1.json: 3 decisions
+DONE N01-r2.json: 3 decisions
+DONE N02-r2.json: 3 decisions
+DONE N03-r2.json: 3 decisions
+DONE N04-r2.json: 3 decisions
+DONE N05-r2.json: 3 decisions
+DONE N06-r2.json: 3 decisions
+DONE N07-r2.json: 3 decisions
+DONE N08-r2.json: 3 decisions
+DONE N09-r2.json: 3 decisions
+ok    two repeats of every snapshot leave a list each
+kept N01-r1.json
+kept N02-r1.json
+kept N03-r1.json
+kept N04-r1.json
+kept N05-r1.json
+kept N06-r1.json
+kept N07-r1.json
+kept N08-r1.json
+kept N09-r1.json
+kept N01-r2.json
+kept N02-r2.json
+kept N03-r2.json
+kept N04-r2.json
+kept N05-r2.json
+kept N06-r2.json
+kept N07-r2.json
+kept N08-r2.json
+kept N09-r2.json
+ok    asking again keeps the lists it has
+18 lists under shuffled codes in SCRATCH/asklater-selftest-825333/root/judging; without a list: none
+ok    the lists are packed under new codes without the `where` of an item
+DONE judge opus: the target is in 12 of 18 lists
+DONE judge astra: the target is in 12 of 18 lists
+ok    both judges read the lists
+S (after the specification was accepted): on the list in 0 of 6; first in 0; in the first three in 0; places []; list lengths [3, 3, 3, 3, 3, 3]
+    sol-high-due-p1: places [0, 0] (0 is not on the list)
+    sol-high-due-p2: places [0, 0] (0 is not on the list)
+    sol-medium-due-p2: places [0, 0] (0 is not on the list)
+P (the plan and the item's test cases written, nothing built): on the list in 6 of 6; first in 0; in the first three in 6; places [3, 3, 3, 3, 3, 3]; list lengths [3, 3, 3, 3, 3, 3]
+    sol-high-due-p1: places [3, 3] (0 is not on the list)
+    sol-high-due-p2: places [3, 3] (0 is not on the list)
+    sol-medium-due-p2: places [3, 3] (0 is not on the list)
+T (after the item's tests ran): on the list in 6 of 6; first in 6; in the first three in 6; places [1, 1, 1, 1, 1, 1]; list lengths [3, 3, 3, 3, 3, 3]
+    sol-high-due-p1: places [1, 1] (0 is not on the list)
+    sol-high-due-p2: places [1, 1] (0 is not on the list)
+    sol-medium-due-p2: places [1, 1] (0 is not on the list)
+READING: shown: asking later finds it more often
+lists where one judge finds the target and the other does not: none
+ok    the score is written
+ok    the made-up lists score as made: never at S, third at P, first at T
+ok    the reading: later by three lists or more with P no lower than S is shown; S at the ceiling cannot show; the reverse is the opposite
+
+all held

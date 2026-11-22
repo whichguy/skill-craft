@@ -4658,3 +4658,97 @@ Five attempts today to reach the SDLC session by message, none delivered, and af
 what was not delivered and why. A further copy will be held the same way unless that session's permission mode
 is changed first, and none is sent unless he asks. The line that points that session at this journal stands:
 read sections 55, 57 and 58.*
+
+## 59. A further step registered before any model call: asked later in the work, is the decision that mattered on the list? (23:54, 2026-11-21)
+
+**The owner's question.** After section 58 he asked: "What if we asked the question after the test cases have been
+run for inner loop? Would that prompt more detail that might be discoverable?" I answered that it probably would,
+because later in the work the question turns from "what did the request leave unsaid" into a list of decisions
+already taken, that nobody had tested it, and what the cheapest test was. Asked who should run it, he chose this
+session.
+
+**What is known.** In the Ratchet session's runs a session asked at the specification stage to choose one
+question for the requester did not choose the point that mattered (0 of 9, and 0 of 9 when asked for three),
+while the same sessions named a concrete thing every time (9 of 9 found where the program's documents and its
+code disagree). Later in the work the unsaid point is concrete too. Read by eye in one finished delivery
+(`sol-medium-due-p2`, below): its specification writes the point as a plain requirement ("Offline, atomically add
+missing deadlines to version 1 files ... An enabled service must not listen on a file still missing deadlines");
+its plan's own record names it as a decision ("Offline atomic idempotent backfill") beside five assumptions of
+which it is not one; its test cases assert it ("activation against a file missing due must exit before
+listening"); and the product ships a `scripts/backfill-due-times.js`.
+
+**The material, which exists.** Finished ShipLoop deliveries of the bench case `ticket-due-times`. The request
+leaves one point unsaid that decides the outcome: how the tickets already in the data file get their due times.
+The owner ruled on it earlier ("Yes, fill at start", in the SDLC study's journal). Of the 36 finished deliveries
+of that case on this machine, all from other sessions' studies and only read here, nine took the other answer, a
+separate command and a refusal to start, and fail the same five held-out probes (migrate, restart, switch,
+rollback, cli). All nine are Sol's. Three are used, all from one ShipLoop build and one round of the SDLC study
+(`/Users/dadleet/e2e-runs-sdlc10/20261121-paired/`): `sol-medium-due-p2`, `sol-high-due-p1` and `sol-high-due-p2`.
+A fourth I first tried the harness on (`d3` of a round begun at 23:10 tonight) runs another ShipLoop build and is
+left out.
+
+**Three points of a delivery,** cut from its own commits and its trace:
+
+- **S**, after the specification was accepted: the repository at the commit that records the knowledge after the
+  spec, and the record of intake, discovery, research and spec.
+- **P**, the plan and the item's test cases written and nothing built: the last commit before the first feature
+  commit, and the record through the last stage before the item's first `implement` (test strategy, plan,
+  prepare, step plan, test spec, validate existing).
+- **T**, after the item's tests ran: the item's last feature commit, and the record through its last `test`.
+
+A snapshot is the request, the repository at that commit, and the record: each accepted stage's own result file,
+in order. Every path under the owner's home is replaced in it, so that a session cannot follow a path back to
+the delivery, where the later work lies.
+
+**The asking.** A fresh session on Sol at medium, with customizations off, is given one snapshot and asked to
+list every decision the work has taken on the requester's behalf, the costliest wrong guess first, each with
+what else the requester might have meant and where it is written. It is not told what to look for. Sol at
+medium is the driver that took the wrong answer and the one the Ratchet session's question tests ran on. Three
+sessions a snapshot: 27 lists, nine a point. The text is `LIST_PROMPT` in `ask_later.py` (sha256
+`ccf7940e4a07081f43749d6863843ca2efe95aa400bd7f86306dde40421f4b81`).
+
+**The judging.** The lists go under shuffled codes without the place each item cites, which would tell the
+point. Two judges, Opus at high and Astra at high, each read all of them in one session against a written
+description of the target decision (`TARGET`, sha256
+`37df2f1df0f2eb33a3d8b95b6ea91f2226f701d741ec3b4ae54999a29e4d3ac7`) and give the place of the first item about
+it, or none. The driver checks that the item a judge quotes is the item at that place. A list holds the target
+when both judges find it, and its place is the later of the two.
+
+**How it is read, fixed now.**
+
+- For each point, the number of its nine lists that hold the target.
+- Asking later finds it more often is **shown** when T has it in at least three more lists than S, and P in no
+  fewer than S. **The opposite** when S has it in at least three more than T. When S already has it in eight or
+  nine, the reading is that it is found at the specification and timing cannot show. Not shown otherwise.
+- A session that leaves no usable list is launched once more. If that fails too, its list counts as not
+  holding the target.
+
+Described beside the rule: the target's place in each list, with how often it is first and how often in the
+first three, which is the nearest thing here to the Ratchet session's one question and three questions; the
+lengths of the lists, since a long list costs its reader; the same by delivery; and what else the lists hold.
+
+**Predictions, before any model call.**
+
+43. At S the target is on the list in at least six of nine: the specification states it as a requirement that
+    the request does not contain.
+44. At P and at T it is on the list in at least eight of nine each.
+45. It is in first place more often at T than at S, by two lists or more.
+46. The rule is not met, because S is too high for T to be three above it. If so, what the Ratchet session's 0
+    of 9 measured was the form of the asking, choose one question, more than its timing.
+
+**What it costs.** Twenty-seven sessions on Sol on subscription; two judge sessions, about a dollar for the
+registered judge's. About 40 minutes.
+
+**Where it stops.** After the score the result is reported as it is.
+
+**Checked, no model called.** `ask_later.py selftest` on the three delivery folders, with made-up listers and
+judges: 13 checks hold, none failed (`evidence/ask-later/selftest.txt`). Among them: three snapshots a delivery;
+no file of a snapshot names a path under the owner's home; each later point's record holds the earlier point's
+and more; nothing of the build is in a snapshot cut before it; made-up lists score as they were made; the
+reading on made-up counts.
+
+**Limits, known before.** One case and one decision. Three deliveries, all Sol's and all with the wrong answer:
+whether a list would hold the point when the work chose rightly is not tested. The lister is a fresh session
+reading the work's records, not the working session with its own context. A list that holds the point at place
+12 of 20 still leaves the reading to the requester. Whether the requester's answer, once asked, changes the
+product is the Ratchet session's result and is not retested here.
