@@ -1,0 +1,41 @@
+runs with commands: 160; traced span 40.8 h; time from a refusal to the next accepted command, summed: 3.0 h (7%)
+runs reaching stage: {None: 160, 'improve': 132, 'step-plan': 109, 'test-spec': 99, 'implement': 98, 'carry-forward': 97, 'document': 97, 'test': 97, 'discovery': 71, 'intake': 71, 'research': 71, 'spec': 71, 'plan': 47, 'prepare': 47, 'test-strategy': 47, 'system-test-author': 44, 'product-acceptance': 43, 'release': 43, 'release-check': 43, 'release-plan': 43, 'system-test': 43, 'handoff': 42, 'operations': 42, 'release-verify': 42, 'validate-existing': 2}
+
+   n runs   of  med s sum min  class | stage | versions | drivers
+ 125   80   97     30      80  mutation check: a changed line's mutant survived | test | {'2.3.0': 68, '2.4.0': 45, '2.4.1': 12} | {'grok@xhigh': 4, 'gpt@medium': 57, 'gpt@xhigh': 2, 'claude@high': 43, 'gpt@high': 15, 'claude@medium': 4}
+  20   12   97     43      19  test run or base run failed (tests red) | test | {'2.3.0': 8, '2.4.0': 4, '2.4.1': 8} | {'claude@high': 18, 'gpt@high': 1, 'claude@medium': 1}
+  75   44  109     10      18  other | step-plan | {'2.3.0': 32, '2.4.0': 30, '2.4.1': 13} | {'gpt@medium': 27, 'claude@high': 32, 'gpt@high': 8, 'claude@medium': 8}
+  37   37  109     24      18  step proof names a file the base lacks and no earlier step declares | step-plan | {'2.3.0': 24, '2.4.0': 10, '2.4.1': 3} | {'gpt@medium': 29, 'claude@high': 5, 'gpt@high': 2, 'claude@medium': 1}
+  33   31   97     12      13  requirements file edited beyond this step's lines (restore to HEAD) | document | {'2.3.0': 23, '2.4.0': 8, '2.4.1': 2} | {'grok@xhigh': 3, 'gpt@medium': 15, 'gpt@xhigh': 1, 'claude@high': 13, 'claude@medium': 1}
+  26   17  132      7       4  review: no bound stage / run the review first / loop ended | improve | {'2.3.0': 10, '2.4.0': 6, '2.4.1': 10} | {'claude@high': 12, 'gpt@medium': 4, 'gpt@high': 1, 'claude@medium': 9}
+  17   15  109      7       4  step plan: criterion without its own test command or ID | step-plan | {'2.3.0': 8, '2.4.0': 4, '2.4.1': 5} | {'claude@high': 12, 'gpt@medium': 1, 'gpt@high': 1, 'claude@medium': 3}
+  20   14  132      6       3  review pass: add a 'Regression test' line | improve | {'2.3.0': 17, '2.4.0': 1, '2.4.1': 2} | {'claude@high': 20}
+  15   13  132      9       3  review pass: record how the changed result was checked | improve | {'2.3.0': 11, '2.4.1': 4} | {'gpt@medium': 5, 'claude@high': 10}
+   6    6  109     21       2  step plan: focused command only searches text | step-plan | {'2.3.0': 6} | {'gpt@medium': 4, 'claude@high': 2}
+  14   14  109      9       2  step paths with no expectation listing them | step-plan | {'2.3.0': 8, '2.4.0': 3, '2.4.1': 3} | {'claude@high': 12, 'claude@medium': 2}
+   9    6   47     12       2  plan: concern rows missing or misshaped | plan | {'2.4.0': 9} | {'gpt@medium': 5, 'gpt@high': 4}
+  15   15   47      6       2  test strategy: no unit or component row | test-strategy | {'2.4.0': 10, '2.4.1': 5} | {'gpt@medium': 3, 'claude@high': 8, 'gpt@high': 4}
+  13   13   98      7       2  implement result: not_covered shape | implement | {'2.3.0': 5, '2.4.0': 6, '2.4.1': 2} | {'gpt@medium': 6, 'claude@high': 5, 'gpt@high': 2}
+  11    9   99      8       2  add assumptions/decisions/cases to a file | test-spec | {'2.3.0': 4, '2.4.0': 6, '2.4.1': 1} | {'gpt@medium': 7, 'gpt@high': 3, 'claude@high': 1}
+  10   10   43      6       1  evidence_refs cite files that do not exist | release-plan | {'2.3.0': 2, '2.4.0': 2, '2.4.1': 6} | {'claude@high': 6, 'gpt@medium': 1, 'claude@medium': 3}
+  13   11   47      5       1  plan: concern owner_stage not an allowed stage | plan | {'2.4.0': 3, '2.4.1': 10} | {'claude@high': 6, 'gpt@high': 1, 'gpt@medium': 1, 'claude@medium': 5}
+   5    4  132      8       1  review pass left files uncommitted | improve | {'2.3.0': 1, '2.4.0': 3, '2.4.1': 1} | {'claude@high': 4, 'grok@xhigh': 1}
+   5    5  109     10       1  step plan: open plan assumptions due here | step-plan | {'2.4.0': 3, '2.4.1': 2} | {'gpt@medium': 1, 'claude@high': 3, 'claude@medium': 1}
+   5    5   98      7       1  implement result: unsupported fields | implement | {'2.3.0': 1, '2.4.0': 4} | {'gpt@medium': 3, 'gpt@high': 2}
+   4    4   98      6       0  implement result: learned shape | implement | {'2.3.0': 3, '2.4.0': 1} | {'gpt@medium': 4}
+   4    4  109      6       0  step plan: proof must be one command line | step-plan | {'2.3.0': 3, '2.4.0': 1} | {'gpt@medium': 2, 'claude@high': 1, 'gpt@high': 1}
+
+runs with the refusal / runs that reached its stage, by ShipLoop version and by driver
+  proof        {'2.3.0': '24/66', '2.4.0': '10/31', '2.4.1': '3/12', 'claude@high': '5/33', 'claude@medium': '1/7', 'gpt@high': '2/11', 'gpt@medium': '29/51', 'gpt@xhigh': '0/2', 'grok@xhigh': '0/5'}
+  restore      {'2.3.0': '22/55', '2.4.0': '7/31', '2.4.1': '2/11', 'claude@high': '12/29', 'claude@medium': '1/6', 'gpt@high': '0/11', 'gpt@medium': '15/46', 'gpt@xhigh': '1/2', 'grok@xhigh': '2/3'}
+  mutation     {'2.3.0': '47/55', '2.4.0': '25/31', '2.4.1': '8/11', 'claude@high': '25/29', 'claude@medium': '3/6', 'gpt@high': '10/11', 'gpt@medium': '37/46', 'gpt@xhigh': '2/2', 'grok@xhigh': '3/3'}
+  layers       {'2.3.0': '0/2', '2.4.0': '10/31', '2.4.1': '5/14', 'claude@high': '8/13', 'claude@medium': '0/7', 'gpt@high': '4/11', 'gpt@medium': '3/15', 'grok@xhigh': '0/1'}
+  owner_stage  {'2.3.0': '0/2', '2.4.0': '3/31', '2.4.1': '8/14', 'claude@high': '6/13', 'claude@medium': '3/7', 'gpt@high': '1/11', 'gpt@medium': '1/15', 'grok@xhigh': '0/1'}
+
+whole deliveries (reached operations): 42; minutes, medians
+  driver          n   span   after any refusal   after a refusal that is not a failed test, mutant or proof (max)
+  claude@high    10   48.2      3.3                    1.4 (8.1)
+  claude@medium   5   16.6      0.8                    0.5 (1.3)
+  gpt@high       11   19.2      1.6                    0.3 (2.0)
+  gpt@medium     15   12.6      1.7                    0.5 (2.2)
+  grok@xhigh      1  239.7      5.8                    0.7 (0.7)

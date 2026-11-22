@@ -2814,6 +2814,67 @@ partner's and its time 29% to 59%, in pairs started together.
   the second such slip today); the second ended it a minute later. Stray child shells of one stopped run were then
   ended by process id. `lifecycle.py cleanup` found nothing left in any folder.
 
+## Round 11 (2026-11-21): do recurring refusals cost enough to fix their instructions?
+
+### Owner decision, 2026-11-21
+
+Asked "Based on learnings, is there anything else we should change", I named three candidates and proposed to start
+with a free count of refused commands across the runs already on disk; the owner answered "Yes".
+
+### Question and method (a reading of existing records; no run was launched)
+
+Do the same refusals recur often enough, and cost enough time, to justify changing the instructions that precede
+them? `refusal_census.py` reads `trace.jsonl` of every run folder of rounds 4 to 10 (`e2e-runs-sdlc4` to
+`e2e-runs-sdlc13`): 160 runs with at least one command, 5,353 commands, on ShipLoop 2.3.0, 2.4.0 and 2.4.1, drivers
+Sonnet 5.5 (high, medium), Sol 6.2 (medium, high, xhigh) and Grok 4.6 xhigh. A refusal is a command record with a
+non-zero exit and an error text. Each goes into a named class by its text. Cost is the time from the refusal to the
+next accepted check, complete or review command. That is an upper bound: real work done in between counts too.
+42 of the 160 runs are whole deliveries (they reached the operations stage); the rest are stopped early, most of
+them on purpose (the stop-early tests of round 9, the runs stopped in round 10).
+
+### Results
+
+- **R95.** 482 refusals, 9% of commands. Summed over all runs, the time after a refusal is 3.0 of 40.8 traced hours
+  (7%).
+- **R96.** The largest class is the mutation check (a seeded fault in a changed line survived the tests): 125
+  refusals in 80 of the 97 runs that reached the test stage, median 30 s, 80 minutes in all. Failed test runs add 19
+  minutes. Together they are 55% of the time after refusals. These are the product's check at work and not a
+  misread instruction.
+- **R97.** The instruction-shaped classes, by total time: a step proof naming a file that the base lacks and no
+  earlier step declares (37 of 109 runs that reached step planning, once each, median 24 s, 18 minutes in all;
+  29 of 51 on Sol medium against 5 of 33 on Sonnet high); the requirements file edited beyond the step's own lines
+  at the document stage (33 refusals in 31 of 97 runs, median 12 s, 13 minutes); every other class is 4 minutes
+  or less in all across the 160 runs.
+- **R98.** The two I had named from memory: the test strategy without a unit or component row is in 15 of 47 runs
+  that reached that stage, median 6 s, 2 minutes in all (Sonnet high 8 of 13, Sonnet medium 0 of 7). The step
+  proof class is R97's first.
+- **R99.** Per whole delivery, the median time after refusals that are not a failed test, a surviving mutant or a
+  failed proof is 0.5 minutes on Sonnet medium (of 16.6, n=5), 0.5 on Sol medium (of 12.6, n=15), 0.3 on Sol high
+  (of 19.2, n=11) and 1.4 on Sonnet high (of 48.2, n=10; maximum 8.1).
+- **R100.** One class is commoner on the newest version: a plan concern whose `owner_stage` is not an allowed stage,
+  in 8 of 14 runs on 2.4.1 against 3 of 31 on 2.4.0 (Sonnet 9 of 20, Sol 2 of 26). Each costs a median 5 s. The
+  versions were run on different cases and drivers, so this is a description and not an effect of the version.
+
+### Findings
+
+- **F69 (firm as a count, for these cases and drivers).** Instruction-shaped refusals cost about half a minute of a
+  13 to 17 minute delivery on the two drivers now in use, 3 to 4% at most, and the figure is an upper bound.
+  Removing all of them could not save more than that.
+- **F70 (decision, mine, routine).** No packet wording is proposed. A ShipLoop text change needs tests, a change
+  note and an E2E round (about $10 to $20 and an hour); three wording attempts in round 9 showed no effect; the
+  most this one could return is half a minute a run. The candidate "fix the instructions behind recurring
+  refusals", which I gave the owner as second of three, is withdrawn on this count.
+- **F71 (exploratory).** Most of the time after refusals is the mutation check doing its work. Whether its cost can
+  fall without losing what it catches is a product trade-off for the owner and was not examined here.
+
+### Limits
+
+- Text classes are mine; 75 refusals at step planning fall in a mixed "other" class (18 minutes in all, median
+  10 s), which no single wording would remove.
+- The cost is elapsed time only; the tokens a refusal costs were not measured.
+- The Grok row has one whole delivery. Small cases only (three services, one small app).
+- Evidence: `evidence/refusal-census.txt`.
+
 ## Evidence (all rounds)
 
 | File | Holds |
@@ -2927,6 +2988,9 @@ judges label them with `evidence/removed-review-judge-brief.txt`, and `removed_r
 rescores from the repository alone. `late_work_census.py <work>/census.json runs-reviews/census.json` reads the
 runs' traces and reproduces `evidence/late-work-census.txt`; `next_round_cuts.py runs-reviews/census.json
 <work>/census.json` does the same for `evidence/next-round-cuts.txt`.
+
+Round 11: `python3 -I refusal_census.py <run roots>` reads the runs' traces and reproduces
+`evidence/refusal-census.txt`.
 
 Round 8: `python3 -I grok_review_scan.py grok-4.6 <run roots>` reads the runs' pass logs and reproduces
 `evidence/grok-review-scan.txt`. `removed_review_diffs.py OUT <run folders> --all-stages --slices --model <model>`
