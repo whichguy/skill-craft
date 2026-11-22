@@ -1490,3 +1490,79 @@ unchanged delivery, the fresh Ratchet final, one round).
 row; on at least two small cases told rises by two items or more over unchanged ShipLoop. **What would end this
 line:** the session does not start the worker, or the worker's looks are as empty as the builder's. Then the look
 belongs outside the building session altogether (a driver or harness step), a different product decision.
+
+## 19. Version two's trial so far, why one run did nothing, and a middle case at the owner's word (15:23)
+
+Status: interim (three of four version-two runs ended; two are being audited). The registrations in 19.3 and 19.4
+are made before the things they register exist.
+
+### 19.1 Version two, three runs (candidate commit `9ca27527082cd12665af3d2401acf183813adb87`, runs root `~/e2e-runs/d20261122-ccc2ff/`)
+
+| Case | Minutes (unchanged ShipLoop) | Held-out checks | Worker started | The look | What followed |
+|---|---|---|---|---|---|
+| shared expenses | 9.2 (10.1) | 6 of 6 | **no** | 1 row in 14 seconds: `node --test`, `works` | nothing |
+| chess | 15.4 (10.7) | 10 of 10 | yes | 136 seconds, 10 rows: 9 `works`, 1 untold (malformed positions are not reliably refused, and nothing delivered says so) | one corrective item (73 seconds of inner stages): a README stating the limit; the answer pass `told`, quote found by script |
+| ticket assignment | 20.9 (10.5) | 18 of 18 | yes | 160 seconds, 12 rows: 9 `works`, 2 medium shortfalls (contradictory repeated filter values answered as if one; the 64-character name limit counted in code units, so a 33-character name of supplementary characters is refused), 1 low (an agent named `-` looks unassigned in the listing) | one corrective item (136 seconds): both medium ones fixed with tests; the answer pass `closed` twice, the test file changed since the look |
+
+Where the worker looked, it found what this morning's separate looks and the auditors found: the malformed-input
+weakness on chess (section 17's medium defect of the unchanged delivery) and the `-` look-alike on tickets
+(section 17's D-3). The routing rule, the corrective item and the script-checked answers all worked as designed.
+
+### 19.2 Why the expenses run did nothing: the instruction never reached the session (firm for that run)
+
+Read from the Codex rollout, which holds what the model was given (not from the harness's event record): on Codex
+the session drives ShipLoop through a helper script it writes for itself; the helper submits a result and shows
+the model a slice of the next packet. In the expenses run the slice of the `product-acceptance` packet was 3,673 of
+19,315 characters: the header and callback, the goal line, the "Checked by" line, the result template's rows and
+the allowed outcomes. The duty text, the Look block and the references were not in it. Across everything that
+session was given, "Look before you assess", "have a fresh worker look", "Product look guide" and "no look is
+recorded" occur **0 times**. It filled the template's `look` row and the check accepted it. In the chess and
+tickets runs the same phrases occur 2 to 3 times each, and those sessions started the worker.
+
+Applied to version one's four runs (section 18): the look instruction reached the session in two (expenses and
+Grokbot: 1 occurrence each; their looks had 3 and 4 rows) and not in the other two (chess and tickets: 0; 1 row
+each). **So section 18's verdict, "the builder's own look finds nothing", rests on two runs, not four.** In the
+other two the builder was never told what a look was; it filled a template. The verdict's direction is unchanged
+(where told, it looked and found nothing), its base is half what I wrote.
+
+This is a known property of this host that I did not check before reading a trial (the SDLC study recorded it on
+2026-11-21: on Codex the model is given only part of what a command prints). The rule I take from it: before a
+trial of an instruction counts, count the instruction in what the model was given.
+
+**Version three, registered now:** the look's instruction is put where every session read it: the first-pass
+result template's placeholder for `did` names the fresh worker and the guide's path, and the refusal for a row
+left as the template says the same. No new refusal and no count is added (the check cannot know who looked).
+The released `defaults` list relies on the same channel. An Opus worker is building it on the candidate branch.
+Trial: expenses, chess and tickets again and the middle case of 19.4; a run counts only if the instruction is
+found in what the session was given. Prediction: with the template carrying it, the worker is started in all of
+them.
+
+### 19.3 Grokbot leaves the iteration loop (the owner, 15:22)
+
+The owner: "Is the Grokbot comparison just too expensive? Should we use something different to make it still more
+complex than some of the in-place cases, but basically not take so much time?" The costs I gave: a ShipLoop run
+25 to 29 minutes, a Ratchet run 85 to 162, a judging round about 45 minutes of wall clock and twelve Opus
+sessions (three shares a product), against 10 to 15, 45 to 72, about 15 and six for a small case. Recommendation
+accepted: iterate on the small cases; Grokbot once at the end as a confirmation. Version two's Grokbot run, already
+started, is read by script only (worker started, rows, held-out checks) and is not audited.
+
+### 19.4 `roundtable` as the middle case (the owner: "Yes, set up roundtable as the middle case")
+
+`roundtable` is an existing case of the E2E harness: a web application built from an empty repository, with a
+rendered interface, on a request of about 2,000 characters (Grokbot's is 6,700; the small cases' 1,100 to 1,700).
+It is chosen because Grokbot's differences were in a rendered interface and its failure handling, which the three
+small cases do not have, and because one auditor should be able to cover it in one pass.
+
+Set up, in this order: (a) the apparatus learns the case for both tools (the Ratchet loop gets the harness's
+request verbatim); (b) **the inventory is written before any product of the case exists**: two listers (Opus and
+Grok 4.7), a merge, both families rating each unsaid point, kept only when both rate it must or should, exactly
+section 10's procedure, with no arm's notes as a source; (c) one fresh run of unchanged ShipLoop 2.6.0 and one of
+Ratchet from commit `22e52c0807ca41aa0224dd81f03b84e9bba44e82` (the commit of every baseline run of sections 15 to
+17), and the candidate's run from its own commit; (d) one judging round on the three products.
+
+What it changes for comparability: nothing in sections 1 to 18 (no earlier number is recomputed). The four-case
+rule of 16.3 named Grokbot; for the candidate's next round the same four conditions are read with roundtable in
+Grokbot's place (ahead of unchanged ShipLoop on told or on defects there), and Grokbot is run once afterwards as
+the confirmation. Limits known now: the case has no held-out checks of this study's kind (what the harness has is
+recorded when the apparatus is built); it has no earlier run of either tool here, so nothing about it is known in
+advance; one run of each tool.
