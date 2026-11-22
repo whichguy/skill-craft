@@ -1,0 +1,19 @@
+{
+ "p370f0f": {
+  "point": "S",
+  "tree": "/Users/dadleet/e2e-runs/d20261122-360a9f/fix/expenses/work",
+  "spec": "docs/shiploop/spec.md"
+ },
+ "p8284f5": {
+  "point": "F",
+  "tree": "/Users/dadleet/e2e-runs/d20261122-360a9f/measure/expenses-1/final/tree",
+  "spec": "docs/shiploop/spec.md",
+  "audit_from": "expenses"
+ },
+ "p23566f": {
+  "point": "L",
+  "tree": "/Users/dadleet/e2e-runs/d20261122-360a9f/measure/expenses-2/final/tree",
+  "spec": "ratchet/spec.md",
+  "audit_from": "expenses"
+ }
+}

@@ -859,10 +859,16 @@ def facts_of(case_dir: Path, code: str, inv: dict, probed: list, primary: bool) 
                        for worth in ("value", "neutral", "liability")}}
 
 
+def judges_of(case: str) -> tuple:
+    """The judges whose verdicts count for a case. The owner, 2026-11-22, after the twelve products were judged by
+    both families: "just use opus for the judge to speed things up". The fixed-product cases are judged by Opus."""
+    return ("a",) if case.endswith("-fixed") else JUDGES
+
+
 def judged(case_dir: Path, case: str, key: dict) -> dict:
-    """Each pair's verdict from both judges, turned back to points: who is better, and whether one task closes it."""
+    """Each pair's verdict from the case's judges, turned back to points: who is better, and whether one task closes it."""
     out = {}
-    for judge in JUDGES:
+    for judge in judges_of(case):
         path = case_dir / f"verdict-{judge}.json"
         if not path.exists():
             continue
@@ -906,8 +912,9 @@ def score(root: Path, out_dir: Path) -> None:
                 "D4": ahead((a["told"], a["unstated"]), (b["told"], b["unstated"]), 2, 0.10),
                 "D5": ahead((a["defects"], 0), (b["defects"], 0), 2, fewer=True)}
             both = verdicts.get((first, second), {})
-            sides = [both[judge]["side"] for judge in JUDGES if judge in both]
-            agreed = sides[0] if len(sides) == 2 and sides[0] == sides[1] and sides[0] else None
+            wanted = len(judges_of(case))
+            sides = [both[judge]["side"] for judge in judges_of(case) if judge in both]
+            agreed = sides[0] if len(sides) == wanted and len(set(sides)) == 1 and sides[0] else None
             readings["D6"] = None if agreed is None else ("first" if agreed == first else "second")
             counted = list(readings.values())
             lead = counted.count("first") - counted.count("second")
@@ -915,11 +922,11 @@ def score(root: Path, out_dir: Path) -> None:
             gate = None if a["serious"] == b["serious"] else (first if a["serious"] < b["serious"] else second)
             if gate:
                 better = gate
-            closes = [both[judge]["one_task_closes"] for judge in JUDGES if judge in both]
+            closes = [both[judge]["one_task_closes"] for judge in judges_of(case) if judge in both]
             pairs[f"{first}-{second}"] = {
                 "readings": readings, "gate": gate, "better": better, "verdicts": both,
-                "judges_agree": len(sides) == 2 and sides[0] == sides[1],
-                "one_task_closes_both": len(closes) == 2 and all(value == "yes" for value in closes)}
+                "judges_agree": len(sides) == wanted and len(set(sides)) == 1,
+                "one_task_closes_both": len(closes) == wanted and all(value == "yes" for value in closes)}
         main = pairs["S-L"]
         nearly = main["gate"] != "L" and (main["better"] in (None, "S") or main["one_task_closes_both"])
         rated = inv["rated"]

@@ -1,0 +1,36 @@
+{"rechecks": [
+  {"id": "U-22", "results": {
+    "p80d329": {"grade": "sound", "observed": "docs/api.md documents PUT /tickets/:id/assignee (400/404/409, trimming, 64-character limit, refusal of the em dash name), the assignee ticket field, the assignee filter (exact, case-sensitive, assignee= or bare assignee for unassigned, unchecked values answer 200 empty, repeated filters must match every value), the audit actions ticket.assigned and ticket.unassigned, and the ticket.assigned notification; docs/operations.md describes the notification line, its type, its 'to' (the agent name) and its per-assignment key; README describes the ASSIGNEE column, the em dash for unassigned in list and show and the fifth raw field; CHANGELOG has a 1.5.0 section and package.json is 1.5.0; decision 0009 added and indexed. Checked against the running product: 200 with assignee, 409 on resolved, '' and 65 chars 400, '—' 400 with the documented message, ?assignee=<65 chars> 200 empty, ?status=open&status=closed lists nothing, audit actions ticket.assigned/ticket.unassigned, outbox type ticket.assigned to 'Dana Lee' with key ticket.assigned:T-0001:2, list shows ASSIGNEE with '—' for unassigned, list --raw has a fifth field empty when unassigned, show prints the assignee; all as documented."},
+    "pb56fe2": {"grade": "poor", "observed": "docs/api.md documents the endpoint (400/404/409, 1-64 code points), the assignee field, the filter (assignee= for unassigned) and the audit actions ticket.assigned/ticket.unassigned, and says only that 'the worker sends each new assignee an assignment notification' without naming the type or recipient; docs/operations.md is unchanged from 1.4.0 (its notifications section still lists only received and resolved); README describes the assignee column, the em dash for unassigned and the fifth raw field; decision 0009 added and indexed. No release record: CHANGELOG.md is byte-identical to base (no new section) and package.json version is still 1.4.0. Running the product: behaviour matches what is documented (200 with assignee, 409 on resolved, raw fifth field empty when unassigned, outbox type ticket.assigned), but README's 'an em dash indicates an unassigned ticket' is not reliable: PUT {\"assignee\":\"—\"} answers 200 and stores '—', which list and show then display exactly like an unassigned ticket."},
+    "p21e512": {"grade": "sound", "observed": "docs/api.md documents the endpoint (body must be valid UTF-8 and hold only assignee, 1-64 UTF-16 code units, control characters refused, 409 for resolved/closed even when the value is unchanged, 500 on a failed save), the assignee field, the filter (exact incl. case and spaces, assignee= for unassigned, repeated parameter uses its first value, invalid nonempty assignee values return invalid), the single audit action ticket.assigned covering set and clear, and the notification to the incoming agent; docs/operations.md covers old data files, rollback, the notification and its per-assignment key; README describes the quoted-name / 'unassigned' ASSIGNEE column, show, and that list --raw keeps four columns; CHANGELOG has 1.5.0, 1.5.1 and 1.5.2 sections and package.json is 1.5.2; decision 0009 added and indexed. Checked against the running product: invalid UTF-8 PUT 400 'request body is not valid UTF-8', ?assignee=<65 chars> 400 invalid, ?status=open&status=closed uses the first value, unassign recorded as ticket.assigned {from:'Dana Lee',to:null}, outbox ticket.assigned to 'Dana Lee', list shows \"Dana Lee\" / unassigned, list --raw has four fields, show prints the assignee and distinguishes \"null\" from null; all as documented."}
+  }}
+],
+ "defects": [
+  {"id": "D-1", "title": "An assignee name with invalid UTF-8 is accepted and stored with a replacement character", "severity": "low", "merged_from": ["p80d329#1"],
+   "repro": "Start the service; POST /tickets {\"title\":\"u\",\"requester\":\"r@example.com\"}; PUT /tickets/<id>/assignee with Content-Type application/json and the raw bytes {\"assignee\":\"da\\xFFna\"}; GET the ticket, its audit and /admin/outbox.",
+   "expected": "400 invalid with the ticket, audit and outbox unchanged",
+   "note": "",
+   "results": {
+     "p80d329": {"result": "present", "observed": "PUT answered 200 with assignee \"da�na\"; GET shows assignee \"da�na\"; the audit and outbox changed (an assignment entry and a ticket.assigned notification were added)."},
+     "pb56fe2": {"result": "present", "observed": "PUT answered 200 with assignee \"da�na\"; GET shows assignee \"da�na\"; the audit and outbox changed (an assignment entry and a notification were added)."},
+     "p21e512": {"result": "absent", "observed": "PUT answered 400 {\"error\":{\"code\":\"invalid\",\"message\":\"request body is not valid UTF-8\"}}; the ticket's assignee stayed null, updated unchanged, audit and outbox identical to before."}
+   }},
+  {"id": "D-2", "title": "A repeated status or priority filter now lists nothing where 1.4.0 used the first value", "severity": "low", "merged_from": ["p80d329#2"],
+   "repro": "Start the service; POST /tickets {\"title\":\"a\",\"requester\":\"r\"}; GET /tickets?status=open&status=closed",
+   "expected": "The 1.4.0 answer, [T-0001] (the first value), or a 400 refusal",
+   "note": "Confirmed the 1.4.0 base answers 200 with [T-0001] for this query.",
+   "results": {
+     "p80d329": {"result": "present", "observed": "200 {\"items\":[],\"next\":null} (base 1.4.0 lists T-0001); the change is documented in api.md and CHANGELOG 1.5.0."},
+     "pb56fe2": {"result": "absent", "observed": "200 with T-0001 in items, the same as 1.4.0 (first value used)."},
+     "p21e512": {"result": "absent", "observed": "200 with T-0001 in items, the same as 1.4.0 (first value used, as its api.md documents)."}
+   }},
+  {"id": "D-3", "title": "A malformed UTF-8 byte in the assignee filter matches the agent whose name holds U+FFFD", "severity": "low", "merged_from": ["p21e512#1"],
+   "repro": "Start the service. POST /tickets {\"title\":\"A\",\"requester\":\"r@example.com\"}; PUT /tickets/<id>/assignee {\"assignee\":\"Da\\uFFFDna\"} (200); GET /tickets?assignee=Da%FFna",
+   "expected": "400 invalid or an empty page",
+   "note": "",
+   "results": {
+     "p80d329": {"result": "present", "observed": "PUT 200 stored \"Da�na\"; GET /tickets?assignee=Da%FFna answered 200 with T-0005 (the ticket assigned to \"Da�na\") in items."},
+     "pb56fe2": {"result": "present", "observed": "PUT 200 stored \"Da�na\"; GET /tickets?assignee=Da%FFna answered 200 with T-0005 (the ticket assigned to \"Da�na\") in items."},
+     "p21e512": {"result": "present", "observed": "PUT 200 stored \"Da�na\"; GET /tickets?assignee=Da%FFna answered 200 with T-0005 in items, although its PUT refuses malformed UTF-8 bodies with 400."}
+   }}
+ ]}

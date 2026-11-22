@@ -1,0 +1,60 @@
+{
+ "recheck": [],
+ "defects": [
+  {
+   "from": "p370f0f",
+   "n": "p370f0f#1",
+   "title": "A group id of '.' or '..' is created with 201 but cannot be reached by ordinary HTTP clients",
+   "severity": "low",
+   "repro": "Start the server. POST /groups {\"id\":\".\",\"members\":[\"Ann\",\"Bob\"]}. Then GET /groups/%2E/balances with Node fetch, or curl http://host/groups/./balances without --path-as-is.",
+   "observed": "201 {\"id\":\".\"}, then 404 {\"error\":\"Route or group not found.\"} from fetch and plain curl (only curl --path-as-is reaches it)",
+   "expected": "either 400 at creation for an id that cannot be addressed, or the group reachable by balances, settlements and expenses",
+   "basis": "unstated",
+   "item": "U-4"
+  },
+  {
+   "from": "p370f0f",
+   "n": "p370f0f#2",
+   "title": "A kill during a save leaves a temporary file beside DATA_FILE that is never cleaned up",
+   "severity": "low",
+   "repro": "Start the server, create group g, run several parallel loops of POST /groups/g/expenses {\"payer\":\"Ann\",\"cents\":2,\"split\":\"equal\"} and send SIGKILL to the server mid-stream; list the DATA_FILE directory; restart.",
+   "observed": "a file .expenses-<uuid>.tmp remains next to the ledger after the kill and after restart (the ledger itself parses and holds every acknowledged expense)",
+   "expected": "no stray files, or stale temporaries removed at startup",
+   "basis": "unstated",
+   "item": "U-8"
+  },
+  {
+   "from": "p8284f5",
+   "n": "p8284f5#1",
+   "title": "A DATA_FILE holding valid JSON without a \"groups\" array is silently treated as empty and overwritten",
+   "severity": "low",
+   "repro": "printf '{\"something\":\"else\"}' > d.json; PORT=47311 DATA_FILE=d.json node server.js; curl -X POST localhost:47311/groups -d '{\"id\":\"z\",\"members\":[\"A\",\"B\"]}'; cat d.json",
+   "observed": "Server starts with no groups; POST -> 201; d.json now {\"groups\":[[\"z\",{\"members\":[\"A\",\"B\"],\"expenses\":[]}]]}, the original content is lost.",
+   "expected": "Refuse to start with a clear error (as it does for invalid JSON) or keep the original file aside before writing.",
+   "basis": "other",
+   "item": ""
+  },
+  {
+   "from": "p8284f5",
+   "n": "p8284f5#2",
+   "title": "A kill during a write leaves a stray temporary file in the data directory",
+   "severity": "low",
+   "repro": "Start PORT=47311 DATA_FILE=dir/d.json node server.js, create group g, run 8 client loops POSTing /groups/g/expenses {\"payer\":\"Ann\",\"cents\":2,\"split\":\"equal\"}, send SIGKILL to the server after ~200 ms (repeat a few times), then ls -a dir.",
+   "observed": "dir/.expenses-ffbde199-55cc-4b68-94d6-48f40105344f.tmp left behind (1 in 5 kills); startup never removes such files. Data itself intact.",
+   "expected": "Leftover temporary files removed at startup (or not left accumulating beside the data file).",
+   "basis": "unstated",
+   "item": "U-8"
+  },
+  {
+   "from": "p23566f",
+   "n": "p23566f#1",
+   "title": "Killed writes leave orphan temporary files beside DATA_FILE that are never removed",
+   "severity": "low",
+   "repro": "PORT=4710 DATA_FILE=/tmp/x/ledger.json node server.js; POST /groups {\"id\":\"g\",\"members\":[\"Ann\",\"Bob\"]}; run 8 parallel loops of POST /groups/g/expenses {\"payer\":\"Ann\",\"cents\":2,\"split\":\"equal\"}; kill -9 the server mid-stream; restart and repeat; ls -a /tmp/x",
+   "observed": "one .expenses-<uuid>.tmp file per kill remains in /tmp/x (9 after 10 kills); startup does not clean them; ledger itself intact",
+   "expected": "only the ledger (or stale temp files cleaned up at startup), so the data directory does not accumulate partial snapshots",
+   "basis": "other",
+   "item": "U-8"
+  }
+ ]
+}

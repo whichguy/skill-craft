@@ -818,3 +818,61 @@ One audit a product: an auditor's miss shows only where another product's audito
 re-run caught it. The judges read audits, not products. "Told" is one reader's call against quoted lines. The
 inventory's unsaid items are what two models and the arms thought of; a real requester might keep others. One run
 of each tool a case, as throughout: Grokbot's gap is one delivery against one delivery.
+
+## 13. The look and the fix: results (2026-11-22 07:25 to 08:40; Grokbot's fix added below when it ends)
+
+Status: firm for what was measured (one look and one fix a case). Evidence: `evidence/look/CASE/` (the look's
+instructions, `look.md`, the deep judge's list it was matched against, the matches, the probe of its other
+findings on all three products, both ratings), `evidence/fix/` (costs, each fix's report and diff) and
+`evidence/deep/CASE-fixed/`.
+
+**A change the owner made during this step (2026-11-22, about 08:25): "just use opus for the judge to speed things
+up".** The twelve products of section 12 had already been judged by both families. From here a verdict is the Opus
+judge's alone: the fixed-product cases below have one judge, so D6 is that judge's side and "one short task closes
+the gap" is that judge's answer. Grok's raters had already rated the looks' findings.
+
+### The looks (Sol 6.2 medium, one session each, in ShipLoop's delivered product)
+
+| Case | Minutes | Shortfalls written | Reproduce on S | K2: real (on the deep judge's list, or reproduce and both raters keep) | K1: the deep judge's findings on S the look names | K3: silent choices listed, of those the reader found untold |
+|---|---|---|---|---|---|---|
+| Shared expenses | 4.5 | 5 | 5 | 2 of 5 | 1 of 2 | 5 of 18 |
+| Chess | 2.1 | 2 | 2 | 1 of 2 | none to find | 1 of 8 |
+| Ticket assignment | 3.2 | 5 | 5 | 1 of 5 | 0 of 3 | 1 of 4 |
+| Grokbot | 7.8 | 15 | 15 | 15 of 15 | 10 of 25 | 8 of 27 |
+
+- **Every shortfall a look wrote reproduces** (27 of 27 on the product it looked at). What separates the cases is
+  whether both raters think a customer would care: 3 of 11 new ones on the small cases (Opus kept 3, Grok 8), 11
+  of 11 on Grokbot.
+- **The look and the audit find different things.** On Grokbot the look names 10 of the deep judge's 25 findings
+  and adds 11 the three auditors did not report; on tickets it names none of the judge's 3 and adds 5.
+- **The look's new findings are not ShipLoop's alone.** Probed on all three products: of Grokbot's 11, 7 are
+  present on Ratchet's first build and 5 on its final (among them: an incomplete clarification loses the pending
+  change request, rated `must` by both); of the small cases' real new ones, all three are present on F and L too.
+  So section 12's defect counts are a floor for every product, Ratchet's final included.
+- Predictions: K1 at least half on Grokbot, wrong (10 of 25); K2 at least half real, right on Grokbot (15 of 15),
+  wrong on the small cases (4 of 12); K3 under a third, right on three cases (not expenses' 5 of 18, which is
+  under a third too: right on all four).
+
+### The fixes (Opus at xhigh, one session each, given the product and `look.md` only) and the deep judge again
+
+| | Shared expenses | Ticket assignment |
+|---|---|---|
+| The fix | 3 of 5 shortfalls fixed, each with a test that fails without it; 2 declined as beyond the request; a README written | 4 of 5 fixed with tests; 1 declined and documented; release record and documents updated |
+| Minutes: ShipLoop + look + fix, beside Ratchet's whole run | 14.3 + 4.5 + 6.8 = 25.6, beside 46.4 | 15.3 + 3.2 + 10.0 = 28.5, beside 100.4 |
+| D3 unstated items handled: fixed / original / Ratchet's final | 16 / 16 / 16 of 16 | 19 / 18 / 19 of 19 |
+| D4 told in the delivered documents | 12 / 0 / 14 of 16 | 18 / 14 / 19 of 19 |
+| D5 low defects (no medium or high on any) | 2 / 3 / 1 | 3 / 2 / 1 |
+| K4, fixed against Ratchet's final | no difference shown; the judge: same | no difference shown; the judge: Ratchet's final somewhat better |
+| Nearly competitive with Ratchet's final | yes (was no) | yes (was no) |
+
+(The single reader's counts for an unchanged product differ by one between its two readings on tickets: 15 then 14
+of 19 for ShipLoop's original, 18 then 19 for Ratchet's final. That is the reader's noise, inside D4's margin.)
+
+- **One look and one fix closed the gap the deep judge had found on both small cases**, without either session
+  seeing the deep judge's findings: the fixer was told to tell the customer the choices the look listed, and that
+  is where ShipLoop's deliveries were behind.
+- **The fix is not free of cost to the product.** On tickets it changed what an existing query returns (a repeated
+  `status` or `priority` filter now lists nothing where the service used the first value), which the fresh audit
+  reported and the cross-probe confirmed as a low defect, and it is why the judge still leans to Ratchet's final.
+- K5 (under half of Ratchet's minutes): right on tickets (28%), wrong on expenses (55%).
+- A limit, as registered: the fixer is Opus at xhigh, a stronger model at a higher effort than the builders'.

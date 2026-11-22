@@ -1,0 +1,49 @@
+{
+ "shortfalls": [
+  {
+   "n": 1,
+   "title": "Keyboard cancellation can stop the wrong task."
+  },
+  {
+   "n": 5,
+   "title": "Valid bot names can push chat controls outside a narrow window."
+  },
+  {
+   "n": 6,
+   "title": "A cancellation click can disappear while a chat action is in flight."
+  },
+  {
+   "n": 7,
+   "title": "The open page continues to report live progress when the server is down."
+  },
+  {
+   "n": 8,
+   "title": "Reloading loses the reading position and unsent text."
+  },
+  {
+   "n": 10,
+   "title": "An incomplete clarification loses the pending record request."
+  },
+  {
+   "n": 11,
+   "title": "Active instructions cannot be cleared from an existing bot."
+  },
+  {
+   "n": 12,
+   "title": "Approval previews can make field boundaries ambiguous."
+  },
+  {
+   "n": 13,
+   "title": "A total above the safe integer range can be silently rounded on update."
+  },
+  {
+   "n": 14,
+   "title": "The composer silently drops the tail of overlong input."
+  },
+  {
+   "n": 15,
+   "title": "Setup gives no reason when the environment token is rejected."
+  }
+ ],
+ "steps_are_in": "/Users/dadleet/e2e-runs/d20261122-360a9f/look/grokbot/work/docs/shiploop/look.md"
+}

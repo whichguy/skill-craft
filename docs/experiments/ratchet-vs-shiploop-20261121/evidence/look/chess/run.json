@@ -1,0 +1,37 @@
+{
+ "case": null,
+ "enrich": null,
+ "host": "codex",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "started": "2026-11-22T07:24:48-0800",
+ "folder": "/Users/dadleet/e2e-runs/d20261122-360a9f/deep/chess/products/pe10ff4",
+ "prompt_file": "/Users/dadleet/e2e-runs/d20261122-360a9f/look/prompts/chess.md",
+ "allow": [
+  "docs/shiploop/look.md"
+ ],
+ "local_head": "a865dd4f95f6f378fb2a061b94639f3241725c2f",
+ "sessions": [
+  {
+   "number": 1,
+   "role": "look",
+   "label": "look",
+   "seconds": 125.1,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 124.9,
+   "held_out_marks": []
+  }
+ ],
+ "changed": [
+  "docs/shiploop/look.md"
+ ],
+ "put_back": [],
+ "tools_changed": [],
+ "snapshots": [
+  {
+   "label": "session",
+   "commit": "8eb89f7c532a2171aeebefcd4e9c763e63cf45da"
+  }
+ ]
+}

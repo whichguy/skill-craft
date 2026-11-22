@@ -1,0 +1,49 @@
+{
+ "recheck": [
+  {
+   "id": "U-22",
+   "kind": "unstated",
+   "text": "Whether the documentation and release records describe the change: docs/api.md (endpoint, ticket field, filter, audit action, notification), README command-line columns, a CHANGELOG.md section with a version bump in package.json, and a decision record if a format or rule changed.",
+   "audits_said": {
+    "p80d329": "sound",
+    "pb56fe2": "poor",
+    "p21e512": "sound"
+   }
+  }
+ ],
+ "defects": [
+  {
+   "from": "p80d329",
+   "n": "p80d329#1",
+   "title": "An assignee name with invalid UTF-8 is accepted and stored with a replacement character",
+   "severity": "low",
+   "repro": "Start the service; POST /tickets {\"title\":\"a\",\"requester\":\"r\"}; send PUT /tickets/T-0001/assignee with Content-Type application/json and the raw bytes {\"assignee\":\"da\\xFFna\"} (e.g. printf '{\"assignee\":\"da\\377na\"}' | curl -X PUT --data-binary @- -H 'Content-Type: application/json' localhost:$PORT/tickets/T-0001/assignee); GET /tickets/T-0001",
+   "observed": "200; assignee \"da�na\" stored, a ticket.assigned audit entry and a notification to \"da�na\"",
+   "expected": "400 invalid with the ticket, audit and outbox unchanged (the byte is not text; the name the client sent is not the one stored)",
+   "basis": "unstated",
+   "item": "U-2"
+  },
+  {
+   "from": "p80d329",
+   "n": "p80d329#2",
+   "title": "A repeated status or priority filter now lists nothing where 1.4.0 used the first value",
+   "severity": "low",
+   "repro": "Start the service; POST /tickets {\"title\":\"a\",\"requester\":\"r\"}; GET /tickets?status=open&status=closed",
+   "observed": "200 {\"items\":[],\"next\":null}",
+   "expected": "The 1.4.0 answer, [T-0001] (the first value), or a 400 refusal; the change is documented in CHANGELOG 1.5.0 as a fix but alters an existing query that returned tickets",
+   "basis": "other",
+   "item": "U-13"
+  },
+  {
+   "from": "p21e512",
+   "n": "p21e512#1",
+   "title": "A malformed UTF-8 byte in the assignee filter matches the agent whose name holds U+FFFD",
+   "severity": "low",
+   "repro": "Start the service. POST /tickets {\"title\":\"A\",\"requester\":\"r@example.com\"}; PUT /tickets/T-0001/assignee {\"assignee\":\"Da\\uFFFDna\"} (200); GET /tickets?assignee=Da%FFna",
+   "observed": "200 with T-0001 in items",
+   "expected": "400 invalid or an empty page, as the PUT refuses malformed UTF-8 (the product's own spec clause C-52 requires this)",
+   "basis": "other",
+   "item": "U-13"
+  }
+ ]
+}

@@ -1,0 +1,624 @@
+{
+ "code": "p80d329",
+ "ran": {
+  "tests_command": "npm test (node --test) in work/p80d329",
+  "tests_result": "127 tests, 127 pass, 0 fail (base 1.4.0 suite alone: 117 pass)",
+  "started_with": "PORT=<free port> [WORKER_INTERVAL_MS, DATA_FILE, NOTIFY_FILE] node src/server.js via .audit/probe*.js; also PORT=47391 npm start"
+ },
+ "stated": [
+  {
+   "id": "S-1",
+   "built": "yes",
+   "observed": true,
+   "evidence": "node -e \"require('./package.json')\" -> dependencies undefined, devDependencies undefined; grep of require() in src, bin, scripts finds only relative and node: modules; service ran with no node_modules",
+   "spec": "stated",
+   "test": "none",
+   "test_name": "",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-2",
+   "built": "yes",
+   "observed": true,
+   "evidence": "PORT=47391 WORKER_INTERVAL_MS=0 npm start -> log \"tickets listening on 47391\"; curl localhost:47391/health -> {\"status\":\"ok\"}; stopped with kill of the node pid (npm exited with it)",
+   "spec": "stated",
+   "test": "weak",
+   "test_name": "test/config.test.js (PORT parsing); no test runs npm start",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-3",
+   "built": "yes",
+   "observed": true,
+   "evidence": "node .audit/probe1.js (spawns node src/server.js with PORT=<free port> WORKER_INTERVAL_MS=0, HTTP via node:http): PUT /tickets/T-0001/assignee {\"assignee\":\"dana\"} -> 200 ticket with assignee \"dana\"; GET /tickets/T-0001 -> assignee \"dana\"",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-1 assigns, leaves repeated requests unchanged, and clears the assignee",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-4",
+   "built": "yes",
+   "observed": true,
+   "evidence": "node .audit/probe1.js (spawns node src/server.js with PORT=<free port> WORKER_INTERVAL_MS=0, HTTP via node:http): PUT {\"assignee\":null} on assigned T-0001 -> 200 assignee null; GET -> null",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-1 assigns, leaves repeated requests unchanged, and clears the assignee",
+   "proved": "fails",
+   "proved_by": "src/store.js assign(): early return also when assignee === null (`if (ticket.assignee === assignee || assignee === null) return`); failed TC-1 and \"refuses the em dash the command line shows for an unassigned ticket\"; restored, 127/127 pass"
+  },
+  {
+   "id": "S-5",
+   "built": "yes",
+   "observed": true,
+   "evidence": "node .audit/probe1.js (spawns node src/server.js with PORT=<free port> WORKER_INTERVAL_MS=0, HTTP via node:http): PUT {\"assignee\":\"\"} on ticket assigned to dana -> 400 invalid \"assignee must not be empty\"; GET -> still \"dana\"",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-2 validates the assignee and restricts assignment to active tickets",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-6",
+   "built": "yes",
+   "observed": true,
+   "evidence": "node .audit/probe1.js (spawns node src/server.js with PORT=<free port> WORKER_INTERVAL_MS=0, HTTP via node:http): PUT 64 x \"a\" -> 200, assignee length 64; PUT 65 x \"a\" -> 400 invalid \"assignee must be at most 64 characters\"; GET -> still the 64-character name",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-2 validates the assignee and restricts assignment to active tickets",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-7",
+   "built": "yes",
+   "observed": true,
+   "evidence": "node .audit/probe1.js (spawns node src/server.js with PORT=<free port> WORKER_INTERVAL_MS=0, HTTP via node:http): open T-0002 PUT lee -> 200, PUT null -> 200; after transition to in_progress PUT lee -> 200 (status in_progress, assignee lee), PUT null -> 200 assignee null",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-2 validates the assignee and restricts assignment to active tickets",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-8",
+   "built": "yes",
+   "observed": true,
+   "evidence": "node .audit/probe1.js (spawns node src/server.js with PORT=<free port> WORKER_INTERVAL_MS=0, HTTP via node:http): T-0003 assigned dana then in_progress, resolved: PUT lee -> 409 conflict \"ticket T-0003 is resolved and cannot change assignee\"; same after closed (\"is closed\"); GET ticket, audit count and /admin/outbox identical before/after",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-2 validates the assignee and restricts assignment to active tickets",
+   "proved": "fails",
+   "proved_by": "src/store.js assign(): status guard changed to `if (!isActive(ticket.status) && assignee === null) throw` (assigning a resolved/closed ticket allowed); TC-2 failed; restored, 127/127 pass"
+  },
+  {
+   "id": "S-9",
+   "built": "yes",
+   "observed": true,
+   "evidence": "node .audit/probe1.js (spawns node src/server.js with PORT=<free port> WORKER_INTERVAL_MS=0, HTTP via node:http): resolved and closed T-0003 PUT {\"assignee\":null} -> 409 conflict; assignee stays \"dana\"; audit and outbox unchanged",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-2 validates the assignee and restricts assignment to active tickets",
+   "proved": "fails",
+   "proved_by": "src/store.js assign(): status guard changed to `if (!isActive(ticket.status) && assignee !== null) throw` (unassigning a resolved/closed ticket allowed); TC-2 failed; restored, 127/127 pass"
+  },
+  {
+   "id": "S-10",
+   "built": "yes",
+   "observed": true,
+   "evidence": "node .audit/probe1.js (spawns node src/server.js with PORT=<free port> WORKER_INTERVAL_MS=0, HTTP via node:http): PUT {\"assignee\":\"dana\"} twice: second answers 200 with identical ticket (same updated), audit entries 2 -> 2, /admin/outbox JSON identical",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-1 assigns, leaves repeated requests unchanged, and clears the assignee",
+   "proved": "fails",
+   "proved_by": "src/store.js assign(): no-op check replaced by `if (false) return`; failed TC-1, TC-4 and TC-5; restored, 127/127 pass"
+  },
+  {
+   "id": "S-11",
+   "built": "yes",
+   "observed": true,
+   "evidence": "node .audit/probe1.js (spawns node src/server.js with PORT=<free port> WORKER_INTERVAL_MS=0, HTTP via node:http): \"assignee\" present on POST /tickets response, PATCH response, transition response, every item of GET /tickets?limit=100, GET /tickets/:id and PUT response",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-1 assigns, leaves repeated requests unchanged, and clears the assignee",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-12",
+   "built": "yes",
+   "observed": true,
+   "evidence": "node .audit/probe1.js (spawns node src/server.js with PORT=<free port> WORKER_INTERVAL_MS=0, HTTP via node:http): POST /tickets -> 201 body with \"assignee\":null; after unassign GET -> null; old 1.4.0 data file loads with assignee null for every ticket (node .audit/probe3.js)",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-1 assigns, leaves repeated requests unchanged, and clears the assignee",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-13",
+   "built": "yes",
+   "observed": true,
+   "evidence": "node .audit/probe2.js with NOTIFY_FILE and WORKER_INTERVAL_MS=100: after PUT dana, last NOTIFY_FILE line {\"type\":\"ticket.assigned\",\"to\":\"dana\",\"ticket\":\"T-0001\",\"subject\":\"[T-0001] Assigned to you\",\"body\":\"Ticket T-0001 \\\"Printer jam\\\" was assigned to you.\"}; outbox pending 0, dead 0",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-4 delivers one notification per effective assignment through the worker",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-14",
+   "built": "yes",
+   "observed": true,
+   "evidence": "node .audit/probe2.js: T-0001 dana open low, T-0002 lee, T-0003 unassigned, T-0004 dana resolved: GET /tickets?assignee=dana -> [T-0001, T-0004]",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-3 matches every supplied filter before cursor pagination",
+   "proved": "fails",
+   "proved_by": "src/tickets/query.js: assignee reader changed to `(assignee) => (assignee ? undefined : null)` (a named filter is dropped); failed TC-3 and \"a filter given more than once lists only the tickets that match every value\"; restored, 127/127 pass"
+  },
+  {
+   "id": "S-15",
+   "built": "yes",
+   "observed": true,
+   "evidence": "node .audit/probe2.js: GET /tickets?assignee= -> [T-0003] (the only unassigned); bare ?assignee -> [T-0003]",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-3 matches every supplied filter before cursor pagination",
+   "proved": "fails",
+   "proved_by": "src/tickets/query.js: assignee reader changed to `(assignee) => assignee || undefined` (empty filter dropped); failed TC-3 and \"a filter given more than once lists only the tickets that match every value\"; restored, 127/127 pass"
+  },
+  {
+   "id": "S-16",
+   "built": "yes",
+   "observed": true,
+   "evidence": "node .audit/probe2.js: assignee=dana&status=open -> [T-0001]; assignee=dana&priority=urgent -> [T-0004]; assignee=dana&status=resolved&priority=urgent -> [T-0004]; assignee=&priority=urgent -> [T-0003]",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-3 matches every supplied filter before cursor pagination",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-17",
+   "built": "yes",
+   "observed": true,
+   "evidence": "node .audit/probe3.js: node bin/tickets.js --data cli.json list -> table header \"ID STATUS PRIORITY REQUESTER UPDATED ASSIGNEE TITLE\", rows \"sam\", \"—\" (unassigned), \"ada li\"",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-5 reads legacy and saved assignees in HTTP, CLI listings and the weekly report",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-18",
+   "built": "yes",
+   "observed": true,
+   "evidence": "The unmodified 1.4.0 test files pass (127/127 with the new ones); weekly report --json on a 1.4.0 file and on a new file gives the same counts as the 1.4.0 script; old data file loads; existing endpoints answer as before in probes. Two deliberate changes: ?status=open&priority=urgent now intersects (1.4.0 returned the union, as its docs said it should not), and a repeated filter now must match every value (1.4.0 used the first) – see defects",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "the unmodified 1.4.0 suite (test/api.test.js, test/query.test.js, test/service.test.js and the rest)",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-19",
+   "built": "yes",
+   "observed": true,
+   "evidence": "diff -r base/test test -> only \"Only in test: assignee.test.js\" and \"Only in test: assignment.test.js\"; npm test -> 127 tests, 127 pass (base alone: 117)",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "npm test runs the unmodified original test files",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-20",
+   "built": "yes",
+   "observed": true,
+   "evidence": "test/assignment.test.js (TC-1..TC-6) and test/assignee.test.js (4 tests), node:test, exercising the new behaviour; all pass",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "test/assignment.test.js, test/assignee.test.js",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-21",
+   "built": "yes",
+   "observed": true,
+   "evidence": "npm test (node --test) -> 127 tests incl. the 10 new ones, 127 pass, 0 fail",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "npm test",
+   "proved": "not-asked",
+   "proved_by": ""
+  }
+ ],
+ "unstated": [
+  {
+   "id": "U-1",
+   "behaviour": "409 conflict naming the status for every PUT on a resolved or closed ticket, including the no-op ones (same agent, null on unassigned); ticket, updated, audit and outbox unchanged",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "node .audit/probe1.js (spawns node src/server.js with PORT=<free port> WORKER_INTERVAL_MS=0, HTTP via node:http): resolved T-0003 PUT lee/dana/null -> 409 {\"code\":\"conflict\",\"message\":\"ticket T-0003 is resolved and cannot change assignee\"}; closed -> 409 \"is closed\"; resolved unassigned T-0004 PUT null and dana -> 409; snapshots of ticket, audit length and outbox identical",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "docs/api.md, \"Set a ticket's assignee\": \"409 for a resolved or closed ticket\"",
+   "test": "strong",
+   "test_name": "TC-2 validates the assignee and restricts assignment to active tickets"
+  },
+  {
+   "id": "U-2",
+   "behaviour": "400 invalid for {}, number, object, array, boolean, extra field, [] body, empty body, non-JSON; 404 not_found for T-9999; but a body with the invalid UTF-8 byte 0xFF is accepted and the name stored with U+FFFD",
+   "handling": "acceptable",
+   "observed": true,
+   "evidence": "node .audit/probe1.js (spawns node src/server.js with PORT=<free port> WORKER_INTERVAL_MS=0, HTTP via node:http): {} -> 400 \"assignee must be a string\"; {\"assignee\":5|{}|[]|true} -> 400; {\"assignee\":\"dana\",\"x\":1} -> 400 \"unknown field: x\"; [] / empty -> 400 \"request body must be a JSON object\"; \"hello\" -> 400 \"not valid JSON\"; T-9999 -> 404; bytes {\"assignee\":\"da<0xFF>na\"} -> 200 assignee \"da\\uFFFDna\" with an audit entry and a notification",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "docs/api.md, \"Set a ticket's assignee\": \"400 for invalid input, 404 for an unknown ticket\"",
+   "test": "strong",
+   "test_name": "TC-2 validates the assignee and restricts assignment to active tickets"
+  },
+  {
+   "id": "U-3",
+   "behaviour": "Trimmed; whitespace-only refused as empty; tab, newline, U+2028 refused; lone surrogate refused; a name of only \"—\" refused; limit counted after trimming in code points (64 emoji accepted, 65 refused); filter matches the trimmed stored form",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "node .audit/probe1.js (spawns node src/server.js with PORT=<free port> WORKER_INTERVAL_MS=0, HTTP via node:http): \"   \" -> 400 empty; \"  dana  \" -> 200 \"dana\"; \"da\\tna\", \"da\\nna\", \"da\\u2028na\" -> 400 single line; \"  \"+64b+\"  \" -> 200 64b; \"\\uD800\" -> 400 well-formed; \"—\" -> 400; 64 x 😀 -> 200, 65 -> 400; GET ?assignee=dana includes the padded-name ticket; CLI list --raw keeps one line per ticket (node .audit/probe3.js)",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "docs/api.md, \"Set a ticket's assignee\" (name rules); README.md \"Command line\"",
+   "test": "strong",
+   "test_name": "TC-2 validates the assignee and restricts assignment to active tickets; refuses an assignee holding a Unicode line break, so list --raw keeps one line per ticket"
+  },
+  {
+   "id": "U-4",
+   "behaviour": "One audit entry per real change: ticket.assigned / ticket.unassigned, actor from X-Actor or \"system\", changes {\"assignee\":{\"from\",\"to\"}}; the repeat records nothing",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "node .audit/probe1.js (spawns node src/server.js with PORT=<free port> WORKER_INTERVAL_MS=0, HTTP via node:http): audit after create: ticket.assigned lee {from null,to dana}; (repeat: none); ticket.unassigned sam {from dana,to null}; ticket.assigned system {from null,to dana}",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "docs/api.md, \"Set a ticket's assignee\" and the audit actions list",
+   "test": "strong",
+   "test_name": "TC-1 assigns, leaves repeated requests unchanged, and clears the assignee"
+  },
+  {
+   "id": "U-5",
+   "behaviour": "updated moves on assignment and unassignment, stays on the repeat",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "node .audit/probe1.js (spawns node src/server.js with PORT=<free port> WORKER_INTERVAL_MS=0, HTTP via node:http): created 15:53:28.624Z; after 1.1 s PUT dana -> 15:53:29.728Z; repeat -> 15:53:29.728Z; PUT null -> 15:53:29.773Z",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "docs/api.md, ticket fields: \"updated ... a request that changes nothing leaves it as it was\" and \"An effective change updates the ticket\"",
+   "test": "strong",
+   "test_name": "TC-1 assigns, leaves repeated requests unchanged, and clears the assignee"
+  },
+  {
+   "id": "U-6",
+   "behaviour": "Unassigning an unassigned active ticket answers 200 with the unchanged ticket, no audit entry, no notification, same updated",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "node .audit/probe1.js (spawns node src/server.js with PORT=<free port> WORKER_INTERVAL_MS=0, HTTP via node:http) (WORKER_INTERVAL_MS=0): new T-0009 PUT null twice -> 200 each, ticket identical, audit 1 -> 1, outbox identical; after assign/unassign, PUT null again -> ticket identical, audit 3 -> 3, outbox identical",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "docs/api.md, \"Set a ticket's assignee\": \"Repeating the current assignment leaves the ticket, audit and outbox as they were\"",
+   "test": "strong",
+   "test_name": "TC-1 assigns, leaves repeated requests unchanged, and clears the assignee"
+  },
+  {
+   "id": "U-7",
+   "behaviour": "Outbox event ticket.assigned to the agent name, delivered by the worker after the PUT returns; subject \"[T-n] Assigned to you\", body names the id and title; no dead events",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "node .audit/probe2.js: NOTIFY_FILE last line {\"type\":\"ticket.assigned\",\"to\":\"dana\",\"subject\":\"[T-0001] Assigned to you\",\"body\":\"Ticket T-0001 \\\"Printer jam\\\" was assigned to you.\"}; outbox pending 0, sent [ticket.created, ticket.assigned], dead 0",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "docs/operations.md, \"Notifications\" (who an assignment notification goes to); docs/api.md, \"Set a ticket's assignee\"",
+   "test": "strong",
+   "test_name": "TC-4 delivers one notification per effective assignment through the worker"
+  },
+  {
+   "id": "U-8",
+   "behaviour": "Each effective assignment has its own key (ticket.assigned:<id>:<audit seq>), so every assignment is queued and delivered even while an earlier one is pending",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "node .audit/probe2.js: WORKER_INTERVAL_MS=0, assign dana, lee, null, dana -> pending to dana (key ...:33), lee (...:34), dana (...:36); with the worker on, assign lee, dana, lee in a row after the first delivery -> NOTIFY_FILE assigned lines to dana, lee, dana, lee",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "docs/operations.md, \"Notifications\": an assignment notification's key holds the audit entry",
+   "test": "strong",
+   "test_name": "TC-4 delivers one notification per effective assignment through the worker"
+  },
+  {
+   "id": "U-11",
+   "behaviour": "Assignee saved and kept across restart; a 1.4.0 data file (no assignee field) loads with assignee null; an invalid assignee in the file stops the start with a message naming the record; a padded name in the file is trimmed silently on load",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "node .audit/probe2.js: DATA_FILE, assign dana, SIGTERM, restart -> GET assignee \"dana\", file holds \"dana\". node .audit/probe3.js: 1.4.0 server wrote old.json (no assignee key) -> new server GET /tickets assignees [null,null]; assignee 5 -> exit 2 \"tickets[0].assignee must be a string\"; 65 chars -> exit 2 \"tickets[0].assignee must be at most 64 characters\"; \"a\\tb\" -> exit 2 \"must be a single line of text\"; \"  dana  \" -> starts",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "docs/operations.md, data file section; CHANGELOG.md 1.5.0 \"Data files from 1.4.0 open as they are\"",
+   "test": "strong",
+   "test_name": "TC-5 reads legacy and saved assignees in HTTP, CLI listings and the weekly report"
+  },
+  {
+   "id": "U-12",
+   "behaviour": "Assignee kept through in_progress, resolved, closed and reopen; the assignee filter still lists the ticket and assignee= does not; reopening sends no new notification; reassigning after reopen works",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "node .audit/probe2.js: after in_progress/resolved/open: assignee \"dana\", in ?assignee=dana true, in ?assignee= false; pending assigned events for it stay 1 after reopen; PUT lee after reopen -> \"lee\"; closed ticket keeps \"dana\" and is in ?assignee=dana",
+   "spec": "silent",
+   "told": "yes",
+   "told_where": "docs/api.md, \"Set a ticket's assignee\" (keeps its assignee through its lifecycle); CHANGELOG.md 1.5.0",
+   "test": "strong",
+   "test_name": "TC-2 validates the assignee and restricts assignment to active tickets"
+  },
+  {
+   "id": "U-13",
+   "behaviour": "Exact, case-sensitive, untrimmed match; an impossible value (65 chars, em dash) answers 200 with no tickets; a repeated parameter must match every value (different values -> no tickets, the same value twice -> as once); the same all-values rule now applies to status and priority",
+   "handling": "acceptable",
+   "observed": true,
+   "evidence": "node .audit/probe2.js: ?assignee=Dana -> []; ?assignee=%20dana -> []; ?assignee=<65 a> -> 200 []; ?assignee=dana&assignee=lee -> []; ?assignee=dana&assignee=dana -> [T-0001,T-0004]; ?status=open&status=closed -> [] (1.4.0 answered [T-0001] for the same query, node .audit/probe5.js)",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "docs/api.md, \"List tickets\" (exact match, repeated filters, impossible value answers 200 with no tickets)",
+   "test": "strong",
+   "test_name": "TC-3 matches every supplied filter before cursor pagination; a filter given more than once lists only the tickets that match every value"
+  },
+  {
+   "id": "U-14",
+   "behaviour": "Paging with an assignee filter returns every matching ticket once, in id order, and no other",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "node .audit/probe2.js: 7 dana tickets among others, ?assignee=dana&limit=2 followed through next -> 4 pages, identical to the unpaged list; same for assignee= (2 pages)",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "docs/api.md, \"List tickets\" (filters combine, cursor pages)",
+   "test": "strong",
+   "test_name": "TC-3 matches every supplied filter before cursor pagination"
+  },
+  {
+   "id": "U-15",
+   "behaviour": "status and priority together now list only the intersection (1.4.0 listed the union)",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "node .audit/probe3.js: same three tickets on each version: 1.4.0 ?status=open&priority=urgent -> [T-0001 open/low, T-0002 open/urgent, T-0003 resolved/urgent]; this build -> [T-0002 open/urgent]",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "CHANGELOG.md 1.5.0 \"Fixed: a listing given more than one filter...\"; docs/api.md \"Filters combine\"",
+   "test": "strong",
+   "test_name": "TC-3 matches every supplied filter before cursor pagination"
+  },
+  {
+   "id": "U-16",
+   "behaviour": "list --raw appends the assignee as a fifth tab field, empty when unassigned; a name with a space stays in one field; weekly report counts identical to 1.4.0",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "node .audit/probe3.js: raw lines [T-0001,open,normal,Assigned one,sam] [T-0002,open,high,Unassigned one,\"\"] [T-0003,open,normal,Spaced name,ada li] (5 fields each); weekly-report --json on that file: new and 1.4.0 scripts both {\"total\":3,\"byStatus\":{\"open\":3,...},\"byPriority\":{\"normal\":2,\"high\":1,...}}",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "README.md, \"Command line\"",
+   "test": "strong",
+   "test_name": "TC-5 reads legacy and saved assignees in HTTP, CLI listings and the weekly report"
+  },
+  {
+   "id": "U-17",
+   "behaviour": "ASSIGNEE column shows the name, or an em dash for unassigned; the API refuses the em dash as a name, so it is unambiguous",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "node .audit/probe3.js: list table row T-0002 shows \"—\" under ASSIGNEE, T-0001 \"sam\"",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "README.md, \"Command line\"",
+   "test": "strong",
+   "test_name": "TC-5 reads legacy and saved assignees in HTTP, CLI listings and the weekly report"
+  },
+  {
+   "id": "U-18",
+   "behaviour": "show prints an \"assignee\" line with the name, or \"—\" for unassigned",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "node .audit/probe3.js: show T-0001 -> \"assignee   sam\"; show T-0002 -> \"assignee   —\"",
+   "spec": "silent",
+   "told": "yes",
+   "told_where": "README.md, \"Command line\": \"show prints the ticket's assignee\"",
+   "test": "strong",
+   "test_name": "TC-5 reads legacy and saved assignees in HTTP, CLI listings and the weekly report"
+  },
+  {
+   "id": "U-20",
+   "behaviour": "POST /tickets and PATCH /tickets/:id refuse an assignee field as unknown (400)",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "node .audit/probe1.js (spawns node src/server.js with PORT=<free port> WORKER_INTERVAL_MS=0, HTTP via node:http): POST with \"assignee\":\"dana\" -> 400 invalid \"unknown field: assignee\"; PATCH {\"assignee\":\"dana\"} -> 400 invalid \"unknown field: assignee\"",
+   "spec": "silent",
+   "told": "no",
+   "told_where": "",
+   "test": "none",
+   "test_name": ""
+  },
+  {
+   "id": "U-21",
+   "behaviour": "200 application/json with the whole ticket including assignee, equal to a following GET; the no-op answers the same ticket; unassign answers assignee null",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "node .audit/probe1.js (spawns node src/server.js with PORT=<free port> WORKER_INTERVAL_MS=0, HTTP via node:http): PUT dana -> 200 \"application/json; charset=utf-8\", body equals GET; repeat -> 200 equal; PUT null -> 200 assignee null",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "docs/api.md, \"Set a ticket's assignee\": \"answers 200 with the ticket\"",
+   "test": "strong",
+   "test_name": "TC-1 assigns, leaves repeated requests unchanged, and clears the assignee"
+  },
+  {
+   "id": "U-22",
+   "behaviour": "docs/api.md documents the endpoint, the field, the filter, the audit actions and the notification; README the CLI columns; CHANGELOG 1.5.0 and package.json 1.5.0; decision record 0009 listed in docs/decisions/README.md; operations.md the notification line, key and data-file check",
+   "handling": "sound",
+   "observed": false,
+   "evidence": "Read docs/api.md, README.md, CHANGELOG.md, package.json (version 1.5.0), docs/decisions/0009-ticket-assignment.md, docs/operations.md in the delivered tree; observed: false for this reading, but the documented behaviours were each matched by the probes above",
+   "spec": "silent",
+   "told": "yes",
+   "told_where": "docs/api.md, README.md, CHANGELOG.md 1.5.0, docs/operations.md, docs/decisions/0009-ticket-assignment.md",
+   "test": "none",
+   "test_name": ""
+  },
+  {
+   "id": "U-26",
+   "behaviour": "show is read-only: the data file is byte-for-byte unchanged after show with --data and with DATA_FILE",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "node .audit/probe3.js: Buffer.compare(copy, file) === 0 after both show commands",
+   "spec": "silent",
+   "told": "yes",
+   "told_where": "README.md, \"Command line\": \"it never changes it\"",
+   "test": "none",
+   "test_name": ""
+  },
+  {
+   "id": "U-27",
+   "behaviour": "show history lists entries oldest first, in the audit API's order, with both assignment entries; the current assignee is shown",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "node .audit/probe3.js: audit API [system ticket.created, lee ticket.assigned, kim ticket.assigned]; show history: created / lee ticket.assigned \"assignee dana\" / kim ticket.assigned \"assignee dana -> sam\"; \"assignee   sam\"",
+   "spec": "silent",
+   "told": "yes",
+   "told_where": "README.md, \"Command line\"; docs/api.md audit \"oldest first\"",
+   "test": "none",
+   "test_name": ""
+  }
+ ],
+ "explored": [
+  {
+   "probe": "PATCH the title after assigning, before the worker runs; read the pending assignment event",
+   "came_back": "pending ticket.assigned data {\"title\":\"Old title\"} (the title at assignment, as docs/api.md says)",
+   "finding": "none"
+  },
+  {
+   "probe": "Assign \"José Núñez\" and filter by its percent-encoded form and by the + form for the space",
+   "came_back": "both return the ticket",
+   "finding": "none"
+  },
+  {
+   "probe": "GET and POST /tickets/:id/assignee",
+   "came_back": "404 not_found \"/tickets/T-0001/assignee does not answer GET; it answers PUT\" (and POST)",
+   "finding": "none"
+  },
+  {
+   "probe": "PUT with an X-Actor of 65 characters",
+   "came_back": "400 invalid \"X-Actor must be at most 64 characters\"; assignee unchanged",
+   "finding": "none"
+  },
+  {
+   "probe": "Assign the string \"null\" and filter ?assignee=null",
+   "came_back": "200 assignee \"null\"; the filter lists it; the table would show null, distinct from the em dash of an unassigned ticket",
+   "finding": "none"
+  },
+  {
+   "probe": "GET /tickets?assignee=%E2%80%94 (the em dash marker)",
+   "came_back": "200 {\"items\":[],\"next\":null}",
+   "finding": "none"
+  },
+  {
+   "probe": "PUT a body over 64 KiB",
+   "came_back": "400 invalid \"request body is larger than 65536 bytes\"",
+   "finding": "none"
+  },
+  {
+   "probe": "Reassign \"dana\" to \"Dana\", then PUT \" Dana \" (padded same name)",
+   "came_back": "\"Dana\" is a change (200, new audit entry, new notification); the padded repeat is a no-op (audit stays 3, pending assignment events stay 2)",
+   "finding": "none"
+  },
+  {
+   "probe": "GET /tickets?assignee=dana&cursor=zzz",
+   "came_back": "400 invalid \"cursor is not one this service issued\"",
+   "finding": "none"
+  },
+  {
+   "probe": "With DATA_FILE in a directory made read-only (chmod 500), PUT an assignment",
+   "came_back": "500 internal; afterwards assignee null, audit only ticket.created, no pending assignment event (state rolled back)",
+   "finding": "none"
+  },
+  {
+   "probe": "PUT a JSON body whose assignee string holds the invalid UTF-8 byte 0xFF",
+   "came_back": "200; assignee stored as \"da\\uFFFDna\", audit entry and notification created",
+   "finding": "defect"
+  },
+  {
+   "probe": "Repeated status filter ?status=open&status=closed on this build and on the 1.4.0 base",
+   "came_back": "this build [] ; 1.4.0 [T-0001] (first value used)",
+   "finding": "defect"
+  }
+ ],
+ "defects": [
+  {
+   "title": "An assignee name with invalid UTF-8 is accepted and stored with a replacement character",
+   "severity": "low",
+   "repro": "Start the service; POST /tickets {\"title\":\"a\",\"requester\":\"r\"}; send PUT /tickets/T-0001/assignee with Content-Type application/json and the raw bytes {\"assignee\":\"da\\xFFna\"} (e.g. printf '{\"assignee\":\"da\\377na\"}' | curl -X PUT --data-binary @- -H 'Content-Type: application/json' localhost:$PORT/tickets/T-0001/assignee); GET /tickets/T-0001",
+   "observed": "200; assignee \"da�na\" stored, a ticket.assigned audit entry and a notification to \"da�na\"",
+   "expected": "400 invalid with the ticket, audit and outbox unchanged (the byte is not text; the name the client sent is not the one stored)",
+   "basis": "unstated",
+   "item": "U-2"
+  },
+  {
+   "title": "A repeated status or priority filter now lists nothing where 1.4.0 used the first value",
+   "severity": "low",
+   "repro": "Start the service; POST /tickets {\"title\":\"a\",\"requester\":\"r\"}; GET /tickets?status=open&status=closed",
+   "observed": "200 {\"items\":[],\"next\":null}",
+   "expected": "The 1.4.0 answer, [T-0001] (the first value), or a 400 refusal; the change is documented in CHANGELOG 1.5.0 as a fix but alters an existing query that returned tickets",
+   "basis": "other",
+   "item": "U-13"
+  }
+ ],
+ "extras": [
+  {
+   "what": "Refuses the em dash \"—\" as an agent name",
+   "where": "src/tickets/validate.js assignment(), src/format.js UNASSIGNED",
+   "worth": "neutral",
+   "why": "Keeps the CLI marker unambiguous, at the cost of refusing one name the request allows"
+  },
+  {
+   "what": "Refuses Unicode line breaks (U+0085, U+2028, U+2029) and unpaired surrogates in names; counts the 64 limit in code points",
+   "where": "src/tickets/validate.js",
+   "worth": "value",
+   "why": "Keeps list --raw one line per ticket and every name filterable"
+  },
+  {
+   "what": "Rolls back the ticket, audit and outbox when saving the data file fails",
+   "where": "src/store.js apply()",
+   "worth": "value",
+   "why": "Observed: a failed save answers 500 and leaves no half-applied assignment or orphan notification; applies to every mutation"
+  },
+  {
+   "what": "A filter given more than once must match every value, for status and priority too",
+   "where": "src/tickets/query.js readFilter/matchesFilters",
+   "worth": "liability",
+   "why": "Changes an existing query's answer (repeated status used the first value in 1.4.0) beyond what was asked"
+  },
+  {
+   "what": "show prints the assignee",
+   "where": "src/format.js details()",
+   "worth": "value",
+   "why": "Operators see the assignee in the detail view"
+  },
+  {
+   "what": "Start-up check of each stored assignee with the PUT rules",
+   "where": "src/persistence.js readTicket()",
+   "worth": "value",
+   "why": "A hand-edited bad assignee stops the start with a message naming the record"
+  },
+  {
+   "what": "Operations guidance on how a name-addressed notification reaches a mailbox",
+   "where": "docs/operations.md, \"Notifications\"",
+   "worth": "value",
+   "why": "Tells the relay operator what \"to\" holds and what \"sent\" means"
+  }
+ ],
+ "spec_notes": "docs/shiploop/spec.md is short (R-1..R-3) and does not contradict the request. It decides without marking them as choices: trimming of names, 409 for resolved/closed, that \"all supported filters intersect\" (which changes the 1.4.0 status+priority answer from union to intersection), the CLI placeholder and a blank fifth raw field. It is silent on keeping the assignee through the lifecycle, on show, on POST/PATCH refusing assignee, and on the later rules recorded only in docs/shiploop/fix.md (em dash refusal, Unicode line breaks, surrogates, repeated filters matching every value). Pins a choice a correct product need not share: docs/shiploop/architecture.md AD-1 puts the audit sequence in the notification key; spec R-1 says unassigning is audited but does not say whether it notifies.",
+ "tests_notes": "TC-1, TC-2, TC-3 and TC-5 each cover many behaviours (TC-5 spans persistence, legacy files, HTTP, both CLI forms and the weekly report). TC-6 is tied to internals: it builds TicketStore with a fake persistence and asserts outbox event id 2; the assignee.test.js tests compare store.snapshot(). Tests that would fail on another correct build: the em dash refusal test, the repeated-filter test (a build using the first value fails it), the Unicode line break and surrogate refusals, TC-2's 64 x U+10400 accepted (a build counting UTF-16 units refuses it), TC-1's trimmed \"  Dana Lee  \" stored as \"Dana Lee\", TC-4's three distinct notifications (a build keyed by agent may send fewer, which the inventory accepts), TC-5's em dash and empty fifth raw field.",
+ "maintainer": "store.apply() now replaces the ticket object and, on a failed save, rebuilds the AuditLog and Outbox from JSON copies; every mutation goes through it, so a change there affects create, update, transition and assign alike. The em dash marker couples API validation (src/tickets/validate.js requires src/format.js) to CLI display, and the same validator runs at start on stored data, so changing the marker or the name rules can stop existing data files from loading. The all-values rule for repeated filters lives in one generic reader shared by status, priority and assignee."
+}

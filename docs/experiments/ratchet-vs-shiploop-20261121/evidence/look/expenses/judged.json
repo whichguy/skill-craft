@@ -1,0 +1,109 @@
+{
+ "shortfalls": [],
+ "defects": [
+  {
+   "id": "D-1",
+   "severity": "low",
+   "title": "A DATA_FILE holding valid JSON without a \"groups\" array is silently treated as empty and overwritten",
+   "expected": "Refuse to start with a clear error (as it does for invalid JSON) or keep the original file aside before writing."
+  },
+  {
+   "id": "D-2",
+   "severity": "low",
+   "title": "A kill during a write leaves stray .expenses-<uuid>.tmp files beside DATA_FILE that startup never removes",
+   "expected": "No stale temporary files accumulating beside the data file (or removal at startup)."
+  }
+ ],
+ "silent": [
+  {
+   "id": "U-1",
+   "condition": "What status a request body that is not valid JSON gets, and whether the server keeps serving afterwards.",
+   "what_it_does": "Unparseable body -> 400 with an error message; nothing stored; server keeps serving."
+  },
+  {
+   "id": "U-2",
+   "condition": "What happens when a required field is missing: an expense without payer, cents or split, split \"exact\" without shares, or a group without id or members.",
+   "what_it_does": "Every missing field -> 400; nothing stored."
+  },
+  {
+   "id": "U-3",
+   "condition": "Whether JSON values of the wrong type are refused or coerced: cents as a string, members as a string, a member that is not a string, or shares that is not an object.",
+   "what_it_does": "Wrong types refused with 400, no coercion (number literals 1e2 and 100.0 are the integer 100 and accepted)."
+  },
+  {
+   "id": "U-4",
+   "condition": "Which group ids are accepted (empty, missing, numeric, containing '/', spaces, '%', unicode), and whether every group that got 201 can then be addressed through /groups/<id>/ by all three group routes, percent-encoded where the path needs it.",
+   "what_it_does": "Non-empty, non-blank string ids accepted; \"\", missing, numeric and \" \" rejected 400; every accepted id reachable percent-encoded by all three routes."
+  },
+  {
+   "id": "U-5",
+   "condition": "Whether exact shares may be negative or non-integer (for example {\"Ann\": 150, \"Bob\": -50} or {\"Ann\": 50.5, \"Bob\": 49.5} for cents 100), since only zero is said to be allowed and only the total is said to be checked.",
+   "what_it_does": "Negative and fractional shares -> 400; balances stay whole and zero-sum."
+  },
+  {
+   "id": "U-6",
+   "condition": "How a member list is handled when it holds two distinct non-empty names plus a duplicate, an empty or whitespace-only entry (for example [\"Ann\", \"Ann\", \"Bob\"] or [\"Ann\", \" \", \"Bob\"]), and whether names differing only in case or surrounding spaces count as distinct.",
+   "what_it_does": "Repeated names accepted and de-duplicated in first-listed order; whitespace-only names rejected; case and surrounding-space variants are distinct members."
+  },
+  {
+   "id": "U-8",
+   "condition": "Whether an expense or group is already safely written to DATA_FILE when its 201 is sent, and whether a crash or kill during a write can leave DATA_FILE truncated or corrupt.",
+   "what_it_does": "Writes to a temporary file in the same directory then renames before replying; acknowledged writes survive SIGKILL and the file always parsed. A kill mid-write can leave a stray .expenses-<uuid>.tmp beside the file."
+  },
+  {
+   "id": "U-9",
+   "condition": "What the server does when DATA_FILE names a file that does not exist yet.",
+   "what_it_does": "Starts with an empty store; the file is created on the first successful write; group found after restart. (If the directory itself is missing it starts and answers 500 to every write.)"
+  },
+  {
+   "id": "U-10",
+   "condition": "What the server does at startup when DATA_FILE is empty or holds invalid JSON.",
+   "what_it_does": "Invalid JSON or an empty file: refuses to start (exit 1, SyntaxError stack on stderr) and leaves the file untouched."
+  },
+  {
+   "id": "U-13",
+   "condition": "Whether concurrent expense posts to one group each get a distinct expense number with no repeats or gaps, and each acknowledged expense is applied exactly once.",
+   "what_it_does": "Each concurrent post gets a distinct number 1..N and is applied once."
+  },
+  {
+   "id": "U-15",
+   "condition": "What two overlapping POST /groups calls for the same new id do.",
+   "what_it_does": "Exactly one creation wins; the rest get 409; the winner's members are stored and survive restart."
+  },
+  {
+   "id": "U-16",
+   "condition": "Whether expense numbering continues after a restart instead of starting again at 1.",
+   "what_it_does": "Numbering continues after restart."
+  },
+  {
+   "id": "U-21",
+   "condition": "Which status POST /groups uses when the id already exists and the member list is also invalid, and whether the stored members change.",
+   "what_it_does": "409 (existence checked before members); stored members unchanged."
+  },
+  {
+   "id": "U-25",
+   "condition": "Whether GET /groups/<id>/balances and GET /groups/<id>/settlements only read, or also change stored state.",
+   "what_it_does": "GETs only read; identical bodies and the file is not rewritten."
+  },
+  {
+   "id": "U-26",
+   "condition": "Whether DATA_FILE written by the server is read back to the same state: a group with both an equal and an exact expense gives the same balances, settlements and next expense number after restart.",
+   "what_it_does": "Stored state reads back identically; next number continues."
+  },
+  {
+   "id": "U-27",
+   "condition": "Whether the tests are self-contained: they start their own server on a free port with a temporary DATA_FILE, need nothing running, leave no stray files or processes, and pass repeatedly.",
+   "what_it_does": "Tests spawn server.js on PORT=0 with a temporary DATA_FILE under os.tmpdir(), remove it and stop the child."
+  },
+  {
+   "id": "U-31",
+   "condition": "Whether a group creation and an expense in another group, sent at the same time, both survive a restart.",
+   "what_it_does": "A group creation and an expense in another group sent together both persist."
+  },
+  {
+   "id": "U-35",
+   "condition": "What happens when a client disconnects in the middle of sending a request body.",
+   "what_it_does": "Aborted body: nothing stored, \"Request failed: aborted\" on stderr, server keeps serving."
+  }
+ ]
+}

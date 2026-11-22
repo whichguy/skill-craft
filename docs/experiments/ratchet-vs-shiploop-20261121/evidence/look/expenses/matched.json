@@ -1,0 +1,24 @@
+{"shortfalls": [
+  {"n": 1, "title": "Fractional amounts enter the ledger as whole cents", "severity": "high", "matches": []},
+  {"n": 2, "title": "A second process can erase an acknowledged expense", "severity": "high", "matches": []},
+  {"n": 3, "title": "An unrelated JSON file is silently overwritten", "severity": "high", "matches": ["D-1"]},
+  {"n": 4, "title": "Some created groups cannot be used through ordinary URLs", "severity": "medium", "matches": []},
+  {"n": 5, "title": "Saving through a symlink leaves the ledger target stale", "severity": "medium", "matches": []}
+ ],
+ "choices": [
+  {"n": 1, "text": "Group IDs and member names must contain a non-whitespace character.", "matches": ["U-4", "U-6"]},
+  {"n": 2, "text": "Duplicate names in the creation list collapse to one member at the first occurrence", "matches": ["U-6"]},
+  {"n": 3, "text": "A duplicate group ID takes precedence over invalid members in the same request.", "matches": ["U-21"]},
+  {"n": 4, "text": "Group creation returns a JSON object containing the ID.", "matches": []},
+  {"n": 5, "text": "Route lookup ignores the query string and decodes one percent-encoded ID segment", "matches": ["U-4"]},
+  {"n": 6, "text": "Unsupported methods and extra path segments, including a trailing slash on a balance route, return 404.", "matches": []},
+  {"n": 7, "text": "POST bodies are parsed as JSON regardless of the Content-Type.", "matches": []},
+  {"n": 8, "text": "Individual totals and shares use the JavaScript safe-integer range", "matches": []},
+  {"n": 9, "text": "Aggregate balances and transfers are emitted as exact JSON numbers even above the safe-integer range.", "matches": []},
+  {"n": 10, "text": "Balance and settlement responses that contain amounts require a Node runtime with `JSON.rawJSON`.", "matches": []},
+  {"n": 11, "text": "A missing data file is created on the first successful write.", "matches": ["U-9", "U-10"]},
+  {"n": 12, "text": "A failed save returns 500 and leaves balances and expense numbering unchanged", "matches": []},
+  {"n": 13, "text": "Writes replace the ledger with an owner-only file.", "matches": []},
+  {"n": 14, "text": "The service listens on the wildcard address", "matches": []},
+  {"n": 15, "text": "`PORT=0` asks the OS to select a port", "matches": []}
+ ]}

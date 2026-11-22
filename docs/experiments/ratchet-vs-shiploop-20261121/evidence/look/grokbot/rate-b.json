@@ -1,0 +1,59 @@
+{
+ "ratings": [
+  {
+   "n": 1,
+   "rating": "must",
+   "why": "Keyboard activation of Cancel task stops a different running task than the one focused, so the user halts work they meant to keep and leaves the chosen task running."
+  },
+  {
+   "n": 5,
+   "rating": "must",
+   "why": "A bot name the app accepts pushes Send outside a narrow window, so writing a message is no longer on screen, which the request requires to stay in view."
+  },
+  {
+   "n": 6,
+   "rating": "should",
+   "why": "A Cancel click during an in-flight send is dropped with no feedback, but the task still shows Running, so the user can see that it is active and try again after the reply returns."
+  },
+  {
+   "n": 7,
+   "rating": "must",
+   "why": "With the server down the open page still says the assistant is replying and the task is Running, so the user is told that interrupted work is live."
+  },
+  {
+   "n": 8,
+   "rating": "should",
+   "why": "Reload drops the reading position and the unsent draft, a real cost for a long thread, while the saved conversation remains and the request’s “place” most directly means the same discussion."
+  },
+  {
+   "n": 10,
+   "rating": "must",
+   "why": "An ordinary incomplete update loses the pending request and only echoes the user, so they never get the clarifying question or the exact proposal needed to finish the change."
+  },
+  {
+   "n": 11,
+   "rating": "should",
+   "why": "Applied instructions stay on the bot after the saved entry is deleted and cannot be cleared to empty, while a different nonblank instruction can still be saved and applied."
+  },
+  {
+   "n": 12,
+   "rating": "must",
+   "why": "The approval preview uses separators that can appear inside values, so the user can confirm a different customer, status, or total from the change they believe they are approving."
+  },
+  {
+   "n": 13,
+   "rating": "should",
+   "why": "An update preview offers a rounded total and stores that number without flagging the change, but only past the safe integer range, which ordinary order totals in this request will not reach."
+  },
+  {
+   "n": 14,
+   "rating": "should",
+   "why": "A paste longer than the composer limit loses its tail with no alert before Enter sends the shortened text, though the visible field is what is sent and the limit is far above a normal message."
+  },
+  {
+   "n": 15,
+   "rating": "should",
+   "why": "A refused environment token opens Setup with no reason, so the operator cannot tell why that configuration did not take effect, while a token entered in the form still works and the secret stays hidden."
+  }
+ ]
+}

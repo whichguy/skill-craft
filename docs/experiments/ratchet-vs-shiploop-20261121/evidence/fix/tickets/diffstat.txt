@@ -1,0 +1,11 @@
+ CHANGELOG.md            |  17 ++++++++
+ README.md               |   8 ++--
+ docs/api.md             |  31 +++++++++++---
+ docs/operations.md      |  26 +++++++++---
+ docs/shiploop/fix.md    |  45 ++++++++++++++++++++
+ package.json            |   2 +-
+ src/format.js           |   9 ++--
+ src/tickets/query.js    |  33 ++++++++++-----
+ src/tickets/validate.js |  19 ++++++++-
+ test/assignee.test.js   | 110 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 10 files changed, 268 insertions(+), 32 deletions(-)

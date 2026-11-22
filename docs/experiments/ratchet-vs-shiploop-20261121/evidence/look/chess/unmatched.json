@@ -1,0 +1,13 @@
+{
+ "shortfalls": [
+  {
+   "n": 1,
+   "title": "Imported en passant metadata can authorize an impossible capture"
+  },
+  {
+   "n": 2,
+   "title": "An imported castling right can take effect after a rook moves onto its corner"
+  }
+ ],
+ "steps_are_in": "/Users/dadleet/e2e-runs/d20261122-360a9f/look/chess/work/docs/shiploop/look.md"
+}

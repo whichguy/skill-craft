@@ -1,0 +1,324 @@
+diff --git a/README.md b/README.md
+new file mode 100644
+index 0000000..4625e9c
+--- /dev/null
++++ b/README.md
+@@ -0,0 +1,140 @@
++# Shared expenses service
++
++A small HTTP service that records shared expenses for groups and works out who owes whom.
++It is a single file, `server.js`, using Node.js built-ins only (no npm dependencies).
++
++## Running it
++
++```sh
++PORT=3000 DATA_FILE=./expenses.json node server.js
++```
++
++- `PORT` is the TCP port. `PORT=0` lets the operating system pick one. Either way the server
++  prints `Listening on port <n>` on standard output once it is ready.
++- `DATA_FILE` is the JSON file that holds the groups and expenses. They are read back from it at
++  startup, so they survive a restart.
++- Both are required. If either is missing, or `PORT` is not a whole number from 0 to 65535, the
++  process stops with an error before listening.
++- Tested on Node v26.12.1. Balance and settlement answers use `JSON.rawJSON`, so the Node version
++  must provide it.
++- The server listens on all network interfaces, not only on loopback, and has no authentication.
++
++Run the tests with `node --test` from this folder.
++
++## Endpoints
++
++Every answer is JSON. Error answers are `{"error": "<message>"}`.
++
++### POST /groups
++
++Body: `{"id": "<group id>", "members": ["<name>", ...]}`
++
++| Status | When |
++| --- | --- |
++| 201 `{"id": "<group id>"}` | The group was created. |
++| 409 | A group with this id already exists. This is checked before the members, so a duplicate id answers 409 even when the members are invalid. |
++| 400 | The body is not a JSON object; the id is not a string with at least one non-whitespace character; or `members` is not a list of at least two distinct names, each a string with at least one non-whitespace character. |
++| 500 | The data file could not be written; the group was not created. |
++
++### POST /groups/&lt;id&gt;/expenses
++
++Equal split, shared among all members:
++
++```json
++{"payer": "Ada", "cents": 10, "split": "equal"}
++```
++
++Each member owes `cents` divided by the number of members, rounded down. The cents left over go one
++each to the members listed first.
++
++Exact split:
++
++```json
++{"payer": "Ada", "cents": 1000, "split": "exact", "shares": {"Bea": 700, "Cam": 300}}
++```
++
++Each member listed in `shares` owes that many cents (0 is allowed); members not listed owe 0. The
++shares must add up to `cents`. The payer may be listed.
++
++| Status | When |
++| --- | --- |
++| 201 `{"expense": <n>}` | The expense was recorded. `n` is 1 for the group's first expense, then 2, and so on. |
++| 400 | The body is not JSON; the payer or a name in `shares` is not a member; `cents` is not a positive whole number; a share is not a whole number of 0 or more; `split` is not `equal` or `exact`; an exact split has no `shares` object; or the shares do not add up to `cents`. A rejected expense does not use up a number. |
++| 404 | The group does not exist (checked before the body). |
++| 500 | The data file could not be written; nothing was recorded. |
++
++Expenses posted to the same group at the same moment are all recorded, each with its own number.
++
++### GET /groups/&lt;id&gt;/balances
++
++200 with each member's net cents, what they paid minus what they owe, in member order. The values
++add up to 0. After the equal-split example above in a group of Ada, Bea and Cam:
++`{"Ada": 6, "Bea": -3, "Cam": -3}`. 404 if the group does not exist.
++
++### GET /groups/&lt;id&gt;/settlements
++
++200 with a list of payments that bring every balance to 0. For the balances above:
++`[{"from": "Bea", "to": "Ada", "cents": 3}, {"from": "Cam", "to": "Ada", "cents": 3}]`. Repeatedly, the member who owes most pays the member
++who is owed most the smaller of the two amounts; a tie goes to the member listed first. The list is
++`[]` when every balance is 0. 404 if the group does not exist.
++
++Any other method or path answers 404.
++
++## Behaviour worth knowing
++
++### Names and group ids
++
++- Ids and names are compared exactly as sent, including case and surrounding spaces: `"Ada"`,
++  `"ada"` and `" Ada"` are three different members.
++- A name repeated in `members` counts once, at its first position. That position decides who gets
++  leftover cents and who wins ties.
++- In a URL the id is one path segment, percent-decoded once. An id such as `room/1` is addressed as
++  `/groups/room%2F1/balances`. The query string is ignored. A trailing slash or an extra path
++  segment answers 404.
++- Ids are not otherwise restricted, and some ids that creation accepts with 201 cannot be used
++  from ordinary HTTP clients:
++  - `.` and `..`: URL libraries (Node's `fetch`, for example) collapse these segments, also when
++    written as `%2E`, so the request reaches another path and answers 404. Only a client that sends
++    the path unchanged (such as `curl --path-as-is`) reaches the group.
++  - An id containing an unpaired UTF-16 surrogate, such as `"\ud800"`, has no valid URL form; its
++    routes answer 404.
++  - A very long id makes the request line exceed Node's 16 KB header limit, and that group's
++    routes answer 431. A 16,000-character id worked; 16,340 characters failed on balances, and
++    16,300 failed on expenses.
++
++  Use short ids made of URL-safe characters.
++
++### Request bodies and amounts
++
++- Bodies are read as JSON whatever the `Content-Type` header says. Unknown properties are ignored,
++  and an equal split ignores any `shares` sent with it.
++- Amounts in requests are whole cents up to 9,007,199,254,740,991 (JavaScript's safe-integer
++  limit). A larger amount answers 400.
++- A number counts as whole only if it is exactly whole as written. `2`, `2.0`, `2e0` and `1.5e1`
++  are accepted. `1.5`, `0.99999999999999999`, `2.0000000000000001` and `-1e-400` answer 400, even
++  though JavaScript would round some of them to whole numbers. `-0` is rejected as `cents` and
++  counts as 0 as a share.
++- Balances and settlement amounts are sums, so they can exceed the safe-integer limit. They are
++  written as exact JSON integers, for example `18014398509481982`. A client handling totals that
++  large needs a JSON parser that keeps integer precision.
++
++### The data file
++
++- Run one process per `DATA_FILE`. The service does not lock the file and does not notice a second
++  process using it. Each save replaces the whole file, so with two processes on one file the last
++  save wins and expenses the other process acknowledged are lost. In a test, two expenses sent to
++  two processes were each answered 201 with number 1; after a restart only one of them was left.
++  Stop the old process before starting a new one on the same file.
++- A missing file is created by the first successful write. If its directory does not exist, the
++  server still starts and prints its port, and the first write answers 500.
++- At startup, an existing file that is not valid JSON, or is JSON without a `groups` list (so not
++  a ledger this service wrote), stops the process with an error before it listens. The file is
++  left unchanged.
++- Each save writes a new file next to the ledger and renames it over the ledger, so the ledger ends
++  up readable and writable by its owner only (mode 0600). An existing file with mode 0640 becomes
++  0600 after the first save.
++- If `DATA_FILE` is a symlink to an existing file, saves go to that file and the link stays in
++  place. A symlink whose target does not exist yet is replaced by a regular file on the first save.
++- A failed save answers 500, records nothing and leaves balances and numbering as they were. The
++  reason is logged on standard error. After fixing the path or permissions, the same request can be
++  sent again.
+diff --git a/docs/shiploop/fix.md b/docs/shiploop/fix.md
+new file mode 100644
+index 0000000..fab4e94
+--- /dev/null
++++ b/docs/shiploop/fix.md
+@@ -0,0 +1,56 @@
++# Fix pass
++
++Before the fix, `node --test` passed 5 of 5 tests. After it, `node --test` passes 8 of 8. Each new
++test fails on the original `server.js` and passes with the fix.
++
++## Shortfalls
++
++- Fractional amounts enter the ledger as whole cents: fixed. Request bodies are parsed with the
++  number literal's source text, and a literal that is not exactly whole as written fails the
++  whole-cents checks. Test: `TC-6 rejects fractional amount literals that a double would round to whole cents`.
++- A second process can erase an acknowledged expense: not changed. The request describes one
++  service keeping its data in the file; two processes on one file are outside it. Refusing a second
++  writer needs a cross-process lock that also handles a lock left behind by a crash (TC-4 restarts
++  after SIGKILL), which is new hardening rather than a small fix. Reproduced as described. The
++  README tells operators to run one process per `DATA_FILE` and describes the loss.
++- An unrelated JSON file is silently overwritten: fixed. At startup, a file whose JSON has no
++  `groups` list stops the process before it listens and is left unchanged. Test:
++  `TC-7 refuses to start on an existing JSON file that is not a ledger and leaves it intact`.
++- Some created groups cannot be used through ordinary URLs: not changed. The request gives member
++  rules as the only 400 reasons for creation and sets no rule on the id's form. Rejecting `.`,
++  `..`, unpaired surrogates or long ids would add validation rules the request does not ask for.
++  Reproduced as described. The README lists which ids cannot be reached and why.
++- Saving through a symlink leaves the ledger target stale: fixed. `DATA_FILE` is resolved to the
++  file it points to at startup, so saves replace the target and keep the link. Test:
++  `TC-8 saves through a symlinked DATA_FILE to the linked ledger`.
++
++## Choices documented in README.md
++
++Each one was checked against the running product before it was written.
++
++- Ids and names need a non-whitespace character. They are compared exactly as sent, including case
++  and surrounding spaces.
++- A repeated member name counts once, at its first position, which decides leftover cents and ties.
++- A duplicate id answers 409 even when the members are invalid.
++- Creation answers `{"id": ...}`. Errors answer `{"error": "<message>"}`.
++- The query string is ignored. The id segment is percent-decoded once (`room%2F1`).
++- Other methods, extra segments and a trailing slash answer 404.
++- Bodies are JSON whatever the Content-Type. Unknown properties are ignored. An equal split ignores
++  `shares`.
++- Request amounts go up to 9,007,199,254,740,991 cents. Literals such as `2.0` and `2e0` are
++  accepted because they are exactly whole. `-0` is rejected as cents and counts as 0 as a share.
++- Balance and settlement totals above the safe-integer range are exact JSON integers and need a
++  precision-preserving parser.
++- Balance and settlement answers use `JSON.rawJSON`. Tested on Node v26.12.1.
++- A missing file is created on the first write. With a missing directory the server still starts
++  and the first write answers 500. A file that is invalid JSON or not a ledger stops startup and is
++  left unchanged.
++- A failed save answers 500, changes nothing and can be retried.
++- Saves leave the ledger with mode 0600 (a 0640 file became 0600).
++- The server listens on all interfaces and has no authentication.
++- `PORT=0` lets the OS pick the port, which is printed on standard output.
++- Not changed: run one process per `DATA_FILE`, because with two processes the last save wins.
++- Not changed: ids `.`, `..`, ids with unpaired surrogates and very long ids (431 past Node's
++  16 KB header limit) are accepted but cannot be reached from ordinary clients.
++- A symlinked `DATA_FILE` is saved through to its target. A symlink whose target does not exist yet
++  is replaced by a regular file on the first save.
+diff --git a/server.js b/server.js
+index 0da8217..46afac4 100644
+--- a/server.js
++++ b/server.js
+@@ -11,9 +11,19 @@ if (!process.env.PORT?.trim() || !Number.isInteger(port) || port < 0 || port > 6
+   throw new Error('Set PORT to a valid port and DATA_FILE to a JSON file path.');
+ }
+ 
+-const filename = path.resolve(dataFile);
++const filename = ledgerPath(dataFile);
+ let groups = loadGroups();
+ 
++function ledgerPath(file) {
++  // Save through a symlinked DATA_FILE to its target instead of replacing the link.
++  try {
++    return fs.realpathSync(file);
++  } catch (error) {
++    if (error.code === 'ENOENT') return path.resolve(file);
++    throw error;
++  }
++}
++
+ function loadGroups() {
+   let text;
+   try {
+@@ -22,7 +32,11 @@ function loadGroups() {
+     if (error.code === 'ENOENT') return new Map();
+     throw error;
+   }
+-  return new Map(JSON.parse(text).groups);
++  const ledger = JSON.parse(text);
++  if (!Array.isArray(ledger?.groups)) {
++    throw new Error(`DATA_FILE ${filename} holds JSON that is not an expenses ledger; it was left unchanged.`);
++  }
++  return new Map(ledger.groups);
+ }
+ 
+ function saveGroup(id, group) {
+@@ -48,11 +62,22 @@ function isName(value) {
+   return typeof value === 'string' && value.trim().length > 0;
+ }
+ 
++// True when a JSON number literal is exactly a whole number before rounding to a double.
++function isWholeLiteral(source) {
++  const [, whole, fraction = '', exponent = '0'] = /^-?(\d+)(?:\.(\d+))?(?:e([+-]?\d+))?$/i.exec(source);
++  const digits = whole + fraction;
++  const significant = digits.replace(/0+$/, '');
++  return significant === ''
++    || Number(exponent) - fraction.length + (digits.length - significant.length) >= 0;
++}
++
+ async function readJson(request) {
+   const chunks = [];
+   for await (const chunk of request) chunks.push(chunk);
+   try {
+-    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
++    // A literal such as 0.99999999999999999 parses to 1; make it fail the whole-cents checks.
++    return JSON.parse(Buffer.concat(chunks).toString('utf8'), (_, value, context) =>
++      typeof value === 'number' && !isWholeLiteral(context.source) ? NaN : value);
+   } catch (error) {
+     if (error instanceof SyntaxError) return null;
+     throw error;
+diff --git a/test/expenses.test.js b/test/expenses.test.js
+index bcb5afa..f55a96d 100644
+--- a/test/expenses.test.js
++++ b/test/expenses.test.js
+@@ -247,3 +247,49 @@ test('TC-5 exposes a write failure without publishing an expense and can retry',
+   assert.deepEqual(await request(route, expense), { status: 201, body: { expense: 1 } });
+   assert.deepEqual((await request('/groups/trip/balances')).body, { Ada: 1, Bea: -1 });
+ });
++
++test('TC-6 rejects fractional amount literals that a double would round to whole cents', async (t) => {
++  const request = await (await fixture(t)).start();
++  await create(request, 'trip', ['Ada', 'Bea', 'Cam']);
++  const route = '/groups/trip/expenses';
++  for (const raw of [
++    '{"payer":"Ada","cents":0.99999999999999999,"split":"equal"}',
++    '{"payer":"Ada","cents":2,"split":"exact","shares":{"Bea":2.0000000000000001}}',
++    '{"payer":"Ada","cents":2,"split":"exact","shares":{"Bea":2,"Cam":-1e-400}}',
++  ]) {
++    assert.equal((await request(route, raw, true)).status, 400, raw);
++  }
++  assert.deepEqual((await request('/groups/trip/balances')).body, { Ada: 0, Bea: 0, Cam: 0 });
++  assert.deepEqual(
++    await request(route, '{"payer":"Ada","cents":2.0,"split":"exact","shares":{"Bea":2e0,"Cam":0.0}}', true),
++    { status: 201, body: { expense: 1 } },
++  );
++  assert.deepEqual((await request('/groups/trip/balances')).body, { Ada: 2, Bea: -2, Cam: 0 });
++});
++
++test('TC-7 refuses to start on an existing JSON file that is not a ledger and leaves it intact', async (t) => {
++  const app = await fixture(t);
++  const original = '{"unrelated":["keep me"]}\n';
++  await fs.writeFile(app.dataFile, original);
++  await assert.rejects(app.start(), /exited before listening/);
++  assert.equal(await fs.readFile(app.dataFile, 'utf8'), original);
++});
++
++test('TC-8 saves through a symlinked DATA_FILE to the linked ledger', async (t) => {
++  const app = await fixture(t);
++  const target = path.join(path.dirname(app.dataFile), 'target.json');
++  await fs.writeFile(target, JSON.stringify({ groups: [['old', { members: ['Ada', 'Bea'], expenses: [] }]] }));
++  await fs.symlink('target.json', app.dataFile);
++  let request = await app.start();
++  assert.deepEqual(await request('/groups/old/expenses', { payer: 'Ada', cents: 2, split: 'equal' }), {
++    status: 201, body: { expense: 1 },
++  });
++  assert.ok((await fs.lstat(app.dataFile)).isSymbolicLink());
++  await app.stop();
++
++  // Start from the target itself: it must hold the acknowledged expense.
++  await fs.rm(app.dataFile);
++  await fs.rename(target, app.dataFile);
++  request = await app.start();
++  assert.deepEqual(await request('/groups/old/balances'), { status: 200, body: { Ada: 1, Bea: -1 } });
++});

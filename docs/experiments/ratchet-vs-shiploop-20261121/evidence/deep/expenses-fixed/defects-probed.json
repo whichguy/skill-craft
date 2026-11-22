@@ -1,0 +1,82 @@
+{
+ "rechecks": [],
+ "defects": [
+  {
+   "id": "D-1",
+   "title": "A group id of '.' or '..' is created with 201 but cannot be reached by ordinary HTTP clients",
+   "severity": "low",
+   "merged_from": [
+    "p370f0f#1"
+   ],
+   "repro": "Start the server. POST /groups {\"id\":\".\",\"members\":[\"Ann\",\"Bob\"]} (and separately id \"..\"). Then with Node fetch GET /groups/%2E/balances and /settlements and POST /groups/%2E/expenses (for '..', %2E%2E); also send the raw path without client normalisation.",
+   "expected": "either 400 at creation for an id that cannot be addressed, or the group reachable by balances, settlements and expenses",
+   "note": "Node fetch normalises /groups/%2E/balances to /groups/balances and /groups/%2E%2E/balances to /balances, so the request never names the group; a raw http.request path reaches it on the products that accept the id.",
+   "results": {
+    "p370f0f": {
+     "result": "present",
+     "observed": "POST id '.' -> 201 {\"id\":\".\"}, id '..' -> 201; fetch GET /groups/%2E/balances (sent as /groups/balances) -> 404, settlements 404, POST expenses 404; same for '..' (sent as /balances). Raw path /groups/%2E/balances -> 200 {\"Ann\":0,\"Bob\":0}, raw POST expenses -> 201 {\"expense\":1}."
+    },
+    "p8284f5": {
+     "result": "present",
+     "observed": "POST id '.' -> 201, id '..' -> 201; fetch GET /groups/%2E/balances -> 404 {\"error\":\"Route or group not found.\"}, settlements 404, POST expenses 404; same for '..'. Only a raw unnormalised path reaches the group (200 / 201)."
+    },
+    "p23566f": {
+     "result": "absent",
+     "observed": "POST /groups with id '.' -> 400 and with id '..' -> 400; no group created (raw and fetch requests to /groups/%2E/... all 404)."
+    }
+   }
+  },
+  {
+   "id": "D-2",
+   "title": "A DATA_FILE holding valid JSON without a \"groups\" array is silently treated as empty and overwritten",
+   "severity": "low",
+   "merged_from": [
+    "p8284f5#1"
+   ],
+   "repro": "Write {\"something\":\"else\"} to the DATA_FILE; start PORT=<free> DATA_FILE=<file> node server.js; POST /groups {\"id\":\"z\",\"members\":[\"A\",\"B\"]}; stop; read the file.",
+   "expected": "Refuse to start with a clear error (as it does for invalid JSON) or keep the original file aside before writing.",
+   "note": "",
+   "results": {
+    "p370f0f": {
+     "result": "absent",
+     "observed": "Server exits with code 1 at startup: 'DATA_FILE ... holds JSON that is not an expenses ledger; it was left unchanged.'; file still {\"something\":\"else\"}."
+    },
+    "p8284f5": {
+     "result": "present",
+     "observed": "Server starts ('Listening on port 47642'); POST /groups -> 201 {\"id\":\"z\"}; file is now {\"groups\":[[\"z\",{\"members\":[\"A\",\"B\"],\"expenses\":[]}]]}, original content lost, no copy kept aside."
+    },
+    "p23566f": {
+     "result": "absent",
+     "observed": "Server exits with code 1 at startup with 'Error: Invalid saved groups'; file still {\"something\":\"else\"}."
+    }
+   }
+  },
+  {
+   "id": "D-3",
+   "title": "A kill during a save leaves temporary files beside DATA_FILE that are never cleaned up",
+   "severity": "low",
+   "merged_from": [
+    "p370f0f#2",
+    "p8284f5#2",
+    "p23566f#1"
+   ],
+   "repro": "Start PORT=<free> DATA_FILE=dir/ledger.json node server.js; POST /groups {\"id\":\"g\",\"members\":[\"Ann\",\"Bob\"]}; run 8 parallel loops of POST /groups/g/expenses {\"payer\":\"Ann\",\"cents\":2,\"split\":\"equal\"}; SIGKILL the server after 150-300 ms; restart and repeat (10 kills); restart once more; ls -a dir. Also plant a stale .expenses-<uuid>.tmp and start the server.",
+   "expected": "no stray files, or stale temporaries removed at startup",
+   "note": "In every product the ledger itself always parsed and held every acknowledged expense; only orphan temporaries accumulate.",
+   "results": {
+    "p370f0f": {
+     "result": "present",
+     "observed": "After 10 kills 3 .expenses-<uuid>.tmp files remained in the data directory and were all still there after a further restart; a planted stale .expenses-*.tmp was not removed at startup. Ledger parsed after every kill; balances Ann 4383 / Bob -4383 = 4383 acknowledged expenses."
+    },
+    "p8284f5": {
+     "result": "present",
+     "observed": "After 10 kills 1 .expenses-<uuid>.tmp file remained and survived a further restart; planted stale temporary not removed at startup. Ledger parsed every time; balances Ann 4505 vs 4504 acknowledged 201s (one write completed whose reply was cut by the kill), nothing lost."
+    },
+    "p23566f": {
+     "result": "present",
+     "observed": "After 10 kills 9 .expenses-<uuid>.tmp files remained and all survived a further restart; planted stale temporary not removed at startup. Ledger parsed every time; balances Ann 3149 / Bob -3149 = 3149 acknowledged expenses."
+    }
+   }
+  }
+ ]
+}

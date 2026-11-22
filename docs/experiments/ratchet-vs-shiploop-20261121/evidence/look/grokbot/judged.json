@@ -1,0 +1,281 @@
+{
+ "shortfalls": [
+  {
+   "id": "U-9",
+   "condition": "How empty, blank, unusually long or duplicate bot names are handled, and whether bots that share a name can be told apart.",
+   "what_it_does": "Empty name blocked by the browser (required); blank (spaces) refused with an alert. Duplicate names are allowed and the two bots show identically (same text, same accessible name, no other cue). The Bot name field has maxlength=80 so a 300-character paste is silently cut to 80 and stored cut; the API refuses over 80."
+  },
+  {
+   "id": "U-11",
+   "condition": "How conversation buttons are named and ordered, so that conversations, including empty ones and ones with similar openings, can be told apart before opening them.",
+   "what_it_does": "Conversation buttons are named by the first 56 characters of the first message (empty ones 'New conversation'), newest first, open one aria-current. Two empty conversations share the name 'New conversation' (also the name of the New conversation button), and conversations whose first messages share 56 characters get identical names, visually and by accessible name."
+  },
+  {
+   "id": "U-15",
+   "condition": "What Save instruction or Save task does when the name already exists and Edit was not used, or when the name or text is empty.",
+   "what_it_does": "Saving an existing name without Edit silently overwrites that entry's text (one entry, no notice). Empty fields are blocked by the browser; blank (spaces) refused with an alert. Same for tasks."
+  },
+  {
+   "id": "U-23",
+   "condition": "Whether a memory forget that matches nothing, or a repeated remember, is reported honestly and kept tidy.",
+   "what_it_does": "Repeated remember (any capitals) is merged into one fact. A forget that matches no fact exactly removes nothing but the reply still says \"I've forgotten ...\" with no notice from the app; Memory list stays the truth. An exact forget removes the fact."
+  },
+  {
+   "id": "U-39",
+   "condition": "What `add step:` does when no task is running in the conversation, or when several are (including several with the same title), and whether the feedback identifies which task received the step.",
+   "what_it_does": "With no running task the bot text says it will add the step but the app adds a notice 'There was no running task in this conversation. No step was added.'. With several running, the step goes to the latest started; the notice 'Added to <title>.' names only the title, so two tasks with the same title are not told apart (the receiving article shows one more step)."
+  },
+  {
+   "id": "U-46",
+   "condition": "What the app does when DATA_DIR is missing, unwritable, or holds damaged or unexpected data at start.",
+   "what_it_does": "Missing DATA_DIR is created. Unwritable folder, invalid JSON or JSON of an unexpected shape in workspace.json make the process exit at start with a raw Node stack trace and no recovery advice; the damaged file is left as it was and records/ untouched."
+  },
+  {
+   "id": "U-49",
+   "condition": "Whether the capitalization of field names in record requests keeps their meaning.",
+   "what_it_does": "Field names are passed through as typed. 'what is the STATUS of ORD-1001' -> 'ORD-1001 has no STATUS.'; 'set the Status of ORD-1001 to closed' previews 'Status: ∅ → closed' and confirming creates a second field Status beside status, so the record then answers differently by capitalization. Reader rules still apply (Ana cannot see ORD-1001)."
+  },
+  {
+   "id": "U-50",
+   "condition": "Whether a lookup or change keeps the record identifier the person typed (for example ORD-1001A while ORD-1001 exists).",
+   "what_it_does": "The typed identifier is not kept: 'what is the status of ORD-1001A' is answered 'The status of ORD-1001 is open.' (the stand-in matches the prefix and the app passes it through); 'set the status of ORD-1001A to closed' gets the fallback 'You said: ...' and no proposal. ORD-1001 still answers."
+  },
+  {
+   "id": "U-54",
+   "condition": "What happens when storage writes fail while the app is open: whether the outcome of the save (or of a reply) is reported truthfully and recoverable.",
+   "what_it_does": "With DATA_DIR read-only, actions fail with HTTP 500 'The workspace could not save this action. Please try again.' and nothing is reported as saved. But a reply that was already pending stays pending forever: the conversation shows '... is replying' and refuses new messages (409) with no Retry, even after write access returns, until the server is restarted (then it becomes failed with Retry). Earlier work survives."
+  },
+  {
+   "id": "U-57",
+   "condition": "Whether one unexpected failure in background work takes down the whole app.",
+   "what_it_does": "A provider failure in a task is reported on that task (Failed + Retry task) and the rest stays usable. A storage error during a task step leaves that task shown as Running with no progress, forever, until restart (then Interrupted); the server only logs 'Background task progress could not be saved.'. Other reads and actions keep working once storage is writable."
+  },
+  {
+   "id": "U-58",
+   "condition": "Where keyboard focus lands after an action such as Confirm changes, Reject changes or Send, especially when several proposals are on screen.",
+   "what_it_does": "After Send and Retry focus returns to Message; after Save memory to the first Edit memory button. After a keyboard Confirm changes or Reject changes, focus moves to the same-named button of the next proposal on screen, so a second Enter confirms or rejects another proposal."
+  },
+  {
+   "id": "U-60",
+   "condition": "Whether unexpected server errors are shown honestly to the person and recorded for the operator.",
+   "what_it_does": "Malformed requests get clear 4xx messages (400 not valid JSON, 415 send JSON, 404 unavailable). Unexpected errors return 500 'The workspace could not save this action. Please try again.' whatever the cause, and the server output records nothing about them (no error, no stack). No token in either."
+  }
+ ],
+ "defects": [
+  {
+   "id": "D-1",
+   "severity": "medium",
+   "title": "Keyboard Confirm/Reject moves focus onto the next proposal's same-named button, so a second Enter decides another proposal",
+   "expected": "Focus moves to the Change result or the composer, never onto another proposal's decision button; the second proposal stays pending."
+  },
+  {
+   "id": "D-2",
+   "severity": "medium",
+   "title": "A capitalised field name in a change request creates a second field instead of changing the existing one",
+   "expected": "Same field and same preview regardless of capitals, or a message that Status is not a field of ORD-1001."
+  },
+  {
+   "id": "D-3",
+   "severity": "medium",
+   "title": "Conversations cannot be told apart before opening: empty ones and ones with the same opening share a name",
+   "expected": "Each conversation identifiable before selecting it (distinct label, time or number)."
+  },
+  {
+   "id": "D-4",
+   "severity": "medium",
+   "title": "A forget that matches no remembered fact is reported as done",
+   "expected": "The person is told nothing matched (as for add step with no task), or a loose match is applied and shown; the reply should not claim a forget that did not happen."
+  },
+  {
+   "id": "D-5",
+   "severity": "medium",
+   "title": "After a storage write failure a pending reply stays pending and blocks the conversation until restart",
+   "expected": "The reply is marked failed (or retried) once it cannot be saved, with a storage error the person can act on; never left pending."
+  },
+  {
+   "id": "D-6",
+   "severity": "low",
+   "title": "A storage failure during a long task leaves the task showing Running with no progress until restart",
+   "expected": "The task is reported as Failed or Interrupted with Retry task once progress cannot be saved."
+  },
+  {
+   "id": "D-7",
+   "severity": "medium",
+   "title": "After a refused rename the instruction form stays silently bound to the edited entry, so the next new instruction replaces it",
+   "expected": "Either the edit is visibly in progress and can be cancelled, or a new name after a failed edit saves a new entry; no saved entry silently lost."
+  },
+  {
+   "id": "D-8",
+   "severity": "low",
+   "title": "Duplicate bot names are accepted but cannot be told apart",
+   "expected": "Duplicates refused, or each bot distinguishable before selecting it."
+  },
+  {
+   "id": "D-9",
+   "severity": "low",
+   "title": "Saving an instruction or task under an existing name silently overwrites it",
+   "expected": "Overwrite with a notice, refuse, or ask."
+  },
+  {
+   "id": "D-10",
+   "severity": "low",
+   "title": "Damaged or unreadable data folder crashes the server at start with a raw stack trace",
+   "expected": "Refuse to start with a plain message naming the file and a recovery step, keeping the damaged file."
+  },
+  {
+   "id": "D-11",
+   "severity": "low",
+   "title": "A question about ORD-1001A is answered with ORD-1001's value",
+   "expected": "A reply that ORD-1001A cannot be found, with how to correct it."
+  },
+  {
+   "id": "D-12",
+   "severity": "low",
+   "title": "Unexpected server errors and request-time storage failures are not recorded in the server output",
+   "expected": "The operator's output records the error (without the token)."
+  },
+  {
+   "id": "D-13",
+   "severity": "low",
+   "title": "Step feedback does not identify which of two same-titled tasks received it",
+   "expected": "Feedback that identifies the task that got the step."
+  }
+ ],
+ "silent": [
+  {
+   "id": "U-1",
+   "condition": "Whether the current person is held per browser, per tab, or as one person for the whole server when two clients are open at once.",
+   "what_it_does": "The person is held per browser by an HttpOnly signed cookie (still_session). Two browser contexts keep their own person; tabs of one browser share it, and a Switch person in one tab changes the other tab on its next 700 ms poll."
+  },
+  {
+   "id": "U-2",
+   "condition": "Whether the person's identity is checked by the server on every request, or only chosen in the page.",
+   "what_it_does": "Every action is resolved inside the cookie's own person's workspace; ids from another person's workspace return 404 and change nothing. Cookies are HMAC-signed; forged or swapped cookies are treated as no person."
+  },
+  {
+   "id": "U-3",
+   "condition": "What else is on the first screen besides the Continue as buttons, whether a token must be saved before a person can continue, and who a reload belongs to while the Continue as screen is up.",
+   "what_it_does": "First screen shows only the three Continue as buttons (no Setup, no chat controls). Setup appears only after choosing a person, with Message read-only and Send disabled until a token is saved; the token is server-wide. After Switch person and reload the chooser returns and nothing can be sent."
+  },
+  {
+   "id": "U-5",
+   "condition": "Which token is used when both PROVIDER_TOKEN and a saved token exist, and whether a token from the environment is copied into the data folder.",
+   "what_it_does": "A valid PROVIDER_TOKEN wins over a saved token and is used only while set; it is not copied into the data folder. While a valid env token is set, Setup is hidden and a setup request is silently ignored (200, nothing stored)."
+  },
+  {
+   "id": "U-6",
+   "condition": "What happens when the token in use is refused: an invalid PROVIDER_TOKEN at start, or a saved token that stops being accepted during use.",
+   "what_it_does": "An invalid environment token is treated as unsaved: Setup is shown and a valid token can be saved through it, after which replies work. Provider unauthorized errors during use cannot arise with this stand-in (format check only) and would show the generic reply-failed alert."
+  },
+  {
+   "id": "U-7",
+   "condition": "Whether the token is stored in plain text under DATA_DIR and whether it leaks into logs or error messages.",
+   "what_it_does": "Saved token is stored in plain text in DATA_DIR/workspace.json (file mode 0600, folder 0700). It is never in any API response, page or server output; token-shaped text typed in messages is replaced by '[provider token hidden]'. Provider errors show a generic alert without the token."
+  },
+  {
+   "id": "U-8",
+   "condition": "Whether Assistant, a bot made with New bot, or a conversation made with New conversation starts open and empty, and what a brand-new bot contains.",
+   "what_it_does": "A new person starts with bot Assistant holding one empty open conversation titled 'New conversation'; Send works at once. New bot opens a bot with one empty conversation, no memory, no instructions. New conversation becomes the open one."
+  },
+  {
+   "id": "U-13",
+   "condition": "Which bot and conversation are open after reloading, after Switch person and back, after a new visit and after a server restart, and whether an unsent draft and the scroll position survive.",
+   "what_it_does": "Open bot and conversation are stored per person on the server and restored after reload, Switch person and back, a new browser visit and a server restart. The unsent draft is dropped on reload and scroll jumps to the bottom."
+  },
+  {
+   "id": "U-16",
+   "condition": "What happens when Edit <name> is used and the Instruction name or Task name is changed before saving.",
+   "what_it_does": "Edit then a changed name renames the same item (instruction and task). Renaming onto an existing name is refused with 'That name is already in use.' but the form stays silently bound to the edited item (see defects)."
+  },
+  {
+   "id": "U-17",
+   "condition": "What happens to a bot's instructions when the saved instruction it uses is later edited or deleted.",
+   "what_it_does": "Use copies the instruction text into the bot; later Edit or Delete of the saved instruction does not change the bot. The Saved instructions region shows 'Active on <bot>: <text>' so what the bot uses stays visible."
+  },
+  {
+   "id": "U-20",
+   "condition": "What happens if I send again, switch conversation, reload, switch person, or lose the acknowledgement while a reply is still on its way.",
+   "what_it_does": "Send is disabled and a status 'Assistant is replying…' shows while a reply is pending; a second Enter is ignored and typed text stays in the box. The server refuses a second send in that conversation (409) and ignores a repeated request id. Replies land in their own conversation and person, survive reload and switching; a page closed before the acknowledgement keeps the received message and its pending reply; a deliberate resend creates a new message."
+  },
+  {
+   "id": "U-21",
+   "condition": "What Retry does after a reload or a server restart, what happens to a failed message if I send a new one instead, and whether a reply interrupted by stopping the server is retried automatically.",
+   "what_it_does": "After a failed reply an alert and Retry remain after reload and after a server restart, and Retry succeeds without a second person message. Sending a new message instead is refused (button disabled; API 409 'Finish or retry the last reply first.') with the alert still visible. A reply interrupted by stopping the server becomes failed with 'The server restarted before the reply finished. Retry to continue this conversation.' and waits for Retry."
+  },
+  {
+   "id": "U-22",
+   "condition": "Whether `[fail once]` and `[slow]` remain in the stored person message.",
+   "what_it_does": "The stored person message keeps the markers; the first attempt fails and Retry succeeds; 'what did I ask first' quotes the message with the marker."
+  },
+  {
+   "id": "U-25",
+   "condition": "Whether Memory text starts filled with the fact being edited.",
+   "what_it_does": "Edit memory opens Memory text filled with the current fact; Save memory updates that item."
+  },
+  {
+   "id": "U-26",
+   "condition": "Whether management actions (Save instruction, Use, Edit, Delete, Save task, Rename, Save memory, Forget) add messages to the conversation.",
+   "what_it_does": "Save instruction, Use, Delete, Save task, Rename bot, Save memory and Forget add no messages to the conversation; Run and typed memory phrases do."
+  },
+  {
+   "id": "U-27",
+   "condition": "Whether Memory and task progress update while the page stays open.",
+   "what_it_does": "Memory and task progress update on their own while the page stays open (700 ms polling)."
+  },
+  {
+   "id": "U-29",
+   "condition": "Whether a proposal that changes `readers`, `id`, `type` or `owner` is offered and applied.",
+   "what_it_does": "Proposals to change readers, id or type are refused: the bot's reply text still says 'I propose one change ... Confirm to apply it.' but the app shows a Change result 'Record identity and access fields cannot be changed.' with no Confirm. owner is not protected: it can be set (as a new field on an order or changed on an account) with an ordinary preview; readers are untouched."
+  },
+  {
+   "id": "U-30",
+   "condition": "Whether a proposed value is validated (a word into a number field, a field the record does not have, an unknown status, a decimal amount), and whether the person is told how to correct it.",
+   "what_it_does": "No value validation: a word into a number field, an unknown status and a field the record does not have are offered with an exact preview and applied as shown (e.g. 'total: 125 → banana', 'colour: ∅ → red'). A decimal create is not understood by the stand-in (no proposal). A corrected request in the same conversation works."
+  },
+  {
+   "id": "U-31",
+   "condition": "How long an undecided proposal lasts (reload, restart, switching conversation, later messages), whether an older proposal can be confirmed after a newer one, which gestures confirm or cancel it, and what the controls show after a decision.",
+   "what_it_does": "An undecided proposal stays pending across Enter in Message, reload, server restart and switching conversation. Several can be pending; confirming an older one after a newer changed the same field is refused as conflict. Only Confirm changes confirms; after a decision the buttons are replaced by a Change result and a later confirm writes nothing."
+  },
+  {
+   "id": "U-32",
+   "condition": "How a proposed create is worded before confirm, including whether its order id is previewed.",
+   "what_it_does": "Proposed create lists 'Create ORD-1005 · type: order · customer: Northwind · status: open · total: 40 · readers: [\"maya\"]' with the previewed id; nothing is stored before Confirm; the stored id equals the preview, or the confirm is refused as conflict if the id was taken meanwhile."
+  },
+  {
+   "id": "U-33",
+   "condition": "What Confirm does when the record no longer has the proposed `from` value (another reader changed it, or an earlier proposal on the same field was confirmed).",
+   "what_it_does": "Confirm re-checks the current value; if it changed (another person's confirm or an earlier proposal), the proposal becomes conflict with 'The records changed after this preview. No changes were applied. Ask for a fresh proposal.' No new proposal is offered automatically."
+  },
+  {
+   "id": "U-34",
+   "condition": "How the next free ORD- number is chosen when two create proposals are pending at once or two people create orders, and what 'next free' means.",
+   "what_it_does": "Next free number is one more than the highest ORD- number, previewed at proposal time and not reserved. Two pending creates preview the same id; the first confirm gets it and the second is refused as conflict (must ask again). Ids stay distinct."
+  },
+  {
+   "id": "U-35",
+   "condition": "Whether the Change result stays visible after reload and how confirmed changes are recorded in the conversation.",
+   "what_it_does": "The decision is stored with the proposal in the conversation; after a reload a Change result region stays under the bot message that proposed it, with no Confirm offered again."
+  },
+  {
+   "id": "U-36",
+   "condition": "Whether a confirmed change to a record another person may also read is visible to that other person.",
+   "what_it_does": "One shared working copy: Theo sees Maya's confirmed change, also after a restart. records/ files unchanged; non-readers still cannot read."
+  },
+  {
+   "id": "U-38",
+   "condition": "What happens when a second long task is started while one is running.",
+   "what_it_does": "A second long task runs alongside the first; both shown in Tasks with their own status and step counts."
+  },
+  {
+   "id": "U-40",
+   "condition": "Whether a finished, failed or cancelled task leaves a message in its conversation.",
+   "what_it_does": "A finished, failed or cancelled task leaves no message in its conversation (the bot only said it would 'tell you when it is done'); the result is in the task article and Since you were away, findable after reload."
+  },
+  {
+   "id": "U-44",
+   "condition": "What counts as 'being away' for the Since you were away region, which events it reports, and when reported items stop appearing.",
+   "what_it_does": "Since you were away is per browser and person (last-seen time in localStorage): it lists tasks Completed or Cancelled since the last visit, plus every Running, Failed or Interrupted task; completions drop off after the next reload; waiting proposals are not mentioned. Shows only the person's own tasks."
+  }
+ ]
+}

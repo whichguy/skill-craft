@@ -1,0 +1,29 @@
+{
+ "ratings": [
+  {
+   "n": 1,
+   "rating": "must",
+   "why": "The request says a ticket must match every filter given, and this 200 response still returns Dana Lee's ticket when the query also requires Kim, so an operator silently gets the wrong queue."
+  },
+  {
+   "n": 2,
+   "rating": "should",
+   "why": "The notice does reach the relay file the operator already tails, but `to` is only the bare agent name while every existing notice is an email and nothing says how to resolve that name to a mailbox."
+  },
+  {
+   "n": 3,
+   "rating": "must",
+   "why": "The CLI prints the README's unassigned mark for the stored name \"—\", so an operator will treat an assigned ticket as unassigned."
+  },
+  {
+   "n": 4,
+   "rating": "should",
+   "why": "U+2028, U+2029 and U+0085 are accepted and a standard line split turns one raw ticket row into two, but they are rare and outside the control-character check the service already uses for single-line fields."
+  },
+  {
+   "n": 5,
+   "rating": "no",
+   "why": "An unpaired surrogate is not a name an operator will assign; the request only requires a non-empty name of at most 64 characters, so rejecting ill-formed UTF-16 is extra hardening."
+  }
+ ]
+}

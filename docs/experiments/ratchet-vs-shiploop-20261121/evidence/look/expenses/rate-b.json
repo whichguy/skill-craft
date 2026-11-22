@@ -1,0 +1,24 @@
+{
+ "ratings": [
+  {
+   "n": 1,
+   "rating": "no",
+   "why": "After JSON parsing in Node these three values are already the whole cents 1, 2, and 0, and a real fraction such as 1.5 is already rejected, so checking the original decimal spelling is over-engineering."
+  },
+  {
+   "n": 2,
+   "rating": "must",
+   "why": "Both processes acknowledged an expense and one of those expenses was gone after restart, with its number reused, which breaks the customer's rule that concurrent requests never lose an expense."
+  },
+  {
+   "n": 4,
+   "rating": "no",
+   "why": "The unusable ids are a dot segment, a lone surrogate, and a URL long enough to get 431, and a reasonable builder can leave those unconstrained because ordinary group names still work."
+  },
+  {
+   "n": 5,
+   "rating": "should",
+   "why": "A DATA_FILE symlink is replaced on save, so the linked ledger misses an acknowledged expense, and a careful builder would resolve the real file or fail before writing."
+  }
+ ]
+}
