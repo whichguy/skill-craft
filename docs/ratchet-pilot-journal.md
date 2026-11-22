@@ -3920,3 +3920,33 @@ clauses, which nothing here can score.
 
 **Limits known before the runs.** One specification, two targets; the targets are what suites happened to test and
 the reference happened not to do, so a clause listed and not among them may be just as right.
+
+### Part R, the other half, result (18:56): three fresh readers each list exactly the two clauses that reject a correct build
+
+Three sessions (52, 71 and 93 seconds), launched from b23da050d896de4cb94e0a6375045a4fc5e00865; each wrote
+`ratchet/reading.md` in the form asked and changed nothing else (`evidence/program/spec-reader/`).
+
+| Session | Listed under "Decided beyond the request" | Clauses it says it checked in the product's files |
+|---|---|---|
+| s1 | C-45, C-34 | 37 |
+| s2 | C-45, C-34 | 39 |
+| s3 | C-45, C-34 | 33 |
+
+- **RR1.1: both targets in three of three**, so *a fresh reader finds a specification's unasked decisions*. I
+  predicted two of three and one of three.
+- **RR1.2: no other clause is listed, by any session**, and C-40 is not. I predicted five to ten others each.
+- Each entry gives the reason from the code: for C-45, that the store applies a change before it saves and has no
+  way back; for C-34, that the loader checks no length, not even the requester's. Those are the reasons the checks
+  of these two clauses fail on the reference build, now in nine test passes of nine.
+
+**F57. One short reading of the specification by a session that did not write it removes the clauses that would
+later reject a correct product.** The author's own text tells it to cut a clause "a builder could leave out with
+nothing missing", and the author kept both: one it had sourced to documents the code does not follow, one the plan
+stage added as implied. A reader with one question, sent to check each claim about existing behaviour in the
+product's files, finds both and nothing else, in about a minute. Section 20 found that what rejects a correct product is
+a refusal the writer added on its own (F28: 28 times in 46); this is the cheapest lever on such clauses seen so
+far.
+
+**Limits.** One specification and two known targets, by one model at one effort. A clean sheet on the other 43
+clauses means none of them is known to be wrong, not that all are right. Whether the reading holds on a
+specification with no over-decision (does it then write `none`?) is not tested.
