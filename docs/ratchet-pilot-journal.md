@@ -3528,3 +3528,93 @@ of six (a service that simply works draws no remark).
 **Limits known before the runs.** One planted defect, chosen because suites miss it; the bundle is curated, so a
 catch shows the mechanism, not how often real deliveries need it; the reviewer and the builders are one model
 family.
+
+### D1 check, result (18:14): under neutral names the limit is marked open three of three
+
+`n1` to `n3` (32, 42 and 37 clauses; 161 to 185 seconds): each specification marks the limit open and none states
+one. n1, C-2: "any separate name length bound beyond the existing HTTP body limit"; n2, C-7: "whether to set a
+name-specific length bound beyond the existing whole-body limit"; n3, C-7: "any name-specific length bound beyond
+the existing request-body limit". The folder names did not carry the nine-run result, and F46 holds on Sol at
+medium: six of six.
+
+### Part D2, result (18:16): a session given one question does not ask the point that decided the builds
+
+Nine sessions, 26 to 52 seconds each, every one wrote `ratchet/question.md` in the form asked and changed nothing
+else. Two readers (the second a Sonnet subagent given the nine files under shuffled names, with the three points
+and a copy of the starting product) agree on every sorting.
+
+| Request | Its point | `Question:` asks the point | A `Next:` line names it | What the three sessions asked |
+|---|---|---|---|---|
+| limit unsaid (g1 to g3) | the longest name | 0 of 3 | 0 of 3 | who turns an agent's name into a mail address: the relay, or a directory the operators keep |
+| states unsaid (g4 to g6) | the states that allow assignment | 0 of 3 | 0 of 3 | the same question, three times |
+| due times (g7 to g9) | who fills the due times in, and what the service does at start | 0 of 3 | 1 of 3 (g9, third) | whether the deadlines must survive a roll-back to 1.4.0 and a later upgrade, or may be worked out again |
+
+- **RD2.1: the one question asks the request's point in none of nine runs.** By the registered rule the mechanism
+  fails at choosing, so no specification is revised and no plan made under this part. My prediction for the due
+  times (two of three) was wrong; for the states (none) it held; for the limit (at most one) it held.
+- **RD2.2: none of the nine asks what the files settle.** Each question rests on something read in the product
+  (the notifier hands a recipient on as it is given; release 1.4.0 keeps only the fields it knows) and asks what
+  the files cannot say: how the relay treats a name, what the requester wants after a roll-back.
+- **RD2.3: not run**, since no question asked the point.
+
+**F50. Asked what matters most, a session ranks by cost, and the requester's own answer was not the costly kind.**
+The sessions agree with each other (three of three on each request, six of six across the two assignment
+requests) and their questions are good ones by the rule they were given: a notice that silently reaches nobody, a
+promised deadline that silently moves. The point that failed five of eight held-out checks is of another kind. A
+service that refuses to start says so at once and is cheap to change, so by cost it ranks low; it mattered
+because the requester had a preference about it. Nothing in the folder says which low-cost choices a requester
+holds a view on, and a ranking by cost cannot find them. What would have shown this requester the point is the
+plan's own `## Decisions` table: the refusal is a row of it in all three due-times plans, with filling at start
+among the alternatives set aside, and the limit taken is a row in all three limit plans. The stricter wish about
+states is in no table: the specifications applied the product's rule as a fact (I+), and a fact is not listed as a
+decision. So of the nine runs the decisions table shows the point in six and a single question in none.
+
+**Limits.** One model at one effort; the question text asks for the *one* point by cost, and another rule of
+choice (the point a requester most likely holds a view on) is untested; three requests on one code base.
+
+### Part D3, registered 18:16, before any of its runs: the answer given directly, into the plan and into a build
+
+**What it asks.** D2 tested the choosing and it failed. The other half of any way of asking is untested: when the
+requester's answer does arrive, is it carried, and is the built product then right where the plain one is wrong?
+
+**The question put** is no longer a session's. It is written here once for each request
+(`program/decision-questions.json`), as to a requester who was shown the decision the plan takes, and the reply is
+the one in `program/replies.json`. For the due times: "The specification leaves open how the tickets already in
+the data file get their due times. Left to itself the plan adds a separate preparation command that an operator
+runs, and has the service refuse to start with DUE_TIMES=on while any ticket lacks a due time. The alternative is
+that the service itself gives the missing due times when it starts switched on. Which do you want?" For the limit:
+"The request gives no longest length for an agent's name, and left to itself the plan takes a limit of its own. Is
+there a longest length you want?"
+
+**Cells.**
+
+- `h1` to `h3` (the limit specifications of d-limit-1 to 3) and `h7` to `h9` (the due-times specifications of
+  d-due-1 to 3), each as the spec stage left it: one session revises the specification with the question and the
+  reply (`program/revise.md`).
+- `j1` to `j3`: the plan stage from the revised limit specifications.
+- `b7` to `b9`: plan, build and test pass from the revised due-times specifications (`--spec-from h<n>
+  --stop-after tests`).
+- `p7` to `p9`: plan and build from the same three specifications without the answer (`--spec-from` the
+  specification as the spec stage left it, `--stop-after build`).
+
+**Readings.**
+
+- **RD3.1, into the specification.** The revised specification states the reply as a requirement with `Source:
+  answer` and no longer marks it open (a script finds the source line; two readers read the clause).
+- **RD3.2, into the plan.** The plan follows the reply: 40 for the limit (`j`), filling at start and no refusal
+  for the due times (`b`).
+- **RD3.3, into the build.** The held-out checks (`grade.py snapshots`, eight of them) on the first build of each
+  `b` and `p` run. *An answer reaches the product* if all three `b` builds pass at least seven of eight and at
+  least two of the three `p` builds fail three or more.
+- **RD3.4, into the delivery's own checks.** For each `b` run: the acceptance check of the clause that carries
+  `Source: answer` exists, passes on its own build, and fails on the first build of the `p` run made from the same
+  specification (the check laid over that build by script).
+- Reported: seconds for each stage; what else the revise session changed.
+
+**Predictions.** Carried into all six specifications and all six plans. The three `b` builds pass eight of eight;
+the three `p` builds fail five of eight. The answer's check fails on the paired plain build in at least two of
+three.
+
+**Limits known before the runs.** The question is mine and names both alternatives, so this is the mechanism at
+its best; three runs an arm; the plain arm stops after the build, since its own tests add nothing to these
+readings; the limit is read in the plan only.

@@ -1,0 +1,5 @@
+{
+ "_about": "Part D3 of the program (journal section 26). In part D2 no session asked the request's point. Here the requester is asked it directly, in the words below, as someone would be who was shown the decision the plan takes; the reply is the one in replies.json. Written before any revise session ran.",
+ "ticket-due-times": "Question: The specification leaves open how the tickets already in the data file get their due times. Left to itself the plan adds a separate preparation command that an operator runs, and has the service refuse to start with DUE_TIMES=on while any ticket lacks a due time. The alternative is that the service itself gives the missing due times when it starts switched on. Which do you want?",
+ "ticket-assignment-name-limit-unsaid": "Question: The request gives no longest length for an agent's name, and left to itself the plan takes a limit of its own. Is there a longest length you want?"
+}

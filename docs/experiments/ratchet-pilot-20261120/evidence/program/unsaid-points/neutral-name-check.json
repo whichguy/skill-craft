@@ -1,0 +1,41 @@
+[
+ {
+  "run": "n1",
+  "case": "ticket-assignment-name-limit-unsaid",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "enrich": "reworded",
+  "started": "2026-11-21T18:11:15-0800",
+  "launched_from": "f413b280a06c6c20616b2e5c04ccf06ac21bb8dc",
+  "clauses": 32,
+  "open_lines": 5,
+  "spec_seconds": 160.8,
+  "stop": "stop-after-spec"
+ },
+ {
+  "run": "n2",
+  "case": "ticket-assignment-name-limit-unsaid",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "enrich": "reworded",
+  "started": "2026-11-21T18:11:15-0800",
+  "launched_from": "f413b280a06c6c20616b2e5c04ccf06ac21bb8dc",
+  "clauses": 42,
+  "open_lines": 8,
+  "spec_seconds": 172.9,
+  "stop": "stop-after-spec"
+ },
+ {
+  "run": "n3",
+  "case": "ticket-assignment-name-limit-unsaid",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "enrich": "reworded",
+  "started": "2026-11-21T18:11:15-0800",
+  "launched_from": "f413b280a06c6c20616b2e5c04ccf06ac21bb8dc",
+  "clauses": 37,
+  "open_lines": 6,
+  "spec_seconds": 185.0,
+  "stop": "stop-after-spec"
+ }
+]
