@@ -4556,3 +4556,62 @@ about twice the $1.50 the owner was told, for the control section 56 added and r
   more states (a judge kept the same state on 14 to 19 items of 19 to 21), but those are different texts, so
   this says nothing about the swing on Sonnet's.
 - The accepted texts were read half an hour before the drafts, in sets named differently.
+
+## 58. The conclusion as put to the owner, and what the Ratchet session's results of the same evening change in it (18:53, 2026-11-21)
+
+Nothing was run with a model for this section.
+
+**The owner's question, and the answer given.** After section 57 he asked: "What does this conclude? What should
+we do?" The answer, as given shortly before 18:50:
+
+1. The spec stage is not where the gain is. From one sentence the released stage already addresses nearly every
+   item a careful outside reader would list (60 of 63 and 36 of 38 on the two blind checklists) and fully settles
+   about half.
+2. Wording does not move it: five additions to the stage's instructions left coverage where it was.
+3. The model moves it more than the wording, and unevenly (sections 55 and 57).
+4. The real variation is in decisions the request leaves open. Each model decided product questions the owner
+   never saw, and decided them differently: a new ticket status or the existing one, a notification or none.
+5. "Fuller" is unproven as a goal: none of these specifications was built.
+
+And the advice: close this study and leave the spec stage's wording alone; put the effort after the
+specification, where the two neighbouring studies place the faults; for a vague request treat the open decisions
+as the problem, by stating in the request the ones that matter (given as my inference, untested) and by deciding
+whether to pilot the Ratchet session's "mark it open, decide once in the plan" text; and choose no driver from
+this study.
+
+**Received about 18:50, from the Ratchet session, for information.** Its results of this evening on Sol at medium,
+recorded in its own journal (section 26, on a branch it has not pushed):
+
+1. It read this study's 62 archived Codex runs with this study's own `packet_shown.stages_of`, changing
+   nothing: 97% of instruction lines given on average, with no trend along a packet (94%, 99% and 96% by
+   thirds), and the lines after "Result template:" given at a median of 100% at intake, 94% at discovery, 52% at
+   research and 15% at the spec stage.
+2. Its reworded text marks an unsaid point on Sol at medium too, in 12 of 12 specifications.
+3. Marking the point does not change what is built. Six of six plans made without an answer take the same
+   default, and the builds pass 3 of 8 held-out checks, three times. With the owner's ruling given as a
+   requester's answer and written into the specification by one short revising session, the builds pass 8 of 8,
+   three times.
+4. A session asked to choose one question for the requester does not ask that point (0 of 9, and 0 of 9 when
+   asked for three), though 9 of 9 name the place where the program's documents and its code disagree.
+
+**What was checked here.** Point 1 only, and it reproduces exactly: 62 Codex runs, 248 packets, 96.5% of
+instruction lines given (20,632 of 21,422 lines; 94.3%, 99.0% and 95.6% by thirds), and the lines after the
+template mark at medians of 100%, 94%, 52% and 15% (`evidence/readings/packet-shown-guides-62.txt`). Points 2
+to 4 are that session's own runs and are recorded as received.
+
+**What it changes.**
+
+- *A wording of mine was too wide.* In the answer above I offered to tell the SDLC session that on Sol "the
+  model reads only part of each stage's instructions". In the four stages these runs reach, the instructions
+  arrive nearly whole. What the model does not give itself is the part after them, the template and the list of
+  references: a median of 15% at the spec stage. Section 43's low figures for instructions belong to the later
+  stages of whole deliveries, as that section says. The owner was told at once.
+- *An inference of mine now has a test, in another session's hands.* "State in the request the decisions that
+  matter" was untested here. The Ratchet session's point 3 is that test on one decision: the answer in the
+  specification takes the builds from 3 of 8 to 8 of 8.
+- *A reason I gave for a pilot is weaker than I put it.* I said this study's last two experiments were a reason
+  to pilot the mark-it-open text. By point 3 a marked point changes nothing that is built until someone answers
+  it, and by point 4 a session does not choose to ask about it. What is worth piloting is therefore how the
+  answer gets in, which is that session's question and the owner's decision.
+
+Section 57's results are untouched by any of this.

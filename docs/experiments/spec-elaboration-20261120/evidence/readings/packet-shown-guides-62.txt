@@ -1,0 +1,14 @@
+How much of each packet the model was given, over every Codex run of the guides test (journal sections 44 to 57).
+Computed 2026-11-21 with packet_shown.stages_of over /Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-*/samples/*
+(every sample folder holding a result.json whose host is codex). A reproduction of figures the Ratchet session
+sent this session after reading the same folders with the same function (journal section 58).
+
+sample folders with a result: 68; Codex runs read: 62; packets whose stage was submitted: 248
+instruction lines given: mean of the packets' shares 96.5%; pooled over lines 96.3% (20632 of 21422)
+by thirds of a packet's instruction lines, pooled: first 94.3%, middle 99.0%, last 95.6%
+
+stage | packets | instruction lines given: median share (mean) | lines after 'Result template:' given: median share
+intake | 62 | 100% (100%) | 100%
+discovery | 62 | 100% (99%) | 94%
+research | 62 | 98% (95%) | 52%
+spec | 62 | 97% (93%) | 15%
