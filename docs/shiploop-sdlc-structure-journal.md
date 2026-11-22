@@ -3601,6 +3601,78 @@ file), and its mechanics are in the tests and in R133, not this round. The cases
 the `send-back` exit for a missing install step is shown by its test alone. A refusal costs the run another pass of
 the outer stages, which this round can time only once or not at all.
 
+### Results of the confirmation round (2026-11-21, 21:23 to 21:57; `evidence/confirm-r15.txt`)
+
+Three whole deliveries of the ticket case at medium effort, defaults, started together on build C
+(62676fc0e0dacb0ca8febd7f6f2424684c707b47). The load average was 4 to 6.
+
+| Run | Minutes, cost | Verdicts | Case checks | release-verify in the clean copy |
+|---|---|---|---|---|
+| `sol-C-due-1` | 15.4, no dollar figure | all pass | 8 of 8 | accepted: its own check `npm test` ran 122 against a floor of 122; ShipLoop added the plan's second regression command, 13 against 13 |
+| `sonnet-C-due-2` | 27.1, $7.73 | all pass | 8 of 8 | accepted: its own check was one system-test file, 3 tests; ShipLoop added `npm test`, 159 against a floor of 156 |
+| `sonnet-C-due-1` | 33.9, $12.67 | `committed` fails | 8 of 8 | refused: its own check `npm test` ran 148 against a floor of 152; `add-work`; a second return; accepted at 150 against 150 |
+
+- **R136 (the rule acted in all three).** A command was added in two deliveries and a floor bound in all three.
+  `sonnet-C-due-2` is the form of R127 again, a consumer check of one file where the suite is 159 tests, and this
+  time the suite was run in the copy and passes there.
+- **R137 (a wrong refusal).** `sonnet-C-due-1` was refused with nothing wrong in the copy. Its `npm test` ran 148
+  tests there, all passing, against a floor of 152 taken from the end-of-work review's run at 21:44. Four minutes
+  after that run, at release-plan, the builder moved six verbatim 1.4.0 source files out of `test/`, where node's
+  runner had been counting each as a test, and it had added two system tests: 152 - 6 + 2 = 148. Run again by hand:
+  the returned tree with no history runs 148; the returned head with its history and the working tree as returned
+  runs 148; the commit the end-of-work review ran on runs 152. The work area, as returned, ran what the copy ran.
+  The floor was the count of an earlier tree.
+- **R138 (what the wrong refusal cost).** The builder did what the reply says: `add-work`, with a corrective item
+  whose own run would set a new count. That item is a checksum file for the fixture and a test of it, which nobody
+  asked for. From the refusal to the end of the run: 6.4 of 33.9 minutes and about a quarter of the run's spend
+  (26% of its token cost at fitted prices, about $3 of $12.67).
+- **R139 (the reading, as registered).** (a) fails: one delivery of three was refused wrongly. (b) holds: all three
+  deliveries ShipLoop accepted pass the harness's suite check. The rule is not released as built.
+- **R140 (described, one run: told what would be run, the builder fixed it first).** The same builder, at
+  release-plan, wrote the whole 1.4.0 tree into a fixture from the repository's history, so that its system test no
+  longer needs the history in a copy. Release-plan's duty now says the suite will be run in the clean copy. In
+  round 15's batch a Sonnet delivery of this case left such a test reading the history (R127). The edits were made
+  at release-plan, outside the item stages, and no accepted run covered them before the return.
+- **R141 (a failed verdict the rule did not cause, and the ShipLoop fault behind it).** `sonnet-C-due-1`'s returned
+  checkout holds the whole delivery uncommitted on the case's base commit, so the harness's `committed` verdict
+  fails. Both of its returns were of the kind that applies a working-tree delta, because the candidate still had
+  six staged deletions, the old paths of the moved files; the return policy fast-forwards only a candidate with no
+  tracked changes. The first return came before release-verify ran. The deletions were never committed because
+  the commit before the return lists changed paths with `git diff --name-only HEAD`, which names only the new path
+  of a staged move; the path-limited commit then leaves the old path's deletion staged. Reproduced in an empty
+  repository (git 2.54.0); `--no-renames` lists both paths.
+- **R142 (the observers).** All three delivered trees move one of eight due times on a rollback and return, as
+  most deliveries on file do. Each suite passes from the project folder, without npm and from another folder.
+
+### Findings of the confirmation round
+
+- **F93 (the mechanism is reproduced; one case).** A count taken from the run's history is only as true as the tree
+  it was run on. Stages after the last counted run change the tree: here release-plan did, and in four of the 27
+  deliveries the copy ran more tests than its floor because tests were added after it. The 24 saved deliveries
+  could not show the fault, because in each the later stages only added tests. The first outside review had said to
+  tie the count to the candidate or call it unmeasured; I tied it to the latest accepted run instead.
+- **F94 (described, one run).** A sentence that says what will be run can do the gate's work before the gate
+  (R140). It also moved product edits to a stage that has no test or review of its own.
+- **F95 (a ShipLoop fault, met once in 27 deliveries).** The commit before the return drops the deletion half of
+  a staged move, and the return then leaves the user's checkout uncommitted (R141). It is not part of the four
+  approved changes.
+
+### Decisions before a second confirmation round
+
+1. **The count is measured, not looked up.** At release-verify ShipLoop runs each of the last work item's
+   regression commands in the work area and then in the clean copy, at the same moment and on the same tree, and
+   refuses when the copy runs fewer tests or its count cannot be read. No count is taken from the run's history,
+   so the code that read it, and the limits that came with it, go. This is the owner's rule as approved ("refuse
+   if fewer tests run"), with the comparison made on one tree.
+2. **The move's deletion is committed.** The commit before the return lists changed paths with renames off. It is
+   a separate commit with its own test, outside the four approved changes, made because the next round would meet
+   the same fault whenever a builder moves a file late; the owner is told.
+3. **Nothing else changes.** Release-plan's duty still says what will be run. One run is not a reason to add a
+   sentence that sends such a fix through `add-work`; with 1 and 2 in place that run would have been accepted with
+   every verdict passing.
+4. The rebuilt code is checked on the saved deliveries again, now 27 and with this refusal among them, before a
+   second confirmation round is registered.
+
 ## Evidence (all rounds)
 
 | File | Holds |
@@ -3670,6 +3742,7 @@ the outer stages, which this round can time only once or not at all.
 | `replay_on_file.py`, `evidence/replay-on-file.txt` | round 15: the commands the rebuilt rule adds, each run alone in a fresh copy of the delivered tree (R134) |
 | `mutate_c1.py`, `evidence/mutants-c1.txt`, `evidence/suites-c1.txt` | round 15: the fifteen mutants of the rebuilt rule and the test that catches each; the three batches of related suites, with the one failure under load and its reruns |
 | `review-r15/sol-max-brief-2.txt`, `review-r15/sol-max-review-2.md` | round 15: the question put to Sol 6.2 at max effort about the rebuilt rule, and its verbatim answer |
+| `confirm_read.py`, `evidence/confirm-r15.txt` | round 15: the confirmation round: each delivery's verdicts, checks, work items, every release-verify attempt with its counts and floors; the wrong refusal and the uncommitted return reproduced by hand (R136 to R142) |
 
 To rerun: `python3 -I stage_census.py <work>/census.json` writes the run list the other scripts read
 (`passes_census.py <work>/census.json <work>/samples.jsonl`, `review_edits.py <work>/census.json

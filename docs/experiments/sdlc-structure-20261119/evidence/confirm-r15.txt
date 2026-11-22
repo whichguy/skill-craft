@@ -1,0 +1,94 @@
+Round 15, the confirmation round on build C (62676fc0e0dacb0ca8febd7f6f2424684c707b47): three whole deliveries of
+ticket-due-times at medium effort, defaults, started together at 21:23:16 (local) on 2026-11-21.
+Read with confirm_read.py; the observers ran on the tree at each result's committed head.
+
+== sol-C-due-1
+   case ticket-due-times | gpt-6.2-sol medium | pass True | verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True} | checks 8/8 | cost None | build 62676fc0e
+   planning reviews: stage | ShipLoop status: done | ShipLoop run folders: 1
+   work item W1 (Persist, activate and verify ticket due times): regression commands ['node --test --test-reporter=spec test/service.test.js test/persistence.test.js', 'npm test']
+   release-plan nav-76fde5436b144faca9f3a3935aaf6ea3 recorded consumer checks: ['npm test', 'node ~/e2e-runs-sdlc14/r15c/20261121/sol-C-due-1/.shiploop-runs/work-20261122-052338-91b4c3/run/s']
+   release stages in order: release-plan:done release:done release-verify:done
+   release-verify attempt nav-8b121b4cad5b4a5f87161fb0e73c565e-verify1.md (the action ended done; in returned-result; returned head 872ea7fc54ef, tree 31aa01f19344; passed True, passed):
+      check [regression] npm test -> passed, exit 0, ran 122, floor 122 (the latest run of this command that ShipLoop accepted in the work area, tests/nav-a12d880d4e84482f8e9bccbe744f067a-verify1.md), 0.844 s
+      check [check] node ~/e2e-runs-sdlc14/r15c/20261121/sol-C-due-1/.shiploop-runs/work-20261122-052338-91 -> passed, exit 0, ran None, floor None, 0.548 s
+      ADDED [regression] node --test --test-reporter=spec test/service.test.js test/persistence.test.js -> passed, exit 0, ran 13, floor 13 (the latest run of this command that ShipLoop accepted in the work area, tests/nav-2ec44c2c14be4d2cb45f0e4d62c1327b-verify1.md), 0.322 s
+   observer ticket-return: moves 1 of 8 due times
+      first start: by itself | ordinary: {'starts': True, 'due_same': 7, 'due_of': 8, 'moved': ['T-0001'], 'old_release_priority_kept': True, 'old_release_ticket_kept': True, 'old_release_ticket_has_due': True} | with the kept copy: no such option
+   observer suite-elsewhere: 121 of 121 pass in the project folder; the same without npm; the same from another folder
+== sonnet-C-due-1
+   case ticket-due-times | claude-sonnet-5-5 medium | pass False | verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': False} | checks 8/8 | cost 12.6695 | build 62676fc0e
+   planning reviews: stage | ShipLoop status: done | ShipLoop run folders: 1
+   work item W1 (Due times: stored at creation, backfilled, gated by DUE_TIMES, overdue): regression commands ['npm test']
+   work item W2 (Guard the verbatim 1.4.0 fixture with a checksum manifest and test): regression commands ['npm test']
+   release-plan nav-a3ae8c5c8980478eaea8304da88fedd7 recorded consumer checks: ['npm test', 'node --test test/system.test.js']
+   release-plan nav-8597da59c4284977b58d46212531b024 recorded consumer checks: ['npm test', 'node --test test/system.test.js', 'node --test test/fixtures.test.js']
+   release stages in order: release-plan:done release:done release-verify:add-work release-plan:done release:done release-verify:done
+   release-verify attempt nav-399ee207240c4708ab3da59c3c63e51c-verify1.md (the action ended add-work; in returned-result; returned head 9e07137e01c5, tree 858ee88e8040; passed False, failed):
+      check [check] npm test -> too-few-tests, exit 0, ran 148, floor 152 (the latest run of this command that ShipLoop accepted in the work area, tests/nav-476c6ec8860c4ea58ce1cecebc2db50c-verify1.md), 1.508 s
+      check [check] node --test test/system.test.js -> passed, exit 0, ran 2, floor None, 1.196 s
+   release-verify attempt nav-a1a2d75b586f4ff78bbe9ad9ddfc66fe-verify1.md (the action ended done; in returned-result; returned head 41c82642895e, tree 6c3df77dfee0; passed True, passed):
+      check [check] npm test -> passed, exit 0, ran 150, floor 150 (the latest run of this command that ShipLoop accepted in the work area, tests/nav-9f09495f91f74e04953416847c8926c4-verify1.md), 1.473 s
+      check [check] node --test test/system.test.js -> passed, exit 0, ran 2, floor None, 1.182 s
+      check [check] node --test test/fixtures.test.js -> passed, exit 0, ran 2, floor None, 0.169 s
+   REFUSAL at release-verify: ShipLoop test run: release-verify is not done. ShipLoop ran the 2 listed commands from a clean copy of the result returned to ~/e2e-runs-sdlc14/r15c/20261121/sonnet-C-due-1/work (working-tree-return at 9e07137e01c5; receipt ~/e2e-runs
+   observer ticket-return: not measured: the delivery does not show a due time for every ticket
+      first start: by itself | ordinary: {} | with the kept copy: no such option
+   observer suite-elsewhere: not measured: a run printed no count
+== sonnet-C-due-2
+   case ticket-due-times | claude-sonnet-5-5 medium | pass True | verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True} | checks 8/8 | cost 7.7265 | build 62676fc0e
+   planning reviews: stage | ShipLoop status: done | ShipLoop run folders: 1
+   work item W1 (Due times: due field, overdue filter, DUE_TIMES switch, backfill, roll): regression commands ['npm test']
+   release-plan nav-631a5a2f8339476281a1a05ca33b7a63 recorded consumer checks: ['node --test --test-reporter=spec test/system-due.test.js']
+   release stages in order: release-plan:done release:done release-verify:done
+   release-verify attempt nav-b4adbbc45f2c47d0ac8c1f9666f284e0-verify1.md (the action ended done; in returned-result; returned head a34dec626ce5, tree 451ed60406e5; passed True, passed):
+      check [check] node --test --test-reporter=spec test/system-due.test.js -> passed, exit 0, ran 3, floor None, 0.59 s
+      ADDED [regression] npm test -> passed, exit 0, ran 159, floor 156 (the latest run of this command that ShipLoop accepted in the work area, tests/nav-f2a1971d512543fc9004775a8ab2e0d4-verify1.md), 2.219 s
+   observer ticket-return: moves 1 of 8 due times
+      first start: by itself | ordinary: {'starts': True, 'due_same': 7, 'due_of': 8, 'moved': ['T-0001'], 'old_release_priority_kept': True, 'old_release_ticket_kept': True, 'old_release_ticket_has_due': True} | with the kept copy: no such option
+   observer suite-elsewhere: 152 of 152 pass in the project folder; the same without npm; the same from another folder
+
+Measures (result.json, metrics.json):
+sol-C-due-1     15.4 min, 259 turns, 71 model calls, no dollar figure (subscription), 34 accepted revisions, codex-cli 0.171.0
+sonnet-C-due-2  27.1 min, 322 turns, 177 model calls, $7.73, 34 accepted revisions, Claude Code 2.1.330
+sonnet-C-due-1  33.9 min, 392 turns, 230 model calls, $12.67, 56 accepted revisions, Claude Code 2.1.330
+All three: plugin fingerprint 5259535b0e4f (the checkout build, labelled skill-craft 4.2.1 / ShipLoop 2.4.1), nothing left behind.
+
+sonnet-C-due-1's refusal, by hand (a clone of its worktree; the run's own folders were only read):
+  21:44:28  end-of-work review reran `npm test` in the work area: 152 tests (the record the floor came from).
+            At that commit (e12771d) six verbatim 1.4.0 source files sit under test/fixtures/release-1.4.0/src/, and
+            node's runner counts each file under test/ as a test. `npm test` on that commit, run again: 152 pass.
+  21:46:23  at release-plan the builder wrote the whole 1.4.0 tree into test/fixtures/release-1.4.0 from the
+            repository's history, so its system test no longer needs the history; a suite run then did not end
+            (the fixture's server.js under test/ was run as a test file) and the builder stopped its own task.
+  21:48:36  it moved the fixture to fixtures/release-1.4.0, outside test/, and updated the paths that named it.
+  21:49:38  ShipLoop's commit before the return took the 27 new files and not the six deletions (see below).
+  21:50     first return (working-tree-return at 9e07137e01c5, tree 858ee88e8040).
+  21:50:53  release-verify, clean copy: `npm test` 148 tests, 148 pass, 0 fail, against a floor of 152: too-few-tests.
+  Run again by hand:
+    the returned tree with no history (a clean copy)                              148 tests, 148 pass
+    the returned head with its history, working tree equal to the returned tree   148 tests, 148 pass
+    the returned head checked out whole (the six files back on disk)              154 tests, 154 pass
+  So the work area, as returned, ran what the clean copy ran. 152 was the count of an earlier tree: 152 - 6 fixture
+  files no longer under test/ + 2 system tests added after it = 148. The refusal is wrong.
+  What it cost: the builder reported add-work (W2, "Guard the verbatim 1.4.0 fixture with a checksum manifest and
+  test": a SHA256SUMS file and test/fixtures.test.js, which nobody asked for), ran it through the item stages, returned
+  again and passed release-verify at 21:56 (150 against a floor of 150). From the refusal to the end: 6.4 of the run's
+  33.9 minutes, and 26% of its token cost at fitted prices (about $3 of $12.67).
+
+sonnet-C-due-1's `committed` verdict, by hand:
+  The returned checkout's HEAD is the case's base commit and the whole delivery is uncommitted in it (12 modified
+  files and the new ones). The return's kind was working-tree-return, both times, because the candidate had tracked
+  changes: six staged deletions (`D  test/fixtures/release-1.4.0/src/...`). ShipLoop's return policy fast-forwards
+  only "a clean source and committed candidate with no tracked changes".
+  Why the deletions were never committed, reproduced in an empty repository with git 2.54.0: once a move is staged,
+  `git diff --name-only HEAD` lists only the new path (rename detection), so commit_leftovers passes only the new
+  paths to commit_paths, whose path-limited commit leaves the old paths' deletions staged and uncommitted.
+    moved, nothing staged:            git diff --name-only HEAD -> test/fixtures/a.js ; untracked: fixtures/a.js
+    after `git add -A`:               git diff --name-only HEAD -> fixtures/a.js
+                                      with --no-renames          -> fixtures/a.js test/fixtures/a.js
+    then `git commit -- fixtures/a.js`: status shows `D  test/fixtures/a.js` still staged
+  The first return was already of this kind, before release-verify ran, so the rule under test did not cause it.
+
+The observers on sonnet-C-due-1's delivered tree (the second receipt's tree 6c3df77dfee0, since its committed head is
+the base): ticket-return: moves 1 of 8 due times; suite-elsewhere: 149 of 149 pass in the project folder, the same
+without npm, the same from another folder.
