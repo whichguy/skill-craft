@@ -664,3 +664,57 @@ sessions (stated items 1 to 54, 55 to 108, and the unstated items with the probe
 and the closing notes) and joined by script (`join-shares`). The shares use the same instructions; the page is
 driven with this machine's Playwright, the one the pilot's grader uses. A limit: three auditors a product there,
 one elsewhere.
+
+## 11. One look after ShipLoop's build, then a fix: registered before any look runs (2026-11-22 07:40)
+
+The second of the owner's two requests ("Help me do both"), from section 9: Ratchet's looks at a running build are
+cheap (1.6 to 3.7 minutes each) and found shortfalls in products that pass every held-out check; the cost was the
+rebuilds they set off. The owner: "Shiploop may do better at re-planning spec requirements after a pass of the
+build?" and, on the fixes, "Use Opus Extra high for fixes".
+
+At this moment the deep judge has scored chess, expenses and tickets; Grokbot's cross-probe is running. No look
+session sees any of the deep judge's files.
+
+### Steps
+
+1. **The look.** One session of ShipLoop's builder (Sol 6.2 medium on Codex, through the pilot's `one_session.py`)
+   in a copy of ShipLoop's delivered product, the copy the deep judge audited. The instructions (`look.py`) are
+   Ratchet's closing look turned into a report: use the running product, then write `docs/shiploop/look.md` with
+   two lists, **shortfalls** (each with the steps that show it and `high`, `medium` or `low`) and **choices the
+   customer was not told**. It may change nothing else; `one_session.py` puts any other change back.
+2. **What the look is worth, against the deep judge.** The deep judge's findings on ShipLoop's delivery were made
+   by other sessions that never saw the look: the kept unstated items graded short after the re-run, and the
+   defects that reproduce on it. One Opus session matches the look's shortfalls to that list; I check the matches.
+   - **K1, recall:** of the deep judge's shortfalls and reproducing defects on S, the share the look names.
+   - **K2, precision:** of the look's shortfalls, the share that are on the deep judge's list, plus those not on it
+     that a probe reproduces and both rating families (Opus, Grok) keep (`must` or `should`). The rest are noise.
+   - **K3, the choices:** of the kept unstated items where the single reader found S's documents silent, the share
+     the look lists under choices.
+3. **The fix, where the deep judge puts Ratchet's final ahead of ShipLoop's delivery.** One session on Opus at
+   xhigh effort (the owner's instruction; not the builder's model, which is a limit to state with the result) gets
+   the product and `look.md` and is told to close each shortfall the request's intent covers, with a test for
+   each, and to tell the customer the listed choices in the delivered documents; no new features.
+4. **The deep judge again, on the fixed product.** The same inventory and audit instructions under a new code
+   name, the cross-probe over the case's defect list and every item on which the fixed product, the original and
+   Ratchet's final differ, the single reader, both judges. The pairs: fixed against Ratchet's final (the
+   question), and fixed against the original.
+   - **K4:** the better feature of fixed against Ratchet's final, and whether the fixed product is nearly
+     competitive, by section 10's rules unchanged.
+   - **K5, cost:** ShipLoop's minutes plus the look's plus the fix's, beside Ratchet's minutes. Tokens are reported
+     by model and not added across models.
+
+### Predictions
+
+- K1: at least half on Grokbot; lower on the three small cases, where the deep judge's list is short.
+- K2: at least half of the look's shortfalls are real by the rule above.
+- K3: under a third (a session lists few of its own family's silent choices unprompted; this asks for them, so it
+  may do better).
+- K4: after the fix, ShipLoop's product is nearly competitive with Ratchet's final, or better, in every case where
+  it was behind.
+- K5: under half of Ratchet's minutes in every case.
+
+### Limits known now
+
+One look and one fix a case. The fixer is a stronger model at a higher effort than either builder, so K4 says what
+a look plus a strong fix reaches, not what ShipLoop's builder would reach. The deep judge's list is itself what
+three auditors and a cross-probe found, not everything wrong with the product.
