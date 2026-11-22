@@ -33,11 +33,14 @@ function createService(config, { clock = systemClock, log = createLogger() } = {
     worker,
     server,
 
-    /** Listen on config.port and start the worker. Resolves to the port listened on. */
+    /**
+     * Listen on config.port and start the worker. Resolves to the port listened on. The service listens on every
+     * address of the host unless its caller names one in config.host, as the tests do (test/helpers.js).
+     */
     async start() {
       await new Promise((resolve, reject) => {
         server.once('error', reject);
-        server.listen(config.port, () => {
+        server.listen(config.port, config.host, () => {
           server.off('error', reject);
           resolve();
         });

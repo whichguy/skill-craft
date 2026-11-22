@@ -485,3 +485,36 @@ on the E2E subject (DeepSeek flash on Ollama through the Claude host, `hosts.RUN
   alone. One alone-run of the suite at a load average of 35 to 98 failed a different test, `CalibrationTest.test_the_defects_that_edit_the_bases_tests_pass_their_own_suite_and_fail_the_pristine_one`, after its
   regrades; at that load the base's node tests also time out, so it is not read as a collision and is not changed.
 - **Evidence.** `docs/experiments/brownfield-flake-20261101/second-exposure-20261101.txt`; the commit that carries this section.
+
+## 2026-11-22: the ticket fixtures' own tests listen on `127.0.0.1` (the owner's decision); the pins change
+
+- **Question.** The collision of 2026-11-01 was lived with in the calibration and left in the fixture, which is pinned: changing it was the owner's call, and stayed open. Does listening on `127.0.0.1` remove it, and
+  what does changing the pinned base cost?
+- **Measured before the decision** (docs/shiploop-sdlc-structure-journal.md, R157 to R161; `docs/experiments/sdlc-structure-20261119/evidence/port-mixup.txt`). The mechanism the first section inferred was watched: a
+  service on every address and another program on `127.0.0.1` hold the same port number at once, and a call to `127.0.0.1` reaches the other program. The base's suite 1,600 times each way on scratch copies: as it was,
+  2 runs failed and 18 never ended (19 of the 20 had been given a number another program held: a Claude session 15 times, Ollama twice, OrbStack twice); with the service on `127.0.0.1`, 1,600 passed. A run that never
+  ends is the helper throwing on an answer that is not JSON, inside the response's `end` handler, so that `withService` never cleans up.
+- **Decision.** The owner, 2026-11-22: "Yes do all changes".
+- **Change.** In `fixtures/node-tickets` and `fixtures/node-tickets-assigned`: `createService(...).start()` passes `config.host` to `listen`, and `TEST_SETTINGS` in `test/helpers.js` names `127.0.0.1`, the address the
+  helper's client calls, with a comment at each. Nothing else in the fixtures changes. The service started the operator's way has no `host` and listens on every address as before. No `HOST` environment variable is
+  added: the base says every setting is an environment variable, so that would be a new documented setting of the subject, beyond what was measured and approved.
+- **Pins.** `node-tickets`: `5652a97375d0` to `6d6f3563c459` (`ticket-assignment`, `ticket-import`, `ticket-due-times`). `node-tickets-assigned`: `f0e486c77413` to `d88f22750bc6` (`ticket-assignment-tests`).
+- **Effect on earlier results.** The oracle digest of every case goes from `b32933f70500` to `95a78b4ccfa1` (it is taken over `checks/` and `fixtures/`), and the four cases' own digests change with their pins, so
+  attempts graded before and after are separate experiments for promotion. Nothing is rescored: earlier results stand as records of the old base. A saved delivery keeps the old lines, and the rule of the 2026-11-01
+  sections stands for it: a check lost to a collision is run again alone, the first result is kept and both are reported.
+- **Checked.** Each fixture's suite: 117 tests pass and 21 servers start, all on `127.0.0.1`. `FixtureAddressTest` (`test/shiploop-e2e-brownfield-tickets.test.py`) records the address of every server the fixtures'
+  own tests start and asks for `127.0.0.1` alone: it fails on both fixtures as they were and passes now. All 92 variants of the five ticket reference modules build on the changed base. The quick tier and two
+  whole deliveries on the changed base are registered in docs/shiploop-sdlc-structure-journal.md and their results follow in the next commit. The quick tier selected by the change: 70 suites pass (612 seconds at 8 jobs), `shiploop-e2e-brownfield-tickets` with its 53 tests among them.
+- **Confirmed in two whole deliveries** (registered before they ran; `docs/experiments/sdlc-structure-20261119/evidence/changed-base-r15e.txt`). `ticket-due-times` at medium on the commit that made the change
+  (8debbdcf8eb2bab882fd054d64a89d2c4fd158c9), Codex `gpt-6.2-sol` and Claude `claude-sonnet-5-5`: both started from `node-tickets` at `6d6f3563c459` and were graded; every server a delivered suite starts through the base's helper listens on
+  `127.0.0.1` (26 of 26, 32 of 32); no check ended on "did not end". The Sonnet delivery passes every verdict and 8 of 8 checks. The Sol delivery passes every verdict and 3 of 8 checks: its service refuses to start
+  switched on until a backfill is run, the design choice on record for Sol on this case on the old base. One delivery's own system test starts the real server on every address with a port the system picks and calls
+  `127.0.0.1` (3 of its 35 servers): the pattern the change does not reach.
+- **The other direction, measured.** A listener that asks for a port on `127.0.0.1` is not given a number that a listener on every address holds (0 of 40,000 with 2,000 held), so a test server of the new base does not
+  land on the number of a product the harness started.
+- **Not changed.** The calibration's regrading (`settle`, `agreed`) stays, and whether first grades still disagree with the new base is not measured. The stage case `replay-ticket-comments-late-send-back` keeps the
+  recorded repo of its run.
+- **Limits.** One machine and one morning for the measurement. Listening on `127.0.0.1` removes the collision for every test that takes its settings from `TEST_SETTINGS`; a builder's own test that starts the
+  product on every address and calls `127.0.0.1` is as exposed as before.
+- **Evidence.** `docs/experiments/sdlc-structure-20261119/evidence/port-mixup.txt` and `port-mixup-probe.json`; docs/shiploop-sdlc-structure-journal.md, "Owner decision, 2026-11-22: the ticket fixtures' tests listen on
+  `127.0.0.1`" (R162 to R165); the commit that carries this section.

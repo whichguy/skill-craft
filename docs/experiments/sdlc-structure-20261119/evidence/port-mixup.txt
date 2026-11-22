@@ -162,6 +162,19 @@ At the start 15 listeners sat on a specific IPv4 address: 10 claude, 2 OrbStack,
     done
 
 
+6. The other direction, added after the owner's decision (06:38; port_mixup_reverse.js; its output, whole)
+
+    node v26.12.1 on darwin: holding 2000 port numbers on every address (IPv6 ::)
+    asked for "any free port" on 127.0.0.1 40000 times: given a held number 0 times (a held number counted as free would be about 4883)
+    asked with no address 40000 times: given a held number 0 times
+
+   Read: a listener that asks for "any free port" on 127.0.0.1 is not given a number that a listener on every address holds:
+   0 of 40,000 with 2,000 held, where a held number counted as free would be about 4,883. So the two reservations are not
+   treated alike. A service on every address can be given a number held on 127.0.0.1 (part 1); a service on 127.0.0.1 is not
+   given a number held on every address. With the fixtures' tests on 127.0.0.1, their servers do not land on the number of a
+   product the harness started on every address, nor on the number of a test server of the old base.
+
+
 Limits and conduct
 - One machine, one morning, one node version, one operating system. The count of held numbers depends on what else is open
   (10 of the 12 were Claude sessions).
