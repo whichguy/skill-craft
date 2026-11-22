@@ -17,6 +17,7 @@ from __future__ import annotations
 import html
 import importlib
 import importlib.util
+import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -117,9 +118,10 @@ class RouteTests(DefaultsCase):
         for name in FIELDS:
             self.assertIn("`" + name + "`", packet)
         # The duty is stated once, in the instructions, and says both exits: list what was chosen, or the empty list.
-        self.assertEqual(packet.count("and record it once in `defaults`"), 1)
-        self.assertIn("Add no behaviour to fill it; `[]` if none qualifies.", packet)
-        self.assertLess(packet.index("and record it once in `defaults`"), packet.index("Result template:"))
+        self.assertEqual(packet.count("and record it in `defaults`"), 1)
+        self.assertIn("Add no behaviour to fill it; `[]` if no line qualifies.", packet)
+        self.assertIn("read your acceptance lines one at a time against the request", packet)
+        self.assertLess(packet.index("and record it in `defaults`"), packet.index("Result template:"))
         # One home for a default at the spec: the summary hint and the other duties point at the list.
         self.assertIn("a default goes in `defaults`", template_of(head)["summary"])
         self.assertIn("record a default for an open choice in `defaults` (duty 4)", packet)
@@ -136,7 +138,7 @@ class RouteTests(DefaultsCase):
         spec.write_text(spec.read_text(encoding="utf-8") + "\n## Retired\n\n- R-2: an old rule, dropped.\n",
                         encoding="utf-8")
         faults = (
-            ("left out", without, "a done spec result lists defaults: each choice this specification made"),
+            ("left out", without, "a done spec result lists defaults: each acceptance line of this specification"),
             ("not a list", dict(good, defaults=BACKFILL), "defaults must be a list ([] when it chose none)"),
             ("the template row copied", dict(good, defaults=[template_row]), "still holds the template placeholder"),
             ("one placeholder left", dict(good, defaults=[dict(BACKFILL, why=template_row["why"])]),
@@ -161,7 +163,7 @@ class RouteTests(DefaultsCase):
         # The refusal of a missing list is a whole instruction: what the list is, its shape, and the empty exit.
         contract.write_block(path, without)
         missing = " ".join(self.refused(command, run).split())
-        for part in ("changes what a person who uses or runs the product sees or must do", "[] when it chose none",
+        for part in ("a person who uses or runs the product would notice", "[] when it chose none",
                      "{requirement, question, default, alternative, why}", "Add no behaviour to fill it",
                      "shows the list to the requester"):
             self.assertIn(part, missing)
@@ -233,6 +235,65 @@ class RouteTests(DefaultsCase):
         self.assertNotIn("-defaults.md", contract.full_packet_text(small))
         self.assertFalse(list((small_run / "fields").glob("*-defaults.md")) if (small_run / "fields").is_dir() else [])
 
+    def commit_spec(self, run: Path, text: str) -> None:
+        """Write the living spec and commit it as ShipLoop does when the spec stage is accepted."""
+        repo = self.repo_of(run)
+        spec = repo / "docs" / "shiploop" / "spec.md"
+        spec.parent.mkdir(parents=True, exist_ok=True)
+        spec.write_text(text, encoding="utf-8")
+        subject = nav.knowledge.knowledge_subject(self.state(run), "spec")
+        for argv in (["add", "docs/shiploop/spec.md"],
+                     ["-c", "user.name=T", "-c", "user.email=t@example.invalid", "commit", "-q", "-m", subject]):
+            done = subprocess.run(["git", "-C", str(repo), *argv], capture_output=True, text=True, check=False)
+            self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+
+    def test_a_row_is_marked_when_a_later_stage_rewrote_its_requirement_and_not_when_it_added_a_line(self) -> None:
+        module = defaults_module()
+        base = "# Spec\n\n## Requirements\n\n### R-1 Due times\n- An operator runs a command first.\n"
+        run, head = self.past_spec("handoff", [BACKFILL])
+        spec = self.repo_of(run) / "docs" / "shiploop" / "spec.md"
+        # No knowledge commit of the spec stage in this checkout: it cannot be told, which is not "unchanged".
+        self.assertIsNone(module.changed(self.state(run)))
+        self.commit_spec(run, base)
+        self.assertEqual(module.changed(self.state(run)), set())
+        # The build's stages add lines to the requirements they serve, and a stage may re-level a heading: no rewrite.
+        spec.write_text(base.replace("### R-1", "## R-1") + "- Built and tested by S1.\n", encoding="utf-8")
+        self.assertEqual(module.changed(self.state(run)), set())
+        # A line the spec stage wrote is gone: the choice was rewritten.
+        spec.write_text(base.replace("An operator runs a command first.", "The service fills them in itself at start."),
+                        encoding="utf-8")
+        self.assertEqual(module.changed(self.state(run)), {"R-1"})
+        command, path, _action = contract.printed_callback(head)
+        contract.write_block(path, self.fill_done(head))
+        out = self.accepted(command)
+        self.assertEqual(self.state(run)["status"], "done")
+        self.assertIn("1. R-1 (changed after the spec stage) Who gives the tickets already on file their due times.", out)
+        self.assertIn("no longer reads as the spec stage left it: a later stage rewrote it, and the specification holds "
+                      "what was built.", " ".join(out.split()))
+        report = self.cli("report", "--run-dir", str(run)).stdout
+        self.assertIn("<td>R-1 (changed after the spec stage)</td>", report)
+        self.assertIn("a later stage rewrote it, and the specification holds what was built", report)
+        # A retired requirement is a rewrite too; a run with no rows has nothing to mark.
+        spec.write_text("# Spec\n\n## Requirements\n\n## Retired\n\n### R-1 Due times\n- An operator runs a command first.\n",
+                        encoding="utf-8")
+        self.assertEqual(module.changed(self.state(run)), {"R-1"})
+        empty_run, _head = self.past_spec("handoff", [])
+        self.assertEqual(module.changed(self.state(empty_run)), set())
+
+    def test_an_unchanged_requirement_says_so_and_a_checkout_without_the_spec_commit_says_it_cannot_tell(self) -> None:
+        run, head = self.past_spec("handoff", [BACKFILL])
+        self.commit_spec(run, "# Spec\n\n## Requirements\n\n### R-1 Due times\n- An operator runs a command first.\n")
+        command, path, _action = contract.printed_callback(head)
+        contract.write_block(path, self.fill_done(head))
+        out = " ".join(self.accepted(command).split())
+        self.assertIn("No requirement named here has been rewritten since the spec stage recorded these rows.", out)
+        self.assertNotIn("(changed after the spec stage)", out)
+        _other, head = self.past_spec("handoff", [BACKFILL])
+        command, path, _action = contract.printed_callback(head)
+        contract.write_block(path, self.fill_done(head))
+        out = " ".join(self.accepted(command).split())
+        self.assertIn("whether a later stage rewrote a requirement cannot be told here", out)
+
     def test_the_done_packet_lists_the_rows_and_an_empty_or_absent_list_prints_nothing(self) -> None:
         for label, defaults, expected in (("entries", [BACKFILL, HOURS], True), ("empty", [], False),
                                           ("not recorded", None, False)):
@@ -245,8 +306,9 @@ class RouteTests(DefaultsCase):
                 self.assertIn("It's all complete.", out)
                 flat = " ".join(out.split())
                 if expected:
-                    self.assertIn("Decided for you: 2 answers the spec chose where the request does not say; the "
-                                  "report lists them first, each with its reason.", flat)
+                    self.assertIn("Decided for you: 2 answers the spec chose where the request does not say. In your "
+                                  "last message tell the user each, as a choice made for them, and that the report "
+                                  "lists them first with the reason for each:", flat)
                     for line in defaults_module().row_lines(defaults):
                         self.assertIn(line, out)
                     self.assertIn("To change one, start a new run on this project with a sentence that says what you "
@@ -261,8 +323,8 @@ class RouteTests(DefaultsCase):
                 ("entries", [BACKFILL, marked],
                  [html.escape(BACKFILL[name]) for name in FIELDS] + [html.escape(marked["default"]),
                                                                      "2 answers", "Nobody was asked.",
-                                                                     "as the spec stage recorded them (",
-                                                                     "a later stage's change to a requirement is not shown here"]),
+                                                                     "The spec stage recorded these rows (",
+                                                                     "whether a later stage rewrote a requirement cannot be told here"]),
                 ("none", [], ["none: the specification recorded no answer of its own"]),
                 ("not recorded", None, ["not recorded: this run's spec result has no defaults list"])):
             with self.subTest(label):

@@ -1,0 +1,3 @@
+1. R-1 How do operators override the hours? Decided: Use one DUE_HOURS_<PRIORITY> environment setting per priority, with positive whole hours. Otherwise: Use a separate configuration file that the operator edits and distributes.
+2. R-2 Does a ticket count as overdue at the exact due instant? Decided: It counts from the first instant after due. Otherwise: Include tickets at the exact due instant.
+3. R-3 How do operators populate deadlines before activation? Decided: Stop the writer, run an explicit backfill, then start with the flag on. Otherwise: Run migration automatically before the new server listens.

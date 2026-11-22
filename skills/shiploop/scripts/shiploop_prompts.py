@@ -1026,13 +1026,14 @@ DUTIES = {
    decision as an open gap under its R-<n> in KNOWLEDGE/spec.md. List in `primary` the R-<n> that carry the request's
    primary outcomes, what the user asked for directly: product-acceptance accepts one left unverified only with a
    passed lower-layer test.
-   Before you submit, compare the acceptance lines you wrote with the request and with what the product already does.
-   For each choice this spec made that the request does not settle and that changes what a person who uses or runs
-   the product sees or must do, say in that clause that it is a default of this date, and record it once in
-   `defaults`: its `requirement` (R-<n>), the `question` the request leaves open, the `default` chosen, one workable
-   `alternative` with what it would change for that person, and `why` this one. Say what happens for that person, not
-   the mechanism. This list is the spec's record of the defaults it took (RULES). Add no behaviour to fill it; `[]` if
-   none qualifies. ShipLoop shows the list to the requester.
+   Before you submit, read your acceptance lines one at a time against the request and what the product already
+   does. Each line that states what the request does not, and that a person who uses or runs the product would
+   notice (what they see, a step they must take, something refused), is a choice this spec made: say in the line that
+   it is a default of this date, and record it in `defaults`: its `requirement` (R-<n>), the `question` the request
+   leaves open, the `default` as what that person sees or must do and what happens if they do not, one workable
+   `alternative` with what it changes for them, and `why` this one. This list is the spec's record of the defaults it
+   took (RULES). Add no behaviour to fill it; `[]` if no line qualifies. The requester reads the list: write it for
+   someone who does not know the code.
    Where another system is the reference, map intended parity and deliberate differences to source-backed
    acceptance lines. Check the relevant workflows and consequential alternative states against the inspected
    evidence, keeping observations, inferences and unknowns distinct. An unknown that could change required

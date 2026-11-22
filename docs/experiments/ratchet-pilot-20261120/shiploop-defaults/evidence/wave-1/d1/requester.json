@@ -1,0 +1,60 @@
+{
+  "case": "ticket-due-times",
+  "reply_enabled": true,
+  "rule": {
+    "tickets": "\\b(backfill\\w*|back-fill\\w*|migrat\\w*|existing|already|older)\\b",
+    "start": "\\b(start\\w*|start-up|boot\\w*|launch\\w*|restart\\w*)\\b",
+    "absent": "\\b(missing|without|lack\\w*|no due|has none|have none|has no|have no)\\b"
+  },
+  "run_dir": "~/e2e-runs/r-20261121-2c3d50/w1/d1/.shiploop-runs/work-20261122-071053-b97af2/run",
+  "seen_at": "2026-11-22T07:13:18Z",
+  "block_printed": true,
+  "rows": [
+    "1. R-1 How do operators override the response hours? Decided: Set positive whole hours in DUE_HOURS_<PRIORITY> at startup. Otherwise: A single JSON environment variable would require supplying a mapping.",
+    "2. R-2 When is a ticket past due? Decided: A ticket is overdue strictly after its timestamp. Otherwise: An inclusive boundary would surface the ticket at the exact due instant.",
+    "3. R-2 What changes for CLI users? Decided: The human list and show can display due with the flag on. Raw output stays at four fields. Otherwise: Adding a fifth raw field would change the column contract for scripts.",
+    "4. R-3 When does existing data get filled? Decided: The first new startup fills missing values before listening, even with the flag off. Otherwise: A separate offline migration would add an operator command."
+  ],
+  "recorded": [
+    {
+      "alternative": "A single JSON environment variable would require supplying a mapping.",
+      "default": "Set positive whole hours in DUE_HOURS_<PRIORITY> at startup.",
+      "question": "How do operators override the response hours?",
+      "requirement": "R-1",
+      "why": "README establishes per-setting environment variables and whole-number validation."
+    },
+    {
+      "alternative": "An inclusive boundary would surface the ticket at the exact due instant.",
+      "default": "A ticket is overdue strictly after its timestamp.",
+      "question": "When is a ticket past due?",
+      "requirement": "R-2",
+      "why": "The request says the due time has passed."
+    },
+    {
+      "alternative": "Adding a fifth raw field would change the column contract for scripts.",
+      "default": "The human list and show can display due with the flag on. Raw output stays at four fields.",
+      "question": "What changes for CLI users?",
+      "requirement": "R-2",
+      "why": "The README specifies the existing raw schema and report dependency."
+    },
+    {
+      "alternative": "A separate offline migration would add an operator command.",
+      "default": "The first new startup fills missing values before listening, even with the flag off.",
+      "question": "When does existing data get filled?",
+      "requirement": "R-3",
+      "why": "The feature must be dark until durable and maintainable by the existing service."
+    }
+  ],
+  "about": [
+    false,
+    false,
+    false,
+    true
+  ],
+  "note": {
+    "exit": 0,
+    "id": "N1",
+    "text": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.",
+    "output": "Owner note N1 written: ~/e2e-runs/r-20261121-2c3d50/w1/d1/.shiploop-runs/work-20261122-071053-b97af2/run/owner-notes/N1.md.\nThe run is at test-strategy (action nav-47d98ab34c934199bc70221e68b85fae); the model sees the note at its next ShipLoop callback or `next`."
+  }
+}

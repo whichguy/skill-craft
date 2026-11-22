@@ -10,7 +10,8 @@
 #         silent  the stand-in reads and records what was printed and sends nothing
 #         none    no stand-in
 #
-# Every run is Codex with gpt-6.2-sol at medium, built from the checkout, as the archive it is read against.
+# Every run is Codex with gpt-6.2-sol at medium, built from the checkout, as the archive it is read against.  Its row
+# of the harness's baseline ledger goes to ROOT/baselines.jsonl, never to the repository's own ledger.
 # The script waits for all of them and writes each run's exit code to ROOT/NAME.exit.
 set -u
 REPO=$1; COMMIT=$2; ROOT=$3; shift 3
@@ -30,7 +31,7 @@ for cell in "$@"; do
   (
     cd "$APP" || exit 2
     python3 test/shiploop_e2e/run.py --source checkout --case "$case_name" --host codex --model gpt-6.2-sol \
-      --effort medium --output "$out" --quiet > "$ROOT/$name-log.txt" 2>&1
+      --effort medium --output "$out" --baseline "$ROOT/baselines.jsonl" --quiet > "$ROOT/$name-log.txt" 2>&1
     echo $? > "$ROOT/$name.exit"
   ) &
   echo "$name run $!" >> "$ROOT/pids.txt"

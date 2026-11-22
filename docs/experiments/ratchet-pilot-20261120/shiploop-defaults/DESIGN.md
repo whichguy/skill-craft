@@ -223,3 +223,112 @@ with changes. Each change, and what was done:
 Two figures of section 1 as first written were wrong and are corrected above: the archive's specifications run from
 260 words, not 340; and the long sentence about where an assumption is recorded is the run reference's, not the
 packet's.
+
+## 5. Wave 1, and the one rewording (written 23:32, before wave 2)
+
+Four real deliveries built from commit 31e53d718113fb517c2939ea014a6850925a8950, 23:10 to 23:29, on Codex with
+`gpt-6.2-sol` at medium. Evidence: `evidence/wave-1/` (for each run the specification as the spec stage left it, the
+rows its packet printed, the blind reader's answer, the product reader's answer, the stand-in's record; `wave-1.txt`
+and `wave-1.json` hold every reading of `read_wave.py`).
+
+| | d1 | d2 | d3 | h1 (hello) |
+| --- | --- | --- | --- | --- |
+| rows the spec recorded | 4 | 3 | 3 | 1 |
+| the start-up choice it took | the service fills them in at its first start | an operator's migration command first; an enabled start refuses without it | an operator's backfill first; an enabled start fails without it | |
+| a row on that choice, with another answer | row 4 | row 3 | row 3 | |
+| the blind reader's score (R1) | partly | partly | partly | |
+| rows the reader calls a real open point that the named clause states | 4 of 4 | 3 of 3 | 3 of 3 | |
+| choices in the specification that no row has (the reader's count) | 5 | 7 | 7 | |
+| the stand-in's reply | sent | sent | not sent | |
+| held-out checks passed | 8 of 8 | 8 of 8 | 3 of 8 | 2 of 2 |
+| seconds; the spec stage; output tokens | 759; 53; 26,968 | 868; 52; 31,570 | 1,103; 56; 39,624 | 460; 48; 15,184 |
+| refusals of the `defaults` gate | 0 | 0 | 0 | 0 |
+
+**R1, the choice is on record: not met by its rule.** The rule asked for "yes" in two of three; the reader gave
+"partly" three times. In all three the start-up choice is a row with another answer beside it, where none of the
+eleven archived runs says anything. But no row tells the person who runs the service what they will meet: d2's says
+"Run one offline migration command, then enable the switch" and its specification says, in a line no row has, "The
+enabled service refuses to start on an incomplete existing file"; and each row leans on the builder's words
+("backfill", "the flag", "before listening"). The reader was told to be strict and literal; d1's row ("The first new
+startup fills missing values before listening, even with the flag off") could be read as answering both halves, and
+it stays "partly" because the score is the reader's.
+
+**R2, nothing invented, nothing lost: met.** All ten rows are real open points whose clause states them; none is
+settled by the request or the product, none is behaviour nobody asked for, none says what its clause does not. The
+specifications as accepted have 348, 358 and 451 words and 4, 5 and 6 requirements (archive: 260 to 498; 4 to 6).
+
+**R3, the empty case.** `hello` recorded one row: whether the greeting ends with a newline. It is a real choice
+(the request says `prints exactly "Hello, world!"`) and a small one.
+
+**R4, the surfaces.** The block was printed in four of four `test-strategy` packets and the section stands in its
+place in four of four reports. What the host then told the user: in d3 its message at that stage names all three
+choices as choices ("The rollout plan uses one hours setting per priority and an explicit backfill before
+activation. A ticket becomes overdue immediately after its deadline. I'll verify those choices ..."); in d1 it names
+the three topics; in d2 it does neither. The done packet carried the rows in four of four, and no final message
+presented them as choices. One stale row: d2's row 3 says "Run one offline migration command" under "Decided" while
+the delivered service fills the due times in at start (below); that run's host said so itself in its last message
+("The ShipLoop report retains an early offline-migration proposal. The delivered release backfills automatically at
+startup.").
+
+**R5, the cost.** No submission was refused by the new gate in any of the four runs. The spec stage took 52 to 56
+seconds (archive 17 to 61, median 43). The deliveries took 759 to 1,103 seconds (archive 820 to 1,248) and 26,968
+to 39,624 output tokens (archive 27,158 to 34,865; d3 is above it, and d3 also took four more accepted steps than
+the other two, 34 against 30).
+
+**R6, what the list misses** (the product readers, `product-reader-answer.md`). In three of three, no row says what
+an invalid hours setting does (the service refuses to start; each specification has the line) and no row has the
+largest number of hours the product accepts (2.4, 2.5 and 2.4 billion; no specification has it, so the build chose
+it, as in twelve of twelve archived Sol products). In d3 no row has the refusal to start. A list written at the
+spec stage cannot hold what the build decides, and it holds a third of what the specification decides.
+
+**O1, the reply (the existing note route, not the candidate).** The two runs that chose the answer the owner ruled
+wrong are a pair. In d2 the stand-in's one sentence arrived as note N1 while `test-strategy` was current. That stage
+held its callback once, then rewrote the requirement ("N1 supersedes offline preparation and startup rejection.
+Updated R-3, architecture and test strategy"), the plan called the note "binding", the service was built to fill the
+due times in at start, and all eight held-out checks pass. In d3 nothing was sent, the service refuses to start, and
+the five checks fail that fail in the archive's four. In d1, whose choice was already the ruled one, the next stage
+wrote "N1 confirmed" and the plan added to the clause that no file needs preparing. One pair is not a rate. It does
+show what the review doubted: a plain owner note sent right after the specification did change the requirement and
+everything built from it, on this model, with stage reviews on. What stays true from the review: nothing in the
+script checks it, and the recorded row went stale.
+
+### The one rewording (R1's rule), and two repairs wave 1 asked for
+
+1. **The instruction.** The rows described the mechanism and left out the consequence, and they covered a third of
+   the choices. Duty 4's sentences now make the unit the acceptance line and ask for the consequence:
+
+   > Before you submit, read your acceptance lines one at a time against the request and what the product already
+   > does. Each line that states what the request does not, and that a person who uses or runs the product would
+   > notice (what they see, a step they must take, something refused), is a choice this spec made: say in the line
+   > that it is a default of this date, and record it in `defaults`: its `requirement` (R-<n>), the `question` the
+   > request leaves open, the `default` as what that person sees or must do and what happens if they do not, one
+   > workable `alternative` with what it changes for them, and `why` this one. This list is the spec's record of the
+   > defaults it took (RULES). Add no behaviour to fill it; `[]` if no line qualifies. The requester reads the list:
+   > write it for someone who does not know the code.
+
+   The template's `default` placeholder says the same ("what that person sees or must do, and what happens if they
+   do not"). The spec packet is now 19,934 characters at the reference install, 66 under the 20,000 a Grok host
+   prints whole.
+2. **A row a later stage overtook is marked.** The done packet and the report now compare each row's requirement
+   with the specification as the spec stage's own commit holds it. A requirement one of whose lines is gone is
+   marked "changed after the spec stage"; a line added, or a heading moved a level, is not a rewrite (the build's
+   stages add lines to the requirements they serve). Run over wave 1's finished runs it marks R-3 in d2 (rewritten)
+   and R-3 in d1 (extended by the plan after the note), and nothing in `hello`. Where the comparison cannot be made
+   the displays say so.
+3. **The done packet tells the host to say it.** Its first line is now an instruction ("In your last message tell
+   the user each, as a choice made for them, and that the report lists them first ..."), because the rows were
+   printed there four times and relayed as choices never.
+
+### Wave 2, fixed before it runs
+
+Three deliveries of `ticket-due-times` and one of `hello`, same driver, built from the commit that holds this
+section; the stand-in replies in two and is silent in one, as in wave 1. The same reader, the same brief, the same
+"strict and literal" instruction.
+
+| reading | rule |
+| --- | --- |
+| R1 again | "yes" in at least 2 of 3. Otherwise the attempt to get the row to say the consequence ends here, and the candidate is reported as it stands: the choice is shown with an alternative, in the builder's words. |
+| R2 again | the same stop: any row that is behaviour nobody asked for, a request sentence out of its clause, or a row its clause does not state. A line-by-line instruction can over-list; rows the reader calls `settled` are counted against it. |
+| what the rewording moved (described) | rows per run (wave 1: 4, 3, 3) and the reader's count of unlisted choices (5, 7, 7); the `hello` list (1 row). |
+| the done packet (described) | whether each final message tells the user the choices as choices (wave 1: 0 of 3). |
+| the mark (described) | in a run whose reply changes the requirement: the row is marked in the done packet and the report. |

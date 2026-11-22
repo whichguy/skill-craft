@@ -1,0 +1,46 @@
+{
+  "case": "ticket-due-times",
+  "reply_enabled": false,
+  "rule": {
+    "tickets": "\\b(backfill\\w*|back-fill\\w*|migrat\\w*|existing|already|older)\\b",
+    "start": "\\b(start\\w*|start-up|boot\\w*|launch\\w*|restart\\w*)\\b",
+    "absent": "\\b(missing|without|lack\\w*|no due|has none|have none|has no|have no)\\b"
+  },
+  "run_dir": "~/e2e-runs/r-20261121-2c3d50/w1/d3/.shiploop-runs/work-20261122-071055-2f005b/run",
+  "seen_at": "2026-11-22T07:13:26Z",
+  "block_printed": true,
+  "rows": [
+    "1. R-1 How do operators override the hours? Decided: Use one DUE_HOURS_<PRIORITY> environment setting per priority, with positive whole hours. Otherwise: Use a separate configuration file that the operator edits and distributes.",
+    "2. R-2 Does a ticket count as overdue at the exact due instant? Decided: It counts from the first instant after due. Otherwise: Include tickets at the exact due instant.",
+    "3. R-3 How do operators populate deadlines before activation? Decided: Stop the writer, run an explicit backfill, then start with the flag on. Otherwise: Run migration automatically before the new server listens."
+  ],
+  "recorded": [
+    {
+      "alternative": "Use a separate configuration file that the operator edits and distributes.",
+      "default": "Use one DUE_HOURS_<PRIORITY> environment setting per priority, with positive whole hours.",
+      "question": "How do operators override the hours?",
+      "requirement": "R-1",
+      "why": "Existing service configuration is environment-based."
+    },
+    {
+      "alternative": "Include tickets at the exact due instant.",
+      "default": "It counts from the first instant after due.",
+      "question": "Does a ticket count as overdue at the exact due instant?",
+      "requirement": "R-2",
+      "why": "The request says the due time has passed."
+    },
+    {
+      "alternative": "Run migration automatically before the new server listens.",
+      "default": "Stop the writer, run an explicit backfill, then start with the flag on.",
+      "question": "How do operators populate deadlines before activation?",
+      "requirement": "R-3",
+      "why": "An explicit command permits inspecting the completed file before switching on the feature."
+    }
+  ],
+  "about": [
+    false,
+    false,
+    true
+  ],
+  "note": null
+}

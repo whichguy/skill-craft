@@ -1,0 +1,4 @@
+1. R-1 How do operators override the response hours? Decided: Set positive whole hours in DUE_HOURS_<PRIORITY> at startup. Otherwise: A single JSON environment variable would require supplying a mapping.
+2. R-2 When is a ticket past due? Decided: A ticket is overdue strictly after its timestamp. Otherwise: An inclusive boundary would surface the ticket at the exact due instant.
+3. R-2 What changes for CLI users? Decided: The human list and show can display due with the flag on. Raw output stays at four fields. Otherwise: Adding a fifth raw field would change the column contract for scripts.
+4. R-3 When does existing data get filled? Decided: The first new startup fills missing values before listening, even with the flag off. Otherwise: A separate offline migration would add an operator command.

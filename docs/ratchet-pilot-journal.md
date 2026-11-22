@@ -4332,3 +4332,50 @@ that plainly raises the point ("Who gives the tickets already on file their due 
 of "backfill", "migrate", "existing". The rule now also takes "already" and "older", and a row that names starting the
 service together with a due time that is absent. After the review the rule is only a trigger during the run; the
 score is the reader's.
+
+### Wave 1: the choice is shown in three of three, in the builder's words (23:10 to 23:29)
+
+Four real deliveries built from 31e53d718113fb517c2939ea014a6850925a8950 on Codex, `gpt-6.2-sol` at medium: three of
+`ticket-due-times` (d1, d2, d3) and one of `hello`. A stand-in requester read what each `test-strategy` packet
+printed and, in d1 and d2, replied with the owner's ruling as one owner note; in d3 it sent nothing. A Sonnet reader
+who saw only each run's specification and printed rows scored them (`reader-brief.md`), and a second read each
+delivered product against the rows (`product-reader-brief.md`). `DESIGN.md` section 5 has the whole table; evidence
+under `evidence/wave-1/`.
+
+| | d1 | d2 | d3 |
+| --- | --- | --- | --- |
+| the start-up choice the specification took | the service fills them in at start | an operator's command, and a refusal to start | an operator's command, and a refusal to start |
+| a row on it with another answer (archive: 0 of 11) | yes | yes | yes |
+| the reader's score against the registered question | partly | partly | partly |
+| the stand-in's reply | sent | sent | not sent |
+| held-out checks passed | 8 of 8 | 8 of 8 | 3 of 8 |
+
+- **R1 is not met by its rule** ("yes" in two of three). Each run now shows the requester the choice it took and
+  another answer, where no archived run shows anything. No row says what the person who runs the service will meet:
+  the refusal to start is a line of the specification in d2 and d3 and is in no row, and the rows speak of
+  "backfill", "the flag" and "before listening".
+- **Nothing was invented and nothing was lost.** All ten rows are real open points that the named clause states.
+  The specifications are the archive's size (348 to 451 words, 4 to 6 requirements). `hello` got one row, a real and
+  small one (a trailing newline).
+- **The list is partial.** The reader found 5 to 7 choices in each specification that no row has; no row in any run
+  says what an invalid setting does; and no row or specification has the largest number of hours each product
+  enforces (2.4, 2.5 and 2.4 billion), which the build chose.
+- **The cost.** No submission was refused by the new gate. The spec stage took 52 to 56 seconds (archive: median 43,
+  17 to 61); the deliveries 759 to 1,103 seconds (archive 820 to 1,248).
+- **What the host said.** The block reached all four sessions. One host of three named the choices to the user as
+  choices at that stage. The done packet printed the rows four times and no final message relayed them as choices.
+- **F61. A plain owner note, sent right after the specification, changed the build.** d2 and d3 took the same
+  answer the owner had ruled wrong. In d2 the one-sentence reply arrived while the next stage was current; that
+  stage rewrote the requirement ("N1 supersedes offline preparation and startup rejection"), the plan called the
+  note binding, and the delivered service passes all eight held-out checks. In d3, with no reply, the service
+  refuses to start and fails the same five checks the archive's four fail. That is one pair, not a rate, and it is
+  the existing note route, not the candidate. The review was right that nothing in the script checks it, and right
+  about the price: d2's recorded row went stale, and its own host said so in its last message ("The ShipLoop report
+  retains an early offline-migration proposal").
+
+By the rule fixed before the wave, the instruction is reworded once and tried again. Two repairs go in with it,
+both asked for by what wave 1 showed: a row whose requirement a later stage rewrote is marked "changed after the
+spec stage" in the done packet and the report (it marks R-3 in d2 and in d1 and nothing in `hello` when run over
+the finished runs; a line added to a requirement, which the build's stages do routinely, is not a rewrite), and the
+done packet's first line now tells the host to say the choices to the user. `DESIGN.md` section 5 has the reworded
+text and wave 2's rules.
