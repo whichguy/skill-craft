@@ -1230,3 +1230,45 @@ the candidate, not as its target.
 
 Both amendments are made before the candidate exists as code: an Opus worker at xhigh began building it at 11:00
 on its own branch, off `main`.
+
+### 16.4 The fresh Ratchet runs ended; Grokbot's stopped as stuck, and a second Grokbot run is registered (12:15, before any Grokbot audit has answered)
+
+The four runs of 16.1 (runs root `~/e2e-runs/d20261122-ac4afc/`, started together at 10:44:05), by `measure.py`:
+
+| Case | Minutes (last night) | Stop | First build, minutes | Held-out checks, first build / final | Output tokens |
+|---|---|---|---|---|---|
+| shared expenses | 47.4 (46.4) | cycle limit, 3 cycles | 9.4 | 6 of 6 / 6 of 6 | 113,490 |
+| chess | 45.5 (37.2) | cycle limit, 3 cycles | 10.1 | 10 of 10 / 10 of 10 | 108,955 |
+| ticket assignment | 72.1 (100.4) | cycle limit, 3 cycles | 11.6 | 18 of 18 / 18 of 18 | 146,279 |
+| Grokbot | 85.1 (162.3) | **stuck in cycle 1** | 21.6 | 49 of 49 and 28 of 28 / the same | 122,201 |
+
+**Grokbot's fresh run is not a full Ratchet run, and why.** Its specification wrote clause C-2, "The application
+works on the declared Node.js runtime: start the app on Node.js 22, the minimum supported version declared by the
+project" (source: the starting files' `package.json`). Its acceptance test for that clause asks for a Node.js 22
+executable; this machine has Node.js 26 only, so the test fails with "Node.js 22 is unavailable. Set
+ACCEPTANCE_NODE22 to an installed Node.js 22 executable." The first gate failed on C-2 and C-18; the first fix
+closed C-18; three fix sessions could not make a missing runtime appear, and the loop stopped as `stuck` with its
+own gate failing on that one clause (110 of 111 pass). **No closing look ever ran** (sessions: spec, plan, build,
+tests, fix, fix, fix), so this product is a first build with the heavy test pass and three fixes, not the
+three-cycle product of last night. It still passes every held-out check.
+
+What this is: a real outcome of the tool, and a failure mode of its own. A clause the environment cannot satisfy
+has no way out of Ratchet's gate (ShipLoop has one: an outcome it cannot observe here is listed as `unverified`
+with an owner and a due stage, and the run goes on). The clause itself is an artificial mandate in the sense of
+the owner's rule of 2026-11-18: nothing in the request asks for a version floor to be proven, and last night's
+run of the same request wrote no such test.
+
+**Decision (routine: launching a verification run).** The stuck product is audited and judged as registered in
+16.1; it is the fresh run. But it cannot answer 16.1's question for Grokbot, whether section 15's "still behind"
+holds against a fresh *full* Ratchet run. So one more fresh Grokbot Ratchet run is started now, same commit, same
+settings, in a new runs root, with nothing changed and no Node.js 22 supplied (supplying it would be tuning the
+environment to one run's specification). If it completes its cycles, its final is audited in the same way
+(three shares, cross-probe with the two ShipLoop products, the single reader, the Opus judge) and reported as
+Grokbot's second fresh Ratchet run, beside the stuck one. If it sticks again, that is reported and no third run is
+started. **Prediction:** it does not write the Node.js 22 clause as a tested clause and runs three cycles (of this study's two Ratchet runs of
+Grokbot, last night's ran three cycles and today's stuck; I have not counted the pilot's).
+
+Noted for the tickets audits: the auditors' `base/` folder is last night's copy of the starting files; today's
+builders started from the fixture as changed on `main` yesterday (its tests listen on 127.0.0.1). One auditor read
+that difference in `test/helpers.js` as the builder's edit and graded the item `yes` anyway; the cross-probe was
+told the difference is not a builder's change.
