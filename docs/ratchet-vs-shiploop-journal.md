@@ -458,3 +458,129 @@ Whether a requester would want any of the 17; whether ShipLoop's other three pro
 case probed, four finds); whether one look after ShipLoop's build, reported to the requester and not rebuilt
 automatically, finds as much on ShipLoop's products. That last is the cheapest next test: four sessions of a few
 minutes on the four delivered ShipLoop products, then two outside judges on the findings.
+
+## 10. The deep judge: design, registered before it reads any product (2026-11-22)
+
+The owner: "Help me do both: improve the judge first to deeply analyze the quality of feature, examining the spec,
+tests and build with a lot more finesse to determine if there is a better quality product built or the smaller
+faster version is nearly competitive to a lot of specification like ratchet". "Both" is section 9's two offers: a
+measure that can see what a product does where the request is silent, then one after-build look on ShipLoop's
+products (section 11, to be registered when this judge has been proven).
+
+### Why the first judge is not enough
+
+It read code and tests as text, gave five 1-to-5 scores and a preference, saw no specification and ran nothing.
+It could not say what a product does where the request is silent, whether a test pins a requirement, or whether a
+defect it suspected is real. It compared final products only, so it could not separate what Ratchet's long
+specification buys at ShipLoop's cost from what its later cycles buy.
+
+### What is judged
+
+Three products a case, twelve in all: **S**, ShipLoop's delivery; **F**, Ratchet's first build (the same cost as S,
+section 8); **L**, Ratchet's final (3 to 7 times the cost). S against F asks what the long specification buys at
+equal cost. F against L asks what the later cycles buy. S against L is the owner's question.
+
+### Steps (apparatus: `deep_judge.py`; every model's answer is a JSON file kept as evidence)
+
+1. **Case inventory, written without seeing any product.** Two listers of different families (Opus; Grok), each
+   from the request alone (and the starting files, where the case has them), write (a) the stated requirements as
+   separate checkable items and (b) the conditions the request leaves unsaid that a requester, an operator or the
+   next maintainer would plausibly care about, each with a way to observe it on a running product. One session
+   merges the two lists and a third list, the points the arms themselves raised (Ratchet's `Open:` lines and
+   after-build clauses, the first judge's remarks), removing duplicates and recording each item's sources. Then
+   both families rate every unstated item without seeing its source: `must`, `should`, `no` (a requester would not
+   care, or it is over-engineering). An unstated item is **kept** when both rate it `must` or `should`. Results
+   are reported for all kept items and again for the items an independent lister raised, since an item only an
+   arm raised may favour that arm.
+2. **Product audit, one product at a time.** An auditor (Opus) is given the request, the starting files, the
+   inventory and one product under a code name. It is not told another product or any tool exists. It must run the
+   product and its tests in its own copy. For each stated item: built (`yes`, `partly`, `no`, `wrong`) with the
+   command and output that shows it; whether the product's own specification states it; whether a test pins it
+   (`strong`: the named test would fail if the item broke; `weak`; `none`). For each kept unstated item: what the
+   product does (observed), how sound that is (`sound`, `acceptable`, `poor`, `unhandled`), whether its
+   specification marked the point open, decided it with a mark, decided it without one or is silent, and whether
+   the choice is told to a reader of the product's documents. Then findings outside the inventory: defects with an
+   exact reproduction, things built beyond the request (`value`, `neutral`, `liability`), tests tied to internals
+   or to one product's choices, and what a maintainer would find hardest.
+3. **Cross-probe.** Every defect any auditor reports for any product of a case is tried, by its reproduction, on
+   the case's other products by a separate session, so a defect counts against every product that has it and not
+   only the one where it was noticed. A defect whose reproduction does not reproduce on its own product is dropped.
+4. **Verdict.** Two judges of different families (Opus; Grok) get the three audits and the defect table of a case
+   with tool names masked and letters assigned by a seeded coin; no times, no token counts. For each pair they
+   answer on a five-step scale which is the better feature for someone who will run and maintain it, name each
+   advantage with the audit line behind it and whom it matters to (requester, operator, maintainer, no one), and
+   answer one fixed question: could one short follow-up task (about an hour of the same builder's work) close what
+   the lesser product lacks. A pair is decided only where both judges agree on the side.
+
+### Instrument check, before any of the twelve is audited
+
+The ticket case has a correct reference and 27 calibrated single-edit defects (`grade.build_variant`). The audit of
+step 2 is run on the reference and on three defects drawn by a seeded choice
+(`random.Random("deep-judge calibration").sample(sorted(defects), 3)`), under code names. **Bar:** the audit marks
+no stated item `no` or `wrong` on the reference, and reports the planted defect (as a stated item `no`, `wrong` or
+`partly`, or as a defect with a reproduction) in at least two of the three. If the bar is missed the audit text is
+revised once, the change is recorded here, and the check is rerun on three newly drawn defects.
+
+### Readings (margins fixed now; "ahead" needs the margin)
+
+| | Measure | Ahead when |
+|---|---|---|
+| D1 | Stated items built `yes` | 2 items more |
+| D2 | Stated items with a `strong` test | 2 items and 10 points more |
+| D3 | Kept unstated items handled `sound` or `acceptable` | 2 items and 10 points more |
+| D4 | Of the unstated items where the product chose, the share whose choice is told (marked in its specification or stated in its documents) | 2 items and 10 points more |
+| D5 | Defects that reproduce, severity high or medium, after the cross-probe | 2 fewer |
+| D6 | Verdict of the two judges on the pair | both agree on the side |
+
+Per case and pair, the product ahead in at least two more of D1 to D6 than the other is **the better feature**;
+otherwise no difference shown. **Nearly competitive:** S is nearly competitive with L in a case when the pair shows
+no difference or S is better, or L is better and both judges answer that one short follow-up task closes the gap.
+Things built beyond the request and maintainability notes are reported, not counted (one auditor's opinion).
+
+### Predictions
+
+- Q1. The instrument check meets its bar at the first attempt.
+- Q2. D1 is level for every pair in every case (the held-out checks already say so).
+- Q3. L is ahead of S on D3 in at least two cases; S is ahead of L on D3 in none.
+- Q4. F is level with L on D1 to D3 in at least three cases (what Ratchet has, it has at its first build).
+- Q5. Neither arm is ahead on D4 anywhere when "told" means the product's documents; counting marks in the
+  specification, F and L are ahead of S in at least three cases.
+- Q6. L has fewer reproducing defects than S (D5) in at least two cases.
+- Q7. S is nearly competitive with L in at least three of four cases.
+- Q8. Of the unstated items only an arm raised, fewer than half are kept by both raters.
+
+### Limits known now
+
+One auditor a product, one family (Opus); an audit is an observation by a model, and only its defects are
+re-run by another session. The inventory's unstated list is what two models thought of plus what the arms raised;
+it is not what this requester would say. The judges see the audits, not the products. The products were built by
+Sol 6.2; the listers, raters, auditors and judges are other families (the pilot's section 13: the author's family
+accepts three times what outside judges accept). Still one run a case.
+
+### Amendment 1 to section 10 (2026-11-22 06:10, before any product was audited): Sol's review, and what changed
+
+The design above went to Sol 6.2 at max effort for an adversarial review (question and verbatim answer:
+`evidence/deep/review/`). At that moment the only sessions that had run were the two listers on the ticket request,
+which see no product. What the review said and what I did with each point:
+
+| Sol's point | Decision |
+|---|---|
+| The arms shape which behaviours earn credit: Ratchet supplied the `Open:` lines and after-build clauses | **Taken.** D3 and D4 are read on the items an independent lister raised. The merger finishes that list before it opens the arms' points. Items only an arm raised are rated and probed too and reported apart, as a sensitivity check. |
+| Auditors can give each product a different exam; cross-probing only corrects defects someone found | **Taken.** Every auditor runs the inventory's own probe for every item, behaviour first, before opening the product's tests or specification, and may not change a behaviour grade afterwards. Every inventory item on which the audits grade the products differently is then run again on all the case's products by the cross-probe session, and its grade replaces the audits'. Each auditor gets the same number of probes of its own (12) and lists all of them. |
+| One serious failure can vanish in a tally | **Taken as a gate.** Serious = a reproducing high-severity defect or a stated item not built (after the re-run). In a pair, the product with fewer serious failures is the better feature whatever the tallies say, and S is not nearly competitive with L if S has more. |
+| D2 (a `strong` test by reading) can be bought with volume; an exhaustive test census costs much and decides little | **Taken.** D2 is now proved on six stated items a case drawn by seed (`random.Random(f"deep-judge proved {case}")`): the auditor breaks the behaviour in its copy, runs the suite, and records whether it fails. Ahead at 2 items. The by-reading grade is reported, not counted. |
+| D4: an `Open:` mark alone should earn nothing; fix the denominator | **Taken.** D4 = of the kept independent unstated items that apply, those where the documents delivered with the product (not the builders' specification or notes) give an accurate account of what it does. Marks in the specification are reported apart. |
+| D6: judges can be swayed by volume and order | **Partly.** Each judge gets its own seeded lettering and order; the packet tells them size counts only through what the audits show it bought and to count a consequence once. The audits still show how much each product holds; a limit. |
+| The instrument check is too weak (an auditor catching half the defects passes 2 of 3 on 47% of draws; a clean reference can be given false deficits) | **Taken; the check replaces the one above.** Four products under code names, run through every step including the judges: the correct reference; the same reference **padded** (a specification of some 2,000 words restating the request six ways, and every test of the new behaviour a second time under another name); the reference with one calibrated defect that breaks a **stated** requirement; the reference with one that breaks a behaviour the request leaves **unsaid**. Draws: `random.Random("deep-judge calibration stated").choice` and `...unstated").choice` over the two pools named in `deep_judge.py` (9 and 7 of the 27). **Bars:** (C1) reference and padded: every stated item `yes`, no reproducing high or medium defect, no reading D1 to D5 ahead for either, both judges answer `same`; (C2) the stated defect: its item is not `yes` or a reproducing defect names it, the reference is the better feature of that pair, and both judges prefer the reference; (C3) the unsaid defect: reported as `poor` or `unhandled` on an inventory item or as a reproducing high or medium defect. A miss: the instructions are revised once (a fix session on Opus at xhigh, the owner's instruction of 2026-11-22), the change recorded, and the check rerun on newly drawn defects. |
+| Repairability could be measured (run the follow-up task and compare all-in cost) | **Not now.** The judges' answer to the one-task question stands in; a real repair run is a candidate for after the results (it would run on Opus at xhigh by the owner's instruction, which is not the builders' model: a limit to state then). |
+| One run a case: a result applies to these deliveries, not to specification length as such | **Accepted as a limit**, as before. |
+
+Changed readings, replacing the table above: D1 as before; **D2** proved tests of six seeded stated items, ahead
+at 2; **D3** independent kept unstated items handled, 2 items and 10 points; **D4** as redefined, 2 items and 10
+points; D5 as before; D6 as before, each judge with its own lettering. The better feature of a pair: the gate
+first, then a lead of two readings. Nearly competitive: the gate does not favour L, and the pair shows no
+difference or S better, or both judges say one short task closes the gap. Prediction Q1 now refers to bars C1 to
+C3; Q5 reads "level on D4 everywhere; counting marks in the specification, F and L ahead in at least three cases".
+
+Models: listers, raters and judges are Opus (default effort) and Grok 4.7 at xhigh (the `ask` runner's newest
+stable Grok); auditors and the cross-probe are Opus.

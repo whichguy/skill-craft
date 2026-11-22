@@ -12,6 +12,7 @@ changes.
 | `coverage.py` | Line, function and branch coverage from V8 coverage of every Node process the tests start, servers included (a preload writes a process's coverage when a signal stops it). |
 | `static.py` | Code measures by script (functions, complexity, longest function, repeated windows, syntax) and documentation coverage (public surfaces new in the product, named in its user documents; comments above functions). |
 | `code_judge.py` | Blind packets for one judge (both final products of a case, labelled X and Y by a seeded coin, two orders, names and ids masked) and the score of its answers. |
+| `deep_judge.py` | The deep judge (journal sections 10 on): a case inventory written without seeing a product (stated requirements; conditions the request leaves unsaid, rated by two model families), an audit of each product by running it, a cross-probe that re-runs every disagreement and every reported defect on all products, two judges' verdicts, and the readings D1 to D6 with a gate for serious failures. It calls no model: it writes the instruction files the sessions are pointed at and joins their JSON answers. |
 | `report.py` | The registered readings R1 to R7, the overall rule and the predictions, as `report.json` and `report.md`. |
 | `page.py` | The results page drawn from `report.json`. |
 | `export.py` | Copies the compact evidence from the runs root into `evidence/`. |
