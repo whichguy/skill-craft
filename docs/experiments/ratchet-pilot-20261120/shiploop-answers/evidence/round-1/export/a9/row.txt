@@ -1,0 +1,1 @@
+3. R-3 When do operators prepare the file? Decided: Start the candidate with DUE_TIMES unset to persist missing deadlines, then restart with on. A successful start with on also requires migration to finish before listening. Otherwise: Use a separate offline migration command before either start. Selector: 3@bc292f4d.

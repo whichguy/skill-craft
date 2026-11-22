@@ -1,0 +1,6 @@
+### R-5 Existing tickets get due times and keep them
+Basis: request 2026-11-22. When the data file is loaded, every ticket without a `due` gets created + hours of its own priority; if any was filled the file is saved at once, whatever DUE_TIMES is, so the file holds the due times before DUE_TIMES is turned on. Tickets that already have `due` are untouched. The fill happens in the store when it is built from a saved state (so `bin/tickets.js` and the weekly report, which build a store without persistence, see dues but never write the file); the save happens in `TicketStore.open` (the service's start) only. A file with an invalid `due` (not a time) is refused with the record named, like other bad fields.
+- Positive: a 1.4.0-format file with tickets loads; the file on disk then holds each due; a second load changes nothing.
+- Boundary: changing hours between two loads does not move filled dues; a file with no tickets, or whose tickets all have dues, is not rewritten (mtime/content unchanged); running `node bin/tickets.js --data FILE list` on a file lacking dues leaves its bytes unchanged.
+- Failure: `due` that is not a time -> DataFileError naming tickets[i].due.
+- Met by src/store.js (fill in the constructor, `TicketStore.open` saves) and src/persistence.js; tests test/due-datafile.test.js. (W1/S1)

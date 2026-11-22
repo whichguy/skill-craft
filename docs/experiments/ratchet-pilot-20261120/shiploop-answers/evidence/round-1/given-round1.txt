@@ -1,0 +1,54 @@
+== a4
+   words: "Nobody prepares the data file by hand." (from ~/e2e-runs/r-20261122-8c4274/a4/.shiploop-runs/work-20261122-185102-81bc56/run/owner-notes/N1.md)
+   rollout ~/e2e-runs/r-20261122-8c4274/a4/home/.codex/sessions/2026/11/22/rollout-2026-11-22T10-50-44-01a20498-aafb-79d3-8d91-e5e280a562e6.jsonl (444 lines)
+   1. event_msg lines holding the words: 3 (3 are a command's printed output)
+      item_completed/CommandExecution, output 1057 chars: "ten after it was printed, or no room in its head). N1 18:53Z Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives e"
+      item_completed/CommandExecution, output 26601 chars: "ote these during the run; verbatim, oldest first): N1 18:53Z Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives e"
+      item_completed/CommandExecution, output 11279 chars: "disabled until it finishes. Answered by the requester (N1): "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives e"
+   2. response_item lines holding the words: 2: tool outputs given to the model 2, other messages given to it 0, the model's own 0
+      given (tool output) custom_tool_call_output, 1172 chars: "ten after it was printed, or no room in its head). N1 18:53Z Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives e"
+      given (tool output) custom_tool_call_output, 6447 chars: "disabled until it finishes. Answered by the requester (N1): "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives e"
+   3. for each command that printed the words, the output the model was given for it:
+      line 111 (1057 chars printed) -> line 112 custom_tool_call_output (70 chars given), by position: inside call call_fcde80b1, whose output is found by call_id: words False, N1 False, "owner note" False; the first later tool output that holds the words is line 116
+      line 124 (26601 chars printed) -> line 128 custom_tool_call_output (1783 chars given), by position: inside call call_18895a80, whose output is found by call_id: words False, N1 False, "owner note" False; the first later tool output that holds the words is line 433
+      line 432 (11279 chars printed) -> line 433 custom_tool_call_output (6423 chars given), by position: inside call call_c2bec6b3, whose output is found by call_id: words True, N1 True, "owner note" False; the first later tool output that holds the words is line 433
+== a5
+   words: "Nobody prepares the data file by hand." (from ~/e2e-runs/r-20261122-8c4274/a5/.shiploop-runs/work-20261122-191037-f81cd1/run/owner-notes/N1.md)
+   rollout ~/e2e-runs/r-20261122-8c4274/a5/home/.codex/sessions/2026/11/22/rollout-2026-11-22T11-10-18-01a204aa-96c8-7660-9351-c98c61319873.jsonl (624 lines)
+   1. event_msg lines holding the words: 2 (2 are a command's printed output)
+      item_completed/CommandExecution, output 1057 chars: "ten after it was printed, or no room in its head). N1 19:13Z Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives e"
+      item_completed/CommandExecution, output 11341 chars: "rt of the enable operation. Answered by the requester (N1): "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives e"
+   2. response_item lines holding the words: 1: tool outputs given to the model 1, other messages given to it 0, the model's own 0
+      given (tool output) custom_tool_call_output, 1151 chars: "ten after it was printed, or no room in its head). N1 19:13Z Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives e"
+   3. for each command that printed the words, the output the model was given for it:
+      line 149 (1057 chars printed) -> line 150 custom_tool_call_output (82 chars given), by position: inside call call_05ddcab5, whose output is found by call_id: words False, N1 False, "owner note" False; the first later tool output that holds the words is line 154
+      line 611 (11341 chars printed) -> line 612 custom_tool_call_output (1540 chars given), by position: inside call call_c668ba31, whose output is found by call_id: words False, N1 False, "owner note" False; no later tool output holds the words
+== a7
+   words: "Nobody prepares the data file by hand." (from ~/e2e-runs/r-20261122-8c4274/a7/.shiploop-runs/work-20261122-192853-1141b0/run/owner-notes/N1.md)
+   rollout ~/e2e-runs/r-20261122-8c4274/a7/home/.codex/sessions/2026/11/22/rollout-2026-11-22T11-28-32-01a204bb-4748-7403-9003-fcf6bd5163fc.jsonl (579 lines)
+   1. event_msg lines holding the words: 3 (3 are a command's printed output)
+      item_completed/CommandExecution, output 1057 chars: "ten after it was printed, or no room in its head). N1 19:31Z Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives e"
+      item_completed/CommandExecution, output 26473 chars: "ote these during the run; verbatim, oldest first): N1 19:31Z Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives e"
+      item_completed/CommandExecution, output 11707 chars: "atically in server startup. Answered by the requester (N1): "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives e"
+   2. response_item lines holding the words: 3: tool outputs given to the model 3, other messages given to it 0, the model's own 0
+      given (tool output) custom_tool_call_output, 1151 chars: "ten after it was printed, or no room in its head). N1 19:31Z Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives e"
+      given (tool output) custom_tool_call_output, 1151 chars: "ten after it was printed, or no room in its head). N1 19:31Z Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives e"
+      given (tool output) custom_tool_call_output, 12034 chars: "atically in server startup. Answered by the requester (N1): "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives e"
+   3. for each command that printed the words, the output the model was given for it:
+      line 127 (1057 chars printed) -> line 128 custom_tool_call_output (1127 chars given), by position: inside call call_b8d29314, whose output is found by call_id: words True, N1 True, "owner note" True; the first later tool output that holds the words is line 128
+      line 143 (26473 chars printed) -> line 146 custom_tool_call_output (1667 chars given), by position: inside call call_971b37eb, whose output is found by call_id: words False, N1 False, "owner note" False; the first later tool output that holds the words is line 570
+      line 569 (11707 chars printed) -> line 570 custom_tool_call_output (12010 chars given), by position: inside call call_6f4b6a0d, whose output is found by call_id: words True, N1 True, "owner note" False; the first later tool output that holds the words is line 570
+== b1
+   words: "Nobody prepares the data file by hand." (from ~/e2e-runs/r-20261122-8c4274/b1/.shiploop-runs/work-20261122-185637-63b49b/run/owner-notes/N1.md)
+   no Codex session record; read ~/e2e-runs/r-20261122-8c4274/b1/events.jsonl (Claude Code stream-json, 845 lines)
+   1. tool results whose raw result (tool_use_result) holds the words: 1
+      raw result, 1130 chars: "ten after it was printed, or no room in its head). N1 18:59Z Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives e"
+   2. given to the model: tool results 1, other user text 0; the model's own: 0
+      given (tool result) tool_result, 1129 chars: "ten after it was printed, or no room in its head). N1 18:59Z Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives e"
+   3. for each raw result that holds the words, the tool result given (same event, by tool_use_id):
+      line 180 toolu_01EQmYZjsF (1130 chars raw -> 1129 chars given): words True, N1 True, "owner note" True
+== summary
+   a4: printed by 3 commands; given to the model in 2 outputs; the model was given the note's words
+   a5: printed by 2 commands; given to the model in 1 outputs; the model was given the note's words
+   a7: printed by 3 commands; given to the model in 3 outputs; the model was given the note's words
+   b1: printed by 1 commands; given to the model in 1 outputs; the model was given the note's words

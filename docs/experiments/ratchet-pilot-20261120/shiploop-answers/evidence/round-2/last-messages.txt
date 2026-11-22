@@ -1,0 +1,79 @@
+The host's last message to the user in each delivery of round 2, whole, as read_answers.py read it (home paths as ~).
+
+== e1 (codex gpt-6.2-sol)
+Implemented ticket due times in **1.5.0** and returned the release to `master`. Production remains untouched.
+
+- Deadlines are fixed at creation. The `DUE_HOURS_*` environment variables accept positive whole hours and default to **4 urgent, 24 high, 72 normal, and 168 low**.
+- Startup automatically saves missing deadlines before serving, including with `DUE_TIMES=on`. No manual data preparation is required. Only `on` exposes `due`, and only `overdue=true` filters for open or in-progress tickets whose deadline has passed.
+- **All 120 tests passed**, including the 117 unchanged original tests. The exact 1.4.0 release also started on the new file and returned every ticket.
+
+**Rollback:** Back up the file before starting 1.4.0. It preserves tickets but drops `due` fields when it saves. The [rollout and rollback guide](~/e2e-runs/r-20261122-8a73b9/e1/work/docs/operations.md:27) explains how to retain those deadlines.
+
+The [ShipLoop report](~/e2e-runs/r-20261122-8a73b9/e1/.shiploop-runs/work-20261122-202959-e64bd8/run/report.html) records the configuration, filtering, and rollout choices and why they were made.
+
+== e2 (codex gpt-6.2-sol)
+Implemented ticket due times in 1.5.0 and returned the changes to `master`. Startup backfills missing deadlines before serving requests. Deadlines stay fixed after priority edits and configuration changes.
+
+Response hours use `DUE_HOURS_URGENT`, `DUE_HOURS_HIGH`, `DUE_HOURS_NORMAL`, and `DUE_HOURS_LOW`, with defaults of 4, 24, 72, and 168 hours. `DUE_TIMES=on` exposes UTC `due` timestamps in the API and human-readable CLI. With the flag enabled, `overdue=true` selects only open and in-progress tickets past their deadline, `false` skips the filter, and other values return `400`. The raw CLI format stays the same.
+
+All 121 tests passed. I verified that 1.4.0 starts on a file written by 1.5.0 and lists every ticket. Because 1.4.0 drops `due` on its next save, keep a copy of the updated file before rolling back. Production was untouched. [Rollout and rollback instructions](~/e2e-runs/r-20261122-8a73b9/e2/work/docs/operations.md#rolling-out-due-times) · [ShipLoop report](~/e2e-runs/r-20261122-8a73b9/e2/.shiploop-runs/work-20261122-203006-8b24b5/run/report.html)
+
+== e3 (codex gpt-6.2-sol)
+Implemented ticket due times in version 1.5.0 and returned the release to the original checkout. All 120 tests passed, including the 117 existing tests. The original 1.4.0 server also started on an upgraded test file and returned every ticket.
+
+Response hours are configurable per priority. Once assigned, a ticket’s `due` stays fixed. With `DUE_TIMES=on`, `GET /tickets?overdue=true` returns open and in-progress tickets whose deadlines are strictly earlier than the current time.
+
+This release uses an offline backfill before activation. ShipLoop recorded the later request for automatic startup backfill for a separate run. Production remains untouched. The rollout guide also explains how to preserve deadlines before rolling back, because a 1.4.0 save drops the `due` fields. [Rollout and rollback guide](~/e2e-runs/r-20261122-8a73b9/e3/work/docs/operations.md:54) · [ShipLoop report](~/e2e-runs/r-20261122-8a73b9/e3/.shiploop-runs/work-20261122-203003-15e31e/run/report.html)
+
+== e4 (codex gpt-6.2-sol)
+Implemented ticket due times in version 1.5.0 and returned the changes to `master`. All 123 tests pass, including the 117 unchanged original tests.
+
+- Deadlines are set once using configurable `DUE_HOURS_*` settings. The defaults are 4, 24, 72, and 168 hours for urgent, high, normal, and low.
+- Startup automatically saves missing deadlines before accepting requests, with `DUE_TIMES` either on or off. Only `DUE_TIMES=on` exposes `due` and enables `?overdue=true`, which returns open and in-progress tickets strictly past due. The enabled CLI shows deadlines in human-readable output and preserves the four raw columns.
+- The actual 1.4.0 release started on the upgraded file and displayed every ticket. Its saves drop deadline metadata, so the rollback procedure explains how to preserve assigned deadlines before downgrading. [Rollout and rollback guide](~/e2e-runs/r-20261122-8a73b9/e4/work/docs/operations.md:27)
+
+Production activation remains pending. ShipLoop held your later startup clarification for a follow-on run, but the delivered code already does what it describes. I verified startup directly with `DUE_TIMES=on` against a legacy file. The report lists all three implementation choices and their rationale. [ShipLoop report](~/e2e-runs/r-20261122-8a73b9/e4/.shiploop-runs/work-20261122-204744-63bb3d/run/report.html)
+
+== e5 (codex gpt-6.2-sol)
+Implemented configurable, immutable ticket due times and returned the changes to `master`. `npm test` passes all 120 tests, including the 117 existing tests.
+
+Set `DUE_HOURS_URGENT`, `DUE_HOURS_HIGH`, `DUE_HOURS_NORMAL`, or `DUE_HOURS_LOW` to override the defaults of 4, 24, 72, and 168 whole hours. Startup saves missing deadlines before serving requests, with the flag either off or on. The rollout procedure starts with the flag off so operators can verify the file before exposing `due`. With `DUE_TIMES=on`, `GET /tickets?overdue=true` returns only open and in-progress tickets strictly past their deadline.
+
+I verified that the original 1.4.0 server starts on the new file and lists every ticket. When 1.4.0 saves, it drops deadline metadata. The runbook covers restoring those deadlines by ticket ID before re-upgrading. Production rollout remains pending. [Rollout and rollback runbook](~/e2e-runs/r-20261122-8a73b9/e5/work/docs/operations.md#due-time-rollout-and-rollback)
+
+The [ShipLoop report](~/e2e-runs/r-20261122-8a73b9/e5/.shiploop-runs/work-20261122-204743-6978c3/run/report.html) records the implementation choices and verification results.
+
+== e6 (codex gpt-6.2-sol)
+Implemented ticket due times in version 1.5.0 and returned the changes to `master`.
+
+- Deadlines are saved once using the ticket’s creation time and priority. The defaults are 4, 24, 72, and 168 hours for urgent, high, normal, and low. Each can be overridden with a `DUE_HOURS_*` environment variable.
+- Startup saves missing deadlines before serving requests, including on the first start with `DUE_TIMES=on`. That flag exposes `due` and enables `GET /tickets?overdue=true` for open and in-progress tickets strictly past their deadline.
+
+All 124 tests passed, including the 117 original tests. A separate rollback test confirmed that unchanged 1.4.0 starts on the new data file and lists every fixture ticket. Because 1.4.0 drops `due` when it saves, the rollout guide explains how to preserve assignments across rollback. Production rollout remains pending. [Operations guide](~/e2e-runs/r-20261122-8a73b9/e6/work/docs/operations.md#roll-out-ticket-deadlines) · [ShipLoop report](~/e2e-runs/r-20261122-8a73b9/e6/.shiploop-runs/work-20261122-204750-71bfb7/run/report.html)
+
+== f1 (claude claude-sonnet-5-5)
+The run is complete. Due times and the overdue filter are in `master` as release 1.5.0. The full suite passes (148 tests, the 117 original ones unmodified), and the checkout is clean. Nothing was deployed or pushed.
+
+#### 🚢 ShipLoop — due times for help-desk tickets
+Preparation ✓ · Work items ✓ · Release ✓ — **🏁 Done**, report: `~/e2e-runs/r-20261122-8a73b9/f1/.shiploop-runs/work-20261122-202950-e13fc8/run/report.html`
+
+**What the service does now**
+- **Due time:** a ticket's `due` is its creation time plus 4, 24, 72 or 168 hours (urgent, high, normal, low). It is set once and never moves when the priority or the hours change.
+- **Changing the hours:** set `RESPONSE_HOURS_URGENT`, `RESPONSE_HOURS_HIGH`, `RESPONSE_HOURS_NORMAL` or `RESPONSE_HOURS_LOW` and restart. The new hours apply to tickets created after that.
+- **Overdue list:** `GET /tickets?overdue=true` lists only open and in-progress tickets whose due time has passed.
+- **Production file:** the first start of the new release gives every ticket in the data file its due time and saves the file.
+- **Switch:** `due` and `overdue` appear only with `DUE_TIMES=on`. Until then the service answers as 1.4.0 does, even though the file already holds the times.
+- **Rollback:** the data file stays version 1. I started the real 1.4.0 code on the file the new release wrote and it listed every ticket. It drops the due times when it saves, and the new release fills them in again at its next start.
+- **Docs and release notes:** README, API doc, operations doc, decision 0009 and CHANGELOG 1.5.0.
+
+**Choices made for you** (the report lists each with its reason)
+1. **Hours are environment variables.** A bad value stops the start with a message naming it.
+2. **`overdue` accepts only `true` when due times are on.** Any other value gets a 400, and a ticket due exactly now counts as overdue.
+3. **The first start backfills and saves the file,** even with `DUE_TIMES` off, so the file holds the times before you switch on.
+4. **After a rollback to 1.4.0 and a later roll-forward,** the times are recomputed from the hours in force then. They can differ from before if the hours changed in between.
+
+**Left for people**
+- **Production rollout:** I couldn't reach your production file or host. `docs/operations.md` has the order: deploy with `DUE_TIMES` unset, check `grep -c '"due"'` on the data file equals the ticket count, set `DUE_TIMES=on`, restart.
+- **Existing filter bug, not changed:** the current `status` and `priority` filters combine with OR, although `docs/api.md` says every filter must match. For example, `?status=open&priority=urgent` also returns open low tickets. I left it alone and the new `overdue` filter is ANDed after them. This is for the help desk team to decide.
+
+The run left one branch, `shiploop/run-434f2881e3fee168`, in your repository. ShipLoop doesn't delete it, and the report has the command to remove it.

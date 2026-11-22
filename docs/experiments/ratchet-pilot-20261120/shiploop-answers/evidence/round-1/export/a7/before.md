@@ -1,0 +1,2 @@
+### R-3 Existing data and recovery
+Backfill each missing deadline from stored created and priority, preserving all existing deadlines and other state. Retry safely. Default choice: run an offline command before enabling. Enabled startup refuses an existing file missing deadlines. Test a legacy file, a repeat with different hours and an actual new server restart. A missing data file is a fresh installation.

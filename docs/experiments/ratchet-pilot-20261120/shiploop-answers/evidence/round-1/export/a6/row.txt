@@ -1,0 +1,1 @@
+3. R-3 How do operators prepare data? Decided: First start the candidate with the flag off, check the populated file, then enable and restart. Otherwise: A standalone migration command would require a stopped service to avoid two writers. Selector: 3@b166fc0a.

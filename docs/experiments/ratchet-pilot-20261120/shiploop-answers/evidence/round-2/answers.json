@@ -1,0 +1,2523 @@
+[
+ {
+  "name": "e1",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "ended": true,
+  "outcome": "PASS",
+  "basis": "every verdict passed",
+  "verdicts": {
+   "invoked": true,
+   "plugin": true,
+   "process": true,
+   "shiploop": true,
+   "committed": true
+  },
+  "checks_passed": 8,
+  "checks": 8,
+  "failed": [],
+  "startup": {
+   "migrate": true,
+   "restart": true,
+   "switch": true,
+   "rollback": true,
+   "cli": true
+  },
+  "started": "2026-11-22 20:29:44Z",
+  "ended_at": "2026-11-22 20:46:35Z",
+  "minutes": 16.8,
+  "turns": 202,
+  "model_calls": 97,
+  "output_tokens": 35215,
+  "cost_usd": null,
+  "spec_seconds": 75.0,
+  "strategy_seconds": 35.0,
+  "requester": {
+   "case": "ticket-due-times",
+   "mode": "answer-at",
+   "reply_enabled": true,
+   "stage_waited_for": "implement",
+   "rule": {
+    "tickets": "\\b(backfill\\w*|back-fill\\w*|migrat\\w*|existing|already|older)\\b",
+    "start": "\\b(start\\w*|start-up|boot\\w*|launch\\w*|restart\\w*)\\b",
+    "absent": "\\b(missing|without|lack\\w*|no due|has none|have none|has no|have no)\\b"
+   },
+   "run_dir": "~/e2e-runs/r-20261122-8a73b9/e1/.shiploop-runs/work-20261122-202959-e64bd8/run",
+   "seen_at": "2026-11-22T20:32:50Z",
+   "block_printed": true,
+   "rows": [
+    "1. R-1 How are hours configured? Decided: Set positive whole hours in DUE_HOURS_<PRIORITY>; an invalid value stops startup with the setting named. Otherwise: Read the hours from a new config file. Selector: 1@d6649fe7.",
+    "2. R-2 What does another overdue value do? Decided: Only overdue=true filters; other values retain the existing listing. Otherwise: Reject unsupported values with 400. Selector: 2@d6649fe7.",
+    "3. R-3 How does the operator backfill? Decided: Start the new release with the flag off; startup writes any missing deadlines before listening. Otherwise: Stop the service and run a separate migration command; the operator must invoke it. Selector: 3@d6649fe7."
+   ],
+   "recorded": [
+    {
+     "alternative": "Read the hours from a new config file.",
+     "default": "Set positive whole hours in DUE_HOURS_<PRIORITY>; an invalid value stops startup with the setting named.",
+     "question": "How are hours configured?",
+     "requirement": "R-1",
+     "why": "Environment variables are the service's existing configuration interface."
+    },
+    {
+     "alternative": "Reject unsupported values with 400.",
+     "default": "Only overdue=true filters; other values retain the existing listing.",
+     "question": "What does another overdue value do?",
+     "requirement": "R-2",
+     "why": "The service previously ignored the parameter."
+    },
+    {
+     "alternative": "Stop the service and run a separate migration command; the operator must invoke it.",
+     "default": "Start the new release with the flag off; startup writes any missing deadlines before listening.",
+     "question": "How does the operator backfill?",
+     "requirement": "R-3",
+     "why": "Uses the existing single writer and avoids an extra tool."
+    }
+   ],
+   "about": [
+    false,
+    true,
+    true
+   ],
+   "note": {
+    "exit": 0,
+    "id": "N1",
+    "text": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.",
+    "default": "3@d6649fe7",
+    "output": "Owner note N1 written: ~/e2e-runs/r-20261122-8a73b9/e1/.shiploop-runs/work-20261122-202959-e64bd8/run/owner-notes/N1.md.\nN1 answers 3@d6649fe7 (R-3: How does the operator backfill?; decided: Start the new release with the flag off; startup writes any missing deadlines before listening.). The test-strategy stage has already submitted its result, so this answer is held for a new run: no stage is told to act on it, and the done packet and the report show it. To change one, start a new run on this project with a sentence that says what you want instead.\nThe run is active at W1 implement (action nav-56c31f8b9f7544caa06e305415eb5435)."
+   },
+   "choice": {
+    "candidates": [
+     {
+      "row": 1,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": [
+       "starting"
+      ]
+     },
+     {
+      "row": 2,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": []
+     },
+     {
+      "row": 3,
+      "score": 4,
+      "qualifies": true,
+      "subject": false,
+      "data_file": false,
+      "acts": [
+       "backfill",
+       "migration",
+       "starting"
+      ]
+     }
+    ],
+    "chosen": 3,
+    "ambiguous": false,
+    "tied": [],
+    "selector": "3@d6649fe7"
+   },
+   "stage_seen_at": "2026-11-22T20:35:53Z",
+   "rows_at_send": [
+    "1. R-1 How are hours configured? Decided: Set positive whole hours in DUE_HOURS_<PRIORITY>; an invalid value stops startup with the setting named. Otherwise: Read the hours from a new config file. Selector: 1@d6649fe7.",
+    "2. R-2 What does another overdue value do? Decided: Only overdue=true filters; other values retain the existing listing. Otherwise: Reject unsupported values with 400. Selector: 2@d6649fe7.",
+    "3. R-3 How does the operator backfill? Decided: Start the new release with the flag off; startup writes any missing deadlines before listening. Otherwise: Stop the service and run a separate migration command; the operator must invoke it. Selector: 3@d6649fe7."
+   ],
+   "choice_at_send": {
+    "candidates": [
+     {
+      "row": 1,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": [
+       "starting"
+      ]
+     },
+     {
+      "row": 2,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": []
+     },
+     {
+      "row": 3,
+      "score": 4,
+      "qualifies": true,
+      "subject": false,
+      "data_file": false,
+      "acts": [
+       "backfill",
+       "migration",
+       "starting"
+      ]
+     }
+    ],
+    "chosen": 3,
+    "ambiguous": false,
+    "tied": [],
+    "selector": "3@d6649fe7"
+   },
+   "sent_at": "implement"
+  },
+  "last_message": "Implemented ticket due times in **1.5.0** and returned the release to `master`. Production remains untouched.\n\n- Deadlines are fixed at creation. The `DUE_HOURS_*` environment variables accept positive whole hours and default to **4 urgent, 24 high, 72 normal, and 168 low**.\n- Startup automatically saves missing deadlines before serving, including with `DUE_TIMES=on`. No manual data preparation is required. Only `on` exposes `due`, and only `overdue=true` filters for open or in-progress tickets whose deadline has passed.\n- **All 120 tests passed**, including the 117 unchanged original tests. The exact 1.4.0 release also started on the new file and returned every ticket.\n\n**Rollback:** Back up the file before starting 1.4.0. It preserves tickets but drops `due` fields when it saves. The [rollout and rollback guide](~/e2e-runs/r-20261122-8a73b9/e1/work/docs/operations.md:27) explains how to retain those deadlines.\n\nThe [ShipLoop report](~/e2e-runs/r-20261122-8a73b9/e1/.shiploop-runs/work-20261122-202959-e64bd8/run/report.html) records the configuration, filtering, and rollout choices and why they were made.\n",
+  "run_folders": 1,
+  "run": "~/e2e-runs/r-20261122-8a73b9/e1/.shiploop-runs/work-20261122-202959-e64bd8/run",
+  "status": "done",
+  "stage": "done",
+  "revision": 30,
+  "list": [
+   {
+    "row": 1,
+    "selector": "1@d6649fe7",
+    "requirement": "R-1",
+    "question": "How are hours configured?",
+    "default": "Set positive whole hours in DUE_HOURS_<PRIORITY>; an invalid value stops startup with the setting named.",
+    "alternative": "Read the hours from a new config file."
+   },
+   {
+    "row": 2,
+    "selector": "2@d6649fe7",
+    "requirement": "R-2",
+    "question": "What does another overdue value do?",
+    "default": "Only overdue=true filters; other values retain the existing listing.",
+    "alternative": "Reject unsupported values with 400."
+   },
+   {
+    "row": 3,
+    "selector": "3@d6649fe7",
+    "requirement": "R-3",
+    "question": "How does the operator backfill?",
+    "default": "Start the new release with the flag off; startup writes any missing deadlines before listening.",
+    "alternative": "Stop the service and run a separate migration command; the operator must invoke it."
+   }
+  ],
+  "notes": [
+   {
+    "id": "N1",
+    "written_at": "2026-11-22T20:35:53Z",
+    "row": 3,
+    "selector": "3@d6649fe7",
+    "requirement": "R-3",
+    "words": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.",
+    "stands": "late"
+   }
+  ],
+  "answers_rows": null,
+  "strategy_accepted": true,
+  "entries": [
+   {
+    "requirement": "R-3",
+    "at_spec": "### R-3 Backfill and rollback\n\nBasis: the 2026-11-22 request to store deadlines for existing tickets before exposure and allow the current release to read the written file.\n- Default of 2026-11-22: start the new release with the flag off to atomically save due for missing tickets before serving; startup also completes this save before enabled service readiness. Use each record's creation timestamp and stored priority. A rerun only fills missing values. Check the file before the first response and on restart with changed hours; preserve ticket details, numbering, audit and outbox.\n- Exact release 1.4.0 opens the candidate-written file and returns all tickets, including those created after migration. Use a disposable file with the unchanged 1.4.0 runtime. File ownership stays single-writer. Production deployment is outside the local check.",
+    "after_test_strategy": "### R-3 Backfill and rollback\n\nBasis: the 2026-11-22 request to store deadlines for existing tickets before exposure and allow the current release to read the written file.\n- Default of 2026-11-22: start the new release with the flag off to atomically save due for missing tickets before serving; startup also completes this save before enabled service readiness. Use each record's creation timestamp and stored priority. A rerun only fills missing values. Check the file before the first response and on restart with changed hours; preserve ticket details, numbering, audit and outbox.\n- Exact release 1.4.0 opens the candidate-written file and returns all tickets, including those created after migration. Use a disposable file with the unchanged 1.4.0 runtime. File ownership stays single-writer. Production deployment is outside the local check.",
+    "differ": false
+   }
+  ],
+  "trace": {
+   "held": [],
+   "naming_answers": [],
+   "other_refusals_by_stage": {},
+   "failed_checks_by_stage": {
+    "test": 2
+   }
+  },
+  "displays": {
+   "packets_with_the_block": 0,
+   "packets_with_the_held_line": 16,
+   "packets": 31,
+   "done_packet_lines": [
+    "3. R-3 How does the operator backfill? Decided: Start the new release with the flag off; startup writes any missing deadlines before listening. Otherwise: Stop the service and run a separate migration command; the operator must invoke it. Answered by the requester (N1) after test-strategy had submitted its result: \"Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.\"; held for a new run."
+   ],
+   "report_lines": [
+    "Answered by the requester (N1) after test-strategy had submitted its result: \"Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.\"; held for a new run."
+   ]
+  },
+  "applied": [],
+  "held": [
+   {
+    "id": "N1",
+    "stands": "late",
+    "row": 3,
+    "requirement": "R-3",
+    "selector": "3@d6649fe7",
+    "words": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.",
+    "written_at": "2026-11-22T20:35:53Z",
+    "listed_row": "3. R-3 How does the operator backfill? Decided: Start the new release with the flag off; startup writes any missing deadlines before listening. Otherwise: Stop the service and run a separate migration command; the operator must invoke it.",
+    "in_trace": "2026-11-22 20:35:53.366Z",
+    "last_accepted_before": {
+     "stage": "validate-existing",
+     "workitem": "W1",
+     "outcome": "done",
+     "action": "nav-46e6fe97b1d1421d95b5da2d92d0d235",
+     "accepted_at": "2026-11-22 20:35:51.716Z"
+    },
+    "open_then": {
+     "stage": "implement",
+     "workitem": "W1",
+     "action": "nav-56c31f8b9f7544caa06e305415eb5435",
+     "from": "the trace's note command"
+    },
+    "checkout": "~/e2e-runs/r-20261122-8a73b9/e1/.shiploop-runs/work-20261122-202959-e64bd8/worktree",
+    "entry_when_written": "### R-3 Backfill and rollback\n\nBasis: the 2026-11-22 request to store deadlines for existing tickets before exposure and allow the current release to read the written file.\n- Default of 2026-11-22: start the new release with the flag off to atomically save due for missing tickets before serving; startup also completes this save before enabled service readiness. Use each record's creation timestamp and stored priority. A rerun only fills missing values. Check the file before the first response and on restart with changed hours; preserve ticket details, numbering, audit and outbox.\n- Exact release 1.4.0 opens the candidate-written file and returns all tickets, including those created after migration. Use a disposable file with the unchanged 1.4.0 runtime. File ownership stays single-writer. Production deployment is outside the local check.",
+    "entry_when_written_from": "commit b48b1c0, the newest of docs/shiploop/spec.md at or before the answer; its digest is the note's",
+    "before_md": [
+     "R-3 as it read when N1 was written (2026-11-22T20:35:53Z):",
+     "### R-3 Backfill and rollback\n\nBasis: the 2026-11-22 request to store deadlines for existing tickets before exposure and allow the current release to read the written file.\n- Default of 2026-11-22: start the new release with the flag off to atomically save due for missing tickets before serving; startup also completes this save before enabled service readiness. Use each record's creation timestamp and stored priority. A rerun only fills missing values. Check the file before the first response and on restart with changed hours; preserve ticket details, numbering, audit and outbox.\n- Exact release 1.4.0 opens the candidate-written file and returns all tickets, including those created after migration. Use a disposable file with the unchanged 1.4.0 runtime. File ownership stays single-writer. Production deployment is outside the local check."
+    ],
+    "entry_at_end": "### R-3 Backfill and rollback\n\nBasis: the 2026-11-22 request to store deadlines for existing tickets before exposure and allow the current release to read the written file.\n- Default of 2026-11-22: start the new release with the flag off to atomically save due for missing tickets before serving; startup also completes this save before enabled service readiness. Use each record's creation timestamp and stored priority. A rerun only fills missing values. Check the file before the first response and on restart with changed hours; preserve ticket details, numbering, audit and outbox.\n- Exact release 1.4.0 opens the candidate-written file and returns all tickets, including those created after migration. Use a disposable file with the unchanged 1.4.0 runtime. File ownership stays single-writer. Production deployment is outside the local check.\n- TC-3 in test/due-times.test.js checks a failed migration leaves the previous file byte-for-byte intact. The exact-release TC-4 run verifies the old reader on candidate-written data. (W1/S1)",
+    "entry_at_end_is": "current",
+    "unchanged_since_the_answer": false,
+    "results_naming_it": [],
+    "commits_after": {
+     "checkout": "~/e2e-runs/r-20261122-8a73b9/e1/.shiploop-runs/work-20261122-202959-e64bd8/worktree",
+     "spec": "docs/shiploop/spec.md",
+     "after": 4,
+     "same_second": 0,
+     "touching_spec": [
+      "feat(W1/S1): Implemented immutable deadlines, gated HTTP and compatible startup backfill"
+     ]
+    },
+    "failed_commands_after": {
+     "by_stage": {
+      "test": 2
+     },
+     "naming": []
+    },
+    "end": {
+     "status": "done",
+     "planning_reconciliations": 0,
+     "planning_reconciliations_after": 0,
+     "blocked_or_reconcile_after": []
+    },
+    "held_line": {
+     "prints": 17,
+     "packets": 17,
+     "stages": [
+      "test W1",
+      "document W1",
+      "improve W1",
+      "carry-forward W1",
+      "improve W1",
+      "system-test-author",
+      "improve",
+      "system-test",
+      "product-acceptance",
+      "release-plan",
+      "improve",
+      "release-check",
+      "release",
+      "release",
+      "release-verify",
+      "operations",
+      "handoff"
+     ],
+     "packet_prints_unreadable": 0
+    }
+   }
+  ]
+ },
+ {
+  "name": "e2",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "ended": true,
+  "outcome": "PASS",
+  "basis": "every verdict passed",
+  "verdicts": {
+   "invoked": true,
+   "plugin": true,
+   "process": true,
+   "shiploop": true,
+   "committed": true
+  },
+  "checks_passed": 8,
+  "checks": 8,
+  "failed": [],
+  "startup": {
+   "migrate": true,
+   "restart": true,
+   "switch": true,
+   "rollback": true,
+   "cli": true
+  },
+  "started": "2026-11-22 20:29:44Z",
+  "ended_at": "2026-11-22 20:43:47Z",
+  "minutes": 14.0,
+  "turns": 127,
+  "model_calls": 70,
+  "output_tokens": 30803,
+  "cost_usd": null,
+  "spec_seconds": 68.0,
+  "strategy_seconds": 34.0,
+  "requester": {
+   "case": "ticket-due-times",
+   "mode": "answer-at",
+   "reply_enabled": true,
+   "stage_waited_for": "implement",
+   "rule": {
+    "tickets": "\\b(backfill\\w*|back-fill\\w*|migrat\\w*|existing|already|older)\\b",
+    "start": "\\b(start\\w*|start-up|boot\\w*|launch\\w*|restart\\w*)\\b",
+    "absent": "\\b(missing|without|lack\\w*|no due|has none|have none|has no|have no)\\b"
+   },
+   "run_dir": "~/e2e-runs/r-20261122-8a73b9/e2/.shiploop-runs/work-20261122-203006-8b24b5/run",
+   "seen_at": "2026-11-22T20:33:04Z",
+   "block_printed": true,
+   "rows": [
+    "1. R-1 How are duration overrides configured? Decided: Use DUE_HOURS_<PRIORITY> as validated whole hours. Empty uses the default. Otherwise: Use a JSON config object requiring all priorities in one variable. Selector: 1@61688ca1.",
+    "2. R-1 How does the API represent a deadline? Decided: UTC ISO date-time string. Otherwise: A Unix timestamp would require converting existing date consumers. Selector: 2@61688ca1.",
+    "3. R-2 How do false and malformed filter values work? Decided: False skips the filter and malformed enabled values produce 400. The flag-off API ignores the parameter. Otherwise: Treat all non-true values as ignored even when enabled. Selector: 3@61688ca1.",
+    "4. R-2 Where do operators see due values? Decided: Enabled human-readable CLI output plus enabled HTTP; raw output maintains its four columns. Otherwise: Only show due in the API. Selector: 4@61688ca1.",
+    "5. R-3 How are existing records prepared? Decided: Start the new release while disabled and verify the startup backfill before enabling it. Otherwise: Run a second offline migration command before startup. Selector: 5@61688ca1."
+   ],
+   "recorded": [
+    {
+     "alternative": "Use a JSON config object requiring all priorities in one variable.",
+     "default": "Use DUE_HOURS_<PRIORITY> as validated whole hours. Empty uses the default.",
+     "question": "How are duration overrides configured?",
+     "requirement": "R-1",
+     "why": "Matches the existing environment-based startup config."
+    },
+    {
+     "alternative": "A Unix timestamp would require converting existing date consumers.",
+     "default": "UTC ISO date-time string.",
+     "question": "How does the API represent a deadline?",
+     "requirement": "R-1",
+     "why": "Other ticket times use ISO."
+    },
+    {
+     "alternative": "Treat all non-true values as ignored even when enabled.",
+     "default": "False skips the filter and malformed enabled values produce 400. The flag-off API ignores the parameter.",
+     "question": "How do false and malformed filter values work?",
+     "requirement": "R-2",
+     "why": "Preserves old behavior when disabled and follows existing validation when enabled."
+    },
+    {
+     "alternative": "Only show due in the API.",
+     "default": "Enabled human-readable CLI output plus enabled HTTP; raw output maintains its four columns.",
+     "question": "Where do operators see due values?",
+     "requirement": "R-2",
+     "why": "Keeps both ticket viewing entry points useful without breaking report consumers."
+    },
+    {
+     "alternative": "Run a second offline migration command before startup.",
+     "default": "Start the new release while disabled and verify the startup backfill before enabling it.",
+     "question": "How are existing records prepared?",
+     "requirement": "R-3",
+     "why": "Reuses the single writer and the existing atomic startup/persistence path."
+    }
+   ],
+   "about": [
+    false,
+    true,
+    false,
+    false,
+    true
+   ],
+   "note": {
+    "exit": 0,
+    "id": "N1",
+    "text": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.",
+    "default": "5@61688ca1",
+    "output": "Owner note N1 written: ~/e2e-runs/r-20261122-8a73b9/e2/.shiploop-runs/work-20261122-203006-8b24b5/run/owner-notes/N1.md.\nN1 answers 5@61688ca1 (R-3: How are existing records prepared?; decided: Start the new release while disabled and verify the startup backfill before enabling it.). The test-strategy stage has already submitted its result, so this answer is held for a new run: no stage is told to act on it, and the done packet and the report show it. To change one, start a new run on this project with a sentence that says what you want instead.\nThe run is active at W1 implement (action nav-d27ebe7f5bb64fb990fd5c96287eacc0)."
+   },
+   "choice": {
+    "candidates": [
+     {
+      "row": 1,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": []
+     },
+     {
+      "row": 2,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": []
+     },
+     {
+      "row": 3,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": [
+       "enabling"
+      ]
+     },
+     {
+      "row": 4,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": [
+       "enabling"
+      ]
+     },
+     {
+      "row": 5,
+      "score": 7,
+      "qualifies": true,
+      "subject": true,
+      "data_file": false,
+      "acts": [
+       "backfill",
+       "migration",
+       "preparing",
+       "enabling",
+       "starting"
+      ]
+     }
+    ],
+    "chosen": 5,
+    "ambiguous": false,
+    "tied": [],
+    "selector": "5@61688ca1"
+   },
+   "stage_seen_at": "2026-11-22T20:35:28Z",
+   "rows_at_send": [
+    "1. R-1 How are duration overrides configured? Decided: Use DUE_HOURS_<PRIORITY> as validated whole hours. Empty uses the default. Otherwise: Use a JSON config object requiring all priorities in one variable. Selector: 1@61688ca1.",
+    "2. R-1 How does the API represent a deadline? Decided: UTC ISO date-time string. Otherwise: A Unix timestamp would require converting existing date consumers. Selector: 2@61688ca1.",
+    "3. R-2 How do false and malformed filter values work? Decided: False skips the filter and malformed enabled values produce 400. The flag-off API ignores the parameter. Otherwise: Treat all non-true values as ignored even when enabled. Selector: 3@61688ca1.",
+    "4. R-2 Where do operators see due values? Decided: Enabled human-readable CLI output plus enabled HTTP; raw output maintains its four columns. Otherwise: Only show due in the API. Selector: 4@61688ca1.",
+    "5. R-3 How are existing records prepared? Decided: Start the new release while disabled and verify the startup backfill before enabling it. Otherwise: Run a second offline migration command before startup. Selector: 5@61688ca1."
+   ],
+   "choice_at_send": {
+    "candidates": [
+     {
+      "row": 1,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": []
+     },
+     {
+      "row": 2,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": []
+     },
+     {
+      "row": 3,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": [
+       "enabling"
+      ]
+     },
+     {
+      "row": 4,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": [
+       "enabling"
+      ]
+     },
+     {
+      "row": 5,
+      "score": 7,
+      "qualifies": true,
+      "subject": true,
+      "data_file": false,
+      "acts": [
+       "backfill",
+       "migration",
+       "preparing",
+       "enabling",
+       "starting"
+      ]
+     }
+    ],
+    "chosen": 5,
+    "ambiguous": false,
+    "tied": [],
+    "selector": "5@61688ca1"
+   },
+   "sent_at": "implement"
+  },
+  "last_message": "Implemented ticket due times in 1.5.0 and returned the changes to `master`. Startup backfills missing deadlines before serving requests. Deadlines stay fixed after priority edits and configuration changes.\n\nResponse hours use `DUE_HOURS_URGENT`, `DUE_HOURS_HIGH`, `DUE_HOURS_NORMAL`, and `DUE_HOURS_LOW`, with defaults of 4, 24, 72, and 168 hours. `DUE_TIMES=on` exposes UTC `due` timestamps in the API and human-readable CLI. With the flag enabled, `overdue=true` selects only open and in-progress tickets past their deadline, `false` skips the filter, and other values return `400`. The raw CLI format stays the same.\n\nAll 121 tests passed. I verified that 1.4.0 starts on a file written by 1.5.0 and lists every ticket. Because 1.4.0 drops `due` on its next save, keep a copy of the updated file before rolling back. Production was untouched. [Rollout and rollback instructions](~/e2e-runs/r-20261122-8a73b9/e2/work/docs/operations.md#rolling-out-due-times) · [ShipLoop report](~/e2e-runs/r-20261122-8a73b9/e2/.shiploop-runs/work-20261122-203006-8b24b5/run/report.html)\n",
+  "run_folders": 1,
+  "run": "~/e2e-runs/r-20261122-8a73b9/e2/.shiploop-runs/work-20261122-203006-8b24b5/run",
+  "status": "done",
+  "stage": "done",
+  "revision": 30,
+  "list": [
+   {
+    "row": 1,
+    "selector": "1@61688ca1",
+    "requirement": "R-1",
+    "question": "How are duration overrides configured?",
+    "default": "Use DUE_HOURS_<PRIORITY> as validated whole hours. Empty uses the default.",
+    "alternative": "Use a JSON config object requiring all priorities in one variable."
+   },
+   {
+    "row": 2,
+    "selector": "2@61688ca1",
+    "requirement": "R-1",
+    "question": "How does the API represent a deadline?",
+    "default": "UTC ISO date-time string.",
+    "alternative": "A Unix timestamp would require converting existing date consumers."
+   },
+   {
+    "row": 3,
+    "selector": "3@61688ca1",
+    "requirement": "R-2",
+    "question": "How do false and malformed filter values work?",
+    "default": "False skips the filter and malformed enabled values produce 400. The flag-off API ignores the parameter.",
+    "alternative": "Treat all non-true values as ignored even when enabled."
+   },
+   {
+    "row": 4,
+    "selector": "4@61688ca1",
+    "requirement": "R-2",
+    "question": "Where do operators see due values?",
+    "default": "Enabled human-readable CLI output plus enabled HTTP; raw output maintains its four columns.",
+    "alternative": "Only show due in the API."
+   },
+   {
+    "row": 5,
+    "selector": "5@61688ca1",
+    "requirement": "R-3",
+    "question": "How are existing records prepared?",
+    "default": "Start the new release while disabled and verify the startup backfill before enabling it.",
+    "alternative": "Run a second offline migration command before startup."
+   }
+  ],
+  "notes": [
+   {
+    "id": "N1",
+    "written_at": "2026-11-22T20:35:29Z",
+    "row": 5,
+    "selector": "5@61688ca1",
+    "requirement": "R-3",
+    "words": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.",
+    "stands": "late"
+   }
+  ],
+  "answers_rows": null,
+  "strategy_accepted": true,
+  "entries": [
+   {
+    "requirement": "R-3",
+    "at_spec": "### R-3 Historical data and rollout\n\nBasis: 2026-11-22 request (S6–S8), docs/decisions/0008-json-data-file.md. Startup backfills only missing deadlines from the stored priority and creation, before serving. Existing deadlines and business state survive the same atomic save and future reads, with no migration audit or notification. Default rollout starts the new version with exposure off, verifies the file and restarts enabled. A failed migration prevents startup. Verify restart with changed hours and a mixed legacy file. Verify 1.4.0 at 15a4ad2 starts and lists every ticket from a candidate-written file. 1.4.0's later save strips unknown fields. Retain a pre-rollback file to recover deadlines by ticket ID without replacing current ticket state.",
+    "after_test_strategy": "### R-3 Historical data and rollout\n\nBasis: 2026-11-22 request (S6–S8), docs/decisions/0008-json-data-file.md. Startup backfills only missing deadlines from the stored priority and creation, before serving. Existing deadlines and business state survive the same atomic save and future reads, with no migration audit or notification. Default rollout starts the new version with exposure off, verifies the file and restarts enabled. A failed migration prevents startup. Verify restart with changed hours and a mixed legacy file. Verify 1.4.0 at 15a4ad2 starts and lists every ticket from a candidate-written file. 1.4.0's later save strips unknown fields. Retain a pre-rollback file to recover deadlines by ticket ID without replacing current ticket state.",
+    "differ": false
+   }
+  ],
+  "trace": {
+   "held": [],
+   "naming_answers": [],
+   "other_refusals_by_stage": {
+    "plan": 2
+   },
+   "failed_checks_by_stage": {
+    "step-plan": 1,
+    "test": 1
+   }
+  },
+  "displays": {
+   "packets_with_the_block": 0,
+   "packets_with_the_held_line": 16,
+   "packets": 31,
+   "done_packet_lines": [
+    "5. R-3 How are existing records prepared? Decided: Start the new release while disabled and verify the startup backfill before enabling it. Otherwise: Run a second offline migration command before startup. Answered by the requester (N1) after test-strategy had submitted its result: \"Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.\"; held for a new run."
+   ],
+   "report_lines": [
+    "Answered by the requester (N1) after test-strategy had submitted its result: \"Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.\"; held for a new run."
+   ]
+  },
+  "applied": [],
+  "held": [
+   {
+    "id": "N1",
+    "stands": "late",
+    "row": 5,
+    "requirement": "R-3",
+    "selector": "5@61688ca1",
+    "words": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.",
+    "written_at": "2026-11-22T20:35:29Z",
+    "listed_row": "5. R-3 How are existing records prepared? Decided: Start the new release while disabled and verify the startup backfill before enabling it. Otherwise: Run a second offline migration command before startup.",
+    "in_trace": "2026-11-22 20:35:29.050Z",
+    "last_accepted_before": {
+     "stage": "validate-existing",
+     "workitem": "W1",
+     "outcome": "done",
+     "action": "nav-aa12647c9e734cc6898481a221b28a69",
+     "accepted_at": "2026-11-22 20:35:28.122Z"
+    },
+    "open_then": {
+     "stage": "implement",
+     "workitem": "W1",
+     "action": "nav-d27ebe7f5bb64fb990fd5c96287eacc0",
+     "from": "the trace's note command"
+    },
+    "checkout": "~/e2e-runs/r-20261122-8a73b9/e2/.shiploop-runs/work-20261122-203006-8b24b5/worktree",
+    "entry_when_written": "### R-3 Historical data and rollout\n\nBasis: 2026-11-22 request (S6–S8), docs/decisions/0008-json-data-file.md. Startup backfills only missing deadlines from the stored priority and creation, before serving. Existing deadlines and business state survive the same atomic save and future reads, with no migration audit or notification. Default rollout starts the new version with exposure off, verifies the file and restarts enabled. A failed migration prevents startup. Verify restart with changed hours and a mixed legacy file. Verify 1.4.0 at 15a4ad2 starts and lists every ticket from a candidate-written file. 1.4.0's later save strips unknown fields. Retain a pre-rollback file to recover deadlines by ticket ID without replacing current ticket state.",
+    "entry_when_written_from": "commit 8e0c4e7, the newest of docs/shiploop/spec.md at or before the answer; its digest is the note's",
+    "before_md": [
+     "R-3 as it read when N1 was written (2026-11-22T20:35:29Z):",
+     "### R-3 Historical data and rollout\n\nBasis: 2026-11-22 request (S6–S8), docs/decisions/0008-json-data-file.md. Startup backfills only missing deadlines from the stored priority and creation, before serving. Existing deadlines and business state survive the same atomic save and future reads, with no migration audit or notification. Default rollout starts the new version with exposure off, verifies the file and restarts enabled. A failed migration prevents startup. Verify restart with changed hours and a mixed legacy file. Verify 1.4.0 at 15a4ad2 starts and lists every ticket from a candidate-written file. 1.4.0's later save strips unknown fields. Retain a pre-rollback file to recover deadlines by ticket ID without replacing current ticket state."
+    ],
+    "entry_at_end": "### R-3 Historical data and rollout\n\nBasis: 2026-11-22 request (S6–S8), docs/decisions/0008-json-data-file.md. Startup backfills only missing deadlines from the stored priority and creation, before serving. Existing deadlines and business state survive the same atomic save and future reads, with no migration audit or notification. Default rollout starts the new version with exposure off, verifies the file and restarts enabled. A failed migration prevents startup. Verify restart with changed hours and a mixed legacy file. Verify 1.4.0 at 15a4ad2 starts and lists every ticket from a candidate-written file. 1.4.0's later save strips unknown fields. Retain a pre-rollback file to recover deadlines by ticket ID without replacing current ticket state.",
+    "entry_at_end_is": "current",
+    "unchanged_since_the_answer": true,
+    "results_naming_it": [],
+    "commits_after": {
+     "checkout": "~/e2e-runs/r-20261122-8a73b9/e2/.shiploop-runs/work-20261122-203006-8b24b5/worktree",
+     "spec": "docs/shiploop/spec.md",
+     "after": 5,
+     "same_second": 0,
+     "touching_spec": []
+    },
+    "failed_commands_after": {
+     "by_stage": {
+      "test": 1
+     },
+     "naming": []
+    },
+    "end": {
+     "status": "done",
+     "planning_reconciliations": 0,
+     "planning_reconciliations_after": 0,
+     "blocked_or_reconcile_after": []
+    },
+    "held_line": {
+     "prints": 17,
+     "packets": 16,
+     "stages": [
+      "test W1",
+      "document W1",
+      "document W1",
+      "improve W1",
+      "carry-forward W1",
+      "improve W1",
+      "system-test-author",
+      "improve",
+      "system-test",
+      "product-acceptance",
+      "release-plan",
+      "improve",
+      "release-check",
+      "release",
+      "release-verify",
+      "operations",
+      "handoff"
+     ],
+     "packet_prints_unreadable": 0
+    }
+   }
+  ]
+ },
+ {
+  "name": "e3",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "ended": true,
+  "outcome": "FAILED",
+  "basis": "engine done; at least one verdict failed",
+  "verdicts": {
+   "invoked": true,
+   "plugin": true,
+   "process": true,
+   "shiploop": true,
+   "committed": true
+  },
+  "checks_passed": 3,
+  "checks": 8,
+  "failed": [
+   {
+    "check": "due_times_probe.py migrate",
+    "output_end": "s/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-9_gjjihn/tickets.json: tickets are missing due times; run the due-time backfill with the service stopped (the delivery DUE_TIMES=on server did not start) migrate: 1 expectation(s) failed"
+   },
+   {
+    "check": "due_times_probe.py restart",
+    "output_end": "var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-29k48fpl/tickets.json: tickets are missing due times; run the due-time backfill with the service stopped (the first start server did not start) restart: 1 expectation(s) failed"
+   },
+   {
+    "check": "due_times_probe.py switch",
+    "output_end": "var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-ccgr5mxk/tickets.json: tickets are missing due times; run the due-time backfill with the service stopped (the DUE_TIMES=on server did not start) switch: 1 expectation(s) failed"
+   },
+   {
+    "check": "due_times_probe.py rollback",
+    "output_end": "cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-tfpf5l08/on/tickets.json: tickets are missing due times; run the due-time backfill with the service stopped (the delivery, DUE_TIMES=on server did not start) rollback: 1 expectation(s) failed"
+   },
+   {
+    "check": "due_times_probe.py cli",
+    "output_end": "lders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-dw83_m9s/tickets.json: tickets are missing due times; run the due-time backfill with the service stopped (the delivery DUE_TIMES=on server did not start) cli: 1 expectation(s) failed"
+   }
+  ],
+  "startup": {
+   "migrate": false,
+   "restart": false,
+   "switch": false,
+   "rollback": false,
+   "cli": false
+  },
+  "started": "2026-11-22 20:29:44Z",
+  "ended_at": "2026-11-22 20:40:26Z",
+  "minutes": 10.7,
+  "turns": 122,
+  "model_calls": 66,
+  "output_tokens": 21777,
+  "cost_usd": null,
+  "spec_seconds": 60.0,
+  "strategy_seconds": 24.0,
+  "requester": {
+   "case": "ticket-due-times",
+   "mode": "answer-at",
+   "reply_enabled": true,
+   "stage_waited_for": "implement",
+   "rule": {
+    "tickets": "\\b(backfill\\w*|back-fill\\w*|migrat\\w*|existing|already|older)\\b",
+    "start": "\\b(start\\w*|start-up|boot\\w*|launch\\w*|restart\\w*)\\b",
+    "absent": "\\b(missing|without|lack\\w*|no due|has none|have none|has no|have no)\\b"
+   },
+   "run_dir": "~/e2e-runs/r-20261122-8a73b9/e3/.shiploop-runs/work-20261122-203003-15e31e/run",
+   "seen_at": "2026-11-22T20:32:13Z",
+   "block_printed": true,
+   "rows": [
+    "1. R-1 How do operators set response hours? Decided: Set DUE_HOURS_<PRIORITY> per priority with nonnegative whole hours. Otherwise: One JSON environment setting would require editing the entire mapping at once. Selector: 1@21bde4d3.",
+    "2. R-2 When does a ticket first count as overdue? Decided: A ticket appears after the due instant has passed. Otherwise: An inclusive comparison would show it at equality. Selector: 2@21bde4d3.",
+    "3. R-3 How does an operator prepare the file? Decided: Stop the writer, run the offline backfill, then enable the flag. Otherwise: Automatic startup migration would combine preparation and activation. Selector: 3@21bde4d3."
+   ],
+   "recorded": [
+    {
+     "alternative": "One JSON environment setting would require editing the entire mapping at once.",
+     "default": "Set DUE_HOURS_<PRIORITY> per priority with nonnegative whole hours.",
+     "question": "How do operators set response hours?",
+     "requirement": "R-1",
+     "why": "The service uses individual environment variables and whole-hour defaults."
+    },
+    {
+     "alternative": "An inclusive comparison would show it at equality.",
+     "default": "A ticket appears after the due instant has passed.",
+     "question": "When does a ticket first count as overdue?",
+     "requirement": "R-2",
+     "why": "The request uses has passed."
+    },
+    {
+     "alternative": "Automatic startup migration would combine preparation and activation.",
+     "default": "Stop the writer, run the offline backfill, then enable the flag.",
+     "question": "How does an operator prepare the file?",
+     "requirement": "R-3",
+     "why": "The request requires the file to hold due times before switching on."
+    }
+   ],
+   "about": [
+    false,
+    false,
+    true
+   ],
+   "note": {
+    "exit": 0,
+    "id": "N1",
+    "text": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.",
+    "default": "3@21bde4d3",
+    "output": "Owner note N1 written: ~/e2e-runs/r-20261122-8a73b9/e3/.shiploop-runs/work-20261122-203003-15e31e/run/owner-notes/N1.md.\nN1 answers 3@21bde4d3 (R-3: How does an operator prepare the file?; decided: Stop the writer, run the offline backfill, then enable the flag.). The test-strategy stage has already submitted its result, so this answer is held for a new run: no stage is told to act on it, and the done packet and the report show it. To change one, start a new run on this project with a sentence that says what you want instead.\nThe run is active at W1 implement (action nav-f287c5b664524ab3a07e44676079acea)."
+   },
+   "choice": {
+    "candidates": [
+     {
+      "row": 1,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": []
+     },
+     {
+      "row": 2,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": []
+     },
+     {
+      "row": 3,
+      "score": 6,
+      "qualifies": true,
+      "subject": false,
+      "data_file": true,
+      "acts": [
+       "backfill",
+       "migration",
+       "preparing",
+       "enabling",
+       "starting"
+      ]
+     }
+    ],
+    "chosen": 3,
+    "ambiguous": false,
+    "tied": [],
+    "selector": "3@21bde4d3"
+   },
+   "stage_seen_at": "2026-11-22T20:34:08Z",
+   "rows_at_send": [
+    "1. R-1 How do operators set response hours? Decided: Set DUE_HOURS_<PRIORITY> per priority with nonnegative whole hours. Otherwise: One JSON environment setting would require editing the entire mapping at once. Selector: 1@21bde4d3.",
+    "2. R-2 When does a ticket first count as overdue? Decided: A ticket appears after the due instant has passed. Otherwise: An inclusive comparison would show it at equality. Selector: 2@21bde4d3.",
+    "3. R-3 How does an operator prepare the file? Decided: Stop the writer, run the offline backfill, then enable the flag. Otherwise: Automatic startup migration would combine preparation and activation. Selector: 3@21bde4d3."
+   ],
+   "choice_at_send": {
+    "candidates": [
+     {
+      "row": 1,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": []
+     },
+     {
+      "row": 2,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": []
+     },
+     {
+      "row": 3,
+      "score": 6,
+      "qualifies": true,
+      "subject": false,
+      "data_file": true,
+      "acts": [
+       "backfill",
+       "migration",
+       "preparing",
+       "enabling",
+       "starting"
+      ]
+     }
+    ],
+    "chosen": 3,
+    "ambiguous": false,
+    "tied": [],
+    "selector": "3@21bde4d3"
+   },
+   "sent_at": "implement"
+  },
+  "last_message": "Implemented ticket due times in version 1.5.0 and returned the release to the original checkout. All 120 tests passed, including the 117 existing tests. The original 1.4.0 server also started on an upgraded test file and returned every ticket.\n\nResponse hours are configurable per priority. Once assigned, a ticket’s `due` stays fixed. With `DUE_TIMES=on`, `GET /tickets?overdue=true` returns open and in-progress tickets whose deadlines are strictly earlier than the current time.\n\nThis release uses an offline backfill before activation. ShipLoop recorded the later request for automatic startup backfill for a separate run. Production remains untouched. The rollout guide also explains how to preserve deadlines before rolling back, because a 1.4.0 save drops the `due` fields. [Rollout and rollback guide](~/e2e-runs/r-20261122-8a73b9/e3/work/docs/operations.md:54) · [ShipLoop report](~/e2e-runs/r-20261122-8a73b9/e3/.shiploop-runs/work-20261122-203003-15e31e/run/report.html)\n",
+  "run_folders": 1,
+  "run": "~/e2e-runs/r-20261122-8a73b9/e3/.shiploop-runs/work-20261122-203003-15e31e/run",
+  "status": "done",
+  "stage": "done",
+  "revision": 30,
+  "list": [
+   {
+    "row": 1,
+    "selector": "1@21bde4d3",
+    "requirement": "R-1",
+    "question": "How do operators set response hours?",
+    "default": "Set DUE_HOURS_<PRIORITY> per priority with nonnegative whole hours.",
+    "alternative": "One JSON environment setting would require editing the entire mapping at once."
+   },
+   {
+    "row": 2,
+    "selector": "2@21bde4d3",
+    "requirement": "R-2",
+    "question": "When does a ticket first count as overdue?",
+    "default": "A ticket appears after the due instant has passed.",
+    "alternative": "An inclusive comparison would show it at equality."
+   },
+   {
+    "row": 3,
+    "selector": "3@21bde4d3",
+    "requirement": "R-3",
+    "question": "How does an operator prepare the file?",
+    "default": "Stop the writer, run the offline backfill, then enable the flag.",
+    "alternative": "Automatic startup migration would combine preparation and activation."
+   }
+  ],
+  "notes": [
+   {
+    "id": "N1",
+    "written_at": "2026-11-22T20:34:08Z",
+    "row": 3,
+    "selector": "3@21bde4d3",
+    "requirement": "R-3",
+    "words": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.",
+    "stands": "late"
+   }
+  ],
+  "answers_rows": null,
+  "strategy_accepted": true,
+  "entries": [
+   {
+    "requirement": "R-3",
+    "at_spec": "### R-3 Backfill safely\n\nAn offline command fills missing due fields from each stored ticket's creation time and priority, preserves previously assigned due values and saves through atomic replacement. Enabled startup refuses incomplete persisted data.\n\nAcceptance: start from 1.4.0-shaped JSON, refuse early enablement, backfill twice with changed settings, and reopen via HTTP. Verify preserved audit and outbox.",
+    "after_test_strategy": "### R-3 Backfill safely\n\nAn offline command fills missing due fields from each stored ticket's creation time and priority, preserves previously assigned due values and saves through atomic replacement. Enabled startup refuses incomplete persisted data.\n\nAcceptance: start from 1.4.0-shaped JSON, refuse early enablement, backfill twice with changed settings, and reopen via HTTP. Verify preserved audit and outbox.",
+    "differ": false
+   }
+  ],
+  "trace": {
+   "held": [],
+   "naming_answers": [],
+   "other_refusals_by_stage": {
+    "plan": 1
+   },
+   "failed_checks_by_stage": {
+    "step-plan": 1,
+    "test": 1
+   }
+  },
+  "displays": {
+   "packets_with_the_block": 0,
+   "packets_with_the_held_line": 16,
+   "packets": 31,
+   "done_packet_lines": [
+    "3. R-3 How does an operator prepare the file? Decided: Stop the writer, run the offline backfill, then enable the flag. Otherwise: Automatic startup migration would combine preparation and activation. Answered by the requester (N1) after test-strategy had submitted its result: \"Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.\"; held for a new run."
+   ],
+   "report_lines": [
+    "Answered by the requester (N1) after test-strategy had submitted its result: \"Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.\"; held for a new run."
+   ]
+  },
+  "applied": [],
+  "held": [
+   {
+    "id": "N1",
+    "stands": "late",
+    "row": 3,
+    "requirement": "R-3",
+    "selector": "3@21bde4d3",
+    "words": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.",
+    "written_at": "2026-11-22T20:34:08Z",
+    "listed_row": "3. R-3 How does an operator prepare the file? Decided: Stop the writer, run the offline backfill, then enable the flag. Otherwise: Automatic startup migration would combine preparation and activation.",
+    "in_trace": "2026-11-22 20:34:08.330Z",
+    "last_accepted_before": {
+     "stage": "validate-existing",
+     "workitem": "W1",
+     "outcome": "done",
+     "action": "nav-76c65bd034344bdfb3bacc2bde975e8d",
+     "accepted_at": "2026-11-22 20:34:06.925Z"
+    },
+    "open_then": {
+     "stage": "implement",
+     "workitem": "W1",
+     "action": "nav-f287c5b664524ab3a07e44676079acea",
+     "from": "the trace's note command"
+    },
+    "checkout": "~/e2e-runs/r-20261122-8a73b9/e3/.shiploop-runs/work-20261122-203003-15e31e/worktree",
+    "entry_when_written": "### R-3 Backfill safely\n\nAn offline command fills missing due fields from each stored ticket's creation time and priority, preserves previously assigned due values and saves through atomic replacement. Enabled startup refuses incomplete persisted data.\n\nAcceptance: start from 1.4.0-shaped JSON, refuse early enablement, backfill twice with changed settings, and reopen via HTTP. Verify preserved audit and outbox.",
+    "entry_when_written_from": "commit 46c9cd2, the newest of docs/shiploop/spec.md at or before the answer; its digest is the note's",
+    "before_md": [
+     "R-3 as it read when N1 was written (2026-11-22T20:34:08Z):",
+     "### R-3 Backfill safely\n\nAn offline command fills missing due fields from each stored ticket's creation time and priority, preserves previously assigned due values and saves through atomic replacement. Enabled startup refuses incomplete persisted data.\n\nAcceptance: start from 1.4.0-shaped JSON, refuse early enablement, backfill twice with changed settings, and reopen via HTTP. Verify preserved audit and outbox."
+    ],
+    "entry_at_end": "### R-3 Backfill safely\n\nAn offline command fills missing due fields from each stored ticket's creation time and priority, preserves previously assigned due values and saves through atomic replacement. Enabled startup refuses incomplete persisted data.\n\nAcceptance: start from 1.4.0-shaped JSON, refuse early enablement, backfill twice with changed settings, and reopen via HTTP. Verify preserved audit and outbox.",
+    "entry_at_end_is": "current",
+    "unchanged_since_the_answer": true,
+    "results_naming_it": [],
+    "commits_after": {
+     "checkout": "~/e2e-runs/r-20261122-8a73b9/e3/.shiploop-runs/work-20261122-203003-15e31e/worktree",
+     "spec": "docs/shiploop/spec.md",
+     "after": 4,
+     "same_second": 0,
+     "touching_spec": []
+    },
+    "failed_commands_after": {
+     "by_stage": {
+      "test": 1
+     },
+     "naming": []
+    },
+    "end": {
+     "status": "done",
+     "planning_reconciliations": 0,
+     "planning_reconciliations_after": 0,
+     "blocked_or_reconcile_after": []
+    },
+    "held_line": {
+     "prints": 17,
+     "packets": 17,
+     "stages": [
+      "test W1",
+      "document W1",
+      "improve W1",
+      "carry-forward W1",
+      "improve W1",
+      "system-test-author",
+      "improve",
+      "system-test",
+      "product-acceptance",
+      "release-plan",
+      "improve",
+      "release-check",
+      "release",
+      "release",
+      "release-verify",
+      "operations",
+      "handoff"
+     ],
+     "packet_prints_unreadable": 0
+    }
+   }
+  ]
+ },
+ {
+  "name": "e4",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "ended": true,
+  "outcome": "PASS",
+  "basis": "every verdict passed",
+  "verdicts": {
+   "invoked": true,
+   "plugin": true,
+   "process": true,
+   "shiploop": true,
+   "committed": true
+  },
+  "checks_passed": 8,
+  "checks": 8,
+  "failed": [],
+  "startup": {
+   "migrate": true,
+   "restart": true,
+   "switch": true,
+   "rollback": true,
+   "cli": true
+  },
+  "started": "2026-11-22 20:47:26Z",
+  "ended_at": "2026-11-22 21:02:47Z",
+  "minutes": 15.4,
+  "turns": 204,
+  "model_calls": 71,
+  "output_tokens": 32431,
+  "cost_usd": null,
+  "spec_seconds": 54.0,
+  "strategy_seconds": 58.0,
+  "requester": {
+   "case": "ticket-due-times",
+   "mode": "answer-at",
+   "reply_enabled": true,
+   "stage_waited_for": "implement",
+   "rule": {
+    "tickets": "\\b(backfill\\w*|back-fill\\w*|migrat\\w*|existing|already|older)\\b",
+    "start": "\\b(start\\w*|start-up|boot\\w*|launch\\w*|restart\\w*)\\b",
+    "absent": "\\b(missing|without|lack\\w*|no due|has none|have none|has no|have no)\\b"
+   },
+   "run_dir": "~/e2e-runs/r-20261122-8a73b9/e4/.shiploop-runs/work-20261122-204744-63bb3d/run",
+   "seen_at": "2026-11-22T20:49:56Z",
+   "block_printed": true,
+   "rows": [
+    "1. R-1 How are hours configured? Decided: Four environment variables accept nonnegative whole hours with the existing empty-value convention. Otherwise: A schedule file would group all values in one place. Selector: 1@b64077d3.",
+    "2. R-2 How do other overdue query values and CLI output behave? Decided: Only true applies the filter. Flagged human CLI output includes due when saved, and raw columns stay stable. Otherwise: Reject other query values or introduce a new raw format. Selector: 2@b64077d3.",
+    "3. R-3 How does the operator populate the file before exposure? Decided: Start the new release with the flag off and let it backfill before it listens. Otherwise: Run a separate offline migration command before starting the new binary. Selector: 3@b64077d3."
+   ],
+   "recorded": [
+    {
+     "alternative": "A schedule file would group all values in one place.",
+     "default": "Four environment variables accept nonnegative whole hours with the existing empty-value convention.",
+     "question": "How are hours configured?",
+     "requirement": "R-1",
+     "why": "Existing operator settings are environment variables."
+    },
+    {
+     "alternative": "Reject other query values or introduce a new raw format.",
+     "default": "Only true applies the filter. Flagged human CLI output includes due when saved, and raw columns stay stable.",
+     "question": "How do other overdue query values and CLI output behave?",
+     "requirement": "R-2",
+     "why": "Unknown query parameters and fixed report columns are established contracts."
+    },
+    {
+     "alternative": "Run a separate offline migration command before starting the new binary.",
+     "default": "Start the new release with the flag off and let it backfill before it listens.",
+     "question": "How does the operator populate the file before exposure?",
+     "requirement": "R-3",
+     "why": "Startup has the existing single-writer and atomic-save path and can migrate before traffic."
+    }
+   ],
+   "about": [
+    true,
+    false,
+    true
+   ],
+   "note": {
+    "exit": 0,
+    "id": "N1",
+    "text": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.",
+    "default": "3@b64077d3",
+    "output": "Owner note N1 written: ~/e2e-runs/r-20261122-8a73b9/e4/.shiploop-runs/work-20261122-204744-63bb3d/run/owner-notes/N1.md.\nN1 answers 3@b64077d3 (R-3: How does the operator populate the file before exposure?; decided: Start the new release with the flag off and let it backfill before it listens.). The test-strategy stage has already submitted its result, so this answer is held for a new run: no stage is told to act on it, and the done packet and the report show it. To change one, start a new run on this project with a sentence that says what you want instead.\nThe run is active at W1 implement (action nav-5d7c16165ab14748b101894389119741)."
+   },
+   "choice": {
+    "candidates": [
+     {
+      "row": 1,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": []
+     },
+     {
+      "row": 2,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": []
+     },
+     {
+      "row": 3,
+      "score": 5,
+      "qualifies": true,
+      "subject": false,
+      "data_file": true,
+      "acts": [
+       "backfill",
+       "migration",
+       "preparing",
+       "starting"
+      ]
+     }
+    ],
+    "chosen": 3,
+    "ambiguous": false,
+    "tied": [],
+    "selector": "3@b64077d3"
+   },
+   "stage_seen_at": "2026-11-22T20:54:01Z",
+   "rows_at_send": [
+    "1. R-1 How are hours configured? Decided: Four environment variables accept nonnegative whole hours with the existing empty-value convention. Otherwise: A schedule file would group all values in one place. Selector: 1@b64077d3.",
+    "2. R-2 How do other overdue query values and CLI output behave? Decided: Only true applies the filter. Flagged human CLI output includes due when saved, and raw columns stay stable. Otherwise: Reject other query values or introduce a new raw format. Selector: 2@b64077d3.",
+    "3. R-3 How does the operator populate the file before exposure? Decided: Start the new release with the flag off and let it backfill before it listens. Otherwise: Run a separate offline migration command before starting the new binary. Selector: 3@b64077d3."
+   ],
+   "choice_at_send": {
+    "candidates": [
+     {
+      "row": 1,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": []
+     },
+     {
+      "row": 2,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": []
+     },
+     {
+      "row": 3,
+      "score": 5,
+      "qualifies": true,
+      "subject": false,
+      "data_file": true,
+      "acts": [
+       "backfill",
+       "migration",
+       "preparing",
+       "starting"
+      ]
+     }
+    ],
+    "chosen": 3,
+    "ambiguous": false,
+    "tied": [],
+    "selector": "3@b64077d3"
+   },
+   "sent_at": "implement"
+  },
+  "last_message": "Implemented ticket due times in version 1.5.0 and returned the changes to `master`. All 123 tests pass, including the 117 unchanged original tests.\n\n- Deadlines are set once using configurable `DUE_HOURS_*` settings. The defaults are 4, 24, 72, and 168 hours for urgent, high, normal, and low.\n- Startup automatically saves missing deadlines before accepting requests, with `DUE_TIMES` either on or off. Only `DUE_TIMES=on` exposes `due` and enables `?overdue=true`, which returns open and in-progress tickets strictly past due. The enabled CLI shows deadlines in human-readable output and preserves the four raw columns.\n- The actual 1.4.0 release started on the upgraded file and displayed every ticket. Its saves drop deadline metadata, so the rollback procedure explains how to preserve assigned deadlines before downgrading. [Rollout and rollback guide](~/e2e-runs/r-20261122-8a73b9/e4/work/docs/operations.md:27)\n\nProduction activation remains pending. ShipLoop held your later startup clarification for a follow-on run, but the delivered code already does what it describes. I verified startup directly with `DUE_TIMES=on` against a legacy file. The report lists all three implementation choices and their rationale. [ShipLoop report](~/e2e-runs/r-20261122-8a73b9/e4/.shiploop-runs/work-20261122-204744-63bb3d/run/report.html)\n",
+  "run_folders": 1,
+  "run": "~/e2e-runs/r-20261122-8a73b9/e4/.shiploop-runs/work-20261122-204744-63bb3d/run",
+  "status": "done",
+  "stage": "done",
+  "revision": 34,
+  "list": [
+   {
+    "row": 1,
+    "selector": "1@b64077d3",
+    "requirement": "R-1",
+    "question": "How are hours configured?",
+    "default": "Four environment variables accept nonnegative whole hours with the existing empty-value convention.",
+    "alternative": "A schedule file would group all values in one place."
+   },
+   {
+    "row": 2,
+    "selector": "2@b64077d3",
+    "requirement": "R-2",
+    "question": "How do other overdue query values and CLI output behave?",
+    "default": "Only true applies the filter. Flagged human CLI output includes due when saved, and raw columns stay stable.",
+    "alternative": "Reject other query values or introduce a new raw format."
+   },
+   {
+    "row": 3,
+    "selector": "3@b64077d3",
+    "requirement": "R-3",
+    "question": "How does the operator populate the file before exposure?",
+    "default": "Start the new release with the flag off and let it backfill before it listens.",
+    "alternative": "Run a separate offline migration command before starting the new binary."
+   }
+  ],
+  "notes": [
+   {
+    "id": "N1",
+    "written_at": "2026-11-22T20:54:02Z",
+    "row": 3,
+    "selector": "3@b64077d3",
+    "requirement": "R-3",
+    "words": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.",
+    "stands": "late"
+   }
+  ],
+  "answers_rows": null,
+  "strategy_accepted": true,
+  "entries": [
+   {
+    "requirement": "R-3",
+    "at_spec": "### R-3 Durable migration and rollback\n\nBasis: 2026-11-22 request (S6-S8). Before accepting HTTP traffic, migrated records missing due are assigned from their stored creation and priority and saved atomically, even with the flag off. Preserve existing due, ticket IDs, metadata, audit and outbox. A restart with no missing deadlines skips the migration write. Startup fails if the backfill cannot persist. Verify with disposable files and a second restart at different hours. The 1.4.0 service starts on the new file and lists every ticket. Legacy rewrites drop due, so retaining assigned values through a rollback requires reconciling a saved copy when restoring the new release. Rehearse with 5433862 on the candidate's actual file. No production file is available to this run.",
+    "after_test_strategy": "### R-3 Durable migration and rollback\n\nBasis: 2026-11-22 request (S6-S8). Before accepting HTTP traffic, migrated records missing due are assigned from their stored creation and priority and saved atomically, even with the flag off. Preserve existing due, ticket IDs, metadata, audit and outbox. A restart with no missing deadlines skips the migration write. Startup fails if the backfill cannot persist. Verify with disposable files and a second restart at different hours. The 1.4.0 service starts on the new file and lists every ticket. Legacy rewrites drop due, so retaining assigned values through a rollback requires reconciling a saved copy when restoring the new release. Rehearse with 5433862 on the candidate's actual file. No production file is available to this run.",
+    "differ": false
+   }
+  ],
+  "trace": {
+   "held": [],
+   "naming_answers": [],
+   "other_refusals_by_stage": {
+    "test-strategy": 2
+   },
+   "failed_checks_by_stage": {
+    "step-plan": 1,
+    "test": 3
+   }
+  },
+  "displays": {
+   "packets_with_the_block": 0,
+   "packets_with_the_held_line": 20,
+   "packets": 35,
+   "done_packet_lines": [
+    "3. R-3 How does the operator populate the file before exposure? Decided: Start the new release with the flag off and let it backfill before it listens. Otherwise: Run a separate offline migration command before starting the new binary. Answered by the requester (N1) after test-strategy had submitted its result: \"Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.\"; held for a new run."
+   ],
+   "report_lines": [
+    "Answered by the requester (N1) after test-strategy had submitted its result: \"Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.\"; held for a new run."
+   ]
+  },
+  "applied": [],
+  "held": [
+   {
+    "id": "N1",
+    "stands": "late",
+    "row": 3,
+    "requirement": "R-3",
+    "selector": "3@b64077d3",
+    "words": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.",
+    "written_at": "2026-11-22T20:54:02Z",
+    "listed_row": "3. R-3 How does the operator populate the file before exposure? Decided: Start the new release with the flag off and let it backfill before it listens. Otherwise: Run a separate offline migration command before starting the new binary.",
+    "in_trace": "2026-11-22 20:54:02.237Z",
+    "last_accepted_before": {
+     "stage": "validate-existing",
+     "workitem": "W1",
+     "outcome": "done",
+     "action": "nav-e5bd13cb99ac4348a57ea43d7a053239",
+     "accepted_at": "2026-11-22 20:54:01.473Z"
+    },
+    "open_then": {
+     "stage": "implement",
+     "workitem": "W1",
+     "action": "nav-5d7c16165ab14748b101894389119741",
+     "from": "the trace's note command"
+    },
+    "checkout": "~/e2e-runs/r-20261122-8a73b9/e4/.shiploop-runs/work-20261122-204744-63bb3d/worktree",
+    "entry_when_written": "### R-3 Durable migration and rollback\n\nBasis: 2026-11-22 request (S6-S8). Before accepting HTTP traffic, migrated records missing due are assigned from their stored creation and priority and saved atomically, even with the flag off. Preserve existing due, ticket IDs, metadata, audit and outbox. A restart with no missing deadlines skips the migration write. Startup fails if the backfill cannot persist. Verify with disposable files and a second restart at different hours. The 1.4.0 service starts on the new file and lists every ticket. Legacy rewrites drop due, so retaining assigned values through a rollback requires reconciling a saved copy when restoring the new release. Rehearse with 5433862 on the candidate's actual file. No production file is available to this run.",
+    "entry_when_written_from": "commit 98bcd49, the newest of docs/shiploop/spec.md at or before the answer; its digest is the note's",
+    "before_md": [
+     "R-3 as it read when N1 was written (2026-11-22T20:54:02Z):",
+     "### R-3 Durable migration and rollback\n\nBasis: 2026-11-22 request (S6-S8). Before accepting HTTP traffic, migrated records missing due are assigned from their stored creation and priority and saved atomically, even with the flag off. Preserve existing due, ticket IDs, metadata, audit and outbox. A restart with no missing deadlines skips the migration write. Startup fails if the backfill cannot persist. Verify with disposable files and a second restart at different hours. The 1.4.0 service starts on the new file and lists every ticket. Legacy rewrites drop due, so retaining assigned values through a rollback requires reconciling a saved copy when restoring the new release. Rehearse with 5433862 on the candidate's actual file. No production file is available to this run."
+    ],
+    "entry_at_end": "### R-3 Durable migration and rollback\n\nBasis: 2026-11-22 request (S6-S8). Before accepting HTTP traffic, migrated records missing due are assigned from their stored creation and priority and saved atomically, even with the flag off. Preserve existing due, ticket IDs, metadata, audit and outbox. A restart with no missing deadlines skips the migration write. Startup fails if the backfill cannot persist. Verify with disposable files and a second restart at different hours. The 1.4.0 service starts on the new file and lists every ticket. Legacy rewrites drop due, so retaining assigned values through a rollback requires reconciling a saved copy when restoring the new release. Rehearse with 5433862 on the candidate's actual file. No production file is available to this run.",
+    "entry_at_end_is": "current",
+    "unchanged_since_the_answer": true,
+    "results_naming_it": [],
+    "commits_after": {
+     "checkout": "~/e2e-runs/r-20261122-8a73b9/e4/.shiploop-runs/work-20261122-204744-63bb3d/worktree",
+     "spec": "docs/shiploop/spec.md",
+     "after": 6,
+     "same_second": 0,
+     "touching_spec": []
+    },
+    "failed_commands_after": {
+     "by_stage": {
+      "test": 3
+     },
+     "naming": []
+    },
+    "end": {
+     "status": "done",
+     "planning_reconciliations": 0,
+     "planning_reconciliations_after": 0,
+     "blocked_or_reconcile_after": []
+    },
+    "held_line": {
+     "prints": 20,
+     "packets": 20,
+     "stages": [
+      "test W1",
+      "document W1",
+      "improve W1",
+      "implement W1",
+      "test W1",
+      "document W1",
+      "improve W1",
+      "carry-forward W1",
+      "improve W1",
+      "system-test-author",
+      "improve",
+      "system-test",
+      "product-acceptance",
+      "release-plan",
+      "improve",
+      "release-check",
+      "release",
+      "release-verify",
+      "operations",
+      "handoff"
+     ],
+     "packet_prints_unreadable": 0
+    }
+   }
+  ]
+ },
+ {
+  "name": "e5",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "ended": true,
+  "outcome": "PASS",
+  "basis": "every verdict passed",
+  "verdicts": {
+   "invoked": true,
+   "plugin": true,
+   "process": true,
+   "shiploop": true,
+   "committed": true
+  },
+  "checks_passed": 8,
+  "checks": 8,
+  "failed": [],
+  "startup": {
+   "migrate": true,
+   "restart": true,
+   "switch": true,
+   "rollback": true,
+   "cli": true
+  },
+  "started": "2026-11-22 20:47:26Z",
+  "ended_at": "2026-11-22 20:59:29Z",
+  "minutes": 12.1,
+  "turns": 189,
+  "model_calls": 73,
+  "output_tokens": 24114,
+  "cost_usd": null,
+  "spec_seconds": 48.0,
+  "strategy_seconds": 45.0,
+  "requester": {
+   "case": "ticket-due-times",
+   "mode": "answer-at",
+   "reply_enabled": true,
+   "stage_waited_for": "implement",
+   "rule": {
+    "tickets": "\\b(backfill\\w*|back-fill\\w*|migrat\\w*|existing|already|older)\\b",
+    "start": "\\b(start\\w*|start-up|boot\\w*|launch\\w*|restart\\w*)\\b",
+    "absent": "\\b(missing|without|lack\\w*|no due|has none|have none|has no|have no)\\b"
+   },
+   "run_dir": "~/e2e-runs/r-20261122-8a73b9/e5/.shiploop-runs/work-20261122-204743-6978c3/run",
+   "seen_at": "2026-11-22T20:49:44Z",
+   "block_printed": true,
+   "rows": [
+    "1. R-1 How do operators change the hours? Decided: Set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL or DUE_HOURS_LOW before startup, using positive whole hours. Otherwise: A configuration file would add another input and choice of precedence. Selector: 1@ca46dd23.",
+    "2. R-2 Is a ticket overdue at the instant it is due? Decided: It becomes overdue as soon as the service clock is later than due. Otherwise: An inclusive cutoff would show it at the exact timestamp. Selector: 2@ca46dd23.",
+    "3. R-3 How do operators prepare stored tickets? Decided: Start the new binary with the flag off. Startup backfills before accepting traffic. Otherwise: An offline command would require a separate maintenance invocation. Selector: 3@ca46dd23."
+   ],
+   "recorded": [
+    {
+     "alternative": "A configuration file would add another input and choice of precedence.",
+     "default": "Set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL or DUE_HOURS_LOW before startup, using positive whole hours.",
+     "question": "How do operators change the hours?",
+     "requirement": "R-1",
+     "why": "Existing configuration is environment based."
+    },
+    {
+     "alternative": "An inclusive cutoff would show it at the exact timestamp.",
+     "default": "It becomes overdue as soon as the service clock is later than due.",
+     "question": "Is a ticket overdue at the instant it is due?",
+     "requirement": "R-2",
+     "why": "The request says the due time has passed."
+    },
+    {
+     "alternative": "An offline command would require a separate maintenance invocation.",
+     "default": "Start the new binary with the flag off. Startup backfills before accepting traffic.",
+     "question": "How do operators prepare stored tickets?",
+     "requirement": "R-3",
+     "why": "The existing single-writer service already loads and saves its full state at startup and during service."
+    }
+   ],
+   "about": [
+    false,
+    false,
+    true
+   ],
+   "note": {
+    "exit": 0,
+    "id": "N1",
+    "text": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.",
+    "default": "3@ca46dd23",
+    "output": "Owner note N1 written: ~/e2e-runs/r-20261122-8a73b9/e5/.shiploop-runs/work-20261122-204743-6978c3/run/owner-notes/N1.md.\nN1 answers 3@ca46dd23 (R-3: How do operators prepare stored tickets?; decided: Start the new binary with the flag off. Startup backfills before accepting traffic.). The test-strategy stage has already submitted its result, so this answer is held for a new run: no stage is told to act on it, and the done packet and the report show it. To change one, start a new run on this project with a sentence that says what you want instead.\nThe run is active at W1 implement (action nav-73344abb52174e118c2238bc348da7f4)."
+   },
+   "choice": {
+    "candidates": [
+     {
+      "row": 1,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": [
+       "starting"
+      ]
+     },
+     {
+      "row": 2,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": []
+     },
+     {
+      "row": 3,
+      "score": 5,
+      "qualifies": true,
+      "subject": true,
+      "data_file": false,
+      "acts": [
+       "backfill",
+       "preparing",
+       "starting"
+      ]
+     }
+    ],
+    "chosen": 3,
+    "ambiguous": false,
+    "tied": [],
+    "selector": "3@ca46dd23"
+   },
+   "stage_seen_at": "2026-11-22T20:52:53Z",
+   "rows_at_send": [
+    "1. R-1 How do operators change the hours? Decided: Set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL or DUE_HOURS_LOW before startup, using positive whole hours. Otherwise: A configuration file would add another input and choice of precedence. Selector: 1@ca46dd23.",
+    "2. R-2 Is a ticket overdue at the instant it is due? Decided: It becomes overdue as soon as the service clock is later than due. Otherwise: An inclusive cutoff would show it at the exact timestamp. Selector: 2@ca46dd23.",
+    "3. R-3 How do operators prepare stored tickets? Decided: Start the new binary with the flag off. Startup backfills before accepting traffic. Otherwise: An offline command would require a separate maintenance invocation. Selector: 3@ca46dd23."
+   ],
+   "choice_at_send": {
+    "candidates": [
+     {
+      "row": 1,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": [
+       "starting"
+      ]
+     },
+     {
+      "row": 2,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": []
+     },
+     {
+      "row": 3,
+      "score": 5,
+      "qualifies": true,
+      "subject": true,
+      "data_file": false,
+      "acts": [
+       "backfill",
+       "preparing",
+       "starting"
+      ]
+     }
+    ],
+    "chosen": 3,
+    "ambiguous": false,
+    "tied": [],
+    "selector": "3@ca46dd23"
+   },
+   "sent_at": "implement"
+  },
+  "last_message": "Implemented configurable, immutable ticket due times and returned the changes to `master`. `npm test` passes all 120 tests, including the 117 existing tests.\n\nSet `DUE_HOURS_URGENT`, `DUE_HOURS_HIGH`, `DUE_HOURS_NORMAL`, or `DUE_HOURS_LOW` to override the defaults of 4, 24, 72, and 168 whole hours. Startup saves missing deadlines before serving requests, with the flag either off or on. The rollout procedure starts with the flag off so operators can verify the file before exposing `due`. With `DUE_TIMES=on`, `GET /tickets?overdue=true` returns only open and in-progress tickets strictly past their deadline.\n\nI verified that the original 1.4.0 server starts on the new file and lists every ticket. When 1.4.0 saves, it drops deadline metadata. The runbook covers restoring those deadlines by ticket ID before re-upgrading. Production rollout remains pending. [Rollout and rollback runbook](~/e2e-runs/r-20261122-8a73b9/e5/work/docs/operations.md#due-time-rollout-and-rollback)\n\nThe [ShipLoop report](~/e2e-runs/r-20261122-8a73b9/e5/.shiploop-runs/work-20261122-204743-6978c3/run/report.html) records the implementation choices and verification results.\n",
+  "run_folders": 1,
+  "run": "~/e2e-runs/r-20261122-8a73b9/e5/.shiploop-runs/work-20261122-204743-6978c3/run",
+  "status": "done",
+  "stage": "done",
+  "revision": 30,
+  "list": [
+   {
+    "row": 1,
+    "selector": "1@ca46dd23",
+    "requirement": "R-1",
+    "question": "How do operators change the hours?",
+    "default": "Set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL or DUE_HOURS_LOW before startup, using positive whole hours.",
+    "alternative": "A configuration file would add another input and choice of precedence."
+   },
+   {
+    "row": 2,
+    "selector": "2@ca46dd23",
+    "requirement": "R-2",
+    "question": "Is a ticket overdue at the instant it is due?",
+    "default": "It becomes overdue as soon as the service clock is later than due.",
+    "alternative": "An inclusive cutoff would show it at the exact timestamp."
+   },
+   {
+    "row": 3,
+    "selector": "3@ca46dd23",
+    "requirement": "R-3",
+    "question": "How do operators prepare stored tickets?",
+    "default": "Start the new binary with the flag off. Startup backfills before accepting traffic.",
+    "alternative": "An offline command would require a separate maintenance invocation."
+   }
+  ],
+  "notes": [
+   {
+    "id": "N1",
+    "written_at": "2026-11-22T20:52:53Z",
+    "row": 3,
+    "selector": "3@ca46dd23",
+    "requirement": "R-3",
+    "words": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.",
+    "stands": "late"
+   }
+  ],
+  "answers_rows": null,
+  "strategy_accepted": true,
+  "entries": [
+   {
+    "requirement": "R-3",
+    "at_spec": "### R-3 Existing data\n\nFill missing deadlines from each row's stored creation time and priority before\nserving requests. Save atomically in version 1 and preserve existing deadlines.\nVerify a mixed fixture across restarts, checking the file before any mutation.",
+    "after_test_strategy": "### R-3 Existing data\n\nFill missing deadlines from each row's stored creation time and priority before\nserving requests. Save atomically in version 1 and preserve existing deadlines.\nVerify a mixed fixture across restarts, checking the file before any mutation.",
+    "differ": false
+   }
+  ],
+  "trace": {
+   "held": [],
+   "naming_answers": [],
+   "other_refusals_by_stage": {
+    "test-strategy": 2,
+    "plan": 2,
+    "handoff": 1
+   },
+   "failed_checks_by_stage": {
+    "step-plan": 1,
+    "test": 1
+   }
+  },
+  "displays": {
+   "packets_with_the_block": 0,
+   "packets_with_the_held_line": 17,
+   "packets": 31,
+   "done_packet_lines": [
+    "3. R-3 How do operators prepare stored tickets? Decided: Start the new binary with the flag off. Startup backfills before accepting traffic. Otherwise: An offline command would require a separate maintenance invocation. Answered by the requester (N1) after test-strategy had submitted its result: \"Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.\"; held for a new run."
+   ],
+   "report_lines": [
+    "Answered by the requester (N1) after test-strategy had submitted its result: \"Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.\"; held for a new run."
+   ]
+  },
+  "applied": [],
+  "held": [
+   {
+    "id": "N1",
+    "stands": "late",
+    "row": 3,
+    "requirement": "R-3",
+    "selector": "3@ca46dd23",
+    "words": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.",
+    "written_at": "2026-11-22T20:52:53Z",
+    "listed_row": "3. R-3 How do operators prepare stored tickets? Decided: Start the new binary with the flag off. Startup backfills before accepting traffic. Otherwise: An offline command would require a separate maintenance invocation.",
+    "in_trace": "2026-11-22 20:52:53.682Z",
+    "last_accepted_before": {
+     "stage": "validate-existing",
+     "workitem": "W1",
+     "outcome": "done",
+     "action": "nav-4b4ebcc5b5fa48fb9f5b6ae8c1a00a22",
+     "accepted_at": "2026-11-22 20:52:52.932Z"
+    },
+    "open_then": {
+     "stage": "implement",
+     "workitem": "W1",
+     "action": "nav-73344abb52174e118c2238bc348da7f4",
+     "from": "the trace's note command"
+    },
+    "checkout": "~/e2e-runs/r-20261122-8a73b9/e5/.shiploop-runs/work-20261122-204743-6978c3/worktree",
+    "entry_when_written": "### R-3 Existing data\n\nFill missing deadlines from each row's stored creation time and priority before\nserving requests. Save atomically in version 1 and preserve existing deadlines.\nVerify a mixed fixture across restarts, checking the file before any mutation.",
+    "entry_when_written_from": "commit 9578cef, the newest of docs/shiploop/spec.md at or before the answer; its digest is the note's",
+    "before_md": [
+     "R-3 as it read when N1 was written (2026-11-22T20:52:53Z):",
+     "### R-3 Existing data\n\nFill missing deadlines from each row's stored creation time and priority before\nserving requests. Save atomically in version 1 and preserve existing deadlines.\nVerify a mixed fixture across restarts, checking the file before any mutation."
+    ],
+    "entry_at_end": "### R-3 Existing data\n\nFill missing deadlines from each row's stored creation time and priority before\nserving requests. Save atomically in version 1 and preserve existing deadlines.\nVerify a mixed fixture across restarts, checking the file before any mutation.",
+    "entry_at_end_is": "current",
+    "unchanged_since_the_answer": true,
+    "results_naming_it": [],
+    "commits_after": {
+     "checkout": "~/e2e-runs/r-20261122-8a73b9/e5/.shiploop-runs/work-20261122-204743-6978c3/worktree",
+     "spec": "docs/shiploop/spec.md",
+     "after": 3,
+     "same_second": 0,
+     "touching_spec": [
+      "docs(shiploop): record skill-craft-shiploop-this-directory-is-599ed3 knowledge at release-plan"
+     ]
+    },
+    "failed_commands_after": {
+     "by_stage": {
+      "test": 1,
+      "handoff": 1
+     },
+     "naming": []
+    },
+    "end": {
+     "status": "done",
+     "planning_reconciliations": 0,
+     "planning_reconciliations_after": 0,
+     "blocked_or_reconcile_after": []
+    },
+    "held_line": {
+     "prints": 34,
+     "packets": 21,
+     "stages": [
+      "implement W1",
+      "test W1",
+      "test W1",
+      "document W1",
+      "document W1",
+      "improve W1",
+      "improve W1",
+      "carry-forward W1",
+      "carry-forward W1",
+      "improve W1",
+      "improve W1",
+      "system-test-author",
+      "system-test-author",
+      "improve",
+      "improve",
+      "system-test",
+      "system-test",
+      "product-acceptance",
+      "product-acceptance",
+      "release-plan",
+      "release-plan",
+      "improve",
+      "improve",
+      "release-check",
+      "release-check",
+      "release",
+      "release",
+      "release-verify",
+      "release-verify",
+      "operations",
+      "operations",
+      "handoff",
+      "handoff",
+      "handoff"
+     ],
+     "packet_prints_unreadable": 0
+    }
+   }
+  ]
+ },
+ {
+  "name": "e6",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "ended": true,
+  "outcome": "PASS",
+  "basis": "every verdict passed",
+  "verdicts": {
+   "invoked": true,
+   "plugin": true,
+   "process": true,
+   "shiploop": true,
+   "committed": true
+  },
+  "checks_passed": 8,
+  "checks": 8,
+  "failed": [],
+  "startup": {
+   "migrate": true,
+   "restart": true,
+   "switch": true,
+   "rollback": true,
+   "cli": true
+  },
+  "started": "2026-11-22 20:47:26Z",
+  "ended_at": "2026-11-22 21:02:44Z",
+  "minutes": 15.3,
+  "turns": 160,
+  "model_calls": 70,
+  "output_tokens": 28289,
+  "cost_usd": null,
+  "spec_seconds": 66.0,
+  "strategy_seconds": 63.0,
+  "requester": {
+   "case": "ticket-due-times",
+   "mode": "answer-at",
+   "reply_enabled": true,
+   "stage_waited_for": "implement",
+   "rule": {
+    "tickets": "\\b(backfill\\w*|back-fill\\w*|migrat\\w*|existing|already|older)\\b",
+    "start": "\\b(start\\w*|start-up|boot\\w*|launch\\w*|restart\\w*)\\b",
+    "absent": "\\b(missing|without|lack\\w*|no due|has none|have none|has no|have no)\\b"
+   },
+   "run_dir": "~/e2e-runs/r-20261122-8a73b9/e6/.shiploop-runs/work-20261122-204750-71bfb7/run",
+   "seen_at": "2026-11-22T20:50:31Z",
+   "block_printed": true,
+   "rows": [
+    "1. R-1 How are response hours set? Decided: Set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL or DUE_HOURS_LOW to whole hours. Otherwise: A single JSON setting groups all four overrides. Selector: 1@95117b51.",
+    "2. R-2 What else activates the overdue filter? Decided: Exact overdue=true activates it, and equality with the deadline does not qualify. Otherwise: Validate more boolean spellings. Selector: 2@95117b51.",
+    "3. R-3 How is the existing data prepared? Decided: Start the new release with the feature off and inspect the resulting file before enabling it. Otherwise: Stop the process and run a separate migration command. Selector: 3@95117b51."
+   ],
+   "recorded": [
+    {
+     "alternative": "A single JSON setting groups all four overrides.",
+     "default": "Set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL or DUE_HOURS_LOW to whole hours.",
+     "question": "How are response hours set?",
+     "requirement": "R-1",
+     "why": "Individual variables follow the service's existing configuration model."
+    },
+    {
+     "alternative": "Validate more boolean spellings.",
+     "default": "Exact overdue=true activates it, and equality with the deadline does not qualify.",
+     "question": "What else activates the overdue filter?",
+     "requirement": "R-2",
+     "why": "Keeps the explicit opt-in and matches the wording whose due time has passed."
+    },
+    {
+     "alternative": "Stop the process and run a separate migration command.",
+     "default": "Start the new release with the feature off and inspect the resulting file before enabling it.",
+     "question": "How is the existing data prepared?",
+     "requirement": "R-3",
+     "why": "The existing single writer already validates and atomically saves the complete file."
+    }
+   ],
+   "about": [
+    false,
+    false,
+    true
+   ],
+   "note": {
+    "exit": 0,
+    "id": "N1",
+    "text": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.",
+    "default": "3@95117b51",
+    "output": "Owner note N1 written: ~/e2e-runs/r-20261122-8a73b9/e6/.shiploop-runs/work-20261122-204750-71bfb7/run/owner-notes/N1.md.\nN1 answers 3@95117b51 (R-3: How is the existing data prepared?; decided: Start the new release with the feature off and inspect the resulting file before enabling it.). The test-strategy stage has already submitted its result, so this answer is held for a new run: no stage is told to act on it, and the done packet and the report show it. To change one, start a new run on this project with a sentence that says what you want instead.\nThe run is active at W1 implement (action nav-5ce93e660f8a43749f10b773512b6405)."
+   },
+   "choice": {
+    "candidates": [
+     {
+      "row": 1,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": []
+     },
+     {
+      "row": 2,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": [
+       "enabling"
+      ]
+     },
+     {
+      "row": 3,
+      "score": 6,
+      "qualifies": true,
+      "subject": true,
+      "data_file": false,
+      "acts": [
+       "migration",
+       "preparing",
+       "enabling",
+       "starting"
+      ]
+     }
+    ],
+    "chosen": 3,
+    "ambiguous": false,
+    "tied": [],
+    "selector": "3@95117b51"
+   },
+   "stage_seen_at": "2026-11-22T20:53:46Z",
+   "rows_at_send": [
+    "1. R-1 How are response hours set? Decided: Set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL or DUE_HOURS_LOW to whole hours. Otherwise: A single JSON setting groups all four overrides. Selector: 1@95117b51.",
+    "2. R-2 What else activates the overdue filter? Decided: Exact overdue=true activates it, and equality with the deadline does not qualify. Otherwise: Validate more boolean spellings. Selector: 2@95117b51.",
+    "3. R-3 How is the existing data prepared? Decided: Start the new release with the feature off and inspect the resulting file before enabling it. Otherwise: Stop the process and run a separate migration command. Selector: 3@95117b51."
+   ],
+   "choice_at_send": {
+    "candidates": [
+     {
+      "row": 1,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": []
+     },
+     {
+      "row": 2,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": [
+       "enabling"
+      ]
+     },
+     {
+      "row": 3,
+      "score": 6,
+      "qualifies": true,
+      "subject": true,
+      "data_file": false,
+      "acts": [
+       "migration",
+       "preparing",
+       "enabling",
+       "starting"
+      ]
+     }
+    ],
+    "chosen": 3,
+    "ambiguous": false,
+    "tied": [],
+    "selector": "3@95117b51"
+   },
+   "sent_at": "implement"
+  },
+  "last_message": "Implemented ticket due times in version 1.5.0 and returned the changes to `master`.\n\n- Deadlines are saved once using the ticket’s creation time and priority. The defaults are 4, 24, 72, and 168 hours for urgent, high, normal, and low. Each can be overridden with a `DUE_HOURS_*` environment variable.\n- Startup saves missing deadlines before serving requests, including on the first start with `DUE_TIMES=on`. That flag exposes `due` and enables `GET /tickets?overdue=true` for open and in-progress tickets strictly past their deadline.\n\nAll 124 tests passed, including the 117 original tests. A separate rollback test confirmed that unchanged 1.4.0 starts on the new data file and lists every fixture ticket. Because 1.4.0 drops `due` when it saves, the rollout guide explains how to preserve assignments across rollback. Production rollout remains pending. [Operations guide](~/e2e-runs/r-20261122-8a73b9/e6/work/docs/operations.md#roll-out-ticket-deadlines) · [ShipLoop report](~/e2e-runs/r-20261122-8a73b9/e6/.shiploop-runs/work-20261122-204750-71bfb7/run/report.html)\n",
+  "run_folders": 1,
+  "run": "~/e2e-runs/r-20261122-8a73b9/e6/.shiploop-runs/work-20261122-204750-71bfb7/run",
+  "status": "done",
+  "stage": "done",
+  "revision": 30,
+  "list": [
+   {
+    "row": 1,
+    "selector": "1@95117b51",
+    "requirement": "R-1",
+    "question": "How are response hours set?",
+    "default": "Set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL or DUE_HOURS_LOW to whole hours.",
+    "alternative": "A single JSON setting groups all four overrides."
+   },
+   {
+    "row": 2,
+    "selector": "2@95117b51",
+    "requirement": "R-2",
+    "question": "What else activates the overdue filter?",
+    "default": "Exact overdue=true activates it, and equality with the deadline does not qualify.",
+    "alternative": "Validate more boolean spellings."
+   },
+   {
+    "row": 3,
+    "selector": "3@95117b51",
+    "requirement": "R-3",
+    "question": "How is the existing data prepared?",
+    "default": "Start the new release with the feature off and inspect the resulting file before enabling it.",
+    "alternative": "Stop the process and run a separate migration command."
+   }
+  ],
+  "notes": [
+   {
+    "id": "N1",
+    "written_at": "2026-11-22T20:53:46Z",
+    "row": 3,
+    "selector": "3@95117b51",
+    "requirement": "R-3",
+    "words": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.",
+    "stands": "late"
+   }
+  ],
+  "answers_rows": null,
+  "strategy_accepted": true,
+  "entries": [
+   {
+    "requirement": "R-3",
+    "at_spec": "### R-3 Backfill and rollback\n\n- The rollout default is startup preparation before the listener opens, including while presentation is disabled. It fills missing due timestamps from stored creation time and priority and persists them atomically in version 1; audit, outbox, IDs and existing due timestamps survive. Test with version-1 data and restarts.\n- Version 1.4.0 starts on a file written by the candidate and exposes all old and new ticket records. Verify through actual release HTTP. Its write path strips unknown fields, so preserve a copy of due assignments before rollback and reconcile before re-enabling.",
+    "after_test_strategy": "### R-3 Backfill and rollback\n\n- The rollout default is startup preparation before the listener opens, including while presentation is disabled. It fills missing due timestamps from stored creation time and priority and persists them atomically in version 1; audit, outbox, IDs and existing due timestamps survive. Test with version-1 data and restarts.\n- Version 1.4.0 starts on a file written by the candidate and exposes all old and new ticket records. Verify through actual release HTTP. Its write path strips unknown fields, so preserve a copy of due assignments before rollback and reconcile before re-enabling.",
+    "differ": false
+   }
+  ],
+  "trace": {
+   "held": [],
+   "naming_answers": [],
+   "other_refusals_by_stage": {
+    "document": 1
+   },
+   "failed_checks_by_stage": {}
+  },
+  "displays": {
+   "packets_with_the_block": 0,
+   "packets_with_the_held_line": 16,
+   "packets": 31,
+   "done_packet_lines": [
+    "3. R-3 How is the existing data prepared? Decided: Start the new release with the feature off and inspect the resulting file before enabling it. Otherwise: Stop the process and run a separate migration command. Answered by the requester (N1) after test-strategy had submitted its result: \"Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.\"; held for a new run."
+   ],
+   "report_lines": [
+    "Answered by the requester (N1) after test-strategy had submitted its result: \"Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.\"; held for a new run."
+   ]
+  },
+  "applied": [],
+  "held": [
+   {
+    "id": "N1",
+    "stands": "late",
+    "row": 3,
+    "requirement": "R-3",
+    "selector": "3@95117b51",
+    "words": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.",
+    "written_at": "2026-11-22T20:53:46Z",
+    "listed_row": "3. R-3 How is the existing data prepared? Decided: Start the new release with the feature off and inspect the resulting file before enabling it. Otherwise: Stop the process and run a separate migration command.",
+    "in_trace": "2026-11-22 20:53:46.278Z",
+    "last_accepted_before": {
+     "stage": "validate-existing",
+     "workitem": "W1",
+     "outcome": "done",
+     "action": "nav-a96704aba023457a8cde612bfddab1eb",
+     "accepted_at": "2026-11-22 20:53:45.045Z"
+    },
+    "open_then": {
+     "stage": "implement",
+     "workitem": "W1",
+     "action": "nav-5ce93e660f8a43749f10b773512b6405",
+     "from": "the trace's note command"
+    },
+    "checkout": "~/e2e-runs/r-20261122-8a73b9/e6/.shiploop-runs/work-20261122-204750-71bfb7/worktree",
+    "entry_when_written": "### R-3 Backfill and rollback\n\n- The rollout default is startup preparation before the listener opens, including while presentation is disabled. It fills missing due timestamps from stored creation time and priority and persists them atomically in version 1; audit, outbox, IDs and existing due timestamps survive. Test with version-1 data and restarts.\n- Version 1.4.0 starts on a file written by the candidate and exposes all old and new ticket records. Verify through actual release HTTP. Its write path strips unknown fields, so preserve a copy of due assignments before rollback and reconcile before re-enabling.",
+    "entry_when_written_from": "commit 1103b21, the newest of docs/shiploop/spec.md at or before the answer; its digest is the note's",
+    "before_md": [
+     "R-3 as it read when N1 was written (2026-11-22T20:53:46Z):",
+     "### R-3 Backfill and rollback\n\n- The rollout default is startup preparation before the listener opens, including while presentation is disabled. It fills missing due timestamps from stored creation time and priority and persists them atomically in version 1; audit, outbox, IDs and existing due timestamps survive. Test with version-1 data and restarts.\n- Version 1.4.0 starts on a file written by the candidate and exposes all old and new ticket records. Verify through actual release HTTP. Its write path strips unknown fields, so preserve a copy of due assignments before rollback and reconcile before re-enabling."
+    ],
+    "entry_at_end": "### R-3 Backfill and rollback\n\n- The rollout default is startup preparation before the listener opens, including while presentation is disabled. It fills missing due timestamps from stored creation time and priority and persists them atomically in version 1; audit, outbox, IDs and existing due timestamps survive. Test with version-1 data and restarts.\n- Version 1.4.0 starts on a file written by the candidate and exposes all old and new ticket records. Verify through actual release HTTP. Its write path strips unknown fields, so preserve a copy of due assignments before rollback and reconcile before re-enabling.",
+    "entry_at_end_is": "current",
+    "unchanged_since_the_answer": true,
+    "results_naming_it": [
+     {
+      "stage": "operations",
+      "workitem": null,
+      "outcome": "done",
+      "summary": "The returned service answered GET /health with 200 and status ok. A subprocess with an invalid DUE_HOURS_URGENT setting logged the variable and exited 2 before listening. Readiness logging and rollback save behavior were exercised by ST-2, which cleaned up its fixture. The service manager's live log and alert settings are operator-owned and outside this release."
+     },
+     {
+      "stage": "handoff",
+      "workitem": null,
+      "outcome": "done",
+      "summary": "Source: the guarded return fast-forwarded master and left a clean checkout. Tests: all 124 cases passed in a clean returned copy. Integration: ST-1 passed enabled startup backfill and ST-2 passed original 1.4.0 startup and full cursor read-back on the new file. Release: version 1.5.0 source is delivered locally, with production rollout owned by operators. Consumer behavior: verified HTTPS-independ"
+     }
+    ],
+    "commits_after": {
+     "checkout": "~/e2e-runs/r-20261122-8a73b9/e6/.shiploop-runs/work-20261122-204750-71bfb7/worktree",
+     "spec": "docs/shiploop/spec.md",
+     "after": 7,
+     "same_second": 0,
+     "touching_spec": []
+    },
+    "failed_commands_after": {
+     "by_stage": {
+      "document": 1
+     },
+     "naming": []
+    },
+    "end": {
+     "status": "done",
+     "planning_reconciliations": 0,
+     "planning_reconciliations_after": 0,
+     "blocked_or_reconcile_after": []
+    },
+    "held_line": {
+     "prints": 17,
+     "packets": 17,
+     "stages": [
+      "test W1",
+      "document W1",
+      "document W1",
+      "improve W1",
+      "carry-forward W1",
+      "improve W1",
+      "system-test-author",
+      "improve",
+      "system-test",
+      "product-acceptance",
+      "release-plan",
+      "improve",
+      "release-check",
+      "release",
+      "release-verify",
+      "operations",
+      "handoff"
+     ],
+     "packet_prints_unreadable": 0
+    }
+   }
+  ]
+ },
+ {
+  "name": "f1",
+  "host": "claude",
+  "model": "claude-sonnet-5-5",
+  "effort": "medium",
+  "ended": true,
+  "outcome": "PASS",
+  "basis": "every verdict passed",
+  "verdicts": {
+   "invoked": true,
+   "plugin": true,
+   "process": true,
+   "shiploop": true,
+   "committed": true
+  },
+  "checks_passed": 8,
+  "checks": 8,
+  "failed": [],
+  "startup": {
+   "migrate": true,
+   "restart": true,
+   "switch": true,
+   "rollback": true,
+   "cli": true
+  },
+  "started": "2026-11-22 20:29:44Z",
+  "ended_at": "2026-11-22 21:05:18Z",
+  "minutes": 35.6,
+  "turns": 399,
+  "model_calls": 210,
+  "output_tokens": 214672,
+  "cost_usd": 10.4219,
+  "spec_seconds": 130.0,
+  "strategy_seconds": 116.0,
+  "requester": {
+   "case": "ticket-due-times",
+   "mode": "answer-at",
+   "reply_enabled": true,
+   "stage_waited_for": "implement",
+   "rule": {
+    "tickets": "\\b(backfill\\w*|back-fill\\w*|migrat\\w*|existing|already|older)\\b",
+    "start": "\\b(start\\w*|start-up|boot\\w*|launch\\w*|restart\\w*)\\b",
+    "absent": "\\b(missing|without|lack\\w*|no due|has none|have none|has no|have no)\\b"
+   },
+   "run_dir": "~/e2e-runs/r-20261122-8a73b9/f1/.shiploop-runs/work-20261122-202950-e13fc8/run",
+   "seen_at": "2026-11-22T20:33:23Z",
+   "block_printed": true,
+   "rows": [
+    "1. R-2 How does the help desk change the hours? Decided: Set RESPONSE_HOURS_URGENT/HIGH/NORMAL/LOW environment variables (whole hours 1-8760) and restart the service; unset keeps 4/24/72/168; a bad value stops the start with a message naming the variable. Otherwise: A JSON settings file the service rereads, so no restart is needed, at the cost of a new file and reload logic. Selector: 1@97901003.",
+    "2. R-4 What does overdue accept besides true, and does a ticket due exactly now count? Decided: Only overdue=true is accepted when DUE_TIMES is on; false or anything else gets a 400 invalid; due equal to the current time counts as passed. Otherwise: overdue=false lists the tickets that are not overdue, which adds a second filter meaning for callers. Selector: 2@97901003.",
+    "3. R-5 When do existing tickets get their due times, given the file must hold them before DUE_TIMES is on? Decided: The first start of the new release on the production file fills every missing due and rewrites the file, even with DUE_TIMES off; operators then set DUE_TIMES=on. Otherwise: A separate one-off command that backfills the file, which operators would have to run before starting the new release. Selector: 3@97901003.",
+    "4. R-7 What happens to due times after a rollback to 1.4.0 and a later roll-forward? Decided: 1.4.0 drops due when it saves; the new release then recomputes missing dues from created and the hours in force at that start, so tickets can get later dues than before the rollback if hours changed. Otherwise: Keep the due times in a sidecar file that 1.4.0 never touches, which adds a second file to back up. Selector: 4@97901003."
+   ],
+   "recorded": [
+    {
+     "alternative": "A JSON settings file the service rereads, so no restart is needed, at the cost of a new file and reload logic.",
+     "default": "Set RESPONSE_HOURS_URGENT/HIGH/NORMAL/LOW environment variables (whole hours 1-8760) and restart the service; unset keeps 4/24/72/168; a bad value stops the start with a message naming the variable.",
+     "question": "How does the help desk change the hours?",
+     "requirement": "R-2",
+     "why": "Every other setting is an environment variable and operators already restart for them."
+    },
+    {
+     "alternative": "overdue=false lists the tickets that are not overdue, which adds a second filter meaning for callers.",
+     "default": "Only overdue=true is accepted when DUE_TIMES is on; false or anything else gets a 400 invalid; due equal to the current time counts as passed.",
+     "question": "What does overdue accept besides true, and does a ticket due exactly now count?",
+     "requirement": "R-4",
+     "why": "The request defines only the true case; the API already rejects unusable query values with 400."
+    },
+    {
+     "alternative": "A separate one-off command that backfills the file, which operators would have to run before starting the new release.",
+     "default": "The first start of the new release on the production file fills every missing due and rewrites the file, even with DUE_TIMES off; operators then set DUE_TIMES=on.",
+     "question": "When do existing tickets get their due times, given the file must hold them before DUE_TIMES is on?",
+     "requirement": "R-5",
+     "why": "Keeps the deploy to one step and the file is safe to roll back from (R-7)."
+    },
+    {
+     "alternative": "Keep the due times in a sidecar file that 1.4.0 never touches, which adds a second file to back up.",
+     "default": "1.4.0 drops due when it saves; the new release then recomputes missing dues from created and the hours in force at that start, so tickets can get later dues than before the rollback if hours changed.",
+     "question": "What happens to due times after a rollback to 1.4.0 and a later roll-forward?",
+     "requirement": "R-7",
+     "why": "Rollback must keep working with the unchanged 1.4.0 code, which discards unknown fields."
+    }
+   ],
+   "about": [
+    false,
+    false,
+    true,
+    true
+   ],
+   "note": {
+    "exit": 0,
+    "id": "N1",
+    "text": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.",
+    "default": "3@97901003",
+    "output": "Owner note N1 written: ~/e2e-runs/r-20261122-8a73b9/f1/.shiploop-runs/work-20261122-202950-e13fc8/run/owner-notes/N1.md.\nN1 answers 3@97901003 (R-5: When do existing tickets get their due times, given the file must hold them before DUE_TIMES is on?; decided: The first start of the new release on the production file fills every missing due and rewrites the file, even with DUE_TIMES off; operators then set DUE_TIMES=on.). The test-strategy stage has already submitted its result, so this answer is held for a new run: no stage is told to act on it, and the done packet and the report show it. To change one, start a new run on this project with a sentence that says what you want instead.\nThe run is active at W1 implement (action nav-1a6c3a706dd24d49a10eccdc26498587)."
+   },
+   "choice": {
+    "candidates": [
+     {
+      "row": 1,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": [
+       "starting"
+      ]
+     },
+     {
+      "row": 2,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": []
+     },
+     {
+      "row": 3,
+      "score": 7,
+      "qualifies": true,
+      "subject": true,
+      "data_file": true,
+      "acts": [
+       "backfill",
+       "preparing",
+       "starting"
+      ]
+     },
+     {
+      "row": 4,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": [
+       "starting"
+      ]
+     }
+    ],
+    "chosen": 3,
+    "ambiguous": false,
+    "tied": [],
+    "selector": "3@97901003"
+   },
+   "stage_seen_at": "2026-11-22T20:40:24Z",
+   "rows_at_send": [
+    "1. R-2 How does the help desk change the hours? Decided: Set RESPONSE_HOURS_URGENT/HIGH/NORMAL/LOW environment variables (whole hours 1-8760) and restart the service; unset keeps 4/24/72/168; a bad value stops the start with a message naming the variable. Otherwise: A JSON settings file the service rereads, so no restart is needed, at the cost of a new file and reload logic. Selector: 1@97901003.",
+    "2. R-4 What does overdue accept besides true, and does a ticket due exactly now count? Decided: Only overdue=true is accepted when DUE_TIMES is on; false or anything else gets a 400 invalid; due equal to the current time counts as passed. Otherwise: overdue=false lists the tickets that are not overdue, which adds a second filter meaning for callers. Selector: 2@97901003.",
+    "3. R-5 When do existing tickets get their due times, given the file must hold them before DUE_TIMES is on? Decided: The first start of the new release on the production file fills every missing due and rewrites the file, even with DUE_TIMES off; operators then set DUE_TIMES=on. Otherwise: A separate one-off command that backfills the file, which operators would have to run before starting the new release. Selector: 3@97901003.",
+    "4. R-7 What happens to due times after a rollback to 1.4.0 and a later roll-forward? Decided: 1.4.0 drops due when it saves; the new release then recomputes missing dues from created and the hours in force at that start, so tickets can get later dues than before the rollback if hours changed. Otherwise: Keep the due times in a sidecar file that 1.4.0 never touches, which adds a second file to back up. Selector: 4@97901003."
+   ],
+   "choice_at_send": {
+    "candidates": [
+     {
+      "row": 1,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": [
+       "starting"
+      ]
+     },
+     {
+      "row": 2,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": []
+     },
+     {
+      "row": 3,
+      "score": 7,
+      "qualifies": true,
+      "subject": true,
+      "data_file": true,
+      "acts": [
+       "backfill",
+       "preparing",
+       "starting"
+      ]
+     },
+     {
+      "row": 4,
+      "score": 0,
+      "qualifies": false,
+      "subject": false,
+      "data_file": false,
+      "acts": [
+       "starting"
+      ]
+     }
+    ],
+    "chosen": 3,
+    "ambiguous": false,
+    "tied": [],
+    "selector": "3@97901003"
+   },
+   "sent_at": "implement"
+  },
+  "last_message": "The run is complete. Due times and the overdue filter are in `master` as release 1.5.0. The full suite passes (148 tests, the 117 original ones unmodified), and the checkout is clean. Nothing was deployed or pushed.\n\n#### 🚢 ShipLoop — due times for help-desk tickets\nPreparation ✓ · Work items ✓ · Release ✓ — **🏁 Done**, report: `~/e2e-runs/r-20261122-8a73b9/f1/.shiploop-runs/work-20261122-202950-e13fc8/run/report.html`\n\n**What the service does now**\n- **Due time:** a ticket's `due` is its creation time plus 4, 24, 72 or 168 hours (urgent, high, normal, low). It is set once and never moves when the priority or the hours change.\n- **Changing the hours:** set `RESPONSE_HOURS_URGENT`, `RESPONSE_HOURS_HIGH`, `RESPONSE_HOURS_NORMAL` or `RESPONSE_HOURS_LOW` and restart. The new hours apply to tickets created after that.\n- **Overdue list:** `GET /tickets?overdue=true` lists only open and in-progress tickets whose due time has passed.\n- **Production file:** the first start of the new release gives every ticket in the data file its due time and saves the file.\n- **Switch:** `due` and `overdue` appear only with `DUE_TIMES=on`. Until then the service answers as 1.4.0 does, even though the file already holds the times.\n- **Rollback:** the data file stays version 1. I started the real 1.4.0 code on the file the new release wrote and it listed every ticket. It drops the due times when it saves, and the new release fills them in again at its next start.\n- **Docs and release notes:** README, API doc, operations doc, decision 0009 and CHANGELOG 1.5.0.\n\n**Choices made for you** (the report lists each with its reason)\n1. **Hours are environment variables.** A bad value stops the start with a message naming it.\n2. **`overdue` accepts only `true` when due times are on.** Any other value gets a 400, and a ticket due exactly now counts as overdue.\n3. **The first start backfills and saves the file,** even with `DUE_TIMES` off, so the file holds the times before you switch on.\n4. **After a rollback to 1.4.0 and a later roll-forward,** the times are recomputed from the hours in force then. They can differ from before if the hours changed in between.\n\n**Left for people**\n- **Production rollout:** I couldn't reach your production file or host. `docs/operations.md` has the order: deploy with `DUE_TIMES` unset, check `grep -c '\"due\"'` on the data file equals the ticket count, set `DUE_TIMES=on`, restart.\n- **Existing filter bug, not changed:** the current `status` and `priority` filters combine with OR, although `docs/api.md` says every filter must match. For example, `?status=open&priority=urgent` also returns open low tickets. I left it alone and the new `overdue` filter is ANDed after them. This is for the help desk team to decide.\n\nThe run left one branch, `shiploop/run-434f2881e3fee168`, in your repository. ShipLoop doesn't delete it, and the report has the command to remove it.",
+  "run_folders": 1,
+  "run": "~/e2e-runs/r-20261122-8a73b9/f1/.shiploop-runs/work-20261122-202950-e13fc8/run",
+  "status": "done",
+  "stage": "done",
+  "revision": 37,
+  "list": [
+   {
+    "row": 1,
+    "selector": "1@97901003",
+    "requirement": "R-2",
+    "question": "How does the help desk change the hours?",
+    "default": "Set RESPONSE_HOURS_URGENT/HIGH/NORMAL/LOW environment variables (whole hours 1-8760) and restart the service; unset keeps 4/24/72/168; a bad value stops the start with a message naming the variable.",
+    "alternative": "A JSON settings file the service rereads, so no restart is needed, at the cost of a new file and reload logic."
+   },
+   {
+    "row": 2,
+    "selector": "2@97901003",
+    "requirement": "R-4",
+    "question": "What does overdue accept besides true, and does a ticket due exactly now count?",
+    "default": "Only overdue=true is accepted when DUE_TIMES is on; false or anything else gets a 400 invalid; due equal to the current time counts as passed.",
+    "alternative": "overdue=false lists the tickets that are not overdue, which adds a second filter meaning for callers."
+   },
+   {
+    "row": 3,
+    "selector": "3@97901003",
+    "requirement": "R-5",
+    "question": "When do existing tickets get their due times, given the file must hold them before DUE_TIMES is on?",
+    "default": "The first start of the new release on the production file fills every missing due and rewrites the file, even with DUE_TIMES off; operators then set DUE_TIMES=on.",
+    "alternative": "A separate one-off command that backfills the file, which operators would have to run before starting the new release."
+   },
+   {
+    "row": 4,
+    "selector": "4@97901003",
+    "requirement": "R-7",
+    "question": "What happens to due times after a rollback to 1.4.0 and a later roll-forward?",
+    "default": "1.4.0 drops due when it saves; the new release then recomputes missing dues from created and the hours in force at that start, so tickets can get later dues than before the rollback if hours changed.",
+    "alternative": "Keep the due times in a sidecar file that 1.4.0 never touches, which adds a second file to back up."
+   }
+  ],
+  "notes": [
+   {
+    "id": "N1",
+    "written_at": "2026-11-22T20:40:25Z",
+    "row": 3,
+    "selector": "3@97901003",
+    "requirement": "R-5",
+    "words": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.",
+    "stands": "late"
+   }
+  ],
+  "answers_rows": null,
+  "strategy_accepted": true,
+  "entries": [
+   {
+    "requirement": "R-5",
+    "at_spec": null,
+    "after_test_strategy": null,
+    "differ": null
+   }
+  ],
+  "trace": {
+   "held": [],
+   "naming_answers": [],
+   "other_refusals_by_stage": {
+    "improve": 5,
+    "plan": 1,
+    "step-plan": 1,
+    "product-acceptance": 1,
+    "release-verify": 1
+   },
+   "failed_checks_by_stage": {
+    "step-plan": 3,
+    "test": 5
+   }
+  },
+  "displays": {
+   "packets_with_the_block": 0,
+   "packets_with_the_held_line": 23,
+   "packets": 38,
+   "done_packet_lines": [
+    "3. R-5 When do existing tickets get their due times, given the file must hold them before DUE_TIMES is on? Decided: The first start of the new release on the production file fills every missing due and rewrites the file, even with DUE_TIMES off; operators then set DUE_TIMES=on. Otherwise: A separate one-off command that backfills the file, which operators would have to run before starting the new release. Answered by the requester (N1) after test-strategy had submitted its result: \"Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.\"; held for a new run."
+   ],
+   "report_lines": [
+    "Answered by the requester (N1) after test-strategy had submitted its result: \"Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.\"; held for a new run."
+   ]
+  },
+  "applied": [],
+  "held": [
+   {
+    "id": "N1",
+    "stands": "late",
+    "row": 3,
+    "requirement": "R-5",
+    "selector": "3@97901003",
+    "words": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.",
+    "written_at": "2026-11-22T20:40:25Z",
+    "listed_row": "3. R-5 When do existing tickets get their due times, given the file must hold them before DUE_TIMES is on? Decided: The first start of the new release on the production file fills every missing due and rewrites the file, even with DUE_TIMES off; operators then set DUE_TIMES=on. Otherwise: A separate one-off command that backfills the file, which operators would have to run before starting the new release.",
+    "in_trace": "2026-11-22 20:40:25.167Z",
+    "last_accepted_before": {
+     "stage": "validate-existing",
+     "workitem": "W1",
+     "outcome": "done",
+     "action": "nav-6442f9fd1d664189a4a929b190ba1e0e",
+     "accepted_at": "2026-11-22 20:40:24.879Z"
+    },
+    "open_then": {
+     "stage": "implement",
+     "workitem": "W1",
+     "action": "nav-1a6c3a706dd24d49a10eccdc26498587",
+     "from": "the trace's note command"
+    },
+    "checkout": "~/e2e-runs/r-20261122-8a73b9/f1/.shiploop-runs/work-20261122-202950-e13fc8/worktree",
+    "entry_when_written": "### R-5 Existing tickets get due times and keep them\nBasis: request 2026-11-22. When the data file is loaded, every ticket without a `due` gets created + hours of its own priority; if any was filled the file is saved at once, whatever DUE_TIMES is, so the file holds the due times before DUE_TIMES is turned on. Tickets that already have `due` are untouched. The fill happens in the store when it is built from a saved state (so `bin/tickets.js` and the weekly report, which build a store without persistence, see dues but never write the file); the save happens in `TicketStore.open` (the service's start) only. A file with an invalid `due` (not a time) is refused with the record named, like other bad fields.\n- Positive: a 1.4.0-format file with tickets loads; the file on disk then holds each due; a second load changes nothing.\n- Boundary: changing hours between two loads does not move filled dues; a file with no tickets, or whose tickets all have dues, is not rewritten (mtime/content unchanged); running `node bin/tickets.js --data FILE list` on a file lacking dues leaves its bytes unchanged.\n- Failure: `due` that is not a time -> DataFileError naming tickets[i].due.",
+    "entry_when_written_from": "commit d8a465c, the newest of docs/shiploop/spec.md at or before the answer; its digest is the note's",
+    "before_md": [
+     "R-5 as it read when N1 was written (2026-11-22T20:40:25Z):",
+     "### R-5 Existing tickets get due times and keep them\nBasis: request 2026-11-22. When the data file is loaded, every ticket without a `due` gets created + hours of its own priority; if any was filled the file is saved at once, whatever DUE_TIMES is, so the file holds the due times before DUE_TIMES is turned on. Tickets that already have `due` are untouched. The fill happens in the store when it is built from a saved state (so `bin/tickets.js` and the weekly report, which build a store without persistence, see dues but never write the file); the save happens in `TicketStore.open` (the service's start) only. A file with an invalid `due` (not a time) is refused with the record named, like other bad fields.\n- Positive: a 1.4.0-format file with tickets loads; the file on disk then holds each due; a second load changes nothing.\n- Boundary: changing hours between two loads does not move filled dues; a file with no tickets, or whose tickets all have dues, is not rewritten (mtime/content unchanged); running `node bin/tickets.js --data FILE list` on a file lacking dues leaves its bytes unchanged.\n- Failure: `due` that is not a time -> DataFileError naming tickets[i].due."
+    ],
+    "entry_at_end": "### R-5 Existing tickets get due times and keep them\nBasis: request 2026-11-22. When the data file is loaded, every ticket without a `due` gets created + hours of its own priority; if any was filled the file is saved at once, whatever DUE_TIMES is, so the file holds the due times before DUE_TIMES is turned on. Tickets that already have `due` are untouched. The fill happens in the store when it is built from a saved state (so `bin/tickets.js` and the weekly report, which build a store without persistence, see dues but never write the file); the save happens in `TicketStore.open` (the service's start) only. A file with an invalid `due` (not a time) is refused with the record named, like other bad fields.\n- Positive: a 1.4.0-format file with tickets loads; the file on disk then holds each due; a second load changes nothing.\n- Boundary: changing hours between two loads does not move filled dues; a file with no tickets, or whose tickets all have dues, is not rewritten (mtime/content unchanged); running `node bin/tickets.js --data FILE list` on a file lacking dues leaves its bytes unchanged.\n- Failure: `due` that is not a time -> DataFileError naming tickets[i].due.\n- Met by src/store.js (fill in the constructor, `TicketStore.open` saves) and src/persistence.js; tests test/due-datafile.test.js. (W1/S1)",
+    "entry_at_end_is": "current",
+    "unchanged_since_the_answer": false,
+    "results_naming_it": [
+     {
+      "stage": "system-test-author",
+      "workitem": null,
+      "outcome": "done",
+      "summary": "System-test catalog (case, phase, requirement, expected outcome, environment, prerequisites, reference, owner): ST-1 system-test R-5,R-6 unset DUE_TIMES: no due in any body, ?overdue=true ignored (3 tickets), file holds 2025-09-01T12:00:00.000Z/2025-09-04T08:00:00.000Z/2025-09-08T08:00:00.000Z; local processes, temp file, Node 26; none; test/system-startup.test.js; test author. ST-2 R-3,R-4 DUE_TI"
+     },
+     {
+      "stage": "product-acceptance",
+      "workitem": null,
+      "outcome": "done",
+      "summary": "End state per request outcome. S3 due = created + hours by priority, hours settable by RESPONSE_HOURS_*: observed by executed checks (unit DT-1, DT-3, DT-4 with literal dues 2025-09-01T12:00:00.000Z, 2025-09-02T08:00:00.000Z, 2025-09-04T08:00:00.000Z, 2025-09-08T08:00:00.000Z; ST-2 with a real process and RESPONSE_HOURS_NORMAL=96). S4 set once: observed (DT-2: unchanged through priority change, ti"
+     },
+     {
+      "stage": "release-check",
+      "workitem": null,
+      "outcome": "done",
+      "summary": "Plan checked: the release-plan record of this run (release 1.5.0 returned to master by ShipLoop's guarded route, no deployment, no publication) with the system-test-author catalog ST-1..ST-4; no add-work happened since. Candidate: worktree HEAD b308592d41fb on branch shiploop/run-434f2881e3fee168, baseline 15a4ad2; its evidence is current (npm test 148 pass, system tests 4 pass, run after the last"
+     },
+     {
+      "stage": "release-verify",
+      "workitem": null,
+      "outcome": "done",
+      "summary": "Four separate facts. Source synchronization: the guarded return fast-forwarded master of the source checkout to the run branch (receipt return-receipt.md); the checkout is clean on master at b308592. Artifact identity: release 1.5.0 (package.json), baseline 1.4.0 at 15a4ad2. Operation receipt: verified workspace return, fast-forward-merge; no push, no deployment. Consumer behaviour observed on the"
+     },
+     {
+      "stage": "operations",
+      "workitem": null,
+      "outcome": "done",
+      "summary": "Relied on: the release-plan and system-test-author records of this run (no add-work since). Observed on a running service from the returned checkout (PORT=0, DUE_TIMES=on, LOG_REQUESTS=1, 2026-11-22): GET /health answered {\"status\":\"ok\"}; a request with overdue=maybe answered 400 invalid (overdue must be true) and appeared as one request-log line on standard error; SIGTERM logged 'stopping' and le"
+     },
+     {
+      "stage": "handoff",
+      "workitem": null,
+      "outcome": "done",
+      "summary": "Source: master of the source checkout was fast-forwarded to the run branch by the guarded return (receipt return-receipt.md, verified fast-forward-merge); it is clean, release 1.5.0, baseline 1.4.0 (15a4ad2); no push. Tests: npm test in the returned checkout passes 148 tests (the 117 original unmodified, 31 new: unit, component, data-file, rollback against a verbatim 1.4.0 copy, and four system te"
+     }
+    ],
+    "commits_after": {
+     "checkout": "~/e2e-runs/r-20261122-8a73b9/f1/.shiploop-runs/work-20261122-202950-e13fc8/worktree",
+     "spec": "docs/shiploop/spec.md",
+     "after": 12,
+     "same_second": 0,
+     "touching_spec": [
+      "feat(W2/S1): W2/S1 built: overdue filter, 400 for other values, version 1.5.0; proofs ok, suite gre…",
+      "docs(shiploop): record this-directory-is-an-existing-node-6560b9 knowledge after carry-forward",
+      "feat(W1/S1): W1/S1 built: due rule, settings, backfill saved at open, due hidden while off; proof C…"
+     ]
+    },
+    "failed_commands_after": {
+     "by_stage": {
+      "test": 5,
+      "step-plan": 2,
+      "improve": 3,
+      "product-acceptance": 1,
+      "release-verify": 1
+     },
+     "naming": []
+    },
+    "end": {
+     "status": "done",
+     "planning_reconciliations": 0,
+     "planning_reconciliations_after": 0,
+     "blocked_or_reconcile_after": []
+    },
+    "held_line": {
+     "prints": 24,
+     "packets": 23,
+     "stages": [
+      "test W1",
+      "document W1",
+      "improve W1",
+      "carry-forward W1",
+      "step-plan W2",
+      "test-spec W2",
+      "implement W2",
+      "test W2",
+      "document W2",
+      "improve W2",
+      "carry-forward W2",
+      "improve W2",
+      "system-test-author",
+      "improve",
+      "system-test",
+      "product-acceptance",
+      "release-plan",
+      "improve",
+      "release-check",
+      "release",
+      "release-verify",
+      "release-verify",
+      "operations",
+      "handoff"
+     ],
+     "packet_prints_unreadable": 0
+    }
+   }
+  ]
+ }
+]

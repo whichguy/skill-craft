@@ -1,0 +1,8 @@
+name | driver | outcome | checks | start-up checks of 5 | minutes | spec s | test-strategy s | turns | model calls | output tokens | cost | callbacks held | refusals naming answers | other refusals | notes (standing) | rows in list | stand-in
+e1 | codex gpt-6.2-sol | PASS | 8/8 | 5 | 16.8 | 75.0 | 35.0 | 202 | 97 | 35215 | - | 0 | 0 | 0 | N1 late | 3 | answer-at 3@d6649fe7
+e2 | codex gpt-6.2-sol | PASS | 8/8 | 5 | 14.0 | 68.0 | 34.0 | 127 | 70 | 30803 | - | 0 | 0 | 2 | N1 late | 5 | answer-at 5@61688ca1
+e3 | codex gpt-6.2-sol | FAILED | 3/8 | 0 | 10.7 | 60.0 | 24.0 | 122 | 66 | 21777 | - | 0 | 0 | 1 | N1 late | 3 | answer-at 3@21bde4d3
+e4 | codex gpt-6.2-sol | PASS | 8/8 | 5 | 15.4 | 54.0 | 58.0 | 204 | 71 | 32431 | - | 0 | 0 | 2 | N1 late | 3 | answer-at 3@b64077d3
+e5 | codex gpt-6.2-sol | PASS | 8/8 | 5 | 12.1 | 48.0 | 45.0 | 189 | 73 | 24114 | - | 0 | 0 | 5 | N1 late | 3 | answer-at 3@ca46dd23
+e6 | codex gpt-6.2-sol | PASS | 8/8 | 5 | 15.3 | 66.0 | 63.0 | 160 | 70 | 28289 | - | 0 | 0 | 1 | N1 late | 3 | answer-at 3@95117b51
+f1 | claude claude-sonnet-5-5 | PASS | 8/8 | 5 | 35.6 | 130.0 | 116.0 | 399 | 210 | 214672 | 10.42 | 0 | 0 | 9 | N1 late | 4 | answer-at 3@97901003

@@ -1,0 +1,1 @@
+2. R-6 How do the production tickets get due times before the flag is on? Decided: The new release backfills existing tickets at start even with DUE_TIMES off and saves the file, so the file holds them before the flag is flipped. Otherwise: Backfill only through a separate operator command; operators run one extra step before the flag. Selector: 2@489793ea.

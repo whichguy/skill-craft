@@ -1,0 +1,1 @@
+2. R-3 How are stored tickets prepared before enabling? Decided: While the sole writer is stopped, run npm run backfill:due. Enabled startup refuses a file with any missing due times. Otherwise: A startup backfill would assign deadlines as part of the enable operation. Selector: 2@72093f2d.

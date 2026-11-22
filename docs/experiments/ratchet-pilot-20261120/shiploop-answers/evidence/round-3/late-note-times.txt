@@ -1,0 +1,12 @@
+Test A (section 10): when each plain note was written, beside when the delivery's list was printed (the spec's
+first result accepted, from the run's timeline.json) and when the run ended.  Times are UTC on 2026-11-22.
+
+name | driver | list printed | note written | seconds from the list to the note | run ended | minutes from the note to the end | work items
+n4 | Sol    | 21:53:43 | 21:56:24 | 161 | 22:07:50 | 11.4 | 1
+n5 | Sol    | 21:53:49 | 21:56:28 | 159 | 22:05:41 |  9.2 | 1
+m1 | Sonnet | 21:39:12 | 21:47:23 | 491 | 22:13:05 | 25.7 | 3
+
+m1's added work item (W2, "Explicit due backfill command and DUE_TIMES startup refusal (owner note N1)"): 264 seconds
+from the acceptance of W1's carry-forward (21:51:37) to the acceptance of W2's carry-forward (21:56:01).
+
+No note was sent in n1, n2, n6 (the stand-in could not tell what the row decided) and n3 (no start-up row).

@@ -1,0 +1,1 @@
+5. R-3 How are existing records prepared? Decided: Start the new release while disabled and verify the startup backfill before enabling it. Otherwise: Run a second offline migration command before startup. Selector: 5@61688ca1.

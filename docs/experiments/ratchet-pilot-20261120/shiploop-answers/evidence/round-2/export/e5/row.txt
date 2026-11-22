@@ -1,0 +1,1 @@
+3. R-3 How do operators prepare stored tickets? Decided: Start the new binary with the flag off. Startup backfills before accepting traffic. Otherwise: An offline command would require a separate maintenance invocation. Selector: 3@ca46dd23.

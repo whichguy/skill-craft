@@ -1,0 +1,1 @@
+3. R-3 How does the operator backfill? Decided: Start the new release with the flag off; startup writes any missing deadlines before listening. Otherwise: Stop the service and run a separate migration command; the operator must invoke it. Selector: 3@d6649fe7.

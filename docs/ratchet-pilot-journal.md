@@ -292,7 +292,7 @@ and implied requirements, the plan stage, and the loosest-choice rules together.
 ## 10. Results
 
 Evidence folders are under `docs/experiments/ratchet-pilot-20261120/evidence/`; run folders are outside the repository
-under `/Users/dadleet/e2e-runs/ratchet-pilot-20261120-b6eab2/` and may be pruned.
+under `~/e2e-runs/ratchet-pilot-20261120-b6eab2/` and may be pruned.
 
 ### P1, first form, orders case (`p1-stand-in-rules`; Codex gpt-6.2-sol high; one run)
 
@@ -4701,3 +4701,338 @@ tells except k3's, that the backfill uses the priority a ticket has now. That se
 **Next.** The answer route, as a candidate on the branch `shiploop-answers-603aa8`: its design was reviewed by Sol
 at max effort before any code ("Change first", sixteen findings, each answered in its DESIGN.md), and the first
 version takes an answer only while the stage after the spec is still at work. It has its own journal section.
+
+## 28. A candidate for ShipLoop: the requester's answer to a default reaches the specification (2026-11-22, from 07:40)
+
+**The owner's word, 07:37:** "Yes, both", to "Release the list now, and then build the answer route as a
+candidate?". Section 27 is the list and its release. This section is the second half: a candidate on the branch
+`shiploop-answers-603aa8`, out of `main` until the owner accepts it. Its single account is
+`docs/experiments/ratchet-pilot-20261120/shiploop-answers/DESIGN.md`.
+
+**Who does what, at the owner's words of this morning.** Code is written by an Opus worker, Git is done by a Sonnet
+worker, the deliveries are judged on Sonnet 5.5 at medium and Sol 6.2 at medium, status updates come from a separate
+Sonnet session, and the judgment is made in this session: the design, what a review changes, how a result is read.
+
+### What was read before anything was designed
+
+A Sonnet worker mapped the mechanisms from the code (`shiploop-answers/mechanism-map.md`). What decided the design:
+an owner note is free text bound to no requirement, and a step that showed it delivers it when accepted, whatever
+the step did; no gate reads what changed; planning stages after the spec may reword a requirement and only a
+dropped ID is refused; no route reruns the spec for a note; and the list is first shown in the packet of
+`test-strategy`, the stage after the spec.
+
+### The design, and the review that changed it
+
+The first design (07:50) took an answer while `test-strategy` or `plan` was current and read "applied" from the
+notes' delivery record. Sol 6.2 at max effort reviewed it before any code (08:01, "Change first", sixteen findings;
+question and answer word for word in `shiploop-answers/review/`). Three of them, each checked here in the code,
+reshaped it:
+
+- **The window stops at `test-strategy`.** `prepare` and `step-plan` read the accepted strategy's structured
+  records (`_test_strategy_result`, `_check_submitted_layers`), so an answer applied at `plan` would leave them
+  planned for the old requirement. Intake closes when the `test-strategy` producer submits its result; an answer
+  that arrives during its review, or later, is held for a new run.
+- **Delivered is not applied.** `owner_notes.deliver` marks only the notes a packet printed, so a note first seen
+  through a held callback is not delivered by that step, and a delivered note need not have been acted on (the
+  ignored reply of F61 was recorded as delivered). Proof is read from the accepted result's `answers` rows.
+- **A row number can bind to another decision** after a reconcile replaces the specification. The selector carries
+  the first eight hex digits of the spec result's action, and an answer to an old list is shown as superseded, never
+  moved.
+
+The design's section 4 lists all sixteen with what was done.
+
+### What was built (the Opus worker, from the design; reviewed here)
+
+`shiploop note --default <row>@<hex>` records a bound owner note. A new module, `shiploop_answers`, says where each
+answer stands (in time, replaced, applied, late, superseded) from one read of the inbox per admission, and holds
+the `test-strategy` producer to it: its done result must return `answers`, one {note, requirement, line} for each
+answer in time, and done is refused unless the rows are exactly the answers owed, each entry's digest differs from
+the one stored when its answer was written, and `line` is a line of the entry. The gate sits where the `defaults`
+gate sits: at `check` and `complete`, before an earlier yes is reused, and at the import of the stage's review,
+which revalidates the producer's rows and takes no new answer in. The packet's list shows each row's selector and
+tells the host how to record an answer; an answer in time gets a short required block; late, replaced and
+superseded answers are kept out of the stages' instructions, and the done packet and the report mark every
+answered row. Nothing asks, waits or pauses.
+
+### What the tests say (no model called)
+
+- `test/shiploop-answers.test.py`, 33 tests through the real CLI: each refusal and the acceptance; a yes given
+  before the answer arrived (held once, refused, accepted after the rewrite); a paused and a blocked producer; two
+  answers to one row; a late answer; the review's import of an unchanged result, of one that drops a row and of one
+  whose line the review edited away; a reconcile that keeps the spec and one that replaces it; a run with no answer
+  and closed standard input; saved runs. Run here: 33 pass in 62 seconds.
+- Fail-first, by the builder in a scratch copy with the gate made a no-op: 14 of the 33 fail, the four refusals
+  among them.
+- The loophole table has six ways round, each with a fixture that shows what passes (an appended line, a renamed
+  heading, another requirement left on the old behaviour, a reply never recorded as an answer, a late answer, a
+  later stage rewording a held answer's requirement). Run here: 9 tests pass.
+- The builder ran twenty suites one after another, all passing. The wide selection and an outside review of the
+  code come next and are recorded below.
+- Packets at the reference install: `spec` unchanged at 19,934 characters, the same hash; `test-strategy` 22,051 to
+  22,186, the gate's phrase on its "Checked by" line.
+
+### What is registered, before any delivery of the candidate
+
+The design's section 5, committed with the code and before any run: six deliveries of `ticket-due-times` on Codex
+with gpt-6.2-sol at medium and three on Claude Code with claude-sonnet-5-5 at medium, each with a stand-in requester
+that always answers the start-up row with the owner's ruling through the printed selector. R1: every answered
+delivery records its proof and none is stopped at the gate. R2: in every correction the rewritten requirement no
+longer makes the operator run a command first and no longer refuses to start. R3: every correction passes the five
+start-up checks (the control on file is 0 of 8). R4: no verdict or check fails for a cause that is the route's; the
+figures of how each run went are described beside the same driver's deliveries of the released product.
+
+### The wide tests, and the review of the code (2026-11-22, 09:16 to 10:18)
+
+**The wide selection on the first commit** (529b40d97e621834dee2700a48ca136ba0fab0ee; quick, python-floor and
+affected, chosen by what the candidate changes against main, four jobs): 132 suites, all pass, 1,395 seconds.
+
+**Sol 6.2 at max effort read the code** on a neutral copy while that ran: "Fix first", 22 findings (question and
+answer word for word in `shiploop-answers/review/sol-code-*.md`). They were sorted here by one rule: fix what a normal
+run can meet or what makes a display or a refusal say something untrue; record as a known limit what only an unusual
+file layout, a race at the instant a run ends, or an unrealistic size can trigger. The design's section 6 has the
+table. In short:
+
+- **Fixed, none changing the design:** a review's import now takes the answers it owes from the parked result
+  itself; the producer's exact replay of a parked result is recognised before the hold and the gate; a packet reads
+  the notes once, so it cannot quote one note and ask for proof of another; the review's hand-off names the note
+  files and asks for the comparison with the requester's words; no stage is told to reread a superseded or replaced
+  answer; the displays say each disposition as it is; the acknowledgment on a blocked run names the resume flag that
+  works; refusals name the note, the requirement and the note's file; stored rows are kept as written.
+- **Recorded as limits:** an entry whose span holds a second requirement as a list item (a loophole row with a
+  fixture; none of the ten specifications on file is laid out that way); a note published at the instant a run ends
+  can miss the saved report; dozens of answers outgrow the result template; two spec results that share eight hex
+  digits are not told apart.
+- **The builder's own catch.** Asked to refuse an import whose note file was gone, the Opus worker pointed out that
+  an unattended run would then be stuck with no way out. The rule became: such a row stands as it was proved at
+  admission, must be kept, and its line must still be in the entry.
+- **The stand-in requester.** It answered the first row that held a word like "existing". It now scores rows on the
+  start-up decision, sends nothing on a tie, and its self-check over the ten saved lists picks the start-up row in
+  each of the nine due-times lists and nothing in `hello`'s.
+
+**After the fixes:** `test/shiploop-answers.test.py` has 46 tests, of which 22 fail on the first commit's engine
+(the builder's scratch copy), each fix with a test that fails without it. Run here on the fixed tree: 46 pass in 94
+seconds, and the loophole suite's 9. The builder ran twenty suites one after another, all passing (answers 46,
+owner-notes 18, defaults 17, head-order 36, packet-bounds 21, packet-completeness 66, loophole-gates 9, knowledge
+163, delegation 66, e2e-analysis 303, domain-words 5, retired-terms 6, reference 8, guidance 93, improve-schedule
+41, test-groups 78, e2e-packet-anatomy 30, callback-contract 117, actual-improve-cli 107, navigator-contract 127),
+and six of them again after the two last changes. The packets are as after the first commit: `spec` 19,934
+characters with its hash unchanged, `test-strategy` 22,186. The wide selection on the fixed tree follows.
+
+**The wide selection on the second commit** (3577bb050abc23c73875347e9d3be25047e3a60e; the same selection, four
+jobs, 10:19 to 10:45): 132 suites, all pass, 1,573 seconds.
+
+### The round: thirteen real deliveries on both drivers (2026-11-22, 10:46 to 11:45; written 12:03)
+
+Built from the second commit through the experiment's launcher into `~/e2e-runs/r-20261122-8c4274/`, case
+`ticket-due-times`: ten on Codex with gpt-6.2-sol at medium (a1 to a9, c1) and three on Claude Code with
+claude-sonnet-5-5 at medium (b1 to b3), in four batches, no test tier beside them. The stand-in requester answered
+the start-up row through its printed selector with the owner's ruling, always the same words: "Nobody prepares the
+data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one,
+from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start
+because due times are missing." The design's section 7 is the full account; the files are in
+`shiploop-answers/evidence/round-1/`.
+
+**All thirteen pass the five verdicts and 8 of 8 held-out checks.** Ten were answered and applied (a2 to a9, b1,
+b3); two got no answer and are counted apart (a1's list has no start-up row; two rows of b2's tie on it and the
+stand-in sends nothing on a tie); one got its answer late on purpose (c1).
+
+Against the four readings registered before any delivery:
+
+- **R1, met, 10 of 10:** each answered delivery's accepted `test-strategy` result holds the `answers` row, none was
+  stopped at the gate, and no command was refused for a reason naming `answers` in any of the thirteen. Each answer
+  reached its stage through one held callback, because the stand-in writes it within two seconds of the list being
+  printed and the packet has printed by then.
+- **R2, met as registered:** in the three corrections (a4, a5, a7: the row made the operator run a command first
+  and refused to start) a reader who did not know how the checks came out finds the rewritten requirement makes the
+  operator run nothing and states no refusal. One of the three says outright that it never refuses; two leave that
+  sentence out.
+- **R3, met:** all three corrections pass the five start-up checks. Without an answer, 0 of 8 Sol deliveries with
+  that choice do. The third correction came in three deliveries added under the rule; ten Sol deliveries ran, the
+  ceiling was twelve.
+- **R4, met:** no verdict and no check failed. Sol: 11.6 to 18.9 minutes (12.7 to 18.4 on file), 25,713 to 35,244
+  output tokens (26,904 to 39,624). Sonnet: 23.7 to 25.7 minutes (27.2 on file), $7.90 to $9.16 ($9.82 and $10.58).
+  The stage that applies an answer takes 46 to 74 seconds on Sol with one (23 to 54 on file without) and 87 and 100
+  on Sonnet (94).
+
+Findings.
+
+- **F66. An answer that is on file in time is applied, proved to the script and built.** Ten of ten on two drivers.
+  Where the specification had chosen the wrong start-up behaviour, the answer turned a delivery that fails five
+  held-out checks (0 of 8 pass them unanswered) into one that passes all eight (3 of 3). F61's plain note did that in
+  2 of 4.
+- **F67. The route costs a delivery about a quarter of a minute and nothing else that shows.** Time, tokens and cost
+  are as on file for each driver. Commands that ended non-zero: 2 to 8 on Sol (2 and 7 on file) and 8 to 16 on
+  Sonnet (13 on file), one of them in each answered delivery being the hold that shows the answer.
+- **F68. "In time" is about a minute, and under half a minute when nothing holds the stage.** From the list being
+  printed to the accepted `test-strategy` result: 24 and 29 seconds on Sol with no answer in time, 46 to 74 with
+  one; 87 to 100 on Sonnet. To the accepted plan: 49 to 134 seconds on Sol, 147 to 165 on Sonnet. The stand-in
+  answers in two seconds. A person reading the list will be late almost every time, so for a person the route as
+  built means "held for a new run". The design named the short window as its price (2.6); this is its size.
+- **F69. A held answer was applied all the same, by the product's own way back, and the display then said it was
+  not.** c1's answer was written one second after the stage's result was accepted. The `plan` packet said "Answers
+  held for a new run: N1 (...); nothing in this run applies it." The `plan` producer read the note and returned
+  `reconcile` to `spec` ("... align the strategy and plan with owner note N1"); the second specification adopted the
+  requester's words and the delivery passes 8 of 8. The script then showed the answer as superseded and "not
+  applied", which is untrue of that delivery: it has no proof either way. I had registered that the build would
+  stay as planned. It did not, in the requester's favour, in one delivery, while planning was still open.
+- **F70. The gate proves little and that was enough here.** It checks that the requirement's entry changed and that
+  the result quotes a line of it. Five of the ten rewritten requirements state the whole answer; five leave out its
+  last sentence (never refuses to start). All ten builds do what the sentence says.
+- **Seven of ten answers were confirmations.** The row had already chosen what the requester wants. Of the lists
+  with a start-up row, 3 of 8 on Sol and 0 of 2 on Sonnet had chosen the refusal.
+
+What the round does not show: what a stage does with a held answer once the plan is bound (c1's reconcile is open
+only during planning), and anything about a person's answer, which arrives minutes later.
+
+### A display that said "not applied" is corrected (2026-11-22, 12:28)
+
+F69's untrue display. `shiploop_answers.answered` showed an answer to a list a reconcile replaced as "not applied",
+or, when an earlier accepted result had applied it, as "applied to that earlier specification (...), not to this
+one". The script checks neither: it never compares an answer with the specification that replaced the one it
+answered. Both now say only what it did: "not checked against the specification that replaced it", and "applied to
+that earlier specification (...), not checked against the one that replaced it". The three reference texts say the
+same. Built by the Opus worker and read here line by line.
+
+- test/shiploop-answers.test.py: 47 tests pass (46 before; one new). Fail-first, by the builder: against the old
+  engine text the new assertions fail ("... not applied: "Name it final.txt."" where "... not checked against the
+  specification that replaced it ..." is expected, and the same for "not to this one"). Run again here on the
+  changed tree: 47 pass, and the loophole suite's 9.
+- The suites that read the answers displays or the reference texts, run one after another by the builder:
+  loophole-gates 9, defaults 17, e2e-analysis 303, callback-contract 117, packet-completeness, retired-terms 6,
+  domain-words 5, reference 8. All pass.
+- shiploop-navigator-contract: 126 of its 127 tests pass. The one that fails,
+  CliBoundaryRegressionTests.test_init_refuses_force_and_non_dedicated_run_directories, is not this change's and
+  not the candidate's. Run alone here it fails 5 of 5 in the candidate's worktree and passes 5 of 5 in main's
+  checkout; on a fresh copy of the commit the candidate is based on, with none of the candidate's code, it fails
+  2 of 3 the same way. What differs is the bytecode cache: main's checkout has one and a command starts in about
+  0.16 seconds, a fresh copy and the candidate's worktree have none and it takes about 0.29. The test compares a
+  run folder's listing across a refused command while the progress observer, which ticks every two seconds,
+  rewrites progress-content.js (the file is 432 characters shorter after the tick); the slower copy loses that
+  race while another session's test tier holds the machine's load at 11 to 14. Both wide selections of this
+  morning passed with the test in them. It is recorded here as a race in an existing test and is not changed.
+- ruff: with E9 and F, the rule the earlier commits used, nothing on shiploop_answers.py or the suite; with its
+  default rules shiploop_answers.py passes as it did before the change.
+
+Left as they are: the status line the stages see ("Answers held for a new run: ...; nothing in this run applies
+it.") and the acknowledgment. What a stage should be told about a held answer is the owner's decision, and the
+deliveries registered next are there to inform it. The wide selection was not run again for two display strings and
+their reference lines; it runs on the final tree before anything is merged.
+
+### Registered: answers sent during the build (2026-11-22, 12:28)
+
+The design's section 8, committed with this entry and before any of these deliveries runs. Six deliveries on Sol at
+medium and one on Sonnet at medium, `ticket-due-times`, built from this commit, each with a stand-in that sends the
+same answer through the selector of the current list's start-up row when the first `implement` packet prints. By
+then the plan is bound and no planning reconcile is open. Read: what the requester is told; whether the run carried
+on, acted on the answer or stopped; and whether the delivery agrees with itself. No rule passes or fails: the design
+promises nothing about what a stage does with a held answer. What each outcome will be taken to mean is written
+down in section 8 before the runs.
+
+The stand-in's new mode, `--answer-at STAGE` (the launcher's `answer-at-<stage>`), was built by the Opus worker.
+Tried here against the saved runs of round 1 before any delivery: it reads each run's current list with its
+selectors and picks the start-up row of a4's, nothing for a1's list, nothing for c1's second list, and nothing for
+b2's tie. `--answer-late` is now the same path with the stage `plan`.
+
+### Answers during the build: seven runs carry on, and one delivers what the requester did not want (2026-11-22, 12:29 to 13:05; written 13:11)
+
+Six deliveries on Sol at medium (e1 to e6) and one on Sonnet at medium (f1), built from the registering commit
+(da8689fdf38035603958dbe6606f450c1b605abe) into `~/e2e-runs/r-20261122-8a73b9/`. Each stand-in wrote its answer when the first `implement` packet
+printed: 2 to 4 minutes after the list on Sol, 7 on Sonnet. The design's section 9 is the full account; the files
+are in `shiploop-answers/evidence/round-2/`.
+
+- **F71. Once the build has begun, a held answer is left alone: 7 of 7.** Every run ended done, with no reconcile
+  and nothing blocked. The requirement's entry is the same at the end as when the answer was written in five (its
+  digest is the note's), and in two the implement stage added one line naming tests and files; a reader who did not
+  know the outcomes says "nothing" changed five times and "evidence lines only" twice. This is the first of the
+  three outcomes written down before the runs: the late path does what the design says. c1's reconcile (F69) is
+  what a stage does while planning is still open; with the plan bound, none did anything.
+- **F72. A held answer that contradicts the plan leaves a delivery that is wrong for the requester and says so.**
+  e3's specification had chosen "Stop the writer, run the offline backfill, then enable the flag". The answer came
+  116 seconds after the list and was held. The run went on for 6.3 minutes and delivered the offline backfill and
+  the refusal: it passes the five verdicts and fails the five start-up checks (3 of 8), exactly as an unanswered
+  delivery with that choice does. The done packet and the report mark the row "Answered by the requester (N1)
+  after test-strategy had submitted its result: ...; held for a new run", and the host's last message says "This
+  release uses an offline backfill before activation. ShipLoop recorded the later request for automatic startup
+  backfill for a separate run."
+- **F73. The requester is always told in the done packet and the report, and by the host only sometimes.** The
+  held line is in 16 to 23 packets of each run and the answered row is marked in all seven done packets and
+  reports. Two of seven last messages mention the held answer (e3, where it matters, and e4); five do not.
+- **F74. Three windows, three behaviours.** In time, within about a minute of the list: applied with proof, 10 of
+  10 (F66). Late with planning still open, about one more minute: held by the script and applied by the plan
+  stage's own reconcile, 1 of 1 (F69). Late once the build has begun, 2 to 7 minutes after the list: held, and the
+  run finishes as planned, 7 of 7 (F71). An unattended run reaches its build within minutes, so a person's answer
+  lands in the third window.
+- **F67, narrowed.** With no answer in time the stage after the spec took 24 to 63 seconds here (median 40), against
+  46 to 74 with one in round 1 (median 55): the cost of applying an answer is about a quarter of a minute at the
+  median, inside ranges that overlap.
+
+What is not known: whether the new run a held answer points to repairs a delivery like e3, and what it costs;
+whether a host relays a person's answer through the selector at all; how often a list holds two rows on one
+decision. Whether the candidate goes into main is the owner's decision, and it is put to the owner with these
+results.
+
+### Registered: what a late answer should do, two tests (2026-11-22, 13:32)
+
+**The owner, 13:16:** "Not yet", to "Accept the answer route into main as it stands?", with the next step that the
+question's message named: test what a late answer should do, taken in on the spot or by a new run, and what each
+costs. The design's section 10 registers both tests in this commit, before either runs.
+
+- **Test A, a plain note during the build.** Six deliveries on Sol at medium and one on Sonnet at medium. When the
+  first `implement` packet prints, the stand-in sends a plain owner note, with no selector, that contradicts what
+  the list's start-up row decided: the owner's ruling for a row that chose a separate command or a refusal, the
+  opposite wish (an explicit offline command, and a refusal to start) for a row that already fills the due times in
+  at a start. Every delivery is then a contradicted one (section 9 got one in six), and the five start-up checks
+  say which behaviour was built. The two texts are in `shiploop-answers/late-notes.json`, written before any run.
+  The stand-in classifies the row by rule; its self-test agrees with the eighteen rows read so far.
+- **Test B, a new run on a wrong delivery.** Four deliveries on disk chose the refusal and fail the five start-up
+  checks (e3, k2, k3, d3). A second ShipLoop run starts in a copy of each, the request being the owner's ruling word
+  for word, graded by the same eight checks, through the harness's own follow-on route (`run.py --continue-from`
+  with `--prompt`). Four on Sol at medium, e3's also on Sonnet at medium.
+
+Decided here, as routine: every delivery of test A gets a note that contradicts its row, because with the owner's
+ruling alone five deliveries of six would have nothing to contradict; a delivery that takes in the opposite wish
+fails five held-out checks because it obeyed, and is read as taken in. The second runs use the harness's supported
+follow-on route and leave the catalogued case, its pins and the engine untouched; they are recorded as case
+`custom` in a ledger of their own.
+
+### Two tests of what a late answer should do: a new run repairs it; a plain note reaches Sonnet and never reaches Sol (2026-11-22, 13:32 to 14:13; written 14:24)
+
+Twelve deliveries built from the registering commit (fe87f5beac30cc8934da9ea5828503d28abb9796) into `~/e2e-runs/r-20261122-72ca72/`. The design's
+section 11 is the full account; the files are in `shiploop-answers/evidence/round-3/`.
+
+- **F75. A new run on a wrong delivery repairs it: 5 of 5.** Four deliveries that had chosen the offline command
+  and the refusal (e3, k2, k3, d3) each got a second ShipLoop run in a copy, with the owner's ruling as the whole
+  request. All four on Sol pass 8 of 8 in 10.7 to 13.1 minutes with 19,675 to 27,288 output tokens; e3's on Sonnet
+  passes 8 of 8 in 17.5 minutes for $6.23. Each changed little (8 to 12 files, 4 to 28 lines of source, the
+  requirement rewritten, tests added) and told the requester in an operator's words. The three projects that
+  earlier builds of ShipLoop had delivered gave no trouble. "Held for a new run" points at something that works.
+- **F76. On Sol a plain owner note sent during the build was not taken in, 2 of 2, because the model was never
+  given its words.** n4 and n5: the row had chosen an offline command and a refusal, the note was the owner's
+  ruling, sent 161 and 159 seconds after the list. ShipLoop printed the note in a `check`'s output and quoted it in
+  the next packet, and its record says delivered. Each Codex session's own record shows the note's words in two
+  command outputs and in nothing the model was given: a Sol session runs commands through scripts of its own that
+  pass on part of the output (8,112 of 38,335 characters in n4; 5,564 and 4,626 of 37,381 and 30,234 in n5). The
+  delivery kept the offline command and the refusal, fails the five start-up checks, and nobody was told: the last
+  message, the done packet and the report do not mention that a note exists. This is the mechanism behind F61's
+  "ignored, and recorded as delivered all the same", and it is in released ShipLoop, not in the candidate.
+- **F77. On Sonnet the same kind of note was taken in fully, 1 of 1, by the product's own steps.** m1's row filled
+  the due times in at the first start and the note asked for the opposite. The `document` step recorded it as an
+  open item and said why it was not applied there; `carry-forward` revised the requirement (superseded text kept),
+  added an architecture decision and added a work item for it, which took 4.4 minutes; 148 tests pass, the five
+  verdicts hold, and a reader blind to the checks says the requirement at the end states the note fully and says
+  why it changed. A new run on Sonnet cost 17.5 minutes (F75).
+- **F78. What reaches Sol is a held callback with a refusal that names what is owed.** In round 1 the answer's
+  words reached the model in each Sol delivery read (a4, a5, a7), through the hold, and the gate then refused
+  `done` until the proof row was there: ten answers of ten were applied. A print reached it in neither of two.
+  On Codex a text ShipLoop prints is not a text the model reads; a refused command is.
+- **The stand-in's rule failed where it mattered.** It classified the eighteen rows read before as a reader had,
+  and could not classify three of the next four rows that fill the due times in at a start, because they say so
+  without a filling verb ("start with the feature off and verify the data file before enabling"). With n3's list,
+  which has no start-up row, four of seven deliveries got no note and the opposite wish was never sent on Sol. The
+  finding on Sol does not rest on the note's content, since the words were not received at all, but it rests on
+  two deliveries.
+
+What is not known: whether Sol, once it has received a late note through a hold, would rework a build as Sonnet
+did; what a hold without a proof row does (F61's two of four suggests about half); and the cost on Sol of taking a
+late answer in during the run. What follows is the owner's: whether the answer route goes into main, and whether
+owner notes should be held and accounted for as the in-time answers are.

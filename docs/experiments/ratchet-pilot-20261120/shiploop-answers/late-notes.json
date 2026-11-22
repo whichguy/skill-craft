@@ -1,0 +1,33 @@
+{
+ "_about": "What the stand-in requester sends as a PLAIN owner note during the build (shiploop-answers DESIGN.md section 10), written before any such delivery runs. The note always contradicts what the list's start-up row decided, so that every delivery shows whether a late plain note is taken in. A row whose Decided part makes an operator run a separate command first, or refuses to start while due times are missing, is class `command` and gets the note `start` (the owner's ruling, word for word the reply of program/replies.json). A row that already fills the due times in at a start is class `start` and gets the note `command` (the opposite wish, written here). A row the stand-in cannot classify gets nothing. This file is never copied into a delivery's folder.",
+ "case": "ticket-due-times",
+ "notes": {
+  "start": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.",
+  "command": "Do not fill in due times when the service starts. I want that step explicit: an operator stops the service and runs a separate command that gives every ticket that has no due time one, from that ticket's own creation time and priority, and saves the file. If the service is started with DUE_TIMES set to on while any ticket has no due time, it refuses to start and names that command."
+ },
+ "sent_when_the_row_decided": {
+  "command": "start",
+  "start": "command"
+ },
+ "labelled_rows": {
+  "_about": "The class of each start-up row a reader has judged (evidence/round-1 and round-2: Q1a yes, a separate command, is `command`; no is `start`). c1 is read here, not by a reader. The stand-in's self-test must classify every one of these as labelled.",
+  "evidence/round-1/export/a2/row.txt": "start",
+  "evidence/round-1/export/a3/row.txt": "start",
+  "evidence/round-1/export/a4/row.txt": "command",
+  "evidence/round-1/export/a5/row.txt": "command",
+  "evidence/round-1/export/a6/row.txt": "start",
+  "evidence/round-1/export/a7/row.txt": "command",
+  "evidence/round-1/export/a8/row.txt": "start",
+  "evidence/round-1/export/a9/row.txt": "start",
+  "evidence/round-1/export/b1/row.txt": "start",
+  "evidence/round-1/export/b3/row.txt": "start",
+  "evidence/round-1/export/c1/row.txt": "start",
+  "evidence/round-2/export/e1/row.txt": "start",
+  "evidence/round-2/export/e2/row.txt": "start",
+  "evidence/round-2/export/e3/row.txt": "command",
+  "evidence/round-2/export/e4/row.txt": "start",
+  "evidence/round-2/export/e5/row.txt": "start",
+  "evidence/round-2/export/e6/row.txt": "start",
+  "evidence/round-2/export/f1/row.txt": "start"
+ }
+}

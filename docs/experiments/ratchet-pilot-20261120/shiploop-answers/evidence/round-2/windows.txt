@@ -1,0 +1,8 @@
+name | spec accepted to strategy accepted, s | to first plan accepted, s | to last plan accepted, s | reconciliations
+e1 | 35 | 79 | 79 | 0
+e2 | 34 | 76 | 76 | 0
+e3 | 24 | 50 | 50 | 0
+e4 | 58 | 108 | 108 | 0
+e5 | 45 | 88 | 88 | 0
+e6 | 63 | 108 | 108 | 0
+f1 | 116 | 224 | 224 | 0

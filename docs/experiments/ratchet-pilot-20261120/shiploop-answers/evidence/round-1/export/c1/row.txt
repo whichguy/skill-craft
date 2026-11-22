@@ -1,0 +1,1 @@
+3. R-3 When is backfill run? Decided: The new service persists missing values before listening on startup, including during flag-off preparation. Otherwise: Run a separate operator migration command. Selector: 3@2d3fc034.

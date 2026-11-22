@@ -1,0 +1,22 @@
+   the held answer N1 (superseded), row 3 (3@2d3fc034, R-3):
+      1. written 2026-11-22T19:13:37Z (in the trace: 2026-11-22 19:13:37.906Z) | last accepted before: test-strategy done (nav-2b8d67db), accepted 2026-11-22 19:13:36.792Z | open then: plan (nav-07a60039), from the trace's note command
+      2. R-3 in ~/e2e-runs/r-20261122-8c4274/c1/.shiploop-runs/work-20261122-191040-16899f/worktree: when the answer was written, commit d11c2e1, the newest of docs/shiploop/spec.md at or before the answer; its digest is the note's
+         | ### R-3 Existing state and rollback
+         | 
+         | Basis: 2026-11-22 response-time request (S6-S9).
+         | - Default 2026-11-22: startup persists only missing values from each ticket's recorded creation and priority before serving, with or without the flag. Restart with different settings to prove existing values survive. Migration keeps audit, outbox, update times, counters and IDs.
+         | - Actual release 1.4.0 starts and lists on the resulting file. Check against the repository's 1.4.0 snapshot. Its writer drops unrecognized ticket fields on save.
+         at the end: current; unchanged since the answer: False
+         | ### R-3 Existing state and rollback
+         | 
+         | Basis: 2026-11-22 response-time request (S6-S9).
+         | - The rollout clarification requires DUE_TIMES=on startup to assign missing values from each ticket’s recorded creation and priority and save them before serving. An existing file with missing values can be used directly. Flag-off startup preserves existing deadlines and assigns no missing ones. Restart with different settings to prove existing values survive. Migration keeps audit, outbox, update times, counters and IDs.
+         | - Actual release 1.4.0 starts and lists on the resulting file. Check against the repository's 1.4.0 snapshot. Its writer drops unrecognized ticket fields on save.
+      3. accepted results after it naming N1, an owner note, the requester or an answer: 2
+         plan reconcile: "Reopen R-3 to make flag-on startup the migration trigger and align the strategy and plan with owner note N1."
+         spec done: "R-3 incorporates owner note N1: starting with the flag on performs automatic backfill and persists before serving. S1-S10 still map to R-1 through R-4. Other acceptance lines are retained."
+      4. commits of ~/e2e-runs/r-20261122-8c4274/c1/.shiploop-runs/work-20261122-191040-16899f/worktree after it: 6; touching docs/shiploop/spec.md: 1
+         docs(shiploop): record this-directory-is-an-existing-node-b72207 knowledge after spec
+      5. non-zero commands after it by stage {'plan': 2, 'test': 2}; naming N1 or an answer: 0
+      6. run done; planning reconciliations 1 (1 after it); blocked or reconcile after it: plan reconcile
+      7. packets that printed the held line for N1: 4 prints of 3 packets, in order ['plan', 'plan', 'improve', 'improve']

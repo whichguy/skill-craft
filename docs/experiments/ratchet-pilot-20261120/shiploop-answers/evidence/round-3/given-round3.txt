@@ -1,0 +1,39 @@
+== n4
+   words: "Nobody prepares the data file by hand." (from ~/e2e-runs/r-20261122-72ca72/n4/.shiploop-runs/work-20261122-215141-3c7062/run/owner-notes/N1.md)
+   rollout ~/e2e-runs/r-20261122-72ca72/n4/home/.codex/sessions/2026/11/22/rollout-2026-11-22T13-51-19-01a2053d-fec7-7320-a467-f447fbd68718.jsonl (613 lines)
+   1. event_msg lines holding the words: 2 (2 are a command's printed output)
+      item_completed/CommandExecution, output 8957 chars: "ws the note now; the callback is not held for it): N1 21:56Z Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives e"
+      item_completed/CommandExecution, output 29378 chars: "ote these during the run; verbatim, oldest first): N1 21:56Z Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives e"
+   2. response_item lines holding the words: 0: tool outputs given to the model 0, other messages given to it 0, the model's own 0
+   3. for each command that printed the words, the output the model was given for it:
+      line 238 (8957 chars printed) -> line 240 custom_tool_call_output (8112 chars given), by position: inside call call_a86dd155, whose output is found by call_id: words False, N1 False, "owner note" False; no later tool output holds the words
+      line 239 (29378 chars printed) -> line 240 custom_tool_call_output (8112 chars given), by position: inside call call_a86dd155, whose output is found by call_id: words False, N1 False, "owner note" False; no later tool output holds the words
+== n5
+   words: "Nobody prepares the data file by hand." (from ~/e2e-runs/r-20261122-72ca72/n5/.shiploop-runs/work-20261122-215137-414b1f/run/owner-notes/N1.md)
+   rollout ~/e2e-runs/r-20261122-72ca72/n5/home/.codex/sessions/2026/11/22/rollout-2026-11-22T13-51-19-01a2053d-fec7-7ce0-b285-03d6270ff309.jsonl (484 lines)
+   1. event_msg lines holding the words: 2 (2 are a command's printed output)
+      item_completed/CommandExecution, output 37381 chars: "ws the note now; the callback is not held for it): N1 21:56Z Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives e"
+      item_completed/CommandExecution, output 30234 chars: "ote these during the run; verbatim, oldest first): N1 21:56Z Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives e"
+   2. response_item lines holding the words: 0: tool outputs given to the model 0, other messages given to it 0, the model's own 0
+   3. for each command that printed the words, the output the model was given for it:
+      line 220 (37381 chars printed) -> line 221 custom_tool_call_output (5564 chars given), by position: inside call call_bf299d17, whose output is found by call_id: words False, N1 False, "owner note" True; no later tool output holds the words
+      line 244 (30234 chars printed) -> line 245 custom_tool_call_output (4626 chars given), by position: inside call call_5a2c5670, whose output is found by call_id: words False, N1 False, "owner note" False; no later tool output holds the words
+== m1
+   words: "Do not fill in due times when the service starts." (from ~/e2e-runs/r-20261122-72ca72/m1/.shiploop-runs/work-20261122-213327-584b6f/run/owner-notes/N1.md)
+   no Codex session record; read ~/e2e-runs/r-20261122-72ca72/m1/events.jsonl (Claude Code stream-json, 1332 lines)
+   1. tool results whose raw result (tool_use_result) holds the words: 3
+      raw result, 988 chars: "e note now; the callback is not held for it): N1 21:47Z Do not fill in due times when the service starts. I want that step explicit: an operator stops the servi"
+      raw result, 2701 chars: "hese during the run; verbatim, oldest first): N1 21:47Z Do not fill in due times when the service starts. I want that step explicit: an operator stops the servi"
+      raw result, 1709 chars: "oop owner note ```shiploop-state { "id": "N1", "text": "Do not fill in due times when the service starts. I want that step explicit: an operator stops the servi"
+   2. given to the model: tool results 3, other user text 0; the model's own: 0
+      given (tool result) tool_result, 987 chars: "e note now; the callback is not held for it): N1 21:47Z Do not fill in due times when the service starts. I want that step explicit: an operator stops the servi"
+      given (tool result) tool_result, 2700 chars: "hese during the run; verbatim, oldest first): N1 21:47Z Do not fill in due times when the service starts. I want that step explicit: an operator stops the servi"
+      given (tool result) tool_result, 1708 chars: "oop owner note ```shiploop-state { "id": "N1", "text": "Do not fill in due times when the service starts. I want that step explicit: an operator stops the servi"
+   3. for each raw result that holds the words, the tool result given (same event, by tool_use_id):
+      line 475 toolu_016G6VRrfb (988 chars raw -> 987 chars given): words True, N1 True, "owner note" True
+      line 513 toolu_01AYyMFNCY (2701 chars raw -> 2700 chars given): words True, N1 True, "owner note" True
+      line 618 toolu_01AEov31fm (1709 chars raw -> 1708 chars given): words True, N1 True, "owner note" True
+== summary
+   n4: printed by 2 commands; given to the model in 0 outputs; the model was not given the note's words
+   n5: printed by 2 commands; given to the model in 0 outputs; the model was not given the note's words
+   m1: printed by 3 commands; given to the model in 3 outputs; the model was given the note's words

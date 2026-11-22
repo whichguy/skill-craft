@@ -1,0 +1,1 @@
+2. R-3 How do operators populate deadlines before exposure? Decided: Start the new binary while DUE_TIMES is off so it atomically fills missing deadlines before listening. Otherwise: An offline migration subcommand would add a separate invocation before startup. Selector: 2@1b0ed0da.

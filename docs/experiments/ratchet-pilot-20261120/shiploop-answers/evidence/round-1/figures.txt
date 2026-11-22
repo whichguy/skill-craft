@@ -1,0 +1,14 @@
+name | driver | outcome | checks | start-up checks of 5 | minutes | spec s | test-strategy s | turns | model calls | output tokens | cost | callbacks held | refusals naming answers | other refusals | notes (standing) | rows in list | stand-in
+a1 | codex gpt-6.2-sol | PASS | 8/8 | 5 | 12.2 | 44.0 | 24.0 | 173 | 65 | 26173 | - | 0 | 0 | 0 | - | 2 | no printed row is about the due-time start-up decision; nothing was sent
+a2 | codex gpt-6.2-sol | PASS | 8/8 | 5 | 15.9 | 66.0 | 66.0 | 163 | 90 | 34096 | - | 1 | 0 | 2 | N1 applied | 4 | answer 4@bec444e9
+a3 | codex gpt-6.2-sol | PASS | 8/8 | 5 | 18.9 | 62.0 | 59.0 | 186 | 96 | 34865 | - | 1 | 0 | 3 | N1 applied | 2 | answer 2@1b0ed0da
+a4 | codex gpt-6.2-sol | PASS | 8/8 | 5 | 11.6 | 45.0 | 48.0 | 137 | 59 | 25713 | - | 1 | 0 | 0 | N1 applied | 3 | answer 3@6aa85c30
+a5 | codex gpt-6.2-sol | PASS | 8/8 | 5 | 15.3 | 65.0 | 46.0 | 193 | 85 | 31705 | - | 1 | 0 | 2 | N1 applied | 3 | answer 2@72093f2d
+a6 | codex gpt-6.2-sol | PASS | 8/8 | 5 | 16.1 | 57.0 | 74.0 | 144 | 83 | 34483 | - | 1 | 0 | 4 | N1 applied | 3 | answer 3@b166fc0a
+a7 | codex gpt-6.2-sol | PASS | 8/8 | 5 | 14.2 | 61.0 | 54.0 | 182 | 79 | 30915 | - | 1 | 0 | 0 | N1 applied | 4 | answer 3@683d2503
+a8 | codex gpt-6.2-sol | PASS | 8/8 | 5 | 16.5 | 57.0 | 52.0 | 208 | 99 | 33635 | - | 1 | 0 | 1 | N1 applied | 4 | answer 4@e85cc1f9
+a9 | codex gpt-6.2-sol | PASS | 8/8 | 5 | 16.4 | 62.0 | 56.0 | 232 | 90 | 35244 | - | 1 | 0 | 0 | N1 applied | 4 | answer 3@bc292f4d
+b1 | claude claude-sonnet-5-5 | PASS | 8/8 | 5 | 23.7 | 124.0 | 100.0 | 288 | 169 | 177667 | 7.90 | 1 | 0 | 5 | N1 applied | 3 | answer 2@489793ea
+b2 | claude claude-sonnet-5-5 | PASS | 8/8 | 5 | 25.7 | 129.0 | 88.0 | 330 | 186 | 194450 | 9.16 | 0 | 0 | 4 | - | 4 | a tie between rows 2, 4 on the due-time start-up decision; nothing was sent
+b3 | claude claude-sonnet-5-5 | PASS | 8/8 | 5 | 24.4 | 83.0 | 87.0 | 315 | 172 | 184075 | 8.48 | 1 | 0 | 6 | N1 applied | 5 | answer 4@c1cbd38d
+c1 | codex gpt-6.2-sol | PASS | 8/8 | 5 | 16.2 | 86.0 | 48.0 | 232 | 86 | 31758 | - | 0 | 0 | 2 | N1 superseded | 2 | answer-late 3@2d3fc034

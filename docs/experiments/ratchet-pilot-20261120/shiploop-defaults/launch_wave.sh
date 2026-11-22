@@ -6,9 +6,15 @@
 # REPO    the repository whose COMMIT is built (a detached copy of it is made once under ROOT, so later edits of the
 #         branch never change a run in flight)
 # ROOT    the folder the runs are written under; a session sees its own folder's path, so ROOT and NAME are neutral
-# MODE    reply   the stand-in sends the requester's reply when a printed row is about the case's point
-#         silent  the stand-in reads and records what was printed and sends nothing
-#         none    no stand-in
+# MODE    reply        the stand-in sends the requester's reply as a plain note when a printed row is about the point
+#         answer       it sends the reply as the answer to that row (note --default <its selector>), at once
+#         answer-late  it sends that answer only after the plan stage's packet has printed
+#         answer-at-STAGE  it sends that answer when STAGE's packet first prints (answer-at-implement, for example),
+#                      to the row of the list as it then stands
+#         note-at-STAGE  when STAGE's packet first prints, it sends as a plain note the note of
+#                      ../shiploop-answers/late-notes.json that contradicts what the list's start-up row decided
+#         silent       the stand-in reads and records what was printed and sends nothing
+#         none         no stand-in
 #
 # Every run is Codex with gpt-6.2-sol at medium, built from the checkout, as the archive it is read against, unless
 # the environment names another driver: HOST, MODEL and EFFORT (for example HOST=claude MODEL=claude-sonnet-5-5).
@@ -27,6 +33,10 @@ fi
 [ "$(git -C "$APP" rev-parse HEAD)" = "$COMMIT" ] || { echo "the apparatus copy is not at $COMMIT"; exit 2; }
 for cell in "$@"; do   # every folder is checked before anything starts, so a refusal leaves no run behind
   [ -e "$ROOT/${cell%%:*}" ] && { echo "$ROOT/${cell%%:*} exists; a run needs a new folder"; exit 2; }
+  case "${cell##*:}" in
+    reply|answer|answer-late|answer-at-?*|note-at-?*|silent|none) ;;
+    *) echo "$cell: MODE is one of reply, answer, answer-late, answer-at-<stage>, note-at-<stage>, silent, none"; exit 2 ;;
+  esac
 done
 for cell in "$@"; do
   name=${cell%%:*}; rest=${cell#*:}; case_name=${rest%%:*}; mode=${rest#*:}
@@ -39,8 +49,13 @@ for cell in "$@"; do
     echo $? > "$ROOT/$name.exit"
   ) &
   echo "$name run $!" >> "$ROOT/pids.txt"
-  if [ "$mode" = reply ] || [ "$mode" = silent ]; then
-    flag=""; [ "$mode" = reply ] && flag="--reply"
+  if [ "$mode" != none ]; then
+    case "$mode" in
+      reply|answer|answer-late) flag="--$mode" ;;
+      answer-at-?*) flag="--answer-at ${mode#answer-at-}" ;;
+      note-at-?*) flag="--note-at ${mode#note-at-}" ;;
+      *) flag="" ;;
+    esac
     (
       cd "$APP" || exit 2
       # shellcheck disable=SC2086

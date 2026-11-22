@@ -1,0 +1,6 @@
+R-5 as the newest commit of the spec at or before N1 (2026-11-22T21:47:23Z) holds it, unverified (a plain note stores no digest):
+
+### R-5 Existing tickets are backfilled and keep their due (S6)
+When the service starts on a data file (a store opened with persistence) whose tickets lack `due`, it sets due from each ticket's own created time and current priority with the configured hours, and saves the file at once at start. A ticket that already has due is never recomputed. Backfill changes nothing else: `updated`, audit and outbox stay as they were. The command line and weekly report open the file without persistence and never write it, so they never backfill. With no data file there is nothing to backfill.
+- Positive: a temp file written in 1.4.0 format with T-0001 (urgent, created 2026-01-01T00:00:00.000Z), T-0002 (low, created 2026-01-01T12:00:00.000Z), T-0003 (normal, created 2026-02-01T00:00:00.000Z, status closed) -> after service start the file on disk holds due 2026-01-01T04:00:00.000Z, 2026-01-08T12:00:00.000Z, 2026-02-04T00:00:00.000Z, with audit, outbox and `updated` byte-equal to before; a second start with DUE_HOURS_URGENT=1 leaves them unchanged (service test with a real temp file, flag off, then flag on shows the same values).
+- Basis: request S6; src/persistence.js. A backfill uses current priority (only data available).

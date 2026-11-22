@@ -1,0 +1,3 @@
+### R-3 Production data and rollback
+
+Basis: November 22, 2026 rollout and rollback request. Default: the operator runs an offline backfill with the service stopped. It sets only missing times from the stored creation timestamp and priority, and does not alter ticket activity, audit history, IDs or outbox. A fresh file can start enabled. An existing file with missing due fails to start enabled and tells the operator how to backfill. Verify write, repeat, restart and enabled startup rejection through disposable data. The unmodified 1.4.0 must start and list every ticket from a file written by the candidate. Live deployment is operator-owned (docs/operations.md).

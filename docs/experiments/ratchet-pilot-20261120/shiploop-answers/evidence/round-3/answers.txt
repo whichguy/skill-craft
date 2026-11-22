@@ -1,0 +1,575 @@
+== m1: claude claude-sonnet-5-5 medium
+   outcome FAILED (engine done; at least one verdict failed) | verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True}
+   case checks 3 of 8
+      FAILED due_times_probe.py migrate | ...un node bin/backfill-due.js --data /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-xpgq_rlu/tickets.json before starting it with DUE_TIMES=on (the delivery DUE_TIMES=on server did not start) migrate: 1 expectation(s) failed
+      FAILED due_times_probe.py restart | ...vice and run node bin/backfill-due.js --data /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-r65fndl3/tickets.json before starting it with DUE_TIMES=on (the first start server did not start) restart: 1 expectation(s) failed
+      FAILED due_times_probe.py switch | ...vice and run node bin/backfill-due.js --data /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-_13ncwza/tickets.json before starting it with DUE_TIMES=on (the DUE_TIMES=on server did not start) switch: 1 expectation(s) failed
+      FAILED due_times_probe.py rollback | ...de bin/backfill-due.js --data /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-83dw2iri/on/tickets.json before starting it with DUE_TIMES=on (the delivery, DUE_TIMES=on server did not start) rollback: 1 expectation(s) failed
+      FAILED due_times_probe.py cli | ...nd run node bin/backfill-due.js --data /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-pbaartky/tickets.json before starting it with DUE_TIMES=on (the delivery DUE_TIMES=on server did not start) cli: 1 expectation(s) failed
+   start-up checks: migrate FAIL, restart FAIL, switch FAIL, rollback FAIL, cli FAIL
+   2026-11-22 21:33:21Z to 2026-11-22 22:13:05Z, 39.7 minutes | turns 430, model calls 239, output tokens 243600, cost 12.3914 | spec 144.0 s, test-strategy 108.0 s
+   run folders 1; read ~/e2e-runs/r-20261122-72ca72/m1/.shiploop-runs/work-20261122-213327-584b6f/run
+   engine done at done, revision 48
+   the list: 5 rows
+      1. 1@c698bd15 R-2 How does the help desk change the response hours without a code change, and how large may they be?
+      2. 2@c698bd15 R-4 What happens for ?overdue=false or ?overdue=yes?
+      3. 3@c698bd15 R-6 Which DUE_TIMES values switch it on?
+      4. 4@c698bd15 R-5 How do due times get into the file before the flag is on?   <- chosen
+         default: The new release writes due into the data file at its first start even with the flag off, so operators can check the file before switching on
+         alternative: Backfill only when DUE_TIMES=on; but then the file would not hold due times before the switch, contradicting the request
+      5. 5@c698bd15 R-10 Does the operators' command line show due?
+   stand-in: mode note-at, row 4, selector 4@c698bd15, tie False ; scores 1=0, 2=0, 3=0, 4=4, 5=0; sent N1 at 2026-11-22T21:47:23Z (packet seen 2026-11-22T21:39:13Z); ended None
+   accepted test-strategy result: yes; its answers rows: null
+   held callbacks 0: [] | refusals naming answers 1 | other refusals by stage {'improve': 3, 'plan': 2} | failed checks by stage {'step-plan': 5, 'document': 1, 'test': 7}
+      [improve] ShipLoop test run: end-of-work review is not done. ShipLoop ran the 6 listed commands from ~/e2e-runs/r-20261122-72ca72/m1/.shiploop-runs/work-20261122-213327-584b6f/worktree and 1 did no
+   packets 49: with the answers block 0, with the held line 0
+   done packet lines: []
+   report lines: []
+   the host's last message to the user:
+      | The help desk's due times are built, tested and returned to `master` in this directory (version 1.5.0). The ShipLoop run is complete; the one thing not done is the production rollout, which needs your operators.
+      | 
+      | `npm test` passes with 148 tests (the 117 existing ones untouched, plus 31 new). I also ran the real service, the new backfill command and the real 1.4.0 server together on one data file, and that passes too. The working tree is clean.
+      | 
+      | What changed for operators and the help desk:
+      | - **Due time:** each ticket gets `due` = creation time plus its priority's hours (4/24/72/168), set once and never moved by a later priority or hours change. The hours come from `DUE_HOURS_URGENT`, `DUE_HOURS_HIGH`, `DUE_HOURS_NORMAL` and `DUE_HOURS_LOW`. I chose those variable names, since the request gave none.
+      | - **`DUE_TIMES`:** only the exact value `on` shows `due` and enables `GET /tickets?overdue=true` (open and in-progress tickets past due). Otherwise the service answers exactly as 1.4.0 does, checked against a vendored copy of 1.4.0.
+      | - **Going back to 1.4.0:** the data file stays version 1, so 1.4.0 starts on a file the new release wrote and shows every ticket. It drops `due` the next time it saves, so re-upgrading needs the backfill again, worked out from each ticket's priority at that point.
+      | - **Docs:** README, `docs/api.md`, `docs/operations.md`, a decision record (`docs/decisions/0009-due-times.md`), CHANGELOG and the version bump are done.
+      | 
+      | **Backfill design:** an "owner note" turned up in ShipLoop's output mid-run. It asked that old tickets get their due times from an explicit operator command, not when the service starts, and that `DUE_TIMES=on` refuse to start while any ticket lacks one. I first held back because it came through tool output rather than your message, then followed it because ShipLoop records it as the run owner's note and the skill says to act on it. The start-time backfill I had already built was reversed, which cost an extra work item. The operator procedure is:
+      | 1. Deploy with `DUE_TIMES` unset.
+      | 2. Stop the service and run `node bin/backfill-due.js --data FILE`.
+      | 3. Check the file.
+      | 4. Start with `DUE_TIMES=on`.
+      | 
+      | If that note wasn't yours, tell me and I'll revert to the start-time backfill.
+      | 
+      | I did not push or deploy anything. Not observed: the real production data file, which stays with whoever has production access, following `docs/operations.md`.
+      | 
+      | One existing discrepancy is left unchanged: `docs/api.md` says list filters combine with AND, but the code keeps a ticket that matches either status or priority. Someone needs to decide whether the doc or the code is right.
+      | 
+      | The run's progress file is `report.html` in `~/e2e-runs/r-20261122-72ca72/m1/.shiploop-runs/work-20261122-213327-584b6f/`.
+   the late note N1 (a plain note, bound to no row):
+      sent when the implement packet printed (2026-11-22T21:47:23Z); the chosen row 4 decided start, so the note sent is "command": "Do not fill in due times when the service starts. I want that step explicit: an operator stops the service and runs a separate command that gives every ticket that has no due time one, from that ticket's own creation time and priority, and saves the file. If the service is started with DUE_TIMES set to on while any ticket has no due time, it refuses to start and names that command."
+      the chosen row as printed: 4. R-5 How do due times get into the file before the flag is on? Decided: The new release writes due into the data file at its first start even with the flag off, so operators can check the file before switching on. Otherwise: Backfill only when DUE_TIMES=on; but then the file would not hold due times before the switch, contradicting the request. Selector: 4@c698bd15.
+      1. written 2026-11-22T21:47:23Z (in the trace: 2026-11-22 21:47:23.761Z) | last accepted before: validate-existing W1 done (nav-3f41916f), accepted 2026-11-22 21:47:22.150Z | open then: implement W1 (nav-06edc199), from the trace's note command
+      2. R-5 in ~/e2e-runs/r-20261122-72ca72/m1/.shiploop-runs/work-20261122-213327-584b6f/worktree: when the note was written, commit 464cd70, the newest of docs/shiploop/spec.md at or before the note, unverified (a plain note stores no digest)
+         | ### R-5 Existing tickets are backfilled and keep their due (S6)
+         | When the service starts on a data file (a store opened with persistence) whose tickets lack `due`, it sets due from each ticket's own created time and current priority with the configured hours, and saves the file at once at start. A ticket that already has due is never recomputed. Backfill changes nothing else: `updated`, audit and outbox stay as they were. The command line and weekly report open the file without persistence and never write it, so they never backfill. With no data file there is nothing to backfill.
+         | - Positive: a temp file written in 1.4.0 format with T-0001 (urgent, created 2026-01-01T00:00:00.000Z), T-0002 (low, created 2026-01-01T12:00:00.000Z), T-0003 (normal, created 2026-02-01T00:00:00.000Z, status closed) -> after service start the file on disk holds due 2026-01-01T04:00:00.000Z, 2026-01-08T12:00:00.000Z, 2026-02-04T00:00:00.000Z, with audit, outbox and `updated` byte-equal to before; a second start with DUE_HOURS_URGENT=1 leaves them unchanged (service test with a real temp file, flag off, then flag on shows the same values).
+         | - Basis: request S6; src/persistence.js. A backfill uses current priority (only data available).
+         at the end: current; differs from the entry when the note was written: True
+         | ### R-5 Existing tickets are backfilled and keep their due (S6)
+         | REVISED 2026-11-22 by owner note N1 (run owner, 21:47Z); the start-time backfill below is superseded, kept as history, and W2 implements the revision. Backfill is an explicit operator step: the operator stops the service and runs a separate command (`node bin/backfill-due.js --data FILE`, or DATA_FILE) that gives every ticket without `due` one, from that ticket's own creation time and priority with the configured hours, and saves the file; it prints the count and changes nothing else; a ticket that already has `due` is never recomputed, so a second run changes nothing. The service does not backfill when it starts. Started with DUE_TIMES=on while any ticket has no `due`, it refuses to start (exit 2, message names the command and the count). Started with the flag off it starts as today; tickets it creates still get `due`. Confirmation (replacing the start-time example below): starting the service on the example file leaves it untouched; flag on with a ticket lacking due refuses and names the command, flag off starts; the command fills the three tickets of the example with the same three values, audit, outbox and updated unchanged, and a second run reports 0 and changes nothing.
+         | 
+         | Superseded 2026-11-22: When the service starts on a data file (a store opened with persistence) whose tickets lack `due`, it sets due from each ticket's own created time and current priority with the configured hours, and saves the file at once at start. A ticket that already has due is never recomputed. Backfill changes nothing else: `updated`, audit and outbox stay as they were. The command line and weekly report open the file without persistence and never write it, so they never backfill. With no data file there is nothing to backfill.
+         | - Positive: a temp file written in 1.4.0 format with T-0001 (urgent, created 2026-01-01T00:00:00.000Z), T-0002 (low, created 2026-01-01T12:00:00.000Z), T-0003 (normal, created 2026-02-01T00:00:00.000Z, status closed) -> after service start the file on disk holds due 2026-01-01T04:00:00.000Z, 2026-01-08T12:00:00.000Z, 2026-02-04T00:00:00.000Z, with audit, outbox and `updated` byte-equal to before; a second start with DUE_HOURS_URGENT=1 leaves them unchanged (service test with a real temp file, flag off, then flag on shows the same values).
+         | - Basis: request S6; src/persistence.js. A backfill uses current priority (only data available).
+         | - Implemented: TicketStore.open backfills at service start and saves; test DUE-14 passes. Owner note N1 (2026-11-22 21:47Z) asks for an explicit separate backfill command instead, and a refusal to start with DUE_TIMES=on while a ticket lacks due: open, to be settled in W2's plan; until then this line follows the accepted spec. (W1/S1)
+         | - Implemented: the revised R-5: src/due-backfill.js and bin/backfill-due.js give old tickets their due time; the service no longer backfills at start and refuses to start with DUE_TIMES=on while a ticket lacks due, naming the command; the W1 line above is superseded (W2/S1)
+      3. accepted results after it naming N1 or an owner note: 9
+         test W1 done: "Tests: test/due.test.js (DUE-1 literal due values for four priorities and custom hours; DUE-3 config defaults, override, empty, DUE_TIMES only exactly on; DUE-4 bad hours for all four variables name the variable, 1 and 87600 accepted), test/due-file.test.js (DUE-5 PATCH priority keeps due and audit lists only priority; DUE-6 restart with other hours keeps old due, new tickets use new hours; DUE-14"
+         document W1 done: "No user-facing doc changed in W1 (reason in the notes file). Owner note N1: recorded as open item A1; not implemented here because W1's accepted spec and tests have start-time backfill and the note arrived outside the user's own message; W2's plan must settle it."
+         carry-forward W1 done: "Owner note N1 applied here: it changes R-5 (revised in spec.md with the superseded text kept), supersedes the start-time-backfill clause of AD-2 by new AD-6, and adds a new item W2 (src/due-backfill.js, bin/backfill-due.js, start refusal, DUE-14 rewrite, DUE-25, DUE-26) ahead of the exposure item, now W3. W1's committed start-time backfill is reversed in W2, so W1's commit stands as history. The s"
+         step-plan W2 done: "Change: backfill becomes an explicit operator command with a startup refusal, as owner note N1 asks (spec R-5 revised, AD-6). Retained test decisions: node:test, temp dirs, child_process for the bin, DUE IDs per environment.md Test plan; the proof is run/scratch/proof-w2.js (red now: src/due-backfill.js missing). Cases for the test stage: DUE-14 (rewrite), DUE-25, DUE-26, DUE-27. A W1 comment in s"
+         test-spec W2 done: "Retained: node:test, withService for the service start cases, spawnSync for the bin, temp dirs removed in t.after, manualClock. DUE-14 replaces W1's start-time-backfill test because owner note N1 reversed it (spec R-5 revised, AD-6); it is the only W1 test changed. Coverage: C1 DUE-14; C2 DUE-26; C3 DUE-25; C4 DUE-27. All stateless, all RED on the base. No open items."
+         test W2 done: "Tests: test/due-backfill.test.js (DUE-25 flag on + 3 tickets without due refuses naming bin/backfill-due.js, 3 tickets and the file, file byte-identical; flag off starts and a new ticket has due; flag on with due everywhere starts. DUE-26 backfillDue and the bin fill 04:00 / 01-08T12:00 / 02-04T00:00, audit, outbox, updated, version unchanged, second run 0 and byte-identical, DUE_HOURS_URGENT=1 gi"
+         carry-forward W3 done: "W3 carried forward; no future items remain. Knowledge home is current: spec R-1..R-10 each with an implemented line (R-5 revised by owner note N1, superseded text kept), AD-1..AD-6 (AD-2's backfill clause superseded by AD-6), Commands and test plan updated. Open risks for release stages: the existing docs/api.md says filters combine with AND while matchesFilters ORs status and priority (not change"
+         product-acceptance done: "End states, all observed by executed checks (npm test: exit 0, 148 tests pass; system tests ST-1, ST-2 pass): S3 due = created + hours of priority 4/24/72/168 and hours from DUE_HOURS_* without code change (DUE-1, DUE-2, DUE-3, DUE-4, ST-2) passed. S4 due set once, a priority change or new hours does not move it (DUE-5, DUE-6, DUE-28) passed. S5 every ticket shows due with DUE_TIMES=on and ?overdu"
+         handoff done: "Source: returned to the starting checkout's master by a verified fast-forward (receipt ~/e2e-runs/r-20261122-72ca72/m1/.shiploop-runs/work-20261122-213327-584b6f/return-receipt.md), version 1.5.0, tree clean. Tests: npm test in the returned checkout exits 0 with 148 tests pass (117 existing unmodified, 31 new); system tests ST-1, ST-2 pass. Integration: ST-1 runs the real server, the "
+      4. commits of ~/e2e-runs/r-20261122-72ca72/m1/.shiploop-runs/work-20261122-213327-584b6f/worktree after it: 14; touching docs/shiploop/spec.md: 6; touching src/ or bin/: 4; touching test/: 7
+         fix(shiploop): commit the 1.4.0 oracle fixture and its test
+         feat(W3/S2): CLI due line, release docs, decision 0009 and version 1.5.0 done; proof ok
+         feat(W3/S1): HTTP gate and overdue listing implemented; proof ok, 130 tests pass
+         feat(W2/S1): Explicit due backfill command and DUE_TIMES startup refusal implemented; proof ok
+         docs(shiploop): record this-directory-is-an-existing-node-1c115a knowledge after carry-forward
+         feat(W1/S1): Stored due time implemented: due.js, config, persistence, store backfill, app strip; p…
+      5. non-zero commands after it by stage {'document': 1, 'step-plan': 4, 'test': 7, 'improve': 3}; naming N1: 1
+         [document] Restore ~/e2e-runs/r-20261122-72ca72/m1/.shiploop-runs/work-20261122-213327-584b6f/worktree/docs/shiploop/spec.md to what HEAD holds plus this step's requirement lines, then run the same 
+      6. run done; planning reconciliations 0 (0 after it); blocked or reconcile after it: none
+      7. the owner-notes record: delivered, delivered by test W1 done (nav-f1a7dda0), accepted 2026-11-22 21:49:29.006Z; its summary names N1: True
+         held callbacks or checks that printed it (the trace): 1 ['implement check (a check printed it in place of a hold)']; the current action's shown record: ['packet'] of nav-f1a7dda0
+         packet prints that quoted it whole (the trace's record): 1 ['test W1']
+         packet prints that quote it or name N1: quoted whole in 1, named only in 33: 34 prints of 27 packets, in order ['test W1 (quoted)', 'document W1 (named)', 'carry-forward W1 (named)', 'step-plan W2 (named)', 'test-spec W2 (named)', 'test-spec W2 (named)', 'implement W2 (named)', 'test W2 (named)', 'document W2 (named)', 'carry-forward W2 (named)', 'carry-forward W2 (named)', 'step-plan W3 (named)', 'test-spec W3 (named)', 'implement W3 (named)', 'test W3 (named)', 'test W3 (named)', 'document W3 (named)', 'document W3 (named)', 'implement W3 (named)', 'implement W3 (named)', 'test W3 (named)', 'test W3 (named)', 'document W3 (named)', 'document W3 (named)', 'carry-forward W3 (named)', 'system-test-author (named)', 'system-test (named)', 'product-acceptance (named)', 'release-plan (named)', 'release-check (named)', 'release (named)', 'release-verify (named)', 'operations (named)', 'handoff (named)']
+== n1: codex gpt-6.2-sol medium
+   outcome PASS (every verdict passed) | verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True}
+   case checks 8 of 8
+   start-up checks: migrate pass, restart pass, switch pass, rollback pass, cli pass
+   2026-11-22 21:33:22Z to 2026-11-22 21:49:22Z, 16.0 minutes | turns 161, model calls 96, output tokens 32313, cost None | spec 68.0 s, test-strategy 48.0 s
+   run folders 1; read ~/e2e-runs/r-20261122-72ca72/n1/.shiploop-runs/work-20261122-213339-5c3081/run
+   engine done at done, revision 30
+   the list: 3 rows
+      1. 1@dcded773 R-1 How do operators set response hours?
+      2. 2@dcded773 R-2 When is a ticket overdue?
+      3. 3@dcded773 R-3 How does the operator prepare the file?   <- chosen
+         default: Start the upgraded service with exposure off and verify the file before switching on. Startup assigns any missing deadlines.
+         alternative: A separate offline command would require coordinating an extra writer.
+   stand-in: mode note-at, row 3, selector 3@dcded773, tie False ; scores 1=0, 2=0, 3=4; sent None at None (packet seen 2026-11-22T21:36:12Z); ended could not tell what the row decided; nothing was sent
+   accepted test-strategy result: yes; its answers rows: null
+   held callbacks 0: [] | refusals naming answers 0 | other refusals by stage {'plan': 1} | failed checks by stage {'step-plan': 1, 'test-spec': 1, 'test': 2}
+   packets 31: with the answers block 0, with the held line 0
+   done packet lines: []
+   report lines: []
+   the host's last message to the user:
+      | Implemented ticket deadlines in 1.5.0 and returned the changes to local `master`. All 121 tests pass, including the 117 unchanged tests.
+      | 
+      | Deadlines are assigned once using the 4, 24, 72, and 168 hour defaults for urgent, high, normal, and low priorities. Operators can override each through `DUE_HOURS_URGENT`, `DUE_HOURS_HIGH`, `DUE_HOURS_NORMAL`, and `DUE_HOURS_LOW`. Startup backfills existing tickets before serving requests. With `DUE_TIMES=on`, responses include `due`, and `GET /tickets?overdue=true` returns only open or in-progress tickets strictly past their deadline.
+      | 
+      | For production, start 1.5.0 with the flag off, verify the saved deadlines, then enable it. The rollback rehearsal confirmed that 1.4.0 starts on the upgraded file and returns all 25 test tickets. A 1.4.0 save removes deadline fields, so keep a copy of the upgraded file before rolling back. [Rollout and rollback instructions](~/e2e-runs/r-20261122-72ca72/n1/work/docs/operations.md#roll-out-ticket-deadlines)
+      | 
+      | The [ShipLoop report](~/e2e-runs/r-20261122-72ca72/n1/.shiploop-runs/work-20261122-213339-5c3081/run/report.html) records the verification and the rationale for the configuration, cutoff, and rollout choices.
+   the late note (none sent) (a plain note, bound to no row):
+      not recorded: the stand-in sent no note: could not tell what the row decided; nothing was sent
+== n2: codex gpt-6.2-sol medium
+   outcome PASS (every verdict passed) | verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True}
+   case checks 8 of 8
+   start-up checks: migrate pass, restart pass, switch pass, rollback pass, cli pass
+   2026-11-22 21:33:22Z to 2026-11-22 21:50:37Z, 17.2 minutes | turns 176, model calls 84, output tokens 38392, cost None | spec 57.0 s, test-strategy 35.0 s
+   run folders 1; read ~/e2e-runs/r-20261122-72ca72/n2/.shiploop-runs/work-20261122-213341-8f928e/run
+   engine done at done, revision 34
+   the list: 4 rows
+      1. 1@a7dd1362 R-1 How do I change response hours?
+      2. 2@a7dd1362 R-2 How does the overdue query handle the exact deadline and other values?
+      3. 3@a7dd1362 R-2 Where do deadlines appear in the command line?
+      4. 4@a7dd1362 R-3 How do I backfill before enabling?   <- chosen
+         default: Start the upgraded service with the feature off and verify the data file before enabling.
+         alternative: Run a separate maintenance executable.
+   stand-in: mode note-at, row 4, selector 4@a7dd1362, tie False ; scores 1=0, 2=0, 3=0, 4=4; sent None at None (packet seen 2026-11-22T21:36:15Z); ended could not tell what the row decided; nothing was sent
+   accepted test-strategy result: yes; its answers rows: null
+   held callbacks 0: [] | refusals naming answers 0 | other refusals by stage {'intake': 1, 'release-verify': 1} | failed checks by stage {'step-plan': 1, 'test': 1}
+   packets 35: with the answers block 0, with the held line 0
+   done packet lines: []
+   report lines: []
+   the host's last message to the user:
+      | Implemented ticket deadlines in release 1.5.0 and returned the changes to `master`. All 122 tests passed, including the 117 unchanged tests.
+      | 
+      | The service backfills missing deadlines at startup and preserves assigned deadlines through priority and configuration changes. The `DUE_HOURS_*` settings default to 4, 24, 72 and 168 hours for urgent, high, normal and low. With `DUE_TIMES=on`, the API exposes `due`, and `GET /tickets?overdue=true` returns only open and in-progress tickets past their deadline.
+      | 
+      | Verified that the actual 1.4.0 release starts on the upgraded file and shows every test ticket. Its next save drops the deadline fields, so the rollback procedure calls for a fresh backup. Production deployment and data were outside this local delivery. [Rollout and rollback guide](~/e2e-runs/r-20261122-72ca72/n2/work/docs/operations.md#roll-out-ticket-deadlines) · [ShipLoop report](~/e2e-runs/r-20261122-72ca72/n2/.shiploop-runs/work-20261122-213341-8f928e/run/report.html)
+   the late note (none sent) (a plain note, bound to no row):
+      not recorded: the stand-in sent no note: could not tell what the row decided; nothing was sent
+== n3: codex gpt-6.2-sol medium
+   outcome PASS (every verdict passed) | verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True}
+   case checks 8 of 8
+   start-up checks: migrate pass, restart pass, switch pass, rollback pass, cli pass
+   2026-11-22 21:33:22Z to 2026-11-22 21:47:00Z, 13.6 minutes | turns 143, model calls 70, output tokens 29502, cost None | spec 57.0 s, test-strategy 35.0 s
+   run folders 1; read ~/e2e-runs/r-20261122-72ca72/n3/.shiploop-runs/work-20261122-213334-785621/run
+   engine done at done, revision 34
+   the list: 3 rows
+      1. 1@be6329c6 R-1 How do I change the hours?
+      2. 2@be6329c6 R-2 Exactly when is a ticket overdue?
+      3. 3@be6329c6 R-2 How does the operator CLI show due?
+   stand-in: mode note-at, row None, selector None, tie False ; scores 1=0, 2=0, 3=0; sent None at None (packet seen 2026-11-22T21:36:02Z); ended no printed row is about the due-time start-up decision; nothing was sent
+   accepted test-strategy result: yes; its answers rows: null
+   held callbacks 0: [] | refusals naming answers 0 | other refusals by stage {} | failed checks by stage {'step-plan': 1, 'test': 1}
+   packets 35: with the answers block 0, with the held line 0
+   done packet lines: []
+   report lines: []
+   the host's last message to the user:
+      | Implemented ticket response deadlines in 1.5.0 and returned the changes to `master`. The service backfills missing deadlines before it starts listening. Once assigned, a deadline stays fixed through priority and configuration changes.
+      | 
+      | I chose one positive whole-hour environment setting per priority, with defaults of 4, 24, 72, and 168 hours. With `DUE_TIMES=on`, the API and human-readable CLI show `due`. The overdue query returns only open and in-progress tickets strictly past their deadlines, and the CLI’s raw output keeps its existing columns.
+      | 
+      | All **122 tests passed**, including the 117 unchanged tests. I verified that the actual 1.4.0 server starts on the new data file and lists every ticket. It drops deadline fields when it saves, so the [operations guide](~/e2e-runs/r-20261122-72ca72/n3/work/docs/operations.md:27) explains how to preserve them across rollback. Production rollout remains pending.
+      | 
+      | The [ShipLoop report](~/e2e-runs/r-20261122-72ca72/n3/.shiploop-runs/work-20261122-213334-785621/run/report.html) records the verification and the rationale for those choices.
+   the late note (none sent) (a plain note, bound to no row):
+      not recorded: the stand-in sent no note: no printed row is about the due-time start-up decision; nothing was sent
+== n4: codex gpt-6.2-sol medium
+   outcome FAILED (engine done; at least one verdict failed) | verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True}
+   case checks 3 of 8
+      FAILED due_times_probe.py migrate | ...s/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-x_lms89e/tickets.json: tickets are missing due times; run npm run backfill:due before enabling DUE_TIMES (the delivery DUE_TIMES=on server did not start) migrate: 1 expectation(s) failed
+      FAILED due_times_probe.py restart | ...var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-4156flox/tickets.json: tickets are missing due times; run npm run backfill:due before enabling DUE_TIMES (the first start server did not start) restart: 1 expectation(s) failed
+      FAILED due_times_probe.py switch | ...var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-ni9jpy6h/tickets.json: tickets are missing due times; run npm run backfill:due before enabling DUE_TIMES (the DUE_TIMES=on server did not start) switch: 1 expectation(s) failed
+      FAILED due_times_probe.py rollback | ...cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-5jptzzw3/on/tickets.json: tickets are missing due times; run npm run backfill:due before enabling DUE_TIMES (the delivery, DUE_TIMES=on server did not start) rollback: 1 expectation(s) failed
+      FAILED due_times_probe.py cli | ...lders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-ovjjd3w0/tickets.json: tickets are missing due times; run npm run backfill:due before enabling DUE_TIMES (the delivery DUE_TIMES=on server did not start) cli: 1 expectation(s) failed
+   start-up checks: migrate FAIL, restart FAIL, switch FAIL, rollback FAIL, cli FAIL
+   2026-11-22 21:51:19Z to 2026-11-22 22:07:50Z, 16.5 minutes | turns 189, model calls 87, output tokens 33062, cost None | spec 54.0 s, test-strategy 28.0 s
+   run folders 1; read ~/e2e-runs/r-20261122-72ca72/n4/.shiploop-runs/work-20261122-215141-3c7062/run
+   engine done at done, revision 34
+   the list: 3 rows
+      1. 1@dd814407 R-1 How do operators change the response windows?
+      2. 2@dd814407 R-2 Does a ticket become overdue at its exact due instant?
+      3. 3@dd814407 R-3 How do operators stage rollout?   <- chosen
+         default: Run the offline migration before enabling the flag. Startup fails early if the file still has missing deadlines.
+         alternative: An automatic activation-time migration would couple rollout and file conversion.
+   stand-in: mode note-at, row 3, selector 3@dd814407, tie False ; scores 1=2, 2=0, 3=5; sent N1 at 2026-11-22T21:56:24Z (packet seen 2026-11-22T21:53:43Z); ended None
+   accepted test-strategy result: yes; its answers rows: null
+   held callbacks 0: [] | refusals naming answers 0 | other refusals by stage {'plan': 1} | failed checks by stage {'step-plan': 1, 'test': 2, 'implement': 1}
+   packets 35: with the answers block 0, with the held line 0
+   done packet lines: []
+   report lines: []
+   the host's last message to the user:
+      | Implemented ticket due times in **1.5.0** and returned the changes to local `master`. Tickets keep their original deadline when their priority or the configured response hours change. With `DUE_TIMES=on`, ticket responses include `due`, and `GET /tickets?overdue=true` returns only open and in-progress tickets whose deadline has passed.
+      | 
+      | All **125 tests passed**, including the 117 unchanged tests. The rollback rehearsal used the actual 1.4.0 server. It listed every migrated ticket and accepted new writes. Returning to 1.5.0 restored the original deadlines from the archived file and retained the rollback writes.
+      | 
+      | Production rollout is pending. Run `npm run backfill:due` with the service stopped before enabling `DUE_TIMES=on`. The [operations guide](~/e2e-runs/r-20261122-72ca72/n4/work/docs/operations.md#ticket-due-times) covers the backup and recovery steps.
+      | 
+      | [ShipLoop completion report](<~/e2e-runs/r-20261122-72ca72/n4/.shiploop-runs/work-20261122-215141-3c7062/run/report.html>)
+   the late note N1 (a plain note, bound to no row):
+      sent when the implement packet printed (2026-11-22T21:56:24Z); the chosen row 3 decided command, so the note sent is "start": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing."
+      the chosen row as printed: 3. R-3 How do operators stage rollout? Decided: Run the offline migration before enabling the flag. Startup fails early if the file still has missing deadlines. Otherwise: An automatic activation-time migration would couple rollout and file conversion. Selector: 3@dd814407.
+      1. written 2026-11-22T21:56:24Z (in the trace: 2026-11-22 21:56:24.530Z) | last accepted before: validate-existing W1 done (nav-0188b82d), accepted 2026-11-22 21:56:23.189Z | open then: implement W1 (nav-133df9dd), from the trace's note command
+      2. R-3 in ~/e2e-runs/r-20261122-72ca72/n4/.shiploop-runs/work-20261122-215141-3c7062/worktree: when the note was written, commit 3d7a162, the newest of docs/shiploop/spec.md at or before the note, unverified (a plain note stores no digest)
+         | ### R-3 File staging and rollback
+         | Basis: help-desk response-time request and [data-file decision](../decisions/0008-json-data-file.md). Backfill stored tickets before activating; use their stored creation and priority and keep existing deadlines. The operation is repeatable, preserves other records and uses atomic replacement. Activation on an incomplete persisted file fails before listening. Verify the original 1.4.0 reader can start on the migrated file and list every ticket, and that a saved pre-rollback file can restore established deadlines when returning from 1.4.0.
+         at the end: current; differs from the entry when the note was written: False
+         | ### R-3 File staging and rollback
+         | Basis: help-desk response-time request and [data-file decision](../decisions/0008-json-data-file.md). Backfill stored tickets before activating; use their stored creation and priority and keep existing deadlines. The operation is repeatable, preserves other records and uses atomic replacement. Activation on an incomplete persisted file fails before listening. Verify the original 1.4.0 reader can start on the migrated file and list every ticket, and that a saved pre-rollback file can restore established deadlines when returning from 1.4.0.
+      3. accepted results after it naming N1 or an owner note: 0
+      4. commits of ~/e2e-runs/r-20261122-72ca72/n4/.shiploop-runs/work-20261122-215141-3c7062/worktree after it: 6; touching docs/shiploop/spec.md: 1; touching src/ or bin/: 2; touching test/: 2
+         docs(shiploop): record skill-craft-shiploop-this-directory-is-5fcd40 knowledge after carry-forward
+      5. non-zero commands after it by stage {'test': 2, 'implement': 1}; naming N1: 0
+      6. run done; planning reconciliations 0 (0 after it); blocked or reconcile after it: none
+      7. the owner-notes record: delivered, delivered by test W1 done (nav-d5f8b3d4), accepted 2026-11-22 21:58:57.974Z; its summary names N1: False
+         held callbacks or checks that printed it (the trace): 1 ['implement check (a check printed it in place of a hold)']; the current action's shown record: ['packet'] of nav-d5f8b3d4
+         packet prints that quoted it whole (the trace's record): 1 ['test W1']
+         packet prints that quote it or name N1: quoted whole in 1, named only in 15: 16 prints of 16 packets, in order ['test W1 (quoted)', 'document W1 (named)', 'implement W1 (named)', 'test W1 (named)', 'document W1 (named)', 'carry-forward W1 (named)', 'system-test-author (named)', 'system-test (named)', 'product-acceptance (named)', 'release-plan (named)', 'release-check (named)', 'release (named)', 'release (named)', 'release-verify (named)', 'operations (named)', 'handoff (named)']
+== n5: codex gpt-6.2-sol medium
+   outcome FAILED (engine done; at least one verdict failed) | verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True}
+   case checks 3 of 8
+      FAILED due_times_probe.py migrate | .../cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-oic8nwbq/tickets.json: tickets[0].due is missing; run node scripts/backfill-due.js before enabling DUE_TIMES (the delivery DUE_TIMES=on server did not start) migrate: 1 expectation(s) failed
+      FAILED due_times_probe.py restart | ...folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-cb00vm49/tickets.json: tickets[0].due is missing; run node scripts/backfill-due.js before enabling DUE_TIMES (the first start server did not start) restart: 1 expectation(s) failed
+      FAILED due_times_probe.py switch | ...folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-n3kttkka/tickets.json: tickets[0].due is missing; run node scripts/backfill-due.js before enabling DUE_TIMES (the DUE_TIMES=on server did not start) switch: 1 expectation(s) failed
+      FAILED due_times_probe.py rollback | ...1tgs171367b_gghs0kgm0000gn/T/due-times-probe-ruwj6n4g/on/tickets.json: tickets[0].due is missing; run node scripts/backfill-due.js before enabling DUE_TIMES (the delivery, DUE_TIMES=on server did not start) rollback: 1 expectation(s) failed
+      FAILED due_times_probe.py cli | ...s/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-wtkcagqz/tickets.json: tickets[0].due is missing; run node scripts/backfill-due.js before enabling DUE_TIMES (the delivery DUE_TIMES=on server did not start) cli: 1 expectation(s) failed
+   start-up checks: migrate FAIL, restart FAIL, switch FAIL, rollback FAIL, cli FAIL
+   2026-11-22 21:51:19Z to 2026-11-22 22:05:41Z, 14.4 minutes | turns 124, model calls 72, output tokens 28581, cost None | spec 58.0 s, test-strategy 34.0 s
+   run folders 1; read ~/e2e-runs/r-20261122-72ca72/n5/.shiploop-runs/work-20261122-215137-414b1f/run
+   engine done at done, revision 34
+   the list: 4 rows
+      1. 1@ddba99fd R-1 How do I change the response hours?
+      2. 2@ddba99fd R-2 What happens at the deadline or with a different overdue value?
+      3. 3@ddba99fd R-3 How do I backfill before enabling?   <- chosen
+         default: Stop the writer and run the backfill command before starting with DUE_TIMES=on. Startup rejects an unprepared populated file.
+         alternative: Backfill on startup, which couples the data change and activation.
+      4. 4@ddba99fd R-4 Should the terminal also display due?
+   stand-in: mode note-at, row 3, selector 3@ddba99fd, tie False ; scores 1=0, 2=0, 3=5, 4=0; sent N1 at 2026-11-22T21:56:28Z (packet seen 2026-11-22T21:53:51Z); ended None
+   accepted test-strategy result: yes; its answers rows: null
+   held callbacks 0: [] | refusals naming answers 0 | other refusals by stage {'test-strategy': 1} | failed checks by stage {'step-plan': 1, 'test': 3}
+   packets 35: with the answers block 0, with the held line 0
+   done packet lines: []
+   report lines: []
+   the host's last message to the user:
+      | Implemented ticket due times on `master`. With `DUE_TIMES=on`, tickets expose a stored `due` timestamp that stays fixed after priority or configuration changes. `GET /tickets?overdue=true` returns only open and in-progress tickets whose deadlines have passed. Response hours are configurable through `DUE_HOURS_*`, and the API retains its previous behavior while the flag is off.
+      | 
+      | All 122 tests passed, including the 117 unchanged baseline tests. A separate rollback rehearsal confirmed that 1.4.0 starts on a file written by the new version and returns every ticket, including one created after activation.
+      | 
+      | Production rollout is still pending. Run the offline backfill before enabling the flag, and archive the migrated file before any downgrade because 1.4.0 drops `due` when it saves. [Rollout and rollback instructions](~/e2e-runs/r-20261122-72ca72/n5/work/docs/operations.md:27) · [ShipLoop report](~/e2e-runs/r-20261122-72ca72/n5/.shiploop-runs/work-20261122-215137-414b1f/run/report.html)
+   the late note N1 (a plain note, bound to no row):
+      sent when the implement packet printed (2026-11-22T21:56:28Z); the chosen row 3 decided command, so the note sent is "start": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing."
+      the chosen row as printed: 3. R-3 How do I backfill before enabling? Decided: Stop the writer and run the backfill command before starting with DUE_TIMES=on. Startup rejects an unprepared populated file. Otherwise: Backfill on startup, which couples the data change and activation. Selector: 3@ddba99fd.
+      1. written 2026-11-22T21:56:28Z (in the trace: 2026-11-22 21:56:28.268Z) | last accepted before: validate-existing W1 done (nav-b5802453), accepted 2026-11-22 21:56:26.406Z | open then: implement W1 (nav-761391fe), from the trace's note command
+      2. R-3 in ~/e2e-runs/r-20261122-72ca72/n5/.shiploop-runs/work-20261122-215137-414b1f/worktree: when the note was written, commit 7f8220c, the newest of docs/shiploop/spec.md at or before the note, unverified (a plain note stores no digest)
+         | ### R-3 Prepare existing data
+         | Basis: S6-S7. Default from 2026-11-22: an operator stops the file owner and runs the backfill before enabling. Read the existing V1 file and fill missing due from stored creation time and priority. Preserve existing due, IDs, ticket fields, audit and outbox. Retry is a no-op on fully prepared data. Enabled startup with any missing due rejects a populated unprepared file. Verify migrations, retry under changed hours and failed startup. Actual production file remains operator-owned.
+         at the end: current; differs from the entry when the note was written: False
+         | ### R-3 Prepare existing data
+         | Basis: S6-S7. Default from 2026-11-22: an operator stops the file owner and runs the backfill before enabling. Read the existing V1 file and fill missing due from stored creation time and priority. Preserve existing due, IDs, ticket fields, audit and outbox. Retry is a no-op on fully prepared data. Enabled startup with any missing due rejects a populated unprepared file. Verify migrations, retry under changed hours and failed startup. Actual production file remains operator-owned.
+      3. accepted results after it naming N1 or an owner note: 0
+      4. commits of ~/e2e-runs/r-20261122-72ca72/n5/.shiploop-runs/work-20261122-215137-414b1f/worktree after it: 4; touching docs/shiploop/spec.md: 1; touching src/ or bin/: 2; touching test/: 2
+         docs(shiploop): record this-directory-is-an-existing-node-f8a8e7 knowledge at release-plan
+      5. non-zero commands after it by stage {'test': 3}; naming N1: 0
+      6. run done; planning reconciliations 0 (0 after it); blocked or reconcile after it: none
+      7. the owner-notes record: delivered, delivered by test W1 done (nav-7eff0bc2), accepted 2026-11-22 22:00:16.780Z; its summary names N1: False
+         held callbacks or checks that printed it (the trace): 1 ['implement check (a check printed it in place of a hold)']; the current action's shown record: ['packet'] of nav-7eff0bc2
+         packet prints that quoted it whole (the trace's record): 2 ['test W1', 'test W1']
+         packet prints that quote it or name N1: quoted whole in 2, named only in 15: 17 prints of 17 packets, in order ['test W1 (quoted)', 'test W1 (quoted)', 'document W1 (named)', 'implement W1 (named)', 'test W1 (named)', 'document W1 (named)', 'carry-forward W1 (named)', 'system-test-author (named)', 'system-test (named)', 'product-acceptance (named)', 'release-plan (named)', 'release-check (named)', 'release (named)', 'release (named)', 'release-verify (named)', 'operations (named)', 'handoff (named)']
+== n6: codex gpt-6.2-sol medium
+   outcome PASS (every verdict passed) | verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True}
+   case checks 8 of 8
+   start-up checks: migrate pass, restart pass, switch pass, rollback pass, cli pass
+   2026-11-22 21:51:19Z to 2026-11-22 22:03:56Z, 12.6 minutes | turns 131, model calls 66, output tokens 25842, cost None | spec 48.0 s, test-strategy 26.0 s
+   run folders 1; read ~/e2e-runs/r-20261122-72ca72/n6/.shiploop-runs/work-20261122-215135-57b8af/run
+   engine done at done, revision 30
+   the list: 3 rows
+      1. 1@fa1ff647 R-3 How do operators populate the file before exposing due?   <- chosen
+         default: Operators start the candidate with the switch off and confirm stored coverage before enabling
+         alternative: A separate migration CLI adds a deployment command
+      2. 2@fa1ff647 R-2 What happens at the exact deadline?
+      3. 3@fa1ff647 R-1 How are hours configured?
+   stand-in: mode note-at, row 1, selector 1@fa1ff647, tie False ; scores 1=6, 2=0, 3=0; sent None at None (packet seen 2026-11-22T21:53:23Z); ended could not tell what the row decided; nothing was sent
+   accepted test-strategy result: yes; its answers rows: null
+   held callbacks 0: [] | refusals naming answers 0 | other refusals by stage {'intake': 1, 'plan': 2, 'step-plan': 1, 'test': 2, 'handoff': 3} | failed checks by stage {'step-plan': 1, 'test': 2}
+   packets 31: with the answers block 0, with the held line 0
+   done packet lines: []
+   report lines: []
+   the host's last message to the user:
+      | Implemented ticket due times in version 1.5.0 on local `master`. New tickets get a fixed deadline from their creation time and priority. Startup backfills existing tickets before the server listens. `DUE_TIMES=on` exposes `due` and enables `GET /tickets?overdue=true` for open and in-progress tickets past their deadline.
+      | 
+      | All 120 tests passed, including the unchanged original suite. I also verified that the actual 1.4.0 release starts on the new data file and lists every ticket. Since 1.4.0 drops `due` when it writes, the rollback procedure saves a copy so a later upgrade can restore the original deadlines and retain edits made during rollback.
+      | 
+      | I used four `DUE_HOURS_*` environment variables, startup backfill before enablement, and a strict overdue cutoff that excludes the exact due instant. The ShipLoop report records these choices and their rationale.
+      | 
+      | Production rollout remains pending. [Operations runbook](~/e2e-runs/r-20261122-72ca72/n6/work/docs/operations.md#ticket-due-times) · [ShipLoop report](~/e2e-runs/r-20261122-72ca72/n6/.shiploop-runs/work-20261122-215135-57b8af/run/report.html)
+   the late note (none sent) (a plain note, bound to no row):
+      not recorded: the stand-in sent no note: could not tell what the row decided; nothing was sent
+== s1: codex gpt-6.2-sol medium
+   outcome PASS (every verdict passed) | verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True}
+   case checks 8 of 8
+   start-up checks: migrate pass, restart pass, switch pass, rollback pass, cli pass
+   2026-11-22 21:33:22Z to 2026-11-22 21:44:09Z, 10.8 minutes | turns 158, model calls 71, output tokens 20738, cost None | spec 45.0 s, test-strategy 33.0 s
+   run folders 1; read ~/e2e-runs/r-20261122-72ca72/s1/.shiploop-runs/work-20261122-213340-3a1c82/run
+   engine done at done, revision 34
+   the list: 0 rows
+   stand-in: no stand-in (a second run)
+   accepted test-strategy result: yes; its answers rows: null
+   held callbacks 0: [] | refusals naming answers 0 | other refusals by stage {} | failed checks by stage {'test': 1}
+   packets 35: with the answers block 0, with the held line 0
+   done packet lines: []
+   report lines: []
+   the host's last message to the user:
+      | With `DUE_TIMES=on`, the service now calculates every missing deadline from the ticket’s stored creation time, priority, and configured response hours. It saves the updated file before serving requests and preserves existing deadlines. Operators can start the service directly with a legacy data file.
+      | 
+      | ShipLoop returned the change to local `master`. All 121 tests passed on a clean copy of the returned code, and a separate startup check confirmed the deadline was on disk before the first HTTP request. Production rollout remains with the operator.
+      | 
+      | [ShipLoop report](~/e2e-runs/r-20261122-72ca72/s1/.shiploop-runs/work-20261122-213340-3a1c82/run/report.html)
+   second run: on the project ~/e2e-runs/r-20261122-8a73b9/e3 left (ticket-due-times); its HEAD at the start d28bc7788ec7943adacb8ca5d5b4ae081b453590
+      prior file: d28bc7788ec7943adacb8ca5d5b4ae081b453590 | ~/e2e-runs/r-20261122-8a73b9/e3
+      request:
+      | Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.
+      diff d28bc77..HEAD in ~/e2e-runs/r-20261122-72ca72/s1/work: 12 files, +176 -33 | src/ + bin/: 1 files, +5 -5 | test/: 1 files, +62 -5 | docs/shiploop/: 3 files, +73 -8
+      commits after start_head: 9
+         docs(shiploop): record skill-craft-shiploop-nobody-prepares-the-c99519 knowledge at release-verify
+         docs(shiploop): record skill-craft-shiploop-nobody-prepares-the-c99519 knowledge at release-plan
+         docs(shiploop): record skill-craft-shiploop-nobody-prepares-the-c99519 knowledge after system-test-a
+         docs(shiploop): record skill-craft-shiploop-nobody-prepares-the-c99519 knowledge after carry-forward
+         feat(W1/S1): Enabled startup now persists missing ticket due times before serving
+         docs(shiploop): record skill-craft-shiploop-nobody-prepares-the-c99519 knowledge after plan
+         docs(shiploop): record skill-craft-shiploop-nobody-prepares-the-c99519 knowledge after test-strategy
+         docs(shiploop): record skill-craft-shiploop-nobody-prepares-the-c99519 knowledge after spec
+         docs(shiploop): record skill-craft-shiploop-nobody-prepares-the-c99519 knowledge after discovery
+      requirement entries that differ between start_head and HEAD: R-3 (changed), R-5 (changed)
+         R-3 at HEAD:
+         | ### R-3 Backfill safely
+         | 
+         | The 2026-11-22 request makes enabled startup responsible for missing due times. With `DUE_TIMES=on`,
+         | load a valid version-1 file, fill every absent `due` using that ticket's stored creation time and priority
+         | plus the configured response hours, and save the updated file before HTTP or the worker starts.
+         | Existing due values, ticket metadata, audit and outbox retain their values. Incomplete deadlines alone
+         | do not prevent startup. Unset or off does not backfill on startup. The existing offline command remains
+         | available while the service is stopped. Invalid timestamp fields
+         R-5 at HEAD:
+         | ### R-5 Preserve compatibility
+         | 
+         | Keep the Node entry points, standard-library-only dependency policy, CLI/report formats and existing tests. Add node:test coverage under test/.
+         | 
+         | Acceptance: run `npm test` and the legacy-reader exercise. Keep existing compatibility checks. Supersede the former startup-refusal assertion with the R-3 startup case.
+      the second run's list of defaults: 0 rows (the list printed above)
+== s2: codex gpt-6.2-sol medium
+   outcome PASS (every verdict passed) | verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True}
+   case checks 8 of 8
+   start-up checks: migrate pass, restart pass, switch pass, rollback pass, cli pass
+   2026-11-22 21:33:23Z to 2026-11-22 21:45:13Z, 11.8 minutes | turns 145, model calls 70, output tokens 23064, cost None | spec 40.0 s, test-strategy 28.0 s
+   run folders 1; read ~/e2e-runs/r-20261122-72ca72/s2/.shiploop-runs/work-20261122-213336-bde164/run
+   engine done at done, revision 30
+   the list: 0 rows
+   stand-in: no stand-in (a second run)
+   accepted test-strategy result: yes; its answers rows: null
+   held callbacks 0: [] | refusals naming answers 0 | other refusals by stage {'intake': 1, 'discovery': 1} | failed checks by stage {'test': 1}
+   packets 31: with the answers block 0, with the held line 0
+   done packet lines: []
+   report lines: []
+   the host's last message to the user:
+      | With `DUE_TIMES=on`, the service now fills every missing deadline from the ticket’s stored creation time and configured hours for its priority. It preserves existing deadlines and saves the updated file before accepting requests. Operators can enable the flag and restart directly on a legacy file.
+      | 
+      | Delivered to local `master`. All 125 tests passed, and a startup smoke test confirmed the file was updated before the service served the deadline over HTTP. [ShipLoop report](<~/e2e-runs/r-20261122-72ca72/s2/.shiploop-runs/work-20261122-213336-bde164/run/report.html>)
+   second run: on the project ~/e2e-runs/r-20261122-ffb3fb/k2 left (ticket-due-times); its HEAD at the start fc8cc0a9acb75fd1fff75657f80ad95104dbe067
+      prior file: fc8cc0a9acb75fd1fff75657f80ad95104dbe067 | ~/e2e-runs/r-20261122-ffb3fb/k2
+      request:
+      | Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.
+      diff fc8cc0a..HEAD in ~/e2e-runs/r-20261122-72ca72/s2/work: 12 files, +170 -57 | src/ + bin/: 3 files, +28 -4 | test/: 1 files, +61 -5 | docs/shiploop/: 3 files, +46 -13
+      commits after start_head: 10
+         docs(shiploop): record skill-craft-shiploop-nobody-prepares-the-2236e5 knowledge at release-verify
+         docs(shiploop): record skill-craft-shiploop-nobody-prepares-the-2236e5 knowledge at release-plan
+         docs(shiploop): record skill-craft-shiploop-nobody-prepares-the-2236e5 knowledge after system-test-a
+         docs(shiploop): record skill-craft-shiploop-nobody-prepares-the-2236e5 knowledge after carry-forward
+         feat(W1/S1): Enabled startup now fills and persists missing ticket deadlines
+         docs(shiploop): record skill-craft-shiploop-nobody-prepares-the-2236e5 knowledge at prepare
+         docs(shiploop): record skill-craft-shiploop-nobody-prepares-the-2236e5 knowledge after plan
+         docs(shiploop): record skill-craft-shiploop-nobody-prepares-the-2236e5 knowledge after test-strategy
+         docs(shiploop): record skill-craft-shiploop-nobody-prepares-the-2236e5 knowledge after spec
+         docs(shiploop): record skill-craft-shiploop-nobody-prepares-the-2236e5 knowledge after discovery
+      requirement entries that differ between start_head and HEAD: R-3 (changed)
+         R-3 at HEAD:
+         | ### R-3 Fill missing deadlines at startup
+         | 
+         | - The 2026-11-22 startup request makes enablement automatic. With DUE_TIMES=on, assign each loaded ticket missing due a deadline from its own stored creation time and priority using the configured hours. Include every status and preserve existing due values. Verify a mixed version-1 file with distinct historical timestamps and priorities.
+         | - Persist all assigned deadlines in one atomic replacement before the service listens or runs the worker. Preserve ticket IDs, counters, audit and outbox. Verify file readback while the HTTP listener is serving, with
+      the second run's list of defaults: 0 rows (the list printed above)
+== s3: codex gpt-6.2-sol medium
+   outcome PASS (every verdict passed) | verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True}
+   case checks 8 of 8
+   start-up checks: migrate pass, restart pass, switch pass, rollback pass, cli pass
+   2026-11-22 21:45:49Z to 2026-11-22 21:58:57Z, 13.1 minutes | turns 185, model calls 94, output tokens 27288, cost None | spec 62.0 s, test-strategy 36.0 s
+   run folders 1; read ~/e2e-runs/r-20261122-72ca72/s3/.shiploop-runs/work-20261122-214605-a5e9df/run
+   engine done at done, revision 30
+   the list: 1 rows
+      1. 1@b9539351 R-3 Which hours apply to a ticket that previously changed priority?
+   stand-in: no stand-in (a second run)
+   accepted test-strategy result: yes; its answers rows: null
+   held callbacks 0: [] | refusals naming answers 0 | other refusals by stage {} | failed checks by stage {'step-plan': 2, 'test': 2}
+   packets 31: with the answers block 0, with the held line 0
+   done packet lines: []
+   report lines: []
+   the host's last message to the user:
+      | With `DUE_TIMES=on`, the service now fills every missing deadline in a valid data file using the ticket’s creation time and configured hours for its stored priority. It saves the file before serving requests and preserves existing deadlines. Operators can start the service directly with the existing file.
+      | 
+      | Returned to local `master` as version `1.5.1`. All 125 tests passed on the returned source, and a separate server-process check confirmed the migrated deadlines were on disk before the first HTTP request.
+      | 
+      | [ShipLoop report](~/e2e-runs/r-20261122-72ca72/s3/.shiploop-runs/work-20261122-214605-a5e9df/run/report.html)
+   second run: on the project ~/e2e-runs/r-20261122-ffb3fb/k3 left (ticket-due-times); its HEAD at the start 0b0d542ba4285a0f2909542324fde183091324da
+      prior file: 0b0d542ba4285a0f2909542324fde183091324da | ~/e2e-runs/r-20261122-ffb3fb/k3
+      request:
+      | Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.
+      diff 0b0d542..HEAD in ~/e2e-runs/r-20261122-72ca72/s3/work: 12 files, +133 -74 | src/ + bin/: 1 files, +4 -6 | test/: 1 files, +57 -32 | docs/shiploop/: 3 files, +26 -15
+      commits after start_head: 8
+         docs(shiploop): record skill-craft-shiploop-nobody-prepares-the-bf947e knowledge at release-verify
+         docs(shiploop): record skill-craft-shiploop-nobody-prepares-the-bf947e knowledge at release-plan
+         docs(shiploop): record skill-craft-shiploop-nobody-prepares-the-bf947e knowledge after system-test-a
+         feat(W1/S1): Store opening now persists missing due times when enabled
+         docs(shiploop): record skill-craft-shiploop-nobody-prepares-the-bf947e knowledge after plan
+         docs(shiploop): record skill-craft-shiploop-nobody-prepares-the-bf947e knowledge after test-strategy
+         docs(shiploop): record skill-craft-shiploop-nobody-prepares-the-bf947e knowledge after spec
+         docs(shiploop): record skill-craft-shiploop-nobody-prepares-the-bf947e knowledge after discovery
+      requirement entries that differ between start_head and HEAD: R-3 (changed), R-4 (changed)
+         R-3 at HEAD:
+         | ### R-3 Backfill and rollback
+         | - On startup with exact `DUE_TIMES=on`, the service fills every omitted due value in a valid existing data file using the ticket's own creation timestamp and the configured hours for its stored priority, regardless of status. Operators can start the service directly. Confirm the initial HTTP responses and the stored values before shutdown.
+         | - Save the updated file once before accepting requests or starting the worker. Preserve existing due values and other ticket, audit and outbox data. A restart with different configured hours preserves the migrated deadlines and 
+         R-4 at HEAD:
+         | ### R-4 Current service behavior
+         | Preserve standard-library Node, PORT and npm start, raw CLI columns and weekly report, API/audit/outbox behavior, and the existing node:test harness. Run the revised startup case and existing cases together with npm test.
+      the second run's list of defaults: 1 rows (the list printed above)
+== s4: codex gpt-6.2-sol medium
+   outcome PASS (every verdict passed) | verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True}
+   case checks 8 of 8
+   start-up checks: migrate pass, restart pass, switch pass, rollback pass, cli pass
+   2026-11-22 21:45:49Z to 2026-11-22 21:56:30Z, 10.7 minutes | turns 185, model calls 73, output tokens 19675, cost None | spec 42.0 s, test-strategy 35.0 s
+   run folders 1; read ~/e2e-runs/r-20261122-72ca72/s4/.shiploop-runs/work-20261122-214603-f373f3/run
+   engine done at done, revision 30
+   the list: 0 rows
+   stand-in: no stand-in (a second run)
+   accepted test-strategy result: yes; its answers rows: null
+   held callbacks 0: [] | refusals naming answers 0 | other refusals by stage {'test-strategy': 2, 'test': 1} | failed checks by stage {}
+   packets 31: with the answers block 0, with the held line 0
+   done packet lines: []
+   report lines: []
+   the host's last message to the user:
+      | With `DUE_TIMES=on`, the service now calculates every missing deadline from the ticket’s stored creation time and priority, saves the file atomically, and then starts serving. Existing deadlines stay fixed. No manual preparation is needed.
+      | 
+      | The change is on local `master` at `79dbcc2`. All 125 tests passed, and a fresh service process confirmed the saved deadlines on disk and over HTTP.
+      | 
+      | [ShipLoop report](<~/e2e-runs/r-20261122-72ca72/s4/.shiploop-runs/work-20261122-214603-f373f3/run/report.html>)
+   second run: on the project ~/e2e-runs/r-20261121-2c3d50/w1/d3 left (ticket-due-times); its HEAD at the start eaad9605d7c78c73757f8bf28394f93f5ee96258
+      prior file: eaad9605d7c78c73757f8bf28394f93f5ee96258 | ~/e2e-runs/r-20261121-2c3d50/w1/d3
+      request:
+      | Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.
+      diff eaad960..HEAD in ~/e2e-runs/r-20261122-72ca72/s4/work: 8 files, +111 -59 | src/ + bin/: 1 files, +5 -7 | test/: 1 files, +64 -18 | docs/shiploop/: 3 files, +32 -15
+      commits after start_head: 8
+         docs(shiploop): record nobody-prepares-the-data-file-by-9e829c knowledge at release-verify
+         docs(shiploop): record nobody-prepares-the-data-file-by-9e829c knowledge at release-plan
+         docs(shiploop): record nobody-prepares-the-data-file-by-9e829c knowledge after system-test-author
+         feat(W1/S1): Enabled startup now fills and saves missing deadlines
+         docs(shiploop): record nobody-prepares-the-data-file-by-9e829c knowledge after plan
+         docs(shiploop): record nobody-prepares-the-data-file-by-9e829c knowledge after test-strategy
+         docs(shiploop): record nobody-prepares-the-data-file-by-9e829c knowledge after spec
+         docs(shiploop): record nobody-prepares-the-data-file-by-9e829c knowledge after discovery
+      requirement entries that differ between start_head and HEAD: R-3 (changed), R-6 (changed)
+         R-3 at HEAD:
+         | ### R-3 Backfill and activate
+         | 
+         | - With DUE_TIMES=on, startup assigns missing deadlines from each ticket's stored creation time and priority, including closed tickets. Omitted due fields alone never prevent startup. Check HTTP reads after service start on a disposable file.
+         | - Persist the backfill atomically before accepting requests. Preserve assigned due, ticket metadata, IDs, counters, audit and outbox. Restart with changed hours and confirm the file stays identical before shutdown.
+         | - Existing file validation and save requirements apply. An absent file and in-memory mode can start empty. With 
+         R-6 at HEAD:
+         | ### R-6 Preserve prior behavior and tests
+         | 
+         | Existing routes, errors, lifecycle, notifications, audit and reports stay compatible within the requested startup change. Retain regression coverage, updating the superseded activation expectation. Node:test coverage under test/ runs through npm test.
+      the second run's list of defaults: 0 rows (the list printed above)
+== t1: claude claude-sonnet-5-5 medium
+   outcome PASS (every verdict passed) | verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True}
+   case checks 8 of 8
+   start-up checks: migrate pass, restart pass, switch pass, rollback pass, cli pass
+   2026-11-22 21:45:48Z to 2026-11-22 22:03:16Z, 17.5 minutes | turns 294, model calls 163, output tokens 122407, cost 6.2271 | spec 81.0 s, test-strategy 74.0 s
+   run folders 1; read ~/e2e-runs/r-20261122-72ca72/t1/.shiploop-runs/work-20261122-214554-9a508e/run
+   engine done at done, revision 30
+   the list: 2 rows
+      1. 1@8ae679b5 R-6 Should the service keep a backup of the file before it fills due times?
+      2. 2@8ae679b5 R-6 Does a start with the flag off also fill due times?
+   stand-in: no stand-in (a second run)
+   accepted test-strategy result: yes; its answers rows: null
+   held callbacks 0: [] | refusals naming answers 0 | other refusals by stage {'improve': 3} | failed checks by stage {'step-plan': 2, 'implement': 1}
+   packets 31: with the answers block 0, with the held line 0
+   done packet lines: []
+   report lines: []
+   the host's last message to the user:
+      | #### 🚢 ShipLoop — Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, …
+      | Preparation ✓ · Work items ✓ · Release ✓
+      | 
+      | **✅ Achieved**
+      | - **W1 Backfill missing due times at enabled startup** — W1 closed: knowledge home current; one R-4 recheck carried to system test; no skill.
+      | - **release** — Returned the candidate to master by a verified fast-forward; npm test passes on the returned source.
+      | - **release-verify** — Observed on the returned checkout: DUE_TIMES=on start backfilled, saved and served with no manual s…
+      | - **operations** — Operational readiness confirmed for a local, operator-run service; no monitoring system exists to wire.
+      | - **handoff** — Handoff: enabled startup backfills missing due times, saves once and serves; returned to master and…
+      | 
+      | **🏁 Done** — the run is complete; the report is report.html
+      | 
+      | **⏱ Pace** — 23 steps in 17 min
+      | 
+      | ## Result
+      | 
+      | The service now repairs the data file itself. With `DUE_TIMES=on`, startup gives every ticket without a due time one, computed from that ticket's own creation time and priority. It saves the file once, then listens. It no longer refuses because due times are missing. With the flag unset or any other value, the file is left untouched.
+      | 
+      | - **Code:** `TicketStore.open` in `src/store.js` now calls the existing `backfillDueTimes()` instead of throwing.
+      | - **Failures:** Faults that aren't "missing due times" still stop the start: an invalid file, an unwritable directory, an out-of-range date. They now exit 2 with one `cannot start: …` line that says what to do next. Before that fix they printed a raw stack and exited 1; I caught that at the end-of-work review.
+      | - **Tests:** `npm test` passes 131/131 on the returned master. That includes 7 new cases (`TC-R6a`–`g`) and 3 real-process system cases (`ST-1`–`ST-3`). The new cases fail against the old `store.js`; two are characterisation cases that already passed there. `ST-2` starts the checked-in 1.4.0 on a file the new startup saved and lists the same ticket IDs.
+      | - **Real start:** I started `node src/server.js` from the returned checkout on a file with missing due times. It served and saved the right values with no manual step.
+      | - **Return:** master was fast-forwarded from `d28bc77` to `d8a04c7`, then received the later knowledge commits the same way. The source checkout is clean. To undo the return: `git reset --keep d28bc7788ec7943adacb8ca5d5b4ae081b453590`.
+      | - **Docs:** `docs/operations.md` (rollout step 2 is now optional; after a 1.4.0 rollback, recover deadlines before restarting with the flag on), the README row, ADR 0009, the changelog and the `docs/shiploop` spec, architecture and environment notes.
+      | 
+      | ## Things to know
+      | 
+      | - **The only existing test touched** is the assertion that enforced the refusal, in `TC-3`. I replaced it because it contradicted your third sentence.
+      | - **Two defaults I chose** (you can revisit them):
+      |   - No `.bak` copy is made before the startup write; the runbook's backup step still applies.
+      |   - Only the literal `on` fills.
+      | - **Your checkout is not what the consumer checks ran against.** They ran in a clean copy of the returned result, where `ST-2` skips because it needs Git history. It ran and passed in the checkout.
+      | - **A plan mistake I corrected:** the first spec examples used ticket IDs `T-1`…`T-5`, but IDs are zero-padded (`T-0001`).
+      | - **Startup now writes the file,** so the single-writer rule in `docs/operations.md` binds at every enabled start.
+      | 
+      | The run's report is at `~/e2e-runs/r-20261122-72ca72/t1/.shiploop-runs/work-20261122-214554-9a508e/run/report.html`. You can follow the run in the progress view with: `python3 ~/e2e-runs/r-20261122-72ca72/t1/build/plugins/skill-craft/skills/shiploop/scripts/shiploop view --run-dir=~/e2e-runs/r-20261122-72ca72/t1/.shiploop-runs/work-20261122-214554-9a508e/run --serve` in your own terminal (it serves until stopped).
+   second run: on the project ~/e2e-runs/r-20261122-8a73b9/e3 left (ticket-due-times); its HEAD at the start d28bc7788ec7943adacb8ca5d5b4ae081b453590
+      prior file: d28bc7788ec7943adacb8ca5d5b4ae081b453590 | ~/e2e-runs/r-20261122-8a73b9/e3
+      request:
+      | Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.
+      diff d28bc77..HEAD in ~/e2e-runs/r-20261122-72ca72/t1/work: 10 files, +405 -29 | src/ + bin/: 1 files, +18 -4 | test/: 2 files, +307 -3 | docs/shiploop/: 3 files, +65 -9
+      commits after start_head: 14
+         docs(shiploop): record nobody-prepares-the-data-file-by-d8dcb0 knowledge after operations
+         docs(shiploop): record nobody-prepares-the-data-file-by-d8dcb0 knowledge at release-verify
+         chore(shiploop): commit files written after the last work item, before the return
+         docs(shiploop): record nobody-prepares-the-data-file-by-d8dcb0 knowledge at release-plan
+         docs(shiploop): record nobody-prepares-the-data-file-by-d8dcb0 knowledge after system-test-author
+         fix(due-times): report a failed startup backfill as one line that names the next action
+         feat(W1/S1): Enabled startup now backfills missing due times and saves once before serving; 127/127…
+         docs(shiploop): record nobody-prepares-the-data-file-by-d8dcb0 knowledge after step-plan
+         docs(shiploop): record nobody-prepares-the-data-file-by-d8dcb0 knowledge at prepare
+         docs(shiploop): record nobody-prepares-the-data-file-by-d8dcb0 knowledge after plan
+         docs(shiploop): record nobody-prepares-the-data-file-by-d8dcb0 knowledge after test-strategy
+         docs(test-strategy): make the R-6 checks able to fail and cover write count
+         docs(spec): make R-6 acceptance replayable and add save-failure boundaries
+         docs(shiploop): record nobody-prepares-the-data-file-by-d8dcb0 knowledge after discovery
+      requirement entries that differ between start_head and HEAD: R-3 (changed), R-6 (new)
+         R-3 at HEAD:
+         | ### R-3 Backfill safely
+         | 
+         | An offline command fills missing due fields from each stored ticket's creation time and priority, preserves previously assigned due values and saves through atomic replacement. The offline command stays available but is optional: enabled startup (R-6) no longer needs it.
+         | 
+         | Acceptance: start from 1.4.0-shaped JSON, backfill twice with changed settings, and reopen via HTTP. Verify preserved audit and outbox. (Refusing early enablement was retired by R-6, basis: request 2026-11-22 "It never refuses to start because due times are missing".)
+         R-6 at HEAD:
+         | ### R-6 Backfill at enabled startup
+         | 
+         | Basis: request of 2026-11-22, "Nobody prepares the data file by hand ... It never refuses to start because due times are missing." With the literal `DUE_TIMES=on`, startup gives each ticket that has no `due` one, computed from that ticket's own `created` and `priority` with the configured hours, saves the data file once by atomic replacement, and only then listens. Tickets that already have `due` keep it. Nothing is written when none is missing. `DUE_TIMES` unset or any other value does not touch the file. Audit and outbox are unchanged. Other data-file fau
+      the second run's list of defaults: 2 rows (the list printed above)
