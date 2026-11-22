@@ -1,0 +1,715 @@
+{
+ "code": "p47737c",
+ "ran": {
+  "tests_command": "node --test (in the work copy root)",
+  "tests_result": "10 tests, 10 pass, 0 fail (about 1.5 s); same result on a second run and with port 3000 held",
+  "started_with": "PORT=<free port picked via a listen(0) probe> DATA_FILE=<work>/_audit/data/<name>.json node server.js"
+ },
+ "stated": [
+  {
+   "id": "S-1",
+   "built": "yes",
+   "observed": true,
+   "evidence": "Spawned `node server.js` with PORT and DATA_FILE set; stdout \"Listening on port 54964\" and every probe below was answered by it.",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "every test (all spawn server.js), e.g. TC-1",
+   "proved": "fails",
+   "proved_by": "Renamed server.js to app.js: all 10 tests failed (TC-1..TC-10); restored the original server.js (cmp identical to the product) and the suite was back to 10 pass, 0 fail."
+  },
+  {
+   "id": "S-2",
+   "built": "yes",
+   "observed": true,
+   "evidence": "No package.json or node_modules in the product; server.js requires only node:http, node:fs, node:crypto, node:path; it ran from a bare copy with no install.",
+   "spec": "stated",
+   "test": "none",
+   "test_name": "",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-3",
+   "built": "yes",
+   "observed": true,
+   "evidence": "Started with PORT set to a port I picked (e.g. 54964); stdout \"Listening on port 54964\" and HTTP requests to 127.0.0.1:54964 were answered.",
+   "spec": "stated",
+   "test": "weak",
+   "test_name": "fixture startServer in test/expenses.test.js (PORT=0, port read back from stdout; a server that ignored PORT but logged its real port would still pass)",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-4",
+   "built": "yes",
+   "observed": true,
+   "evidence": "DATA_FILE=_audit/data/stated.json: after creating groups and expenses the file held {\"groups\":[{\"id\":\"g\",\"members\":[\"Ann\",\"Bob\",\"Cy\"],\"expenses\":[{\"payer\":\"Ann\",\"cents\":100,\"shares\":[34,33,33]},...]}]}.",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-5, TC-8, TC-10",
+   "proved": "fails",
+   "proved_by": "Changed process.env.DATA_FILE to process.env.DATA_PATH (so the default expenses.json is used): TC-2, TC-5, TC-7, TC-8, TC-10 failed; removed the stray expenses.json; restored the original server.js (cmp identical to the product) and the suite was back to 10 pass, 0 fail."
+  },
+  {
+   "id": "S-5",
+   "built": "yes",
+   "observed": true,
+   "evidence": "Stopped and restarted with the same DATA_FILE: GET /groups/g/balances 200 {\"Ann\":13,\"Bob\":15,\"Cy\":-28}; POST /groups {\"id\":\"g\",...} 409.",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-10 (group read back after restart), TC-8",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-6",
+   "built": "yes",
+   "observed": true,
+   "evidence": "After restart the balances still reflected all three expenses ({\"Ann\":13,\"Bob\":15,\"Cy\":-28}) and the next expense was {\"expense\":4}.",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-5",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-7",
+   "built": "yes",
+   "observed": true,
+   "evidence": "POST /groups {\"id\":\"g\",\"members\":[\"Ann\",\"Bob\",\"Cy\"]} -> 201 {\"id\":\"g\",\"members\":[\"Ann\",\"Bob\",\"Cy\"]}.",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-1 (createGroup asserts 201)",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-8",
+   "built": "yes",
+   "observed": true,
+   "evidence": "POST /groups {\"id\":\"g\",\"members\":[\"Ann\",\"Bob\"]} again -> 409 {\"error\":\"Group already exists\"}.",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-1",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-9",
+   "built": "yes",
+   "observed": true,
+   "evidence": "members [\"Ann\"] -> 400 {\"error\":\"At least two distinct members are required\"}; members [] -> 400 same.",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-1",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-10",
+   "built": "yes",
+   "observed": true,
+   "evidence": "members [\"Ann\",\"Ann\"] -> 400 {\"error\":\"At least two distinct members are required\"}.",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-1",
+   "proved": "fails",
+   "proved_by": "Changed \"if (members.length < 2)\" to \"if (body.members.length < 2)\" (counts names before de-duplication): TC-1 failed; restored the original server.js (cmp identical to the product) and the suite was back to 10 pass, 0 fail."
+  },
+  {
+   "id": "S-11",
+   "built": "yes",
+   "observed": true,
+   "evidence": "members [\"Ann\",\"\"] -> 400 {\"error\":\"Invalid group members\"}.",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-1 ([\"Ada\",\"Bo\",\"\"] -> 400)",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-12",
+   "built": "yes",
+   "observed": true,
+   "evidence": "POST /groups/g/expenses {\"payer\":\"Ann\",\"cents\":100,\"split\":\"equal\"} -> 201 {\"expense\":1}; balances credited Ann as payer.",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-2",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-13",
+   "built": "yes",
+   "observed": true,
+   "evidence": "Ann paid 100 equal among Ann,Bob,Cy -> balances {\"Ann\":66,\"Bob\":-33,\"Cy\":-33} (shares 34,33,33 stored).",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-2",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-14",
+   "built": "yes",
+   "observed": true,
+   "evidence": "100 among three gave shares [34,33,33]; 101 among three gave [34,34,33]; 5 among three paid by Cy gave {\"Ann\":-2,\"Bob\":-2,\"Cy\":4} (shares 2,2,1).",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-2 (Zoe, first listed, owes 34)",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-15",
+   "built": "yes",
+   "observed": true,
+   "evidence": "Bob paid 50 exact {\"Ann\":50,\"Bob\":0} -> 201 {\"expense\":2}; balances moved to {\"Ann\":16,\"Bob\":17,\"Cy\":-33}.",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-2",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-16",
+   "built": "yes",
+   "observed": true,
+   "evidence": "Exact shares {\"Ann\":50,\"Bob\":0} accepted with 201.",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-2 (Bea: 0)",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-17",
+   "built": "yes",
+   "observed": true,
+   "evidence": "Exact cents 50 shares {\"Ann\":30,\"Bob\":10} -> 400 {\"error\":\"Invalid split or shares\"}; {\"Ann\":30,\"Bob\":30} -> 400.",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-3",
+   "proved": "fails",
+   "proved_by": "Deleted \"if (remaining !== 0) return null;\" in splitShares (under-sum accepted): TC-3 failed; restored the original server.js (cmp identical to the product) and the suite was back to 10 pass, 0 fail."
+  },
+  {
+   "id": "S-18",
+   "built": "yes",
+   "observed": true,
+   "evidence": "Each accepted expense answered 201 with {\"expense\":n}, e.g. {\"expense\":1}.",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-2",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-19",
+   "built": "yes",
+   "observed": true,
+   "evidence": "Group g got 1, 2, then 3 (after several 400s in between); group t and gr each started at 1.",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-3 (per-group numbering, refusals do not consume a number), TC-5",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-20",
+   "built": "yes",
+   "observed": true,
+   "evidence": "payer \"Zed\" -> 400 {\"error\":\"Invalid expense\"}.",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-3",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-21",
+   "built": "yes",
+   "observed": true,
+   "evidence": "exact shares {\"Ann\":25,\"Zed\":25} -> 400 {\"error\":\"Invalid split or shares\"}.",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-3",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-22",
+   "built": "yes",
+   "observed": true,
+   "evidence": "cents 0 -> 400 {\"error\":\"Invalid expense\"}; cents -5 -> 400.",
+   "spec": "stated",
+   "test": "weak",
+   "test_name": "TC-3 (its 0 and -1 cases use exact shares {\"Bo\":10}, which the sum check rejects anyway)",
+   "proved": "passes",
+   "proved_by": "Changed \"body.cents <= 0\" to \"body.cents < 0\": the probe then failed (cents 0 equal -> 201 {\"expense\":1}) but all 10 tests still passed; restored the original server.js (cmp identical to the product) and the suite was back to 10 pass, 0 fail."
+  },
+  {
+   "id": "S-23",
+   "built": "yes",
+   "observed": true,
+   "evidence": "cents 10.5 -> 400 {\"error\":\"Invalid expense\"}; cents 1.0000000000000001 -> 400.",
+   "spec": "stated",
+   "test": "weak",
+   "test_name": "TC-3 (1.5 paired with exact shares that fail the sum check anyway), TC-7 (only the rounding case)",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-24",
+   "built": "yes",
+   "observed": true,
+   "evidence": "split \"percent\" -> 400 {\"error\":\"Invalid split or shares\"}.",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-3",
+   "proved": "fails",
+   "proved_by": "Changed \"if (split === 'equal')\" to \"if (split !== 'exact')\" (unknown split treated as equal): TC-3 failed; restored the original server.js (cmp identical to the product) and the suite was back to 10 pass, 0 fail."
+  },
+  {
+   "id": "S-25",
+   "built": "yes",
+   "observed": true,
+   "evidence": "shares summing to 40 or 60 for cents 50 -> 400 {\"error\":\"Invalid split or shares\"}.",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-3 ({\"Bo\":9}, {\"Bo\":11})",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-26",
+   "built": "yes",
+   "observed": true,
+   "evidence": "GET /groups/g/balances -> 200 {\"Ann\":13,\"Bob\":15,\"Cy\":-28}: one key per member, in member order.",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-2",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-27",
+   "built": "yes",
+   "observed": true,
+   "evidence": "Hand-checked: Ann paid 100 owes 34+50+3 -> 13; Bob paid 50 owes 33+0+2 -> 15; Cy paid 7 owes 33+0+2 -> -28; matches the response.",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-2",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-28",
+   "built": "yes",
+   "observed": true,
+   "evidence": "Every balances body observed summed to 0 (e.g. 13+15-28; 9007199254740990-9007199254740990).",
+   "spec": "absent",
+   "test": "strong",
+   "test_name": "TC-2 (asserts the sum is 0)",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-29",
+   "built": "yes",
+   "observed": true,
+   "evidence": "GET /groups/g/settlements -> 200 [{\"from\":\"Cy\",\"to\":\"Bob\",\"cents\":15},{\"from\":\"Cy\",\"to\":\"Ann\",\"cents\":13}].",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-4",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-30",
+   "built": "yes",
+   "observed": true,
+   "evidence": "Applying each returned payment to the balances gave all zeros for groups g, t and gr.",
+   "spec": "absent",
+   "test": "strong",
+   "test_name": "TC-4 (replays payments to zero)",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-31",
+   "built": "yes",
+   "observed": true,
+   "evidence": "Balances {\"P\":-80,\"Q\":-80,\"R\":100,\"S\":60} -> [P->R 80, Q->S 60, Q->R 20], the greedy largest-debtor/largest-creditor order.",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-4",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-32",
+   "built": "yes",
+   "observed": true,
+   "evidence": "Balances {\"A\":-20,\"B\":-20,\"C\":20,\"D\":20} -> [A->C 20, B->D 20]; P before Q on the debtor tie above.",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-4 (non-alphabetical member order Zoe, Cy, Ben, Ada)",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-33",
+   "built": "yes",
+   "observed": true,
+   "evidence": "Unknown group: POST /groups/nope/expenses, GET .../balances, GET .../settlements, GET /groups/nope, DELETE /groups/nope/x all -> 404 {\"error\":\"Group not found\"}.",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-1",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-34",
+   "built": "yes",
+   "observed": true,
+   "evidence": "100 concurrent POST /groups/g/expenses -> 100 x 201, numbers exactly 1..100, balances {\"Ann\":100,\"Bob\":-100}, same after restart; mixed group/expense concurrency also lost nothing (U-31).",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "TC-5",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-35",
+   "built": "yes",
+   "observed": true,
+   "evidence": "`node --test` in the project root discovers test/expenses.test.js (node:test, node:assert) and reports 10 pass, 0 fail.",
+   "spec": "stated",
+   "test": "none",
+   "test_name": "(the suite itself; no test checks it)",
+   "proved": "not-asked",
+   "proved_by": ""
+  }
+ ],
+ "unstated": [
+  {
+   "id": "U-1",
+   "behaviour": "Broken JSON gets 400 ({\"error\":\"Invalid group ID\"} on /groups, {\"error\":\"Invalid expense\"} on expenses); nothing stored and the server keeps serving.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "POST /groups raw \"{\" -> 400 {\"error\":\"Invalid group ID\"}; raw \"not json\" -> 400 same; POST /groups/g/expenses raw \"not json\" -> 400 {\"error\":\"Invalid expense\"}; then POST /groups g2 -> 201 and GET /groups/g/balances -> 200 {\"Ann\":0,\"Bob\":0}.",
+   "spec": "silent",
+   "told": "yes",
+   "told_where": "README.md, POST /groups and POST /groups/{id}/expenses tables: \"The body is not a JSON object\" -> 400",
+   "test": "strong"
+  },
+  {
+   "id": "U-2",
+   "behaviour": "Every missing field gets 400 and nothing is stored.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "expenses {} -> 400 Invalid expense; {payer,cents} -> 400 Invalid split or shares; {cents,split} -> 400; {payer,split} -> 400; exact without shares -> 400; POST /groups {} -> 400 Invalid group ID; {\"id\":\"h\"} -> 400 Invalid group members; GET /groups/h/balances 404; g balances {\"Ann\":0,\"Bob\":0}; next valid expense was {\"expense\":1}.",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "README.md endpoint tables (payer not a member, cents not a whole number, split not equal/exact, shares not an object; id not a string, members not an array)",
+   "test": "strong"
+  },
+  {
+   "id": "U-3",
+   "behaviour": "Wrong types are refused with 400; nothing is coerced.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "members \"Ann,Bob\" -> 400 Invalid group members; [\"Ann\",7,\"Bob\"] -> 400; cents \"100\" -> 400 Invalid expense; shares [100] -> 400; shares null -> 400; shares {\"Ann\":\"100\"} -> 400; g2 balances {\"Ann\":0,\"Bob\":0}.",
+   "spec": "decided-marked",
+   "told": "yes",
+   "told_where": "README.md, POST /groups/{id}/expenses: \"A number sent as a string, such as \\\"10\\\", is refused.\"",
+   "test": "strong"
+  },
+  {
+   "id": "U-4",
+   "behaviour": "Empty, missing, numeric, whitespace-only, \".\" and \"..\" ids get 400; ids with \"/\", space, \"%\", unicode, \"?\" and \"#\" are accepted and reachable by all three routes when percent-encoded.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "id \"\" / none / 1 / \"  \" / \".\" / \"..\" -> 400 Invalid group ID; \"a/b\", \"a b\", \"50%\", \"café\", \"x?y\", \"h#1\" -> 201 and at encodeURIComponent(id): balances 200, settlements 200, POST expense 201 {\"expense\":1}, balances {\"Ann\":5,\"Bob\":-5}.",
+   "spec": "silent",
+   "told": "yes",
+   "told_where": "README.md \"URL format\" and the POST /groups 400 row",
+   "test": "strong"
+  },
+  {
+   "id": "U-5",
+   "behaviour": "Negative and fractional exact shares get 400; balances unchanged.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "shares {\"Ann\":150,\"Bob\":-50} -> 400 Invalid split or shares; {\"Ann\":50.5,\"Bob\":49.5} -> 400; balances {\"Ann\":0,\"Bob\":0}.",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "README.md POST /groups/{id}/expenses: \"holds a share that is not a whole number of 0 or more\"",
+   "test": "strong"
+  },
+  {
+   "id": "U-6",
+   "behaviour": "Duplicates collapse to one member at the first position; whitespace-only entries are refused; names differing in case or surrounding spaces are distinct members.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "d [\"Ann\",\"Ann\",\"Bob\"] -> 201 members [\"Ann\",\"Bob\"]; Ann pays 100 equal -> {\"Ann\":50,\"Bob\":-50}; w [\"Ann\",\" \",\"Bob\"] -> 400; s [\" \",\"Bob\"] -> 400; c [\"Ann\",\"ann\"] -> 201; [\"Ann\",\" Ann\"] -> 201.",
+   "spec": "decided-marked",
+   "told": "yes",
+   "told_where": "README.md \"Behaviour you should know about\": Duplicate members; IDs and names",
+   "test": "strong"
+  },
+  {
+   "id": "U-8",
+   "behaviour": "Each change is written to a temporary file and renamed over DATA_FILE before the reply; kill -9 never left a corrupt file or lost an acknowledged expense, but can leave a stray <DATA_FILE>.<uuid>.tmp that is never removed.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "SIGKILL right after a 201: restart showed {\"Ann\":5,\"Bob\":-5} and the file parsed. 5 rounds of 8 concurrent POST loops killed with SIGKILL mid-stream: file parsed every time; acked 670/685/1185/814/1678, Ann net after restart 670/686/1185/814/1678 (one extra write had completed without its reply arriving); 3 of 5 rounds left a .tmp file beside the data file.",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "README.md \"Running it\" (\"Every accepted change is already on disk when its reply is sent\") and \"Storage\"",
+   "test": "weak"
+  },
+  {
+   "id": "U-9",
+   "behaviour": "Starts with no groups; the file is created by the first successful change (not by a GET); the group is there after restart.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "DATA_FILE absent: started, file absent; after GET still absent; POST /groups g -> 201 and file appeared holding {\"groups\":[{\"id\":\"g\",\"members\":[\"Ann\",\"Bob\"],\"expenses\":[]}]}; restart -> GET /groups/g/balances 200 {\"Ann\":0,\"Bob\":0}.",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "README.md \"Running it\" (DATA_FILE bullet) and \"Storage\"",
+   "test": "strong"
+  },
+  {
+   "id": "U-10",
+   "behaviour": "Invalid JSON: refuses to start (exit 1, SyntaxError on stderr) and leaves the file untouched. Empty file: starts with no groups and the first write replaces the empty file.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "DATA_FILE \"{broken\": exit code 1 before listening, stderr shows the thrown SyntaxError from loadState, file still \"{broken\". Empty file: started, POST /groups g 201, file now {\"groups\":[...]} (nothing was lost, the file was empty).",
+   "spec": "silent",
+   "told": "yes",
+   "told_where": "README.md \"Running it\": a missing, empty or whitespace file starts empty; other non-JSON stops the service with exit code 1",
+   "test": "weak"
+  },
+  {
+   "id": "U-13",
+   "behaviour": "All concurrent posts succeed with distinct numbers 1..N, each applied once.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "100 concurrent POST {\"payer\":\"Ann\",\"cents\":2,\"split\":\"equal\"} -> 100 x 201, sorted numbers exactly 1..100, balances {\"Ann\":100,\"Bob\":-100}, the same after restart.",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "README.md \"One process per data file\": \"Within one process, simultaneous requests never lose an expense\"; numbering in the POST expenses table",
+   "test": "strong"
+  },
+  {
+   "id": "U-15",
+   "behaviour": "Exactly one creation wins; the rest get 409; the stored members are the winner's and survive restart.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "20 concurrent POST /groups {\"id\":\"race\"} alternating [\"Ann\",\"Bob\"] / [\"Cy\",\"Di\"] -> one 201 (members [\"Cy\",\"Di\"]) and 19 x 409; balances {\"Cy\":0,\"Di\":0}, the same after restart.",
+   "spec": "silent",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  },
+  {
+   "id": "U-16",
+   "behaviour": "Numbering continues after restart.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "Three expenses, restart, next POST -> 201 {\"expense\":4}.",
+   "spec": "decided-unmarked",
+   "told": "no",
+   "told_where": "",
+   "test": "strong"
+  },
+  {
+   "id": "U-21",
+   "behaviour": "Existing id with invalid members gets 409; stored members unchanged.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "POST /groups {\"id\":\"g\",\"members\":[\"Ann\"]} after g exists -> 409 {\"error\":\"Group already exists\"}; GET /groups/g/balances -> {\"Ann\":0,\"Bob\":0}.",
+   "spec": "silent",
+   "told": "yes",
+   "told_where": "README.md \"Group creation reply\": an existing ID answers 409 even when its members are invalid",
+   "test": "none"
+  },
+  {
+   "id": "U-25",
+   "behaviour": "GETs only read: repeated bodies are identical and DATA_FILE is not rewritten.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "balances, settlements, balances, settlements -> {\"Ann\":50,\"Bob\":-50}, [{\"from\":\"Bob\",\"to\":\"Ann\",\"cents\":50}] twice each; DATA_FILE content and mtime unchanged.",
+   "spec": "silent",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  },
+  {
+   "id": "U-26",
+   "behaviour": "The file it writes reads back to identical balances, settlements and next number.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "Equal 101 + exact 90 {\"Ann\":40,\"Cy\":50}: balances {\"Ann\":27,\"Bob\":56,\"Cy\":-83} and settlements [Cy->Bob 56, Cy->Ann 27] before and after restart; next expense {\"expense\":3}. File while up: {\"groups\":[{\"id\":\"g\",\"members\":[...],\"expenses\":[{\"payer\":\"Ann\",\"cents\":101,\"shares\":[34,34,33]},{\"payer\":\"Bob\",\"cents\":90,\"shares\":[40,0,50]}]}]}.",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "README.md \"Running it\" (DATA_FILE holds every group and expense so they survive a restart)",
+   "test": "strong"
+  },
+  {
+   "id": "U-27",
+   "behaviour": "Tests start their own server on PORT=0 with a mkdtemp DATA_FILE and clean up; they pass repeatedly and with port 3000 held.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "`node --test` twice: exit 0 both times (10 pass); once while another process held port 3000: 10 pass; no new files in the project, the count of shared-expenses-* temp dirs unchanged (27 before and after), no server.js process left.",
+   "spec": "decided-unmarked",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  },
+  {
+   "id": "U-31",
+   "behaviour": "A group creation and an expense in another group sent together both survive restart.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "30 rounds of concurrent POST /groups h<i> {\"members\":[\"Cy\",\"Di\"]} + POST /groups/g/expenses: all 60 got 201; after restart g balances {\"Ann\":30,\"Bob\":-30} and all 30 h groups returned {\"Cy\":0,\"Di\":0}.",
+   "spec": "decided-unmarked",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  },
+  {
+   "id": "U-35",
+   "behaviour": "An aborted body stores nothing; the server stays up and later requests work.",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "5 raw connections sent POST /groups/g/expenses with Content-Length 1000 and a partial body, then closed; GET balances {\"Ann\":0,\"Bob\":0}; next valid POST -> 201 {\"expense\":1}; process still running, nothing on stderr.",
+   "spec": "silent",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  }
+ ],
+ "explored": [
+  {
+   "probe": "Equal split of 5 cents among Ann,Bob,Cy paid by Cy (remainder when the payer is listed last)",
+   "came_back": "201; balances {\"Ann\":-2,\"Bob\":-2,\"Cy\":4} (shares 2,2,1)",
+   "finding": "none"
+  },
+  {
+   "probe": "Raw bodies with cents written 1e2, 100.0 and 1.0000000000000001",
+   "came_back": "1e2 -> 201, 100.0 -> 201 (both recorded as 100), 1.0000000000000001 -> 400 Invalid expense",
+   "finding": "none"
+  },
+  {
+   "probe": "Two equal expenses of 9007199254740991 cents, then 9007199254740992",
+   "came_back": "both 201; 9007199254740992 -> 400; balances {\"Ann\":9007199254740990,\"Bob\":-9007199254740990}; settlements [Bob->Ann 9007199254740990], exact",
+   "finding": "none"
+  },
+  {
+   "probe": "Members named __proto__, constructor, toString with exact and equal expenses; shares {\"__proto__\":10} in a group without that member",
+   "came_back": "all 201; balances {\"__proto__\":-8,\"constructor\":29,\"toString\":-21}, settlements correct; non-member __proto__ share -> 400",
+   "finding": "none"
+  },
+  {
+   "probe": "GET settlements for a group with no expenses",
+   "came_back": "200 []",
+   "finding": "none"
+  },
+  {
+   "probe": "Exact split with all-zero shares, and with empty shares {}, for cents 10",
+   "came_back": "both 400 Invalid split or shares",
+   "finding": "none"
+  },
+  {
+   "probe": "Unicode and quote characters in member names (Zoë, José \"J\", é)",
+   "came_back": "201; balances {\"Zoë\":-3,\"José \\\"J\\\"\":6,\"é\":-3} correctly escaped; settlements correct",
+   "finding": "none"
+  },
+  {
+   "probe": "Routing edges: trailing slash /groups/g/balances/, query string ?x=1, GET /groups, PUT /groups/g/expenses, malformed escape /groups/%E0%A4%A/balances",
+   "came_back": "404 Route not found; 200 balances (query ignored); 404; 404; 400 Invalid group ID encoding",
+   "finding": "none"
+  },
+  {
+   "probe": "POST /groups with a 3 MB unused \"pad\" property; expense body with \"cents\" given twice (-5 then 6)",
+   "came_back": "201 (no body-size limit); 201 {\"expense\":5} using the last value 6",
+   "finding": "none"
+  },
+  {
+   "probe": "DATA_FILE holding valid JSON of another shape (\"[]\")",
+   "came_back": "starts and listens; POST /groups -> 500 Internal server error (TypeError logged); file left as \"[]\"",
+   "finding": "none"
+  },
+  {
+   "probe": "DATA_FILE inside a directory that does not exist",
+   "came_back": "starts; POST /groups -> 500 Internal server error, as the README documents",
+   "finding": "none"
+  },
+  {
+   "probe": "After SIGKILL during a stream of POSTs, list the DATA_FILE directory, restart and stop",
+   "came_back": "<DATA_FILE>.<uuid>.tmp files remain beside the data file in 3 of 5 rounds and are still there after a clean restart and stop",
+   "finding": "defect"
+  }
+ ],
+ "defects": [
+  {
+   "title": "Temporary files from interrupted writes are never cleaned up",
+   "severity": "low",
+   "repro": "DATA_FILE=/tmp/x/ledger.json PORT=<port> node server.js; POST /groups {\"id\":\"g\",\"members\":[\"Ann\",\"Bob\"]}; from 8 clients loop POST /groups/g/expenses {\"payer\":\"Ann\",\"cents\":2,\"split\":\"equal\"}; send SIGKILL to the server after ~200 ms; ls /tmp/x; start the server again with the same DATA_FILE, stop it, ls /tmp/x",
+   "observed": "A file ledger.json.<uuid>.tmp holding a partial or full ledger sits beside ledger.json and remains after the restart (3 of 5 rounds); ledger.json itself parses and is complete",
+   "expected": "Stray temporary files from an interrupted write removed at startup (or never left), so the data directory does not accumulate copies of the ledger",
+   "basis": "unstated",
+   "item": "U-8"
+  }
+ ],
+ "extras": [
+  {
+   "what": "Number checks against the JSON source text (rejects 1.0000000000000001 and 0.99999999999999999 that JSON.parse would round to whole numbers)",
+   "where": "server.js isWholeNumberText / readBody reviver",
+   "worth": "value",
+   "why": "Prevents fractional amounts being silently recorded as whole cents; relies on the JSON.parse reviver source argument of recent Node."
+  },
+  {
+   "what": "DATA_FILE symlinks followed, including to a not-yet-existing target",
+   "where": "server.js followLinks",
+   "worth": "neutral",
+   "why": "Keeps an operator symlink intact on rename-writes; not asked for, adds code to maintain."
+  },
+  {
+   "what": "Exact BigInt balances and settlements emitted above 2^53",
+   "where": "server.js calculateBalances, balanceJson, settlementJson",
+   "worth": "neutral",
+   "why": "Correct totals, but numbers above 2^53 will be rounded by ordinary JSON clients (documented in the README)."
+  },
+  {
+   "what": "Group ids \".\", \"..\" and lone-surrogate strings refused with 400; malformed percent escapes answer 400",
+   "where": "server.js isGroupId, handleRequest",
+   "worth": "value",
+   "why": "Every accepted id stays addressable by URL."
+  },
+  {
+   "what": "POST /groups 201 body echoes {\"id\",\"members\"} with the de-duplicated member list",
+   "where": "server.js createGroup",
+   "worth": "neutral",
+   "why": "Request specified only the status; harmless and shows the stored members."
+  },
+  {
+   "what": "Defaults PORT 3000 and DATA_FILE ./expenses.json when unset; data file written with mode 0600",
+   "where": "server.js top and saveState",
+   "worth": "neutral",
+   "why": "Convenience and privacy choices the request did not ask for; documented."
+  },
+  {
+   "what": "README with every endpoint, status table and a \"Behaviour you should know about\" list",
+   "where": "README.md",
+   "worth": "value",
+   "why": "Accurate account of the open choices; matched what I observed."
+  }
+ ],
+ "spec_notes": "docs/shiploop/spec.md is short (R-1..R-7) and agrees with the request; it marks three choices as dated defaults (repeated names collapse in first-listed order; amounts must be safe integers; one Node process owns each data file). It decides without marking that exact shares may omit members (they owe 0), that 404 for an unknown group comes before body validation, that a fresh file starts empty, and that numbering continues after restart. It does not state that balances sum to 0 or that settlements bring every balance to 0. It is silent on invalid JSON bodies, group id rules, corrupt or empty DATA_FILE, racing creations and aborted bodies; those choices are made in fix.md/look.md and the README instead. architecture.md pins exact integer (BigInt) aggregation and the tmp-file-plus-rename write (AD-1, AD-2), and R-7 pins tests that drive the real HTTP server with isolated data; a correct build need not share these. R-6 embeds a test result (TC-5, 24 writes, next index 25) inside the requirement.",
+ "tests_notes": "TC-1 and TC-3 each loop over many cases (membership validation, 409, 404s; every invalid-expense shape) so one failure hides the rest. TC-3 pairs every bad amount (0, -1, 1.5, \"10\", 2^53) with exact shares {\"Bo\":10}, so the share-sum check rejects them regardless of the amount check: S-22 was proved weak (changing \"<= 0\" to \"< 0\" left all 10 tests passing while cents 0 equal got 201) and S-23 is only covered for the JSON-rounding case in TC-7. Tests depend on the exact stdout line \"Listening on port N\". Tests that would fail on another correct build: TC-1 expects [\"Ada\",\"Bo\",\"Ada\"] -> 201 with de-duplication (rejecting duplicates is also acceptable); TC-7 expects cents 1e2 -> 201; TC-9 expects \".\", \"..\" and a lone surrogate id -> 400; TC-10 expects an empty DATA_FILE to start (refusing is acceptable for U-10); TC-8 tests the symlink extra. No test covers corrupt DATA_FILE refusal, racing group creation, GET idempotence, aborted bodies or kill safety.",
+ "maintainer": "Correctness under concurrency rests on recordExpense and createGroup running synchronously from validation through writeFileSync/renameSync after the body is read; adding any await in that span (for example switching to fs.promises) would silently allow lost or duplicate expenses, and only TC-5 would notice. Number handling is subtle: the JSON.parse reviver with the source argument, the isWholeNumberText regex and the hand-built BigInt JSON output all have to change together, and the weak amount tests in TC-3 would not catch a regression in the cents checks."
+}

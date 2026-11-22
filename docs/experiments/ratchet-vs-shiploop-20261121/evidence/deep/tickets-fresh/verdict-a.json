@@ -1,0 +1,49 @@
+{"pairs": [
+{"pair": "Y-Z", "better": "same",
+ "advantages": [
+  {"of": "Z", "what": "Refuses an assignment body with an invalid UTF-8 byte instead of storing a replacement character that becomes the notice recipient", "ref": "D-1", "matters_to": "operator"},
+  {"of": "Z", "what": "CLI quotes names and prints 'unassigned', so an agent named '-' or 'null' cannot be mistaken for an unassigned ticket", "ref": "D-3", "matters_to": "operator"},
+  {"of": "Z", "what": "Decision record 0009 for the format and notice-key choices", "ref": "U-22", "matters_to": "maintainer"},
+  {"of": "Y", "what": "CHANGELOG 1.5.0 section and package.json bumped to 1.5.0; Z has only an Unreleased section and no version bump", "ref": "D-2", "matters_to": "operator"},
+  {"of": "Y", "what": "Failed save rolled back and answered 500 for PATCH, transition and assignment; Z does this for assignment only", "ref": "Y extras: rollback in store.apply()", "matters_to": "operator"},
+  {"of": "Y", "what": "Documents where the assignment notice goes (agent name as given, no address lookup)", "ref": "U-7", "matters_to": "operator"},
+  {"of": "Y", "what": "Lighter to carry: Z hand-parses the assignee filter, spreads strict UTF-8 rules over three files, ships acceptance/ and working notes in the tree, and its 24 tests are pinned to exact strings, sequence numbers and internals", "ref": "Z maintainer, Z tests_notes", "matters_to": "maintainer"},
+  {"of": "Z", "what": "Keeps the existing first-value rule for a repeated status/priority parameter; Y changed it so different values list nothing", "ref": "Y extras: filterValue", "matters_to": "operator"}
+ ],
+ "lesser_lacks": [],
+ "one_task_closes": "yes",
+ "why": "Both deliver every stated requirement and handle the unsaid conditions soundly. Z's edge is two low defects (D-1, D-3); Y's is the release record (D-2), wider save rollback and a lighter codebase and test suite to keep. These offset each other, and each side's gaps are small."},
+{"pair": "Y-X", "better": "Y-some",
+ "advantages": [
+  {"of": "Y", "what": "CHANGELOG section and version bump; X has neither", "ref": "D-2", "matters_to": "operator"},
+  {"of": "Y", "what": "Documents notification addressing and keys, data-file loading of old and bad records, assignee through transitions, filter matching, show output and history format; X leaves these untold", "ref": "U-7, U-8, U-11, U-12, U-13, U-18, U-27", "matters_to": "operator"},
+  {"of": "Y", "what": "A failed save is rolled back in memory and answered 500 so a retry saves it", "ref": "Y extras: rollback in store.apply()", "matters_to": "operator"},
+  {"of": "X", "what": "Leaves existing behaviour alone where the request did not ask: repeated status/priority parameter keeps first-value rule, title/requester limits unchanged", "ref": "Y S-18, Y extras", "matters_to": "operator"}
+ ],
+ "lesser_lacks": [
+  "Add a CHANGELOG.md section for assignment and bump package.json version",
+  "Document in docs/api.md / operations notes: notice addressed to the agent name, one notice per assignment, legacy files load unassigned and bad saved assignees stop start, assignee kept through transitions, exact filter matching, show assignee and history lines",
+  "Roll back in-memory state when saving a change fails and answer 500"
+ ],
+ "one_task_closes": "yes",
+ "why": "The two builds behave the same on every requirement and share D-1 and D-3. Y adds the release record, fuller operator documentation and save rollback, at the cost of two small documented changes to existing validation and filtering. X can catch up with documentation, a changelog entry and a contained rollback change."},
+{"pair": "X-Z", "better": "Z-some",
+ "advantages": [
+  {"of": "Z", "what": "Refuses invalid UTF-8 in the assignment body and the data file", "ref": "D-1", "matters_to": "operator"},
+  {"of": "Z", "what": "Unassigned is distinguishable from any accepted name in list and show", "ref": "D-3", "matters_to": "operator"},
+  {"of": "Z", "what": "CHANGELOG Unreleased section and decision record 0009; X has no changelog entry at all (neither bumps the version)", "ref": "U-22, D-2", "matters_to": "maintainer"},
+  {"of": "Z", "what": "Documents notice keys, legacy loading, assignee through transitions, filter matching and history display", "ref": "U-8, U-11, U-12, U-13, U-27", "matters_to": "operator"},
+  {"of": "Z", "what": "Failed assignment save rolled back so a retry succeeds", "ref": "Z extras: rollback in store.assign()", "matters_to": "operator"},
+  {"of": "X", "what": "Simpler to carry: no hand-parsed filter or scattered decoding rules, fewer tests pinned to internals, no working material shipped in the tree, no change to cursor handling", "ref": "Z maintainer, Z tests_notes, Z extras", "matters_to": "maintainer"},
+  {"of": "X", "what": "list --raw gains the assignee as a fifth column for scripts (Z keeps raw at four columns; both acceptable)", "ref": "U-16", "matters_to": "requester"}
+ ],
+ "lesser_lacks": [
+  "Decode the assignment body as strict UTF-8 and refuse a malformed byte with 400 invalid",
+  "Make the CLI unassigned marker distinguishable from any accepted name (quote names or refuse '-')",
+  "Add a CHANGELOG section for assignment",
+  "Document notice keys, legacy and bad-record loading, assignee through transitions, filter matching and show history",
+  "Roll back in-memory state when an assignment save fails"
+ ],
+ "one_task_closes": "yes",
+ "why": "Both meet every stated requirement. Z removes two low defects X has, records the change and documents more for the operator, while X is the lighter codebase to maintain. Each item X lacks is small and contained, so one short task closes it."}
+]}

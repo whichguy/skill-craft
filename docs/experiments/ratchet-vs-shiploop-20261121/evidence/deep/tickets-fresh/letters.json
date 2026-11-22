@@ -1,0 +1,28 @@
+{
+ "a": {
+  "letters": {
+   "p5ffd4c": "X",
+   "p4c8106": "Y",
+   "p10059e": "Z"
+  },
+  "pairs": [
+   "Y-Z",
+   "Y-X",
+   "X-Z"
+  ],
+  "characters": 97636
+ },
+ "b": {
+  "letters": {
+   "p5ffd4c": "X",
+   "p10059e": "Y",
+   "p4c8106": "Z"
+  },
+  "pairs": [
+   "Z-Y",
+   "Z-X",
+   "X-Y"
+  ],
+  "characters": 97636
+ }
+}

@@ -1,0 +1,28 @@
+{
+ "a": {
+  "letters": {
+   "p64907e": "X",
+   "pc5ec3e": "Y",
+   "p47737c": "Z"
+  },
+  "pairs": [
+   "Z-Y",
+   "Z-X",
+   "X-Y"
+  ],
+  "characters": 92909
+ },
+ "b": {
+  "letters": {
+   "p64907e": "X",
+   "p47737c": "Y",
+   "pc5ec3e": "Z"
+  },
+  "pairs": [
+   "Y-Z",
+   "Y-X",
+   "X-Z"
+  ],
+  "characters": 92909
+ }
+}

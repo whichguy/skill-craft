@@ -1,0 +1,79 @@
+{"pairs": [
+{"pair": "X-Z", "better": "Z-some",
+ "advantages": [
+  {"of": "Z", "what": "A reply or task step that cannot be saved is reported and saved once storage returns; X leaves the reply pending forever and blocks the conversation until a restart", "ref": "D-2", "matters_to": "requester"},
+  {"of": "Z", "what": "Damaged or unwritable data folder stops with a clear message and a recovery step in the README; X dies with a raw stack trace, for invalid JSON without naming the file", "ref": "D-7", "matters_to": "operator"},
+  {"of": "Z", "what": "Duplicate bot names refused; X lets two identical, indistinguishable bots exist", "ref": "D-4", "matters_to": "requester"},
+  {"of": "Z", "what": "add step with two same-titled tasks goes to the newest and the step is visible at the end of that article; X offers two identical 'Add to same' buttons", "ref": "D-6", "matters_to": "requester"},
+  {"of": "Z", "what": "Focus returns to the item's Edit memory after Save memory; X drops focus to the page body", "ref": "D-8", "matters_to": "requester"},
+  {"of": "Z", "what": "A step in flight at a server stop is marked as of unknown outcome rather than silently dropped, and Cancel lets the in-flight step settle and lists it", "ref": "U-41", "matters_to": "requester"},
+  {"of": "Z", "what": "Ambiguous-send recovery ('send outcome is unknown' with Check send) on lost acknowledgements and write failures", "ref": "U-54", "matters_to": "requester"},
+  {"of": "X", "what": "Focus stays usable after activating Send; Z drops focus to the page body", "ref": "D-15", "matters_to": "requester"},
+  {"of": "X", "what": "Unsent draft and reading position kept per conversation across reload and later visits; Z loses the draft and jumps to the bottom", "ref": "U-13", "matters_to": "requester"},
+  {"of": "X", "what": "Refused field changes name the fields that can change and how to spell them; Z says only 'unavailable for changes'", "ref": "U-29", "matters_to": "requester"},
+  {"of": "X", "what": "Empty conversations do not share the New conversation control's accessible name and colliding titles add the latest message (Z adds only '(2)'); both still have D-1", "ref": "U-11", "matters_to": "requester"},
+  {"of": "X", "what": "Unexpected server errors logged with their message; Z logs only an error code", "ref": "U-60", "matters_to": "operator"},
+  {"of": "Z", "what": "Specification marks most decided conditions as still 'Open', so it disagrees with the product and README a maintainer reads", "ref": "U-5", "matters_to": "no one"}
+ ],
+ "lesser_lacks": [
+  "Catch a failed write of a reply result and mark the reply failed with Retry (or retry the save) so the conversation is not blocked (D-2)",
+  "Wrap start-up loading in a handler that names the problem file or folder and gives a recovery step instead of a stack trace (D-7)",
+  "Refuse duplicate bot names, or make same-named bots distinguishable in the Bots navigation (D-4)",
+  "Name the choice buttons and the add-step note so two same-titled tasks can be told apart (D-6)",
+  "Return focus to the edited memory item or its Edit memory button after Save memory (D-8)"
+ ],
+ "one_task_closes": "no",
+ "why": "The two deliveries meet every stated requirement alike; Z handles storage failure, damaged data and duplicate names better, chiefly a reply that otherwise blocks a conversation forever (D-2). X keeps drafts and scroll position, keeps focus after Send and gives clearer refusal messages, which narrows but does not erase the gap. Closing X's list touches its write-then-advance store error handling plus four smaller fixes, more than an hour."},
+{"pair": "X-Y", "better": "X-some",
+ "advantages": [
+  {"of": "X", "what": "Sending a new message after a failed reply keeps the failure and its Retry; Y hides the failure and leaves no way to retry", "ref": "D-9", "matters_to": "requester"},
+  {"of": "X", "what": "A task whose step cannot be saved turns Interrupted with Retry once saving works; Y shows Running forever until a restart", "ref": "D-10", "matters_to": "requester"},
+  {"of": "X", "what": "Since you were away reports what changed since the last visit and drops items once seen; Y shows a permanent list of every task ever started", "ref": "D-12", "matters_to": "requester"},
+  {"of": "X", "what": "Saving an instruction or task under an existing name is refused with an alert; Y silently overwrites", "ref": "D-11", "matters_to": "requester"},
+  {"of": "X", "what": "Unexpected errors logged with their message; Y logs a fixed line with no detail", "ref": "D-13", "matters_to": "operator"},
+  {"of": "X", "what": "Over-long names refused with a notice saying how much to remove; Y silently cuts to 80 characters", "ref": "U-9", "matters_to": "requester"},
+  {"of": "X", "what": "Unsent draft and reading position kept across reload; Y loses the draft", "ref": "U-13", "matters_to": "requester"},
+  {"of": "X", "what": "README states token precedence and storage, editable fields, retry behaviour, naming and Since you were away rules; Y's README is silent on almost all of them", "ref": "U-7", "matters_to": "operator"},
+  {"of": "X", "what": "Refused field changes list the changeable fields; Y says only 'cannot change that record field'", "ref": "U-29", "matters_to": "requester"}
+ ],
+ "lesser_lacks": [
+  "Keep a failed reply marked failed with Retry after later messages are sent (D-9)",
+  "Catch task-step write failures and mark the task Interrupted with Retry task once saving works (D-10)",
+  "Track the person's last visit so Since you were away shows only what changed and clears read items (D-12)",
+  "Refuse a save under an existing instruction or task name without Edit (D-11)",
+  "Log the error message (without the token) for unexpected server errors (D-13)",
+  "Refuse over-long names with a notice instead of silent truncation (U-9)",
+  "Document the token, editing, retry and naming decisions in the README"
+ ],
+ "one_task_closes": "no",
+ "why": "X and Y are the same product line and match on every stated requirement and on the shared defects. X fixes five more defects, two of medium severity, plus Y's misleading Since you were away, and documents its decisions. Y's list spans the reply, task worker, visit tracking, saving and logging code, more than one hour."},
+{"pair": "Y-Z", "better": "Z-much",
+ "advantages": [
+  {"of": "Z", "what": "A reply that cannot be saved is reported and saved once storage returns; Y blocks the conversation forever", "ref": "D-2", "matters_to": "requester"},
+  {"of": "Z", "what": "A task step that cannot be saved completes once storage returns; Y shows Running forever", "ref": "D-10", "matters_to": "requester"},
+  {"of": "Z", "what": "A new message is refused until a failed reply is retried, so the failure stays visible; Y hides the failure and loses Retry", "ref": "D-9", "matters_to": "requester"},
+  {"of": "Z", "what": "Since you were away reports since the last acknowledged event and can be dismissed; Y shows a permanent list of every task", "ref": "D-12", "matters_to": "requester"},
+  {"of": "Z", "what": "Duplicate instruction or task names refused; Y silently overwrites", "ref": "D-11", "matters_to": "requester"},
+  {"of": "Z", "what": "Duplicate bot names refused; Y allows indistinguishable bots", "ref": "D-4", "matters_to": "requester"},
+  {"of": "Z", "what": "add step note names the task and the step lands visibly on the newest one; Y's only feedback is overwritten by the next step", "ref": "D-6", "matters_to": "requester"},
+  {"of": "Z", "what": "Damaged data folder gives a clear message and recovery step; Y prints a raw stack trace", "ref": "D-7", "matters_to": "operator"},
+  {"of": "Z", "what": "Focus returns to Edit memory after Save memory; Y loses it", "ref": "D-8", "matters_to": "requester"},
+  {"of": "Z", "what": "Server errors logged with a code; Y logs a fixed line", "ref": "D-13", "matters_to": "operator"},
+  {"of": "Z", "what": "In-flight step at a server stop marked as of unknown outcome; Cancel lets it settle and lists it", "ref": "U-41", "matters_to": "requester"},
+  {"of": "Z", "what": "README documents token precedence, Use copying, retry, conflicts and recovery; Y's is silent", "ref": "U-5", "matters_to": "operator"},
+  {"of": "Y", "what": "Focus stays in Message after Send; Z drops it to the page body after the Send button", "ref": "D-15", "matters_to": "requester"},
+  {"of": "Y", "what": "Empty conversations do not share the New conversation control's name", "ref": "U-11", "matters_to": "requester"}
+ ],
+ "lesser_lacks": [
+  "Handle write failures for replies and task steps so neither stays pending or Running forever (D-2, D-10)",
+  "Keep a failed reply's failure and Retry after a later send, or refuse the send until Retry (D-9)",
+  "Make Since you were away report only what changed since the last visit (D-12)",
+  "Refuse duplicate instruction, task and bot names (D-11, D-4)",
+  "Identify which task receives an added step (D-6)",
+  "Give a clear start-up error with a recovery step for damaged or unwritable data (D-7)",
+  "Fix focus after Save memory and log error detail (D-8, D-13)",
+  "Document the decisions in the README"
+ ],
+ "one_task_closes": "no",
+ "why": "Both meet the stated requirements, but Y carries ten defects Z does not, several of them in recovery and honesty about what happened, which the request stresses. Z gives up only focus after the Send button. Y's list covers storage error handling, visit tracking, naming and docs, far more than one hour."}
+]}

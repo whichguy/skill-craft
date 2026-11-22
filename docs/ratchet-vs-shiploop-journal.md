@@ -1272,3 +1272,86 @@ Noted for the tickets audits: the auditors' `base/` folder is last night's copy 
 builders started from the fixture as changed on `main` yesterday (its tests listen on 127.0.0.1). One auditor read
 that difference in `test/helpers.js` as the builder's edit and graded the item `yes` anyway; the cross-probe was
 told the difference is not a builder's change.
+
+## 17. Both tools fresh: results of section 16.1 (2026-11-22, audits 11:30 to 13:00; written 13:00; Grokbot's second Ratchet run is added below when it ends)
+
+Status: firm for what was run (one fresh run of each tool a case); Grokbot's Ratchet side is a run that stopped as
+stuck (16.4), so Grokbot's row is interim until the second run is judged.
+
+Three products a case, all audited in this round by new sessions (41 Opus sessions in all: 9 audits for the three
+small cases, 9 shares for Grokbot, 4 cross-probes, 4 readers, 4 judges; the inventories are section 12's,
+unchanged): **S'** this morning's fresh ShipLoop 2.6.0 delivery after one look (Sol medium) and one fix (Opus
+xhigh); **N** that fresh delivery itself; **L2** the fresh Ratchet run's final. Evidence:
+`evidence/deep/CASE-fresh/`, `evidence/deep/deep.json` and `deep.md`, `evidence/fresh/` (the Ratchet runs' measure
+and launch records).
+
+### 17.1 The readings (S' / N / L2)
+
+| | shared expenses | chess | ticket assignment | Grokbot (L2 = the stuck run) |
+|---|---|---|---|---|
+| D1 stated items built | 35 / 35 / 35 of 35 | 40 / 40 / 40 of 40 | 21 / 21 / 21 of 21 | 108 / 108 / 108 of 108 |
+| D2 tests proved by breaking the behaviour | 5 / 5 / 6 of 6 | 6 / 5 / 5 of 6 | 6 / 6 / 6 of 6 | 3 / 3 / 4 of 6 |
+| D3 unsaid points handled | 16 / 16 / 16 of 16 | 6 / 5 / 6 of 6 | 18 / 17 / 19 of 19 | 34 / 31 / 37 of 39 |
+| D4 unsaid points told in the delivered documents | 13 / 0 / 12 of 16 | 4 / 0 / 1 of 6 | 17 / 10 / 17 of 19 | 20 / 2 / 16 of 39 |
+| D5 reproducing medium defects (none high anywhere); low | 0 / 0 / 0; 2 / 2 / 2 | 0 / 1 / 0; 0 / 1 / 0 | 0 / 0 / 0; 2 / 3 / 1 | 4 / 6 / 3; 5 / 8 / 2 |
+| The Opus judge, S' against L2 | S' somewhat | S' somewhat | same | L2 somewhat; a short task does not close it |
+| **F-1, S' against L2, by the rule** | no difference shown | **S' better** (D4, D6) | no difference shown | no difference shown (D4 to S', D6 to L2) |
+| **F-2, N against L2, by the rule** | L2 better (D4, D6) | no difference shown (judge: L2 somewhat) | L2 better (D3, D4, D6) | L2 better (D3, D4, D5, D6; judge: much) |
+| S' "nearly competitive" with L2 | yes | yes | yes | yes by the rule; the judge says a short task does not close it |
+| **F-3, minutes: S' (run + look + fix) / N / L2** | 20.3 / 10.1 / 47.4 | 16.4 / 10.7 / 45.5 | 27.9 / 10.5 / 72.1 | 61.7 / 28.7 / 85.1 (stuck) |
+| S' as a share of L2's minutes | 43% | 36% | 39% | 73% of a run that stopped early |
+
+### 17.2 What repeats
+
+- **The three small cases repeat section 15 exactly**: level, S' ahead, level, with Ratchet's side now a run of the
+  same day from the same commit and starting files. Unchanged ShipLoop is behind Ratchet on two of them and level
+  on the third, again as in section 15, and for the same reason: it tells the customer little (0, 0 and 10 unsaid
+  points told against 12, 1 and 17).
+- **F-5, two audits of one product.** S' and N are the trees section 15 audited; different sessions read them
+  here. Small cases: D1 and D2 identical on all six products; D3 within one item; D5's medium count identical;
+  D4 within one item on five, and **three items apart on tickets' N (13, then 10)**, more than the two-item margin.
+  Grokbot: S' 34 and 34 handled, told 17 then 20, medium defects 5 then 4; N 31 and 31 handled, told 2 and 2,
+  medium defects **8 then 6**. Every verdict by the rule on the small cases is the same in both rounds. So: the
+  rule's verdicts on the small cases are stable under a second audit; a two-defect difference on Grokbot is within
+  what two audits of one product differ by, and section 15's "5 against 3" there could not carry a verdict alone
+  (it did not have to: the judge agreed).
+- **F-4, one Ratchet run against another.** L2 beside last night's final as audited in section 15: expenses told
+  12 against 15, tests proved 6 and 6; chess tests proved 5 against 4, told 1 and 1; tickets handled 19 and 19,
+  told 17 against 18; minutes 47.4, 45.5, 72.1 against 46.4, 37.2, 100.4. Close on every reading.
+
+### 17.3 Grokbot: what the stuck run shows
+
+The fresh Ratchet run never reached a closing look (16.4), and its product reads almost as last night's
+three-cycle final did: handled 37 of 39 (38 last night), told 16 (18), medium defects 3 (3), tests proved 4 of 6
+(4). Section 12 had already read last night's *first build* at 35 handled, 14 told, 2 medium defects. Three
+readings of Ratchet's Grokbot product before or without closing looks, all close to its three-cycle final: **on
+Grokbot, what puts Ratchet ahead of ShipLoop is in its specification, its build from that specification and its
+heavy test pass, not in its closing looks.** The looks and extra cycles are what cost the second half of last
+night's 162 minutes.
+
+Against that product, ShipLoop with one look and one fix: ahead on told (20 against 16), one more medium defect (4
+against 3, inside audit noise), three fewer unsaid points handled (34 against 37, 8 points of share, under the
+ten the rule asks), and the judge prefers Ratchet's ("somewhat"; X leaves a reply pending for ever when it cannot be
+saved, which blocks the conversation). By the registered rule that is "no difference shown"; I would not call it
+level. The honest reading: **the gap is smaller than section 15 put it, and it is in failure handling**
+(D-2, D-4, D-6, D-7, D-8 of this round's fifteen probed defects are present on both ShipLoop products and absent on
+Ratchet's), which one look and one fix reduced (ten defects Ratchet's lacks on N, five on S') and did not close.
+
+### 17.4 Predictions of 16.1, scored as registered
+
+| Prediction | Result |
+|---|---|
+| Every fresh Ratchet final passes every held-out check | holds, 4 of 4 (6, 10, 18, 49 and 28) |
+| F-1: on the small cases S' level with or ahead of L2 on at least two | holds, 3 of 3 |
+| F-1: on Grokbot L2 is the better feature again | **fails by the rule** on the stuck run (no difference shown); the judge prefers L2; the second run decides |
+| F-2: N behind L2 on D4 on at least three of four | holds: expenses, tickets, Grokbot (chess 0 against 1) |
+| F-3: Ratchet's fresh minutes within 30% of last night's on at least three of four | holds: +2%, +22%, -28%; Grokbot -48% (stuck) |
+| F-5: two audits agree within one item on D1, D3 and D5 on the small cases | holds |
+| F-5: on Grokbot D5 differs by two or more on at least one product | holds (N: 8, then 6) |
+
+### 17.5 Not shown
+
+One fresh run of each tool a case; two deliveries of each a case in the whole study. The fixer of S' is Opus at
+xhigh, stronger than either builder, and the look was done by a session that had not built the product (the
+candidate of 16.2 tests both inside ShipLoop). D4 on one product moved by three items between two readers once.
+The Grokbot comparison with a full fresh Ratchet run waits on the second run.

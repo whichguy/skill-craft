@@ -1,0 +1,769 @@
+{
+ "told": [
+  {
+   "id": "U-1",
+   "results": {
+    "p51b1ee": {
+     "told": "no",
+     "where": ""
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "yes",
+     "where": "README.md: Copying the folder keeps recorded work and browser sessions available to the same browser cookie. A new browser can choose the same person to open their workspace."
+    }
+   }
+  },
+  {
+   "id": "U-2",
+   "results": {
+    "p51b1ee": {
+     "told": "no",
+     "where": ""
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-3",
+   "results": {
+    "p51b1ee": {
+     "told": "no",
+     "where": ""
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-5",
+   "results": {
+    "p51b1ee": {
+     "told": "yes",
+     "where": "README.md: A valid `PROVIDER_TOKEN` takes precedence over a saved token; an invalid one is ignored and the saved token is used."
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "yes",
+     "where": "README.md: A valid environment token takes priority, and an invalid one falls back to a saved token or Setup."
+    }
+   }
+  },
+  {
+   "id": "U-6",
+   "results": {
+    "p51b1ee": {
+     "told": "yes",
+     "where": "README.md: A valid `PROVIDER_TOKEN` takes precedence over a saved token; an invalid one is ignored and the saved token is used."
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "yes",
+     "where": "README.md: A valid environment token takes priority, and an invalid one falls back to a saved token or Setup."
+    }
+   }
+  },
+  {
+   "id": "U-7",
+   "results": {
+    "p51b1ee": {
+     "told": "yes",
+     "where": "README.md: A token saved through **Setup** is stored as plain text in `workspace.json` under `DATA_DIR`, a file only the account running Node can read. The app never shows it in a page or response."
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-8",
+   "results": {
+    "p51b1ee": {
+     "told": "no",
+     "where": ""
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-9",
+   "results": {
+    "p51b1ee": {
+     "told": "yes",
+     "where": "README.md: Bot names can repeat; each one is a separate bot. / Limits: bot, instruction and task names 80 characters; ... A field over its limit says how much to remove and cannot be sent or saved until it is shortened. Nothing is cut off."
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-11",
+   "results": {
+    "p51b1ee": {
+     "told": "yes",
+     "where": "README.md: A conversation's title is the first message sent in it, with spaces and line breaks collapsed, cut to 56 characters. When two of the open bot's conversations have the same title, the list also shows the latest message you sent in each. New bots and conversations are listed first."
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-13",
+   "results": {
+    "p51b1ee": {
+     "told": "yes",
+     "where": "README.md: Unsent drafts and your reading position in each conversation are kept in this browser's storage, per person, so a reload or a later visit opens the same place. **Switch person** clears them from this browser."
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-14",
+   "results": {
+    "p51b1ee": {
+     "told": "yes",
+     "where": "README.md: Saved instructions and saved tasks belong to the person and are shared by all of that person's bots."
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "yes",
+     "where": "README.md: A person's saved instructions and tasks are shared across their bots."
+    }
+   }
+  },
+  {
+   "id": "U-15",
+   "results": {
+    "p51b1ee": {
+     "told": "yes",
+     "where": "README.md: Saving an instruction or task under a name that is already saved is refused with an alert, and the saved one is unchanged."
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-16",
+   "results": {
+    "p51b1ee": {
+     "told": "no",
+     "where": ""
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-17",
+   "results": {
+    "p51b1ee": {
+     "told": "yes",
+     "where": "README.md: Editing or deleting an instruction changes every bot that uses it."
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "yes",
+     "where": "README.md: Selecting Use copies an instruction to the current bot."
+    }
+   }
+  },
+  {
+   "id": "U-20",
+   "results": {
+    "p51b1ee": {
+     "told": "no",
+     "where": ""
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-21",
+   "results": {
+    "p51b1ee": {
+     "told": "yes",
+     "where": "README.md: A failed reply keeps its alert and **Retry** under its message, even after you send later messages. The retried reply appears directly after the message it answers."
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "yes",
+     "where": "README.md: Retry a failed reply in place. / A reply in flight becomes retryable."
+    }
+   }
+  },
+  {
+   "id": "U-22",
+   "results": {
+    "p51b1ee": {
+     "told": "no",
+     "where": ""
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-23",
+   "results": {
+    "p51b1ee": {
+     "told": "yes",
+     "where": "README.md: Remembering and forgetting treat facts that differ only in capitals as the same fact."
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-25",
+   "results": {
+    "p51b1ee": {
+     "told": "no",
+     "where": ""
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-26",
+   "results": {
+    "p51b1ee": {
+     "told": "no",
+     "where": ""
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-27",
+   "results": {
+    "p51b1ee": {
+     "told": "no",
+     "where": ""
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-29",
+   "results": {
+    "p51b1ee": {
+     "told": "yes",
+     "where": "README.md: Only these fields of existing records can change: an order's `customer`, `status` and `total`, and an account's `name`, `tier` and `owner`."
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-30",
+   "results": {
+    "p51b1ee": {
+     "told": "yes",
+     "where": "README.md: A new value keeps the field's type (a number for `total`). / `create an order for <customer> totalling <number>` takes whole numbers only. With a decimal such as `35.50` the provider gives its echo reply and no proposal."
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-31",
+   "results": {
+    "p51b1ee": {
+     "told": "no",
+     "where": ""
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-32",
+   "results": {
+    "p51b1ee": {
+     "told": "yes",
+     "where": "README.md: A pending creation reserves the order ID it shows, across people and conversations."
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "yes",
+     "where": "README.md: Confirming a creation assigns its order ID."
+    }
+   }
+  },
+  {
+   "id": "U-33",
+   "results": {
+    "p51b1ee": {
+     "told": "yes",
+     "where": "README.md: **Confirm changes** checks that each field still has the value you reviewed."
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "yes",
+     "where": "README.md: A conflict leaves the record as it is and calls for a fresh proposal."
+    }
+   }
+  },
+  {
+   "id": "U-34",
+   "results": {
+    "p51b1ee": {
+     "told": "yes",
+     "where": "README.md: A pending creation reserves the order ID it shows, across people and conversations. Rejecting it frees that ID for the next preview; other open previews keep the IDs they show."
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "yes",
+     "where": "README.md: Confirming a creation assigns its order ID."
+    }
+   }
+  },
+  {
+   "id": "U-35",
+   "results": {
+    "p51b1ee": {
+     "told": "no",
+     "where": ""
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "yes",
+     "where": "README.md: **Change result** retains the outcome after reload."
+    }
+   }
+  },
+  {
+   "id": "U-36",
+   "results": {
+    "p51b1ee": {
+     "told": "no",
+     "where": ""
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-37",
+   "results": {
+    "p51b1ee": {
+     "told": "no",
+     "where": ""
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-38",
+   "results": {
+    "p51b1ee": {
+     "told": "no",
+     "where": ""
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-39",
+   "results": {
+    "p51b1ee": {
+     "told": "yes",
+     "where": "README.md: `add step: ...` adds to the task running in the same conversation. When more than one is running, the app asks which one gets the step (**Add to <task>** or **Don’t add**). A note under the reply says where the step went, or that it was not added."
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "yes",
+     "where": "README.md: While a task is running, “add step: check costs” adds work to the newest eligible task in that conversation."
+    }
+   }
+  },
+  {
+   "id": "U-40",
+   "results": {
+    "p51b1ee": {
+     "told": "no",
+     "where": ""
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-41",
+   "results": {
+    "p51b1ee": {
+     "told": "yes",
+     "where": "README.md: Work continues if you close the tab and leave Node running. A server restart marks interrupted tasks for retry from the last completed step."
+    },
+    "p23866a": {
+     "told": "yes",
+     "where": "README.md: Work continues if you close the tab and leave Node running. A server restart marks interrupted tasks for retry from the last completed step."
+    },
+    "pa8edb8": {
+     "told": "yes",
+     "where": "README.md: Closing the browser leaves the local server working. / A running task keeps its saved results and can be retried from the first unfinished step. When an in-flight result was lost, the task identifies that uncertainty."
+    }
+   }
+  },
+  {
+   "id": "U-42",
+   "results": {
+    "p51b1ee": {
+     "told": "yes",
+     "where": "README.md: A server restart marks interrupted tasks for retry from the last completed step."
+    },
+    "p23866a": {
+     "told": "yes",
+     "where": "README.md: A server restart marks interrupted tasks for retry from the last completed step."
+    },
+    "pa8edb8": {
+     "told": "yes",
+     "where": "README.md: A running task keeps its saved results and can be retried from the first unfinished step."
+    }
+   }
+  },
+  {
+   "id": "U-43",
+   "results": {
+    "p51b1ee": {
+     "told": "no",
+     "where": ""
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "yes",
+     "where": "README.md: Cancel task stops work that has yet to start and lets an in-progress step settle."
+    }
+   }
+  },
+  {
+   "id": "U-44",
+   "results": {
+    "p51b1ee": {
+     "told": "yes",
+     "where": "README.md: **Since you were away** lists running tasks, tasks that need attention, and tasks that finished while you were away (since this browser last closed or hid the page), apart from those that finished during this visit."
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-45",
+   "results": {
+    "p51b1ee": {
+     "told": "no",
+     "where": ""
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "yes",
+     "where": "README.md: In a narrow window, use **Browse** and **Tools** to open side panels and Escape to close them."
+    }
+   }
+  },
+  {
+   "id": "U-46",
+   "results": {
+    "p51b1ee": {
+     "told": "no",
+     "where": ""
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "yes",
+     "where": "README.md: If the server cannot read that snapshot, preserve it and restore a known good backup or point the server at a fresh folder."
+    }
+   }
+  },
+  {
+   "id": "U-49",
+   "results": {
+    "p51b1ee": {
+     "told": "yes",
+     "where": "README.md: The provider matches field names exactly as written, so write them in lowercase. `What is the STATUS of ORD-1001?` gets \"ORD-1001 has no STATUS.\", and `set the Status of ORD-1001 to closed` is refused with a **Change result** that lists the fields you can change."
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-50",
+   "results": {
+    "p51b1ee": {
+     "told": "no",
+     "where": ""
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-54",
+   "results": {
+    "p51b1ee": {
+     "told": "no",
+     "where": ""
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "yes",
+     "where": "README.md: The app reports a temporary write failure and retries saving a provider result while the process is alive."
+    }
+   }
+  },
+  {
+   "id": "U-57",
+   "results": {
+    "p51b1ee": {
+     "told": "yes",
+     "where": "README.md: If progress cannot be saved, for example because the data folder became unavailable, the task turns **Interrupted** once saving works again, and **Retry task** continues from the last finished step. Node logs the task and the error."
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "yes",
+     "where": "README.md: The app reports a temporary write failure and retries saving a provider result while the process is alive."
+    }
+   }
+  },
+  {
+   "id": "U-58",
+   "results": {
+    "p51b1ee": {
+     "told": "no",
+     "where": ""
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-60",
+   "results": {
+    "p51b1ee": {
+     "told": "no",
+     "where": ""
+    },
+    "p23866a": {
+     "told": "no",
+     "where": ""
+    },
+    "pa8edb8": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  }
+ ]
+}

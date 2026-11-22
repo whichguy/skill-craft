@@ -1,0 +1,18 @@
+{
+ "p4c8106": {
+  "point": "S",
+  "tree": "/Users/dadleet/e2e-runs/d20261122-b54ea4/fix/tickets/work",
+  "spec": "docs/shiploop/spec.md"
+ },
+ "p5ffd4c": {
+  "point": "F",
+  "tree": "/Users/dadleet/e2e-runs/d20261122-b54ea4/delivered/tickets",
+  "spec": "docs/shiploop/spec.md"
+ },
+ "p10059e": {
+  "point": "L",
+  "tree": "/Users/dadleet/e2e-runs/d20261122-ac4afc/tickets-2/work",
+  "commit": "957d61d6bc8ece8cab07fe94fa209af03386c2a2",
+  "spec": "ratchet/spec.md"
+ }
+}

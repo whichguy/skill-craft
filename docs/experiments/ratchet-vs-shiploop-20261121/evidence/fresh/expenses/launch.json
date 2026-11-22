@@ -1,0 +1,38 @@
+{
+ "arm": "ratchet",
+ "case": "shared-expenses",
+ "label": "expenses-2",
+ "output": "/Users/dadleet/e2e-runs/d20261122-ac4afc/expenses-2",
+ "commit": "22e52c0807ca41aa0224dd81f03b84e9bba44e82",
+ "shiploop_version": "2.6.0",
+ "host": "codex",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "argv": [
+  "/opt/homebrew/opt/python@3.15/bin/python3.15",
+  "/Users/dadleet/e2e-runs/d20261122-ac4afc/source-22e52c0807ca/docs/experiments/ratchet-pilot-20261120/ratchet.py",
+  "run",
+  "--case",
+  "shared-expenses",
+  "--host",
+  "codex",
+  "--model",
+  "gpt-6.2-sol",
+  "--effort",
+  "medium",
+  "--enrich",
+  "reworded",
+  "--output",
+  "/Users/dadleet/e2e-runs/d20261122-ac4afc/expenses-2",
+  "--quiet"
+ ],
+ "attempts": [
+  {
+   "started": 1795373045.559992,
+   "ended": 1795375891.577464,
+   "returncode": 0,
+   "refused_by_lease": false
+  }
+ ],
+ "log": "/Users/dadleet/e2e-runs/d20261122-ac4afc/expenses-2.log"
+}

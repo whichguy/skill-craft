@@ -1,0 +1,310 @@
+{
+ "told": [
+  {
+   "id": "U-1",
+   "results": {
+    "p47737c": {
+     "told": "yes",
+     "where": "README.md: \"| 400 | `{\\\"error\\\":\\\"Invalid group ID\\\"}` | The body is not a JSON object, ...\" and \"| 400 | `{\\\"error\\\":\\\"Invalid expense\\\"}` | The body is not a JSON object, ...\""
+    },
+    "p64907e": {
+     "told": "no",
+     "where": ""
+    },
+    "pc5ec3e": {
+     "told": "yes",
+     "where": "README.md: \"Invalid POST data or malformed JSON for a known POST operation receives `400`.\""
+    }
+   }
+  },
+  {
+   "id": "U-2",
+   "results": {
+    "p47737c": {
+     "told": "yes",
+     "where": "README.md: \"| 400 | `{\\\"error\\\":\\\"Invalid expense\\\"}` | The body is not a JSON object, or `payer` is not a member, or `cents` is not a whole number from 1 to 9,007,199,254,740,991. |\" and \"`split` is not `equal` or `exact`. For `exact`: `shares` is not an object, ...\""
+    },
+    "p64907e": {
+     "told": "no",
+     "where": ""
+    },
+    "pc5ec3e": {
+     "told": "yes",
+     "where": "README.md: \"Invalid POST data or malformed JSON for a known POST operation receives `400`. A rejected expense leaves balances and the next expense number intact.\""
+    }
+   }
+  },
+  {
+   "id": "U-3",
+   "results": {
+    "p47737c": {
+     "told": "yes",
+     "where": "README.md: \"A number sent as a string, such as `\\\"10\\\"`, is refused.\" and \"`members` is not an array, or an entry is not a string with some non-whitespace text.\""
+    },
+    "p64907e": {
+     "told": "no",
+     "where": ""
+    },
+    "pc5ec3e": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-4",
+   "results": {
+    "p47737c": {
+     "told": "yes",
+     "where": "README.md: \"The group ID is one path segment, percent-decoded. Encode it the way JavaScript's `encodeURIComponent` does, so `shared / café?` becomes `shared%20%2F%20caf%C3%A9%3F`.\" and \"`id` is not a string with some non-whitespace text, or `id` is `.` or `..`\""
+    },
+    "p64907e": {
+     "told": "no",
+     "where": ""
+    },
+    "pc5ec3e": {
+     "told": "yes",
+     "where": "README.md: \"A group ID must be a non-empty string that can be URI-encoded, excluding `.` and `..`. URI-encode the ID when placing it in a request path.\""
+    }
+   }
+  },
+  {
+   "id": "U-5",
+   "results": {
+    "p47737c": {
+     "told": "yes",
+     "where": "README.md: \"For `exact`: `shares` is not an object, names someone who is not a member, holds a share that is not a whole number of 0 or more, or does not add up to `cents`.\""
+    },
+    "p64907e": {
+     "told": "no",
+     "where": ""
+    },
+    "pc5ec3e": {
+     "told": "yes",
+     "where": "README.md: \"Exact splits accept whole non-negative shares keyed by member name.\""
+    }
+   }
+  },
+  {
+   "id": "U-6",
+   "results": {
+    "p47737c": {
+     "told": "yes",
+     "where": "README.md: \"Repeated names in `members` collapse to one member, kept at its first position.\" and \"They are matched exactly, with case and surrounding spaces kept: `ada` is not `Ada`, and `\\\" Trip \\\"` is a different group from `\\\"Trip\\\"`.\""
+    },
+    "p64907e": {
+     "told": "no",
+     "where": ""
+    },
+    "pc5ec3e": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-8",
+   "results": {
+    "p47737c": {
+     "told": "yes",
+     "where": "README.md: \"Every accepted change is already on disk when its reply is sent.\" and \"Each change writes a new file beside the data file and renames it over the old one, ...\""
+    },
+    "p64907e": {
+     "told": "no",
+     "where": ""
+    },
+    "pc5ec3e": {
+     "told": "yes",
+     "where": "README.md: \"Within that process, concurrent writes commit in sequence using atomic replacement of the JSON snapshot. The service sends `201` after replacement.\""
+    }
+   }
+  },
+  {
+   "id": "U-9",
+   "results": {
+    "p47737c": {
+     "told": "yes",
+     "where": "README.md: \"A missing file, an empty file or a file holding only whitespace starts with no groups.\" and \"The data file is created by the first change that succeeds. A GET never creates it.\""
+    },
+    "p64907e": {
+     "told": "no",
+     "where": ""
+    },
+    "pc5ec3e": {
+     "told": "yes",
+     "where": "README.md: \"If the file is missing, the service starts with an empty ledger and creates the file on the first successful write.\""
+    }
+   }
+  },
+  {
+   "id": "U-10",
+   "results": {
+    "p47737c": {
+     "told": "yes",
+     "where": "README.md: \"A missing file, an empty file or a file holding only whitespace starts with no groups. A file holding anything else that is not valid JSON stops the service at startup with an error (exit code 1).\""
+    },
+    "p64907e": {
+     "told": "no",
+     "where": ""
+    },
+    "pc5ec3e": {
+     "told": "yes",
+     "where": "README.md: \"Startup exits before accepting requests if the existing snapshot is unreadable, contains malformed UTF-8 or JSON, or contains invalid ledger records.\" and \"If any record fails validation, the service leaves the entire file untouched.\""
+    }
+   }
+  },
+  {
+   "id": "U-13",
+   "results": {
+    "p47737c": {
+     "told": "yes",
+     "where": "README.md: \"`n` is 1 for the group's first expense, then 2, and so on. A refused request does not use up a number.\" and \"Within one process, simultaneous requests never lose an expense.\""
+    },
+    "p64907e": {
+     "told": "no",
+     "where": ""
+    },
+    "pc5ec3e": {
+     "told": "yes",
+     "where": "README.md: \"Within that process, concurrent writes commit in sequence using atomic replacement of the JSON snapshot.\""
+    }
+   }
+  },
+  {
+   "id": "U-15",
+   "results": {
+    "p47737c": {
+     "told": "no",
+     "where": ""
+    },
+    "p64907e": {
+     "told": "no",
+     "where": ""
+    },
+    "pc5ec3e": {
+     "told": "yes",
+     "where": "README.md: \"A reused valid ID receives `409` before member validation.\" and \"Within that process, concurrent writes commit in sequence using atomic replacement of the JSON snapshot.\""
+    }
+   }
+  },
+  {
+   "id": "U-16",
+   "results": {
+    "p47737c": {
+     "told": "no",
+     "where": ""
+    },
+    "p64907e": {
+     "told": "no",
+     "where": ""
+    },
+    "pc5ec3e": {
+     "told": "yes",
+     "where": "README.md: \"Restart with the same file to retain groups, member order, expenses, and numbering.\""
+    }
+   }
+  },
+  {
+   "id": "U-21",
+   "results": {
+    "p47737c": {
+     "told": "yes",
+     "where": "README.md: \"So an existing ID answers 409 even when its `members` are invalid.\""
+    },
+    "p64907e": {
+     "told": "no",
+     "where": ""
+    },
+    "pc5ec3e": {
+     "told": "yes",
+     "where": "README.md: \"A reused valid ID receives `409` before member validation.\""
+    }
+   }
+  },
+  {
+   "id": "U-25",
+   "results": {
+    "p47737c": {
+     "told": "yes",
+     "where": "README.md: \"No route lists, changes or deletes groups or expenses.\" and \"A GET never creates it.\""
+    },
+    "p64907e": {
+     "told": "no",
+     "where": ""
+    },
+    "pc5ec3e": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-26",
+   "results": {
+    "p47737c": {
+     "told": "yes",
+     "where": "README.md: \"`DATA_FILE`: the JSON file that holds every group and expense, so they survive a restart.\""
+    },
+    "p64907e": {
+     "told": "no",
+     "where": ""
+    },
+    "pc5ec3e": {
+     "told": "yes",
+     "where": "README.md: \"Restart with the same file to retain groups, member order, expenses, and numbering.\""
+    }
+   }
+  },
+  {
+   "id": "U-27",
+   "results": {
+    "p47737c": {
+     "told": "no",
+     "where": ""
+    },
+    "p64907e": {
+     "told": "no",
+     "where": ""
+    },
+    "pc5ec3e": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-31",
+   "results": {
+    "p47737c": {
+     "told": "yes",
+     "where": "README.md: \"Every accepted change is already on disk when its reply is sent.\""
+    },
+    "p64907e": {
+     "told": "no",
+     "where": ""
+    },
+    "pc5ec3e": {
+     "told": "yes",
+     "where": "README.md: \"Within that process, concurrent writes commit in sequence using atomic replacement of the JSON snapshot. The service sends `201` after replacement.\""
+    }
+   }
+  },
+  {
+   "id": "U-35",
+   "results": {
+    "p47737c": {
+     "told": "no",
+     "where": ""
+    },
+    "p64907e": {
+     "told": "no",
+     "where": ""
+    },
+    "pc5ec3e": {
+     "told": "yes",
+     "where": "README.md: \"An interrupted upload leaves the ledger and expense numbering intact, even if the bytes sent so far form valid JSON.\""
+    }
+   }
+  }
+ ]
+}

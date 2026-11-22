@@ -1,0 +1,73 @@
+{
+ "rechecks": [
+  {
+   "id": "U-1",
+   "results": {
+    "p5bfa3a": {
+     "grade": "sound",
+     "observed": "All three functions behave the same. Missing/undefined/null/42 -> Error 'Invalid FEN: expected a string'; '' and 'not-a-fen' -> Error 'Invalid FEN: expected 6 fields, got 1'; 7 ranks -> 'Invalid FEN: expected 8 ranks, got 7'; side 'x' -> 'Invalid FEN: active color must be w or b'; also 9-square rank -> 'rank 6 is not a valid rank', piece X -> 'rank 1 is not a valid rank', castling XYZ -> 'castling field must be - or a subset of KQkq', 4 fields -> 'expected 6 fields, got 4'. Impossible positions return values (compatible): no kings -> legalMoves [] / status 'stalemate'; two white kings -> 8 moves, 'ongoing'; pawn on 8th rank -> 3 king moves, 'ongoing'; side not to move in check -> 16 moves (king capture e2e8 not offered, applyMove e2e8 throws IllegalMoveError), applyMove e2e4 on impossible boards throws IllegalMoveError. start FEN + '\\n' and + ' ' tolerated (20 moves, 'ongoing', normal FEN after e2e4)."
+    },
+    "p762312": {
+     "grade": "poor",
+     "observed": "Non-strings throw internal TypeErrors ('Cannot read properties of undefined (reading 'trim')', 'fen.trim is not a function'); '', 'not-a-fen' and 7 ranks throw TypeError 'ranks[rank] is not iterable'; 4 fields throws 'Cannot convert undefined to a BigInt'. Confident wrong answers for malformed FENs: side 'x' -> legalMoves [] and status 'stalemate'; 9-square rank -> 20 moves, 'ongoing', applyMove returns '.../97/...' FEN; unknown piece X -> 20 moves, X echoed into the next FEN; castling 'XYZ' -> echoed into output FEN. Impossible positions return values (compatible): no kings -> legalMoves [] / status 'stalemate'; two white kings -> 8 moves, 'ongoing'; pawn on 8th rank -> 3 king moves, 'ongoing'; side not to move in check -> 16 moves (king capture e2e8 not offered, applyMove e2e8 throws IllegalMoveError), applyMove e2e4 on impossible boards throws IllegalMoveError. start FEN + '\\n' and + ' ' tolerated (20 moves, 'ongoing', normal FEN after e2e4)."
+    },
+    "p5c7b34": {
+     "grade": "sound",
+     "observed": "All three functions behave the same. Missing/undefined/null/42 -> TypeError 'Expected a FEN string'; '', 'not-a-fen', side 'x', castling XYZ, 4 fields -> Error 'Invalid FEN fields'; 7 ranks -> 'Invalid FEN placement'; 9-square rank and piece X -> 'Invalid FEN rank'; no kings and two white kings -> Error 'FEN must contain one king per color'. Pawn on 8th rank -> 3 king moves, 'ongoing'; side not to move in check -> 16 moves, 'ongoing' (e2e8 not offered); start FEN + '\\n' / + ' ' tolerated."
+    }
+   }
+  }
+ ],
+ "defects": [
+  {
+   "id": "D-1",
+   "title": "Malformed FENs are accepted and given confident wrong answers instead of an error",
+   "severity": "medium",
+   "merged_from": [
+    "p762312#1"
+   ],
+   "repro": "c.status/legalMoves on 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR x KQkq - 0 1'; applyMove('rnbqkbnr/pppppppp/9/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','e2e4'); legalMoves('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNX w KQkq - 0 1'); applyMove(startFen().replace('KQkq','XYZ'),'e2e4')",
+   "expected": "a thrown, descriptive error for a FEN that is not well-formed, never a status or a new FEN",
+   "note": "",
+   "results": {
+    "p762312": {
+     "result": "present",
+     "observed": "side x: legalMoves [] and status 'stalemate'; 9-square rank: applyMove returns 'rnbqkbnr/pppppppp/97/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1'; piece X: 20 moves, applyMove returns '.../RNBQKBNX b KQkq e3 0 1'; castling XYZ: applyMove returns '... b XYZ e3 0 1'"
+    },
+    "p5bfa3a": {
+     "result": "absent",
+     "observed": "every case throws Error: 'Invalid FEN: active color must be w or b', 'rank 6 is not a valid rank', 'rank 1 is not a valid rank', 'castling field must be - or a subset of KQkq'"
+    },
+    "p5c7b34": {
+     "result": "absent",
+     "observed": "every case throws Error: 'Invalid FEN fields' (side x, castling XYZ) or 'Invalid FEN rank' (9-square rank, piece X)"
+    }
+   }
+  },
+  {
+   "id": "D-2",
+   "title": "Garbage FEN input surfaces internal TypeErrors with no description of the problem",
+   "severity": "low",
+   "merged_from": [
+    "p762312#2"
+   ],
+   "repro": "c.legalMoves(''); c.legalMoves('not-a-fen'); c.legalMoves('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP w KQkq - 0 1'); c.status('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -')",
+   "expected": "an error whose message says the FEN is invalid (and which part)",
+   "note": "Also seen for non-string input on p762312 (undefined/null/42 -> 'Cannot read properties of undefined (reading 'trim')', 'fen.trim is not a function').",
+   "results": {
+    "p762312": {
+     "result": "present",
+     "observed": "'', 'not-a-fen', 7 ranks -> TypeError 'ranks[rank] is not iterable'; 4 fields -> TypeError 'Cannot convert undefined to a BigInt'"
+    },
+    "p5bfa3a": {
+     "result": "absent",
+     "observed": "Error 'Invalid FEN: expected 6 fields, got 1' ('' and 'not-a-fen'), 'Invalid FEN: expected 8 ranks, got 7', 'Invalid FEN: expected 6 fields, got 4'"
+    },
+    "p5c7b34": {
+     "result": "absent",
+     "observed": "Error 'Invalid FEN fields' ('', 'not-a-fen', 4 fields), 'Invalid FEN placement' (7 ranks)"
+    }
+   }
+  }
+ ]
+}

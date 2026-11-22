@@ -1,0 +1,18 @@
+{
+ "p47737c": {
+  "point": "S",
+  "tree": "/Users/dadleet/e2e-runs/d20261122-b54ea4/fix/expenses/work",
+  "spec": "docs/shiploop/spec.md"
+ },
+ "p64907e": {
+  "point": "F",
+  "tree": "/Users/dadleet/e2e-runs/d20261122-b54ea4/delivered/expenses",
+  "spec": "docs/shiploop/spec.md"
+ },
+ "pc5ec3e": {
+  "point": "L",
+  "tree": "/Users/dadleet/e2e-runs/d20261122-ac4afc/expenses-2/work",
+  "commit": "434f8460cd8dae6834ef65c19dd5dc9c6df7ac65",
+  "spec": "ratchet/spec.md"
+ }
+}
