@@ -1,0 +1,152 @@
+{
+ "slot": "requester-reminders__K2__sol-medium",
+ "case": "requester-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "in_progress can enter waiting_on_requester. waiting_on_requester can return to in_progress when work resumes or move to resolved when resolved without a reply. \u2026 There is no reply endpoint to detect incoming mail, so agents resume the ticket explicitly."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1, R-2",
+   "quote": "A wait begins on entry and ends on exit. Title and priority edits preserve its start. \u2026 Default policy is one reminder per continuous wait at 72 elapsed hours."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2, R-3",
+   "quote": "Default policy is one reminder per continuous wait at 72 elapsed hours. \u2026 If the wait ends first, block future attempts for that episode"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "waiting_on_requester can return to in_progress when work resumes or move to resolved when resolved without a reply. \u2026 Title and priority edits preserve its start. \u2026 agents resume the ticket explicitly."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "for its recorded requester. Its subject identifies the ticket and its body asks the requester to reply with the requested information.",
+   "missing": "The builder must choose whether the subject uses the ticket ID, the title, or both, and whether the message includes the elapsed wait."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-2, R-4",
+   "quote": "its body asks the requester to reply with the requested information. \u2026 Creation and resolution notifications, their retry/reporting behavior, normal responses and audit history remain.",
+   "missing": "The reply instruction is clear, but the specification leaves open whether the resolved notice\u2019s seven-day reply window also applies to the waiting requester."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2, Non-functional requirements",
+   "quote": "On the first worker poll at or after the threshold, a ticket still waiting produces one ticket.requester_reminder \u2026 It preserves the existing per-request body limits and the configured worker cadence. \u2026 Use the existing synchronous worker and storage ownership"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Repeated polls and a DATA_FILE restart produce a single event for a continuing wait through pending, sent or dead outcomes. \u2026 The existing relay deduplicates the same id and key if append succeeds before the service records it."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "On the first worker poll at or after the threshold, a ticket still waiting produces one ticket.requester_reminder for its recorded requester."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Repeated polls and a DATA_FILE restart produce a single event for a continuing wait through pending, sent or dead outcomes. \u2026 If delivery fails, retain existing backoff and dead handling.",
+   "missing": "The builder must decide whether a registered reminder template is a prerequisite for enqueueing the event."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1, R-3",
+   "quote": "A wait begins on entry and ends on exit. \u2026 Existing version 1 files load without migration or inferred waits."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-1, R-2, R-3",
+   "quote": "Reentry begins a separate wait even at the same timestamp. \u2026 Default policy is one reminder per continuous wait at 72 elapsed hours. \u2026 A later wait has its own event key."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-2, Questions settled (Q5)",
+   "quote": "On the first worker poll at or after the threshold, a ticket still waiting produces one ticket.requester_reminder \u2026 At one millisecond before the boundary there is no reminder. \u2026 time is elapsed from the ISO UTC transition"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1, R-3",
+   "quote": "Preserve the other transitions and the existing ticket shape. \u2026 The store owns the wait and outbox under a single-process data file. \u2026 A later wait has its own event key.",
+   "missing": "The builder must choose the persisted field names and record layout used to recover the wait start and associate it with its reminder on load."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Existing version 1 files load without migration or inferred waits.",
+   "missing": "The specification leaves open how to reject malformed new fields in a saved file and whether the error must identify the offending field."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1, R-2",
+   "quote": "An agent uses the existing transition endpoint and its actor header. \u2026 Set REQUESTER_REMINDER_HOURS to a decimal whole number from 1 to 2501999792 elapsed hours",
+   "missing": "The specification leaves open who controls the reminder settings and whether anyone may trigger or cancel an individual reminder by hand independently of a ticket transition."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Set REQUESTER_REMINDER_HOURS to a decimal whole number from 1 to 2501999792 elapsed hours \u2026 Unset and blank select 72. Zero, fractional, negative and out-of-range values cause configuration failure naming the variable. \u2026 WORKER_INTERVAL_MS=0 disables automatic scheduling and delivery"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-3, R-4, Questions settled (Q1)",
+   "quote": "Operators can inspect the existing outbox view. \u2026 Existing CLI raw columns keep their order, and the weekly report recognizes the waiting status. \u2026 operators see pending, sent, dead or cancelled reminder outcomes"
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "In a healthy service a due reminder is eligible on the next scheduled tick. An idle reminder scan does not rewrite the data file.",
+   "missing": "The next tick bounds eligibility. The builder still needs a bound on enqueue volume per tick and a performance requirement for scanning thousands of tickets while continuing delivery."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-1, R-4",
+   "quote": "Preserve the other transitions and the existing ticket shape. \u2026 Creation and resolution notifications, their retry/reporting behavior, normal responses and audit history remain. Existing CLI raw columns keep their order, and the weekly report recognizes the waiting status."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-1, R-4, Non-functional requirements",
+   "quote": "Extend docs/api.md, \u201cMove a ticket along its lifecycle.\u201d \u2026 Verify the original suite and the saved-file consumer test. \u2026 Test timing with the manual clock, failed persistence with a controlled fault, and delivery with local JSONL.",
+   "missing": "The specification leaves open updates to the operations guide and README settings table, a changelog entry and version bump, and a decision record if a shared rule changes."
+  }
+ ]
+}

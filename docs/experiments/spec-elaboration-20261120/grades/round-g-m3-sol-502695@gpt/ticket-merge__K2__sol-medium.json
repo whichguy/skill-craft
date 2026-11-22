@@ -1,0 +1,151 @@
+{
+ "slot": "ticket-merge__K2__sol-medium",
+ "case": "ticket-merge",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1, R-2",
+   "quote": "An agent submits `POST /tickets/T-0002/merge` with JSON `{\"to\":\"T-0001\"}` and receives 200 and the updated duplicate. \u2026 Reject an invalid JSON shape, missing or unknown field, noncanonical path or destination ID, or self-merge as 400 `invalid`."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Selection is explicit and manual. \u2026 An agent submits `POST /tickets/T-0002/merge` with JSON `{\"to\":\"T-0001\"}` and receives 200 and the updated duplicate. Its status is `closed`, `mergedInto` is T-0001"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Selection is explicit and manual. \u2026 POST /tickets with `{\"title\":\"VPN down\",\"requester\":\"alex@example.test\"}` and then `{\"title\":\"VPN still down\",\"requester\":\"sam@example.test\",\"priority\":\"high\"}`. \u2026 An agent submits `POST /tickets/T-0002/merge` with JSON `{\"to\":\"T-0001\"}` and receives 200 and the updated duplicate."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Its status is `closed`, `mergedInto` is T-0001 \u2026 Its normal PATCH and transition paths follow the existing closed rules"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "GET of the canonical ticket returns its exact pre-merge record. Retain titles, requesters, priorities, IDs and creation times. \u2026 Bulk operations, automatic matching, undo and content transfer are outside this operation."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Its status is `closed`, `mergedInto` is T-0001 \u2026 GET and the closed-ticket listing still expose T-0002 with the link",
+   "missing": "The closed status settles which status filter matches. The specification leaves inclusion in the unfiltered GET /tickets listing implicit."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1, R-2",
+   "quote": "Both roles may start open, in progress or resolved. \u2026 self-merge as 400 `invalid`. \u2026 A closed source without the same link, a closed destination, an already-merged destination, a source already merged elsewhere, \u2026 409 `conflict`."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Reject an invalid JSON shape, missing or unknown field, noncanonical path or destination ID, or self-merge as 400 `invalid`. A well-formed request with a missing source or destination returns 404 `not_found`.",
+   "missing": "Specify how the error message identifies the offending source or destination, including which ID it names if both tickets are missing."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "an already-merged destination, a source already merged elsewhere, or a source serving as canonical to any duplicate returns 409 `conflict`. \u2026 Opposite-direction attempts cannot create a cycle."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A repeat for the same pair returns 200 with an identical source record, including after normal closure of the canonical ticket. It adds no audit entry or notification and needs no save."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1, R-3",
+   "quote": "GET of the canonical ticket returns its exact pre-merge record. \u2026 The source audit gains one ordered `ticket.merged` entry \u2026 Both prior audit histories and the existing outbox are preserved."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-3, Non-functional requirements",
+   "quote": "the request's `X-Actor` (or `system` by the existing rule) \u2026 Use existing API body limits, internal access scope, actor attribution, cursor semantics and read-only CLI layout. \u2026 no graphical UI, client session, new permission layer"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-1, R-3",
+   "quote": "Its status is `closed`, `mergedInto` is T-0001 \u2026 one file replacement makes both durable. \u2026 starting with a version 1 file without merge fields, applying the operation, restarting the service and reading the committed link and audit over HTTP."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "On load, reject malformed, self-referential, missing-target, chained or non-closed-source merge records. A closed canonical remains a valid historical destination.",
+   "missing": "Specify a load error message that identifies the offending ticket record."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2, R-3",
+   "quote": "The source audit gains one ordered `ticket.merged` entry with the request's `X-Actor` (or `system` by the existing rule), exact status before and after, link from null to destination \u2026 Verify through audit and outbox reads."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-3, Non-functional requirements",
+   "quote": "Both prior audit histories and the existing outbox are preserved. The operation adds no requester notification. \u2026 one file replacement makes both durable. \u2026 Verify one coherent write or no state change on an injected save failure"
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Both prior audit histories and the existing outbox are preserved. The operation adds no requester notification."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-4, Non-functional requirements",
+   "quote": "For a merged source, display `mergedInto` with the existing label alignment and show its merge in History. \u2026 keep `list --raw` at four tab-separated columns in existing order. \u2026 read-only CLI layout",
+   "missing": "Specify how the ordinary tickets list displays the closed source and whether its row shows the destination ID."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Bulk operations, automatic matching, undo and content transfer are outside this operation.",
+   "missing": "Specify how an operator corrects an erroneous merge while preserving the existing ticket IDs and audit history."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "Scope, R-1, Non-functional requirements",
+   "quote": "Those contracts apply alongside the requirements below. \u2026 the canonical ticket continues its normal lifecycle. \u2026 Use existing API body limits, internal access scope, actor attribution, cursor semantics and read-only CLI layout.",
+   "missing": "Beyond the general API reference, specify that ordinary creation, edits, transitions and audit reads keep their behavior for uninvolved tickets, and that list filters and ID ordering are preserved."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "keep `list --raw` at four tab-separated columns in existing order. The weekly report still counts the original tickets, including the duplicate as closed."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-1, R-2, R-3",
+   "quote": "Verify with the real local HTTP server. \u2026 Verify the existing envelope and unchanged ticket records, audit, and outbox after refusal. \u2026 Verify using an injected save failure.",
+   "missing": "Specify the docs/api.md and CHANGELOG updates, version bump, decision record, dependency restriction and implementation through a TicketStore method."
+  }
+ ]
+}

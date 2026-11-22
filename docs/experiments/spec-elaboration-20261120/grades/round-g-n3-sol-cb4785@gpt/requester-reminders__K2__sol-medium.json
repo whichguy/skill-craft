@@ -1,0 +1,157 @@
+{
+ "slot": "requester-reminders__K2__sol-medium",
+ "case": "requester-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "A transition request with `{\"to\":\"waiting_for_requester\"}` from `in_progress` returns 200 and a ticket with that status. From `waiting_for_requester`, `{\"to\":\"in_progress\"}` resumes work."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "one reminder per uninterrupted wait after 72 elapsed hours, no recurring sends. \u2026 A title or priority edit during the wait leaves the deadline unchanged."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "one reminder per uninterrupted wait after 72 elapsed hours, no recurring sends. \u2026 Resuming work removes an unsent reminder, including one awaiting retry."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1 and R-2",
+   "quote": "agents explicitly set and clear the wait using ordinary transitions. \u2026 From `waiting_for_requester`, `{\"to\":\"in_progress\"}` resumes work. \u2026 Resuming work removes an unsent reminder, including one awaiting retry. \u2026 Production relay and inbound reply processing are external."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "The reminder goes to the ticket's stored requester and includes the ticket ID and a request to reply so work can continue.",
+   "missing": "The subject, body format, use of the ticket title and elapsed wait, and how a free-text requester identifies a deliverable address are unspecified."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "a request to reply so work can continue. \u2026 Existing creation and resolution notices retain their behavior."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "Non-functional requirements, Scheduling",
+   "quote": "enqueue once with the wait and dispatch through existing polling. The first worker tick at or after the deadline is eligible under normal operation. No separate timer"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "A restart or repeat tick leaves the same pending event or sent record; a new wait can send a new reminder. \u2026 File and process failures follow the established relay deduplication model by key and id.",
+   "missing": "It does not say how a retry avoids a second handoff if delivery succeeded but the worker failed before recording the send."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "Non-functional requirements, Scheduling, and R-2",
+   "quote": "enqueue once with the wait and dispatch through existing polling. \u2026 Resuming work removes an unsent reminder, including one awaiting retry."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "one reminder per uninterrupted wait after 72 elapsed hours, no recurring sends. \u2026 When a delivery fails while the ticket remains waiting, existing retry/dead behavior applies and operators can inspect the error.",
+   "missing": "It does not say whether the reminder template must exist before the outbox accepts the event."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1 and Non-functional requirements, Scheduling",
+   "quote": "The service had no equivalent signal at 710aff7. \u2026 Version-1 files from earlier releases continue to load with their original lifecycle state. \u2026 enqueue once with the wait"
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "one reminder per uninterrupted wait after 72 elapsed hours, no recurring sends. \u2026 a new wait can send a new reminder.",
+   "missing": "The allowance and clock restart on a new wait, but the specification leaves open how the outbox key distinguishes successive waits on the same ticket."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "Non-functional requirements, Scheduling, and Questions settled, Q5",
+   "quote": "The first worker tick at or after the deadline is eligible under normal operation. \u2026 stores UTC timestamps and measures 72 elapsed hours with server time"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "Questions settled, Q3 and Q5",
+   "quote": "The ticket audit records each wait and the existing worker/outbox holds one reminder per wait \u2026 stores UTC timestamps",
+   "missing": "It does not name the fields saved and loaded for the wait start or due time and the per-wait reminder state."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Version-1 files from earlier releases continue to load with their original lifecycle state.",
+   "missing": "The specification gives no field-level defaults for missing reminder data or rejection behavior and field-naming error message for malformed data."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-1 and Non-functional requirements, Privacy and operability",
+   "quote": "Entry and exit are ordinary audited transitions with the existing actor attribution, timestamp and before/after status. \u2026 Existing operational retention and audit policy apply.",
+   "missing": "It does not decide whether dispatch creates a ticket audit entry, which action and actor such an entry uses, or whether dispatch updates the ticket timestamp."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "Questions settled, Q2, and R-2",
+   "quote": "An agent using the existing transition endpoint can start or end a wait and its reminder \u2026 The configured worker is the only sender",
+   "missing": "It does not specify who can change reminder settings or whether anyone can override the 72-hour threshold."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "The configured worker is the only sender; interval zero stops automatic dispatch.",
+   "missing": "It does not identify environment variables, their defaults, validation errors naming invalid variables, or whether reminders can be disabled independently of the worker."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "The normal outbox inspection exposes the pending and sent event.",
+   "missing": "It does not say whether inspection shows the next scheduled delivery time or require preservation of the command line's raw column positions."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "Non-functional requirements, Scheduling",
+   "quote": "enqueue once with the wait and dispatch through existing polling. The first worker tick at or after the deadline is eligible under normal operation. No separate timer, hosted dependency or added load target.",
+   "missing": "Enqueueing happens on wait entry. For work due on a tick, there is no maximum delivery delay, batch size, or bound on processing cost and interference with delivery at scale."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1, R-2 and Non-functional requirements, Reliability and compatibility",
+   "quote": "Existing transitions stay valid and closed stays final. \u2026 Existing creation and resolution notices retain their behavior. \u2026 preserve the API error envelope.",
+   "missing": "Compatibility for existing API responses and status codes beyond transitions, existing filters and audit entries, and command-line and weekly report output is unspecified."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-1 and R-2",
+   "quote": "Verify with the existing persistence and compatibility suite. \u2026 Verify with an injected clock and the real JSONL notifier.",
+   "missing": "It does not require updates to the API and operations docs, README settings table, changelog and version, or a decision record when a rule other code relies on changes."
+  }
+ ]
+}

@@ -1,0 +1,150 @@
+{
+ "slot": "ticket-merge__K2__sol-medium",
+ "case": "ticket-merge",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.21509920000000002,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1 MRG-1; R-2 MRG-2",
+   "quote": "An agent submits `POST /tickets/T-0002/merge` with JSON `{\"to\":\"T-0001\"}` and receives 200 and the updated duplicate. ... Reject an invalid JSON shape, missing or unknown field ... as 400 `invalid`."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Merge one duplicate into a chosen canonical ticket ... Selection is explicit and manual."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Selection is explicit and manual. ... Bulk operations, automatic matching, undo and content transfer are outside this operation."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Its status is `closed`, `mergedInto` is T-0001 ... A merge closes the source through the merge action. Its normal PATCH and transition paths follow the existing closed rules"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1 MRG-1",
+   "quote": "GET of the canonical ticket returns its exact pre-merge record. Retain titles, requesters, priorities, IDs and creation times. ... content transfer are outside this operation."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1 MRG-1",
+   "quote": "GET and the closed-ticket listing still expose T-0002 with the link"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2 MRG-2; R-1",
+   "quote": "self-merge as 400 `invalid`. ... A closed source without the same link, a closed destination, an already-merged destination, a source already merged elsewhere, or a source serving as canonical to any duplicate returns 409 `conflict`."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-2 MRG-2",
+   "quote": "Reject an invalid JSON shape, missing or unknown field, noncanonical path or destination ID ... as 400 `invalid`. A well-formed request with a missing source or destination returns 404 `not_found`.",
+   "missing": "Which id the error message names (source vs destination) in each case."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2 MRG-2, MRG-3",
+   "quote": "an already-merged destination ... or a source serving as canonical to any duplicate returns 409 `conflict`. ... Opposite-direction attempts cannot create a cycle."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2 MRG-3",
+   "quote": "A repeat for the same pair returns 200 with an identical source record ... It adds no audit entry or notification and needs no save."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1 MRG-1; R-3 MRG-1",
+   "quote": "GET of the canonical ticket returns its exact pre-merge record. ... The source audit gains one ordered `ticket.merged` entry"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-3 MRG-1; Non-functional requirements",
+   "quote": "the request's `X-Actor` (or `system` by the existing rule) ... Use existing ... internal access scope, actor attribution ... no ... new permission layer"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-1 MRG-1; R-3 MRG-1, MRG-4",
+   "quote": "`mergedInto` is T-0001 ... link from null to destination ... starting with a version 1 file without merge fields, applying the operation, restarting the service and reading the committed link"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3 MRG-5",
+   "quote": "On load, reject malformed, self-referential, missing-target, chained or non-closed-source merge records. A closed canonical remains a valid historical destination.",
+   "missing": "The refusal message and that it names the offending record."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-3 MRG-1",
+   "quote": "The source audit gains one ordered `ticket.merged` entry with the request's `X-Actor` (or `system` by the existing rule), exact status before and after, link from null to destination"
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-3 MRG-4, MRG-5",
+   "quote": "If configured, one file replacement makes both durable. ... If saving fails before replacement, the in-process ticket and audit remain at the prior state"
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-3 MRG-1",
+   "quote": "Both prior audit histories and the existing outbox are preserved. The operation adds no requester notification."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-4 MRG-4",
+   "quote": "For a merged source, display `mergedInto` with the existing label alignment and show its merge in History. ... keep `list --raw` at four tab-separated columns in existing order.",
+   "missing": "How the non-raw `tickets list` presents a merged ticket and whether it shows the link."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Bulk operations, automatic matching, undo and content transfer are outside this operation.",
+   "missing": "How an operator corrects a wrong merge given no undo, append-only audit and non-reused IDs."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "Scope; Non-functional requirements",
+   "quote": "Those contracts apply alongside the requirements below. ... Use existing API body limits, internal access scope, actor attribution, cursor semantics",
+   "missing": "Explicit statement that create/update/transition of unmerged tickets, listing filters, id order and the audit endpoint are unchanged."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-4 MRG-4",
+   "quote": "keep `list --raw` at four tab-separated columns in existing order. The weekly report still counts the original tickets, including the duplicate as closed."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-1..R-4 verification lines",
+   "quote": "Verify with the real local HTTP server. ... Verify using an injected save failure. Verify with persistence fixtures.",
+   "missing": "Updated docs/api.md and CHANGELOG, version bump, decision record, no new dependency, and implementing via a TicketStore method."
+  }
+ ]
+}

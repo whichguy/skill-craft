@@ -1,0 +1,21 @@
+{
+ "name": "m2-sol-A",
+ "set": "m2-sol",
+ "arm": "A",
+ "driver": "sol",
+ "pid": 84775,
+ "started_at": 1795306989.9358048,
+ "limit_minutes": 20.0,
+ "decided_at": 1795307160.389598,
+ "watcher": "saw the acceptance",
+ "stop_written": true,
+ "seen": {
+  "run_dir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-questions-merge-9f5969/samples/m2-sol-A/.shiploop-runs/work-20261122-002326-c50c69/run",
+  "spec_action": "nav-f094df23cb834630b31c75360d3574a8",
+  "at": "2026-11-22T00:26:00Z",
+  "ts": 1795307160.34,
+  "spec_sha256": "1b03bb7207220f0bd0df1e2d9e12f5f2e108e02b3c0707b813baef62f0d730e8",
+  "head": "5dc8cb0c4a1c1f98ad2f050563df7692ca97bd69"
+ },
+ "returncode": 1
+}

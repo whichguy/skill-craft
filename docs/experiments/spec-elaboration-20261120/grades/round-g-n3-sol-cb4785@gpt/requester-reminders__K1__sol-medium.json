@@ -1,0 +1,158 @@
+{
+ "slot": "requester-reminders__K1__sol-medium",
+ "case": "requester-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Add `waiting_on_requester` as an active status. The existing transition endpoint allows in_progress \u2192 waiting_on_requester \u2192 in_progress or resolved."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2, R-4",
+   "quote": "Default policy is 72 elapsed hours and one reminder event per continuous wait. Each worker tick considers the current wait from its entry transition. \u2026 Set `REQUESTER_REMINDER_HOURS` to a nonnegative whole number of hours."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Repeated ticks, including after successful delivery or terminal failure, do not create a second event for the same wait. A new wait has a new threshold and can produce its own event."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1, R-2, R-3",
+   "quote": "waiting_on_requester \u2192 in_progress or resolved. \u2026 Title and priority edits do not reset the clock. \u2026 Exiting a wait removes only its still-pending reminder",
+   "missing": "Which observable action counts as a requester response and who moves the ticket out of waiting when it occurs."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Use the ticket's requester and identify the ticket and action needed in a dedicated message. \u2026 Verify recipient, type, subject, reply instruction, and event counts",
+   "missing": "The subject and body wording, how they follow the existing templates, and whether they include the ticket ID, title and elapsed wait. The requester is selected as recipient, but handling of a non-email value is unspecified."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Other statuses, including resolved during its reopen window, are ineligible. \u2026 Verify recipient, type, subject, reply instruction, and event counts",
+   "missing": "Where the requester should reply, what that reply accomplishes for a waiting ticket, and how the instruction relates to the resolved notice's seven-day reopening window."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2, R-4",
+   "quote": "Each worker tick considers the current wait from its entry transition. \u2026 `WORKER_INTERVAL_MS=0` stops scheduled work, including reminders and delivery."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2, R-3",
+   "quote": "do not create a second event for the same wait. \u2026 recover wait timing and reminder identity over restart. \u2026 The existing relay contract deduplicates at-least-once deliveries by key and id"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2, R-3",
+   "quote": "Each worker tick considers the current wait from its entry transition. \u2026 Exiting a wait removes only its still-pending reminder",
+   "missing": "Whether enqueueing checks that the ticket is still in the same wait if a transition occurs after the tick considers it."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-2, R-3",
+   "quote": "Repeated ticks, including after successful delivery or terminal failure, do not create a second event for the same wait. \u2026 The existing worker and notifier retry and keep sent/dead records.",
+   "missing": "Whether a reminder template must exist before the event can be enqueued."
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2, R-3",
+   "quote": "Other statuses, including resolved during its reopen window, are ineligible. \u2026 A new wait has a new threshold and can produce its own event. \u2026 Subsequent re-entry is independent."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Default policy is 72 elapsed hours \u2026 A wait aged exactly the threshold qualifies. \u2026 Verify with manual time through the server worker",
+   "missing": "The production clock source and time-zone convention, and whether a qualifying reminder is held until business hours on weekends, holidays or overnight."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1, R-3",
+   "quote": "A transition has one normal audit entry with the entry time and actor. \u2026 Audit history and durable outbox events must let the worker recover wait timing and reminder identity over restart.",
+   "missing": "Which persisted outbox field identifies the particular wait on save and load, or how existing fields encode that association."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Older version 1 files remain readable.",
+   "missing": "The defaults for missing reminder data and whether loading malformed reminder data fails with a message naming the offending field."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Reminder processing leaves the ticket updated timestamp and audit history as they were immediately before the tick."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-3, R-4 (Operator override)",
+   "quote": "the operator outbox uses its existing access surface and data shape. \u2026 Set `REQUESTER_REMINDER_HOURS` to a nonnegative whole number of hours. \u2026 Zero disables new reminder scheduling",
+   "missing": "Whether anyone can stop or send an individual reminder manually and, if so, what access is required."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Unset or empty selects 72. Zero disables new reminder scheduling, with previously queued events continuing on their existing delivery path. Malformed or out-of-range input fails startup config validation. `WORKER_INTERVAL_MS=0` stops scheduled work, including reminders and delivery.",
+   "missing": "Whether the startup error names the invalid environment variable."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-1, Non-functional requirements (Operability)",
+   "quote": "The weekly report counts the new status, keeping raw column positions. \u2026 existing outbox state and worker diagnostics expose reminder outcomes.",
+   "missing": "How an operator sees which waiting tickets are due for a future reminder and when, before an event appears in the outbox."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-2, Non-functional requirements (Operability)",
+   "quote": "Each worker tick considers the current wait from its entry transition. \u2026 Tick work is proportional to current waits plus the existing outbox work, with no additional write on an idle scan.",
+   "missing": "The maximum delay after eligibility, the maximum enqueues per tick, and how a large eligible batch avoids blocking delivery."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1, Non-functional requirements (Compatibility)",
+   "quote": "Existing transitions remain valid, a known but disallowed move fails with 409, unknown statuses fail with 400, and closed stays final. \u2026 retain existing API envelopes, ticket field shape, create and resolve notices, CLI raw positions",
+   "missing": "Explicit preservation of existing list-filter behavior, audit entries for existing actions beyond transitions, and CLI and weekly report output beyond the specified column positions and new status."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-2, Non-functional requirements (Compatibility)",
+   "quote": "Verify with manual time through the server worker and real notifier JSONL boundary. \u2026 Check the unchanged suite contracts and a restart case.",
+   "missing": "A requirement to follow the existing test style, update the API and operations docs and README settings table, bump the version and changelog, and record any change to a rule other code relies on."
+  }
+ ]
+}

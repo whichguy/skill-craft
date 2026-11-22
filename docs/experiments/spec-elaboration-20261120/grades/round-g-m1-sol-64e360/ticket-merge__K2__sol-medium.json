@@ -1,0 +1,149 @@
+{
+ "slot": "ticket-merge__K2__sol-medium",
+ "case": "ticket-merge",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.24562119999999998,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1.a, R-1.c",
+   "quote": "POST /tickets/T-0002/merge with JSON `{\"targetId\":\"T-0001\"}` and X-Actor dana returns 200 with T-0002, now closed, with mergedInto T-0001 ... The route requires exactly one field, targetId ... extra input returns 400."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "Behavior model F-1",
+   "quote": "The agent identifies the duplicate in the URL and the primary in JSON."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "Behavior model T-1; data lifecycle paragraph",
+   "quote": "Both tickets exist and are nonclosed, source differs from target and has no incoming links. Agent requests merge. ... Deletion, automatic duplicate detection, and cross-host coordination are outside this HTTP operation."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1.a, R-1.b",
+   "quote": "T-0002, now closed, with mergedInto T-0001 ... Existing update/transition guards make a closed duplicate terminal."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1.a, R-2.a",
+   "quote": "The primary stays byte-for-byte equivalent as a ticket object. Source title, requester, priority and created time stay the same. ... Nothing from the target requester is copied to the duplicate"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1.a",
+   "quote": "returns 200 with T-0002, now closed, with mergedInto T-0001 ... GET /tickets/T-0002 and the closed listing show the same duplicate."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1.b",
+   "quote": "A source can be open, in progress or resolved. A target can be open, in progress or resolved. Reject self-merge, an ordinary closed endpoint, retargeting, targeting a merged ticket, or merging a primary that already has incoming duplicates with 409 and zero state change."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-1.c",
+   "quote": "Missing, malformed, or extra input returns 400. Well-formed missing endpoints return 404.",
+   "missing": "Which id the error message names (source vs target) when one or both are bad."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1.b, R-2.c",
+   "quote": "Reject ... retargeting, targeting a merged ticket, or merging a primary that already has incoming duplicates with 409 ... must name another existing record without forming a chain."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1.d",
+   "quote": "An identical retry returns the already merged ticket, including its original updated time, even if the primary now closed. It adds no audit, notification or write."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1.a, R-2.a",
+   "quote": "The primary stays byte-for-byte equivalent as a ticket object. ... Each actual merge adds one ticket.merged event to the source history"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-1 basis; data lifecycle paragraph; NFR",
+   "quote": "Preserve the existing actor convention ... the request adds no new role or private field ... remain readable via existing internal API access."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-1.a, R-2.c",
+   "quote": "with mergedInto T-0001 ... Old v1 files with no link still load. Links persist as an optional field"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-2.c",
+   "quote": "Links persist as an optional field and must name another existing record without forming a chain.",
+   "missing": "Whether loading checks that status and link agree, and the refusal message naming the offending record."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2.a",
+   "quote": "Each actual merge adds one ticket.merged event to the source history, with actor and time and from/to for status and mergedInto."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2.b; NFR",
+   "quote": "commits the duplicate and its audit together ... A write failure leaves both unchanged in the running service and the last saved snapshot ... one whole-file commit through the existing rename boundary"
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-2.a",
+   "quote": "Merge leaves the outbox as it was. Nothing from the target requester is copied to the duplicate or sent as a new message."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2.c",
+   "quote": "Existing list, cursor, raw CLI and report contracts still work.",
+   "missing": "How `tickets show` and `tickets list` display a merged ticket and its mergedInto link."
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1 basis; R-2.c",
+   "quote": "Preserve the existing actor convention, request envelope, and response formats for unaffected tickets. ... Existing list, cursor, raw CLI and report contracts still work."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-2.c",
+   "quote": "Existing list, cursor, raw CLI and report contracts still work.",
+   "missing": "How absorbed tickets are treated in the weekly report's totals and by-status counts (e.g. counted as closed or excluded)."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "NFR; R-2.b",
+   "quote": "The operation uses the standard-library Node 22+ runtime ... Test cases C-1 through C-5 and the full local suite verify behavior. ... The store owns state",
+   "missing": "Updating docs/api.md and CHANGELOG, a version bump, and a decision record."
+  }
+ ]
+}

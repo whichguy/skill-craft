@@ -1,0 +1,155 @@
+{
+ "slot": "requester-reminders__K1__sol-medium",
+ "case": "requester-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.2286104,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Add `waiting_on_requester` as an active status. The existing transition endpoint allows in_progress \u2192 waiting_on_requester \u2192 in_progress or resolved."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2, R-4",
+   "quote": "Default policy is 72 elapsed hours ... Each worker tick considers the current wait from its entry transition. ... Title and priority edits do not reset the clock."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "one reminder event per continuous wait"
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-2, R-3",
+   "quote": "Title and priority edits do not reset the clock. ... Exiting a wait removes only its still-pending reminder",
+   "missing": "What counts as the requester responding when there is no reply endpoint, and whether any non-transition event (e.g. agent changes) ends the wait; only status transitions out are implied."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-2, R-3",
+   "quote": "Use the ticket's requester and identify the ticket and action needed in a dedicated message. ... The outgoing recipient is the existing ticket requester",
+   "missing": "Subject and body text in the existing template style, the exact fields (title, time waited), and handling of a free-text requester that is not an email address."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Verify recipient, type, subject, reply instruction, and event counts",
+   "missing": "What the reply instruction actually tells the requester to do and how it squares with the resolved notice's 'reply within 7 days to reopen it' wording."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2, R-4",
+   "quote": "Each worker tick considers the current wait from its entry transition. ... Verify with manual time through the server worker"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2, R-3",
+   "quote": "Repeated ticks, including after successful delivery or terminal failure, do not create a second event for the same wait. ... recover wait timing and reminder identity over restart."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Exiting a wait removes only its still-pending reminder so a later retry cannot ask for a response after the wait has ended."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-2, R-3",
+   "quote": "The existing worker and notifier retry and keep sent/dead records. ... including after successful delivery or terminal failure, do not create a second event for the same wait.",
+   "missing": "Whether a reminder template must exist before the event type can be enqueued."
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2, R-3",
+   "quote": "A new wait has a new threshold and can produce its own event. ... Subsequent re-entry is independent."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Default policy is 72 elapsed hours ... A wait aged exactly the threshold qualifies.",
+   "missing": "The clock source and time zone used for the comparison, and an explicit statement that reminders are not held for business hours, weekends or holidays."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-3, Non-functional requirements",
+   "quote": "Audit history and durable outbox events must let the worker recover wait timing and reminder identity over restart. ... retain existing API envelopes, ticket field shape"
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-3, Non-functional requirements",
+   "quote": "Older version 1 files remain readable. ... Prior data loads as version 1.",
+   "missing": "That a file with a bad new value (e.g. malformed reminder event or status) is refused with a message naming it."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Reminder processing leaves the ticket updated timestamp and audit history as they were immediately before the tick."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Set `REQUESTER_REMINDER_HOURS` to a nonnegative whole number of hours.",
+   "missing": "Who may stop or send a reminder by hand, and any authorization stance given only the X-Actor header and admin area."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "Unset or empty selects 72. Zero disables new reminder scheduling ... Malformed or out-of-range input fails startup config validation. `WORKER_INTERVAL_MS=0` stops scheduled work, including reminders",
+   "missing": "That the validation error names the variable, and what the upper range limit is."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Non-functional requirements, R-3",
+   "quote": "existing outbox state and worker diagnostics expose reminder outcomes. ... the operator outbox uses its existing access surface and data shape.",
+   "missing": "How operators see what will be sent next (upcoming reminders) and whether it appears in ticket history, CLI or weekly report."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Tick work is proportional to current waits plus the existing outbox work, with no additional write on an idle scan.",
+   "missing": "A bound on how late a reminder may go out after the threshold and a cap on reminders enqueued per tick, and that scanning does not block delivery."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-1, Non-functional requirements",
+   "quote": "Existing transitions remain valid, a known but disallowed move fails with 409, unknown statuses fail with 400 ... retain existing API envelopes, ticket field shape, create and resolve notices, CLI raw positions"
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Verify with manual time through the server worker and real notifier JSONL boundary.",
+   "missing": "Updates to API doc, operations doc, README settings table, changelog and version bump, and a decision record."
+  }
+ ]
+}

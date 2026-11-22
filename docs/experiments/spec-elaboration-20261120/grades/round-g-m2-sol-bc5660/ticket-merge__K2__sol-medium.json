@@ -1,0 +1,151 @@
+{
+ "slot": "ticket-merge__K2__sol-medium",
+ "case": "ticket-merge",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.21804259999999998,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1.a, R-1.b",
+   "quote": "POST /tickets/:id/merge with JSON containing only the required canonical ticket ID `targetId` returns 200 with the duplicate ticket ... wrong or extra fields ... return 400"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1, R-1.a",
+   "quote": "An agent explicitly identifies both records. ... returns 200 with the duplicate ticket, now closed and containing `mergedInto` equal to the target ID."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1.a",
+   "quote": "Verify against the local HTTP service with records that have different titles, priorities and requesters."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1.a, R-1.c",
+   "quote": "now closed and containing `mergedInto` equal to the target ID ... A former duplicate cannot become the target or be relinked.",
+   "missing": "Whether the closed duplicate can still be edited, transitioned or reopened through the existing endpoints, and with what response."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1.a, Non-functional requirements",
+   "quote": "Only the source's status, link and updated time change. ... Separate requester records remain in the trusted API and data file."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1.a, R-2.c",
+   "quote": "GET by either ID still works. ... The closed duplicate leaves active status filters and appears in closed filters. It still occupies one row in unfiltered lists"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1.b, R-1.c",
+   "quote": "self-merges return 400 ... A new merge requires distinct non-closed source and target tickets. A former duplicate cannot become the target or be relinked. ... Disallowed states return 409."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-1.b",
+   "quote": "Malformed IDs, wrong or extra fields, malformed or oversized bodies and self-merges return 400. Valid IDs missing a record return 404.",
+   "missing": "Which ID the error message names when the source or target is missing or malformed."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1.c",
+   "quote": "A former duplicate cannot become the target or be relinked. A ticket with inbound links cannot become a duplicate. ... Disallowed states return 409."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1.c",
+   "quote": "Repeating the same source and target returns the existing closed record and adds no history, even after the primary closes."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1.a, Questions settled Q3",
+   "quote": "Only the source's status, link and updated time change. ... Each accepted request affects one source and adds one audit entry."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2.a, Non-functional requirements",
+   "quote": "with the existing actor convention ... The merge uses the existing body limit and internal access boundary."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-1.a, R-2.b",
+   "quote": "The service owns the optional link in memory and saves it with the source change and audit in the same DATA_FILE update. ... Legacy records without the field retain their previous shape. ... version 1 fixtures"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-2.b",
+   "quote": "Current readers reject an invalid link, including missing targets, self-links, chains and linked non-closed sources.",
+   "missing": "The refusal message and that it names the offending record, as for other records."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2.a, Questions settled Q3",
+   "quote": "The source history appends one `ticket.merged` entry with the existing actor convention and UTC timestamp, the previous and closed statuses, and `mergedInto` from null to the target ID."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2.b",
+   "quote": "saves it with the source change and audit in the same DATA_FILE update ... A failed save returns 500 and keeps live and saved ticket, audit and outbox state as they were."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-2.a",
+   "quote": "The merge is internal and queues no notification.",
+   "missing": "What happens to notifications about the absorbed ticket that are still pending in the outbox."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2.c",
+   "quote": "CLI raw columns stay id, status, priority and title.",
+   "missing": "How `tickets show` and non-raw `tickets list` display the merged status and the mergedInto link."
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-2, R-1.c",
+   "quote": "Retains ticket identity, history, handler limits, outbox behavior, status vocabulary and raw report columns. ... which may transition normally and later close.",
+   "missing": "That create, update, transition, listing filters, id order, cursors and the audit endpoint are unchanged for tickets not involved in a merge."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-2.c",
+   "quote": "It still occupies one row in unfiltered lists and in the weekly count. CLI raw columns stay id, status, priority and title. Verify ... the weekly report"
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "Non-functional requirements, R-2.b",
+   "quote": "No new requester-facing messages, dependency, configuration, graphical interface, production service target or latency SLA is introduced.",
+   "missing": "Required tests per path, docs/api.md and CHANGELOG updates, version bump, decision record, and that the change goes through a TicketStore method."
+  }
+ ]
+}

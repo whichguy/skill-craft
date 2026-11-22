@@ -4030,3 +4030,149 @@ pass the gate of eight and both are run. Three of the four items left out of the
 arm Q names (who may use the change, twice; the forms of a time): the rule will not count them, and the wider
 reading over the items both sorters call mixed (section 46's) will show N-13 and N-17 beside it. The registered
 judge's two sorter sessions cost $1.04, a little over the dollar section 52 allowed.
+
+## 53. The fourth experiment: five particular questions are answered as an index and do not make the specification fuller (16:38, 2026-11-21)
+
+**The runs.** Twelve real runs on Sol at medium, 16:19 to 16:30, from a clean checkout at the commit that holds
+section 52 and the item lists. Eleven reached the spec's acceptance and are usable; the author's own stage took
+0.8 to 1.7 minutes and a whole run three to four. One did not: the Q run of set n1 ended with ShipLoop blocked at
+the spec stage (below), so n1 is incomplete and is not judged. The two judges read the other five sets (20
+readings) and a blind reader read each of the five.
+
+| Set | Arm | Words accepted | Of them in the section | Requirement ids | Entries in the section | Items covered by both judges |
+|---|---|---|---|---|---|---|
+| m1 | A | 775 | | 2 | | 12 of 21 |
+| m1 | Q | 552 | 137 | 2 | 5 | 11 of 21 |
+| m2 | A | 502 | | 2 | | 10 of 21 |
+| m2 | Q | 674 | 136 | 2 | 5 | 12 of 21 |
+| m3 | A | 814 | | 4 | | 14 of 21 |
+| m3 | Q | 675 | 104 | 2 | 5 | 11 of 21 |
+| n1 | A | 419 | | 3 | | not judged |
+| n1 | Q | blocked, no specification | | | | |
+| n2 | A | 576 | | 2 | | 8 of 19 |
+| n2 | Q | 865 | 131 | 4 | 5 | 9 of 19 |
+| n3 | A | 659 | | 4 | | 7 of 19 |
+| n3 | Q | 707 | 127 | 2 | 5 | 5 of 19 |
+
+**The rule of section 52, for each sentence** (`evidence/guides-test/questions-sets.txt`):
+
+| Sentence | Net, set by set | Needed in every set | Reading |
+|---|---|---|---|
+| merge, 21 items | minus 1 (Q not delivered), 1, minus 2 | 2 | not shown |
+| remind, 19 items | no reading (Q blocked), 0, minus 2 | 2 | not shown |
+
+The lever is not shown on either sentence. It is not the opposite by the rule either: one delivered set on each
+sentence is at minus 1 or lower, and the rule asks for two.
+
+**Set m1, not delivered.** Q's author submitted the specification 19 seconds after its packet was printed,
+having given itself 69 of the stage's 116 instruction lines and none of the duty's 14. The stage's review then
+printed the packet whole (40,140 characters, 32 seconds in), and the specification that was accepted at 70
+seconds ends with the section and its five entries. By section 52's check the sample is not delivered, and the
+rule does not count the set. What happened is worth keeping apart from that: the duty reached the document
+through the review and not through the author's first pass.
+
+**Set n1, blocked.** Q's author was given all 14 lines of the duty. Forty-nine seconds into the spec stage it
+submitted `blocked` with a question for the owner and no default: "Should agents use a new waiting_on_requester
+status from in_progress and return to in_progress when the requester responds, or should a different event mark
+the start and end of the wait?" Its reason: "Guessing a trigger could notify people who owe the help desk
+nothing, while adding a new status changes the ticket lifecycle contract." It left a draft of 443 words outside
+the committed specification, with no questions section (`evidence/guides-test/n1/blocked-Q-draft.md`,
+`blocked-Q-result.md`). The five other runs of this sentence, three of A and two of Q, all took that same
+decision by themselves: each added a `waiting_on_requester` status, 72 hours and one reminder for a wait, and
+recorded it as a default or a policy assumption in a requirement's basis line. This is the first of the 56 runs of
+the guides test to end before the acceptance. One run of six with the questions against none of six without is
+not evidence that the questions caused it, and the packet's rule for unattended work (take the best default,
+block only when nothing can proceed without a person) is the same in both arms. The question it asked is the
+blind checklist's first item.
+
+**The predictions.** 28 held wherever a specification exists: all five of Q's hold the section with five
+entries, none of them `does not apply`. 29 failed: without its section Q's specification is the longer in two
+of five sets (m2, n2) and the shorter in three. 30 failed: one set of five is at 1 or more. 31 failed. 32 held:
+the readers verified one capability in the ten specifications they read, a setting for the reminder threshold
+with zero to switch reminders off, and it is in A alone (n3). The reader of n2 saw the same kind of setting in both
+specifications and did not count it.
+
+**As a description.**
+
+- Items covered by both judges, summed over the scored sets: on merge A 36 and Q 34 of 63; on remind A 15 and Q
+  14 of 38. Addressed at least in part under both judges: 60 and 58 of 63; 36 and 35 of 38. Absent under both:
+  none on merge, one each on remind.
+- The section is an index again, as in section 51. An entry of m2: "Q4 Hostile and odd input. R-1.b applies
+  strict JSON, field and ID validation and the configured request limit. R-2.b checks links before loaded state
+  is exposed." The author reports that lines it had already written answer the question. The instruction to add
+  an acceptance line first leaves no mark that can be seen: the requirement ids do not grow (2, 2, 2, 4, 2
+  against 2, 2, 4, 2, 4) and the text before the section is shorter than A's in three sets of five.
+- The questions do not reliably raise even the items they name. Counting the readings of an item that are
+  `covered`, over the sets and both judges:
+
+  | Item | With Q | Without |
+  |---|---|---|
+  | merge N-6, what a read of the absorbed ticket returns and whether lists show it | 6 of 6 | 2 of 6 |
+  | remind N-11, tickets already past the threshold when the feature is first switched on | 3 of 4 | 0 of 4 |
+  | merge N-12, who may merge (not in the rule) | 5 of 6 | 3 of 6 |
+  | remind N-13, the threshold's boundary, clock and time zone (not in the rule) | 4 of 4 | 2 of 4 |
+  | merge N-17, whether anyone is notified of a merge | 2 of 6 | 5 of 6 |
+  | remind N-16, whether a reminder is recorded in the audit log | 0 of 4 | 4 of 4 |
+  | merge N-4, what the absorbed ticket becomes | 3 of 6 | 6 of 6 |
+  | merge N-7, the state combinations refused and their codes | 4 of 6 | 6 of 6 |
+  | remind N-12, a ticket resolved, reopened and resolved again | 2 of 4 | 4 of 4 |
+
+  Q3 asks by name about the messages the program sends and the logs it keeps, and the notification item and the
+  audit item are lower with it. Who may use the change is a shade higher with a question that asks it, as it
+  was in section 51.
+- The instrument's own swing, measured here for the first time. The same arm compared with itself across sets
+  gives nets from minus 1 to 2 (A against A: 1, minus 1, minus 1 on merge and 1 on remind; Q against Q: minus 1,
+  0, 0 and 2). Q against A over every pairing of sets, thirteen of them, gives 2, 1, 0, 0, 0, minus 1 three
+  times, minus 2 four times and minus 3. A net of 2 in every one of three sets is a bar that this swing alone
+  would seldom clear, and Q is nowhere near it: if it leans at all it leans lower.
+- What the released stage does with a checklist written blind. It addresses nearly every item and fully
+  settles 57% of them on merge and 39% on remind. Five merge items get no reading of `covered` from either
+  judge, in either arm, in any run: N-8 (a missing, malformed or unknown id in either position: which code, and
+  which id the message names), N-14 (what loading checks about the link), N-18 (how the command line shows a
+  merged ticket), N-19 (whether a wrong merge can be undone) and N-22 (tests, documents, changelog, version and
+  decision record). Five on remind: N-5 (what the reminder says and to which address), N-10 (a reminder that
+  cannot be delivered), N-15 (a data file of the current version still loads), N-20 (how late, and how many in
+  a tick) and N-22 (the accompanying changes). These are not the thin items of the CSV cases. They are operator
+  surfaces, undo, what happens when delivery fails, and the project's own rigour, and most are compound: an item
+  counts as covered only when every part of its sentence is stated.
+
+**The four experiments together** (56 real runs on Sol at medium, 55 specifications).
+
+| What was added to the released spec stage | Where | Items covered by both judges, with it | Without | By the rule |
+|---|---|---|---|---|
+| a cue sentence (C) | user service; ticket service | 30 of 45; 21 of 45 | 29; 20 | not shown |
+| a sentence to read the whole packet (R) | the same | 35 of 45; 21 of 45 | 29; 20 | not shown |
+| the cue and two guide sections (X) | the same | 38 of 45; 18 of 45 | 29; 20 | not shown; the opposite against C on tickets |
+| a section answering K1 to K12 (S) | the same | 21 of 27; 21 of 45 | 18; 20 | not shown |
+| a section answering five particular questions (Q) | merge; remind (fresh, blind checklists) | 34 of 63; 14 of 38 | 36; 15 | not shown |
+
+1. Four levers have now been tried on the spec stage and none is shown. Nothing added to the packet makes the
+   specification written from a vague sentence fuller by the judges' count: not reference text, not a cue, not
+   an instruction to read everything, not general questions, not particular ones.
+2. On checklists written by sessions that knew nothing of this study the released stage does what it did on the
+   bench's own: it addresses nearly everything and leaves almost nothing out. Breadth is there already. What is
+   short of full is how completely each compound item is settled, and asking does not move it.
+3. A section to fill is always written on Sol (11 of 11 across sections 51 and 53) and always becomes an index
+   of what the requirements already say. It makes the document longer and the requirements no fuller.
+4. Sol at medium writes the specification in about a minute, in 420 to 870 words, whatever the packet says. The
+   evidence now points away from the packet's text as the lever. Where it points instead is conjecture, not a
+   finding: who writes (the model, or its effort) and who checks (the stage's review, which in m1 was the step
+   that read the packet whole and put the missing section in). Both are the SDLC study's ground and a product
+   decision, and nothing here tests them.
+
+**Why this stops here.** Section 52 said the result would be reported as it is and no fifth lever started
+unasked. It is reported.
+
+**What it cost.** Ten judge readings by the registered judge, $2.34; its two sorter sessions, $1.04; the second
+judge and the twelve runs on subscription; two checklist authors and five readers on Sonnet, about 140 thousand
+tokens each. Wall clock 16:03 to 16:38.
+
+**Limits.** As section 52's, and:
+
+- One set of each sentence is lost to the rule, one undelivered and one blocked, so the rule reads two sets a
+  sentence and the description rests on five.
+- Two readers tried to open a harness output file outside their folders; the attempt was refused and they
+  report reading nothing from it. One reader named two borderline additions in an A specification (the command
+  line showing the new link, a new `merged` status) and listed neither.
+- The blind items are long and compound. `partly` is the commonest state short of covered, and the count
+  rewards a specification that states every part of an item's sentence.

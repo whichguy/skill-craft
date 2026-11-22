@@ -1,0 +1,42 @@
+{
+ "study": "remind",
+ "arms": [
+  "A",
+  "Q"
+ ],
+ "checkout": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/wt-q-9f5969",
+ "head": "6f7db0f046122a3bb06553557e13258d78aea955",
+ "checkout_status_lines": 0,
+ "base": {
+  "fixture": "node-tickets",
+  "digest": "5652a97375d0",
+  "start_head": "710aff77d2b823c6e212bb2311772831c277e767",
+  "files": 60
+ },
+ "plugins": {
+  "A": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-questions-remind-9f5969/arm-A/build/plugins/skill-craft",
+  "Q": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-questions-remind-9f5969/arm-Q/build/plugins/skill-craft"
+ },
+ "build_sha256": {
+  "A": {
+   "shiploop_prompts.py": "39ea13ebce9e4a39aa7b3e3415af7371f286fcef3772f7228875830c18913b33",
+   "shiploop_stage_spec.py": "470d2bc8f93d7452120e29b40f5f7a5afaf8c48dde0c0d6c1ad90388e2c82429"
+  },
+  "Q": {
+   "shiploop_prompts.py": "bc080bef3377eb0dc8c21a6ac9c7462d48b39209c72aef505d15869f3b7cfea4",
+   "shiploop_stage_spec.py": "470d2bc8f93d7452120e29b40f5f7a5afaf8c48dde0c0d6c1ad90388e2c82429"
+  }
+ },
+ "spec_prompt_sha256": {
+  "A": "1d01d54fbca2",
+  "Q": "908a5da34db9"
+ },
+ "spec_prompt_characters": {
+  "A": 8786,
+  "Q": 10148
+ },
+ "delta_lines": {
+  "Q": 14
+ },
+ "problems": []
+}

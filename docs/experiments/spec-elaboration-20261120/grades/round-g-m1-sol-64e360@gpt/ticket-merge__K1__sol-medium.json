@@ -1,0 +1,154 @@
+{
+ "slot": "ticket-merge__K1__sol-medium",
+ "case": "ticket-merge",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1a; Questions settled, Q4",
+   "quote": "with `POST /tickets/:id/merge` and JSON `{\"into\":\"T-0042\"}`. A success returns 200 and the closed source with `mergedInto`. \u2026 rejects unknown fields"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1a",
+   "quote": "An agent selects an existing non-closed duplicate and a different existing non-closed canonical ticket with `POST /tickets/:id/merge` and JSON `{\"into\":\"T-0042\"}`. A success returns 200 and the closed source with `mergedInto`."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-1a",
+   "quote": "An agent selects an existing non-closed duplicate and a different existing non-closed canonical ticket",
+   "missing": "Whether the agent\u2019s selection suffices or the service must compare requester, title, or priority to confirm duplication."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1a; R-1b",
+   "quote": "the closed source with `mergedInto` \u2026 Existing patch and transition rules keep the duplicate closed.",
+   "missing": "The status and reopening outcome are clear. The text leaves implicit whether a patch may still change the closed duplicate\u2019s other fields."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1a; Non-functional requirements",
+   "quote": "Canonical ticket fields, both requesters and their earlier histories are preserved. \u2026 A merge adds only the target ID"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1a",
+   "quote": "the closed source with `mergedInto`. GET and list show the link and the duplicate belongs to closed results."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1a; R-1b",
+   "quote": "non-closed canonical ticket \u2026 Self-merge, a closed source or target, a merged target, a different target on retry, and moving a canonical ticket with existing duplicates all conflict with 409. A same-target retry succeeds with the prior source"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-1b",
+   "quote": "Missing or malformed body fields or merge IDs yield 400. A well-formed missing ticket yields 404.",
+   "missing": "Which offending ID or field the error message identifies when the source or target is invalid or missing."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1b",
+   "quote": "Self-merge, a closed source or target, a merged target, a different target on retry, and moving a canonical ticket with existing duplicates all conflict with 409."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1b; R-1c",
+   "quote": "A same-target retry succeeds with the prior source even if the canonical ticket subsequently closed. \u2026 Rejected calls and matching retries add no audit or outbox event."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1a; R-1c",
+   "quote": "Canonical ticket fields, both requesters and their earlier histories are preserved. \u2026 A successful merge appends one `ticket.merged` audit entry to the duplicate"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-1c; Non-functional requirements",
+   "quote": "normal X-Actor attribution (system fallback) \u2026 Internal HTTP access retains the existing network boundary and audit-label convention."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-1a; R-2a; R-2b",
+   "quote": "the closed source with `mergedInto` \u2026 A successful save survives restart. \u2026 Version-1 snapshots without a merge link remain readable; ordinary records keep their API shape."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-2b",
+   "quote": "A persisted merge link is valid only on a closed source and points directly to a different existing unmerged record. Invalid links stop load.",
+   "missing": "What load error to report and whether its message identifies the offending ticket record."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-1c",
+   "quote": "A successful merge appends one `ticket.merged` audit entry to the duplicate, with status and target changes and normal X-Actor attribution (system fallback). \u2026 Verify through history and outbox reads."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2a; Non-functional requirements",
+   "quote": "TicketStore owns the merge and prepares the ticket and audit together. A failed save leaves in-memory ticket, audit, outbox and disk unchanged. A successful save survives restart. \u2026 atomic snapshot installation"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1c",
+   "quote": "It enqueues no notification.",
+   "missing": "A new template and outbox key are unnecessary. The fate of already-pending notifications for the duplicate is unspecified."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2b",
+   "quote": "Preserve cursor pagination, ordinary lifecycle and raw report columns using the suite and a raw CLI check.",
+   "missing": "How tickets show and tickets list display the closed duplicate and its target ID when reading the data file."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-1b",
+   "quote": "a different target on retry, and moving a canonical ticket with existing duplicates all conflict with 409. \u2026 Existing patch and transition rules keep the duplicate closed.",
+   "missing": "Whether a separate undo operation exists and how an operator corrects an erroneous merge if it is permanent."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-2b",
+   "quote": "ordinary records keep their API shape \u2026 Preserve cursor pagination, ordinary lifecycle and raw report columns",
+   "missing": "Whether existing list filters and ID ordering, ordinary field edits, and the audit endpoint retain their behavior for unaffected tickets."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-2b",
+   "quote": "Preserve cursor pagination, ordinary lifecycle and raw report columns using the suite and a raw CLI check.",
+   "missing": "How the weekly report counts absorbed tickets in its totals and status groups, and whether the raw format retains its tab delimiters and column positions."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-2a; Non-functional requirements",
+   "quote": "TicketStore owns the merge \u2026 Verify via save-failure injection, concurrent HTTP and restart. \u2026 No new latency objective, deployment, browser surface or external dependency applies.",
+   "missing": "Verification covers named scenarios, but the text does not require a test for each success and error path, updates to docs/api.md and CHANGELOG, a version bump, or a new decision record."
+  }
+ ]
+}

@@ -1,0 +1,37 @@
+set m1-sol  (counted in the rule)
+  A: 775 words; covered 15/12 of 21; instructions [99, 102]; references [57, 63]; block [0, 81]; guide lines it opened {'before the spec packet': {'requirements-definition.md': 21, 'behavioral-requirements.md': 52}}; delivered True
+  Q: 552 words; covered 13/11 of 21; instructions [69, 116]; references [2, 56]; block [0, 81]; guide lines it opened {'before the spec packet': {'requirements-definition.md': 21}}; delivered False
+  Q over A: net -1 (higher [], lower ['N-17'])
+  on 21 items (the 21 and []): Q over A net -1
+  capability the reader verified in one arm alone: none
+set m2-sol  (counted in the rule)
+  A: 502 words; covered 12/11 of 21; instructions [99, 102]; references [8, 59]; block [0, 81]; guide lines it opened none; delivered True
+  Q: 674 words; covered 13/12 of 21; instructions [116, 116]; references [9, 58]; block [0, 81]; guide lines it opened {'before the spec packet': {'requirements-definition.md': 21}}; delivered True
+  Q over A: net 1 (higher ['N-3', 'N-6'], lower ['N-4'])
+  on 21 items (the 21 and []): Q over A net 1
+  capability the reader verified in one arm alone: none
+set m3-sol  (counted in the rule)
+  A: 814 words; covered 15/14 of 21; instructions [102, 102]; references [9, 63]; block [0, 81]; guide lines it opened none; delivered True
+  Q: 675 words; covered 12/12 of 21; instructions [115, 116]; references [8, 62]; block [0, 81]; guide lines it opened {'before the spec packet': {'requirements-definition.md': 21}}; delivered True
+  Q over A: net -2 (higher [], lower ['N-3', 'N-7'])
+  on 21 items (the 21 and []): Q over A net -2
+  capability the reader verified in one arm alone: none
+over the sets counted in the rule ['m1-sol', 'm2-sol', 'm3-sol']: {'X over A': 'no sets', 'X over C': 'no sets', 'R over A': 'no sets', 'C over A': 'no sets', 'S over A': 'no sets', 'Q over A': 'not shown'}  (nets {'X over A': [], 'X over C': [], 'R over A': [], 'C over A': [], 'S over A': [], 'Q over A': [None, 1, -2]})
+
+set n1-sol  (counted in the rule)
+  A: 419 words; covered not judged of ?; instructions [98, 102]; references [30, 53]; block [0, 81]; guide lines it opened none; delivered True
+  Q: None words; covered not judged of ?; instructions None; references None; block None; guide lines it opened none; delivered None
+  capability the reader verified in one arm alone: none
+set n2-sol  (counted in the rule)
+  A: 576 words; covered 10/8 of 19; instructions [102, 102]; references [8, 58]; block [0, 81]; guide lines it opened {'before the spec packet': {'requirements-definition.md': 21}}; delivered True
+  Q: 865 words; covered 9/11 of 19; instructions [115, 116]; references [7, 58]; block [0, 81]; guide lines it opened {'before the spec packet': {'requirements-definition.md': 21}}; delivered True
+  Q over A: net 0 (higher ['N-11'], lower ['N-16'])
+  on 21 items (the 19 and ['N-13', 'N-17']): Q over A net 0
+  capability the reader verified in one arm alone: none
+set n3-sol  (counted in the rule)
+  A: 659 words; covered 10/7 of 19; instructions [99, 102]; references [7, 61]; block [0, 81]; guide lines it opened {'before the spec packet': {'requirements-definition.md': 21}}; delivered True
+  Q: 707 words; covered 6/7 of 19; instructions [116, 116]; references [8, 58]; block [0, 81]; guide lines it opened {'before the spec packet': {'requirements-definition.md': 21}}; delivered True
+  Q over A: net -2 (higher [], lower ['N-12', 'N-16'])
+  on 21 items (the 19 and ['N-13', 'N-17']): Q over A net -1
+  capability the reader verified in one arm alone: {'A': ['Operator-configurable reminder threshold (setting, with zero to disable reminders)']}
+over the sets counted in the rule ['n1-sol', 'n2-sol', 'n3-sol']: {'X over A': 'no sets', 'X over C': 'no sets', 'R over A': 'no sets', 'C over A': 'no sets', 'S over A': 'no sets', 'Q over A': 'not shown'}  (nets {'X over A': [], 'X over C': [], 'R over A': [], 'C over A': [], 'S over A': [], 'Q over A': [0, -2]})

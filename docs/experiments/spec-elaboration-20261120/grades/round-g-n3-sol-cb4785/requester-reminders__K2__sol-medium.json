@@ -1,0 +1,156 @@
+{
+ "slot": "requester-reminders__K2__sol-medium",
+ "case": "requester-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.302383,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "A transition request with `{\"to\":\"waiting_for_requester\"}` from `in_progress` returns 200 and a ticket with that status. From `waiting_for_requester`, `{\"to\":\"in_progress\"}` resumes work."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "one reminder per uninterrupted wait after 72 elapsed hours ... transitioned to waiting at 2026-01-05T12:00:00.000Z ... A title or priority edit during the wait leaves the deadline unchanged."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Policy assumption: one reminder per uninterrupted wait after 72 elapsed hours, no recurring sends."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1, R-2",
+   "quote": "Policy assumption: agents explicitly set and clear the wait using ordinary transitions. ... Resuming work removes an unsent reminder, including one awaiting retry. ... inbound reply processing are external.",
+   "missing": "Whether a waiting ticket may move directly to resolved or closed and whether that cancels the reminder; only the resume-to-in_progress exit is specified."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "The reminder goes to the ticket's stored requester and includes the ticket ID and a request to reply so work can continue.",
+   "missing": "Subject and body text, whether title and waiting duration appear, and what address is used when the requester field is free text."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "includes the ticket ID and a request to reply so work can continue.",
+   "missing": "How the reminder's reply instruction relates to the resolved notice's 'reply within 7 days to reopen' wording and how a reply is actually acted on."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2; Non-functional Scheduling",
+   "quote": "The configured worker is the only sender ... enqueue once with the wait and dispatch through existing polling. The first worker tick at or after the deadline is eligible ... No separate timer"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A restart or repeat tick leaves the same pending event or sent record ... File and process failures follow the established relay deduplication model by key and id."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Remind the requester while the ticket remains waiting ... Resuming work removes an unsent reminder, including one awaiting retry."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "When a delivery fails while the ticket remains waiting, existing retry/dead behavior applies and operators can inspect the error.",
+   "missing": "Whether a dead reminder leads to another later, and whether the template must exist before the event type can be enqueued."
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "one reminder per uninterrupted wait ... a new wait can send a new reminder.",
+   "missing": "How outbox keys are formed per wait so a later wait's reminder is not deduplicated against an earlier one."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-2; Questions settled Q5",
+   "quote": "may deliver the reminder on its first tick at or after 2026-01-08T12:00:00.000Z. At one millisecond before it must not deliver. ... measures 72 elapsed hours with server time"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "Questions settled Q5",
+   "quote": "stores UTC timestamps and measures 72 elapsed hours with server time",
+   "missing": "Which new field (e.g. waiting-since time) is stored, where it lives in the ticket or outbox record, and how persistence names it."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Version-1 files from earlier releases continue to load with their original lifecycle state.",
+   "missing": "Defaults for any new fields and refusal, with a naming message, of a file carrying a bad new field."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-1; R-2; Questions settled Q2",
+   "quote": "Existing agent access and actor policy apply; no new actor authentication ... The configured worker is the only sender ... An agent using the existing transition endpoint can start or end a wait and its reminder"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "The configured worker is the only sender; interval zero stops automatic dispatch.",
+   "missing": "Whether any feature-specific environment variables exist (e.g. threshold), their defaults and validation errors, and a feature-specific off switch."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "The normal outbox inspection exposes the pending and sent event.",
+   "missing": "Whether the CLI or weekly report shows reminders and that CLI raw column positions are preserved."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "Non-functional Scheduling",
+   "quote": "The first worker tick at or after the deadline is eligible under normal operation. No separate timer, hosted dependency or added load target.",
+   "missing": "A maximum lateness bound, a per-tick enqueue/dispatch cap, and cost behaviour with thousands of tickets."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1; R-2; Non-functional Reliability",
+   "quote": "Existing transitions stay valid and closed stays final. ... Existing creation and resolution notices retain their behavior. ... preserve the API error envelope.",
+   "missing": "Preservation of list filters, existing audit entries, command-line output and weekly report output."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Verify with an injected clock and the real JSONL notifier.",
+   "missing": "Updates to API doc, operations doc, README settings, changelog and version bump, and whether a decision record is needed."
+  }
+ ]
+}

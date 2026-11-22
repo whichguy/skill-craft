@@ -1,0 +1,23 @@
+{
+ "reader_file_sha256": "5f62d436ffbfbe0bd67b98a1d6712f844e7ecf9ffe4757101c290fbcda054a28",
+ "prompt_sha256": "30e7660c897ae23cd99904ee320af861d0e376c0e45a9fb9cd21f79d9b348d05",
+ "capabilities": [
+  {
+   "capability": "Operator-configurable reminder threshold (setting, with zero to disable reminders)",
+   "found": [
+    {
+     "spec": "K1",
+     "requirement": "R-4 Operator override",
+     "quote": "Set `REQUESTER_REMINDER_HOURS` to a nonnegative whole number of hours.",
+     "quote_is_in_the_file": true
+    },
+    {
+     "spec": "K1",
+     "requirement": "R-4 Operator override",
+     "quote": "Zero disables new reminder scheduling",
+     "quote_is_in_the_file": true
+    }
+   ]
+  }
+ ]
+}

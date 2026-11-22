@@ -1,0 +1,14 @@
+{
+ "name": "n1-sol-Q",
+ "set": "n1-sol",
+ "arm": "Q",
+ "driver": "sol",
+ "pid": 80129,
+ "started_at": 1795306774.0030458,
+ "limit_minutes": 20.0,
+ "decided_at": 1795306969.970947,
+ "watcher": "the run ended with no acceptance",
+ "stop_written": false,
+ "seen": null,
+ "returncode": 1
+}

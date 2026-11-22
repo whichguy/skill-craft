@@ -1,0 +1,156 @@
+{
+ "slot": "requester-reminders__K1__sol-medium",
+ "case": "requester-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1, C-1",
+   "quote": "From `in_progress`, POST `/tickets/T-0001/transition` with `{\"to\":\"waiting_on_requester\"}` returns 200 and an audited status change at the current UTC time. The same route with `{\"to\":\"in_progress\"}` resumes work."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2, Basis and C-3",
+   "quote": "72 elapsed hours, configurable in positive whole milliseconds via `REQUESTER_REMINDER_DELAY_MS` \u2026 on the first running tick at or after the delay, measured from the entry transition. A title or priority edit does not reset it."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2, Basis and C-4",
+   "quote": "one reminder per uninterrupted wait \u2026 A pending, sent, or dead reminder satisfies the one-reminder limit. \u2026 Leaving waiting cancels a pending retry."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1, C-1 and R-2, C-3, C-4 and final paragraph",
+   "quote": "From waiting, resume to `in_progress` before resolving. \u2026 A title or priority edit does not reset it. \u2026 Leaving waiting cancels a pending retry. \u2026 Agent records that a requester reply ended the wait by changing status."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-2, C-3 and Non-functional requirements",
+   "quote": "for the ticket's requester \u2026 the notifier's JSON line containing the ticket ID and a request to reply \u2026 Use the existing notifier recipient and template boundary.",
+   "missing": "The subject, the rest of the body, whether it includes the title and elapsed wait, and how a free-text requester value maps to a delivery address."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-2, C-3 and final paragraph",
+   "quote": "a request to reply \u2026 Agent records that a requester reply ended the wait by changing status. A requester reply channel is outside this service.",
+   "missing": "How the requester should reply and how the reminder distinguishes resuming a waiting ticket from reopening a resolved ticket within seven days."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2, C-3 and C-5",
+   "quote": "The worker queues `ticket.requester_reminder` for the ticket's requester on the first running tick at or after the delay, measured from the entry transition. \u2026 With `WORKER_INTERVAL_MS=0`, the service neither schedules nor delivers automatically."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-2, C-4 and outbox paragraph",
+   "quote": "A pending, sent, or dead reminder satisfies the one-reminder limit. Repeat ticks and a restart keep the same period identity. \u2026 The notifier delivers at least once under crash recovery as in ADR 6.",
+   "missing": "Duplicate queue entries are addressed. No delivery-side deduplication is specified for a retry after the notifier sent the reminder but the worker crashed before recording success."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2, C-3",
+   "quote": "The worker queues `ticket.requester_reminder` for the ticket's requester on the first running tick at or after the delay, measured from the entry transition. \u2026 Before the boundary and outside the waiting state there is no reminder."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-2, Basis and C-4",
+   "quote": "docs/operations.md / Notifications and ADR 6 govern delivery and failure. \u2026 A pending, sent, or dead reminder satisfies the one-reminder limit. \u2026 Leaving waiting cancels a pending retry.",
+   "missing": "Whether enqueueing the event requires a registered reminder template."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-2, C-3 and Non-functional requirements",
+   "quote": "on the first running tick at or after the delay, measured from the entry transition \u2026 A version-1 data file from before this change opens normally.",
+   "missing": "Whether deployment maps any existing tickets into the new waiting state and, if so, which entry time those tickets receive."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2, Basis, C-3 and C-4",
+   "quote": "one reminder per uninterrupted wait \u2026 measured from the entry transition \u2026 Repeat ticks and a restart keep the same period identity. \u2026 Re-entering establishes a fresh period even if status changes share a timestamp."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Timing uses the UTC clock, with first healthy tick at or after the configured elapsed delay. Verify exact-boundary observations without waiting real hours."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-2, outbox paragraph",
+   "quote": "The ticket and transition audit are the wait authority. Sent and dead outbox entries are retained for operations. The persisted outbox is the durable record for retry and duplicate prevention.",
+   "missing": "Which persisted field or key identifies the wait period in an outbox entry and how that identity is saved and loaded."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "A version-1 data file from before this change opens normally. Check older fixtures and a restarted service.",
+   "missing": "Defaults for missing reminder data and a load error that identifies a malformed persisted field."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2, outbox paragraph",
+   "quote": "A reminder does not change ticket fields or create an audit entry."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1, Basis and R-2, Basis and C-4",
+   "quote": "an explicit agent-controlled waiting status \u2026 configurable in positive whole milliseconds via `REQUESTER_REMINDER_DELAY_MS` \u2026 Leaving waiting cancels a pending retry.",
+   "missing": "Who has authority to change reminder settings, what authorizes an actor to stop a wait, and whether anyone can trigger a reminder manually."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-2, Basis and C-5",
+   "quote": "72 elapsed hours, configurable in positive whole milliseconds via `REQUESTER_REMINDER_DELAY_MS` \u2026 With `WORKER_INTERVAL_MS=0`, the service neither schedules nor delivers automatically. Unset or empty delay uses the default. Invalid delay stops startup with the config setting named."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-1, C-2 and R-2, outbox paragraph",
+   "quote": "the CLI status filter show waiting tickets. The weekly report counts them using the same status name. The ticket object and raw CLI column order are preserved. \u2026 Sent and dead outbox entries are retained for operations.",
+   "missing": "How an operator views individual sent reminders, pending reminders, and the next reminder due."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "first healthy tick at or after the configured elapsed delay \u2026 Scan work is bounded by ticket wait state and existing outbox processing. A tick with no new reminders does not rewrite the state file.",
+   "missing": "A per-tick enqueue limit and a processing bound that keeps a large set of eligible tickets from delaying delivery."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1, Basis, C-1 and C-2",
+   "quote": "Preserves the lifecycle and errors under docs/api.md / Move a ticket along its lifecycle. \u2026 The existing active classification continues to describe `open` and `in_progress`. \u2026 The ticket object and raw CLI column order are preserved.",
+   "missing": "Explicit compatibility for received and resolved notifications, audit entries for existing actions, and existing list-filter and report output beyond the named cases."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-2, C-3 and Non-functional requirements",
+   "quote": "Verify through HTTP, a controlled clock, and the notifier's JSON line containing the ticket ID and a request to reply. \u2026 Verify exact-boundary observations without waiting real hours.",
+   "missing": "Use of the existing test suite's conventions, updates to the API and operations docs and README settings table, a changelog entry and version bump, and a decision record when a relied-on rule changes."
+  }
+ ]
+}

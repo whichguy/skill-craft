@@ -1,0 +1,13 @@
+set n3-sol: items that apply here for both sorters (19): ['N-1', 'N-2', 'N-3', 'N-5', 'N-6', 'N-7', 'N-8', 'N-9', 'N-10', 'N-11', 'N-12', 'N-14', 'N-15', 'N-16', 'N-18', 'N-19', 'N-20', 'N-21', 'N-22']
+  A opus: covered 10, partly 8, absent 1
+  A astra: covered 7, partly 11, absent 1
+  Q opus: covered 6, partly 11, absent 2
+  Q astra: covered 7, partly 12, absent 0
+  Q over A: higher under both judges []; of them newly raised []; lower ['N-12', 'N-16']; net -2
+  not in the rule (mixed, unclear or the sorters differ), as states under the two judges:
+    N-4: A 1/1, Q 1/2
+    N-13: A 1/1, Q 2/2
+    N-17: A 1/1, Q 2/1
+  added capability: Operator-configurable reminder threshold (setting, with zero to disable reminders): in ['A']
+  delivered as each arm intends: {'A': True, 'Q': True}
+  OUTCOME (Q over A): described only: no rule applies

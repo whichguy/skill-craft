@@ -1,0 +1,1 @@
+{"capabilities": [{"capability": "Operator-configurable reminder threshold (setting, with zero to disable reminders)", "found": [{"spec": "K1", "requirement": "R-4 Operator override", "quote": "Set `REQUESTER_REMINDER_HOURS` to a nonnegative whole number of hours."}, {"spec": "K1", "requirement": "R-4 Operator override", "quote": "Zero disables new reminder scheduling"}]}]}

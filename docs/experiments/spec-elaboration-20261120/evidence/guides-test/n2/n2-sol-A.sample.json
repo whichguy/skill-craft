@@ -1,0 +1,21 @@
+{
+ "name": "n2-sol-A",
+ "set": "n2-sol",
+ "arm": "A",
+ "driver": "sol",
+ "pid": 84020,
+ "started_at": 1795306971.5250719,
+ "limit_minutes": 20.0,
+ "decided_at": 1795307213.228748,
+ "watcher": "saw the acceptance",
+ "stop_written": true,
+ "seen": {
+  "run_dir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-questions-remind-9f5969/samples/n2-sol-A/.shiploop-runs/work-20261122-002311-20226a/run",
+  "spec_action": "nav-2ba0f280e42a49aa8656dae5041c7b07",
+  "at": "2026-11-22T00:26:52Z",
+  "ts": 1795307212.267,
+  "spec_sha256": "bd07b3afb26cfe86371d8972ba934b1e971a61f2ee5de1a9f63046195362acc3",
+  "head": "3e3ae60161bbf69f2443c192663ebaaf2b731929"
+ },
+ "returncode": 1
+}

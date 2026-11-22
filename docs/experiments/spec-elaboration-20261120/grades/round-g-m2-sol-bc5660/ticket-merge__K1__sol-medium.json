@@ -1,0 +1,153 @@
+{
+ "slot": "ticket-merge__K1__sol-medium",
+ "case": "ticket-merge",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.2329626,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1 M1, M4",
+   "quote": "POST /tickets/T-0001/merge with JSON {\"into\":\"T-0002\"} and X-Actor: dana returns 200 with T-0001 in terminal status merged and mergedInto T-0002 ... Missing, malformed or additional inputs and self-merge are 400 invalid."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1 M1",
+   "quote": "POST /tickets/T-0001/merge with JSON {\"into\":\"T-0002\"} ... returns 200 with T-0001 in terminal status merged and mergedInto T-0002"
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-1 title, M4",
+   "quote": "Agent-directed duplicate merge ... A valid source or target may be open, in progress or resolved.",
+   "missing": "Whether any similarity check (same requester, title, priority) is made or the agent's word alone suffices is never stated."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1 M1, M5",
+   "quote": "T-0001 in terminal status merged and mergedInto T-0002 ... Merged tickets cannot be edited, transitioned or created through the ordinary lifecycle."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1 M1; R-2",
+   "quote": "the source retains its existing content and the target record is unchanged ... The canonical's title, requester, priority and history are never copied to the source"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-1 M1, M5",
+   "quote": "GET for each ID confirms that the source retains its existing content ... GET list with status merged shows them, and status open excludes them.",
+   "missing": "Whether merged tickets appear in the unfiltered GET /tickets listing and under other status filters (in_progress, resolved, closed)."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1 M4",
+   "quote": "self-merge are 400 invalid ... Closed source, final target, a different target for an already merged source, or merging a source already referenced by other duplicates are 409 conflict. A valid source or target may be open, in progress or resolved."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-1 M4",
+   "quote": "Missing, malformed or additional inputs and self-merge are 400 invalid. Unknown well-formed source or target is 404 not_found.",
+   "missing": "Which id the error message names (source vs target) is not stated."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1 M4; R-2 M6",
+   "quote": "final target ... or merging a source already referenced by other duplicates are 409 conflict ... A merged record needs an existing nonmerged canonical ID ... chained records are rejected on startup."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1 M3",
+   "quote": "Repeating the same merge returns the same source with its prior timestamp and creates no audit entry, including after the canonical record later closes."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1 M1, M2",
+   "quote": "the target record is unchanged ... Target history and the requester outbox stay unchanged."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1 M1; Non-functional requirements",
+   "quote": "X-Actor: dana ... No new screen, session, identity, network, worker or graphical interaction is required.",
+   "missing": "Whether a named actor is required (vs `system`) and whether requesters are kept from merging or the internal network is the only protection."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-2 M6; R-2 bullet",
+   "quote": "A version-1 file with old nonmerged records still loads. A merged record needs an existing nonmerged canonical ID and only merged records may have that field ... A persisted merge survives restart with its link"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-2 M6",
+   "quote": "A merged record needs an existing nonmerged canonical ID and only merged records may have that field. Malformed, dangling, self-referential and chained records are rejected on startup.",
+   "missing": "The refusal message and that it names the offending record."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-1 M2",
+   "quote": "GET /tickets/T-0001/audit contains one ticket.merged event with actor dana and changes for status and mergedInto (null to T-0002). Its earlier history stays intact. Target history ... stay unchanged."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-2 M6",
+   "quote": "Simulate a save failure to verify the store exposes neither a failed merge nor its proposed audit entry and permits a successful retry."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1 M2; R-2 bullet",
+   "quote": "Target history and the requester outbox stay unchanged ... never copied to the source or sent as merge-related mail.",
+   "missing": "What becomes of already-pending notifications about the absorbed ticket."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2 M7",
+   "quote": "The read-only CLI show output shows mergedInto. List raw retains the four established columns",
+   "missing": "How non-raw `tickets list` presents a merged ticket and its link."
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-1 Basis",
+   "quote": "Preserve the existing HTTP conventions and ticket lifecycle in docs/api.md.",
+   "missing": "Explicit preservation of create/update/transition, listing filters, id order, cursors and the audit endpoint for unmerged tickets."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-2 M7",
+   "quote": "List raw retains the four established columns and the weekly report counts merged separately."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-2 bullet; R-1 M4, R-2 M6",
+   "quote": "TicketStore owns the link as long as the source ticket is retained ... Verify errors plus absence of side effects ... Simulate a save failure",
+   "missing": "Updated docs/api.md and CHANGELOG, version bump, decision record, and no new dependency."
+  }
+ ]
+}
