@@ -34,6 +34,9 @@ tickets the test just created, would not give. A reset reads `Error: socket hang
   measured, half of it wrong answers and not resets, and what grows it is the number of other listeners, not the load. "Never in a run alone" was not tested here.
 - Not fixable from the calibration: the fixture is pinned by its digest and is the E2E subject (changing it is the owner's call); Node refuses `--test-concurrency` in `NODE_OPTIONS`; and a classifier of resets
   (`NETWORK_FAILURE` in `checks/ticket_test_adequacy.py`) would have missed the 13 wrong answers.
+- Dated 2026-11-22, two of the lines above: the mechanism was watched (`docs/experiments/sdlc-structure-20261119/evidence/port-mixup.txt`: one port number held by a service on every address and by another
+  program on `127.0.0.1`, and the call to `127.0.0.1` answered by the other program), so it is no longer inferred; and the owner made the call on the fixture ("Yes do all changes"): the ticket fixtures' tests
+  now listen on `127.0.0.1` and their pins changed (`docs/shiploop-brownfield-baseline-journal.md`, 2026-11-22). The rates on this page are of the base as it was.
 
 **What changed** (`test/shiploop-e2e-brownfield-tickets.test.py`). A result that disagrees with its variant is graded again, alone, until a grade agrees, at most three more times (`settle`); the suite counts the
 results whose first regrade disagreed too (`repeated`, at most 4) and puts the first disagreements (`regraded`) in the failure text. `CaseChecksTest`, which compared whole verdict lists once, gets the same regrade

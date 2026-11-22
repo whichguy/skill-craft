@@ -4055,6 +4055,124 @@ During the changed arm's rounds the probe's ticket servers also held numbers on 
 suites could have been handed. A heads-up to that session was held by it and not delivered. A failure or timeout of
 that tier between 05:51 and 06:04 should be run again alone before it is read. Four copies at once would have done.
 
+### Owner decision, 2026-11-22: the ticket fixtures' tests listen on `127.0.0.1`
+
+Asked "Change the ticket fixtures so their tests listen on `127.0.0.1`?", the owner: "Yes do all changes". It is the
+choice 26728eddd587930f5da3f6600e5d7ab4017d8acc left with the owner on 2026-11-01 and
+238bb13ebcc63a8ebdc0fac74037568491a4bcde called the owner's standing call.
+
+- **R162 (the change).** In `fixtures/node-tickets` and `fixtures/node-tickets-assigned`, the two lines R159
+  measured: `createService(...).start()` passes `config.host` to `listen`, and `TEST_SETTINGS` in `test/helpers.js`
+  names `127.0.0.1`, the address the helper's client calls. A comment at each says why, in the base's own words (the
+  base never names the harness). The service started the operator's way has no `host` and listens on every address
+  as before: seen on IPv6 `::`, answering on `127.0.0.1` and on `::1`. Not added: a `HOST` environment variable. The
+  base's README says every setting is an environment variable, so a `HOST` would be a new documented setting with
+  its config test and changelog line, more of the subject changed than was measured or approved; `config.host` is
+  set by a caller, and the comment at `start()` says so. The user-directory references' tests already listen on
+  `127.0.0.1`.
+- **R163 (pins and digests).** `node-tickets` goes from `5652a97375d0` to `6d6f3563c459` (ticket-assignment,
+  ticket-import, ticket-due-times) and `node-tickets-assigned` from `f0e486c77413` to `d88f22750bc6`
+  (ticket-assignment-tests, asserted in `test/shiploop-e2e-test-adequacy.test.py`). The oracle digest of every case
+  goes from `b32933f70500` to `95a78b4ccfa1`, and the four cases' own digests change with their pins (for
+  ticket-due-times, `1f9bbcdded4d` to `22063c685377`). Attempts graded before and after are separate experiments for
+  `promotion.py`. Nothing is rescored; earlier results stand as records of the old base.
+- **R164 (checked without a model).** Each fixture's suite: 117 tests pass and 21 servers start, all on `127.0.0.1`.
+  A new test, `FixtureAddressTest` in `test/shiploop-e2e-brownfield-tickets.test.py`, runs each fixture's own tests
+  with a preload that records the address of every server and asks for `127.0.0.1` alone: it fails on both fixtures
+  as they were (`IPv6 ::`) and passes now. All 92 variants of the five ticket reference modules build on the changed
+  base, so every patch still applies, and the adequacy suite's case contract passes (10 tests). The quick tier
+  selected by the change (70 suites) is not run in this commit: three live runs of another session were on the
+  machine, and a tier is not run beside live runs. Its result is in the results below.
+- **R165 (left as it is).** The stage case `stage_cases/step-plan/replay-ticket-comments-late-send-back` keeps its
+  repo: it is the recorded state of a run of 2026-11-01, and like any saved delivery it has the old lines. The
+  calibration's regrading (`settle` and `agreed`, from 26728eddd587930f5da3f6600e5d7ab4017d8acc and
+  8c5b4d4ec776dc9a06445c1054e9d4802558a649) stays: it costs nothing when grades agree, and whether first grades
+  still disagree with the new base is not measured here. `checks/base_tests.py` keeps its 120-second limit and its
+  whole-group stop.
+- **What other sessions meet.** A checkout or apparatus copy taken before this commit keeps the old fixtures and
+  pins and goes on as before. One taken after it grades every case under a new oracle digest. While both kinds run
+  on one machine, a test server of the new base is one more number on `127.0.0.1` that a run of the old base can be
+  handed.
+
+### Registered confirmation runs for the changed base (written and committed before any run)
+
+**Build.** The commit that carries this section, from a clean checkout.
+
+**Runs.** Two whole deliveries of `ticket-due-times` at medium, defaults, started together: Codex `gpt-6.2-sol` once
+and Claude `claude-sonnet-5-5` once (`--max-budget-usd 40`). No run option, no turn or time cap. No test tier is on
+the machine at the launch. Three live runs of another session, on the old base, are (`e2e-runs/r-20261122-ffb3fb`);
+they and these two do not share a base. After the runs, processes left by these two are looked for by working
+folder and by environment and stopped by process id. The quick tier selected by the change runs once no live run
+is left on the machine, and the push to main waits for it and for these runs.
+
+**Reading.** For each run: the base record (the fixture and the digest it started from), every verdict and case
+check, and any check that did not end. On each delivered tree, the delivered suite is run once with the preload of
+`FixtureAddressTest`, and every server it starts is counted by address.
+
+**What it is asked.** (a) The harness starts each run from the new base (the recorded digest is `6d6f3563c459`) and
+grades it: no refusal over the pin, verdicts and checks recorded. (b) Every server the delivered suite starts through
+the base's helper listens on `127.0.0.1`. A server on another address is reported with the test that started it: it
+is the builder's own doing and not a failure of the change. (c) No base, pristine or suite check ends on "did not
+end". If (a) fails the change is not pushed as it is. A failed verdict or case check is read and explained: two
+deliveries cannot show a rate, and a delivery that fails for a reason of its own says nothing about the base.
+
+**Limits, stated in advance.** Two deliveries of one case on two drivers; nothing about how often a builder is led
+astray by `config.host`; nothing about `ticket-assignment-tests`, whose fixture is covered by the suites alone.
+
+### Results for the changed base (2026-11-22, 06:38 to 07:06; `evidence/changed-base-r15e.txt`)
+
+Build 8debbdcf8eb2bab882fd054d64a89d2c4fd158c9, a clean checkout. Read with `changed_base_read.py`.
+
+| Run | Minutes | Dollars | Base it started from | Verdicts | Case checks | Delivered suite | Its servers |
+|---|---|---|---|---|---|---|---|
+| sol-E-due-1 (Codex gpt-6.2-sol medium) | 13.5 | none reported | `6d6f3563c459` | all five pass | 3 of 8 | 121 of 121 | 26 on `127.0.0.1` |
+| sonnet-E-due-1 (Claude claude-sonnet-5-5 medium) | 27.3 | 8.63 | `6d6f3563c459` | all five pass | 8 of 8 | 142 of 142 | 32 on `127.0.0.1`, 3 on every address |
+
+Both were graded under evaluator `cc221376b337`, oracle `95a78b4ccfa1` and case `22063c685377`.
+
+- **R166 (a, as registered: holds).** The harness started both runs from the new base and graded them: the base
+  record of each names `node-tickets` at `6d6f3563c459`, no launch was refused over the pin, and every verdict and
+  check is recorded.
+- **R167 (b, as registered: holds).** Every server a delivered suite starts through the base's helper listens on
+  `127.0.0.1`: 26 of 26 in the Sol delivery (its new test file uses `withService`), 32 of 32 in the Sonnet one. The
+  Sonnet delivery starts three more on every address, and they are the product itself: its own system test,
+  `test/due-system.test.js`, spawns `node src/server.js` with `PORT=0`, reads the port from the start-up line and
+  calls `127.0.0.1`. That is the pattern the change does not reach, in a builder's own test, as the limits said.
+- **R168 (c, as registered: holds).** No base, pristine or suite check ended on "did not end". In both runs `suite`
+  and `pristine` pass.
+- **R169 (the Sol delivery's 3 of 8, read and explained).** Its five failing checks are the probes that start the
+  new release switched on against an old data file, and each fails at that start: "ticket T-0001 has no due time;
+  run the due-time backfill". The delivery adds `scripts/backfill-due-times.js` and its service refuses to start
+  with `DUE_TIMES=on` until an operator has run it. This is the design choice on record for Sol on this case (3 of 6
+  at medium and 4 of 6 at high on ShipLoop 2.4.0, "7 of 12 in all"; R130), made on the old base. The delivery
+  changes one line of `src/server.js`, the store's options, and does not touch the two changed lines; neither
+  delivery adds a host setting. It says nothing about the base.
+- **R170 (the other direction; `port_mixup_reverse.js`, `evidence/port-mixup.txt` part 6).** A listener that asks
+  for "any free port" on `127.0.0.1` is not given a number that a listener on every address holds: 0 of 40,000 with
+  2,000 held, where a held number counted as free would be about 4,883. So a test server of the changed base does
+  not land on the number of a product the harness started on every address, nor on that of a test server of the old
+  base. The reverse stays as measured (R158): a service on every address can be given a number held on `127.0.0.1`.
+- **R171 (the quick tier selected by the change).** 70 suites pass in 612 seconds at 8 jobs (57 chosen by the changed
+  paths, 13 always run), from 07:06:37 to 07:16:53 with no live run and no other tier on the machine:
+  `shiploop-e2e-brownfield-tickets` 53 tests, the new one among them, `shiploop-e2e-brownfield` 31,
+  `shiploop-e2e-test-adequacy` 35, `shiploop-e2e-ticket-comments` 21, `shiploop-e2e-slice` 73 and
+  `shiploop-e2e-stages` 130. It ran on the candidate's tree; the one commit that reached main meanwhile changes four
+  files of another study under `docs/`.
+- **Conditions.** Three live runs of another session, on the old base, were on the machine for the first 14 minutes
+  (`e2e-runs/r-20261122-ffb3fb`), and that session ran a quick tier at four jobs beside the Sonnet run from about
+  07:00 to 07:05. Neither of this study's runs was run again. After them, and again after the tier, no process of
+  theirs was left (looked for by working folder and by environment).
+
+Findings.
+
+- **F102. In real deliveries the change reaches what it was meant to reach.** Every test server started through the
+  base's helper listens on `127.0.0.1`, in a suite the builder extended by 4 tests and in one extended by 25.
+- **F103. What is left is the builder's own way of starting the product.** One delivery of two starts the real
+  server process on every address with a port the system picks and calls `127.0.0.1`: 3 of its 35 servers, so about
+  `3 × h / 16,384` a run of that suite where the old base would have made it `35 × h / 16,384`. Nothing in the base
+  can stop a builder writing that test; whether the base should say how to start the product for a test is a
+  question about the subject and is not proposed here.
+
 ## Evidence (all rounds)
 
 | File | Holds |
@@ -4130,6 +4248,7 @@ that tier between 05:51 and 06:04 should be run again alone before it is read. F
 | `list_leaked.py`, `stop_leaked.py`, `evidence/leaked-servers-stopped.txt` | round 15: the leaked test servers of the harness's base check: the listing, each process stopped with its start time, port and folder, and what was left alone (R145) |
 | `evidence/confirm-r15d.txt` | round 15: the second confirmation round: each delivery's verdicts, checks, work items and its one release-verify attempt with the added command; the suites run again by hand; refusals, returns, the hang in one builder's own copy (R147 to R154) |
 | `port_mixup_demo.js`, `port_mixup_outcomes.py`, `port_mixup_stranger.js`, `port_mixup_suite_probe.py`, `port_mixup_count_listens.js`, `evidence/port-mixup.txt`, `evidence/port-mixup-probe.json` | 2026-11-22: the ticket fixture's port mix-up watched and counted: one number held by two programs, how often the system hands out a held number, the base's suite 1,600 times as it is and with the service on `127.0.0.1`, what one test does by what the other program does, and a stuck run found and stopped (R157 to R161) |
+| `port_mixup_reverse.js`, `changed_base_read.py`, `evidence/changed-base-r15e.txt` | 2026-11-22: the other direction of the port mix-up (a listener on `127.0.0.1` is not given a number held on every address), and the two deliveries on the changed ticket base: the base each started from, verdicts, checks, and where the delivered suite's servers listen (R166 to R171) |
 
 To rerun: `python3 -I stage_census.py <work>/census.json` writes the run list the other scripts read
 (`passes_census.py <work>/census.json <work>/samples.jsonl`, `review_edits.py <work>/census.json
@@ -4190,6 +4309,10 @@ The port mix-up (R157 to R161): copy `test/shiploop_e2e/fixtures/node-tickets` t
 `python3 -I port_mixup_suite_probe.py <copy> <changed copy> port_mixup_count_listens.js <out.json> 16 100 30`
 reproduces `evidence/port-mixup-probe.json` in kind (heavy: about 17 minutes and a load average near 190 at 16
 copies; use 4 beside any other work).
+
+The changed base (R166 to R171): `python3 -I changed_base_read.py <scratch> <name>=<run folder> ...` reads run folders
+and reproduces the reader's part of `evidence/changed-base-r15e.txt`; `node port_mixup_reverse.js` reproduces part 6
+of `evidence/port-mixup.txt`.
 
 Leaked test servers: `python3 -I list_leaked.py` prints one JSON line for each `node` process (it stops nothing);
 `python3 -I stop_leaked.py <that listing> [<minimum age in seconds>]` stops, by process id, the parentless ones in

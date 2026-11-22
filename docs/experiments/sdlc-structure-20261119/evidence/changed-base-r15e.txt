@@ -1,0 +1,82 @@
+The confirmation runs for the changed ticket base (2026-11-22, 06:38:34 to 07:06:11)
+==================================================================================
+
+Registered in docs/shiploop-sdlc-structure-journal.md, "Registered confirmation runs for the changed base", in the commit
+under test: 8debbdcf8eb2bab882fd054d64a89d2c4fd158c9 (the ticket fixtures' own tests listen on 127.0.0.1; new pins). A clean
+checkout of that commit; `test/shiploop_e2e/run.py --case ticket-due-times --effort medium --source checkout`, once with
+`--host codex --model gpt-6.2-sol` and once with `--host claude --model claude-sonnet-5-5 --max-budget-usd 40`, started
+together, no turn or time cap, to /Users/dadleet/e2e-runs-sdlc14/r15e/20261122 (outside the repository; may be pruned).
+
+Read with changed_base_read.py (its output, whole):
+
+    == sol-E-due-1
+       case ticket-due-times | codex gpt-6.2-sol medium | pass False | minutes 13.5 | cost None
+       base {"fixture": "node-tickets", "digest": "6d6f3563c459", "start_head": "2ed7d244f295c821cc0f03b3cc40fad52f3a09fb", "files": 60}
+       graded under {"evaluator": "cc221376b337", "oracle": "95a78b4ccfa1", "case": "22063c685377"}
+       verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True}
+       case checks: 3 of 8 pass
+          pass | base_tests.py suite node-tickets             | the delivery's own node --test passes 121 tests, the base's 117 and 4 more
+          pass | base_tests.py pristine node-tickets          | the base's 18 pristine test files pass against the delivered source: 117 of 117 tests
+          FAIL | due_times_probe.py migrate                   | FAIL: the candidate exited (rc 2) before it listened on PORT=49566: 2026-11-22T14:52:12.667Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0
+          FAIL | due_times_probe.py restart                   | FAIL: the candidate exited (rc 2) before it listened on PORT=49567: 2026-11-22T14:52:12.907Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0
+          FAIL | due_times_probe.py switch                    | FAIL: the candidate exited (rc 2) before it listened on PORT=49574: 2026-11-22T14:52:13.411Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0
+          FAIL | due_times_probe.py rollback                  | FAIL: the candidate exited (rc 2) before it listened on PORT=49592: 2026-11-22T14:52:14.165Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0
+          pass | due_times_probe.py off                       | off: every expectation holds
+          FAIL | due_times_probe.py cli                       | FAIL: the candidate exited (rc 2) before it listened on PORT=49669: 2026-11-22T14:52:15.508Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0
+       the delivered suite at bb1199fa4b9d, run once: exit 0, {'tests': 121, 'pass': 121, 'fail': 0, 'skipped': 0}
+       its servers by address: {'IPv4 127.0.0.1': 26}
+       servers not on 127.0.0.1, by the script that started them: none
+    == sonnet-E-due-1
+       case ticket-due-times | claude claude-sonnet-5-5 medium | pass True | minutes 27.3 | cost 8.6294
+       base {"fixture": "node-tickets", "digest": "6d6f3563c459", "start_head": "2ed7d244f295c821cc0f03b3cc40fad52f3a09fb", "files": 60}
+       graded under {"evaluator": "cc221376b337", "oracle": "95a78b4ccfa1", "case": "22063c685377"}
+       verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True}
+       case checks: 8 of 8 pass
+          pass | base_tests.py suite node-tickets             | the delivery's own node --test passes 142 tests, the base's 117 and 25 more
+          pass | base_tests.py pristine node-tickets          | the base's 18 pristine test files pass against the delivered source: 117 of 117 tests
+          pass | due_times_probe.py migrate                   | migrate: every expectation holds
+          pass | due_times_probe.py restart                   | restart: every expectation holds
+          pass | due_times_probe.py switch                    | switch: every expectation holds
+          pass | due_times_probe.py rollback                  | rollback: every expectation holds
+          pass | due_times_probe.py off                       | off: every expectation holds
+          pass | due_times_probe.py cli                       | cli: every expectation holds
+       the delivered suite at 68cdc2444c56, run once: exit 0, {'tests': 142, 'pass': 142, 'fail': 0, 'skipped': 0}
+       its servers by address: {'IPv4 127.0.0.1': 32, 'IPv6 ::': 3}
+       servers not on 127.0.0.1, by the script that started them: {'server.js': 3}
+
+Against the registration
+(a) holds: both runs started from node-tickets at 6d6f3563c459, neither launch was refused over the pin, and each is graded
+    under evaluator cc221376b337, oracle 95a78b4ccfa1, case 22063c685377.
+(b) holds: every server a delivered suite starts through the base's helper listens on 127.0.0.1 (26 of 26; 32 of 32). The
+    three on every address in the Sonnet delivery are the product, started by the builder's own system test:
+        test/due-system.test.js: spawn(process.execPath, [SERVER], { env: { ...process.env, PORT: '0', WORKER_INTERVAL_MS: '0', ... } })
+        ... /listening on (\d+)/ ... base: `http://127.0.0.1:${match[1]}`
+    A product on every address with a port the system picks, called at 127.0.0.1: the pattern the change does not reach.
+(c) holds: no base, pristine or suite check ended on "did not end".
+
+The Sol delivery's five failing checks, read
+    python3 "$E2E_CHECKS/due_times_probe.py" migrate
+    FAIL: the candidate exited (rc 2) before it listened on PORT=49566: ... error cannot start: .../due-times-probe-.../tickets.json:
+    ticket T-0001 has no due time; run the due-time backfill
+    (the delivery DUE_TIMES=on server did not start)
+  restart, switch, rollback and cli fail at the same start; suite, pristine and off pass. The delivery adds
+  scripts/backfill-due-times.js and refuses to start switched on until an operator has run it: the design choice the journal
+  records for Sol on this case on the old base (3 of 6 at medium, 4 of 6 at high; R130). Its diff of src/server.js is one
+  line, the store's options; it does not touch `server.listen(config.port, config.host, ...)` or TEST_SETTINGS, and neither
+  delivery adds a host setting.
+
+Conditions
+- Three live runs of another session, on the old base, were on the machine until 06:52 (e2e-runs/r-20261122-ffb3fb: Sol
+  twice, Sonnet once), and that session ran a quick tier at four jobs from about 07:00 to 07:05, beside the Sonnet run.
+- After the runs, and again after the tier, no process of theirs was left: none with a working folder under the run root
+  or the candidate's checkout, none carrying this session's environment.
+
+The quick tier selected by the change (07:06:37 to 07:16:53; no live run and no other tier on the machine)
+    bash test/run-all.sh --group quick --changed-from 7e558e364e12fc3dca3cef76b65625702a060e68 --jobs 8
+    run-all.sh: 70 suites in 611.8 s wall (--jobs 8); slowest: shiploop-e2e-slice 353.8 s, shiploop-e2e-stages 325.1 s,
+    shiploop-e2e-test-adequacy 315.0 s
+    run-all.sh: PASS (quick hermetic group selection)
+  Selection: 57 suites affected by the changed paths, 13 smoke. Among them: shiploop-e2e-brownfield-tickets 53 tests
+  (170 s; FixtureAddressTest among them), shiploop-e2e-brownfield 31, shiploop-e2e-test-adequacy 35,
+  shiploop-e2e-ticket-comments 21, shiploop-e2e-slice 73, shiploop-e2e-stages 130. Run on the tree of
+  8debbdcf8eb2bab882fd054d64a89d2c4fd158c9 with the reader and evidence files of this commit beside it.

@@ -877,6 +877,46 @@ class BaseFixtureTest(unittest.TestCase):
                 self.assertIn(record.name, table)
 
 
+# A preload for `node --test`: one line, "family address", for every server that starts listening, appended to $LISTEN_LOG.
+LISTEN_RECORDER = """'use strict';
+const fs = require('node:fs');
+const net = require('node:net');
+const listen = net.Server.prototype.listen;
+net.Server.prototype.listen = function recorded(...args) {
+  this.once('listening', () => {
+    const address = this.address();
+    if (address && typeof address === 'object') fs.appendFileSync(process.env.LISTEN_LOG, `${address.family} ${address.address}\\n`);
+  });
+  return listen.apply(this, args);
+};
+"""
+
+
+@needs_node
+class FixtureAddressTest(unittest.TestCase):
+    """The ticket fixtures' own tests start their service on 127.0.0.1, the address their client calls.
+
+    A service that listens on every address can be given a port number that another program on the machine already holds on
+    127.0.0.1, and a call to 127.0.0.1 then reaches that program: the test fails on a dropped call, takes a JSON answer for the
+    service's, or never ends on any other answer. Measured on 2026-11-22 with the service on every address as 20 of 1,600 runs
+    of the base's tests that failed or never ended, against 0 of 1,600 with it on 127.0.0.1
+    (docs/experiments/sdlc-structure-20261119/evidence/port-mixup.txt)."""
+
+    def test_every_server_the_fixtures_own_tests_start_listens_on_the_address_their_client_calls(self):
+        for name in ("node-tickets", "node-tickets-assigned"):
+            with self.subTest(fixture=name), tempfile.TemporaryDirectory(prefix="fixture-address-") as raw:
+                copy, recorder, log = Path(raw) / "copy", Path(raw) / "record_listens.js", Path(raw) / "listens.txt"
+                shutil.copytree(brownfield.FIXTURES / name, copy)
+                recorder.write_text(LISTEN_RECORDER)
+                log.write_text("")
+                with mock.patch.dict(os.environ, {"LISTEN_LOG": str(log), "NODE_OPTIONS": f'--require "{recorder}"'}):
+                    done = fixture_process.run_owned(["node", "--test"], cwd=copy, timeout=120)
+                self.assertEqual(done.returncode, 0, (done.stdout + done.stderr)[-1500:])
+                listens = log.read_text().splitlines()
+                self.assertTrue(listens, "the fixture's tests started no server")
+                self.assertEqual(sorted(set(listens)), ["IPv4 127.0.0.1"])
+
+
 @needs_node
 class CalibrationTest(unittest.TestCase):
     """Every variant of both cases, graded by the held-out checks and the base's pristine tests."""

@@ -1,7 +1,8 @@
 'use strict';
 
 /**
- * What the tests share: the service on a free port with the worker off, a JSON client for it, and a ticket body.
+ * What the tests share: the service on a free port of 127.0.0.1 with the worker off, a JSON client for it, and a
+ * ticket body.
  */
 
 const http = require('node:http');
@@ -9,9 +10,14 @@ const { manualClock } = require('../src/clock');
 const { silentLogger } = require('../src/log');
 const { createService } = require('../src/server');
 
-/** The settings a test service starts with: port 0, memory only, the worker off. */
+/**
+ * The settings a test service starts with: port 0 on 127.0.0.1, memory only, the worker off. The address is the one
+ * the client below calls. A service on every address can be given a port number that another program on the machine
+ * already holds on 127.0.0.1, and a call to 127.0.0.1 would then reach that program.
+ */
 const TEST_SETTINGS = Object.freeze({
   port: 0,
+  host: '127.0.0.1',
   dataFile: null,
   notifyFile: null,
   workerIntervalMs: 0,
