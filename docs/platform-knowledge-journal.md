@@ -1418,3 +1418,199 @@ of a knowledge home), and the next step is to tell the two apart.
 **Limits known before the run.** One service, one request, three deliveries. Three bullets: a starter for
 Salesforce would be longer, which is rung 8's question. The provenance is the weakest I could write honestly.
 
+## 36. Rung 9: a starter file copied into a brand-new project is enough: 3 of 3 products pass (2026-11-22, 14:58 to 15:19)
+
+Runs `~/e2e-runs-pk/20261122-n/q01` and `q02` (Sol medium) and `q03` (Sonnet medium), released ShipLoop, the fresh
+repository of rung 6 plus the one starter file of section 35. Readings on the candidate branch:
+`familiar/readings/contract-rung9.txt` and `rung9-product-token.txt`.
+
+| Run | Driver | ShipLoop | Minutes | Output tokens | Sent id echoed, id generated, 400 path | The 18 existing answers unchanged | Existing routes carrying the header | What its knowledge home keeps of the starter |
+|---|---|---|---|---|---|---|---|---|
+| q01 | Sol | done | 11.7 | 23,749 | pass, pass, pass | pass | none | the note and the three bullets, word for word |
+| q02 | Sol | done | 8.5 | 17,707 | pass, pass, pass | pass | none | the same, and a paragraph: "The gateway header requirement applies to new and changed responses, including errors. The Express and multi-instance notes above are generic and do not establish this service's live topology." |
+| q03 | Sonnet | done | 21.4 | 154,808 ($7.48) | pass, pass, pass | pass | all 18 | the note rewritten to "Checked against this repository on the first run:", each bullet annotated: "Not relevant to /stock", "Not applicable: the service uses `node:http`, not Express", "Binding requirement for /stock (platform note) [...] the gateway behaviour is unverified here" |
+
+**Rule ("the starter holds on Sol when both Sol products pass"): it holds. Prediction ("at least 2 of 3"): right, 3
+of 3.** On the same repository with no starter the released route scored 0 of 2 (rung 6).
+
+**How it went.** All three sessions read the starter within twelve seconds of starting, with the README. All three
+wrote the header into the spec as a requirement (q03: "R-4 Every response of /stock carries X-Org-Request-Id"),
+wrote a full knowledge home around the starter, and kept the starter's own words. The two real bullets led to no
+work nobody asked for; two deliveries say in writing that they do not apply here. q01 opened the Node card once,
+about a minute in and after it had read the starter; q02 and q03 never did.
+
+**So the simplest way works.** Facts copied into a new project's knowledge file, marked as copied and unchecked,
+reach the product on both drivers with no change to ShipLoop, and the first delivery checks them against the
+repository (Sonnet in writing, bullet by bullet).
+
+**Limits.** One service, one request, three bullets, three deliveries. A copy does not follow later changes to its
+source.
+
+## 37. Rung 8: one list of forty facts against an index with pages: the fact is found in both, and the pages save nothing (2026-11-22, 15:08 to 15:19)
+
+Eight plan-stage slices, `~/e2e-runs-pk/20261122-m/m01` to `m08`, released ShipLoop. Reading
+`familiar/readings/rung8.txt` on the candidate branch.
+
+| Shape | Driver | Token in the plan, `architecture.md` or `spec.md` (the reading of record) | Hidden bullet given in full | Knowledge text given | Pages |
+|---|---|---|---|---|---|
+| List of 40 | Sol (m01, m08) | no, no | yes, yes | 6,336 of 6,336 characters | |
+| List of 40 | Sonnet (m02, m05) | yes, yes | yes, yes | 6,336 of 6,336 | |
+| Index and 7 pages | Sol (m03, m06) | yes, yes | yes, yes | 7,591 of 7,591 | all seven read in one command that names none |
+| Index and 7 pages | Sonnet (m04, m07) | yes, yes | yes, yes | 7,591 of 7,591 | 7 and 5 named; every page's text given |
+
+**As registered.** The list: 2 of 4, so it does not hold (rule: 3 of 4), and it fails on Sol. The index: 4 of 4,
+it holds on both drivers. Predictions: "the bullet is given in 4 of 4" right; "the list reaches the plan in at
+least 3 of 4" **wrong** (2); "`access.md` is opened in at least 3 of 4" right (4); "the index reaches the plan in
+at least 2 of 4" right (4); "the index gives under 60% of the list's characters" **wrong**: it gave 120%.
+
+**By hand, the two Sol misses are not misses of the fact.** Both plans act on the hidden bullet without writing the
+group's name. m01: "Ship a dedicated Dispatch Queue permission set, custom permission and dispatcher-only
+permission set group [...] Keep shared groups and profiles untouched because their assignees are unverified." m08:
+"guard both new endpoints with a custom permission delivered through a dedicated group. The shared feature group
+has no verified twelve-person membership." No plan of the eight assigns a permission set to users directly, and
+all eight notice what the planted rule collides with (the request's twelve dispatchers): the two Sol index plans
+make the named group conditional ("eligible only if its effective audience matches the dispatcher roster"), the
+Sonnet plans decline to edit it. So by hand the fact was used in 8 of 8; the token count is the reading of record
+and it under-reads Sol here, as it did in sections 14 and 23. I cannot say from two runs a cell whether a fact on
+a topical page is named more often than one in a long list, or whether this is chance.
+
+**What this says to the owner's two worries.**
+
+- *"I worry the file cannot be loaded in context."* A list of forty real facts is 6,336 characters, about 1,600
+  tokens, against a delivery whose largest request is about 150,000 (Sol, section 33's runs). Both drivers were
+  given every line of it.
+- *"The wiki style would pollute context less, but requires key identifiers and pointers."* The pointers were
+  followed every time. They saved nothing: told to read a topic's page before a decision that touches it, both
+  drivers read every page, and the index plus the pages is more text than the list. At this size an index with
+  pages costs a fifth more context and several more tool calls, and buys nothing I could measure.
+
+**Limits.** The plan stage, started cold; one platform, one request, two samples a cell; forty facts. A reference
+ten times this size is not tested, and that is where an index could start to pay.
+
+## 38. The owner's direction: a shared design repository and a local one, read live; rung 10 registered before its runs (2026-11-22, 15:13 to 15:23)
+
+**Owner, about 15:12, word for word:** "One of the things that I'm really trying to do is have effectively a design
+repository: probably one that acts like a marketplace that's always shipped with the base version of ShipLoop, and
+then another one that might be actually just used for a local repo that actually is updating ShipLoop with its
+local changes. I'm trying to figure out if that would change our design in any way."
+
+**My reading**, stated to him and not corrected: a shared repository of platform facts, distributed like the
+marketplace and shipped with ShipLoop; and a local one inside a project's repository that adds to the shared one
+and overrides it for that project.
+
+**What I answered.** The local repository is already what a delivery reads (sections 32, 33, 36); a shared
+reference that is only shipped and named is not opened on a platform the model knows (sections 3 and 23); so the
+two need a step between them. I recommended copying the shared facts into each project (rung 9 had just passed on
+Sol) and asked: "Should a project get the shared facts as a copy in its own repo, or read them live from ShipLoop
+each run?"
+
+**Owner, about 15:16: "Read live".** So the shared facts are not copied into a project's repository. Each run reads
+them from the repository that ships with ShipLoop, and the project's own `## Platform facts` add to them and win
+where they differ.
+
+**What the results require of a design that reads live.**
+
+1. *The script has to deliver the text.* A model does not go and read a shipped reference for a platform it knows.
+2. *At a stage Sol reads, where the fact becomes a record later stages carry.* Printed at the plan stage only, the
+   Sol delivery never gave itself the block (section 26). Printed at discovery and at plan it passed 3 of 3
+   (section 28), but that arm's lead asks discovery to record the entries in the project's knowledge file, which is
+   the copy now ruled out, and section 35 shows what such copies look like. Rungs 7b and 9 show how a fact
+   travels once a session has it: it is written into the spec as a requirement, then tested and built. So the
+   first candidate prints at the **spec** stage, where the requirement is the carrier and nothing is written to
+   the knowledge file. This is the second review's advice: "Put the fact at the first decision that needs it and
+   then carry the decision, in the records ShipLoop already has".
+3. *Local wins.* Stated in the printed lead. No merging by entry key yet: first see whether a sentence is enough.
+4. *Selection* stays as built for the test (a card's declared files). The review's objections to it stand; with a
+   local repository, the plain product answer is that the project names the shared sets it uses.
+
+**Other ways to read live, considered and not built.** (B) Print at discovery and record in the knowledge file:
+tested, 3 of 3, but it leaves copies of shared facts mixed with one run's decisions in the repository, and under
+"local wins" a stale copy would then override a fresh shared entry. (C) Write the live facts as an uncommitted
+file beside the knowledge home in the run's worktree: it would use the channel with the strongest evidence (read
+whole in the first seconds, weighed, 8 of 8 and 6 of 6), but it needs workspace and commit mechanics. It is the
+fallback if printing at the spec stage fails on Sol.
+
+**Amendment 9, rung 10.** One arm, "live at spec": selection declared, entries printed by value at the spec stage
+only, after the duty item that asks for the requirements and before "Result template:", with this lead: "Platform
+planning facts (<card file>): read from ShipLoop's guide at this run, not this project's own record. Where
+KNOWLEDGE/environment.md ## Platform facts says otherwise, the project's own facts win. For each one that bears on
+this request, write a requirement with the check that proves it. Copy none of them into
+KNOWLEDGE/environment.md." Built by an Opus subagent as one more experiment switch; defaults unchanged. Six whole
+deliveries on the Node service, `familiar/runs/rung10.tsv`, in a new runs root `~/e2e-runs-pk/20261122-r/`:
+
+- **T1, delivery.** The fresh repository of rung 6, where the released route scored 0 of 2: r01 and r02 on Sol
+  medium, r03 on Sonnet medium. Reading: the tightened product check. Rule: reading live at the spec stage **holds
+  on Sol** when both Sol products pass. Prediction: at least 2 of 3 pass.
+- **T2, precedence.** The repository with a knowledge home that names the card, and whose `## Platform facts`
+  holds a local fact that contradicts the shared entry: the gateway "was replaced on 2026-10-20. It drops any
+  response that lacks the header `X-Corp-Trace` and no longer reads `X-Org-Request-Id`". r04 and r05 on Sol, r06 on
+  Sonnet. Reading: the same check asked for the local header; beside it, whether the old header is also set. Rule:
+  the local fact **wins on a driver** when every product of that driver passes with the local header. Prediction:
+  at least 2 of 3.
+
+**What each outcome would mean.** T1 holds: reading live needs one printing point and no copy. T1 fails on Sol:
+the fallback is (C), or (B) with its copies. T2, local wins: a sentence carries precedence. T2 fails: the script
+merges by entry key, so a model is never shown an entry the project has replaced.
+
+**Limits known before the runs.** One service; a shared set of three entries (forty entries printed in a packet
+is not tested: rung 8 was forty in a file); selection as built; no host that clears context between stages.
+
+## 36. Rung 8, first samples: both shapes put the fact in front of the model; the count of record and the hand reading disagree; a repeat on Sol registered (2026-11-22, 15:08 to 15:21; registered 15:24)
+
+Eight plan-stage slices, `~/e2e-runs-pk/20261122-m/m01` to `m08`, released behaviour, apparatus at candidate commit
+91724bbcbe30f1386f44a608d83655207908f16f (40 real Salesforce facts, the same set in both shapes, the hidden bullet
+in the middle). Reading `familiar/readings/rung8-knowledge.txt` on the candidate branch.
+
+**The count of record** (the token `SLX_Feature_Access` in the accepted plan, or in the `architecture.md` or
+`spec.md` the plan stage wrote):
+
+| Shape | Sol | Sonnet | All | Hidden bullet given in full | Knowledge characters given |
+|---|---|---|---|---|---|
+| L, one long list (m01, m08; m02, m05) | 0 of 2 | 2 of 2 | 2 of 4 | 4 of 4 | 6,336 of 6,336 each |
+| X, index with pages (m03, m06; m04, m07) | 2 of 2 | 2 of 2 | 4 of 4 | 4 of 4 | 7,591 of 7,591 each |
+
+**By the registered rule** L does not hold (2 of 4; it fails on Sol) and X holds on both drivers.
+
+**Predictions.** L "the bullet is given in 4 of 4": right. L "the token reaches the plan in at least 3 of 4": wrong,
+2 of 4. X "`access.md` is opened in at least 3 of 4": right, every page was given in full in 4 of 4. X "at least 2
+of 4": right, 4 of 4. "X gives the model under 60% of the knowledge characters L gives": wrong, it gave 120%.
+
+**The pages saved no context.** Each of the four index runs read every page: both Sol runs with one command over
+the folder, Sonnet page by page (7 of 7 named, and 5 of 7 named with the rest through the folder). A feature with a
+tab, Apex, a component, a deployment and tests touches every topic, and the index says to read a topic's page before
+a decision that touches it. So at this size the wiki shape cost the list's characters plus the index.
+
+**The hand reading: what each plan decided about access** (the accepted plan and `architecture.md`):
+
+| Run | Shape | Driver | Names the org's group | The decision |
+|---|---|---|---|---|
+| m01 | L | Sol | no | a new permission set and a dedicated dispatcher-only permission set group; "Keep shared groups and profiles untouched because their assignees are unverified"; "Confirm group policy" before assignments |
+| m08 | L | Sol | no | "delivered through `Dispatch_Queue_Dispatchers`, a dedicated permission set group. [...] The shared feature group has no verified twelve-person membership." |
+| m02 | L | Sonnet | yes | a new permission set "assigned only to the twelve dispatchers by the org admin. It is NOT added to `SLX_Feature_Access` unless that group holds exactly the twelve" |
+| m05 | L | Sonnet | yes | "reached through the org's permission set group `SLX_Feature_Access` [...] adding the set to the group and assigning the twelve dispatchers are the org admin's steps" |
+| m03 | X | Sol | yes | "Use the documented SLX_Feature_Access route only after verifying its complete effective audience [...] If it serves a wider cohort, the release owner must resolve a dispatcher-only group route" |
+| m06 | X | Sol | yes | "through an org-approved dispatcher-only permission-set group. The current SLX_Feature_Access group is eligible only if its effective audience matches the dispatcher roster [...] No profiles, direct user assignments" |
+| m04 | X | Sonnet | yes | the group is not edited, its membership being unknown; "a permission set is never assigned to users directly here: a group of the twelve holds it" |
+| m07 | X | Sonnet | yes | "assigns it to no one and edits no group. `SLX_Feature_Access` is the org's route (platform/access.md) but [...] not known to be limited to the twelve dispatchers"; handed to the org admin |
+
+**What the two readings say together.** In all eight plans the org's rule was weighed against the request's "only
+twelve dispatchers": none ignored it. Seven of the eight keep the rule's intent (access through a permission set
+group, or no assignment at all); the eighth, m02, names the group and then has the admin assign the set to the
+twelve directly, which the bullet says this org never does. So the token again misreads in both directions: the two
+Sol plans of the long list follow the rule and are counted out because they call the group "the shared feature
+group", and m02 is counted in. What does differ by shape on Sol is precision: with the pages both Sol plans name the
+org's group and make its use conditional on its audience; with the long list both make a new group and never name
+the existing one, so a reader of those plans is not told which group the org uses. Two samples a cell: 0 of 2
+against 2 of 2 can be chance.
+
+**Amendment 9, rung 8b, registered before its runs.** Four more slices on Sol medium, two a shape
+(`familiar/runs/rung8b.tsv`: m09 and m12 the long list, m10 and m11 the index), same apparatus. Two readings, both
+fixed now. (a) The token, as before. (b) By hand, in the categories of the table above: names the org's group or
+not; and the decision, one of: adds the set to the org's group; the org's group only if its audience matches; a new
+dedicated group; left to the admin with no assignment; a direct assignment to users. Rule: over the four Sol slices
+of each shape, the shapes **differ on Sol** when the counts of plans that name the group differ by 3 or more.
+Prediction: the long list names it in at most 1 of 4 and the index in at least 3 of 4.
+
+**What it decides.** If the shapes differ, the pages earn a place for precision on Sol, not for context. If they do
+not, the shape is a matter of taste at this size and the plain list stands.
+
