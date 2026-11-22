@@ -4636,3 +4636,11 @@ to its Claude; a notice of that came a minute after the sending. The usual cause
 different permission modes, and a held message expires unless it is released there. It is not resent while
 held. What it carried is all in this journal: sections 43, 55, 57 and this one. The reply to the Ratchet
 session drew no such notice.*
+
+*Added 2026-11-21 21:03: the held note expired at about 20:00 without being delivered. Told so, and that a
+second copy would be held unless the two sessions' permission modes were first made to match, the owner
+answered "Resend and journal". The same note was sent again at 21:02, marked as a resend, and a notice came
+within the minute that it is held again. So nothing of this study has yet reached the SDLC session by
+message, in three attempts today (one about section 43, two about sections 55 to 58). The copy that lasts is
+this journal on main. The one line that points that session at it was given to the owner: read sections 55,
+57 and 58 of this journal.*
