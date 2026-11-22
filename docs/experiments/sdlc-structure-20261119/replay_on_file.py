@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Replay, on saved deliveries, the commands the rebuilt release-verify rule adds (round 15).
 
+Written for the candidate at 62676fc0e0dacb0ca8febd7f6f2424684c707b47, whose scripts it must be given: the later
+build has no ``copy_floors`` (it measures the count; see ``gate_on_file.py``).
+
 For each run folder: ``release_commands`` (the candidate's own function, with the place taken as a clean copy of the
 returned result) lists the consumer checks release-plan recorded and the regression commands ShipLoop adds after
 them; ``copy_floors`` gives each recorded command its floor.  Every ADDED command is then run once in an exported

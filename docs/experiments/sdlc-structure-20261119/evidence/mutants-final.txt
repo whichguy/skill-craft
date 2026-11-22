@@ -1,0 +1,14 @@
+caught by 1: every item's commands, not the last item's  [only_the_last_work_item_that_records_a_regression_command_has_it_]
+caught by 1: the last item chosen before hosted commands are left out  [a_later_item_whose_only_regression_command_is_hosted_leaves_the_e]
+caught by 1: a hosted command is added  [a_regression_command_that_tests_a_hosted_runtime_is_not_added]
+caught by 3: the refusal does not mark an added command  [a_check_that_runs_less_does_not_stand_in_for_the_suite]
+caught by 1: the packet's list does not mark an added command  [the_packet_names_the_added_command_before_the_stage_refuses]
+caught by 1: an added command is sent to release-plan to be relabelled  [an_added_command_is_judged_as_the_step_plan_recorded_it_and_never]
+caught by 1: an added command loses the step plan's minimum  [an_added_command_is_judged_as_the_step_plan_recorded_it_and_never]
+caught by 2: a check with the same text is still added (the suite runs twice)  [a_check_that_is_the_regression_command_is_run_once_and_nothing_is]
+caught by 1: commands are added where the checks run in place or in the work area  [no_consumer_check_nothing_added_and_nothing_added_outside_a_clean]
+caught by 1: the note on what is added next is always printed  [a_failing_check_of_the_models_own_gets_the_same_two_exits_and_no_]
+caught by 4: the reply names only add-work  [a_check_that_runs_less_does_not_stand_in_for_the_suite]
+caught by 1: the packet does not print the rule  [the_packet_names_the_added_command_before_the_stage_refuses]
+
+12 of 12 mutants caught

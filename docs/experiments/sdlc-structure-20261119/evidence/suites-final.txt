@@ -1,0 +1,40 @@
+Round 15, the committed code (1f5bb5ca8a3cc3ec1d8806133df9452049225fa8 and 5c48bcc84ac3999cb9dce5484a1da0aeb059f2e2 as one
+working tree): the related suites, one after another, 2026-11-21 about 22:50 to 23:10; load average 5 to 11.
+
+shiploop-retired-terms exit 0 (1 s): Ran 6 tests in 0.769s OK 
+shiploop-packet-obligations exit 0 (3 s): Ran 15 tests in 2.921s OK 
+shiploop-test-counts exit 0 (0 s): Ran 71 tests in 0.019s OK 
+shiploop-knowledge exit 0 (24 s): Ran 163 tests in 23.910s OK 
+shiploop-delegation exit 0 (11 s): Ran 66 tests in 10.925s OK 
+shiploop-head-order exit 0 (9 s): Ran 36 tests in 9.010s OK 
+shiploop-packet-completeness exit 0 (6 s): Ran 66 tests in 5.427s OK 
+shiploop-domain-words exit 0 (1 s): Ran 5 tests in 1.280s OK 
+shiploop-guidance exit 0 (5 s): Ran 93 tests in 4.528s OK 
+shiploop-confirmation exit 0 (0 s): Ran 5 tests in 0.072s OK 
+shiploop-send-back exit 0 (1 s): Ran 24 tests in 0.767s OK 
+shiploop-handoff exit 0 (60 s): Ran 170 tests in 59.829s OK 
+shiploop-consumer-delivery exit 0 (2 s): Ran 34 tests in 1.789s OK 
+shiploop-consumer-delivery-cli exit 0 (2 s): Ran 5 tests in 2.024s OK 
+shiploop-clean-consumer exit 0 (4 s): Ran 3 tests in 1.532s OK 
+shiploop-navigator-contract exit 0 (131 s): Ran 127 tests in 130.588s OK 
+shiploop-packet-bounds exit 0 (1 s): Ran 21 tests in 1.153s OK 
+shiploop-step-packets exit 0 (2 s): Ran 10 tests in 1.480s OK 
+shiploop-packet-recut exit 0 (2 s): Ran 30 tests in 2.053s OK 
+shiploop-reference exit 0 (1 s): Ran 8 tests in 0.088s OK 
+shiploop-quality exit 0 (6 s): Ran 8 tests in 6.840s OK 
+shiploop-stage-spec exit 0 (1 s): Ran 12 tests in 0.212s OK 
+shiploop-workspace exit 0 (178 s): Ran 102 tests in 178.259s OK 
+shiploop-test-loop exit 0 (526 s): Ran 241 tests in 525.424s OK 
+
+24 suites, 1,321 tests, all pass.
+
+Fail-first. The moved-file test, with the engine files of 62676fc0e0dacb0ca8febd7f6f2424684c707b47: both forms of a move
+fail (the commit holds the new path only). The 19 tests for the release-verify rule, on the same commit's engine: 4
+fail (test_no_test_count_is_compared_so_a_suite_that_passes_with_fewer_tests_is_accepted,
+test_the_packet_names_the_added_command_before_the_stage_refuses,
+test_an_added_command_is_judged_as_the_step_plan_recorded_it_and_never_sent_to_release_plan,
+test_a_suite_that_fails_in_the_returned_copy_is_refused_and_the_corrective_item_replaces_it); 15 pass on both.
+
+The count measured in the work area (built, not committed): with that run made in the work area, the test
+test_a_suite_that_writes_a_file_leaves_the_work_area_and_the_return_as_they_were failed after the non-counting check:
+the work area's status gained '?? report-23837.txt'.

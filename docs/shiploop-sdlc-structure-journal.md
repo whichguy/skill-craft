@@ -3673,6 +3673,133 @@ Three whole deliveries of the ticket case at medium effort, defaults, started to
 4. The rebuilt code is checked on the saved deliveries again, now 27 and with this refusal among them, before a
    second confirmation round is registered.
 
+### Owner decision, 2026-11-21: no count
+
+Asked whether to keep a test-count comparison at release-verify or drop it for the plain rule, with the pro and con
+of each, the owner answered "Go for the simpler". So release-verify compares no test count. ShipLoop adds the last
+work item's regression command to the clean copy's commands and it must pass there.
+
+What the owner was shown. For keeping: it is the one thing that would catch a suite that passes in the clean copy while its
+tests skip themselves there, and one builder of two that knew its suite could not run in a copy reached for a skip
+switch (R118). For dropping: on the 27 deliveries on file the count caught no fault (both real faults fail by exit
+code), one build of it refused a sound delivery (R137), and it had taken three builds. I recommended keeping it with
+the second round as its test. The owner chose the plain rule, and the record supports that choice: nothing measured
+speaks for the count.
+
+### The count's three builds, and the moved file
+
+- **Build 1, read from the run's records** (62676fc0e0dacb0ca8febd7f6f2424684c707b47): refused a sound delivery
+  (R137).
+- **Build 2, measured in the work area at the moment of the check** (decision 1 above; built, not committed). The
+  third outside review said to change it first, and it was right: that run comes after the return has recorded the
+  candidate, so a suite that rewrites a tracked file or leaves a new one changes the candidate. A test through the
+  real gate showed it: a suite that writes a report on every run left `report-23837.txt` in the work area after the
+  non-counting check.
+- **Build 3, measured on the returned tree in a temporary checkout that has the repository's history** (built, not
+  committed): the checkout the test stage's base run already makes, at the receipt's tree. It passed its 36 unit
+  tests and 10 tests through the real gate, 16 mutants, and the replay of the refused attempt (148 in both places);
+  on the two faulty deliveries the suite passed with the history and failed in the copy. It still meant a second run
+  of the suite and a refusal for any suite whose count differs between two runs.
+- **What is committed** (two commits on the candidate branch, in this order):
+  1f5bb5ca8a3cc3ec1d8806133df9452049225fa8, the moved file, and 5c48bcc84ac3999cb9dce5484a1da0aeb059f2e2, which
+  removes every count from release-verify. Neither is on main until the second confirmation round below is read.
+- **The moved file (F95).** The one commit helper lists what it staged with renames off, passes to `git add` only
+  paths that are in the checkout or the index, and keeps a path that is in HEAD alone (a deletion already staged).
+  The commit before the return and one other listing do the same. With the engine files of the commit before it, a
+  test of both forms of a move (left as it is, staged first) through the real workspace calls fails; with them it
+  passes and the return is a fast-forward. It is outside the four approved changes (decision 2 above).
+- **What the rule is now.** In the clean copy ShipLoop runs the consumer checks and then each regression command of
+  the last work item that records one that runs on the checkout, where no check is that command (the same text). The
+  added command is judged as the step plan recorded it and marked in the packet and in a refusal. A command that
+  fails has two exits: `send-back` when the release plan lacks a step it needs, `add-work` when the delivery must
+  change.
+- **The limit accepted**, written into the reference and pinned by a test: a suite that passes in the clean copy
+  while some of its tests skip themselves there is accepted. If a delivery shows it, build 3 is the starting point.
+
+### The committed code on saved release checks (no live run; `evidence/gate-on-file.txt`)
+
+- **R143.** ShipLoop's own release-verify gate, on the committed code, on 28 saved release checks: the 24 deliveries
+  of rounds 13 and 15, the confirmation round's three, and its refused attempt replayed on the tree it returned. 26
+  pass and 2 are refused, `sonnet-high-due` and `sonnet-B-due`, each on the `npm test` ShipLoop added. Seven commands
+  are added in all and none is held to a count. The attempt the round refused wrongly passes (148 tests, all passing).
+  In that run `sonnet-high-due`'s added command did not end within the script's 120 seconds and was recorded
+  could-not-run; run again alone three times it fails each time in 2 seconds with exit 1. Both results are kept.
+- **R144 (leftover test servers, found while this ran).** A check on build 3 stood still for eight minutes on an
+  `npm test` that did not end in a clean copy. Looking for the cause:
+  - Five `node` processes from two of this study's earlier runs, `sonnet-medium-due` (finished 11:34) and
+    `due-medium-3` (finished 14:28), were still alive after 11 and 8 hours: hung test commands of ShipLoop's base
+    run in its temporary checkouts, parentless, two of them holding a listening port on the wildcard address. Both
+    runs' `left_behind` verdicts report nothing left. I stopped the five by process id.
+  - Twenty-nine more parentless `node` processes hold wildcard ports from temporary folders named `base-tests-*`,
+    `pristine-*` and `suite-*`, the oldest six days old. Those are the prefixes of the harness's own base check,
+    `checks/base_tests.py`, which runs `node --test` with a 120-second limit and, when the limit passes, stops that
+    one process: the test-file runners and the servers they started live on. I did not stop them: they are not
+    provably this study's, and the check is inside the evaluator boundary. Both the clean-up and the fix are put to
+    the owner.
+  Listeners like these are what the ticket fixture loses verdicts to (R55), and each one left behind makes the next
+  loss more likely. That this is the source of this study's lost verdicts is likely and not established: no reading
+  here depends on it.
+
+### Third review (Sol 6.2 at max effort; `review-r15/sol-max-review-3.md`)
+
+Served by `gpt-6.2-sol` at max effort with no fallback, read-only, on a neutral export, with the question in
+`review-r15/sol-max-brief-3.txt`. It was asked about build 2 of the count and about the moved file. Verdict: change
+first. Seven findings; each was checked in the code. The owner's decision came after it.
+
+| # | Finding | Disposition |
+|---|---|---|
+| 1 | A run in the work area after the return can change the candidate the return recorded | True, and reproduced. Answered first by build 3, then by the owner's decision: nothing is run outside the clean copy. The test stays as the pin of that |
+| 2 | That run is one more place to meet the shared runner's unbounded wait after a timeout, with the run lock held | The wait is the runner's, for every stage, and is not changed here; put to the owner as a separate fix |
+| 3 | The work area can be ahead of the return or hold uncommitted edits; a count can differ between two runs | No longer applies: no count |
+| 4 | A reference that fails leaves the copy with no floor; a check that is the command does not carry the step plan's test IDs | First part no longer applies. Second part declined as after the second review; written down |
+| 5 | The moved-file fix is right for a plain move, a staged move, a directory, a move with an edit, a deletion alone and the empty commit; two edges older than the fix remain (an ignored destination staged by hand, a dangling link) | Nothing to change in the fix. The two edges are recorded and left |
+| 6 | The texts should say what sets a floor and what happens when nothing does | The texts now say what is run and that no count is compared |
+| 7 | Add a test through the real gate for a suite that writes a file after the return | Taken; it now pins that the added command runs in the clean copy alone |
+
+### What was checked before the second round
+
+- **Fail-first.** With the engine files of 62676fc0e0dacb0ca8febd7f6f2424684c707b47 the moved-file test fails for both
+  forms of a move, and 4 of the 19 tests for the release-verify rule fail (no count is compared, the packet's list has
+  no floor, an added command is judged by the step plan's minimum, the corrective route for a failing suite); 15 pin
+  what both builds share.
+- **Both exits, through the real gate with a real return (10 tests).** A suite that fails in the returned copy is
+  refused, `add-work` is accepted, the corrective item's step plan records a replacement command, release returns
+  again and release-verify passes with the replacement added and the first command no longer run. A suite that lacks
+  an install step is refused, `send-back` is accepted, release-plan records the step and on the same returned tree the
+  stage passes. The added command runs in the clean copy alone: the work area's status and the return are unchanged
+  after the check and after done.
+- **Mutants (`mutate_c1.py`, `evidence/mutants-final.txt`).** Twelve decisions of the rule broken one at a time; the
+  unit tests fail on each.
+- **Suites (`evidence/suites-final.txt`).** The 24 related suites, 1,321 tests, pass on the committed code, one after
+  another.
+- **Lint.** ruff's error and unused-name rules are clean on the changed files.
+
+### Registered second confirmation round (written and committed before any run)
+
+**Build D.** The candidate branch at 5c48bcc84ac3999cb9dce5484a1da0aeb059f2e2.
+
+**Runs.** Three whole deliveries at medium, defaults, started together: `ticket-due-times` on Claude
+`claude-sonnet-5-5` twice and on Codex `gpt-6.2-sol` once. No run option, no turn or time cap; the Claude runs carry
+`--max-budget-usd 40`. Before the launch, and after the round, processes left by this study's runs are looked for
+by working folder and stopped by process id.
+
+**Reading.** Every verdict and case check. For each release-verify attempt of each run: the returned head and tree,
+the consumer checks and the added commands in order, each status, count and exit in the clean copy, and what the run
+did next. Every refusal is read by hand as right or wrong and reproduced on a fresh copy of that attempt's tree. A
+failed verdict is explained. Where a file was moved, both paths and the kind of the return are read. The rule is
+accepted if (a) no delivery is refused wrongly, and (b) every delivery ShipLoop accepts passes the harness's suite
+check. A right refusal that the run recovers from counts for the rule and is reported in full. If (a) or (b) fails
+the rule is not released as built.
+
+**Not conclusive, stated in advance.** A run that ends on an unresolved timeout says nothing either way. A driver
+with no accepted delivery leaves that driver unconfirmed. A check lost to the fixture's port collision (R55) is run
+again alone five times on the saved work, the first result is kept and both are reported.
+
+**Limits, stated in advance.** Three deliveries of one case. Neither of the first round's two faults may recur: the
+replay of the refused attempt (R143) and the moved-file test carry them. The cases have no installed dependencies,
+so the `send-back` exit is shown by its test alone. A suite whose tests skip themselves in the copy is accepted by
+design and this round does not look for one.
+
 ## Evidence (all rounds)
 
 | File | Holds |
@@ -3743,6 +3870,8 @@ Three whole deliveries of the ticket case at medium effort, defaults, started to
 | `mutate_c1.py`, `evidence/mutants-c1.txt`, `evidence/suites-c1.txt` | round 15: the fifteen mutants of the rebuilt rule and the test that catches each; the three batches of related suites, with the one failure under load and its reruns |
 | `review-r15/sol-max-brief-2.txt`, `review-r15/sol-max-review-2.md` | round 15: the question put to Sol 6.2 at max effort about the rebuilt rule, and its verbatim answer |
 | `confirm_read.py`, `evidence/confirm-r15.txt` | round 15: the confirmation round: each delivery's verdicts, checks, work items, every release-verify attempt with its counts and floors; the wrong refusal and the uncommitted return reproduced by hand (R136 to R142) |
+| `evidence/gate-on-file-final.txt`, `evidence/mutants-final.txt`, `evidence/suites-final.txt` | round 15: the committed rule (no count) on 28 saved release checks, with the refused attempt replayed (R143); its twelve mutants; the 24 suites and the fail-first results |
+| `review-r15/sol-max-brief-3.txt`, `review-r15/sol-max-review-3.md` | round 15: the question put to Sol 6.2 at max effort about the count measured in the work area and the moved-file fix, and its verbatim answer |
 
 To rerun: `python3 -I stage_census.py <work>/census.json` writes the run list the other scripts read
 (`passes_census.py <work>/census.json <work>/samples.jsonl`, `review_edits.py <work>/census.json
@@ -3800,7 +3929,9 @@ Round 15: `python3 stop_at_stage.py --plugin-dir <plugin> --root <out> --until p
 The observers: `python3 test/shiploop_e2e/observers/observe.py <case> <delivered tree> [--out <file>]`; run on the
 sixteen trees of round 13 it reproduces `evidence/observers-calibration.txt`.
 The rebuilt rule on saved deliveries: `python3 -I gate_on_file.py <candidate>/skills/shiploop/scripts 600
-<name>=<run folder> ...` runs the gate and reproduces `evidence/gate-on-file.txt`; `replay_on_file.py` takes the same
+<name>=<run folder>[@<release-verify action>] ...` runs the gate (with the scripts of 62676fc0e0da it reproduces
+`evidence/gate-on-file.txt`; with those of 5c48bcc84ac3 and a limit of 120, `evidence/gate-on-file-final.txt`);
+`replay_on_file.py` takes the same
 arguments and reproduces `evidence/replay-on-file.txt`; `python3 mutate_c1.py <a copy of the candidate tree>`
 reproduces `evidence/mutants-c1.txt`. The 24 run folders are the sixteen of round 13 (`e2e-runs-sdlc12/20261121`,
 `e2e-runs-sdlc13/20261121`, `e2e-runs-sdlc10/20261121-paired`) and the eight of `e2e-runs-sdlc14/r15b/20261121`.

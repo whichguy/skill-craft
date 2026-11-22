@@ -1,0 +1,93 @@
+# Review request: two corrections to ShipLoop after a live confirmation round refused a sound delivery
+
+You reviewed this change twice (`FIRST-REVIEW.md`, `SECOND-REVIEW.md` here). After your second review the rule was
+tried on three whole deliveries and failed its own acceptance rule: one sound delivery of three was refused. This is
+a third, narrow review of the two corrections made since. Read-only: change nothing. Everything you need is in this
+folder.
+
+## What is here
+
+- `THIS-CHANGE.patch`: only what changed since the build the round ran on (engine, texts, change notes, tests).
+- `skills/shiploop/`: the source with the patch applied. The rule is in `scripts/shiploop_test_loop.py`
+  (`work_area_counts`, `release_commands`, `regression_commands`, `COPY_RULE`, `_copy_refusal`, `rerun_lines`, and
+  their use in `verify`); the commit helper is `scripts/shiploop_git.py` (`commit_paths`, `_stageable`,
+  `planned_tree`); the commit before a return is `commit_leftovers` in `scripts/shiploop_workspace.py`.
+- `test/shiploop-test-loop.test.py` (classes `ReturnedCopyRegressionTests` and `ReleaseVerifyReturnedResultTests`)
+  and `test/shiploop-workspace.test.py` (the test named `test_a_file_moved_after_the_last_work_item...`).
+- `evidence/confirmation-round.txt`: the three deliveries, every release-verify attempt, and both faults reproduced
+  by hand.
+- `docs/shiploop-sdlc-structure-journal.md`: round 15, from "Results of the confirmation round" to "Decisions before
+  a second confirmation round" (R136 to R142, F93 to F95).
+- `test/shiploop_e2e/SPEC.md`, `AGENTS.md`.
+
+## What the round showed
+
+The rule, as you last saw it: in a clean copy of the returned result, release-verify runs the consumer checks and
+then each regression command of the last work item that records one (where no check is that command), and holds each
+of those commands to a count. The count was the latest passed run of that command under a done action, read from the
+run's records.
+
+1. A wrong refusal. One delivery's `npm test` ran 148 tests in the clean copy, all passing, against a recorded 152.
+   After the run that recorded 152, the builder (at release-plan) moved six fixture files out of `test/`, where the
+   test runner had been counting each as a test, and two system tests had been added: 152 - 6 + 2 = 148. The work
+   area, as returned, ran 148 too. The count was an earlier tree's. The refusal cost a corrective work item nobody
+   asked for and about a quarter of the run.
+2. An uncommitted return, in the same delivery, by a separate fault. The moved files' deletions were never committed,
+   so the candidate had a tracked change at the return, the return applied a working-tree delta in place of a
+   fast-forward, and the user's checkout holds the delivery uncommitted. Cause, reproduced in an empty repository:
+   `commit_paths` stages its paths and then lists what is staged with `git diff --cached --name-only`, which names
+   only the new path of a move (rename detection); the path-limited commit then leaves the old path's deletion
+   staged. `_stageable` then drops a staged deletion (it is in neither the checkout nor the index), so no later
+   commit takes it either.
+
+The other two deliveries were accepted correctly, one of them with a consumer check of 3 tests and the full suite of
+159 added and run by ShipLoop.
+
+## The two corrections
+
+A. The count is measured, not looked up (`work_area_counts`). When release-verify is about to run its commands in the
+   clean copy, ShipLoop first runs each of the last work item's regression commands that is among them (added, or
+   written as a check) in the work area, with the caller's environment, and holds the clean copy's run to that count:
+   `too-few-tests` when the copy runs fewer, `uncounted` when the copy's count cannot be read and the work area's
+   could. A command that fails or cannot be counted in the work area at that moment has no floor; its exit code in
+   the copy still judges it. `latest_counts` and `copy_floors`, which read the run's records, are removed. The record
+   gains `work_area` (those runs). The packet's list marks such a command "(floor: its count in the work area)".
+
+B. A moved file is committed whole. `commit_paths` passes to `git add` only paths that are in the checkout or the
+   index, lists staged changes with `--no-renames`, and `_stageable` keeps a path that is in HEAD alone (a staged
+   deletion). `commit_leftovers` and one other listing in `shiploop_workspace.py` also use `--no-renames`.
+
+Checked so far: the refused attempt, replayed on its returned tree with a work area at that head, now passes (148 in
+the work area, 148 in the copy, floor 148); the unit class (20 tests), the real-gate class (9 tests, three of them
+for this rule: a short count refused and repaired through a corrective item with a replacement command; a missing
+install step repaired through send-back; an ordinary delivery accepted); 16 mutants of the rule, all caught; the
+moved-file test fails for both forms of a move (left as it is, staged first) without correction B and passes with
+it. A batch of 24 suites and the gate on 28 saved release checks are running as you read.
+
+## What I want from you
+
+Attack A and B as written in the code. Verify in the source before you claim. In order of importance:
+
+1. A, running the command in the work area at release-verify. What can it break or leave behind? The work area is the
+   run's worktree after the return; it may be ahead of the returned head, and the same command has run there at every
+   step. Consider files the run writes there, a later follow-up return that compares the candidate's fingerprint, the
+   run lock, a command that fails or does not end there, and a resumed saved run.
+2. A, wrong refusals that remain. A count that differs between two runs of one command a second apart; a work area
+   ahead of the return; a suite that reads something only the work area has by design.
+3. A, misses. A way a suite that loses or skips tests in the clean copy is still accepted.
+4. B. Is `commit_paths` now right for every shape of change it is given: a plain move, a staged move, a move of a
+   directory, a move plus an edit of the same file, a deletion alone (staged or not), a path that is a directory
+   holding both, a path never tracked and now gone, and the `allow_empty` call? Is `planned_tree` still the tree
+   `commit_paths` would commit? Does any caller rely on the old listing naming only the new path of a move?
+5. Anything in the texts a model reads (`COPY_RULE`, release-plan's duty 6, the refusal) that is now false or
+   misleading.
+6. The one test you would add.
+
+Then say what a second confirmation round of three whole deliveries (the same case, two on Sonnet and one on Sol,
+medium effort) should check, and what would be overkill.
+
+## Form of the answer
+
+Start with one line: ship as is, change first, or do not ship. Then a ranked list of findings, each with the file and
+symbol, a concrete scenario, how sure you are, and the smallest change that answers it. Separate what you verified in
+the source from what you infer. Leave out style remarks.
