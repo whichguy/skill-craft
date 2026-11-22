@@ -647,6 +647,41 @@ def blind_tests_packet():
     return text
 
 
+# A question put to the test owner (--tests-question), added to the standing tests packet after the passage below,
+# which must be present exactly once. "general" is ShipLoop's key question on preserved behaviour, word for word, in the
+# form amendment 12 found answered (a place to fill, each entry tied to something checkable). "grounded" asks the same
+# of the change itself: the files it touched, read as they were before, and who relied on each.
+TESTS_QUESTION_AFTER = "   test: add those, and any other scenario the specification implies.\n"
+TESTS_QUESTION = {
+    "general": ("   **One question the tests answer.** It is a key question ShipLoop asks of every request: \"" + PRESERVE_K2 +
+                "\"\n   Answer it from what is here (the code, its tests and its documents), not from memory, in "
+                "`ratchet/tests-{cycle}.md`\n   under a heading `## Preserved behaviour`: each thing that must not change, with "
+                "the file that shows it and the\n   name of the acceptance test that fails if it changes. Where no test "
+                "does, write one under the clause it\n   belongs to (the clause that says existing behaviour stays, where "
+                "no narrower one fits). Where there is no\n   existing product, write `none` there.\n"),
+    "grounded": ("   **One question the tests answer, from the change itself.** Run\n"
+                 "   `git diff --stat {base} -- . ':!acceptance' ':!ratchet'`: it lists the files this change touched. For "
+                 "each\n   touched file that existed before, read what it did before the change (`git show {base}:<file>`) "
+                 "and name who\n   relied on it: each route, command, stored field, message or setting that passes through "
+                 "that file and that\n   the request does not ask to change. Answer in `ratchet/tests-{cycle}.md` under a "
+                 "heading\n   `## Preserved behaviour`: one line for each of them, with the touched file, what its caller "
+                 "got before the\n   change (from the old code, its tests or its documents, not from the build), and the "
+                 "name of the acceptance\n   test that fails if the caller now gets something else. Where no test does, "
+                 "write one under the clause it\n   belongs to (the clause that says existing behaviour stays, where no "
+                 "narrower one fits). Where the change\n   touched no file that existed before, write `none` there.\n"),
+}
+
+# The spec stage's text given through a command and not in the prompt (--deliver command; part V): the session is told
+# one command, whose output is the whole text, as ShipLoop's loop script prints a stage's packet.
+DELIVER_COMMAND = ("You are one stage of a loop that a script runs. Your instructions for this stage are printed by one "
+                   "command:\n\n    python3 {tools}/next.py\n\nRun it, read all of what it prints, and carry it out. "
+                   "Nothing else tells you what this stage is to do.\n")
+NEXT_SCRIPT = "import pathlib\nprint(pathlib.Path(__file__).with_name('packet.txt').read_text())\n"
+# Where the one written question of the spec stage stands (--duty-at): in its standing place, or before one of these
+# passages, each of which must be present exactly once.
+DUTY_ANCHORS = {"first": "A short request leaves most of what decides whether the built thing is right unsaid.",
+                "last": "## Done when\n"}
+
 GATE_NOTE = ("The exit check is `python3 {gate} {work}`: it runs every acceptance check there is, the project's own checks "
              "({checks}) and a syntax check of the files you changed, and exits 0 only when nothing fails. You may run it "
              "yourself at any time.")
@@ -737,7 +772,8 @@ class Run:
                        "frozen_from": args.frozen_from, "build_from": args.build_from, "bare": bool(args.bare), "sessions": [], "gates": [], "snapshots": [], "cycles": [],
                        "reverted": [], "spec_violations": [], "local_head": git(REPO, "rev-parse", "HEAD").strip(),
                        "named_checks": True, "enrich": args.enrich, "spec_from": args.spec_from, "preserve": args.preserve,
-                       "tests_blind_from": args.tests_blind_from, "plan_from": args.plan_from, "rules": args.rules}
+                       "tests_blind_from": args.tests_blind_from, "plan_from": args.plan_from, "rules": args.rules,
+                       "prove_fail": [], "tests_question": args.tests_question, "deliver": args.deliver, "duty_at": args.duty_at}
         self.fake = load_fake(args.fake) if args.host == "fake" else None
         self.host = self.env = None
         if not self.fake:
@@ -938,14 +974,30 @@ class Run:
         return record
 
     # -- stages
+    def spec_prompt(self, problems):
+        """(what the session is given as its prompt, the stage's whole text). The two differ with --deliver command."""
+        duty = SPEC_STAGE_QUESTION.get(self.args.preserve, "") + (RULES_SPEC_SECTION if self.args.rules == "spec-section" else "")
+        text = ENRICH[self.args.enrich].format(frame=self.frame, request=self.request, problems=problems, conduct=self.conduct(),
+                                               preserve=duty if self.args.duty_at == "standing" else "")
+        if duty and self.args.duty_at != "standing":
+            anchor = DUTY_ANCHORS[self.args.duty_at]
+            if text.count(anchor) != 1:
+                raise RuntimeError(f"the spec packet does not hold exactly once: {anchor[:60]!r}")
+            text = text.replace(anchor, duty + anchor)
+        if self.args.deliver == "command":
+            (self.tools / "packet.txt").write_text(text)
+            (self.tools / "next.py").write_text(NEXT_SCRIPT)
+            return DELIVER_COMMAND.format(tools=self.tools), text
+        return text, text
+
     def stage_spec(self):
         problems = ""
         for attempt in range(1, 4):
             before = git(self.work, "rev-parse", "HEAD").strip()
-            self.session("spec", ENRICH[self.args.enrich].format(frame=self.frame, request=self.request, problems=problems, conduct=self.conduct(),
-                                                                 preserve=SPEC_STAGE_QUESTION.get(self.args.preserve, "")
-                                                                 + (RULES_SPEC_SECTION if self.args.rules == "spec-section" else "")),
-                         f"spec-{attempt}")
+            prompt, packet = self.spec_prompt(problems)
+            (self.out / "packets").mkdir(exist_ok=True)
+            (self.out / "packets" / f"spec-{attempt}.txt").write_text(packet)  # the stage's whole text, however it was given
+            self.session("spec", prompt, f"spec-{attempt}")
             self.enforce(before, ["ratchet/spec.md"], "spec")
             try:
                 clauses = read_spec(self.work)
@@ -1014,9 +1066,30 @@ class Run:
         self.gate("after-given-build")
         self.commit("build-1")
 
+    def proof_of_failure(self, label):
+        """--prove-fail: the script's own attempt to make every acceptance check fail (prove_fail.py). Returns what the
+        test session is told, or "" when every check was seen to fail or the build could not be measured."""
+        import prove_fail  # imported where used: only a run with --prove-fail needs the fault catalog
+        root = self.out / "tmp" / "prove"
+        root.mkdir(parents=True, exist_ok=True)
+        began = time.time()
+        report = prove_fail.prove(self.work, root=str(root), parity="even")  # odd lines stay a yardstick no session saw
+        (self.out / "gates" / f"prove-{label}.json").write_text(json.dumps(report, indent=1) + "\n")
+        row = {"label": label, "seconds": round(time.time() - began, 1),
+               **{key: report.get(key) for key in ("items", "failing_on_the_build", "never_seen_failing", "copies_unnoticed",
+                                                    "faults_unnoticed", "error")},
+               "copies": len(report.get("copies") or [])}
+        self.record.setdefault("prove_fail", []).append(row)
+        self.save()
+        self.say(f"  proof of failure {label}: never seen failing {row['never_seen_failing']}; copies unnoticed "
+                 f"{row['copies_unnoticed']}; faults unnoticed "
+                 f"{len(row['faults_unnoticed'] or [])}; {row['seconds']} s" + (f"; error {row['error']}" if row.get("error") else ""))
+        return report.get("refusal", "")
+
     def stage_tests(self, cycle, clauses, new, blind=False):
         self.gate_config(frozen=None)  # the test owner may change the acceptance tests
         problems = ""
+        refused_unproved = False  # --prove-fail refuses once; its second measurement is for the record
         for attempt in range(1, 4):
             before = git(self.work, "rev-parse", "HEAD").strip()
             if cycle == 1:
@@ -1026,10 +1099,22 @@ class Run:
                          "), and for any older clause you find weakly tested,")
                 keep = "\n   The acceptance tests already here stay: add to them and strengthen them, never weaken or remove one."
             packet = blind_tests_packet() if blind else TESTS_PACKET
+            if self.args.tests_question != "none":
+                if packet.count(TESTS_QUESTION_AFTER) != 1:
+                    raise RuntimeError("the tests packet no longer holds the passage a question is added after exactly once")
+                packet = packet.replace(TESTS_QUESTION_AFTER, TESTS_QUESTION_AFTER + TESTS_QUESTION[self.args.tests_question])
             self.session("tests", packet.format(frame=self.frame, request=self.request, scope=scope, keep=keep, cycle=cycle,
-                                                problems=problems, conduct=self.conduct()), f"tests-{cycle}-{attempt}")
+                                                problems=problems, conduct=self.conduct(), base=self.config["base"]),
+                         f"tests-{cycle}-{attempt}")
             self.enforce(before, ["acceptance/", "ratchet/acceptance.json", f"ratchet/tests-{cycle}.md"], "tests")
             wrong = self.manifest_problems(clauses)
+            if not wrong and self.args.prove_fail and cycle == 1:
+                unproved = self.proof_of_failure(f"{cycle}-{attempt}")
+                if unproved and not refused_unproved:
+                    refused_unproved = True
+                    problems = "\n" + unproved + "\n"
+                    self.commit(f"tests-{cycle}-unproved-{attempt}")
+                    continue
             if not wrong:
                 break
             problems = ("\n## The script refused your last result\n" + "\n".join(f"- {line}" for line in wrong) +
@@ -1328,6 +1413,19 @@ def main(argv=None):
     run.add_argument("--preserve", choices=("none", "spec", "spec-section", "plan"), default="none",
                      help="with --enrich reworded: ShipLoop's key question on preserved behaviour is answered in writing by the "
                           "spec stage (as clauses, or in a section of the specification), by the plan stage, or not asked")
+    run.add_argument("--prove-fail", action="store_true",
+                     help="with --stop-after tests on a given build: after the test session the script tries to make each "
+                          "acceptance check fail (prove_fail.py) and refuses, once, the checks it could not and the faults "
+                          "no check noticed")
+    run.add_argument("--tests-question", choices=("none", "general", "grounded"), default="none",
+                     help="a question the test owner answers in its report: ShipLoop's key question on preserved "
+                          "behaviour, or the same asked of the files the change touched")
+    run.add_argument("--deliver", choices=("prompt", "command"), default="prompt",
+                     help="how the spec stage's text reaches the session: in its prompt, or as the output of a command "
+                          "the prompt names")
+    run.add_argument("--duty-at", choices=("standing", "first", "last"), default="standing",
+                     help="with --rules or --preserve at the spec stage: the written question stands in its usual place, "
+                          "at the start of the stage's text, or at its end")
     run.add_argument("--rules", choices=("none", "spec-section"), default="none",
                      help="with --enrich reworded: ShipLoop's key question on rules and edge cases is answered in a section "
                           "of the specification, or not asked")
@@ -1355,6 +1453,12 @@ def main(argv=None):
         raise SystemExit("--preserve goes with --enrich reworded")
     if args.rules != "none" and (args.enrich != "reworded" or args.preserve != "none"):
         raise SystemExit("--rules goes with --enrich reworded and without --preserve")
+    if args.tests_question != "none" and args.tests_blind_from:
+        raise SystemExit("--tests-question is for a test pass with the build present: not with --tests-blind-from")
+    if args.duty_at != "standing" and args.rules == "none" and args.preserve not in ("spec", "spec-section"):
+        raise SystemExit("--duty-at moves the spec stage's written question: it needs --rules or a spec-stage --preserve")
+    if args.prove_fail and (args.stop_after != "tests" or not args.build_from):
+        raise SystemExit("--prove-fail goes with --stop-after tests and a given build (--build-from)")
     if args.stop_after == "plan" and (args.build_from or args.bare):
         raise SystemExit("--stop-after plan ends after the plan session: it takes neither --build-from nor --bare")
     if args.spec_from or args.tests_blind_from or args.plan_from:

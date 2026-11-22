@@ -10,6 +10,10 @@ released skill, and nothing under `skills/` changes.
 | `gate.py` | The script-run checks that decide: every clause's acceptance command, the project's own checks, a syntax check. Standard library only; a copy goes beside each run. |
 | `grade.py` | Instruments no session sees: held-out checks at every recorded stage (`snapshots`), the frozen suite against calibrated defects (`strength`), one table (`report`). |
 | `cases.json` | The pilot's cases: requests copied verbatim from the E2E harness's own cases. |
+| `mutate.py` | Seeded faults (the E2E harness's catalog) on the lines a delivery changed, or with `--unchanged` on the existing lines of the files it touched, run against its tests. No model. |
+| `prove_fail.py` | Can each acceptance check of a run be made to fail? The checks run on the starting product, on a copy with one existing test made to fail, and on copies with one seeded fault. No model. |
+| `one_session.py`, `program/` | One model session in a prepared folder, outside the loop's stages, and the texts, answer sheet and readers of the program of journal section 26. |
+| `shiploop-gaps/` | Tests that pin five behaviours of ShipLoop's own validators on made-up inputs. Nothing under `skills/` changes. |
 | `selftest_fake.py` | A scripted stand-in for the model that misbehaves once in each guarded way, and the assertions on what the run must record. |
 | `review/` | The question sent to Sol 6.1 at max effort before building, and its verbatim answer. |
 | `evidence/` | Compact results of the runs, added with each journal entry. |
