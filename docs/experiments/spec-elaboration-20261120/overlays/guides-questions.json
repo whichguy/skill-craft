@@ -1,0 +1,12 @@
+{
+ "about": "Spec-elaboration journal section 52, arm Q of the guides test: one more duty at the end of the spec stage: a section to fill that answers five particular questions, each answer carried by an acceptance line. For an experiment only; not a proposed change to ShipLoop.",
+ "edits": [
+  {
+   "module": "shiploop_prompts.py",
+   "constant": "DUTIES",
+   "key": "spec",
+   "old": "12. A complete spec establishes acceptance lines, not implementation or test success. `evidence_refs`: KNOWLEDGE/spec.md, each\n    requirement section and source used.",
+   "new": "12. A complete spec establishes acceptance lines, not implementation or test success. `evidence_refs`: KNOWLEDGE/spec.md, each\n    requirement section and source used.\n13. End KNOWLEDGE/spec.md with a section `## Questions settled`: one entry for each question below, Q1 to Q5, giving this\n    change's answer in one line and the R-<n> whose acceptance line states it, or `does not apply: <reason>`. Where no\n    acceptance line states an answer yet, first add one to the R-<n> it belongs to. The section adds no requirement of\n    its own, and no capability the request does not need.\n    - Q1 Result: what does the person or program that uses the change get back when it succeeds, when it fails, and\n      when it succeeds only in part, in each case enough to act on without asking again?\n    - Q2 Authority: who may use the change, and what does it let them set, reach or cause that they could not before?\n    - Q3 Existing machinery: which things the program already does (records it keeps, messages it sends, logs,\n      limits, scheduled work) does the change set off or rely on, and what becomes of each at the largest input\n      this specification allows?\n    - Q4 Hostile and odd input: what is done with input that is oversized, malformed on purpose, or harmful when\n      something else reads it back later?\n    - Q5 Forms of a value: for each value the change reads or writes, which forms are accepted (dates and times,\n      numbers, letter case, encodings, blank against missing), and what is done with the others?"
+  }
+ ]
+}

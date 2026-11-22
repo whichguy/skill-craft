@@ -3889,3 +3889,130 @@ is started unasked.
 
 **Limits.** As section 49's, and: the third experiment has three sets a case and two arms; the second case's
 checklist is carried over and not independent; all of it is one driver at one effort, on one kind of request.
+
+## 52. A fourth experiment registered before any run: five particular questions, on two fresh sentences whose checklists were written blind (16:13, 2026-11-21)
+
+**The owner's word.** Section 51 stopped with a question to the owner: draft the particular questions and test
+them on a fresh case, or stop. He answered "See fit". I read that as mine to decide, and decided on one more
+bounded experiment and then a report. It changes nothing in ShipLoop; whether ShipLoop should ever carry such
+questions stays his decision whatever this shows.
+
+**Why.** Section 51 ends on two statements. What the released stage leaves thin is the same handful of things
+whatever is added, and ShipLoop's twelve general questions do not reach them. And a fair test of particular
+questions needs a case whose checklist was written by someone who has seen none of these results. This is that
+test.
+
+**The arm, Q.** The released stage with one more duty at the end of the spec stage
+(`overlays/guides-questions.json`; 233 words, 14 lines; the rendered stage is 8,786 characters in A and 10,148
+in Q):
+
+> 13. End KNOWLEDGE/spec.md with a section `## Questions settled`: one entry for each question below, Q1 to Q5,
+> giving this change's answer in one line and the R-<n> whose acceptance line states it, or `does not apply:
+> <reason>`. Where no acceptance line states an answer yet, first add one to the R-<n> it belongs to. The section
+> adds no requirement of its own, and no capability the request does not need.
+>
+> - Q1 Result: what does the person or program that uses the change get back when it succeeds, when it fails, and
+>   when it succeeds only in part, in each case enough to act on without asking again?
+> - Q2 Authority: who may use the change, and what does it let them set, reach or cause that they could not
+>   before?
+> - Q3 Existing machinery: which things the program already does (records it keeps, messages it sends, logs,
+>   limits, scheduled work) does the change set off or rely on, and what becomes of each at the largest input this
+>   specification allows?
+> - Q4 Hostile and odd input: what is done with input that is oversized, malformed on purpose, or harmful when
+>   something else reads it back later?
+> - Q5 Forms of a value: for each value the change reads or writes, which forms are accepted (dates and times,
+>   numbers, letter case, encodings, blank against missing), and what is done with the others?
+
+Each question is one of the thin items of sections 49 and 51 with the CSV taken out of it: Q1 the result row by
+row (N-2), Q2 what a caller may set and who may use the change (N-4, N-5), Q3 the notifications and the audit at
+size (N-13, N-17), Q4 hostile content (N-21), Q5 dates and numbers (N-16). None names a file format, a ticket or
+a stack.
+
+Q differs from arm S of section 50 in two ways, and they are tested together: the questions are particular, and
+an answer has to be carried by an acceptance line, added where none states it. The second is the Ratchet
+session's caution of section 50 turned into the instruction: a section is somewhere else to put a requirement,
+and only a requirement gets tests. If Q is shown, a later step can part the two. If it is not, both are answered
+for this form at once. The strongest candidate goes first because one experiment is all that is planned.
+
+**Two fresh sentences.** The five questions were drawn from what the two CSV cases left thin, so those cases
+cannot test them. Two sentences of another kind are used, both on the help-desk ticket service
+(`test/shiploop_e2e/fixtures/node-tickets`):
+
+- *merge*: "Let agents merge duplicate tickets." A change to records that already exist.
+- *remind*: "Remind requesters when a ticket has been waiting on them for too long." Scheduled work with no
+  caller, in a program whose lifecycle has no waiting state.
+
+**Checklists written blind.** For each sentence one Claude Sonnet session wrote the checklist, before any
+specification of the sentence existed. It worked in a folder that held the sentence, a copy of the program and
+two checklists from the frozen bench for other requests on other programs (gym-waitlist and invoice-reminders),
+given for form. It had nothing of this study: no journal, no arm, no earlier checklist of the guides test, no
+result. Each wrote 22 items and reported the files of the program it read (33 and 31). The prompt is
+`evidence/guides-test/fresh-checklists/PROMPT.md`; the items stand unchanged in `guides-cases.json` as
+`ticket-merge` and `requester-reminders`, and the authors' own files are kept beside the prompt.
+
+The order of events, from this session's clock: 16:03 the two folders were made; 16:06 both checklists were
+written; 16:08:57 the duty's text was fixed in the driver (sha256 `75379881fe837ba21968e4c304c3ed40aa5ae569186bc6424c3962659a8030a9`)
+and the two checklist files were hashed unopened (`b38c068e2353da2c2730ba669e043e704140e95de5803696a68c5eb5f39c0d7c`
+and `befd58eff94602d377cfcd923d4a0cac38ac2fe82bccb2b8b70c5967710e6e13`); only then did this session read them.
+So the questions were not fitted to the checklists, and the authors could not fit the checklists to the
+questions. One departure: the author of the reminders checklist wrote its file through a short script it put in
+/tmp and removed afterwards. It reports reading nothing outside its folder.
+
+**What is run.** Two arms, A and Q, on both sentences; three sets a sentence (m1 to m3 for merge, n1 to n3 for
+remind), each sentence from its own run folder prepared with `--arms A,Q` from a clean checkout at the commit
+that holds this section and the item lists. Sol at medium, the two judges and their rubric, and the blind reader
+for added capability, all as in sections 46 to 51. The reader is told to read the program and to say which files
+it read.
+
+**Step 0, before any run.** The two sorters label each item of each checklist as section 41's step 0 sets out.
+The items both call applying are the ones the rule counts. A sentence with fewer than eight such items is not
+run.
+
+**How it is read, fixed now.**
+
+- For each sentence, Q over A by section 46's rule: shown when the net is at least 2 in every one of the three
+  sets, the opposite when two or more sets are at minus 1 or lower, not shown otherwise. A set counts only when
+  both arms were delivered: Q when all 14 lines of its duty were given to its author before it submitted and at
+  least half of the stage's instructions were; A as before.
+- For the lever: shown when it is shown on both sentences. Shown on one is reported as that and no more.
+- Harm is section 41's: a capability the reader verifies in Q alone, or a net of minus 4 or lower in a set.
+
+Described beside the rule: whether each Q specification holds the section, with how many of the five entries
+and how many of them `does not apply`; its words with and without the section, and its requirement ids, against
+A's; the item readings covered by both judges; and the items that move, by name. The last is how to tell a
+fuller specification from one that only answers the five questions.
+
+**Predictions, before any run.**
+
+28. Every Q specification holds a "Questions settled" section with all five entries.
+29. In at least four of the six sets Q's specification without its section is longer than A's.
+30. Q over A is at least 1 in at least five of the six sets.
+31. Q over A is shown, by the rule, on at least one of the two sentences. I hold this at about even odds, and
+    shown on both at about one in five.
+32. The reader verifies no capability in Q alone in any set.
+
+**What it costs.** Twelve Sol runs; 24 judge readings, about two and a half dollars for the registered judge's
+twelve; two sorter pairs, under a dollar; six readers; and the two checklist authors, already run (about 140
+thousand tokens each on Sonnet). About 40 minutes.
+
+**Where it stops.** After the six sets the result is reported as it is, shown or not. No fifth lever is started
+unasked.
+
+**Checked, no model called.** The overlay applies (`test/shiploop_e2e/overlay.py check`). A dry
+`prepare --arms A,Q` on each sentence found no problem: Q's build differs from A's in the one file, by the 14
+lines. The rehearsal now also runs a two-arm folder with A and Q (the duty reaches Q's author alone and both
+are delivered) and reads the rule for the new pair; it holds at 94 checks, none failed
+(`evidence/guides-test/rehearsal.txt`). Not reviewed at maximum effort: one overlay, one delivery check, the
+same rule.
+
+**Limits, known before the runs.**
+
+- The sentences are fresh; the program is not. It is the second case's ticket service.
+- This session wrote the authors' prompt, and it knew the questions. The prompt's sentence on what an item may
+  be about names "who may use it" and "what it does to what the program already has", which are near Q2 and Q3.
+  The checklists may lean toward the questions for that reason. The items that move are named in the result so
+  that this can be seen.
+- The judges and the reader are given coded files, but a specification with the section shows which arm wrote
+  it, as with S.
+- Each checklist is one author's, on one model, and was not reviewed by a second.
+- Three sets a sentence, one driver at one effort, on one host.

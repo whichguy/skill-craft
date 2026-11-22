@@ -1,5 +1,5 @@
 {
-  "_doc": "Checklists for the guides test's cases that are not in cases.json, which is frozen. A checklist here is NOT written independently: it is carried over from a frozen one, item for item, by the spec-elaboration session, before any run of its case (journal section 48).",
+  "_doc": "Checklists for the guides test's cases that are not in cases.json, which is frozen. Each case's note says how its checklist was made. csv-ticket-import is NOT written independently: it is carried over from a frozen one, item for item, by the spec-elaboration session, before any run of its case (journal section 48). ticket-merge and requester-reminders are written fresh, each by a session that was given the sentence, the program and two example checklists of other requests, and nothing of this study (journal section 52); their items are the author's, unchanged.",
   "cases": [
     {
       "id": "csv-ticket-import",
@@ -28,6 +28,66 @@
         {"id": "N-19", "category": "nonfunctional", "nuance": "A bound on how long a file of the stated maximum size takes, and visible progress while it runs."},
         {"id": "N-20", "category": "preserve", "nuance": "Creating a single ticket by hand still works exactly as it does, and existing tickets are not modified."},
         {"id": "N-21", "category": "unhappy", "nuance": "Hostile content in the file: a value that becomes a formula when the result is opened in a spreadsheet, or a field far longer than any column allows."}
+      ]
+    },
+    {
+      "id": "ticket-merge",
+      "title": "Ticket merge (the guides test's fourth experiment, first fresh case)",
+      "request": "Let agents merge duplicate tickets.",
+      "note": "Written fresh on 2026-11-21, before any specification of this request existed, by a Claude Sonnet session that worked only inside a folder holding the sentence, a copy of test/shiploop_e2e/fixtures/node-tickets and two example checklists from cases.json (gym-waitlist, invoice-reminders) for form. It saw no result, journal or arm of this study. The items are its checklist.json unchanged (sha256 b38c068e2353da2c2730ba669e043e704140e95de5803696a68c5eb5f39c0d7c); the prompt it was given is evidence/guides-test/fresh-checklists/PROMPT.md.",
+      "nuances": [
+        {"id": "N-1", "category": "interaction", "nuance": "The request itself: its route and method, the names of the body fields that identify the two tickets, the success status, what the response body holds, and that unknown fields are refused as on the other endpoints."},
+        {"id": "N-2", "category": "interaction", "nuance": "Which ticket survives and which is absorbed, and whether the caller chooses or the service decides (for example by the lower id)."},
+        {"id": "N-3", "category": "interaction", "nuance": "What makes two tickets duplicates: whether any check is made (same requester, same title, same priority) or an agent's word is enough."},
+        {"id": "N-4", "category": "interaction", "nuance": "What the absorbed ticket becomes (a new status in the lifecycle, or a separate merged-into marker), and whether it can still be changed, transitioned or reopened afterwards."},
+        {"id": "N-5", "category": "interaction", "nuance": "What of the absorbed ticket carries over to the survivor, given that a ticket holds only a title, a priority, a requester and a status: whether the higher priority wins, and whether the absorbed requester is recorded anywhere."},
+        {"id": "N-6", "category": "interaction", "nuance": "What GET /tickets/:id returns for the absorbed ticket, whether it still appears in GET /tickets and under each status filter, and how it points at the survivor."},
+        {"id": "N-7", "category": "unhappy", "nuance": "Each combination of states that is refused (either ticket resolved, closed or already merged, or a ticket merged into itself), and which error code each takes, 400 or 409, in line with the error envelope."},
+        {"id": "N-8", "category": "unhappy", "nuance": "A ticket id that is missing from the body, malformed, or names no ticket, in either position: which code is answered and which id the message names."},
+        {"id": "N-9", "category": "edge", "nuance": "Chains and cycles: merging a ticket that has itself absorbed others, merging into a ticket that is already absorbed (follow it to the final survivor or refuse), and merging A into B after B into A."},
+        {"id": "N-10", "category": "edge", "nuance": "Sending the same merge request twice: whether the second answers success with no change and no new audit entry, or a conflict."},
+        {"id": "N-11", "category": "edge", "nuance": "Whether the survivor's `updated` time and audit history change when the merge changes nothing about its own fields."},
+        {"id": "N-12", "category": "permission", "nuance": "Who may merge: the service has no sign-in and only an advisory X-Actor header, so whether a merge requires a named actor rather than `system`, and whether requesters are kept from merging or the internal network is the only protection."},
+        {"id": "N-13", "category": "data", "nuance": "Where the merge link is kept on the tickets (field names and values) and how persistence.js saves and loads it, including a version 1 data file written before the change that lacks it."},
+        {"id": "N-14", "category": "data", "nuance": "What loading checks about the link (the target exists, no cycles, status and link agree) and the refusal message that names the record, as for the other records."},
+        {"id": "N-15", "category": "data", "nuance": "Which audit entries a merge writes (one on each ticket or one in all), the action name, what `changes` holds, the actor recorded, and that each ticket's GET /tickets/:id/audit shows it."},
+        {"id": "N-16", "category": "unhappy", "nuance": "That a merge is one all-or-nothing store change: both tickets, the audit entries, the notifications and the single data file save succeed together, and a crash leaves the state before or after, never between."},
+        {"id": "N-17", "category": "async", "nuance": "Whether anyone is notified of a merge (the absorbed ticket's requester, the survivor's, both, or none), the template wording, the outbox key, and what becomes of notifications about the absorbed ticket that are still pending."},
+        {"id": "N-18", "category": "operator", "nuance": "How `tickets show` and `tickets list` present a merged ticket and its link, given the command line only reads the data file and never writes it."},
+        {"id": "N-19", "category": "operator", "nuance": "Whether a wrong merge can be undone, and if not how an operator corrects it, given that the audit log is append-only and ticket numbers are never reused."},
+        {"id": "N-20", "category": "preserve", "nuance": "Creating, changing and transitioning tickets that are not part of a merge, the listing's filters, id order and cursors, and the audit endpoint, all behave as before."},
+        {"id": "N-21", "category": "preserve", "nuance": "`list --raw` keeps its tab-separated columns in their positions, and the weekly report still counts correctly, with a stated treatment of absorbed tickets in its totals and by-status counts."},
+        {"id": "N-22", "category": "nonfunctional", "nuance": "The rigour the project requires of this change: tests for each success and error path and for atomicity, an updated docs/api.md and CHANGELOG, a version bump, a decision record, no new dependency, and the change made through a TicketStore method."}
+      ]
+    },
+    {
+      "id": "requester-reminders",
+      "title": "Requester reminders (the guides test's fourth experiment, second fresh case)",
+      "request": "Remind requesters when a ticket has been waiting on them for too long.",
+      "note": "Written fresh on 2026-11-21, before any specification of this request existed, by a Claude Sonnet session that worked only inside a folder holding the sentence, a copy of test/shiploop_e2e/fixtures/node-tickets and two example checklists from cases.json (gym-waitlist, invoice-reminders) for form. It saw no result, journal or arm of this study. The items are its checklist.json unchanged (sha256 befd58eff94602d377cfcd923d4a0cac38ac2fe82bccb2b8b70c5967710e6e13); the prompt it was given is evidence/guides-test/fresh-checklists/PROMPT.md.",
+      "nuances": [
+        {"id": "N-1", "category": "interaction", "nuance": "What 'waiting on the requester' means in a program whose lifecycle (open, in_progress, resolved, closed) has no such state and no way for a requester to reply: a new state or flag, or an existing status such as resolved or in_progress, and how a ticket enters and leaves it."},
+        {"id": "N-2", "category": "interaction", "nuance": "How 'too long' is measured: the threshold, the instant it is counted from (entering the waiting condition, not the ticket's last update), and whether it varies by priority."},
+        {"id": "N-3", "category": "interaction", "nuance": "How many reminders a ticket may get and how far apart: a single reminder or a repeating sequence, the interval between them, and when they stop."},
+        {"id": "N-4", "category": "interaction", "nuance": "Every event that ends the waiting and stops reminders: the ticket reopened, moved on, closed, changed by an agent, or the requester responding, including what counts as the requester responding when the API has no reply endpoint."},
+        {"id": "N-5", "category": "interaction", "nuance": "What the reminder says and to whom: its subject and body in the style of the existing templates, the fields it uses (ticket id, title, how long it has waited, what the requester should do), and which address it goes to when the requester field is free text rather than an email address."},
+        {"id": "N-6", "category": "interaction", "nuance": "How the requester acts on a reminder, given the existing 'reply within 7 days to reopen it' wording in the resolved notice: whether the two messages agree and what the requester is told to do."},
+        {"id": "N-7", "category": "async", "nuance": "Where the check runs: as a job of the existing background worker, with its schedule and what it does on each tick, and not a new timer or a side effect of a request."},
+        {"id": "N-8", "category": "async", "nuance": "That the same reminder is not queued or sent twice across ticks, a restart, or a retry, given that an outbox key deduplicates only while the earlier event is still pending and the existing delivery is at-least-once."},
+        {"id": "N-9", "category": "async", "nuance": "Re-checking at the moment of enqueueing that the ticket is still waiting, so a ticket that changed since the last tick, or since an earlier reminder, is not reminded."},
+        {"id": "N-10", "category": "unhappy", "nuance": "What happens when a reminder cannot be delivered: the existing retries and dead state apply or not, whether a dead reminder leads to another one later, and whether the template must exist before the event type can be enqueued."},
+        {"id": "N-11", "category": "edge", "nuance": "What happens to tickets that already meet the condition when the feature is first deployed: whether a backlog of reminders goes out at once, or the waiting time is counted from deployment."},
+        {"id": "N-12", "category": "edge", "nuance": "A ticket resolved, reopened and resolved again: whether the waiting time restarts and how the reminder count and keys behave across the cycles."},
+        {"id": "N-13", "category": "edge", "nuance": "The boundaries of the threshold: a ticket exactly at it, the time zone and clock source used for the comparison, and whether reminders are held outside business hours, weekends or holidays."},
+        {"id": "N-14", "category": "data", "nuance": "The new stored data (a waiting-since time, a reminder count or last-reminded time), where it lives in the ticket or outbox record, and that persistence names the field for saving and loading."},
+        {"id": "N-15", "category": "data", "nuance": "That a data file written by the current version still loads after the change, with the new fields taking a stated default, and that a file with a bad new field is refused with a message naming it."},
+        {"id": "N-16", "category": "data", "nuance": "Whether sending a reminder is recorded in the audit log, what the entry's action and actor are, and whether it changes the ticket's updated time, given that the audit log records only changes to a ticket."},
+        {"id": "N-17", "category": "permission", "nuance": "Who may configure the threshold and the reminders and who may stop or send one by hand, given the service has no authentication beyond the self-declared X-Actor header and an internal-network admin area."},
+        {"id": "N-18", "category": "operator", "nuance": "The settings that control the feature: environment variables with defaults and validation errors that name the variable, the way to turn it off, and that a worker interval of 0 stops reminders too."},
+        {"id": "N-19", "category": "operator", "nuance": "How operators see what was sent and what will be sent next: through the outbox report, the ticket's history, the command line, or the weekly report, and without breaking the command line's raw column positions."},
+        {"id": "N-20", "category": "nonfunctional", "nuance": "A bound on how late a reminder may go out after the threshold and on how many are enqueued in one tick, and that the check's cost with thousands of tickets does not grow badly or block delivery."},
+        {"id": "N-21", "category": "preserve", "nuance": "That existing behaviour stays as it is: the lifecycle transitions, the received and resolved notifications, the API responses and error codes, the list filters, the audit entries of existing actions, and the command line's and weekly report's output."},
+        {"id": "N-22", "category": "preserve", "nuance": "The accompanying changes: tests in the style of the existing suite using the manual clock, an updated API doc, operations doc, README settings table and changelog with a version bump, and a decision record if a rule other code relies on changes."}
       ]
     }
   ]

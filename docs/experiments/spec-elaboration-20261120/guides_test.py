@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """The guides test (journal sections 39 to 44): real ShipLoop runs from one sentence, read at the accepted specification.
 
-Four arms of one build: A, ShipLoop as it is; R, the same with one sentence in the spec stage's goal telling the author
+Arms of one build (a run folder holds the ones `prepare --arms` names): A, ShipLoop as it is; R, the same with one sentence in the spec stage's goal telling the author
 to print and read the whole packet; C, A with one cue sentence at the end of the spec stage's first duty; X, the cue
-and, after the stage's last duty, the unchanged text of two guide sections. A sample is a real run of
-test/shiploop_e2e/run.py on a small existing user service, started from the sentence REQUEST and ended through the
+and, after the stage's last duty, the unchanged text of two guide sections; S, A with a last duty to fill a section
+answering intake's twelve key questions (section 50); Q, A with a last duty to fill a section answering five particular
+questions, each answer carried by an acceptance line (section 52). A sample is a real run of
+test/shiploop_e2e/run.py on a small existing service (--case), started from the sentence REQUEST and ended through the
 harness's own stop file once ShipLoop's trace shows the specification accepted. The specification is read from the
 commit that held it at acceptance, with a witness that the commit's text is the accepted text.
 
@@ -74,11 +76,27 @@ STUDIES = {
         "fixture": "node-tickets",
         "labels": "here-tickets-{}.json",
     },
+    # Two fresh sentences of another kind on the ticket service (section 52). Each checklist was written, before any
+    # specification existed, by a session that saw the sentence and the program and none of this study.
+    "merge": {
+        "request": "Let agents merge duplicate tickets.",
+        "checklist": "ticket-merge",
+        "base_case": "ticket-import",
+        "fixture": "node-tickets",
+        "labels": "here-merge-{}.json",
+    },
+    "remind": {
+        "request": "Remind requesters when a ticket has been waiting on them for too long.",
+        "checklist": "requester-reminders",
+        "base_case": "ticket-import",
+        "fixture": "node-tickets",
+        "labels": "here-remind-{}.json",
+    },
 }
 STUDY, LABEL_NAME = "users", "here-{}.json"
 RESULTS = HERE / "results"
 SPEC = "docs/shiploop/spec.md"
-ALL_ARMS = ("A", "R", "C", "X", "S")
+ALL_ARMS = ("A", "R", "C", "X", "S", "Q")
 ARMS = (
     "A",
     "R",
@@ -91,6 +109,7 @@ ARM_OVERLAY = {
     "C": "guides-cue.json",
     "X": "guides-excerpt.json",
     "S": "guides-section.json",
+    "Q": "guides-questions.json",
 }
 # Arm S: the spec stage gains one duty, a section to fill that answers ShipLoop's own twelve key questions (section 50).
 SECTION_MARK = "End KNOWLEDGE/spec.md with a section `## Key questions`"
@@ -100,6 +119,27 @@ SECTION_DUTY = (
     + ": one entry for each of intake's twelve key questions below, K1 to\n"
     "    K12, giving this change's answer in one line and the R-<n> or the section of this specification that states it, or\n"
     "    `does not apply: <reason>`. The section adds no requirement and replaces none.\n"
+)
+# Arm Q: the spec stage gains one duty, a section to fill that answers five particular questions, each answer carried
+# by an acceptance line (section 52). The five are the kinds of thing the first three experiments found left thin.
+QUESTIONS_MARK = "End KNOWLEDGE/spec.md with a section `## Questions settled`"
+QUESTIONS_DUTY = (
+    "\n13. "
+    + QUESTIONS_MARK
+    + ": one entry for each question below, Q1 to Q5, giving this\n"
+    "    change's answer in one line and the R-<n> whose acceptance line states it, or `does not apply: <reason>`. Where no\n"
+    "    acceptance line states an answer yet, first add one to the R-<n> it belongs to. The section adds no requirement of\n"
+    "    its own, and no capability the request does not need.\n"
+    "    - Q1 Result: what does the person or program that uses the change get back when it succeeds, when it fails, and\n"
+    "      when it succeeds only in part, in each case enough to act on without asking again?\n"
+    "    - Q2 Authority: who may use the change, and what does it let them set, reach or cause that they could not before?\n"
+    "    - Q3 Existing machinery: which things the program already does (records it keeps, messages it sends, logs,\n"
+    "      limits, scheduled work) does the change set off or rely on, and what becomes of each at the largest input\n"
+    "      this specification allows?\n"
+    "    - Q4 Hostile and odd input: what is done with input that is oversized, malformed on purpose, or harmful when\n"
+    "      something else reads it back later?\n"
+    "    - Q5 Forms of a value: for each value the change reads or writes, which forms are accepted (dates and times,\n"
+    "      numbers, letter case, encodings, blank against missing), and what is done with the others?"
 )
 BUILD_FILES = (
     "shiploop_prompts.py",
@@ -230,7 +270,7 @@ def use(study: str) -> None:
 
 
 def checklist() -> dict:
-    """The study's checklist: a frozen bench case, or one carried over from it in guides-cases.json."""
+    """The study's checklist: a frozen bench case, or one of guides-cases.json (carried over, or written fresh)."""
     frozen = grade.cases()
     if CASE in frozen:
         return frozen[CASE]
@@ -360,8 +400,13 @@ def overlay_docs() -> dict[str, dict]:
         "new": SPEC_GOAL + " " + READ_ALL,
     }
     section = {**edit, "old": DUTY_LAST, "new": DUTY_LAST + section_duty()}
+    questions = {**edit, "old": DUTY_LAST, "new": DUTY_LAST + QUESTIONS_DUTY}
     about = "Spec-elaboration journal sections 40 to 50, arm {} of the guides test: {} For an experiment only; not a proposed change to ShipLoop."
     return {
+        "guides-questions.json": {
+            "about": "Spec-elaboration journal section 52, arm Q of the guides test: one more duty at the end of the spec stage: a section to fill that answers five particular questions, each answer carried by an acceptance line. For an experiment only; not a proposed change to ShipLoop.",
+            "edits": [questions],
+        },
         "guides-section.json": {
             "about": about.format(
                 "S",
@@ -491,6 +536,11 @@ def cmd_prepare(root: Path, allow_dirty: bool) -> int:
         for arm in ARMS
     ):
         problems.append("the key-questions duty is not in arm S's spec stage alone")
+    if any(
+        (squeeze(QUESTIONS_DUTY) in squeeze(prompts[arm])) != (arm == "Q")
+        for arm in ARMS
+    ):
+        problems.append("the five-questions duty is not in arm Q's spec stage alone")
     deltas = {}
     for arm in ARMS[1:]:
         diff = difflib.unified_diff(
@@ -979,6 +1029,7 @@ def exposure(out: Path, dest: Path, snap: dict) -> dict | None:
         "cue_shown": all(line in writing for line in lines_of(CUE)),
         "read_all_shown": squeeze(READ_ALL) in writing,
         "section_shown": all(line in writing for line in lines_of(section_duty())),
+        "questions_shown": all(line in writing for line in lines_of(QUESTIONS_DUTY)),
         "guide_block_lines_shown": [sum(block), len(block)],
         "guide_block_shown_whole": all(block) and EXCERPT_MARK in writing,
         "guide_lines_returned": returned,
@@ -990,11 +1041,15 @@ def exposure(out: Path, dest: Path, snap: dict) -> dict | None:
 
 def measures(text: str) -> dict:
     section = text.partition("## Key questions")[2]
+    settled = text.partition("## Questions settled")[2]
     return {
         "words": len(text.split()),
         "requirement_ids": len(set(re.findall(r"\bR-[0-9]+\b", text))),
         "key_question_entries": len(set(re.findall(r"\bK(?:1[0-2]|[1-9])\b", section))),
         "key_questions_words": len(section.split()),
+        "questions_entries": len(set(re.findall(r"\bQ[1-5]\b", settled))),
+        "questions_not_applying": settled.count("does not apply"),
+        "questions_words": len(settled.split()),
     }
 
 
@@ -1309,8 +1364,9 @@ def checks(sample: dict, read: dict, ready: dict) -> dict:
                 shown["cue_shown"],
                 shown["read_all_shown"],
                 shown.get("section_shown", False),
+                shown.get("questions_shown", False),
             )
-            == (arm in ("C", "X"), arm == "R", arm == "S"),
+            == (arm in ("C", "X"), arm == "R", arm == "S", arm == "Q"),
             # Section 46: four fifths of the block's lines, since the model slices its packet; and a guide passage an
             # author opened by itself is recorded in `guide_lines_returned`, no longer a condition.
             "four fifths or more of the guide block given": arm != "X"
@@ -1647,7 +1703,14 @@ def cmd_score(root: Path, set_id: str) -> int:
             )
     pairs = {
         f"{high} over {low}": compare(states, applies, high, low)
-        for high, low in (("X", "C"), ("C", "A"), ("X", "A"), ("R", "A"), ("S", "A"))
+        for high, low in (
+            ("X", "C"),
+            ("C", "A"),
+            ("X", "A"),
+            ("R", "A"),
+            ("S", "A"),
+            ("Q", "A"),
+        )
         if high in ARMS and low in ARMS
     }
     for name, pair in pairs.items():
@@ -1684,6 +1747,7 @@ def cmd_score(root: Path, set_id: str) -> int:
         "X over C": ("A", "C", "X"),
         "R over A": ("A", "R"),
         "S over A": ("A", "S"),
+        "Q over A": ("A", "Q"),
     }
     results = {
         name: outcome(
@@ -1720,7 +1784,8 @@ SEVERAL = {
     "R over A": 1,
     "C over A": 1,
     "S over A": 2,
-}  # the net each new set must reach (sections 46 and 50)
+    "Q over A": 2,
+}  # the net each new set must reach (sections 46, 50 and 52)
 
 
 def several(nets: dict[str, list[int | None]]) -> dict[str, str]:

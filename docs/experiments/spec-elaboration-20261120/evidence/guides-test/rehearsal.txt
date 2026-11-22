@@ -1,8 +1,3 @@
-guides_rehearsal.py, 2026-11-21 15:30 PST: the driver rehearsed offline with no model: four arms, section 46's checks, the reading over
-several sets, and a two-arm run folder with the section arm of section 50. The harness is a stub that lays down the records of an
-existing stopped run (/Users/dadleet/e2e-runs-sdlc10/20261121-e2/e2-g-1, read only); the sorter's and the judges' sessions are
-replaced by functions that write made-up answers, and the reader's file is made up. Scratch folder: /private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-152820
-
 == prepare: the base and the three arms, built for real
 {
  "study": "users",
@@ -13,19 +8,19 @@ replaced by functions that write made-up answers, and the reader's file is made 
   "X"
  ],
  "checkout": "/Users/dadleet/src/skill-craft",
- "head": "3fe778eba56be5b42d89f85a993a5ea6d126948c",
- "checkout_status_lines": 8,
+ "head": "5e511e409259f20bf5c143ce4edef3061d575ac3",
+ "checkout_status_lines": 5,
  "base": {
   "fixture": "node-base",
   "digest": "8f445d24ed3c",
-  "start_head": "c8dd2639557d24d66aba000b03bde1924d77f2e9",
+  "start_head": "88e362ba2fe11e1b1cf6baa3745bc51c9c202171",
   "files": 11
  },
  "plugins": {
-  "A": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-152820/root/arm-A/build/plugins/skill-craft",
-  "R": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-152820/root/arm-R/build/plugins/skill-craft",
-  "C": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-152820/root/arm-C/build/plugins/skill-craft",
-  "X": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-152820/root/arm-X/build/plugins/skill-craft"
+  "A": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-q-a8fa4a/root/arm-A/build/plugins/skill-craft",
+  "R": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-q-a8fa4a/root/arm-R/build/plugins/skill-craft",
+  "C": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-q-a8fa4a/root/arm-C/build/plugins/skill-craft",
+  "X": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-q-a8fa4a/root/arm-X/build/plugins/skill-craft"
  },
  "build_sha256": {
   "A": {
@@ -78,10 +73,10 @@ ok    refused: a launch with no label files (step 0 is not done: ['here-opus.jso
 ok    refused: a launch with five items that apply (only 5 items apply for both sorters; the rule is at least 8: nothing is run)
 ok    refused: a driver that is not registered (no registered driver 'sonnet'; there is sol)
 == set r1: three runs that reach acceptance
-{"name": "r1-sol-R", "set": "r1-sol", "arm": "R", "driver": "sol", "pid": 84509, "started_at": 1795303712.6479979, "limit_minutes": 1.0, "decided_at": 1795303715.70311, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-152820/root/samples/r1-sol-R/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
-{"name": "r1-sol-C", "set": "r1-sol", "arm": "C", "driver": "sol", "pid": 84510, "started_at": 1795303712.6496902, "limit_minutes": 1.0, "decided_at": 1795303715.721934, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-152820/root/samples/r1-sol-C/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
-{"name": "r1-sol-X", "set": "r1-sol", "arm": "X", "driver": "sol", "pid": 84511, "started_at": 1795303712.6514618, "limit_minutes": 1.0, "decided_at": 1795303715.732126, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-152820/root/samples/r1-sol-X/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
-{"name": "r1-sol-A", "set": "r1-sol", "arm": "A", "driver": "sol", "pid": 84512, "started_at": 1795303712.6532428, "limit_minutes": 1.0, "decided_at": 1795303715.7417119, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-152820/root/samples/r1-sol-A/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
+{"name": "r1-sol-R", "set": "r1-sol", "arm": "R", "driver": "sol", "pid": 58878, "started_at": 1795306234.1081111, "limit_minutes": 1.0, "decided_at": 1795306237.1667871, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-q-a8fa4a/root/samples/r1-sol-R/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
+{"name": "r1-sol-C", "set": "r1-sol", "arm": "C", "driver": "sol", "pid": 58880, "started_at": 1795306234.1097422, "limit_minutes": 1.0, "decided_at": 1795306237.188802, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-q-a8fa4a/root/samples/r1-sol-C/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
+{"name": "r1-sol-X", "set": "r1-sol", "arm": "X", "driver": "sol", "pid": 58881, "started_at": 1795306234.111265, "limit_minutes": 1.0, "decided_at": 1795306237.198739, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-q-a8fa4a/root/samples/r1-sol-X/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
+{"name": "r1-sol-A", "set": "r1-sol", "arm": "A", "driver": "sol", "pid": 58882, "started_at": 1795306234.1128, "limit_minutes": 1.0, "decided_at": 1795306237.20818, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-q-a8fa4a/root/samples/r1-sol-A/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
 ok    run returns cleanly
 ok    14 items apply, 3 are capability, 4 are kept out of the rule
 ok    A: the watcher saw the acceptance and wrote the stop file
@@ -101,7 +96,7 @@ r1-sol-A: watcher saw the acceptance; the stop file; usable True; delivered True
 r1-sol-C: watcher saw the acceptance; the stop file; usable True; delivered True; words 674 
 r1-sol-R: watcher saw the acceptance; the stop file; usable True; delivered True; words 674 
 r1-sol-X: watcher saw the acceptance; the stop file; usable True; delivered True; words 674 
-set r1-sol: complete; delivered {'A': True, 'C': True, 'R': True, 'X': True}; blind copies in results/round-g-r1-sol-a1d176
+set r1-sol: complete; delivered {'A': True, 'C': True, 'R': True, 'X': True}; blind copies in results/round-g-r1-sol-11d3de
 ok    collect finds the set complete
 ok    refused: a second collect of the same set (set-r1-sol.json exists: a set is collected once)
 ok    A: usable by every check
@@ -121,25 +116,25 @@ ok    the read-all sentence is in R's packet alone
 ok    the guide text is in X's packet alone
 ok    four blind copies whose names show no arm
 == readings: made-up verdicts through the judging command, sealed, then compared
-ok    refused: a score before any reading (slot K1 has no complete, sealed reading from opus: nothing is compared)
+ok    refused: a score before any reading (slot K2 has no complete, sealed reading from opus: nothing is compared)
 ok    the live rubric is the bench judge's text with four phrases changed
+DONE csv-user-import__K2__sol-medium covered=6/21 partial=3 
+DONE csv-user-import__K1__sol-medium covered=7/21 partial=2 
+DONE csv-user-import__K4__sol-medium covered=8/21 partial=4 
+DONE csv-user-import__K3__sol-medium covered=10/21 partial=3 
 DONE csv-user-import__K1__sol-medium covered=6/21 partial=3 
-DONE csv-user-import__K4__sol-medium covered=7/21 partial=2 
-DONE csv-user-import__K3__sol-medium covered=8/21 partial=4 
-DONE csv-user-import__K2__sol-medium covered=10/21 partial=3 
-DONE csv-user-import__K1__sol-medium covered=6/21 partial=3 
-DONE csv-user-import__K4__sol-medium covered=6/21 partial=3 
-DONE csv-user-import__K3__sol-medium covered=9/21 partial=3 
-DONE csv-user-import__K2__sol-medium covered=9/21 partial=4 
+DONE csv-user-import__K2__sol-medium covered=6/21 partial=3 
+DONE csv-user-import__K4__sol-medium covered=9/21 partial=3 
+DONE csv-user-import__K3__sol-medium covered=9/21 partial=4 
 set r1-sol: 8 of 8 readings complete 
 ok    judge takes eight readings and seals them
 ok    every judge was given the live rubric
-ok    refused: a score before the readings are sealed (slot K1 has no complete, sealed reading from opus: nothing is compared)
+ok    refused: a score before the readings are sealed (slot K2 has no complete, sealed reading from opus: nothing is compared)
 ok    refused: a score before the reader's audit (the reader's audit has not been checked in: the arms are not revealed before it is)
-reader's folder: /private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-152820/reader (4 specifications, arms hidden); its instructions are PROMPT.md there
+reader's folder: /private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-q-a8fa4a/reader (4 specifications, arms hidden); its instructions are PROMPT.md there
 ok    the reader's folder is made
 ok    the reader's folder holds the sentence, the base, the coded files and its instructions
-made-up capability: verified in ['K2'] of ['K2', 'K4']
+made-up capability: verified in ['K3'] of ['K1', 'K3']
 1 capabilities listed; arms stay hidden until `score`
 ok    the audit is checked
 ok    a true quote is verified and an invented one is not
@@ -202,16 +197,16 @@ ok    four higher with one newly raised is not
 ok    five higher and two lower is not
 ok    one either way is no signal
 == set r3: X's author gives itself only the head of its packet
-{"name": "r3-sol-X", "set": "r3-sol", "arm": "X", "driver": "sol", "pid": 84542, "started_at": 1795303717.551544, "limit_minutes": 1.0, "decided_at": 1795303720.60944, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-152820/root/samples/r3-sol-X/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
-{"name": "r3-sol-A", "set": "r3-sol", "arm": "A", "driver": "sol", "pid": 84543, "started_at": 1795303717.552949, "limit_minutes": 1.0, "decided_at": 1795303720.623585, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-152820/root/samples/r3-sol-A/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
-{"name": "r3-sol-R", "set": "r3-sol", "arm": "R", "driver": "sol", "pid": 84544, "started_at": 1795303717.554498, "limit_minutes": 1.0, "decided_at": 1795303720.6335602, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-152820/root/samples/r3-sol-R/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
-{"name": "r3-sol-C", "set": "r3-sol", "arm": "C", "driver": "sol", "pid": 84545, "started_at": 1795303717.556242, "limit_minutes": 1.0, "decided_at": 1795303720.643463, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-152820/root/samples/r3-sol-C/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
+{"name": "r3-sol-X", "set": "r3-sol", "arm": "X", "driver": "sol", "pid": 58910, "started_at": 1795306239.018667, "limit_minutes": 1.0, "decided_at": 1795306242.075277, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-q-a8fa4a/root/samples/r3-sol-X/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
+{"name": "r3-sol-A", "set": "r3-sol", "arm": "A", "driver": "sol", "pid": 58911, "started_at": 1795306239.0202398, "limit_minutes": 1.0, "decided_at": 1795306242.091389, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-q-a8fa4a/root/samples/r3-sol-A/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
+{"name": "r3-sol-R", "set": "r3-sol", "arm": "R", "driver": "sol", "pid": 58912, "started_at": 1795306239.0216918, "limit_minutes": 1.0, "decided_at": 1795306242.1017432, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-q-a8fa4a/root/samples/r3-sol-R/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
+{"name": "r3-sol-C", "set": "r3-sol", "arm": "C", "driver": "sol", "pid": 58913, "started_at": 1795306239.0232918, "limit_minutes": 1.0, "decided_at": 1795306242.1109602, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-q-a8fa4a/root/samples/r3-sol-C/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
 ok    run returns cleanly
 r3-sol-A: watcher saw the acceptance; the stop file; usable True; delivered True; words 674 
 r3-sol-C: watcher saw the acceptance; the stop file; usable True; delivered True; words 674 
 r3-sol-R: watcher saw the acceptance; the stop file; usable True; delivered True; words 674 
 r3-sol-X: watcher saw the acceptance; the stop file; usable True; delivered False; words 674 ["at least half of the stage's instructions given to the model", "the arm's own sentence given, and no other arm's", 'four fifths or more of the guide block given']
-set r3-sol: complete; delivered {'A': True, 'C': True, 'R': True, 'X': False}; blind copies in results/round-g-r3-sol-9f46c6
+set r3-sol: complete; delivered {'A': True, 'C': True, 'R': True, 'X': False}; blind copies in results/round-g-r3-sol-c78710
 ok    collect finds the set complete
 ok    X is usable and not delivered: little of the instructions, no cue, no block
 ok    A, R and C are delivered
@@ -220,6 +215,7 @@ ok    the set reads as delivery failed
 == the reading over several sets
 ok    every new set at its net is shown
 ok    a set whose arms were not delivered does not reach the net and is not the opposite
+ok    the questions pair is shown only when every set reaches a net of two
 set r1-sol  (counted in the rule)
   A: 674 words; covered 6/6 of 14; instructions [106, 106]; references [9, 56]; block [0, 81]; guide lines it opened none; delivered True
   R: 674 words; covered 8/9 of 14; instructions [106, 106]; references [9, 56]; block [0, 81]; guide lines it opened none; delivered True
@@ -237,7 +233,7 @@ set r3-sol
   C: 674 words; covered not judged of ?; instructions [108, 108]; references [9, 56]; block [0, 81]; guide lines it opened none; delivered True
   X: 674 words; covered not judged of ?; instructions [3, 191]; references [9, 56]; block [0, 81]; guide lines it opened none; delivered False
   capability the reader verified in one arm alone: none
-over the sets counted in the rule ['r1-sol']: {'X over A': 'shown', 'X over C': 'shown', 'R over A': 'shown', 'C over A': 'not shown', 'S over A': 'no sets'}  (nets {'X over A': [5], 'X over C': [5], 'R over A': [4], 'C over A': [0], 'S over A': []})
+over the sets counted in the rule ['r1-sol']: {'X over A': 'shown', 'X over C': 'shown', 'R over A': 'shown', 'C over A': 'not shown', 'S over A': 'no sets', 'Q over A': 'no sets'}  (nets {'X over A': [5], 'X over C': [5], 'R over A': [4], 'C over A': [0], 'S over A': [], 'Q over A': []})
 ok    sets side by side are printed, with the rule over the ones named
 == a run folder with two arms: the released stage and the section to fill
 {
@@ -247,17 +243,17 @@ ok    sets side by side are printed, with the rule over the ones named
   "S"
  ],
  "checkout": "/Users/dadleet/src/skill-craft",
- "head": "3fe778eba56be5b42d89f85a993a5ea6d126948c",
- "checkout_status_lines": 8,
+ "head": "5e511e409259f20bf5c143ce4edef3061d575ac3",
+ "checkout_status_lines": 5,
  "base": {
   "fixture": "node-base",
   "digest": "8f445d24ed3c",
-  "start_head": "b822bc5327c3afb03a0032073dd2b4d00c8a7cbc",
+  "start_head": "de6d37037d52d943f0463bed8f0a01c6c9753c6f",
   "files": 11
  },
  "plugins": {
-  "A": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-152820/root-two/arm-A/build/plugins/skill-craft",
-  "S": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-152820/root-two/arm-S/build/plugins/skill-craft"
+  "A": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-q-a8fa4a/root-two/arm-A/build/plugins/skill-craft",
+  "S": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-q-a8fa4a/root-two/arm-S/build/plugins/skill-craft"
  },
  "build_sha256": {
   "A": {
@@ -283,22 +279,73 @@ ok    sets side by side are printed, with the rule over the ones named
  "problems": []
 }
 ok    prepare with arms A and S finds no problem
-{"name": "r5-sol-S", "set": "r5-sol", "arm": "S", "driver": "sol", "pid": 85865, "started_at": 1795303728.771339, "limit_minutes": 1.0, "decided_at": 1795303731.810776, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-152820/root-two/samples/r5-sol-S/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
-{"name": "r5-sol-A", "set": "r5-sol", "arm": "A", "driver": "sol", "pid": 85866, "started_at": 1795303728.772782, "limit_minutes": 1.0, "decided_at": 1795303731.827378, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-152820/root-two/samples/r5-sol-A/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
+{"name": "r5-sol-S", "set": "r5-sol", "arm": "S", "driver": "sol", "pid": 60231, "started_at": 1795306250.211416, "limit_minutes": 1.0, "decided_at": 1795306253.255109, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-q-a8fa4a/root-two/samples/r5-sol-S/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
+{"name": "r5-sol-A", "set": "r5-sol", "arm": "A", "driver": "sol", "pid": 60232, "started_at": 1795306250.2129788, "limit_minutes": 1.0, "decided_at": 1795306253.27197, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-q-a8fa4a/root-two/samples/r5-sol-A/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
 r5-sol-A: watcher saw the acceptance; the stop file; usable True; delivered True; words 674 
 r5-sol-S: watcher saw the acceptance; the stop file; usable True; delivered True; words 674 
-set r5-sol: complete; delivered {'A': True, 'S': True}; blind copies in results/round-g-r5-sol-fc7e58
+set r5-sol: complete; delivered {'A': True, 'S': True}; blind copies in results/round-g-r5-sol-6db41a
 ok    a two-arm set runs and is collected complete
 ok    the section duty reaches S's author alone, and both are delivered
+== a run folder with two arms: the released stage and the five questions
+{
+ "study": "users",
+ "arms": [
+  "A",
+  "Q"
+ ],
+ "checkout": "/Users/dadleet/src/skill-craft",
+ "head": "5e511e409259f20bf5c143ce4edef3061d575ac3",
+ "checkout_status_lines": 5,
+ "base": {
+  "fixture": "node-base",
+  "digest": "8f445d24ed3c",
+  "start_head": "214ea8e9edfd5c332dde75f6222533bfbe8f4c60",
+  "files": 11
+ },
+ "plugins": {
+  "A": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-q-a8fa4a/root-three/arm-A/build/plugins/skill-craft",
+  "Q": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-q-a8fa4a/root-three/arm-Q/build/plugins/skill-craft"
+ },
+ "build_sha256": {
+  "A": {
+   "shiploop_prompts.py": "39ea13ebce9e4a39aa7b3e3415af7371f286fcef3772f7228875830c18913b33",
+   "shiploop_stage_spec.py": "470d2bc8f93d7452120e29b40f5f7a5afaf8c48dde0c0d6c1ad90388e2c82429"
+  },
+  "Q": {
+   "shiploop_prompts.py": "bc080bef3377eb0dc8c21a6ac9c7462d48b39209c72aef505d15869f3b7cfea4",
+   "shiploop_stage_spec.py": "470d2bc8f93d7452120e29b40f5f7a5afaf8c48dde0c0d6c1ad90388e2c82429"
+  }
+ },
+ "spec_prompt_sha256": {
+  "A": "1d01d54fbca2",
+  "Q": "908a5da34db9"
+ },
+ "spec_prompt_characters": {
+  "A": 8786,
+  "Q": 10148
+ },
+ "delta_lines": {
+  "Q": 14
+ },
+ "problems": []
+}
+ok    prepare with arms A and Q finds no problem
+{"name": "r6-sol-A", "set": "r6-sol", "arm": "A", "driver": "sol", "pid": 61528, "started_at": 1795306261.0496361, "limit_minutes": 1.0, "decided_at": 1795306264.094025, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-q-a8fa4a/root-three/samples/r6-sol-A/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
+{"name": "r6-sol-Q", "set": "r6-sol", "arm": "Q", "driver": "sol", "pid": 61529, "started_at": 1795306261.051023, "limit_minutes": 1.0, "decided_at": 1795306264.106722, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-q-a8fa4a/root-three/samples/r6-sol-Q/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
+r6-sol-A: watcher saw the acceptance; the stop file; usable True; delivered True; words 674 
+r6-sol-Q: watcher saw the acceptance; the stop file; usable True; delivered True; words 674 
+set r6-sol: complete; delivered {'A': True, 'Q': True}; blind copies in results/round-g-r6-sol-3b704c
+ok    a two-arm set with the questions arm runs and is collected complete
+ok    the questions duty reaches Q's author alone, and both are delivered
 == tampering is caught
-ok    refused: a grade file changed after sealing (slot K1 has no complete, sealed reading from opus: nothing is compared)
-ok    refused: a blind copy changed after collecting (slot K1 is missing or is not the specification the manifest recorded)
+ok    refused: a grade file changed after sealing (slot K2 has no complete, sealed reading from opus: nothing is compared)
+ok    refused: a blind copy changed after collecting (slot K2 is missing or is not the specification the manifest recorded)
 ok    refused: a label file changed after the first launch (items.json no longer matches the label files: the item list is fixed once)
 == set r2: a run that never accepts, a launch that makes no folder, a run that ends by itself
-{"name": "r2-sol-C", "set": "r2-sol", "arm": "C", "driver": "sol", "pid": 85884, "started_at": 1795303733.293327, "limit_minutes": 0.1, "decided_at": 1795303739.383666, "watcher": "the time limit; no output folder, so the launch was ended", "stop_written": false, "seen": null, "returncode": -15}
-{"name": "r2-sol-X", "set": "r2-sol", "arm": "X", "driver": "sol", "pid": 85885, "started_at": 1795303733.294964, "limit_minutes": 0.1, "decided_at": 1795303734.313329, "watcher": "the run ended with no acceptance", "stop_written": false, "seen": null, "returncode": 0}
-{"name": "r2-sol-A", "set": "r2-sol", "arm": "A", "driver": "sol", "pid": 85886, "started_at": 1795303733.296795, "limit_minutes": 0.1, "decided_at": 1795303739.386579, "watcher": "the time limit", "stop_written": true, "seen": null, "returncode": 0}
-{"name": "r2-sol-R", "set": "r2-sol", "arm": "R", "driver": "sol", "pid": 85887, "started_at": 1795303733.298522, "limit_minutes": 0.1, "decided_at": 1795303736.335975, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-152820/root/samples/r2-sol-R/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
+{"name": "r2-sol-C", "set": "r2-sol", "arm": "C", "driver": "sol", "pid": 61549, "started_at": 1795306265.5720892, "limit_minutes": 0.1, "decided_at": 1795306271.659759, "watcher": "the time limit; no output folder, so the launch was ended", "stop_written": false, "seen": null, "returncode": -15}
+{"name": "r2-sol-X", "set": "r2-sol", "arm": "X", "driver": "sol", "pid": 61550, "started_at": 1795306265.573629, "limit_minutes": 0.1, "decided_at": 1795306266.591499, "watcher": "the run ended with no acceptance", "stop_written": false, "seen": null, "returncode": 0}
+{"name": "r2-sol-A", "set": "r2-sol", "arm": "A", "driver": "sol", "pid": 61551, "started_at": 1795306265.5753322, "limit_minutes": 0.1, "decided_at": 1795306271.663553, "watcher": "the time limit", "stop_written": true, "seen": null, "returncode": 0}
+{"name": "r2-sol-R", "set": "r2-sol", "arm": "R", "driver": "sol", "pid": 61552, "started_at": 1795306265.577087, "limit_minutes": 0.1, "decided_at": 1795306268.620588, "watcher": "saw the acceptance", "stop_written": true, "seen": {"run_dir": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/rehearsal-q-a8fa4a/root/samples/r2-sol-R/.shiploop-runs/work-20261121-151624-5a14c0/run", "spec_action": "nav-ee14efbb9d4b44e78ea20682463020fc", "at": "2026-11-21T15:19:35Z", "ts": 1795274375.933, "spec_sha256": "48208db28c767403a79ae30eeb7c912588e2740814da6f071dbfe48a4b7b5e0d", "head": "51dc0e28d17c86b437fcd1dfde1865cfbc960be0"}, "returncode": 0}
 ok    run returns cleanly
 ok    the six-second limit is kept (all three decided within twenty seconds)
 ok    A: the time limit, and a stop file

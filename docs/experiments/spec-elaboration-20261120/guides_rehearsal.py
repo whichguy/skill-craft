@@ -615,6 +615,7 @@ def main() -> int:
             "R over A": "not shown",
             "C over A": "the opposite",
             "S over A": "no sets",
+            "Q over A": "no sets",
         },
     )
     expect(
@@ -633,7 +634,16 @@ def main() -> int:
             "R over A": "shown",
             "C over A": "the opposite",
             "S over A": "no sets",
+            "Q over A": "no sets",
         },
+    )
+    expect(
+        "the questions pair is shown only when every set reaches a net of two",
+        [
+            g.several({"Q over A": row})["Q over A"]
+            for row in ([2, 3, 2], [2, 1, 4], [2, None, 2], [-1, 0, -2])
+        ]
+        == ["shown", "not shown", "not shown", "the opposite"],
     )
     expect(
         "sets side by side are printed, with the rule over the ones named",
@@ -661,6 +671,33 @@ def main() -> int:
         "the section duty reaches S's author alone, and both are delivered",
         [pair[a]["exposure"]["section_shown"] for a in ("A", "S")] == [False, True]
         and all(pair[a]["delivered"] is True for a in ("A", "S")),
+        {a: pair[a]["delivery_checks"] for a in pair},
+    )
+
+    print("== a run folder with two arms: the released stage and the five questions")
+    three = scratch / "root-three"
+    g.ARMS = ("A", "Q")
+    expect(
+        "prepare with arms A and Q finds no problem", g.cmd_prepare(three, True) == 0
+    )
+    ready_three = json.loads((three / "prepare.json").read_text())
+    ready_three["checkout_status_lines"] = 0
+    (three / "prepare.json").write_text(json.dumps(ready_three))
+    os.environ["GUIDES_STUB"] = json.dumps(
+        {"template": str(template), "modes": {"A": "accept", "Q": "accept"}}
+    )
+    expect(
+        "a two-arm set with the questions arm runs and is collected complete",
+        g.cmd_run(three, "r6", "sol", 1.0) == 0 and g.cmd_collect(three, "r6-sol") == 0,
+    )
+    pair = {
+        row["arm"]: row
+        for row in json.loads((three / "collect-r6-sol.json").read_text())
+    }
+    expect(
+        "the questions duty reaches Q's author alone, and both are delivered",
+        [pair[a]["exposure"]["questions_shown"] for a in ("A", "Q")] == [False, True]
+        and all(pair[a]["delivered"] is True for a in ("A", "Q")),
         {a: pair[a]["delivery_checks"] for a in pair},
     )
     g.ARMS = ("A", "R", "C", "X")

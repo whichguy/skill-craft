@@ -1,0 +1,217 @@
+[
+ {
+  "request": "Add a waitlist to our class booking app so full classes don't turn people away.",
+  "nuances": [
+   {
+    "id": "N-1",
+    "category": "interaction",
+    "nuance": "What happens when a spot opens: automatic promotion, or an offer the person must accept within a stated window."
+   },
+   {
+    "id": "N-2",
+    "category": "interaction",
+    "nuance": "The order the waitlist is served in (join time), how ties resolve, and whether any membership tier or staff override jumps the queue."
+   },
+   {
+    "id": "N-3",
+    "category": "interaction",
+    "nuance": "A person on the waitlist for two classes that overlap in time: promoting one must resolve the other."
+   },
+   {
+    "id": "N-4",
+    "category": "interaction",
+    "nuance": "The no-show or late-cancellation policy that already exists: whether a declined or missed promotion counts against it."
+   },
+   {
+    "id": "N-5",
+    "category": "async",
+    "nuance": "Promotion is triggered by a cancellation that happens outside the person's session, so it is background work with a stated trigger and timeliness."
+   },
+   {
+    "id": "N-6",
+    "category": "async",
+    "nuance": "Notification of a promotion: the channel, what it says, and what happens when sending fails."
+   },
+   {
+    "id": "N-7",
+    "category": "unhappy",
+    "nuance": "Two spots opening at once, or two cancellations at the same moment: no double promotion and no over-booked class."
+   },
+   {
+    "id": "N-8",
+    "category": "unhappy",
+    "nuance": "A waitlisted person booking directly at the same moment a promotion is offered to them."
+   },
+   {
+    "id": "N-9",
+    "category": "unhappy",
+    "nuance": "Payment for a promoted booking: when it is taken and what happens when it fails."
+   },
+   {
+    "id": "N-10",
+    "category": "edge",
+    "nuance": "A cap on the waitlist itself, and what a person sees when even the waitlist is full."
+   },
+   {
+    "id": "N-11",
+    "category": "edge",
+    "nuance": "A cut-off before class start after which no promotion happens."
+   },
+   {
+    "id": "N-12",
+    "category": "edge",
+    "nuance": "Staff raising or lowering a class's capacity while a waitlist exists."
+   },
+   {
+    "id": "N-13",
+    "category": "edge",
+    "nuance": "The class being cancelled entirely: what happens to everyone waiting."
+   },
+   {
+    "id": "N-14",
+    "category": "data",
+    "nuance": "The waitlist entry as a record with its join time and state, and whether a position is stored or derived."
+   },
+   {
+    "id": "N-15",
+    "category": "data",
+    "nuance": "What becomes of waitlist entries after the class has run, and how long they are kept."
+   },
+   {
+    "id": "N-16",
+    "category": "permission",
+    "nuance": "What a member can see of the waitlist: their own position, and not other people's identities."
+   },
+   {
+    "id": "N-17",
+    "category": "operator",
+    "nuance": "Staff can see the waitlist, promote or remove someone by hand, and see who was promoted when."
+   },
+   {
+    "id": "N-18",
+    "category": "operator",
+    "nuance": "The feature can be turned off, or enabled per class or class type."
+   },
+   {
+    "id": "N-19",
+    "category": "nonfunctional",
+    "nuance": "A bound on how soon a promotion follows a cancellation."
+   },
+   {
+    "id": "N-20",
+    "category": "preserve",
+    "nuance": "A class that is not full still books directly as it does today, and existing bookings are unaffected."
+   },
+   {
+    "id": "N-21",
+    "category": "preserve",
+    "nuance": "Classes that are already full when the feature ships: whether they gain a waitlist and how."
+   }
+  ]
+ },
+ {
+  "request": "Set up automatic reminders for unpaid invoices.",
+  "nuances": [
+   {
+    "id": "N-1",
+    "category": "interaction",
+    "nuance": "The schedule: how many reminders and at what offsets from the due date, including whether any are sent before it."
+   },
+   {
+    "id": "N-2",
+    "category": "interaction",
+    "nuance": "Every condition that stops the sequence: paid, part-paid, voided, credited, disputed, or on a payment plan."
+   },
+   {
+    "id": "N-3",
+    "category": "interaction",
+    "nuance": "A part-paid invoice: whether the reminder states the remaining balance rather than the original amount."
+   },
+   {
+    "id": "N-4",
+    "category": "interaction",
+    "nuance": "An existing do-not-contact, paused or unsubscribed state on the customer, and whether a billing notice is exempt from a marketing opt-out."
+   },
+   {
+    "id": "N-5",
+    "category": "async",
+    "nuance": "Idempotency: the same reminder is never sent twice, including after a retry, a redeploy or two schedulers running."
+   },
+   {
+    "id": "N-6",
+    "category": "async",
+    "nuance": "A check at the moment of sending that the invoice is still unpaid, not only when the batch was selected."
+   },
+   {
+    "id": "N-7",
+    "category": "async",
+    "nuance": "The send failing: retry policy, a provider outage, and escalation to a person when it keeps failing."
+   },
+   {
+    "id": "N-8",
+    "category": "async",
+    "nuance": "The sending provider's rate limit and how a large batch is paced within it."
+   },
+   {
+    "id": "N-9",
+    "category": "edge",
+    "nuance": "Invoices already overdue when the feature is switched on: the whole backlog of reminders does not go out at once."
+   },
+   {
+    "id": "N-10",
+    "category": "edge",
+    "nuance": "Time zone and sending hours: the customer's local time, business hours, weekends and holidays."
+   },
+   {
+    "id": "N-11",
+    "category": "edge",
+    "nuance": "Currency and amount formatting for the recipient."
+   },
+   {
+    "id": "N-12",
+    "category": "unhappy",
+    "nuance": "A bouncing or invalid recipient address, and an invoice with no contact at all."
+   },
+   {
+    "id": "N-13",
+    "category": "unhappy",
+    "nuance": "More than one billing contact, and which of them is written to."
+   },
+   {
+    "id": "N-14",
+    "category": "data",
+    "nuance": "A record per invoice per reminder step, showing what was sent and when, visible on the invoice."
+   },
+   {
+    "id": "N-15",
+    "category": "data",
+    "nuance": "What the reminder contains: invoice reference, amount, due date and a way to pay, and whether that link expires."
+   },
+   {
+    "id": "N-16",
+    "category": "permission",
+    "nuance": "Who may configure the schedule and who may send or stop a reminder by hand."
+   },
+   {
+    "id": "N-17",
+    "category": "operator",
+    "nuance": "Turning it off globally and per customer, previewing or dry-running it, and resending by hand."
+   },
+   {
+    "id": "N-18",
+    "category": "operator",
+    "nuance": "Seeing what the system will send next and what it failed to send."
+   },
+   {
+    "id": "N-19",
+    "category": "nonfunctional",
+    "nuance": "A bound on sending volume or on how late a scheduled reminder may go out."
+   },
+   {
+    "id": "N-20",
+    "category": "preserve",
+    "nuance": "Nothing changes about how invoices are created, paid or recorded."
+   }
+  ]
+ }
+]

@@ -1,0 +1,114 @@
+{
+ "nuances": [
+  {
+   "id": "N-1",
+   "category": "interaction",
+   "nuance": "What 'waiting on the requester' means in a program whose lifecycle (open, in_progress, resolved, closed) has no such state and no way for a requester to reply: a new state or flag, or an existing status such as resolved or in_progress, and how a ticket enters and leaves it."
+  },
+  {
+   "id": "N-2",
+   "category": "interaction",
+   "nuance": "How 'too long' is measured: the threshold, the instant it is counted from (entering the waiting condition, not the ticket's last update), and whether it varies by priority."
+  },
+  {
+   "id": "N-3",
+   "category": "interaction",
+   "nuance": "How many reminders a ticket may get and how far apart: a single reminder or a repeating sequence, the interval between them, and when they stop."
+  },
+  {
+   "id": "N-4",
+   "category": "interaction",
+   "nuance": "Every event that ends the waiting and stops reminders: the ticket reopened, moved on, closed, changed by an agent, or the requester responding, including what counts as the requester responding when the API has no reply endpoint."
+  },
+  {
+   "id": "N-5",
+   "category": "interaction",
+   "nuance": "What the reminder says and to whom: its subject and body in the style of the existing templates, the fields it uses (ticket id, title, how long it has waited, what the requester should do), and which address it goes to when the requester field is free text rather than an email address."
+  },
+  {
+   "id": "N-6",
+   "category": "interaction",
+   "nuance": "How the requester acts on a reminder, given the existing 'reply within 7 days to reopen it' wording in the resolved notice: whether the two messages agree and what the requester is told to do."
+  },
+  {
+   "id": "N-7",
+   "category": "async",
+   "nuance": "Where the check runs: as a job of the existing background worker, with its schedule and what it does on each tick, and not a new timer or a side effect of a request."
+  },
+  {
+   "id": "N-8",
+   "category": "async",
+   "nuance": "That the same reminder is not queued or sent twice across ticks, a restart, or a retry, given that an outbox key deduplicates only while the earlier event is still pending and the existing delivery is at-least-once."
+  },
+  {
+   "id": "N-9",
+   "category": "async",
+   "nuance": "Re-checking at the moment of enqueueing that the ticket is still waiting, so a ticket that changed since the last tick, or since an earlier reminder, is not reminded."
+  },
+  {
+   "id": "N-10",
+   "category": "unhappy",
+   "nuance": "What happens when a reminder cannot be delivered: the existing retries and dead state apply or not, whether a dead reminder leads to another one later, and whether the template must exist before the event type can be enqueued."
+  },
+  {
+   "id": "N-11",
+   "category": "edge",
+   "nuance": "What happens to tickets that already meet the condition when the feature is first deployed: whether a backlog of reminders goes out at once, or the waiting time is counted from deployment."
+  },
+  {
+   "id": "N-12",
+   "category": "edge",
+   "nuance": "A ticket resolved, reopened and resolved again: whether the waiting time restarts and how the reminder count and keys behave across the cycles."
+  },
+  {
+   "id": "N-13",
+   "category": "edge",
+   "nuance": "The boundaries of the threshold: a ticket exactly at it, the time zone and clock source used for the comparison, and whether reminders are held outside business hours, weekends or holidays."
+  },
+  {
+   "id": "N-14",
+   "category": "data",
+   "nuance": "The new stored data (a waiting-since time, a reminder count or last-reminded time), where it lives in the ticket or outbox record, and that persistence names the field for saving and loading."
+  },
+  {
+   "id": "N-15",
+   "category": "data",
+   "nuance": "That a data file written by the current version still loads after the change, with the new fields taking a stated default, and that a file with a bad new field is refused with a message naming it."
+  },
+  {
+   "id": "N-16",
+   "category": "data",
+   "nuance": "Whether sending a reminder is recorded in the audit log, what the entry's action and actor are, and whether it changes the ticket's updated time, given that the audit log records only changes to a ticket."
+  },
+  {
+   "id": "N-17",
+   "category": "permission",
+   "nuance": "Who may configure the threshold and the reminders and who may stop or send one by hand, given the service has no authentication beyond the self-declared X-Actor header and an internal-network admin area."
+  },
+  {
+   "id": "N-18",
+   "category": "operator",
+   "nuance": "The settings that control the feature: environment variables with defaults and validation errors that name the variable, the way to turn it off, and that a worker interval of 0 stops reminders too."
+  },
+  {
+   "id": "N-19",
+   "category": "operator",
+   "nuance": "How operators see what was sent and what will be sent next: through the outbox report, the ticket's history, the command line, or the weekly report, and without breaking the command line's raw column positions."
+  },
+  {
+   "id": "N-20",
+   "category": "nonfunctional",
+   "nuance": "A bound on how late a reminder may go out after the threshold and on how many are enqueued in one tick, and that the check's cost with thousands of tickets does not grow badly or block delivery."
+  },
+  {
+   "id": "N-21",
+   "category": "preserve",
+   "nuance": "That existing behaviour stays as it is: the lifecycle transitions, the received and resolved notifications, the API responses and error codes, the list filters, the audit entries of existing actions, and the command line's and weekly report's output."
+  },
+  {
+   "id": "N-22",
+   "category": "preserve",
+   "nuance": "The accompanying changes: tests in the style of the existing suite using the manual clock, an updated API doc, operations doc, README settings table and changelog with a version bump, and a decision record if a rule other code relies on changes."
+  }
+ ]
+}
