@@ -32,9 +32,10 @@ each bounded by its own hang guard (``COMMAND_TIMEOUT_SECONDS``); a run has no t
 One exception: ``release-verify`` is the stage whose done-when is "observed where consumers use it".  In an isolated
 run with a completed return it runs the consumer checks in a clean copy of exactly the tree that return delivered
 (never the user's checkout, never the work area); without a completed return it runs in the work area and says so
-(see ``observation``).  A consumer check that is a test command the run recorded, with or without settings in front
-of it, is held there to the count the work area last ran (``consumer_floors``): a check judged by its exit code alone
-let a run skip, in the clean copy, tests its own suite ran in the work area.
+(see ``observation``).  In the clean copy ShipLoop also runs each regression command of the last work item that
+records one, where no consumer check is that command (``release_commands``), and holds each of those commands there
+to the count the work area last ran (``copy_floors``): the model writes the checks, and a check written to run less
+than the suite let two live runs pass while their own suites could not run there.
 
 Known limits of the base run: ignored files are not in the worktree, so only the dependency directories the platform
 cards list (``shiploop_mutation.dependency_directories``) are linked in from the checkout; a command that names the
@@ -46,7 +47,6 @@ from __future__ import annotations
 
 import os
 import re
-import shlex
 import shutil
 import tempfile
 import time
@@ -564,6 +564,8 @@ def _listing(row: Mapping[str, Any], floor: Optional[int] = None) -> str:
         text += " (also recorded as regression)"
     if row.get("minimum"):
         text += " (minimum regression: every step)"
+    if row.get("from_step_plan"):
+        text += ADDED_MARK
     if floor:
         text += " (floor: " + str(floor) + " tests)"
     return text
@@ -634,18 +636,20 @@ BASE_RULE = ("Base run: before the candidate run, ShipLoop runs every focused an
 RATCHET_RULE = ("Floor: each command runs at least as many tests as the most an accepted ShipLoop run of it ran for this "
                 "item since its latest step plan, so a test removed or newly skipped is refused; a test that must go "
                 "because the plan changed is a send-back, and the redone step plan starts the count again.")
-# What release-verify says about the count ``consumer_floors`` holds a consumer check to.
-CONSUMER_RULE = ("Floor: a consumer check that is a test command this run recorded (the same words once any NAME=value "
-                 "settings in front are left out) runs at least as many tests as the latest ShipLoop run of that command "
-                 "accepted in the work area (its floor, shown beside it), and its count must be readable, so a test "
-                 "skipped or missing here is refused.")
+# How a command ``release_commands`` adds is marked wherever a model reads it: the packet's list and the refusal.
+ADDED_MARK = " (the step plan's regression command, added by ShipLoop)"
+# What release-verify says, where its commands run in a clean copy, about the commands ``release_commands`` adds and
+# the count ``copy_floors`` holds a recorded command to.  Printed after the list, in the list's own two markers.
+COPY_RULE = ("Added by ShipLoop: in the clean copy ShipLoop also runs each regression command of the last work item "
+             "that records one, where no check above is that command, so a check that runs less cannot stand in for "
+             "the suite. Floor: each of those commands, added or written as a check, runs there at least as many tests "
+             "as its latest accepted run in the work area, with a count ShipLoop can read: one that fails or runs "
+             "fewer (a test skipped or missing lowers the count) is refused.")
 
 
 def _floor_lines(stage: str) -> List[str]:
-    """The packet line about the count floor: none at system-test, which is not held to one; release-verify's is the
-    consumer checks' (``consumer_floors``)."""
-    if stage == "release-verify":
-        return [CONSUMER_RULE]
+    """The packet line about the count floor: none at the outer stages (release-verify's own rule is printed by
+    ``rerun_lines`` only where its commands run in a clean copy)."""
     if stage in OUTER_SOURCES:
         return []
     return [FLOOR_RULE if stage in STAGES else RATCHET_RULE]
@@ -748,36 +752,36 @@ def _where(observed: Optional[Mapping[str, Any]], repo: Any) -> str:
     return str(repo)
 
 
-def _copy_refusal(observed: Mapping[str, Any]) -> str:
-    """The reply to a release-verify command that failed in the returned-result copy, and the one exit the stage has."""
+def _copy_refusal(observed: Mapping[str, Any], failing: Sequence[Mapping[str, Any]] = ()) -> str:
+    """The reply to release-verify commands that did not pass in the returned-result copy, and the stage's exits.
+
+    Two exits, by what is wrong.  ``send-back`` reruns release-plan (the stage contract's route for a wrong or missing
+    release step, S1.5): it is the exit when the plan lacks a step a command needs, which became an ordinary cause once
+    ShipLoop added a command the plan's author did not write.  ``add-work`` is the exit when the delivery must change,
+    and stays the remedy the refused-run tally names (``_remedy``).  ``failing`` are the runs that did not pass: where
+    one is a command ShipLoop added (``release_commands``), the reply says what decides the command that is added next.
+    """
     ahead = ("The work area is ahead of the return now (its HEAD is not the returned head "
              + str(observed["head"])[:12] + "), so a commit made after the return is the likely cause. "
              if observed.get("ahead") else "")
-    return ("The copy at " + str(observed["copy"]) + " holds exactly the returned tree and is kept so you can reproduce "
-            "there. A check that passes in the work area and fails here usually means one of: a path the return plan "
-            "excluded (" + str(observed["plan"]) + "); an ignored or unmanaged file the check needs (installed "
-            "dependencies, build output, local configuration); or a commit made after the return, which the copy does "
-            "not hold. " + ahead + "This stage cannot edit the commands or return. Report outcome add-work with one "
-            "corrective work item whose context names the failing command and its cause, so release returns the fix "
-            "and release-verify observes it (an excluded path: the return plan must keep it; an ignored or unmanaged "
-            "file: the check must bring it, for example by installing it first; a later commit: release must return "
-            "it again). If the cause is not about what was delivered (a busy port, a missing tool), fix it and submit "
+    added = ("ShipLoop adds the regression command of the last work item that records one, so a corrective item "
+             "whose step plan records a regression command decides what is added next: where the command itself must "
+             "change, that step plan records its replacement. "
+             if any(run.get("from_step_plan") for run in failing) else "")
+    return ("The copy at " + str(observed["copy"]) + " started as exactly the returned tree and is kept so you can "
+            "reproduce there (the commands above have run in it). A command that passes in the work area and fails or "
+            "runs fewer tests here usually means one of: a path the return plan excluded (" + str(observed["plan"])
+            + "); an ignored or unmanaged file it needs (installed dependencies, build output, local configuration); "
+            "the repository's history, which the copy does not hold; or a commit made after the return, which it does "
+            "not hold either. " + ahead + "This stage cannot edit the commands or return. Where the release plan is "
+            "what is wrong (a step that must run first, such as an install or a build that brings an ignored or "
+            "unmanaged file, is not recorded; a check removes what a later command needs), report outcome send-back: "
+            "release-plan records it and the stages after it run again. Where the delivery must change, report "
+            "outcome add-work with one corrective work item whose context names the failing command and its cause, "
+            "so release returns the fix and release-verify observes it (an excluded path: the return plan must keep "
+            "it; the history: the test must carry what it needs; a later commit: release must return it again). "
+            + added + "If the cause is not about what was delivered (a busy port, a missing tool), fix it and submit "
             "done again.")
-
-
-def _consumer_reply(observed: Optional[Mapping[str, Any]]) -> str:
-    """The reply to a consumer check held to a recorded command's count (``consumer_floors``), and the stage's two
-    exits: the tests are at fault (add-work), or the check is the wrong one (send-back, which reruns release-plan)."""
-    kept = ("The copy at " + str(observed["copy"]) + " holds exactly the returned tree and is kept so you can reproduce "
-            "there. " if observed and observed.get("where") == "returned-result" else "")
-    return (kept + "A consumer check that is a recorded test command runs what the work area ran. A test that ran there "
-            "and is skipped, missing or uncounted here depends on something the delivery lacks (Git history, an "
-            "ignored or unmanaged file, a path the return plan excluded) or on a setting written in front of the "
-            "command. This stage cannot edit the tests, the command or the return. When the tests must be made to run "
-            "where a consumer runs them, report outcome add-work with one corrective work item whose context names "
-            "the command and the tests that did not run. When the check is meant to run less than the recorded "
-            "command, report send-back naming it: release-plan then records that check by its own command, not as "
-            "the recorded one with a setting in front.")
 
 
 def _place_reply(stage: str, refused: int) -> str:
@@ -798,7 +802,8 @@ def rerun_lines(root: Path, state: Mapping[str, Any], work_item: str, stage: str
     ``root`` is the run directory; at ``release-verify`` the line names where the commands run (``observation``),
     computed afresh at every render, and the note under the list says what that place does and does not hold.
     """
-    commands, _reason = stage_commands(state, stage, work_item)
+    commands, _reason = (release_commands(root, state) if stage == "release-verify"
+                         else stage_commands(state, stage, work_item))
     if not commands:
         return []
     # The outer stages rerun commands another stage recorded, and have no step plan.
@@ -814,7 +819,8 @@ def rerun_lines(root: Path, state: Mapping[str, Any], work_item: str, stage: str
         "unknown": "Where they run: the return state cannot be read now, so done is refused without counting until it "
                    "can be; retry done then, or report add-work if it cannot be repaired.",
     }
-    floors = consumer_floors(root, state, commands) if stage == "release-verify" else {}
+    clean_copy = stage == "release-verify" and where == "returned-result"
+    floors = copy_floors(root, state, commands) if clean_copy else {}
     what = ("reruns what your edits since this stage began could affect, out of the commands its step's test stage "
             "ran (none after no edit, the check commands after a documentation edit, all of them after a code or test "
             "edit), from " if stage == STEP_RERUN_STAGE else
@@ -825,7 +831,8 @@ def rerun_lines(root: Path, state: Mapping[str, Any], work_item: str, stage: str
              "counting):"]
             + ["  " + str(number) + ". " + _listing(row, (floors.get(row["command"]) or {}).get("floor"))
                for number, row in enumerate(commands, 1)]
-            + [COUNT_RULE] + _floor_lines(stage) + ([notes[where]] if where in notes else []))
+            + [COUNT_RULE] + _floor_lines(stage) + ([COPY_RULE] if clean_copy else [])
+            + ([notes[where]] if where in notes else []))
 
 
 def observed_lines(root: Path, state: Mapping[str, Any]) -> List[str]:
@@ -936,7 +943,7 @@ def _explain(run: Mapping[str, Any], stage: str = "") -> str:
         floor = int(run.get("accepted_ran") or 0)
         if floor > int(run.get("min_tests") or 0):
             if stage == "release-verify":
-                # The command is release-plan's and the place is the consumer's: the exits are in ``_consumer_reply``.
+                # The place is the consumer's and nothing here is this stage's to edit: the exits are in ``_copy_refusal``.
                 return ("ran fewer tests than the work area did (" + str(floor) + " there: " + str(run.get("floor_from"))
                         + ")" + seen + ".")
             if stage in STAGES:
@@ -969,6 +976,10 @@ def _explain(run: Mapping[str, Any], stage: str = "") -> str:
     if status == "uncounted" and stage == "release-verify" and run.get("accepted_ran"):
         return ("exited " + str(run["exit"]) + ", but ShipLoop could not read how many tests it ran here; it read "
                 + str(run["accepted_ran"]) + " in " + str(run.get("floor_from")) + ".")
+    if status == "uncounted" and run.get("from_step_plan"):
+        # The step plan recorded this command, not release-plan: "record it as suite check" would change nothing.
+        return ("exited " + str(run["exit"]) + ", but ShipLoop could not read how many tests it ran here, and the "
+                "step plan recorded it with test IDs or a minimum.")
     if status == "uncounted":
         unread = "exited " + str(run["exit"]) + ", but ShipLoop could not read how many tests it ran. "
         if stage in OUTER_SOURCES:
@@ -1155,61 +1166,113 @@ def action_counts(root: Path, action: str) -> Dict[str, int]:
     return most
 
 
-def latest_counts(root: Path, state: Mapping[str, Any]) -> Dict[str, int]:
-    """Per command, the count of the latest run of it that ShipLoop accepted in the work area, over the whole run.
+def latest_counts(root: Path, state: Mapping[str, Any]) -> Dict[str, Tuple[int, str]]:
+    """Per command, the count of its latest passed run in the work area under an accepted done action, with the record
+    that holds it (relative to the run directory).
 
-    Read from the passed records of the actions in the history, oldest first, so a later run of a command replaces an
-    earlier one: the latest, not the most, because a later item may consolidate tests on purpose and the outer stages
-    have no step plan to send back to.  release-verify's own records are left out: they are what this count judges.
+    Read from the passed records of the done actions in the history, oldest first, so a later run of a command
+    replaces an earlier one: the latest, not the most, because a later item may consolidate tests on purpose and the
+    outer stages have no step plan to send back to.  A latest run whose count ShipLoop could not read leaves the
+    command without one: an older number would hold the copy to a summary the suite no longer prints.  Left out: an
+    action that ended in send-back or add-work (its tree was reworked), release-verify's own records (they are what
+    this count judges) and a record that cannot be read (the command then has no floor; nothing is refused for it).
     """
-    latest: Dict[str, int] = {}
+    latest: Dict[str, Optional[Tuple[int, str]]] = {}
     for row in state.get("history", ()):
+        if row.get("outcome") != "done" or row.get("stage") == "release-verify":
+            continue
         action = str(row.get("action"))
         for number in range(1, _verify_count(root, action) + 1):
-            record = store.read_record(Path(root) / verify_path(action, number))
-            if not isinstance(record, Mapping) or not record.get("passed") or record.get("stage") == "release-verify":
+            relative = verify_path(action, number)
+            try:
+                record = store.read_record(Path(root) / relative)
+            except (OSError, store.StorageError):
+                continue
+            if not isinstance(record, Mapping) or not record.get("passed"):
                 continue
             for run in record.get("runs") or ():
-                ran = (run.get("counts") or {}).get("ran")
-                if run.get("status") == "passed" and isinstance(ran, int):
-                    latest[str(run["command"])] = ran
-    return latest
+                if run.get("status") in PASSING:
+                    ran = (run.get("counts") or {}).get("ran")
+                    latest[str(run["command"])] = (ran, relative) if isinstance(ran, int) else None
+    return {command: found for command, found in latest.items() if found is not None}
 
 
-_SETTING = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=")
+def regression_commands(state: Mapping[str, Any], *, last_item: bool = False) -> List[Dict[str, Any]]:
+    """The regression commands the run's step plans recorded, each once, without those that test a hosted runtime
+    (``_remote_base``): the project's default suite as ShipLoop ran it in the work area.
 
-
-def _bare(command: str) -> Optional[Tuple[str, ...]]:
-    """A command's shell words without the environment settings written in front of it (``NAME=value``), or None when
-    the words cannot be read (an unclosed quote) or nothing is left."""
-    try:
-        words = shlex.split(command)
-    except ValueError:
-        return None
-    first = next((index for index, word in enumerate(words) if not _SETTING.match(word)), len(words))
-    return tuple(words[first:]) or None
-
-
-def consumer_floors(root: Path, state: Mapping[str, Any],
-                    commands: Sequence[Mapping[str, Any]]) -> Dict[str, Dict[str, Any]]:
-    """Per consumer check that is a test command this run recorded: the count it is held to, and where it comes from.
-
-    The check is that command when the two are the same shell words once the settings in front of either are left
-    out, so ``SKIP_SLOW=1 npm test`` is ``npm test``.  Its floor is that command's ``latest_counts``: what the work
-    area last ran.  A check that is another command (a subset, an install step and then the suite, a probe) has no
-    floor, and neither has a command whose count ShipLoop could not read.
+    ``last_item`` takes only those of the last work item whose step plan records one that runs on the checkout: the
+    suite as the run last ran it.  Work items are built in list order and a corrective one is added at the end, so
+    an earlier item's command can name what a later item moved, and no stage can retire it.
     """
-    recorded: Dict[Tuple[str, ...], Tuple[str, int]] = {}
-    for command, ran in latest_counts(root, state).items():
-        words = _bare(command)
-        if words is not None:
-            recorded[words] = (command, ran)
+    stateful = stateful_targets(state)
+    per_item: List[List[Mapping[str, Any]]] = []
+    for item in state.get("work_items", ()):
+        _action, result = _step_plan(state, str(item.get("id")))
+        per_item.append([row for row in result.get("test_commands") or ()
+                         if row["suite"] == "regression" or row.get("regression")])
+    if last_item:
+        local = ([row for row in rows if _remote_base(row, stateful) is None] for rows in per_item)
+        per_item = [rows for rows in local if rows][-1:]
+    found: Dict[str, Mapping[str, Any]] = {}
+    for rows in per_item:
+        for row in rows:
+            found.setdefault(row["command"], row)
+    return [dict(row) for row in found.values() if _remote_base(row, stateful) is None]
+
+
+def release_commands(root: Path, state: Mapping[str, Any]) -> Tuple[List[Dict[str, Any]], str]:
+    """release-verify's commands and, when there are none, why.
+
+    They are the consumer checks release-plan recorded.  Where those run in a clean copy of the returned result,
+    ShipLoop adds after them each regression command of the last work item that records one (``regression_commands``)
+    that no check already is (marked ``from_step_plan``).  The model writes the checks and the script adds these,
+    because a check written to run less than the suite (a subset of the test files, a setting that makes tests skip
+    themselves) passed in the clean copy while the delivery's own suite could not: two live deliveries of twenty-four.
+
+    A check "is" the command when its text is the same, character for character.  Shell words were tried and dropped:
+    a command the shell runs can be one ``shlex`` cannot split (an apostrophe in a comment), which lost the command
+    and its floor, and two spellings with the same words can be different commands (a quoted ``${NAME}``).  The cost
+    is a second run when a check differs from the command only in spacing.
+
+    The last item's commands, not every item's: ``add-work`` queues a corrective item at the end, and its own step
+    plan then says what is added, so that exit can always be taken.  A step that prepares the copy (install, build)
+    is a check the model records before; the added commands run last.  No consumer check, nothing added: the stage
+    then runs nothing, as before.
+    """
+    commands, reason = stage_commands(state, "release-verify", "")
+    observed = observation(root, state, "release-verify")
+    if not commands or not observed or observed["where"] != "returned-result":
+        return commands, reason
+    held = {str(row.get("command")) for row in commands}
+    for row in regression_commands(state, last_item=True):
+        if row["command"] not in held:
+            held.add(row["command"])
+            commands.append({**{key: row[key] for key in ("command", "suite", "ids", "min_tests") if key in row},
+                             "from_step_plan": True})
+    return commands, reason
+
+
+def copy_floors(root: Path, state: Mapping[str, Any],
+                commands: Sequence[Mapping[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    """Per release-verify command that is a regression command of the last work item that records one (one ShipLoop
+    added, or a consumer check that is that command): the count it is held to in the clean copy, and where it comes
+    from.
+
+    The floor is that command's ``latest_counts``: what the work area last ran, with the record that shows it.  Any
+    other consumer check (a subset, a step before the suite, the suite behind a setting, an earlier item's command) has
+    no floor: it is the model's own check, and the regression command, added after it, is what holds the suite.  A
+    command whose latest work-area count ShipLoop could not read has none either.
+    """
+    selected = {row["command"] for row in regression_commands(state, last_item=True)}
+    latest = latest_counts(root, state)
     held: Dict[str, Dict[str, Any]] = {}
     for row in commands:
-        found = recorded.get(_bare(str(row.get("command") or "")) or ())
-        if found is not None:
-            held[str(row["command"])] = {"floor": found[1], "from": "the latest run of `" + found[0] + "` that ShipLoop "
-                                                                     "accepted in the work area"}
+        command = str(row.get("command"))
+        if command in selected and command in latest:
+            ran, record = latest[command]
+            held[command] = {"floor": ran, "from": "the latest run of this command that ShipLoop accepted in the work "
+                                                   "area, " + record}
     return held
 
 
@@ -1393,24 +1456,15 @@ def default_suite_drift(state: Mapping[str, Any], rows: List[Dict[str, Any]], ru
     marked = [test_id for row in rows if row.get("host_dependent") for test_id in row.get("ids") or ()]
     if not marked:
         return []
-    seen: List[str] = []
     drift: List[Dict[str, Any]] = []
-    stateful = stateful_targets(state)
-    for item in state.get("work_items", ()):
-        _action, result = _step_plan(state, str(item.get("id")))
-        for row in result.get("test_commands") or ():
-            if not (row["suite"] == "regression" or row.get("regression")) or row["command"] in seen:
-                continue
-            seen.append(row["command"])
-            if _remote_base(row, stateful) is not None:
-                continue
-            ran = run_one(row["command"])
-            if ran is None:
-                continue
-            code, output = ran
-            shown = counts.named(output, marked)["shown"]
-            drift.append({**row, "exit": code, "seconds": 0.0, "stdout": _tail(output.encode()), "stderr": "",
-                          "host_dependent_ids_shown": shown, "status": DRIFT_STATUS if shown else "passed"})
+    for row in regression_commands(state):
+        ran = run_one(row["command"])
+        if ran is None:
+            continue
+        code, output = ran
+        shown = counts.named(output, marked)["shown"]
+        drift.append({**row, "exit": code, "seconds": 0.0, "stdout": _tail(output.encode()), "stderr": "",
+                      "host_dependent_ids_shown": shown, "status": DRIFT_STATUS if shown else "passed"})
     return drift
 
 
@@ -1550,9 +1604,9 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
 
     An empty refusal means every command passed (``judge``).  At the test stage each focused and regression command is
     also held to its floor (``floor_detail``, which reads ``result``'s retired_tests); at the item's rerun stage (document)
-    to the most any accepted run of it ran since the step plan (``accepted_counts``); at release-verify a consumer
-    check that is a recorded test command to what the work area last ran (``consumer_floors``); system-test and the
-    end-of-work review to none.  A command that times out or cannot start refuses the stage, but the attempt is
+    to the most any accepted run of it ran since the step plan (``accepted_counts``); at release-verify in a clean
+    copy a recorded test command to what the work area last ran (``copy_floors``); system-test and the end-of-work
+    review to none.  A command that times out or cannot start refuses the stage, but the attempt is
     recorded ``could-not-run`` and does not count in ``refused_runs``.  ``command_timeout`` bounds each command; every
     command runs, with no total time budget.
 
@@ -1565,7 +1619,8 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     """
     root = Path(root)
     if commands is None:
-        commands, _reason = stage_commands(state, stage, work_item)
+        commands, _reason = (release_commands(root, state) if stage == "release-verify"
+                             else stage_commands(state, stage, work_item))
     if not commands:
         return {}, ""
     refused = refused_runs(root, action)
@@ -1591,7 +1646,8 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     if stage in STAGES:
         held = floor_detail(root, state, work_item, action, result, check=not count)
     elif stage == "release-verify":
-        held = consumer_floors(root, state, commands)
+        held = (copy_floors(root, state, commands)
+                if observed and observed["where"] == "returned-result" and not failure else {})
     elif stage in OUTER_SOURCES or not work_item:
         held = {}
     else:
@@ -1673,7 +1729,8 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
         lines = ["ShipLoop test run: " + stage + " is not done. ShipLoop ran the " + listed + " from "
                  + _where(observed, repo) + " and " + str(len(failing)) + " did not pass:"]
     for run in failing:
-        lines.append("- [" + run["suite"] + "] " + run["command"] + " -> " + _explain(run, stage))
+        lines.append("- [" + run["suite"] + "] " + run["command"] + (ADDED_MARK if run.get("from_step_plan") else "")
+                     + " -> " + _explain(run, stage))
         tail = (run["stdout"] + "\n" + run["stderr"]).strip().splitlines()[-15:]
         lines += ["    | " + line for line in tail]
     if failure:
@@ -1685,15 +1742,14 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
         attempts = _unavailable_sentence(stage, refused, command_timeout)
     else:
         attempts = refused_note(refused + 1, stage)
-    bound = [run for run in failing if run.get("accepted_ran") and run["status"] in ("too-few-tests", "uncounted")]
-    if stage == "release-verify" and bound and len(bound) == len(failing):
-        lines.append(_consumer_reply(observed) + " " + attempts + " Full output: " + str(root / relative) + ".")
-        return writes, "\n".join(lines)
+    # A command ShipLoop added, or one held to the work area's count, is the step plan's: the reply for a command
+    # release-plan recorded as a counted suite ("record it as suite check") would change nothing for it.
+    plans = any(run.get("from_step_plan") or run.get("accepted_ran") for run in failing)
     if stage in STAGES:
         lines.append("Fix the code (or a test, for an independent reason you record), start the Until Loop again with "
                      "the packet's start command (its receipt is replaced), then submit done again. " + attempts
                      + " Full output: " + str(root / relative) + ".")
-    elif stage in OUTER_SOURCES and all(run["status"] == "uncounted" for run in failing):
+    elif stage in OUTER_SOURCES and not plans and all(run["status"] == "uncounted" for run in failing):
         # Nothing here is a product failure: the recorded command itself cannot be counted, and only an add-work
         # reaches the stage that records it, so a "fix the code" line would send the model the wrong way.
         lines.append("Report add-work as named above, not done: no change to the code makes a recorded command "
@@ -1701,7 +1757,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
                      + "); add-work does not wait for them. Full output: " + str(root / relative) + ".")
     elif observed is not None and observed["where"] == "returned-result" and disposition == "failed":
         # The generic reply ("fix the code") has no way out here: this stage cannot edit the commands or return.
-        lines.append(_copy_refusal(observed) + " " + attempts + " Full output: " + str(root / relative) + ".")
+        lines.append(_copy_refusal(observed, failing) + " " + attempts + " Full output: " + str(root / relative) + ".")
     else:
         lines.append("Fix the code so every command passes (never change a check to get green), then submit "
                      "done again. " + attempts + " Full output: " + str(root / relative) + ".")

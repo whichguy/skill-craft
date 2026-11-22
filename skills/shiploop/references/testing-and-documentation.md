@@ -162,15 +162,32 @@ because the plan changed is a plan change: report `send-back` with the reason, a
 Every inner stage's `send-back` needs its stopped Until Loop receipt; `test` also accepts `send-back` when its latest attempt could
 not run.
 
-At `release-verify`, a consumer check that is a test command the run recorded (the same shell words once any `NAME=value`
-settings in front of either are left out, so `SKIP_SLOW=1 npm test` is `npm test`) may not run fewer tests than the latest
-run of that command ShipLoop accepted in the work area, and its count must be readable (`too-few-tests` or `uncounted`,
-with the work-area number as `accepted_ran`; the packet shows it beside the command as its floor). It is the latest count,
-not the most, so tests a later item consolidated do not count against it. The stage has two exits: `add-work` when the tests
-must be made to run where a consumer runs them, and `send-back`, which reruns `release-plan`, when the check is meant to run
-less than the recorded command and should be recorded by its own command. A check spelled as another command (a wrapper, an
-install step and then the suite, a path written differently) is held to no count, and an equal count does not show that the
-same tests ran.
+At `release-verify`, where the consumer checks run in a clean copy of the returned result, ShipLoop also runs each
+regression command of the last work item whose step plan records one that runs on the checkout, where no check already is
+that command (the same text), after the checks (the packet and a refusal mark each as added by ShipLoop). The model writes
+the consumer checks, and a check written to run less than the suite (a subset of the test files, the suite behind a setting
+that makes tests skip themselves) must not stand in for it. Each of those commands, added or written as a check, may not run
+fewer tests there than the latest run of it that an accepted stage passed in the work area, and its count must be readable
+(`too-few-tests` or `uncounted`, with the work-area number as `accepted_ran` and its record named; the packet shows it
+beside the command as its floor). It is the latest count, not the most, so tests a later item consolidated do not count
+against it; a command whose latest work-area count could not be read has no floor. Any other consumer check is the model's
+own and is held to no count.
+
+A command that fails or runs fewer tests there has two exits, by what is wrong. `send-back` reruns `release-plan` when the
+release plan is wrong: a step that must run first (an install or a build that brings an ignored or unmanaged file) is not
+recorded, or a check removes what a later command needs. `add-work` queues a corrective work item when the delivery must
+change: a test carries what it needs instead of reading the repository's history, or an excluded path is kept by the return
+plan. It is the last item's commands, not every item's: an earlier item's command can name what a later item moved, and the
+corrective item is the last one, so its step plan records what is added next (the replacement, where the command itself must
+change).
+
+Limits of this rule. Nothing is added for a regression command that tests a hosted runtime (one that reaches such a runtime
+through a wrapper no platform card lists is added like any other), for a run whose `release-plan` recorded no consumer
+check, or where the checks run in the work area or in place. A later item that records a narrower regression command leaves
+an earlier item's suite out. A suite that runs fewer tests in a clean copy by design (a group that needs the repository's
+history or a local tool) is refused all the same: the corrective item gives that group a command of its own. A check that is
+the regression command keeps the row `release-plan` recorded for it, so the step plan's test IDs and minimum are not carried
+over to it. An equal count does not show that the same tests ran.
 
 Known limits: the outer `system-test` and the end-of-work review
 rerun commands another stage recorded and have no `send-back` to lower a floor, so they are not held to one; a run whose count

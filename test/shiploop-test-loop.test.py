@@ -3829,49 +3829,138 @@ class ReleaseVerifyReturnedResultTests(unittest.TestCase):
         self.complete(dict(DONE, outcome="add-work", work_items=[{"id": "W2", "title": "Return retained.txt"}]))
         self.assertIn("W2", [row["id"] for row in self.state()["work_items"]])
 
-    def refuse_a_consumer_check_that_skips_a_test(self) -> str:
-        """Drive a run whose regression command ran 4 tests in the work area to release-verify, with that command as
-        the consumer check behind a setting that leaves one out, and see it refused; returns release-verify's action."""
+    def test_a_suite_that_runs_fewer_tests_in_the_returned_copy_is_refused_and_the_corrective_item_replaces_it(self):
+        """The added command through the real gate, and the whole way out (second outside review, round 15).  The
+        regression command runs 4 tests in the work area and 3 where there is no repository (a test that needs the
+        history skips itself); the consumer check is another, narrower command that passes anywhere.  ShipLoop adds
+        the regression command, runs it in the returned copy and refuses.  add-work is accepted; the corrective
+        item's step plan records a replacement that runs the same 4 tests anywhere; release returns again;
+        release-verify adds the replacement, holds it to the corrective item's own work-area count and passes.  The
+        first command still cannot run its 4 tests in a copy: it is retired, not repaired."""
         suite = {"command": "sh suite.sh", "suite": "regression"}
+        portable = {"command": "sh portable.sh", "suite": "regression"}
 
         def write(_state) -> None:
-            (self.repo / "suite.sh").write_text('echo "Ran $(( 4 - ${SKIP_SLOW:-0} )) tests in 0.001s"; echo OK\n')
+            (self.repo / "suite.sh").write_text('if test -e .git; then n=4; else n=3; fi; '
+                                                'echo "Ran $n tests in 0.001s"; echo OK\n')
+            # The corrective item's own focused runner (its test ID must be new); tracked from the first return on.
+            (self.repo / "check2.sh").write_text(CHECK.replace("TC-1", "TC-2"))
 
         self.drive_to("release", step_plan={"test_commands": [COMMANDS[0], suite], "paths": ["a.py"]}, each=write)
-        self.assertEqual(test_loop.latest_counts(self.run_dir, self.state()).get("sh suite.sh"), 4,
+        self.assertEqual(test_loop.latest_counts(self.run_dir, self.state()).get("sh suite.sh", (None,))[0], 4,
                          "control: ShipLoop accepted a work-area run of the regression command with 4 tests")
         self.return_result()
         self.drive_to("release-verify")
         state = self.state()
         producer = next(row["action"] for row in reversed(state["history"]) if row["stage"] == "release-plan")
-        state["accepted"][producer]["consumer_checks"] = [{"command": "SKIP_SLOW=1 sh suite.sh", "suite": "check"}]
-        nav.save(self.run_dir, state)
+        self.assertEqual(state["accepted"][producer]["consumer_checks"], [COMMANDS[1]],
+                         "control: the consumer check is not the regression command")
         packet = self.packet()
-        self.assertIn(test_loop.CONSUMER_RULE, packet)
-        self.assertIn("1. [check] SKIP_SLOW=1 sh suite.sh (floor: 4 tests)", packet)
+        self.assertIn(test_loop.COPY_RULE, packet)
+        self.assertIn("2. [regression] sh suite.sh (the step plan's regression command, added by ShipLoop) "
+                      "(floor: 4 tests)", packet)
         knowledge_support.write(self.state())  # the knowledge gate runs before the test rerun
         action = self.action()
-        self.assert_refused(DONE, r"(?s)release-verify is not done.*result returned to.*SKIP_SLOW=1 sh suite\.sh -> ran "
-                                  r"fewer tests than the work area did \(4 there.*3 run, 0 failed.*add-work.*send-back")
-        record = store.read_record(self.run_dir / test_loop.verify_path(action, 1))
-        run = record["runs"][0]
-        self.assertEqual((record["observed"]["where"], run["status"], run["accepted_ran"], run["counts"]["ran"]),
-                         ("returned-result", "too-few-tests", 4, 3))
-        self.assertEqual(test_loop.refused_runs(self.run_dir, action), 1)
-        return action
 
-    def test_a_consumer_check_that_skips_tests_the_work_area_ran_is_refused_and_add_work_is_an_accepted_exit(self):
-        """The count rule through the real gate, and the exit for tests that must be made to run in a clean copy."""
-        self.refuse_a_consumer_check_that_skips_a_test()
+        self.assert_refused(DONE, r"(?s)release-verify is not done.*result returned to.*\[regression\] sh suite\.sh "
+                                  r"\(the step plan's regression command, added by ShipLoop\) -> ran fewer tests than "
+                                  r"the work area did \(4 there.*3 run, 0 failed.*report outcome send-back.*report "
+                                  r"outcome add-work.*decides what is added next")
+
+        record = store.read_record(self.run_dir / test_loop.verify_path(action, 1))
+        check, added = record["runs"]
+        self.assertEqual((check["command"], check["status"]), (COMMANDS[1]["command"], "passed-uncounted"))
+        self.assertEqual((record["observed"]["where"], added["from_step_plan"], added["status"], added["accepted_ran"],
+                          added["counts"]["ran"]), ("returned-result", True, "too-few-tests", 4, 3))
+        self.assertEqual(test_loop.refused_runs(self.run_dir, action), 1)
+        # The exit the refusal names for a delivery that must change is accepted, and the corrective item is queued.
         self.complete(dict(DONE, outcome="add-work", work_items=[{"id": "W2", "title": "Run every test in a clean copy"}]))
         self.assertIn("W2", [row["id"] for row in self.state()["work_items"]])
 
-    def test_the_other_exit_of_a_refused_consumer_check_sends_the_run_back_to_release_plan(self):
-        """The exit for a check that is meant to run less than the recorded command: release-plan records it again."""
-        self.refuse_a_consumer_check_that_skips_a_test()
+        def fix(_state) -> None:
+            (self.repo / "portable.sh").write_text('echo "Ran 4 tests in 0.001s"; echo OK\n')
+            (self.repo / "fixed2.txt").write_text("fixed\n")
+
+        focused = {"command": "sh check2.sh fixed2.txt", "suite": "focused", "ids": ["TC-2"]}
+        self.drive_to("release", step_plan={"test_commands": [focused, portable], "paths": ["a.py"]}, each=fix)
+        self.assertEqual(test_loop.latest_counts(self.run_dir, self.state()).get("sh portable.sh", (None,))[0], 4,
+                         "control: the corrective item's own work-area run set the replacement's count")
+        self.return_result()
+        self.drive_to("release-verify")
+        knowledge_support.write(self.state())
+        again = self.action()
+        self.assertNotEqual(again, action)
+        self.complete(DONE)
+        second = store.read_record(self.run_dir / test_loop.verify_path(again, 1))
+        self.assertTrue(second["passed"])
+        self.assertNotEqual(second["observed"]["head"], record["observed"]["head"], "the corrected tree was returned")
+        self.assertEqual([(run["command"], run.get("from_step_plan"), run["status"], run.get("accepted_ran"))
+                          for run in second["runs"]],
+                         [(COMMANDS[1]["command"], None, "passed-uncounted", None), ("sh portable.sh", True, "passed", 4)])
+        old = subprocess.run(["sh", "suite.sh"], cwd=second["observed"]["copy"], capture_output=True, text=True)
+        self.assertIn("Ran 3 tests", old.stdout, "the first command is still short in a copy: retired, not repaired")
+
+    def test_a_suite_that_needs_a_step_the_release_plan_did_not_record_is_refused_and_send_back_records_it(self):
+        """The other exit through the real gate.  The suite needs a file a consumer installs (ignored, so the
+        returned tree does not hold it), and the release plan recorded no step that brings it.  ShipLoop adds the
+        suite, it fails in the copy, and send-back is accepted: release-plan records the install step, and on the
+        same returned tree release-verify runs that step, adds the suite after it and passes."""
+        suite = {"command": "sh suite.sh", "suite": "regression"}
+        install = {"command": "sh install.sh", "suite": "check"}
+
+        def write(_state) -> None:
+            (self.repo / ".gitignore").write_text("deps.txt\n")
+            (self.repo / "install.sh").write_text("echo installed > deps.txt\n")
+            (self.repo / "deps.txt").write_text("installed\n")
+            (self.repo / "suite.sh").write_text('test -f deps.txt || { echo "Error: Cannot find module deps"; exit 1; }; '
+                                                'echo "Ran 4 tests in 0.001s"; echo OK\n')
+
+        self.drive_to("release", step_plan={"test_commands": [COMMANDS[0], suite], "paths": ["a.py"]}, each=write)
+        self.return_result()
+        self.assertFalse((self.source / "deps.txt").exists(), "control: the ignored file is not returned")
+        self.drive_to("release-verify")
+        knowledge_support.write(self.state())
+        action = self.action()
+        self.assert_refused(DONE, r"(?s)release-verify is not done.*\[regression\] sh suite\.sh \(the step plan's "
+                                  r"regression command, added by ShipLoop\) -> exit 1.*Cannot find module deps.*"
+                                  r"report outcome send-back: release-plan records it")
         self.complete(dict(DONE, outcome="send-back",
-                           summary="The consumer check is a smoke run: record it by its own command."))
-        self.assertEqual(nav.current_stage(self.state()), "release-plan")
+                           summary="The release plan records no step that installs deps.txt before the suite."))
+        self.assertEqual(nav.current_stage(self.settle()), "release-plan")
+        knowledge_support.write(self.state())
+        self.complete(dict(DONE, consumer_entry={"how": "run python3 a.py", "sources": ["a.py"]},
+                           consumer_checks=[install, COMMANDS[1]]))
+        self.settle()
+        self.drive_to("release")
+        self.return_result()
+        self.drive_to("release-verify")
+        knowledge_support.write(self.state())
+        again = self.action()
+        self.assertNotEqual(again, action)
+        self.complete(DONE)
+        second = store.read_record(self.run_dir / test_loop.verify_path(again, 1))
+        self.assertTrue(second["passed"])
+        self.assertEqual([(run["command"], run.get("from_step_plan"), run.get("accepted_ran")) for run in second["runs"]],
+                         [("sh install.sh", None, None), (COMMANDS[1]["command"], None, None), ("sh suite.sh", True, 4)])
+
+    def test_a_suite_that_runs_the_same_in_the_returned_copy_passes_with_the_added_command_recorded(self):
+        """GUARD for the ordinary delivery: the suite does not lean on the work area, so the added command passes and
+        release-verify is accepted with it in the record."""
+        suite = {"command": "sh suite.sh", "suite": "regression"}
+
+        def write(_state) -> None:
+            (self.repo / "suite.sh").write_text('echo "Ran 4 tests in 0.001s"; echo OK\n')
+
+        self.drive_to("release", step_plan={"test_commands": [COMMANDS[0], suite], "paths": ["a.py"]}, each=write)
+        self.return_result()
+        self.drive_to("release-verify")
+        knowledge_support.write(self.state())
+        action = self.action()
+        self.complete(DONE)
+        record = store.read_record(self.run_dir / test_loop.verify_path(action, 1))
+        self.assertTrue(record["passed"])
+        self.assertEqual([(run["command"], run.get("from_step_plan"), run["status"], run.get("accepted_ran")) for run in record["runs"]],
+                         [(COMMANDS[1]["command"], None, "passed-uncounted", None), ("sh suite.sh", True, "passed", 4)])
 
     def test_the_handoff_packet_names_the_returned_copy_after_a_passing_release_verify(self):
         self.drive_to("release")
@@ -4324,137 +4413,336 @@ class CountFloorTests(unittest.TestCase):
         self.assertIn("any other drop below a command's floor is refused", duty)
 
 
-class ConsumerFloorTests(unittest.TestCase):
-    """release-verify holds a consumer check that is a recorded test command to what the work area last ran.
+class ReturnedCopyRegressionTests(unittest.TestCase):
+    """In a clean copy of the returned result, release-verify also runs the regression commands the step plans
+    recorded, and holds every recorded command to what the work area last ran.
 
-    Motive: a live run recorded its whole suite as a consumer check with a setting in front that made nine tests skip
-    themselves in the clean copy, and the check passed on its exit code (docs/shiploop-sdlc-structure-journal.md,
-    round 14, R118)."""
+    Motive: two live deliveries of twenty-four had a suite that could not pass where a consumer gets it (their tests
+    read the repository's history) and passed the stage, one with the suite behind a setting that made nine tests
+    skip themselves, one with three test files in place of the suite (docs/shiploop-sdlc-structure-journal.md,
+    rounds 14 and 15).  The place is simulated here: ``self.root`` is the work area, ``self.copy`` the returned copy."""
 
     SUITE = 'echo "Ran $(( $(cat n.txt) - ${SKIP_SLOW:-0} )) tests in 0.001s"; echo OK\n'
     COMMAND = "sh suite.sh"
 
     def setUp(self) -> None:
-        temp = tempfile.TemporaryDirectory(prefix="shiploop-consumer-floor-")
+        temp = tempfile.TemporaryDirectory(prefix="shiploop-returned-copy-")
         self.addCleanup(temp.cleanup)
-        self.root = Path(temp.name)
-        (self.root / "suite.sh").write_text(self.SUITE)
-        self.state = {"repo": str(self.root), "accepted": {"P1": dict(
+        self.root = Path(temp.name) / "work"
+        self.copy = Path(temp.name) / "copy"
+        for folder in (self.root, self.copy):
+            folder.mkdir()
+            (folder / "suite.sh").write_text(self.SUITE)
+        self.state = {"repo": str(self.root), "work_items": [{"id": "W1"}], "accepted": {"P1": dict(
             DONE, test_commands=[{"command": self.COMMAND, "suite": "regression"}])},
             "history": [{"stage": "step-plan", "workitem": "W1", "action": "P1", "outcome": "done"}]}
 
     run_stage = CountFloorTests.run_stage
     record = CountFloorTests.record
 
-    def release_plan(self, *commands: str) -> None:
+    def release_plan(self, *commands: str, na: str = "") -> None:
         """release-plan's accepted result, recording ``commands`` as its consumer checks."""
-        self.state["accepted"]["R1"] = dict(DONE, consumer_checks=[{"command": command, "suite": "check"}
-                                                                  for command in commands])
+        result = dict(DONE, consumer_checks=[{"command": command, "suite": "check"} for command in commands])
+        if na:
+            result["consumer_checks_na"] = na
+        self.state["accepted"]["R1"] = result
         self.state["history"] = ([row for row in self.state["history"] if row["action"] != "R1"]
                                  + [{"stage": "release-plan", "workitem": None, "action": "R1", "outcome": "done"}])
 
-    def test_a_setting_in_front_of_a_recorded_command_does_not_hide_the_tests_it_skips(self):
-        self.assertEqual(self.run_stage("A1", "document", 9), "")
-        self.release_plan("SKIP_SLOW=3 " + self.COMMAND)
-        refusal = self.run_stage("V1", "release-verify", 9, item="")
-        self.assertIn("ran fewer tests than the work area did (9 there: the latest run of `sh suite.sh` that ShipLoop "
-                      "accepted in the work area) (unittest reported 6 run, 0 failed).", refusal)
-        self.assertIn("report outcome add-work with one corrective work item", refusal)
-        self.assertIn("report send-back naming it: release-plan then records that check by its own command", refusal)
-        self.assertNotIn("Restore the tests", refusal)  # the item stages' reply; this stage cannot restore one
-        run = self.record("V1")["runs"][0]
-        self.assertEqual((run["status"], run["accepted_ran"], run["counts"]["ran"]), ("too-few-tests", 9, 6))
-        self.assertFalse(self.record("V1")["passed"])
+    def in_the_copy(self, ran: int, action: str = "V1") -> str:
+        """ShipLoop's run of release-verify when the returned copy's suite runs ``ran`` tests; returns the refusal."""
+        (self.copy / "n.txt").write_text(str(ran))
+        place = {"where": "returned-result", "source": "/source", "kind": "fast-forward", "head": "0" * 40,
+                 "receipt": "return-receipt.md", "copy": str(self.copy), "plan": "return-plan.md"}
+        with mock.patch.object(test_loop, "observation", return_value=dict(place)), \
+                mock.patch.object(test_loop.workspace, "export_returned_result",
+                                  return_value={**place, "path": str(self.copy)}):
+            writes, refusal = test_loop.verify(self.root, self.state, "", action, "release-verify")
+            self.lines = test_loop.rerun_lines(self.root, self.state, "", "release-verify")
+        for relative, text in writes.items():
+            store.atomic_write_text(self.root / relative, text)
+        return " ".join(refusal.split())
 
-    def test_the_recorded_command_and_a_setting_that_skips_nothing_pass_and_fewer_tests_in_either_is_refused(self):
+    ADDED = "- [regression] sh suite.sh (the step plan's regression command, added by ShipLoop) -> "
+    FROM = "the latest run of this command that ShipLoop accepted in the work area, tests/A1-verify1.md"
+
+    def assert_both_exits(self, refusal: str, *, added: bool) -> None:
+        """The reply in the returned copy names the two exits by what is wrong, and says what decides the command
+        ShipLoop adds next only when one it added is among those that did not pass."""
+        self.assertIn("The copy at " + str(self.copy) + " started as exactly the returned tree", refusal)
+        self.assertIn("the repository's history, which the copy does not hold", refusal)
+        self.assertIn("report outcome send-back: release-plan records it", refusal)
+        self.assertIn("report outcome add-work with one corrective work item", refusal)
+        self.assertEqual("decides what is added next" in refusal, added)
+        self.assertNotIn("Restore the tests", refusal)          # the item stages' reply; this stage cannot restore one
+        self.assertNotIn("belongs in suite `check`", refusal)   # the reply to a command that is no test runner
+
+    def test_a_check_that_runs_less_does_not_stand_in_for_the_suite(self):
         self.assertEqual(self.run_stage("A1", "document", 9), "")
-        self.release_plan(self.COMMAND, "TZ=UTC " + self.COMMAND, "LANG='en US' SKIP_SLOW=0 " + self.COMMAND)
-        self.assertEqual(self.run_stage("V1", "release-verify", 9, item=""), "")
-        self.assertEqual([run["accepted_ran"] for run in self.record("V1")["runs"]], [9, 9, 9])
-        # The place may lack what the work area had: the same command, running fewer tests, is refused too.
-        refusal = self.run_stage("V1", "release-verify", 8, item="")
-        self.assertEqual(refusal.count("ran fewer tests than the work area did (9 there"), 3)
+        self.release_plan("true")
+        refusal = self.in_the_copy(7)
+        self.assertIn("ShipLoop ran the 2 listed commands", refusal)
+        self.assertIn(self.ADDED + "ran fewer tests than the work area did (9 there: " + self.FROM
+                      + ") (unittest reported 7 run, 0 failed).", refusal)
+        self.assert_both_exits(refusal, added=True)
+        check, added = self.record("V1")["runs"]
+        self.assertEqual((check["command"], check["status"], check.get("from_step_plan")), ("true", "passed", None))
+        self.assertEqual((added["command"], added["suite"], added["from_step_plan"], added["status"], added["accepted_ran"]),
+                         (self.COMMAND, "regression", True, "too-few-tests", 9))
+
+    def test_a_suite_that_passes_in_the_copy_is_accepted_whatever_the_checks_are(self):
+        self.assertEqual(self.run_stage("A1", "document", 9), "")
+        self.release_plan("true", "SKIP_SLOW=3 " + self.COMMAND, self.COMMAND + " --smoke")
+        self.assertEqual(self.in_the_copy(9), "")
+        runs = self.record("V1")["runs"]
+        self.assertEqual([(run["command"], run.get("from_step_plan"), run.get("accepted_ran")) for run in runs],
+                         [("true", None, None), ("SKIP_SLOW=3 sh suite.sh", None, None),   # the model's own checks:
+                          ("sh suite.sh --smoke", None, None), (self.COMMAND, True, 9)])   # no floor; the added command holds it
+        self.assertEqual(runs[1]["counts"]["ran"], 6)
+        # More tests in the copy than the work area last ran is fine: the count is a floor.
+        self.assertEqual(self.in_the_copy(11, "V2"), "")
+
+    def test_an_added_command_that_fails_in_the_copy_gets_the_returned_copy_reply_and_both_exits(self):
+        self.assertEqual(self.run_stage("A1", "document", 9), "")
+        self.release_plan("true")
+        (self.copy / "suite.sh").write_text('echo "fatal: not a git repository"; echo "Ran 9 tests in 0.001s"; '
+                                            'echo "FAILED (failures=3)"; exit 1\n')
+        refusal = self.in_the_copy(9)
+        self.assertIn(self.ADDED + "exit 1", refusal)
+        self.assert_both_exits(refusal, added=True)
+        self.assertEqual(self.record("V1")["runs"][1]["status"], "failed")
+
+    def test_a_failing_check_of_the_models_own_gets_the_same_two_exits_and_no_word_on_added_commands(self):
+        self.assertEqual(self.run_stage("A1", "document", 9), "")
+        self.release_plan("sh own.sh", self.COMMAND)
+        (self.copy / "own.sh").write_text("echo missing; exit 1\n")
+        refusal = self.in_the_copy(9)
+        self.assertIn("- [check] sh own.sh -> exit 1", refusal)
+        self.assert_both_exits(refusal, added=False)
+        self.assertEqual([(run["status"], run.get("from_step_plan")) for run in self.record("V1")["runs"]],
+                         [("failed", None), ("passed", None)])
+
+    def test_a_check_that_is_the_regression_command_runs_once_and_is_held_to_the_count(self):
+        self.assertEqual(self.run_stage("A1", "document", 9), "")
+        self.release_plan(self.COMMAND)
+        refusal = self.in_the_copy(8)
+        self.assertIn("- [check] sh suite.sh -> ran fewer tests than the work area did (9 there: " + self.FROM + ")", refusal)
+        self.assert_both_exits(refusal, added=False)
+        self.assertEqual([(run["suite"], run.get("from_step_plan"), run["status"], run["accepted_ran"])
+                          for run in self.record("V1")["runs"]], [("check", None, "too-few-tests", 9)])
+        self.assertEqual(self.in_the_copy(9, "V2"), "")
+
+    def test_a_check_is_the_command_only_when_its_text_is_the_same(self):
+        """Shell words were tried and dropped (second outside review, round 15): a spelling with other spacing is
+        the model's own check, with no floor, and the regression command is added and holds the suite.  The cost is a
+        second run."""
+        self.assertEqual(self.run_stage("A1", "document", 9), "")
+        self.release_plan("sh   suite.sh")
+        self.assertIn(self.ADDED + "ran fewer tests", self.in_the_copy(8))
+        self.assertEqual([(run["command"], run.get("from_step_plan"), run["status"], run.get("accepted_ran"))
+                          for run in self.record("V1")["runs"]],
+                         [("sh   suite.sh", None, "passed", None), (self.COMMAND, True, "too-few-tests", 9)])
+
+    def test_a_command_the_shell_runs_and_shlex_cannot_split_is_still_added_and_held(self):
+        """An apostrophe in a comment is valid shell; reading commands as shell words lost this command and its floor."""
+        command = "sh suite.sh # the maintainer's regression"
+        self.state["accepted"]["P1"] = dict(DONE, test_commands=[{"command": command, "suite": "regression"}])
+        self.assertEqual(self.run_stage("A1", "document", 9), "")
+        self.release_plan("true")
+        self.assertIn("ran fewer tests than the work area did (9 there", self.in_the_copy(7))
+        added = self.record("V1")["runs"][1]
+        self.assertEqual((added["command"], added["from_step_plan"], added["status"], added["accepted_ran"]),
+                         (command, True, "too-few-tests", 9))
 
     def test_the_floor_is_the_latest_accepted_count_not_the_most(self):
         """A later item may consolidate tests on purpose; the outer stages have no step plan to send back to."""
         self.assertEqual(self.run_stage("A1", "document", 9), "")
+        self.state["work_items"].append({"id": "W2"})
         self.state["accepted"]["P2"] = dict(DONE, test_commands=[{"command": self.COMMAND, "suite": "regression"}])
         self.state["history"].append({"stage": "step-plan", "workitem": "W2", "action": "P2", "outcome": "done"})
         self.assertEqual(self.run_stage("B1", "document", 7, item="W2"), "")
-        self.assertEqual(test_loop.latest_counts(self.root, self.state), {self.COMMAND: 7})
-        self.release_plan(self.COMMAND)
-        self.assertEqual(self.run_stage("V1", "release-verify", 7, item=""), "")
-        self.assertIn("(7 there", self.run_stage("V1", "release-verify", 6, item=""))
+        self.assertEqual(test_loop.latest_counts(self.root, self.state), {self.COMMAND: (7, "tests/B1-verify1.md")})
+        self.assertEqual([row["command"] for row in test_loop.regression_commands(self.state)], [self.COMMAND])
+        self.release_plan("true")
+        self.assertEqual(self.in_the_copy(7), "")
+        self.assertIn("(7 there", self.in_the_copy(6, "V2"))
 
-    def test_a_check_that_is_another_command_has_no_floor(self):
-        """Known limit, pinned: only the same words count as the same command, so a subset, a step before the suite or
-        another spelling of it is judged as release-plan recorded it."""
+    def test_the_latest_run_decides_and_a_count_that_can_no_longer_be_read_leaves_no_floor(self):
+        """An older number must not hold the copy to a summary the suite no longer prints: the work area's latest
+        accepted run is uncounted, the copy's run is the same, and nothing is refused."""
         self.assertEqual(self.run_stage("A1", "document", 9), "")
-        self.release_plan(self.COMMAND + " --smoke", "true && " + self.COMMAND, "SKIP_SLOW=8 sh ./suite.sh",
-                          "echo 'unclosed")
-        self.assertEqual(test_loop.consumer_floors(self.root, self.state,
-                                                   self.state["accepted"]["R1"]["consumer_checks"]), {})
-        self.release_plan(self.COMMAND + " --smoke", "true && " + self.COMMAND, "SKIP_SLOW=8 sh ./suite.sh")
-        self.assertEqual(self.run_stage("V1", "release-verify", 9, item=""), "")
-        self.assertTrue(all("accepted_ran" not in run for run in self.record("V1")["runs"]))
-
-    def test_a_count_shiploop_could_not_read_is_no_floor_and_meets_none(self):
-        (self.root / "suite.sh").write_text('test -z "$SKIP_SLOW" && echo quiet; echo OK\n')
-        self.assertEqual(self.run_stage("A1", "document", 9), "")
-        self.assertEqual(test_loop.latest_counts(self.root, self.state), {})
-        self.release_plan("SKIP_SLOW=1 " + self.COMMAND)
-        self.assertEqual(self.run_stage("V1", "release-verify", 9, item=""), "")
-
-    def test_a_count_shiploop_cannot_read_here_is_refused_where_the_work_area_count_is_known(self):
-        """A reporter that a setting changes must not be how a lower count passes: the check is held to a count, so it
-        has to show one."""
-        (self.root / "suite.sh").write_text('test -n "$QUIET" || echo "Ran $(cat n.txt) tests in 0.001s"; echo OK\n')
-        self.assertEqual(self.run_stage("A1", "document", 9), "")
-        self.release_plan("QUIET=1 " + self.COMMAND)
-        refusal = self.run_stage("V1", "release-verify", 9, item="")
-        self.assertIn("exited 0, but ShipLoop could not read how many tests it ran here; it read 9 in the latest run "
-                      "of `sh suite.sh` that ShipLoop accepted in the work area.", refusal)
-        self.assertIn("report outcome add-work", refusal)
-        self.assertNotIn("belongs in suite `check`", refusal)  # the reply to a command that is no test runner
-        self.assertEqual(self.record("V1")["runs"][0]["status"], "uncounted")
-
-    def test_the_item_stages_still_accept_an_uncounted_pass_after_a_counted_one(self):
-        """GUARD: the known limit of the item stages' floor is unchanged (``CountFloorTests`` pins it for a focused
-        command); only the consumer check is held to a readable count."""
-        (self.root / "suite.sh").write_text('test -f quiet.txt || echo "Ran $(cat n.txt) tests in 0.001s"; echo OK\n')
-        self.assertEqual(self.run_stage("A1", "document", 9), "")
-        (self.root / "quiet.txt").write_text("")
+        for folder in (self.root, self.copy):
+            (folder / "suite.sh").write_text("echo quiet; echo OK\n")
         self.assertEqual(self.run_stage("A2", "document", 9), "")
         self.assertEqual(self.record("A2")["runs"][0]["status"], "passed-uncounted")
+        self.assertEqual(test_loop.latest_counts(self.root, self.state), {})
+        self.release_plan("true")
+        self.assertEqual(self.in_the_copy(9), "")
+        self.assertIsNone(self.record("V1")["runs"][1].get("accepted_ran"))
+
+    def test_only_a_done_action_sets_the_floor_and_a_record_that_cannot_be_read_sets_none(self):
+        self.assertEqual(self.run_stage("A1", "document", 9), "")
+        # A passed run under an action that then ended in send-back: its tree was reworked.
+        self.assertEqual(self.run_stage("X1", "document", 12, accept=False), "")
+        self.state["history"].append({"stage": "document", "workitem": "W1", "action": "X1", "outcome": "send-back"})
+        self.assertEqual(test_loop.latest_counts(self.root, self.state), {self.COMMAND: (9, "tests/A1-verify1.md")})
+        # A record that cannot be read: no floor from it, and neither the packet nor the gate raises.
+        (self.root / test_loop.verify_path("A1", 1)).write_text("not a record\n")
+        self.assertEqual(test_loop.latest_counts(self.root, self.state), {})
+        self.release_plan("true")
+        self.assertEqual(self.in_the_copy(3), "")
+        self.assertIn("  2. [regression] sh suite.sh (the step plan's regression command, added by ShipLoop)", self.lines)
+
+    def test_only_the_last_work_item_that_records_a_regression_command_has_it_added(self):
+        """An earlier item's command can name what a later item moved, and no stage can retire it.  The corrective item
+        add-work queues is the last one, so its step plan says what is added and the exit can always be taken."""
+        self.assertEqual(self.run_stage("A1", "document", 9), "")
+        early = "sh early.sh"   # W1's command now: the file it names is not in the returned tree
+        self.state["accepted"]["P1"] = dict(DONE, test_commands=[{"command": early, "suite": "regression"}])
+        self.state["work_items"] += [{"id": "W2"}, {"id": "W3"}]
+        self.state["accepted"]["P2"] = dict(DONE, test_commands=[{"command": self.COMMAND, "suite": "regression"}])
+        self.state["accepted"]["P3"] = dict(DONE, test_commands_na="a documentation item: nothing to run")
+        self.state["history"] += [{"stage": "step-plan", "workitem": "W2", "action": "P2", "outcome": "done"},
+                                  {"stage": "step-plan", "workitem": "W3", "action": "P3", "outcome": "done"}]
+        self.assertEqual([row["command"] for row in test_loop.regression_commands(self.state)], [early, self.COMMAND])
+        self.assertEqual([row["command"] for row in test_loop.regression_commands(self.state, last_item=True)],
+                         [self.COMMAND])   # W3 records none, so W2's stand
+        self.release_plan("true")
+        self.assertEqual(self.in_the_copy(9), "")
+        self.assertEqual([run["command"] for run in self.record("V1")["runs"]], ["true", self.COMMAND])
+        self.assertNotIn(early, " ".join(self.lines))
+
+    def test_the_floor_holds_only_the_last_items_regression_command_and_no_other_check(self):
+        """A consumer check that is an earlier item's command is the model's own check: an old count must not hold it
+        (the item that replaced the command could never lower it)."""
+        early = "sh early.sh"
+        for folder, ran in ((self.root, 5), (self.copy, 3)):
+            (folder / "early.sh").write_text('echo "Ran ' + str(ran) + ' tests in 0.001s"; echo OK\n')
+        self.state["accepted"]["P1"] = dict(DONE, test_commands=[{"command": early, "suite": "regression"}])
+        self.assertEqual(self.run_stage("A1", "document", 0), "")
+        self.state["work_items"].append({"id": "W2"})
+        self.state["accepted"]["P2"] = dict(DONE, test_commands=[{"command": self.COMMAND, "suite": "regression"}])
+        self.state["history"].append({"stage": "step-plan", "workitem": "W2", "action": "P2", "outcome": "done"})
+        self.assertEqual(self.run_stage("B1", "document", 9, item="W2"), "")
+        self.assertEqual(test_loop.latest_counts(self.root, self.state),
+                         {early: (5, "tests/A1-verify1.md"), self.COMMAND: (9, "tests/B1-verify1.md")})
+        self.release_plan(early)
+        self.assertEqual(self.in_the_copy(9), "")
+        self.assertEqual([(run["command"], run.get("from_step_plan"), run["counts"]["ran"], run.get("accepted_ran"))
+                          for run in self.record("V1")["runs"]], [(early, None, 3, None), (self.COMMAND, True, 9, 9)])
+
+    def test_a_later_item_whose_only_regression_command_is_hosted_leaves_the_earlier_local_one_added(self):
+        """The last work item with a command that runs on the checkout, not the last with any: choosing first and
+        leaving the hosted command out afterwards added nothing (second outside review, round 15)."""
+        self.assertEqual(self.run_stage("A1", "document", 9), "")
+        self.state["work_items"].append({"id": "W2"})
+        self.state["accepted"]["P2"] = dict(DONE, test_commands=[{"command": "sh remote.sh", "suite": "regression",
+                                                                  "target": "staging"}])
+        self.state["accepted"]["T1"] = dict(DONE, targets=[{"target": "staging", "keeps_state": "yes",
+                                                             "base_state_route": "reset script"}])
+        self.state["history"] += [{"stage": "step-plan", "workitem": "W2", "action": "P2", "outcome": "done"},
+                                  {"stage": "test-strategy", "workitem": None, "action": "T1", "outcome": "done"}]
+        self.assertEqual([row["command"] for row in test_loop.regression_commands(self.state, last_item=True)],
+                         [self.COMMAND])
+        self.release_plan("true")
+        self.assertIn(self.ADDED + "ran fewer tests", self.in_the_copy(7))
+
+    def test_a_count_shiploop_cannot_read_in_the_copy_is_refused_where_the_work_area_count_is_known(self):
+        """A reporter that prints no summary in the copy must not be how a lower count passes."""
+        self.assertEqual(self.run_stage("A1", "document", 9), "")
+        self.release_plan("true")
+        (self.copy / "suite.sh").write_text("echo quiet; echo OK\n")
+        refusal = self.in_the_copy(9)
+        self.assertIn(self.ADDED + "exited 0, but ShipLoop could not read how many tests it ran here; it read 9 in "
+                      + self.FROM + ".", refusal)
+        self.assert_both_exits(refusal, added=True)
+        self.assertEqual(self.record("V1")["runs"][1]["status"], "uncounted")
+
+    def test_an_added_command_with_a_minimum_and_no_count_is_not_sent_to_release_plan_to_be_relabelled(self):
+        """Without a floor (its record cannot be read) an added command the step plan gave a minimum is still the step
+        plan's: "record it as suite check in consumer_checks" would leave it added, so the reply is the copy's."""
+        self.state["accepted"]["P1"] = dict(DONE, test_commands=[{"command": self.COMMAND, "suite": "regression",
+                                                                  "min_tests": 2}])
+        self.assertEqual(self.run_stage("A1", "document", 9), "")
+        (self.root / test_loop.verify_path("A1", 1)).write_text("not a record\n")
+        self.release_plan("true")
+        (self.copy / "suite.sh").write_text("echo quiet; echo OK\n")
+        refusal = self.in_the_copy(9)
+        self.assertIn(self.ADDED + "exited 0, but ShipLoop could not read how many tests it ran here, and the step "
+                      "plan recorded it with test IDs or a minimum.", refusal)
+        self.assert_both_exits(refusal, added=True)
+        self.assertNotIn("record it as suite check", refusal)
+
+    def test_a_suite_whose_work_area_count_was_never_read_is_added_and_judged_as_recorded(self):
+        for folder in (self.root, self.copy):
+            (folder / "suite.sh").write_text("echo quiet; echo OK\n")
+        self.assertEqual(self.run_stage("A1", "document", 9), "")
+        self.assertEqual(test_loop.latest_counts(self.root, self.state), {})
+        self.release_plan("true")
+        self.assertEqual(self.in_the_copy(9), "")
+        added = self.record("V1")["runs"][1]
+        self.assertEqual((added["from_step_plan"], added["status"], added.get("accepted_ran")), (True, "passed-uncounted", None))
+
+    def test_no_consumer_check_nothing_added_and_nothing_added_outside_a_clean_copy(self):
+        """Known limits, pinned: a release-plan that recorded no check runs nothing, as before; and where the checks
+        run in the work area or in place there is no clean copy to add one in."""
+        self.assertEqual(self.run_stage("A1", "document", 9), "")
+        self.release_plan(na="Nothing a consumer runs.")
+        self.assertEqual(self.in_the_copy(1), "")
+        self.assertEqual(self.lines, [])
+        self.assertFalse((self.root / test_loop.verify_path("V1", 1)).exists())
+        self.release_plan("SKIP_SLOW=5 " + self.COMMAND)
+        self.assertEqual(self.run_stage("V2", "release-verify", 9, item=""), "")   # in place: the checkout itself
+        self.assertEqual(len(self.record("V2")["runs"]), 1)
+        lines = test_loop.rerun_lines(self.root, self.state, "", "release-verify")
+        self.assertNotIn(test_loop.COPY_RULE, lines)
+        self.assertIn("  1. [check] SKIP_SLOW=5 sh suite.sh", lines)
+
+    def test_a_regression_command_that_tests_a_hosted_runtime_is_not_added(self):
+        """Such a command tests a deployed target and not the returned tree; running it again would also need
+        authority the release never had (``_remote_base``, the rule the base run and the drift check already use)."""
+        self.state["accepted"]["P1"]["test_commands"] = [
+            {"command": self.COMMAND, "suite": "regression", "target": "staging"},
+            {"command": "sh other.sh", "suite": "focused", "ids": ["TC-1"], "regression": True}]
+        self.state["accepted"]["T1"] = dict(DONE, targets=[{"target": "staging", "keeps_state": "yes",
+                                                             "base_state_route": "reset script"}])
+        self.state["history"].append({"stage": "test-strategy", "workitem": None, "action": "T1", "outcome": "done"})
+        self.assertEqual([row["command"] for row in test_loop.regression_commands(self.state)], ["sh other.sh"])
+        self.release_plan("true")
+        (self.copy / "other.sh").write_text('echo "TC-1 ok"; echo "Ran 1 test in 0.001s"; echo OK\n')
+        self.assertEqual(self.in_the_copy(9), "")
+        added = self.record("V1")["runs"][1]
+        self.assertEqual((added["command"], added["suite"], added["ids"], added["from_step_plan"]),
+                         ("sh other.sh", "focused", ["TC-1"], True))
 
     def test_a_release_verify_record_never_sets_the_floor(self):
         """What the copy ran is what the count judges: an accepted release-verify of an earlier outer pass is no source."""
         self.assertEqual(self.run_stage("A1", "document", 9), "")
-        self.release_plan("TZ=UTC " + self.COMMAND)
-        self.assertEqual(self.run_stage("V1", "release-verify", 9, item=""), "")
+        self.release_plan("true")
+        self.assertEqual(self.in_the_copy(12), "")
         self.state["history"].append({"stage": "release-verify", "workitem": None, "action": "V1", "outcome": "done"})
-        self.assertEqual(test_loop.latest_counts(self.root, self.state), {self.COMMAND: 9})
+        self.assertEqual(test_loop.latest_counts(self.root, self.state), {self.COMMAND: (9, "tests/A1-verify1.md")})
 
     def test_system_test_and_the_end_of_work_review_stay_without_a_floor(self):
         self.assertEqual(self.run_stage("A1", "document", 9), "")
-        rows = [{"command": "SKIP_SLOW=5 " + self.COMMAND, "suite": "regression"}]
+        rows = [{"command": "SKIP_SLOW=5 " + self.COMMAND, "suite": "regression"}, {"command": self.COMMAND, "suite": "regression"}]
         self.state["accepted"]["S2"] = dict(DONE, system_commands=rows)
         self.state["history"].append({"stage": "system-test-author", "workitem": None, "action": "S2", "outcome": "done"})
-        self.assertEqual(self.run_stage("Y1", "system-test", 9, item=""), "")
-        self.assertEqual(self.run_stage("E1", "end-of-work review", 9, item="", commands=rows), "")
+        self.assertEqual(self.run_stage("Y1", "system-test", 3, item=""), "")
+        self.assertEqual(self.run_stage("E1", "end-of-work review", 3, item="", commands=rows), "")
 
-    def test_the_release_verify_packet_states_the_floor_before_it_refuses(self):
-        self.release_plan(self.COMMAND)
-        lines = test_loop.rerun_lines(self.root, self.state, "", "release-verify")
-        self.assertIn("  1. [check] sh suite.sh", lines)  # no work-area run yet: no count to show
+    def test_the_packet_names_the_added_command_and_its_floor_before_the_stage_refuses(self):
         self.assertEqual(self.run_stage("A1", "document", 9), "")
-        self.release_plan("SKIP_SLOW=1 " + self.COMMAND, "true")
-        lines = test_loop.rerun_lines(self.root, self.state, "", "release-verify")
-        self.assertIn("  1. [check] SKIP_SLOW=1 sh suite.sh (floor: 9 tests)", lines)
-        self.assertIn("  2. [check] true", lines)
-        self.assertIn(test_loop.CONSUMER_RULE, lines)
-        self.assertNotIn(test_loop.RATCHET_RULE, lines)
-        self.assertIn("the same words once any NAME=value settings in front are left out", test_loop.CONSUMER_RULE)
+        self.release_plan("true")
+        self.in_the_copy(9)
+        self.assertIn("  1. [check] true", self.lines)
+        self.assertIn("  2. [regression] sh suite.sh (the step plan's regression command, added by ShipLoop) "
+                      "(floor: 9 tests)", self.lines)
+        self.assertIn(test_loop.COPY_RULE, self.lines)
+        self.assertNotIn(test_loop.RATCHET_RULE, self.lines)
+        self.assertIn("a check that runs less cannot stand in for the suite", test_loop.COPY_RULE)
+        self.assertTrue(test_loop.COPY_RULE.startswith("Added by ShipLoop: "))   # the list's own two markers
+        self.assertIn(" Floor: ", test_loop.COPY_RULE)
 
 
 class TapCountRouteTests(unittest.TestCase):
