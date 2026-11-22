@@ -1439,6 +1439,11 @@ wrote a full knowledge home around the starter, and kept the starter's own words
 work nobody asked for; two deliveries say in writing that they do not apply here. q01 opened the Node card once,
 about a minute in and after it had read the starter; q02 and q03 never did.
 
+*Added 2026-11-22 15:29, from the parent session's reading, checked in the session record:* q01 read the whole
+card (`cat .../platforms/node-express.md | head -100`, at 22:59:04Z, 55 seconds after it read the starter at
+22:58:09Z), and on this branch the card holds the same fact as its N-GATEWAY entry. So q01 had two sources; its
+own message credits "the platform notes", the starter's phrase. q02 and q03 are the clean ones: 2 of 2.
+
 **So the simplest way works.** Facts copied into a new project's knowledge file, marked as copied and unchecked,
 reach the product on both drivers with no change to ShipLoop, and the first delivery checks them against the
 repository (Sonnet in writing, bullet by bullet).
@@ -1446,7 +1451,7 @@ repository (Sonnet in writing, bullet by bullet).
 **Limits.** One service, one request, three bullets, three deliveries. A copy does not follow later changes to its
 source.
 
-## 37. Rung 8: one list of forty facts against an index with pages: the fact is found in both, and the pages save nothing (2026-11-22, 15:08 to 15:19)
+## 37. Rung 8: one list of forty facts against an index with pages: the fact is found in both, and the pages save nothing (2026-11-22, 15:08 to 15:21)
 
 Eight plan-stage slices, `~/e2e-runs-pk/20261122-m/m01` to `m08`, released ShipLoop. Reading
 `familiar/readings/rung8.txt` on the candidate branch.
@@ -1467,12 +1472,18 @@ at least 2 of 4" right (4); "the index gives under 60% of the list's characters"
 group's name. m01: "Ship a dedicated Dispatch Queue permission set, custom permission and dispatcher-only
 permission set group [...] Keep shared groups and profiles untouched because their assignees are unverified." m08:
 "guard both new endpoints with a custom permission delivered through a dedicated group. The shared feature group
-has no verified twelve-person membership." No plan of the eight assigns a permission set to users directly, and
-all eight notice what the planted rule collides with (the request's twelve dispatchers): the two Sol index plans
-make the named group conditional ("eligible only if its effective audience matches the dispatcher roster"), the
-Sonnet plans decline to edit it. So by hand the fact was used in 8 of 8; the token count is the reading of record
-and it under-reads Sol here, as it did in sections 14 and 23. I cannot say from two runs a cell whether a fact on
-a topical page is named more often than one in a long list, or whether this is chance.
+has no verified twelve-person membership." All eight notice what the planted rule collides with (the request's
+twelve dispatchers): the two Sol index plans make the named group conditional ("eligible only if its effective
+audience matches the dispatcher roster"), the Sonnet plans decline to edit it. I cannot say from two runs a cell
+whether a fact on a topical page is named more often than one in a long list, or whether this is chance.
+
+*Corrected 2026-11-22 15:29.* I first wrote here "No plan of the eight assigns a permission set to users
+directly" and "by hand the fact was used in 8 of 8". The first is wrong: m02 (Sonnet, the list) names the group
+and then has the set "assigned only to the twelve dispatchers by the org admin" (its AD-6), which the bullet
+says this org never does. The parent session caught it; I read m02's `architecture.md` and it is so. By hand:
+the rule was weighed in 8 of 8 and its intent kept in 7 of 8. The token misreads in both directions: it counts
+m01 and m08 out although they keep the rule, and m02 in although it breaks it. The full table of the eight
+decisions is in section 39. This heading's end time also said 15:19; the last slice finished at 15:21.
 
 **What this says to the owner's two worries.**
 
@@ -1555,7 +1566,17 @@ merges by entry key, so a model is never shown an entry the project has replaced
 **Limits known before the runs.** One service; a shared set of three entries (forty entries printed in a packet
 is not tested: rung 8 was forty in a file); selection as built; no host that clears context between stages.
 
-## 36. Rung 8, first samples: both shapes put the fact in front of the model; the count of record and the hand reading disagree; a repeat on Sol registered (2026-11-22, 15:08 to 15:21; registered 15:24)
+## 39. Rung 8 as the parent session wrote it: the hand reading of all eight plans; its repeat on Sol is withdrawn (2026-11-22, written 15:24, renumbered 15:29)
+
+*Why this section is here twice over.* The session writing this journal was forked at 15:12: a copy of it took
+the owner's next question and went on (sections 36 to 38 are that copy's, and so is everything after this
+one), while the first session kept working, read rung 8 and appended this section at 15:24:05, headed "36".
+The copy's commit bfe85765f7153e689aad94e7828b677a2a7ceb4c swept it in fifteen seconds later without naming it.
+The first session saw the fork at 15:25, stopped writing, withdrew the repeat it registers below, and handed
+the journal, both branches and the runs to the copy. The text below is the first session's, unchanged apart
+from this heading and the withdrawal note at its end. Its table of the eight decisions is the reading section
+37 is corrected by. Its reading file `rung8-knowledge.txt` is byte for byte section 37's `rung8.txt`, which is
+the name committed.
 
 Eight plan-stage slices, `~/e2e-runs-pk/20261122-m/m01` to `m08`, released behaviour, apparatus at candidate commit
 91724bbcbe30f1386f44a608d83655207908f16f (40 real Salesforce facts, the same set in both shapes, the hidden bullet
@@ -1603,6 +1624,10 @@ org's group and make its use conditional on its audience; with the long list bot
 the existing one, so a reader of those plans is not told which group the org uses. Two samples a cell: 0 of 2
 against 2 of 2 can be chance.
 
+**WITHDRAWN 2026-11-22 15:25 by the session that registered it: never launched. "Amendment 9" in this journal is
+rung 10 (section 38).** What it would have decided, whether pages make Sol name the org's group more often,
+stays open at two samples a cell. As it was written:
+
 **Amendment 9, rung 8b, registered before its runs.** Four more slices on Sol medium, two a shape
 (`familiar/runs/rung8b.tsv`: m09 and m12 the long list, m10 and m11 the index), same apparatus. Two readings, both
 fixed now. (a) The token, as before. (b) By hand, in the categories of the table above: names the org's group or
@@ -1613,4 +1638,29 @@ Prediction: the long list names it in at most 1 of 4 and the index in at least 3
 
 **What it decides.** If the shapes differ, the pages earn a place for precision on Sol, not for context. If they do
 not, the shape is a matter of taste at this size and the plain list stands.
+
+## 40. A finding outside the design: Sol test sessions search the owner's connected accounts (2026-11-22, found by the parent session about 15:20, checked by me 15:28)
+
+Not about platform facts; found while reading session records, and the owner should know it.
+
+On Codex, a Sol test session has the account's connectors, and during ShipLoop's service discovery it uses them.
+Read in the sessions' own scripts (`home/.codex/sessions/**/rollout-*.jsonl`; names, queries and sizes only):
+
+- n03, 21:01:50Z and 21:01:55Z: `mcp__codex_apps__github_search_installed_repositories_v2` (query
+  "parts-catalog"), `mcp__codex_apps__slack_slack_search_public` (keywords "parts catalog") and
+  `mcp__codex_apps__google_drive_search` (query "parts catalog"), with about 900 and about 2,500 characters of
+  results given to the model.
+- q01, 22:58:58Z: one Slack search, "Where is the parts catalog service deployed and what gateway response
+  [...]", which returned nothing.
+- q02: none.
+
+The parent session read the same in n01, n05, n06 and k11 (one or two read-only searches a delivery for the
+fixture's name), found none in k12, and reports that one Drive search in n03 returned about 3,500 characters from
+the owner's Drive and that n05's GitHub search returned results. I checked n03, q01 and q02 only.
+
+**What it means.** Test runs read the owner's accounts, read-only, and material from outside the test can enter a
+test session. For this study's readings it changes nothing I can see: the hidden token is in no outside source,
+and the Drive results are about other things. As a matter of the harness it is a decision for the owner: whether
+test sessions should run with the connectors off. Not changed here: it is a harness default, and every earlier Sol
+run had them on. No memory note recorded this before today.
 
