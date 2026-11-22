@@ -89,3 +89,22 @@ agent.
 Of the other two listed as left alone: the server in another session's scratch folder (23435, port 56855) was gone by
 07:38 and was not stopped by this study. The process in the unnamed temporary folder (56210, started 2026-11-18 03:12:39, a
 test file's process, idle, no socket) is left as it is: it was not asked about.
+
+The owner's answer on the last of the four, 2026-11-22: "Yes, stop it"
+
+Asked "Stop the last idle leftover process from 2026-11-18 too?", the owner: "Yes, stop it". Listed again at 07:49:33: 56210, a
+parentless node started Wed Nov 18 03:12:39 2026, 0.0% of a processor, no socket, no children: the test file's process of
+`node --test` for a worker.test.cjs in a temporary folder (tmpinw1c4dt) that no longer exists; nothing in its environment
+names a session. Stopped by stop_named.py from a listing of process id, start time and working folder; its output, whole:
+
+    56210: node, no parent, started Wed Nov 18 03:12:39 2026, 0.0% of a processor, in /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmpinw1c4dt
+    56210: SIGTERM sent
+    56210: still there after 5 s, SIGKILL sent
+    56210: gone
+    listed 1, left alone 0, still alive 0
+    exit 0
+    run at 2026-11-22 07:51:20
+
+The same script run then checked that no process 56210 exists before this record was committed. None of the four parentless
+processes listed as left alone on 2026-11-22 at 01:25 is left: 77954 and 20836 were stopped at 07:40, 23435 had gone by
+itself, and 56210 was stopped here.

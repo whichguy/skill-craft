@@ -4194,6 +4194,19 @@ four parentless processes R155 left as they were and put to the owner.
   this study did not stop it. The process in an unnamed temporary folder (56210, started 2026-11-18 at 03:12, a test
   file's process, idle, no socket) is left as it is: it is not this study's and was not asked about.
 
+### Owner decision, 2026-11-22: stop the last of the four
+
+Asked "Stop the last idle leftover process from 2026-11-18 too?", the owner: "Yes, stop it".
+
+- **R173 (the last one, stopped; `evidence/leaked-servers-stopped.txt`).** Process 56210: a test file's process of
+  `node --test` for a `worker.test.cjs` in a temporary folder that has since been deleted, started 2026-11-18 at
+  03:12, idle, with no socket and no children, and nothing in its environment that names a session. It was checked
+  at the moment of stopping to be the process listed and was stopped by `stop_named.py`; the script's output, whole,
+  is in the evidence file. With it none of the four parentless processes of R155 is left: two were stopped at the
+  owner's word (R172), one had gone by itself, and this one.
+- **How.** One Sonnet worker ran one script written here: the stop, a check that the process is gone, and only then
+  the commit and push of this record. Checked here afterwards.
+
 ## Evidence (all rounds)
 
 | File | Holds |
@@ -4266,7 +4279,7 @@ four parentless processes R155 left as they were and put to the owner.
 | `confirm_read.py`, `evidence/confirm-r15.txt` | round 15: the confirmation round: each delivery's verdicts, checks, work items, every release-verify attempt with its counts and floors; the wrong refusal and the uncommitted return reproduced by hand (R136 to R142) |
 | `evidence/gate-on-file-final.txt`, `evidence/mutants-final.txt`, `evidence/suites-final.txt` | round 15: the committed rule (no count) on 28 saved release checks, with the refused attempt replayed (R143); its twelve mutants; the 24 suites and the fail-first results |
 | `review-r15/sol-max-brief-3.txt`, `review-r15/sol-max-review-3.md` | round 15: the question put to Sol 6.2 at max effort about the count measured in the work area and the moved-file fix, and its verbatim answer |
-| `list_leaked.py`, `stop_leaked.py`, `stop_named.py`, `evidence/leaked-servers-stopped.txt` | round 15: the leaked test servers of the harness's base check: the listing, each process stopped with its start time, port and folder, and what was left alone (R145); 2026-11-22: the two stuck processes of another study stopped at the owner's word, each by process id, start time and folder (R172) |
+| `list_leaked.py`, `stop_leaked.py`, `stop_named.py`, `evidence/leaked-servers-stopped.txt` | round 15: the leaked test servers of the harness's base check: the listing, each process stopped with its start time, port and folder, and what was left alone (R145); 2026-11-22: the two stuck processes of another study stopped at the owner's word, each by process id, start time and folder (R172); the last of the four stopped the same way (R173) |
 | `evidence/confirm-r15d.txt` | round 15: the second confirmation round: each delivery's verdicts, checks, work items and its one release-verify attempt with the added command; the suites run again by hand; refusals, returns, the hang in one builder's own copy (R147 to R154) |
 | `port_mixup_demo.js`, `port_mixup_outcomes.py`, `port_mixup_stranger.js`, `port_mixup_suite_probe.py`, `port_mixup_count_listens.js`, `evidence/port-mixup.txt`, `evidence/port-mixup-probe.json` | 2026-11-22: the ticket fixture's port mix-up watched and counted: one number held by two programs, how often the system hands out a held number, the base's suite 1,600 times as it is and with the service on `127.0.0.1`, what one test does by what the other program does, and a stuck run found and stopped (R157 to R161) |
 | `port_mixup_reverse.js`, `changed_base_read.py`, `evidence/changed-base-r15e.txt` | 2026-11-22: the other direction of the port mix-up (a listener on `127.0.0.1` is not given a number held on every address), and the two deliveries on the changed ticket base: the base each started from, verdicts, checks, and where the delivered suite's servers listen (R166 to R171) |
