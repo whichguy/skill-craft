@@ -1837,6 +1837,388 @@
    "arm_only_kept": 2
   }
  },
+ "grokbot-fixed": {
+  "facts": {
+   "S": {
+    "stated": 108,
+    "built": 107,
+    "not_built": [
+     "S-51"
+    ],
+    "proved_of": 6,
+    "proved": 3,
+    "strong_test_read": 68,
+    "unstated": 39,
+    "handled": 35,
+    "short": [
+     "U-7",
+     "U-9",
+     "U-23",
+     "U-46"
+    ],
+    "told": 21,
+    "told_or_marked": 21,
+    "unstated_strong_test_read": 16,
+    "defects": 4,
+    "defects_high": [],
+    "defects_low": 4,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-5",
+     "D-6",
+     "D-7",
+     "D-13"
+    ],
+    "serious": 1,
+    "extras": {
+     "value": 5,
+     "neutral": 3,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 108,
+    "built": 107,
+    "not_built": [
+     "S-51"
+    ],
+    "proved_of": 6,
+    "proved": 2,
+    "strong_test_read": 62,
+    "unstated": 39,
+    "handled": 33,
+    "short": [
+     "U-7",
+     "U-9",
+     "U-11",
+     "U-15",
+     "U-23",
+     "U-46"
+    ],
+    "told": 7,
+    "told_or_marked": 7,
+    "unstated_strong_test_read": 11,
+    "defects": 8,
+    "defects_high": [],
+    "defects_low": 6,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-5",
+     "D-6",
+     "D-7",
+     "D-8",
+     "D-9",
+     "D-10",
+     "D-11",
+     "D-12",
+     "D-13",
+     "D-14"
+    ],
+    "serious": 1,
+    "extras": {
+     "value": 5,
+     "neutral": 1,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 108,
+    "built": 107,
+    "not_built": [
+     "S-51"
+    ],
+    "proved_of": 6,
+    "proved": 4,
+    "strong_test_read": 59,
+    "unstated": 39,
+    "handled": 38,
+    "short": [
+     "U-23"
+    ],
+    "told": 23,
+    "told_or_marked": 29,
+    "unstated_strong_test_read": 22,
+    "defects": 3,
+    "defects_high": [],
+    "defects_low": 2,
+    "defect_ids": [
+     "D-1",
+     "D-5",
+     "D-7",
+     "D-11",
+     "D-12"
+    ],
+    "serious": 1,
+    "extras": {
+     "value": 5,
+     "neutral": 2,
+     "liability": 0
+    }
+   }
+  },
+  "facts_with_arm_items": {
+   "S": {
+    "stated": 108,
+    "built": 107,
+    "not_built": [
+     "S-51"
+    ],
+    "proved_of": 6,
+    "proved": 3,
+    "strong_test_read": 68,
+    "unstated": 45,
+    "handled": 39,
+    "short": [
+     "U-7",
+     "U-9",
+     "U-23",
+     "U-46",
+     "U-50",
+     "U-60"
+    ],
+    "told": 24,
+    "told_or_marked": 24,
+    "unstated_strong_test_read": 19,
+    "defects": 4,
+    "defects_high": [],
+    "defects_low": 4,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-5",
+     "D-6",
+     "D-7",
+     "D-13"
+    ],
+    "serious": 1,
+    "extras": {
+     "value": 5,
+     "neutral": 3,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 108,
+    "built": 107,
+    "not_built": [
+     "S-51"
+    ],
+    "proved_of": 6,
+    "proved": 2,
+    "strong_test_read": 62,
+    "unstated": 45,
+    "handled": 33,
+    "short": [
+     "U-7",
+     "U-9",
+     "U-11",
+     "U-15",
+     "U-23",
+     "U-46",
+     "U-49",
+     "U-50",
+     "U-54",
+     "U-57",
+     "U-58",
+     "U-60"
+    ],
+    "told": 7,
+    "told_or_marked": 7,
+    "unstated_strong_test_read": 11,
+    "defects": 8,
+    "defects_high": [],
+    "defects_low": 6,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-5",
+     "D-6",
+     "D-7",
+     "D-8",
+     "D-9",
+     "D-10",
+     "D-11",
+     "D-12",
+     "D-13",
+     "D-14"
+    ],
+    "serious": 1,
+    "extras": {
+     "value": 5,
+     "neutral": 1,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 108,
+    "built": 107,
+    "not_built": [
+     "S-51"
+    ],
+    "proved_of": 6,
+    "proved": 4,
+    "strong_test_read": 59,
+    "unstated": 45,
+    "handled": 43,
+    "short": [
+     "U-23",
+     "U-60"
+    ],
+    "told": 26,
+    "told_or_marked": 32,
+    "unstated_strong_test_read": 25,
+    "defects": 3,
+    "defects_high": [],
+    "defects_low": 2,
+    "defect_ids": [
+     "D-1",
+     "D-5",
+     "D-7",
+     "D-11",
+     "D-12"
+    ],
+    "serious": 1,
+    "extras": {
+     "value": 5,
+     "neutral": 2,
+     "liability": 0
+    }
+   }
+  },
+  "pairs": {
+   "S-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": null,
+     "D5": null,
+     "D6": "second"
+    },
+    "gate": null,
+    "better": null,
+    "verdicts": {
+     "a": {
+      "side": "L",
+      "strength": "some",
+      "one_task_closes": "no",
+      "why": "Y avoids five defects Z has, including the token printed to the server output and silent loss of a saved instruction, and it also validates proposed values. Z handles storage failures more gracefully (D-11, D-12) and shows the active instruction, but those cover rarer conditions. Y's heavier send protocol and shipped harness cost the maintainer something, though not enough to reverse the balance.",
+      "lesser_lacks": [
+       "Catch damaged or unwritable data at startup and print a plain message naming the problem and the recovery step, never the file contents or token (D-2, D-3)",
+       "Distinguish same-named bots in the Bots navigation (number or description) or refuse duplicates (D-4)",
+       "Add a notice when a typed record id such as ORD-1001A does not exist instead of passing through ORD-1001's value (D-6)",
+       "Clear the instruction/task form binding after a refused rename so a new entry is not saved over the edited one (D-13)",
+       "Validate proposed values (numeric totals, existing fields) with correction guidance before offering a proposal (U-30)",
+       "Optionally match field names case-insensitively (U-49)"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": false
+   },
+   "S-F": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": "first",
+     "D5": "first",
+     "D6": "first"
+    },
+    "gate": null,
+    "better": "S",
+    "verdicts": {
+     "a": {
+      "side": "S",
+      "strength": "much",
+      "one_task_closes": "no",
+      "why": "Both meet the stated requirements, but X carries six more defects, four of them medium. Two put records at risk: a keyboard Enter can confirm the wrong proposal, and a capitalised field silently splits a record. X shows no advantage over Z, and fixing its storage-failure paths and focus handling is more than one short task.",
+      "lesser_lacks": [
+       "Stop focus restoration by accessible name from landing on another proposal's Confirm/Reject button (D-8)",
+       "Match or refuse field names in other capitals so a change never creates a second field (D-9)",
+       "Give empty and similar conversations distinct labels or descriptions (D-10)",
+       "Mark an in-flight reply failed with Retry when its progress cannot be saved (D-11)",
+       "Mark a task Failed with Retry task when its step progress cannot be saved (D-12)",
+       "Refuse or announce saving an instruction or task under an existing name (D-14)"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": false
+   },
+   "F-L": {
+    "readings": {
+     "D1": null,
+     "D2": "second",
+     "D3": "second",
+     "D4": "second",
+     "D5": "second",
+     "D6": "second"
+    },
+    "gate": null,
+    "better": "L",
+    "verdicts": {
+     "a": {
+      "side": "L",
+      "strength": "much",
+      "one_task_closes": "no",
+      "why": "Y avoids nine defects X has, including the two that can change records the person did not mean to change (D-8, D-9) and the token printed to the server output. X's only gains are a smaller codebase and a less drastic reaction to storage failure. The gap covers many separate fixes on both server and client.",
+      "lesser_lacks": [
+       "Plain startup error for damaged or unwritable data without the file contents or token (D-2, D-3)",
+       "Distinguish same-named bots and similar conversations (D-4, D-10)",
+       "Notice for a nonexistent suffixed record id (D-6)",
+       "Fix focus after keyboard Confirm/Reject so it never lands on another proposal (D-8)",
+       "Case-insensitive field matching or refusal (D-9)",
+       "Clear the form binding after a refused rename and refuse or announce duplicate saved names (D-13, D-14)",
+       "Validate proposed values with correction guidance (U-30)"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": false
+   }
+  },
+  "nearly_competitive": true,
+  "rechecked_items": [
+   "S-51",
+   "U-11",
+   "U-15",
+   "U-46",
+   "U-49",
+   "U-50",
+   "U-54",
+   "U-57",
+   "U-58",
+   "U-7",
+   "U-9"
+  ],
+  "inventory": {
+   "stated": 108,
+   "proved": [
+    "S-5",
+    "S-31",
+    "S-33",
+    "S-67",
+    "S-72",
+    "S-88"
+   ],
+   "unstated_rated": 61,
+   "independent": 46,
+   "independent_kept": 39,
+   "arm_only": 15,
+   "arm_only_kept": 6
+  }
+ },
  "calibration": {
   "facts": {
    "S": {

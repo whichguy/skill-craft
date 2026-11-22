@@ -881,7 +881,7 @@ of 19 for ShipLoop's original, 18 then 19 for Ratchet's final. That is the reade
   of the fixed product where Opus says "same"; under section 10's two-judge rule the pair would still read "no
   difference shown" (the judges would not agree on a side) and nearly competitive.
 
-## 14. Clean runs for the ShipLoop side: registered before any of them starts (2026-11-22 09:10)
+## 14. Clean runs for the ShipLoop side: registered before any of them starts (2026-11-22 08:15)
 
 The owner, on section 13: "I wanted to make sure that we're doing this from clean runs, not just repairs from old
 ones, in order to make sure that our evaluations are not overly biased. Can you confirm that this is what
@@ -935,3 +935,28 @@ on 1 first". This section registers (1).
 Ratchet is not rerun (that is option 2): its side is still one delivery a case, from 2.4.1's night. The fixer is
 Opus at xhigh, stronger than the builders. One fresh ShipLoop run a case. A version change and a fresh run are
 confounded. The repaired Grokbot product of section 13 is still being audited; its result is recorded as a repair.
+
+### Section 13, continued: Grokbot's repair (recorded 2026-11-22 09:00; a repair of last night's delivery, not a clean run)
+
+The fix (Opus at xhigh, 26.4 minutes) closed 13 of the look's 15 shortfalls, each with a test that fails on the
+original, and declined 2 with a note in the README. The deep judge on the repaired product (three shares, a
+cross-probe on all three products, the single reader, the Opus judge), S' / S / L being repaired, original and
+Ratchet's final:
+
+| | S' / S / L |
+|---|---|
+| D1 stated items built | 107 / 107 / 107 of 108 (the re-run graded one item, the away summary in a browser new to the app, `partly` on all three) |
+| D2 tests proved | 3 / 2 / 4 of 6 |
+| D3 independent unstated items handled | 35 / 33 / 38 of 39 |
+| D4 told in the delivered documents | 21 / 7 / 23 of 39 |
+| D5 reproducing medium defects (none high); low | 4 / 8 / 3; 4 / 6 / 2 |
+| K4, repaired against Ratchet's final | no difference shown by the rule (only D6 goes to L); the judge: Ratchet's final somewhat better, and a short task does not close it |
+| Minutes: ShipLoop + look + fix, beside Ratchet's | 26.5 + 7.8 + 26.4 = 60.7, beside 162.3 |
+
+Of the 14 distinct defects this round's cross-probe tried, 14 are present on the original, 8 on the repaired
+product, 5 on Ratchet's final. The repair closed the two defects in the confirm flow and both storage-failure
+ones; it left what the look had not named (a provider token printed on a damaged data file, duplicate bot names,
+a prefix match on record ids). So on the case where the gap was in behaviour, one look and one strong fix halved
+it and did not close it: the look names under half of what an audit finds (K1, 10 of 25). The fresh audit of this
+round also found a stated item short on all three products that section 12's audits had passed, a reminder that
+one audit a product is a floor.

@@ -40,5 +40,15 @@
   "not_changed": 1,
   "tests": "127 of 127 (123 before)",
   "note": "seconds and tokens from the harness's task usage line"
+ },
+ "grokbot": {
+  "fixer": "Claude Opus, effort xhigh (Agent subagent)",
+  "seconds": 1586.5,
+  "subagent_tokens": 318410,
+  "tool_uses": 88,
+  "fixed": 13,
+  "not_changed": 2,
+  "tests": "21 of 21 (8 before)",
+  "note": "seconds and tokens from the harness's task usage line"
  }
 }

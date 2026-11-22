@@ -5,12 +5,14 @@
     look.py judged ROOT CASE    after the deep judge scored the case: its findings on ShipLoop's delivery, and match.md
     look.py unmatched ROOT CASE after matched.json: the look's other shortfalls, with probe.md and rate.md
     look.py tally ROOT          K1 to K3 for every matched case
+    look.py prepare-clean FRESH the same look for a fresh run's deliveries (section 14): copies and commands
 
 The look is one session of the builder's model in a copy of ShipLoop's delivered product (the copy the deep judge
 audited, ROOT/deep/CASE/products/<S>). It may write `docs/shiploop/look.md` and nothing else. This script calls no
 model.
 """
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -208,6 +210,30 @@ def tally(root: Path) -> None:
         print(line)
 
 
+def prepare_clean(fresh: Path) -> None:
+    """The same look for a fresh run's deliveries (journal section 14): the delivered commit of FRESH/CASE-1/work is
+    exported without its history to FRESH/delivered/CASE, and the look runs there."""
+    prompts = fresh / "look" / "prompts"
+    prompts.mkdir(parents=True, exist_ok=True)
+    cases = json.loads((PILOT / "cases.json").read_text())
+    for case, full_name in deep_judge.CASES.items():
+        measures, delivered = fresh / "measure" / f"{case}-1" / "measures.json", fresh / "delivered" / case
+        if not measures.is_file():
+            print(f"# {case}: not measured yet ({measures})")
+            continue
+        if not delivered.exists():  # the delivered commit of the run's own repository, without its history
+            commit = json.loads(measures.read_text())["points"]["final"]
+            archive = subprocess.run(["git", "-C", str(fresh / f"{case}-1" / "work"), "archive", commit],
+                                     capture_output=True, check=True).stdout
+            delivered.mkdir(parents=True)
+            subprocess.run(["tar", "-x", "-C", str(delivered)], input=archive, check=True)
+        browser = BROWSER.format(playwright=deep_judge.PLAYWRIGHT, browser=deep_judge.BROWSER) if case == "grokbot" else ""
+        text = LOOK.format(request=cases[full_name]["request"].strip().replace("{", "{{").replace("}", "}}"), browser=browser)
+        (prompts / f"{case}.md").write_text(text.replace("{{", "{").replace("}}", "}"))
+        print(f"python3 {PILOT / 'one_session.py'} --folder {delivered} --prompt {prompts / f'{case}.md'} --allow {ALLOW} "
+              f"--output {fresh / 'look' / case} --host {HOST} --model {MODEL} --effort {EFFORT} --role look")
+
+
 def main(argv=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     if len(argv) == 3 and argv[0] in ("judged", "unmatched") and argv[2] in deep_judge.CASES:
@@ -215,6 +241,9 @@ def main(argv=None) -> int:
         return 0
     if len(argv) == 2 and argv[0] == "tally":
         tally(Path(argv[1]).expanduser().resolve())
+        return 0
+    if len(argv) == 2 and argv[0] == "prepare-clean":
+        prepare_clean(Path(argv[1]).expanduser().resolve())
         return 0
     if len(argv) != 2 or argv[0] != "prepare":
         raise SystemExit(__doc__)

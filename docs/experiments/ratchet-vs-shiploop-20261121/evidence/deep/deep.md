@@ -120,6 +120,26 @@
 - **F-L**: better feature: L. Ahead: D4 L, D6 L. judge a: L (some). One short task closes the gap, both judges: yes.
 - **S nearly competitive with L: yes**
 
+## grokbot-local, after one look and one fix
+
+| | S: ShipLoop's delivery after one look and one fix | F: ShipLoop's delivery | L: Ratchet's final |
+|---|---|---|---|
+| D1 stated items built | 107 of 108 | 107 of 108 | 107 of 108 |
+| D2 tests proved by breaking the behaviour | 3 of 6 | 2 of 6 | 4 of 6 |
+| D3 unstated items handled | 35 of 39 | 33 of 39 | 38 of 39 |
+| D4 unstated items told in the delivered documents | 21 of 39 | 7 of 39 | 23 of 39 |
+| D5 reproducing defects, high or medium (of them high; low) | 4 (0; 4) | 8 (0; 6) | 3 (0; 2) |
+| Serious: high defects and stated items not built | 1 | 1 | 1 |
+| Reported: told, or marked in the specification | 21 of 39 | 7 of 39 | 29 of 39 |
+| Reported: stated items with a strong test, by reading | 68 of 108 | 62 of 108 | 59 of 108 |
+| Reported: beyond the request, value / neutral / liability | 5 / 3 / 0 | 5 / 1 / 0 | 5 / 2 / 0 |
+| Reported: D3 with the items only an arm raised | 39 of 45 | 33 of 45 | 43 of 45 |
+
+- **S-L**: better feature: no difference shown. Ahead: D6 L. judge a: L (some). One short task closes the gap, both judges: no.
+- **S-F**: better feature: S. Ahead: D4 S, D5 S, D6 S. judge a: S (much). One short task closes the gap, both judges: no.
+- **F-L**: better feature: L. Ahead: D2 L, D3 L, D4 L, D5 L, D6 L. judge a: L (much). One short task closes the gap, both judges: no.
+- **S nearly competitive with L: yes**
+
 ## the instrument check, calibration (ticket assignment)
 
 | | S: the correct reference | F: the reference, padded | L: a stated requirement broken |

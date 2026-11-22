@@ -1,0 +1,769 @@
+{
+ "told": [
+  {
+   "id": "U-1",
+   "results": {
+    "p58009c": {
+     "told": "no",
+     "where": ""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"The selected workspace governs what the browser sees and which records the assistant receives.\""
+    }
+   }
+  },
+  {
+   "id": "U-2",
+   "results": {
+    "p58009c": {
+     "told": "no",
+     "where": ""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-3",
+   "results": {
+    "p58009c": {
+     "told": "yes",
+     "where": "README.md: \"Open http://localhost:3000 and choose a person. In **Setup**, enter a token beginning with `sk-local-` followed by at least twelve letters or digits.\""
+    },
+    "pae93f0": {
+     "told": "yes",
+     "where": "README.md: \"Open http://localhost:3000 and choose a person. In **Setup**, enter a token beginning with `sk-local-` followed by at least twelve letters or digits.\""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"Choose Maya, Theo, or Ana. On the first launch, use Setup to save a token made of `sk-local-` followed by at least twelve letters or digits.\""
+    }
+   }
+  },
+  {
+   "id": "U-5",
+   "results": {
+    "p58009c": {
+     "told": "no",
+     "where": ""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"`PROVIDER_TOKEN` | An accepted environment token takes precedence. A refused environment value falls back to an accepted saved token, or to Setup if neither works.\" and \"When setup saves a token, the app stores it in a separate restricted `provider-token` file.\""
+    }
+   }
+  },
+  {
+   "id": "U-6",
+   "results": {
+    "p58009c": {
+     "told": "yes",
+     "where": "README.md: \"If `PROVIDER_TOKEN` is set but the provider refuses it, Setup says so without showing it, and you can save a token there instead.\""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"A refused environment value falls back to an accepted saved token, or to Setup if neither works.\""
+    }
+   }
+  },
+  {
+   "id": "U-7",
+   "results": {
+    "p58009c": {
+     "told": "no",
+     "where": ""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"When setup saves a token, the app stores it in a separate restricted `provider-token` file. Keep the directory private and stop the server before copying it for backup.\""
+    }
+   }
+  },
+  {
+   "id": "U-8",
+   "results": {
+    "p58009c": {
+     "told": "yes",
+     "where": "README.md: \"A new bot starts with one empty conversation, listed as **Untitled conversation**.\""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-9",
+   "results": {
+    "p58009c": {
+     "told": "no",
+     "where": ""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"Bots can share a name. Each has a stable number shown in the Bots list and the chat header. Same-name entries also show their current conversation label when it has messages.\""
+    }
+   }
+  },
+  {
+   "id": "U-11",
+   "results": {
+    "p58009c": {
+     "told": "yes",
+     "where": "README.md: \"After the first message, a conversation is named after that message, with line breaks and runs of spaces made single spaces, cut to 56 characters. The newest conversation is listed first.\" and \"When two conversations of a bot would have the same name, the later one gets a number, for example **How many orders can you see? (2)**. Pointing at a conversation shows your latest message in it.\""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"In Conversations, similar openings show a distinguishing excerpt where available and a chat number. When openings are identical, later entries get a chat number.\""
+    }
+   }
+  },
+  {
+   "id": "U-13",
+   "results": {
+    "p58009c": {
+     "told": "yes",
+     "where": "README.md: \"Your unsent text and reading position are kept for each conversation while the browser tab stays open, including across a reload. A new tab starts with an empty message box.\""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-14",
+   "results": {
+    "p58009c": {
+     "told": "yes",
+     "where": "README.md: \"They belong to you and are shared by all your bots; other people do not see them.\""
+    },
+    "pae93f0": {
+     "told": "yes",
+     "where": "README.md: \"Each profile has its own bots, chats, saved entries, and task activity. A bot's memory is scoped to that bot.\""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"Saved instructions and saved tasks are available across your bots.\""
+    }
+   }
+  },
+  {
+   "id": "U-15",
+   "results": {
+    "p58009c": {
+     "told": "yes",
+     "where": "README.md: \"Saving under a name that is already saved, without choosing **Edit** first, is refused, and the saved entry stays as it was.\""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-16",
+   "results": {
+    "p58009c": {
+     "told": "no",
+     "where": ""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-17",
+   "results": {
+    "p58009c": {
+     "told": "yes",
+     "where": "README.md: \"Editing or deleting the saved entry later does not change a bot that already uses it until you use it again.\""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"Use copies the saved instruction into the current bot. Select Use again to activate an edit.\""
+    }
+   }
+  },
+  {
+   "id": "U-20",
+   "results": {
+    "p58009c": {
+     "told": "no",
+     "where": ""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"If a send or saved-task Run loses its acknowledgement, return to the originating conversation in the same tab, reloading if needed. The app checks whether the server received it.\""
+    }
+   }
+  },
+  {
+   "id": "U-21",
+   "results": {
+    "p58009c": {
+     "told": "no",
+     "where": ""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"Any unfinished reply or running task that was stopped becomes explicitly retryable.\" and \"If the original message was received and its reply failed, use **Retry** on that turn to continue it.\""
+    }
+   }
+  },
+  {
+   "id": "U-22",
+   "results": {
+    "p58009c": {
+     "told": "no",
+     "where": ""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-23",
+   "results": {
+    "p58009c": {
+     "told": "yes",
+     "where": "README.md: \"Asking the bot to remember a fact it already has (capitals aside) adds no second copy. Asking it to forget removes a fact only when you give the whole fact (capitals aside). The reply says it has forgotten either way, so check Memory.\""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-25",
+   "results": {
+    "p58009c": {
+     "told": "no",
+     "where": ""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-26",
+   "results": {
+    "p58009c": {
+     "told": "no",
+     "where": ""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-27",
+   "results": {
+    "p58009c": {
+     "told": "no",
+     "where": ""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-29",
+   "results": {
+    "p58009c": {
+     "told": "yes",
+     "where": "README.md: \"The id, type and readers of a record cannot be changed through the chat.\""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-30",
+   "results": {
+    "p58009c": {
+     "told": "no",
+     "where": ""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"To create an order, enter a whole amount in digits from 0 to 9007199254740991. To update a total, use digits with an optional minus sign and decimal point, as in **Set the total of ORD-1001 to 42.50**. The app offers a preview only when it can represent the amount exactly and gives correction guidance for unsupported changes.\""
+    }
+   }
+  },
+  {
+   "id": "U-31",
+   "results": {
+    "p58009c": {
+     "told": "no",
+     "where": ""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"Leaving the conversation preserves the pending decision.\" and \"Restart with the same directory to preserve chats, proposals, records and completed task steps.\""
+    }
+   }
+  },
+  {
+   "id": "U-32",
+   "results": {
+    "p58009c": {
+     "told": "yes",
+     "where": "README.md: \"**Confirm changes** applies nothing if a field no longer has the value the proposal started from, or if a new order's number has been taken; the Change result asks for a fresh proposal.\""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"The app assigns new order IDs at confirmation and reports the final ID.\""
+    }
+   }
+  },
+  {
+   "id": "U-33",
+   "results": {
+    "p58009c": {
+     "told": "yes",
+     "where": "README.md: \"**Confirm changes** applies nothing if a field no longer has the value the proposal started from, or if a new order's number has been taken; the Change result asks for a fresh proposal.\""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"A stale preview expires and requires a fresh request.\""
+    }
+   }
+  },
+  {
+   "id": "U-34",
+   "results": {
+    "p58009c": {
+     "told": "yes",
+     "where": "README.md: \"**Confirm changes** applies nothing if a field no longer has the value the proposal started from, or if a new order's number has been taken; the Change result asks for a fresh proposal.\""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"The app assigns new order IDs at confirmation and reports the final ID.\""
+    }
+   }
+  },
+  {
+   "id": "U-35",
+   "results": {
+    "p58009c": {
+     "told": "no",
+     "where": ""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-36",
+   "results": {
+    "p58009c": {
+     "told": "no",
+     "where": ""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-37",
+   "results": {
+    "p58009c": {
+     "told": "yes",
+     "where": "README.md: \"Tasks shows background work across your conversations.\""
+    },
+    "pae93f0": {
+     "told": "yes",
+     "where": "README.md: \"Tasks shows background work across your conversations.\""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-38",
+   "results": {
+    "p58009c": {
+     "told": "yes",
+     "where": "README.md: \"Several long tasks can run in one conversation.\""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"The app adds the step to the most recently started running task in the conversation and links to that task by number.\""
+    }
+   }
+  },
+  {
+   "id": "U-39",
+   "results": {
+    "p58009c": {
+     "told": "yes",
+     "where": "README.md: \"**Add step** adds its step to the end of the most recently started task that is still running in that conversation.\""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"The app adds the step to the most recently started running task in the conversation and links to that task by number.\""
+    }
+   }
+  },
+  {
+   "id": "U-40",
+   "results": {
+    "p58009c": {
+     "told": "no",
+     "where": ""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-41",
+   "results": {
+    "p58009c": {
+     "told": "yes",
+     "where": "README.md: \"If the process stops, the next launch marks unfinished work as interrupted. Retry resumes from the last saved step.\""
+    },
+    "pae93f0": {
+     "told": "yes",
+     "where": "README.md: \"If the process stops, the next launch marks unfinished work as interrupted. Retry resumes from the last saved step.\""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"Any unfinished reply or running task that was stopped becomes explicitly retryable.\" and \"If a task fails or is interrupted, use Retry task to continue its unfinished steps.\""
+    }
+   }
+  },
+  {
+   "id": "U-42",
+   "results": {
+    "p58009c": {
+     "told": "yes",
+     "where": "README.md: \"Retry resumes from the last saved step.\""
+    },
+    "pae93f0": {
+     "told": "yes",
+     "where": "README.md: \"Retry resumes from the last saved step.\""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"If a task fails or is interrupted, use Retry task to continue its unfinished steps.\""
+    }
+   }
+  },
+  {
+   "id": "U-43",
+   "results": {
+    "p58009c": {
+     "told": "yes",
+     "where": "README.md: \"Cancelling preserves completed steps and discards pending output.\""
+    },
+    "pae93f0": {
+     "told": "yes",
+     "where": "README.md: \"Cancelling preserves completed steps and discards pending output.\""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"Cancel preserves finished steps and discards an in-flight result.\""
+    }
+   }
+  },
+  {
+   "id": "U-44",
+   "results": {
+    "p58009c": {
+     "told": "yes",
+     "where": "README.md: \"**Since you were away** compares with the last time this browser showed your workspace. It lists tasks that finished or were cancelled after that, and every task that is running, failed or interrupted.\""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-45",
+   "results": {
+    "p58009c": {
+     "told": "yes",
+     "where": "README.md: \"On a narrow screen, use the header buttons to open navigation or workspace tools. Escape closes the open panel.\""
+    },
+    "pae93f0": {
+     "told": "yes",
+     "where": "README.md: \"On a narrow screen, use the header buttons to open navigation or workspace tools. Escape closes the open panel.\""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"On narrow windows, Workspace and Tools open the secondary panels. Escape closes an open panel and returns focus to its button.\""
+    }
+   }
+  },
+  {
+   "id": "U-46",
+   "results": {
+    "p58009c": {
+     "told": "no",
+     "where": ""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"If startup cannot open the saved snapshot, it stops and preserves the directory contents. Check permissions and make sure `state.json` is a regular file.\""
+    }
+   }
+  },
+  {
+   "id": "U-49",
+   "results": {
+    "p58009c": {
+     "told": "yes",
+     "where": "README.md: \"A field written in other capitals is not matched: **What is the STATUS of ORD-1001** gets \"ORD-1001 has no STATUS.\", and **set the STATUS of ORD-1001 to closed** proposes nothing. Its Change result names the right field.\""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"Record field names are case-insensitive.\""
+    }
+   }
+  },
+  {
+   "id": "U-50",
+   "results": {
+    "p58009c": {
+     "told": "no",
+     "where": ""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"Field lookups use the complete record ID. If you enter a suffix such as **ORD-1001A**, check the ID in the lookup guidance and ask again.\""
+    }
+   }
+  },
+  {
+   "id": "U-54",
+   "results": {
+    "p58009c": {
+     "told": "yes",
+     "where": "README.md: \"If the data folder cannot be written, actions are refused with an alert, and a reply or task that could not save its progress stops and shows as failed. Once the folder can be written again, use **Retry** or **Retry task**.\""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "yes",
+     "where": "README.md: \"If a storage failure occurs during a save, restore write access and restart with the original `DATA_DIR`. Return as the same person and inspect the saved item before retrying.\""
+    }
+   }
+  },
+  {
+   "id": "U-57",
+   "results": {
+    "p58009c": {
+     "told": "yes",
+     "where": "README.md: \"If the data folder cannot be written, actions are refused with an alert, and a reply or task that could not save its progress stops and shows as failed. Once the folder can be written again, use **Retry** or **Retry task**.\""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-58",
+   "results": {
+    "p58009c": {
+     "told": "no",
+     "where": ""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-60",
+   "results": {
+    "p58009c": {
+     "told": "no",
+     "where": ""
+    },
+    "pae93f0": {
+     "told": "no",
+     "where": ""
+    },
+    "pe77982": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  }
+ ]
+}
