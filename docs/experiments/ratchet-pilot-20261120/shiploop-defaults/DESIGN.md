@@ -1,7 +1,9 @@
 # A candidate ShipLoop change: the specification records the choices it made for the requester, and ShipLoop shows them
 
-Status: a candidate on branch `shiploop-defaults-2c3d50`. Not on `main`, not released. The owner decides whether it is
-accepted.
+Status, 2026-11-22: accepted by the owner ("Yes, merge it") and merged with ShipLoop 2.5.0; section 9 holds the merge
+and the round on the combined tree that comes before any push or release. The status this note carried from
+2026-11-21 until then: a candidate on branch `shiploop-defaults-2c3d50`, not on `main`, not released, the owner to
+decide whether it is accepted.
 
 Owner's word, 2026-11-21, to "Do you want me to draft the first of the six suggested ShipLoop changes here (showing the
 plan's decisions to the requester), as a candidate branch that stays out of main until you accept it?": "Yes".
@@ -427,6 +429,7 @@ in the script notices.
 - It does not make the requester's answer take effect. Sent as a plain owner note right after the specification,
   the answer changed the build in two runs of four, was confirmed in one and ignored in one. A route of ShipLoop's
   own for that answer, with a check that the requirement changed, is the missing half, and a product decision.
+  (2026-11-22: the owner accepted the candidate as it is; this decision stays open. Section 9.)
 - Not run: any other case, more than three runs a cell, and (when this was written) the other driver; section 8
   adds one delivery on it.
 
@@ -456,3 +459,72 @@ with `claude-sonnet-5-5` at medium, built from 1641ecb825d4b6a09111927c871ca7c00
   new gate. 195,151 output tokens and $10.58 (archive: 155,107 to 225,283; $7.73 to $12.67). It took 2,619 seconds
   against 1,359 to 2,035, and the spec stage 131 seconds against 90 to 100; I ran the wide test selection beside it
   for its first 25 minutes, so its time says nothing.
+
+## 9. Accepted, joined with ShipLoop 2.5.0, and a round on the combined tree (written 2026-11-22, 06:23, before the round runs)
+
+**The owner's decisions, 2026-11-22.** At 05:46: "Yes, merge it", in answer to "Do you want the candidate merged
+into main?" (put at 00:48). At 05:56: "I meant publish", so the release as well. Section 7's first open decision is
+closed. The second (a route of ShipLoop's own for the requester's answer) stays open.
+
+**What changed under the candidate while it waited.** At the last check before the owner was asked (00:46) no file
+was changed on both the branch and `main`. Between 01:16 and 01:40 the session "Shiploop SDLC" merged its own
+change, ran its E2E round and released it as ShipLoop 2.5.0 in skill-craft 4.3.0: at release-verify ShipLoop itself
+runs the last work item's regression command in the clean copy of the returned result, and a moved file is
+committed whole. That overtakes two sentences of this document and of the journal, which said the candidate "then
+needs the SDLC session's E2E round" and that the session "holds its own change to the same script": the change is
+released, and the round on the combined tree is run here.
+
+**The merge** (5eab9cf72d0c1ceae76c583b68504d633c6588dd). Three files are changed on both sides: `shiploop_navigator.py` (main: one clause of
+`_check_text` for release-verify; here: the list's gate, packet blocks and report section), `shiploop_prompts.py`
+(main: three lines of release-plan's duty 6; here: spec duties 4 and 9 and the spec summary's placeholder) and the
+skill's `README.md` (main: the version line; here: one sentence). Git joined each without a conflict and nothing
+was written by hand. On the merged tree, before the merge was committed:
+
+- The wide selection, chosen by the 79 files the merge changes against main (`bash test/run-all.sh --group quick
+  --group python-floor --group affected --changed-from 52ea20b30454c5a1f41f5afbc7c5025d43e7a343 --jobs 4`, 05:51 to
+  06:20): 131 suites, all pass, 1,711 seconds. Among them shiploop-defaults (the list), shiploop-test-loop and
+  shiploop-workspace (the release's two changes), shiploop-head-order and shiploop-packet-bounds (the packets'
+  sizes), the two suites of the harness's base check, and shiploop-navigator-contract and
+  shiploop-e2e-incremental-pilot, which each failed one test once under eight jobs on the branch and pass here. The
+  machine's load average was about 100 throughout (file indexing of the new checkout and a media service, beside
+  the suites), so the times say nothing.
+- The spec packet at the reference install is still 19,934 characters: the release added nothing to it.
+
+**Why a round before anything is pushed.** All nine deliveries of sections 5, 6 and 8 ran on the candidate over the
+tree of ShipLoop 2.4.1. No delivery has run with the list and the 2.5.0 release rule together, and the repository's
+release check asks for an E2E round after a ShipLoop change. The two changes share no function and sit at different
+stages, so the likely result is that nothing interferes; a delivery is what shows it.
+
+**The round, fixed here before any run.** Four whole deliveries through `launch_wave.sh` (which calls
+`test/shiploop_e2e/run.py --source checkout --effort medium --quiet` with a baseline file of its own), built from
+the commit that holds this section (its skill files are the merge's), written to a new folder outside the
+repository under neutral names, started together, with no stand-in requester and no turn, timeout or resume cap. The
+Claude run carries `--max-budget-usd 40`, as the other study's rounds did.
+
+| name | case | host and model |
+| --- | --- | --- |
+| k1 | `hello` | Codex, gpt-6.2-sol |
+| k2, k3 | `ticket-due-times` | Codex, gpt-6.2-sol |
+| k4 | `ticket-due-times` | Claude Code, claude-sonnet-5-5 |
+
+The combination is accepted, and released, if all four hold:
+
+1. Every delivery passes the harness's five verdicts and every case check. One exception, fixed now: a check that
+   reports "did not end within 120 s" (the fixture's known hang) is run again alone on the same delivered tree; if
+   it passes there it is not counted against the change, and both results are reported.
+2. No delivery is stopped by the list's gate. A refusal the session recovers from is counted and reported, and is
+   not a failure (nine deliveries so far: none).
+3. In every delivery the accepted spec result holds a `defaults` list, the done packet lists it, and the report has
+   "Decided for you" directly after the request, with one row for each entry or its "none" line.
+4. No delivery is refused wrongly at release-verify, the rule the other study registered for its own round: each
+   refusal there is read by hand against the delivered tree.
+
+Described and not rules: the rows themselves (how many; whether the start-up choice is a row with another answer
+beside it, seven of seven so far); whether ShipLoop added a command at release-verify; times and cost; what each
+host's last message says about the choices.
+
+If any of the four fails, nothing is pushed or released: the failure is read and the owner is told. `hello` ends
+first and is a smoke reading only; the round is read when all four have ended.
+
+**What this round cannot show.** A Grok delivery; another case family; anything about the requester's answer (no
+reply is sent); a right refusal at release-verify.

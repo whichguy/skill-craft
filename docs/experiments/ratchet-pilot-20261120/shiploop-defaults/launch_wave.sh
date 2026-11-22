@@ -11,7 +11,8 @@
 #         none    no stand-in
 #
 # Every run is Codex with gpt-6.2-sol at medium, built from the checkout, as the archive it is read against, unless
-# the environment names another driver: HOST, MODEL and EFFORT (for example HOST=claude MODEL=claude-sonnet-5-5).  Its
+# the environment names another driver: HOST, MODEL and EFFORT (for example HOST=claude MODEL=claude-sonnet-5-5).
+# RUN_ARGS, when set, is added to run.py's arguments as words (for example RUN_ARGS="--max-budget-usd 40").  Its
 # row of the harness's baseline ledger goes to ROOT/baselines.jsonl, never to the repository's own ledger.
 # The script waits for all of them and writes each run's exit code to ROOT/NAME.exit.
 set -u
@@ -32,8 +33,9 @@ for cell in "$@"; do
   out="$ROOT/$name"
   (
     cd "$APP" || exit 2
+    # shellcheck disable=SC2086
     python3 test/shiploop_e2e/run.py --source checkout --case "$case_name" --host "$HOST" --model "$MODEL" \
-      --effort "$EFFORT" --output "$out" --baseline "$ROOT/baselines.jsonl" --quiet > "$ROOT/$name-log.txt" 2>&1
+      --effort "$EFFORT" --output "$out" --baseline "$ROOT/baselines.jsonl" --quiet ${RUN_ARGS:-} > "$ROOT/$name-log.txt" 2>&1
     echo $? > "$ROOT/$name.exit"
   ) &
   echo "$name run $!" >> "$ROOT/pids.txt"

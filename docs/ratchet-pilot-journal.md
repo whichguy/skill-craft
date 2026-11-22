@@ -4472,6 +4472,10 @@ a release, and that session holds its own change to the same script). And whethe
 for the requester's answer before the build, with a check that the requirement changed: the half this candidate
 does not build.
 
+*Overtaken, 2026-11-22: the owner accepted the candidate ("Yes, merge it"), and the other session's change was
+released as ShipLoop 2.5.0 the same night, so the round on the two together is run here. See "Accepted by the
+owner, joined with ShipLoop 2.5.0" below.*
+
 **Limits.** One fixture family, two requests, three runs a cell, one run on the second driver. The reader's
 question rewards a sentence that a specification which fills the due times in at start has no need to write
 (three of three such rows got "partly"). The spec packet is at 19,934 of the 20,000 characters a Grok host prints
@@ -4486,3 +4490,59 @@ candidate tried: "a working session asked the same thing was not tested" (here t
 through a required field, lists it seven times of seven, in lists of three to six rows), and "whether the
 requester's answer, once asked for, changes the product" (F61: two of four in ShipLoop itself). The two were run
 apart, on different benches, and agree on where the choice can first be shown: right after the specification.
+
+### Accepted by the owner, joined with ShipLoop 2.5.0, and a round registered on the combined tree (2026-11-22, 06:23)
+
+**The owner's decisions.** At 05:46: "Yes, merge it", in answer to "Do you want the candidate merged into main?"
+(put at 00:48). At 05:56: "I meant publish" (the release as well), and "Use sonnet agent to handle moderate
+activities like Git management". The first of the two decisions above is closed; the route for the requester's
+answer stays open. From here a Sonnet worker makes the commits, the push and the release from messages and guarded
+scripts written in this session, and this session reads each result.
+
+**Overtaken, 2026-11-22.** "Where the candidate stands" says the candidate "then needs the SDLC session's E2E round
+before a release, and that session holds its own change to the same script". Between 01:16 and 01:40 that session
+merged its change, ran its round and released it as ShipLoop 2.5.0 in skill-craft 4.3.0
+(eb4fad3023f10011b5117cbee1f5f9edafe743e5): at release-verify ShipLoop itself runs the last work item's regression
+command in the clean copy (5c48bcc84ac3999cb9dce5484a1da0aeb059f2e2), and a moved file is committed whole
+(1f5bb5ca8a3cc3ec1d8806133df9452049225fa8). So the round is run here, on the two changes together.
+
+**The merge** (5eab9cf72d0c1ceae76c583b68504d633c6588dd), made in a temporary checkout cut from `origin/main` at
+52ea20b30454c5a1f41f5afbc7c5025d43e7a343. Sixteen commits had landed since the branch's base. At 00:46 no file was
+changed on both sides; now three are (`shiploop_navigator.py`, `shiploop_prompts.py`, the skill's `README.md`),
+each joined by Git without a conflict, with nothing written by hand: main's lines are in release-plan's duty 6 and
+in the one-line statement of release-verify's gate, the candidate's in the spec stage, the packets that show the
+list and the report. On the merged tree, before the merge was committed:
+
+- The wide selection, chosen by the 79 files the merge changes against main (`bash test/run-all.sh --group quick
+  --group python-floor --group affected --changed-from 52ea20b30454c5a1f41f5afbc7c5025d43e7a343 --jobs 4`, 05:51 to
+  06:20): 131 suites, all pass, 1,711 seconds. Among them shiploop-defaults (the list), shiploop-test-loop and
+  shiploop-workspace (the release's two changes), shiploop-head-order and shiploop-packet-bounds (the packets'
+  sizes), the two suites of the harness's base check, and shiploop-navigator-contract and
+  shiploop-e2e-incremental-pilot, which each failed one test once under eight jobs on the branch and pass here. The
+  machine's load average was about 100 throughout (file indexing of the new checkout and a media service, beside
+  the suites), so the times say nothing.
+- The spec packet at the reference install is still 19,934 characters.
+
+**A correction to wave 2's record.** d4's check of the starting product's tests "did not end within 120 s" at
+23:55. The entry above records the timeout and not what it left: a test server with no parent, in the system's
+temporary folder, which the session "Shiploop SDLC" found and stopped at 00:25
+(fb0f834d90ff8a27b4a2eaec75ed45462a913e95: "A 28th appeared at 23:55, left by another session's run of the ticket
+case"). I had swept my run folders by working folder and not the temporary folders where the check's processes
+sit. That commit fixes the check (it now stops its whole process group at the limit) and the merge puts the
+candidate on top of it. After the round below, the sweep covers those folders too.
+
+**The round, registered before any run** (DESIGN.md section 9 holds it in full). Four whole deliveries built from
+this commit, started together, medium effort, no stand-in requester: `hello` and two of `ticket-due-times` on Codex
+with gpt-6.2-sol, one of `ticket-due-times` on Claude Code with claude-sonnet-5-5 (`--max-budget-usd 40`). The
+combination is accepted, and released, if all four hold:
+
+1. every delivery passes the harness's five verdicts and every case check (a check that "did not end within 120 s"
+   is run again alone on the delivered tree; passing there, it is not counted, and both results are reported);
+2. no delivery is stopped by the list's gate (a refusal the session recovers from is counted, not a failure);
+3. in every delivery the spec result holds the list, the done packet lists it, and the report has "Decided for you"
+   directly after the request;
+4. no delivery is refused wrongly at release-verify (each refusal there is read by hand).
+
+The rows, an added command at release-verify, times, cost and the hosts' last messages are described, not rules. If
+any of the four fails, nothing is pushed or released and the owner is told. Not shown by this round: Grok, another
+case family, the requester's answer, a right refusal at release-verify.
