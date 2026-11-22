@@ -1,0 +1,122 @@
+{
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "cost_usd": 0.445035,
+ "prompt_sha256": "12ee5b002276f777f99ac3c3252d76208a6dd6663d503add70e659e3438f096b",
+ "request": "Remind requesters when a ticket has been waiting on them for too long.",
+ "fixture_digest": "5652a97375d0",
+ "labels": [
+  {
+   "id": "N-1",
+   "here": "applies",
+   "why": "The lifecycle has no waiting-on-requester state, so the request's core condition has to be defined in this program's terms."
+  },
+  {
+   "id": "N-2",
+   "here": "applies",
+   "why": "The threshold, the instant it is counted from, and whether it varies by priority are the requested behaviour itself."
+  },
+  {
+   "id": "N-3",
+   "here": "applies",
+   "why": "How many reminders, how far apart, and when they stop are the reminder's own conduct."
+  },
+  {
+   "id": "N-4",
+   "here": "applies",
+   "why": "The events that end the waiting are the feature's boundaries; with no reply endpoint the spec must say which existing events count as a response, and needs no new channel to do so."
+  },
+  {
+   "id": "N-5",
+   "here": "applies",
+   "why": "The reminder's wording, its fields and its recipient (given the free-text requester field) go through the existing templates and outbox."
+  },
+  {
+   "id": "N-6",
+   "here": "applies",
+   "why": "The reminder has to agree with the existing resolved notice's 'reply within 7 days to reopen it' wording."
+  },
+  {
+   "id": "N-7",
+   "here": "applies",
+   "why": "The worker's contract requires scheduled work to be a worker job, so where and how the check runs must be settled."
+  },
+  {
+   "id": "N-8",
+   "here": "applies",
+   "why": "An outbox key deduplicates only while pending and delivery is at-least-once, so avoiding duplicate reminders is correctness rigour."
+  },
+  {
+   "id": "N-9",
+   "here": "applies",
+   "why": "Re-checking the condition when enqueueing keeps a stale reminder from going out; that is the behaviour's own correctness."
+  },
+  {
+   "id": "N-10",
+   "here": "applies",
+   "why": "Failure routing through the existing retries, dead state and template rule is the expected rigour."
+  },
+  {
+   "id": "N-11",
+   "here": "applies",
+   "why": "Whether a backlog of reminders goes out when the feature is first deployed is a deployment step for existing data."
+  },
+  {
+   "id": "N-12",
+   "here": "applies",
+   "why": "The lifecycle allows resolve, reopen, resolve again, so the reminder timing and keys across cycles are a boundary of the behaviour."
+  },
+  {
+   "id": "N-13",
+   "here": "mixed",
+   "applies_part": "The spec must settle what happens at exactly the threshold and which clock and time zone the comparison uses; holding reminders outside business hours, weekends or holidays would need a business calendar the program lacks.",
+   "why": "The threshold boundary and clock source apply; a business-hours and holiday calendar is a capability nobody asked for."
+  },
+  {
+   "id": "N-14",
+   "here": "applies",
+   "why": "Persistence names every field it saves and loads, so any new tracking data has to be placed and named."
+  },
+  {
+   "id": "N-15",
+   "here": "applies",
+   "why": "Data files from the current version must still load, and the load checks must cover the new fields, to preserve the existing program."
+  },
+  {
+   "id": "N-16",
+   "here": "applies",
+   "why": "Whether a reminder enters the audit log or changes the ticket's updated time affects the existing audit and updated-time rules."
+  },
+  {
+   "id": "N-17",
+   "here": "mixed",
+   "applies_part": "The spec must settle that the threshold and the switch are operator settings in the environment and that reminders go out as the system, under the existing X-Actor and internal-network model.",
+   "why": "Who controls the feature applies; stopping or sending reminders by hand, or any real authorization, needs controls and sign-in the request does not ask for."
+  },
+  {
+   "id": "N-18",
+   "here": "applies",
+   "why": "Settings follow the existing pattern of validated environment variables, and the rule that WORKER_INTERVAL_MS=0 stops all background work must hold."
+  },
+  {
+   "id": "N-19",
+   "here": "applies",
+   "why": "Operators see reminders through the existing outbox report and tools, and the CLI's raw column positions must be preserved."
+  },
+  {
+   "id": "N-20",
+   "here": "applies",
+   "why": "How late a reminder may go out, how many go in one tick, and the check's cost are operational rigour for a job that scans every ticket."
+  },
+  {
+   "id": "N-21",
+   "here": "applies",
+   "why": "Which existing behaviour must be preserved is explicitly part of what applies."
+  },
+  {
+   "id": "N-22",
+   "here": "applies",
+   "why": "Tests with the manual clock, doc updates, the changelog and version bump, and a decision record are the conventions CONTRIBUTING requires."
+  }
+ ]
+}

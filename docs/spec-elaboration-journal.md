@@ -4016,3 +4016,17 @@ same rule.
   it, as with S.
 - Each checklist is one author's, on one model, and was not reviewed by a second.
 - Three sets a sentence, one driver at one effort, on one host.
+
+**Step 0, done (16:18).** Four sorter sessions, two on each checklist, from 16:14 to 16:16
+(`labels/here-merge-*.json`, `labels/here-remind-*.json`).
+
+| Sentence | Items | Apply for both sorters | Not in the rule |
+|---|---|---|---|
+| merge | 22 | 21 | N-12 (who may merge): one sorter calls it mixed, since the service has no sign-in |
+| remind | 22 | 19 | N-4 (what ends the waiting): one calls it mixed; N-13 (the threshold's boundaries, time zone and business hours) and N-17 (who may configure or send by hand): both call them mixed |
+
+Neither sorter called any item a capability the request does not ask for, on either checklist. Both sentences
+pass the gate of eight and both are run. Three of the four items left out of the rule are ones a question of
+arm Q names (who may use the change, twice; the forms of a time): the rule will not count them, and the wider
+reading over the items both sorters call mixed (section 46's) will show N-13 and N-17 beside it. The registered
+judge's two sorter sessions cost $1.04, a little over the dollar section 52 allowed.

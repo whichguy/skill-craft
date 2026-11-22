@@ -1,0 +1,120 @@
+{
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "cost_usd": null,
+ "prompt_sha256": "12ee5b002276f777f99ac3c3252d76208a6dd6663d503add70e659e3438f096b",
+ "request": "Let agents merge duplicate tickets.",
+ "fixture_digest": "5652a97375d0",
+ "labels": [
+  {
+   "id": "N-1",
+   "here": "applies",
+   "why": "Agents change tickets through the HTTP API, so merge needs a method, route, ticket identifiers, success response and the API's usual unknown-field check."
+  },
+  {
+   "id": "N-2",
+   "here": "applies",
+   "why": "The choice of survivor determines which ticket agents continue working on, so callers need to know how that choice is made."
+  },
+  {
+   "id": "N-3",
+   "here": "applies",
+   "why": "Whether the agent's judgment suffices determines which pairs the merge accepts, including tickets with different titles or requesters."
+  },
+  {
+   "id": "N-4",
+   "here": "applies",
+   "why": "The absorbed ticket needs a defined state so the existing edit and transition operations can handle later requests consistently."
+  },
+  {
+   "id": "N-5",
+   "here": "applies",
+   "why": "A merge of tickets with different field values needs a rule for what the survivor retains and where the absorbed requester's identity remains visible."
+  },
+  {
+   "id": "N-6",
+   "here": "applies",
+   "why": "Clients can still request the absorbed ID or list tickets by status, so both read paths need defined results and a way to identify the survivor."
+  },
+  {
+   "id": "N-7",
+   "here": "applies",
+   "why": "Eligibility depends on both tickets' states and whether their IDs coincide, and each refusal must fit the API's invalid-request or state-conflict rules."
+  },
+  {
+   "id": "N-8",
+   "here": "applies",
+   "why": "Either ticket reference can fail validation or lookup, and the error envelope must let the caller identify which input needs correction."
+  },
+  {
+   "id": "N-9",
+   "here": "applies",
+   "why": "Later merges can involve either member of an earlier pair, so the rules must keep survivor links resolvable and prevent cycles."
+  },
+  {
+   "id": "N-10",
+   "here": "applies",
+   "why": "A caller can retry after losing the first response, so the second result and its effects on the audit log are part of the merge contract."
+  },
+  {
+   "id": "N-11",
+   "here": "applies",
+   "why": "The store ties timestamps and audit entries to actual changes, so the specification must say what counts as a change to the survivor."
+  },
+  {
+   "id": "N-12",
+   "here": "applies",
+   "why": "The request names agents, so the access rule must identify what the internal network enforces and what the caller-supplied X-Actor header contributes to attribution."
+  },
+  {
+   "id": "N-13",
+   "here": "applies",
+   "why": "Persistence explicitly selects ticket fields on save and load, so the link needs a durable representation and a defined reading for older version 1 records."
+  },
+  {
+   "id": "N-14",
+   "here": "applies",
+   "why": "The loader validates saved records at startup, so it needs rules for dangling targets, cycles and inconsistent states, with errors identifying the offending record."
+  },
+  {
+   "id": "N-15",
+   "here": "applies",
+   "why": "The audit endpoint retrieves entries by ticket ID, so the merge must define what each history shows about the actor, action and field changes."
+  },
+  {
+   "id": "N-16",
+   "here": "applies",
+   "why": "A partial merge could leave ticket state out of sync with its history or outbox, so all effects must commit together in memory and in the configured data file."
+  },
+  {
+   "id": "N-17",
+   "here": "applies",
+   "why": "The existing outbox can hold pending events for the absorbed ticket, and any merge notice uses that same system's recipients, templates and deduplication keys."
+  },
+  {
+   "id": "N-18",
+   "here": "applies",
+   "why": "Operators already use show and list to inspect saved tickets, so how those commands display an absorbed ticket and its destination is part of the change."
+  },
+  {
+   "id": "N-19",
+   "here": "applies",
+   "why": "Operators need to know whether a mistaken merge is final and what correction is possible while preserving audit history and ticket numbers."
+  },
+  {
+   "id": "N-20",
+   "here": "applies",
+   "why": "Merge shares the store, lifecycle, listing and audit code with ordinary ticket operations, whose existing contracts must continue to hold."
+  },
+  {
+   "id": "N-21",
+   "here": "applies",
+   "why": "The weekly report reads status and priority by column position and counts each raw line, so column order and the inclusion of absorbed tickets affect its totals."
+  },
+  {
+   "id": "N-22",
+   "here": "applies",
+   "why": "Merge changes the documented API and store semantics, bringing success, error and atomicity tests, API documentation, a decision record and release updates within the project's dependency-free TicketStore conventions."
+  }
+ ]
+}

@@ -1,0 +1,121 @@
+{
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "cost_usd": 0.5924058,
+ "prompt_sha256": "12ee5b002276f777f99ac3c3252d76208a6dd6663d503add70e659e3438f096b",
+ "request": "Let agents merge duplicate tickets.",
+ "fixture_digest": "5652a97375d0",
+ "labels": [
+  {
+   "id": "N-1",
+   "here": "applies",
+   "why": "The merge endpoint's own route, body, status and response, following the API's unknown-field rule."
+  },
+  {
+   "id": "N-2",
+   "here": "applies",
+   "why": "Which ticket survives is the core conduct of a merge."
+  },
+  {
+   "id": "N-3",
+   "here": "applies",
+   "why": "Whether the service checks that the tickets really are duplicates sets the boundary of the requested behaviour."
+  },
+  {
+   "id": "N-4",
+   "here": "applies",
+   "why": "The absorbed ticket's state in the existing lifecycle, and what may still be done to it, is the merge's own effect."
+  },
+  {
+   "id": "N-5",
+   "here": "applies",
+   "why": "What carries over between the two existing tickets' fields is part of how the merge behaves."
+  },
+  {
+   "id": "N-6",
+   "here": "applies",
+   "why": "How the existing read and list endpoints show an absorbed ticket must be settled so they keep working correctly."
+  },
+  {
+   "id": "N-7",
+   "here": "applies",
+   "why": "Refused state combinations and their codes, under the existing error envelope, are the merge's errors."
+  },
+  {
+   "id": "N-8",
+   "here": "applies",
+   "why": "Missing, malformed or unknown ids are the request's own input errors."
+  },
+  {
+   "id": "N-9",
+   "here": "applies",
+   "why": "Chains and cycles are edge cases of the merge itself."
+  },
+  {
+   "id": "N-10",
+   "here": "applies",
+   "why": "Idempotence of a repeated merge follows the project's rule that a change that changes nothing is not a change."
+  },
+  {
+   "id": "N-11",
+   "here": "applies",
+   "why": "The no-op rule for `updated` and the audit log is an existing invariant the merge must respect."
+  },
+  {
+   "id": "N-12",
+   "here": "mixed",
+   "applies_part": "Whether a merge requires a named X-Actor rather than `system`, and that the internal network is the only protection, since the service has no sign-in.",
+   "why": "Requiring a named actor is settled within the current program, but keeping requesters from merging needs roles or sign-in, which the program does not have."
+  },
+  {
+   "id": "N-13",
+   "here": "applies",
+   "why": "Persisting the link through persistence.js, and loading older version 1 files, is required by decision 8."
+  },
+  {
+   "id": "N-14",
+   "here": "applies",
+   "why": "Loading checks every record and names it, so the new link needs the same checks."
+  },
+  {
+   "id": "N-15",
+   "here": "applies",
+   "why": "Every change needs an audit entry under decision 7, so the merge's entries have to be defined."
+  },
+  {
+   "id": "N-16",
+   "here": "applies",
+   "why": "Making the change as one store step that saves atomically is the existing store contract, and a matter of rigour."
+  },
+  {
+   "id": "N-17",
+   "here": "applies",
+   "why": "The outbox and requester notifications already exist, so whether a merge notifies anyone, and what happens to pending notifications, is the merge's own conduct."
+  },
+  {
+   "id": "N-18",
+   "here": "applies",
+   "why": "The existing read-only command line must show merged tickets correctly."
+  },
+  {
+   "id": "N-19",
+   "here": "applies",
+   "why": "Whether a merge can be undone, and how an operator corrects one, is a boundary of the requested behaviour under the append-only rule."
+  },
+  {
+   "id": "N-20",
+   "here": "applies",
+   "why": "Existing behaviour that must be preserved."
+  },
+  {
+   "id": "N-21",
+   "here": "applies",
+   "why": "The raw columns and the weekly report are existing outputs that must keep working, with merged tickets treated in a stated way."
+  },
+  {
+   "id": "N-22",
+   "here": "applies",
+   "why": "Tests, docs, changelog, version bump, a decision record, no dependencies and the store method are the project's required rigour."
+  }
+ ]
+}

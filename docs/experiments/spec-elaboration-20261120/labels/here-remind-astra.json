@@ -1,0 +1,123 @@
+{
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "cost_usd": null,
+ "prompt_sha256": "12ee5b002276f777f99ac3c3252d76208a6dd6663d503add70e659e3438f096b",
+ "request": "Remind requesters when a ticket has been waiting on them for too long.",
+ "fixture_digest": "5652a97375d0",
+ "labels": [
+  {
+   "id": "N-1",
+   "here": "applies",
+   "why": "None of the four statuses explicitly means the requester owes an action, so the worker needs an observable condition with defined entry and exit events."
+  },
+  {
+   "id": "N-2",
+   "here": "applies",
+   "why": "The worker needs a threshold and a start time for each wait, including whether priority affects the threshold, because unrelated edits also advance updated."
+  },
+  {
+   "id": "N-3",
+   "here": "applies",
+   "why": "An overdue ticket can qualify on every worker tick, so a count, spacing rule and stopping condition determine how many messages its requester receives."
+  },
+  {
+   "id": "N-4",
+   "here": "mixed",
+   "applies_part": "Define which recorded ticket changes end the wait, including which transition can stand for a requester response and whether an ordinary agent edit affects eligibility.",
+   "why": "The store observes edits and transitions, while detecting a reply independently of a recorded ticket change would require a new inbound channel."
+  },
+  {
+   "id": "N-5",
+   "here": "applies",
+   "why": "The notifier needs a subject, body and recipient, and a valid ticket can contain a requester name that the mail relay cannot address."
+  },
+  {
+   "id": "N-6",
+   "here": "applies",
+   "why": "The resolved notice already tells the requester to reply within seven days, so the reminder needs consistent instructions for an action the help desk can honor."
+  },
+  {
+   "id": "N-7",
+   "here": "applies",
+   "why": "The service assigns scheduled work to a single worker that runs jobs in order, so its tick schedule and job order determine when reminders are queued and delivered."
+  },
+  {
+   "id": "N-8",
+   "here": "applies",
+   "why": "The outbox releases a key after delivery, while the relay deduplicates retries by key and event ID, so one scheduled reminder needs a stable identity across ticks and restarts."
+  },
+  {
+   "id": "N-9",
+   "here": "applies",
+   "why": "A ticket can leave the waiting condition after it was last checked, so the store must use its current state when deciding whether to enqueue."
+  },
+  {
+   "id": "N-10",
+   "here": "applies",
+   "why": "A missing template fails at delivery today, so the reminder needs a defined template, retry policy and outcome for later ticks once an event is dead."
+  },
+  {
+   "id": "N-11",
+   "here": "applies",
+   "why": "The first worker tick after deployment can encounter tickets that have already waited past the threshold, making their initial eligibility a rollout decision."
+  },
+  {
+   "id": "N-12",
+   "here": "applies",
+   "why": "A reopened ticket keeps its ID and outbox history, so a later wait needs a rule for carrying over or restarting the clock, count and reminder keys."
+  },
+  {
+   "id": "N-13",
+   "here": "mixed",
+   "applies_part": "Define the clock, time zone and exact threshold comparison, including when a ticket first qualifies under an elapsed-time rule.",
+   "why": "The service supplies a clock and UTC timestamps, while holding delivery for business hours or holidays would add calendar-aware scheduling."
+  },
+  {
+   "id": "N-14",
+   "here": "applies",
+   "why": "Restart behavior depends on where the worker recovers the start of a wait and prior reminders, and the data file keeps only explicitly serialized record fields."
+  },
+  {
+   "id": "N-15",
+   "here": "applies",
+   "why": "Existing deployments must load their current data files, and the loader must distinguish an absent legacy field from an invalid stored value and identify the latter."
+  },
+  {
+   "id": "N-16",
+   "here": "applies",
+   "why": "The store audits ticket mutations and records deliveries separately, so the specification must say whether a reminder changes the ticket and what timestamp, actor and action follow."
+  },
+  {
+   "id": "N-17",
+   "here": "mixed",
+   "applies_part": "Identify who controls the deployment settings and which existing ticket actions stop eligibility, accounting for the fact that clients supply their own X-Actor value.",
+   "why": "Operators already control the process environment, while sending or cancelling an individual reminder by hand would require a new control."
+  },
+  {
+   "id": "N-18",
+   "here": "applies",
+   "why": "The service reads settings from the environment and reports invalid values by name, and operators rely on WORKER_INTERVAL_MS=0 to stop all scheduled work."
+  },
+  {
+   "id": "N-19",
+   "here": "applies",
+   "why": "The outbox already shows sent events and pending attempts with their due times, and the weekly report relies on the positions of the CLI's raw columns."
+  },
+  {
+   "id": "N-20",
+   "here": "applies",
+   "why": "The reminder check shares a synchronous worker with delivery, so batch size and scan cost govern both lateness under load and how long existing notifications wait."
+  },
+  {
+   "id": "N-21",
+   "here": "applies",
+   "why": "Reminders share the ticket store, worker and persisted records with existing callers, so lifecycle, notification, API, audit and reporting contracts all matter to regression coverage."
+  },
+  {
+   "id": "N-22",
+   "here": "applies",
+   "why": "The manual clock makes reminder timing testable, the API and operator docs describe affected behavior, and the contribution guide specifies release updates and decision records."
+  }
+ ]
+}
