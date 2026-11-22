@@ -1,0 +1,412 @@
+{
+ "calibration": {
+  "facts": {
+   "S": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 14,
+    "unstated": 19,
+    "handled": 18,
+    "short": [
+     "U-22"
+    ],
+    "told": 2,
+    "told_or_marked": 2,
+    "unstated_strong_test_read": 3,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-7"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 2,
+     "neutral": 1,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 11,
+    "unstated": 19,
+    "handled": 18,
+    "short": [
+     "U-22"
+    ],
+    "told": 2,
+    "told_or_marked": 2,
+    "unstated_strong_test_read": 3,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-7"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 2,
+     "neutral": 0,
+     "liability": 1
+    }
+   },
+   "L": {
+    "stated": 21,
+    "built": 20,
+    "not_built": [
+     "S-6"
+    ],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 14,
+    "unstated": 19,
+    "handled": 18,
+    "short": [
+     "U-22"
+    ],
+    "told": 2,
+    "told_or_marked": 2,
+    "unstated_strong_test_read": 4,
+    "defects": 1,
+    "defects_high": [],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-5",
+     "D-7"
+    ],
+    "serious": 1,
+    "extras": {
+     "value": 2,
+     "neutral": 1,
+     "liability": 0
+    }
+   },
+   "U": {
+    "stated": 21,
+    "built": 20,
+    "not_built": [
+     "S-18"
+    ],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 13,
+    "unstated": 19,
+    "handled": 17,
+    "short": [
+     "U-16",
+     "U-22"
+    ],
+    "told": 2,
+    "told_or_marked": 2,
+    "unstated_strong_test_read": 2,
+    "defects": 1,
+    "defects_high": [
+     "D-6"
+    ],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-6",
+     "D-7"
+    ],
+    "serious": 2,
+    "extras": {
+     "value": 1,
+     "neutral": 0,
+     "liability": 0
+    }
+   }
+  },
+  "facts_with_arm_items": {
+   "S": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 14,
+    "unstated": 21,
+    "handled": 20,
+    "short": [
+     "U-22"
+    ],
+    "told": 3,
+    "told_or_marked": 3,
+    "unstated_strong_test_read": 3,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-7"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 2,
+     "neutral": 1,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 11,
+    "unstated": 21,
+    "handled": 20,
+    "short": [
+     "U-22"
+    ],
+    "told": 3,
+    "told_or_marked": 3,
+    "unstated_strong_test_read": 3,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-7"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 2,
+     "neutral": 0,
+     "liability": 1
+    }
+   },
+   "L": {
+    "stated": 21,
+    "built": 20,
+    "not_built": [
+     "S-6"
+    ],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 14,
+    "unstated": 21,
+    "handled": 20,
+    "short": [
+     "U-22"
+    ],
+    "told": 3,
+    "told_or_marked": 3,
+    "unstated_strong_test_read": 4,
+    "defects": 1,
+    "defects_high": [],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-5",
+     "D-7"
+    ],
+    "serious": 1,
+    "extras": {
+     "value": 2,
+     "neutral": 1,
+     "liability": 0
+    }
+   },
+   "U": {
+    "stated": 21,
+    "built": 20,
+    "not_built": [
+     "S-18"
+    ],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 13,
+    "unstated": 21,
+    "handled": 19,
+    "short": [
+     "U-16",
+     "U-22"
+    ],
+    "told": 3,
+    "told_or_marked": 3,
+    "unstated_strong_test_read": 2,
+    "defects": 1,
+    "defects_high": [
+     "D-6"
+    ],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-6",
+     "D-7"
+    ],
+    "serious": 2,
+    "extras": {
+     "value": 1,
+     "neutral": 0,
+     "liability": 0
+    }
+   }
+  },
+  "pairs": {
+   "S-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": null,
+     "D5": null,
+     "D6": "first"
+    },
+    "gate": "S",
+    "better": "S",
+    "verdicts": {
+     "a": {
+      "side": "S",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "The two deliveries behave the same everywhere the audits looked except that Z refuses a valid 64-character agent name, breaking a stated requirement (D-5). Z's somewhat stronger test assertions on the response and notification do not outweigh a wrong stated rule. The fix is a one-line constant change plus a boundary test.",
+      "lesser_lacks": [
+       "Change LIMITS.assignee in src/tickets/validate.js from 63 to 64",
+       "Add a test that a 64-character name is accepted and a 65-character one refused"
+      ]
+     },
+     "b": {
+      "side": "S",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "On every audited path except name length, Y and Z assign, unassign, notify, filter, audit, and persist the same way, and they share the same document, UTF-8, and test gaps. Y fails the stated 64-character rule because its limit is 63. That single constant is the gap.",
+      "lesser_lacks": [
+       "Change the assignee maximum from 63 characters to 64, so a 64-character name is stored and only 65 or more is refused without changing the ticket."
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   },
+   "S-F": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": null,
+     "D5": null,
+     "D6": "first"
+    },
+    "gate": null,
+    "better": null,
+    "verdicts": {
+     "a": {
+      "side": "S",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "X and Y behave identically and share every defect, so the difference is only what a maintainer must carry. X adds a duplicated test file and a long specification that decides nothing, both pure cost. Deleting them is a short task.",
+      "lesser_lacks": [
+       "Delete test/assignment-again.test.js",
+       "Remove docs/spec.md or replace it with a short record of the choices made (409 on resolved/closed, ticket.assigned audit action, per-agent outbox key, fifth raw column, status+priority intersection)"
+      ]
+     },
+     "b": {
+      "side": "S",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "X and Z run the same feature, including a correct 64-character limit, and the shared defects do not separate them. X adds a duplicate of the new tests and a specification that decides nothing. Z leaves one test file and no empty spec for the maintainer to carry.",
+      "lesser_lacks": [
+       "Delete test/assignment-again.test.js.",
+       "Delete docs/spec.md."
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   },
+   "F-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": null,
+     "D5": null,
+     "D6": "first"
+    },
+    "gate": "F",
+    "better": "F",
+    "verdicts": {
+     "a": {
+      "side": "F",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "Z breaks a stated requirement by refusing valid 64-character agent names (D-5), which the requester and operator would hit; X builds every stated requirement correctly. X's duplicate test file and empty-calorie specification are maintenance cost but change no behaviour, so a wrong stated rule weighs more. Z closes the gap with a constant change and a boundary test.",
+      "lesser_lacks": [
+       "Change LIMITS.assignee in src/tickets/validate.js from 63 to 64",
+       "Add a test that a 64-character name is accepted and a 65-character one refused"
+      ]
+     },
+     "b": {
+      "side": "F",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "X meets the stated 64-character rule and Y does not; that is the only behavioural difference between them. Y is lighter to keep because its tests are not duplicated and it adds no empty specification. A wrong limit on a stated rule outweighs that maintenance cost, and changing the constant removes it.",
+      "lesser_lacks": [
+       "Change the assignee maximum from 63 characters to 64, so a 64-character name is stored and only 65 or more is refused without changing the ticket."
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   }
+  },
+  "nearly_competitive": true,
+  "rechecked_items": [
+   "S-18",
+   "S-6",
+   "U-16"
+  ],
+  "inventory": {
+   "stated": 21,
+   "proved": [
+    "S-4",
+    "S-8",
+    "S-9",
+    "S-10",
+    "S-14",
+    "S-15"
+   ],
+   "unstated_rated": 28,
+   "independent": 22,
+   "independent_kept": 19,
+   "arm_only": 6,
+   "arm_only_kept": 2
+  }
+ }
+}

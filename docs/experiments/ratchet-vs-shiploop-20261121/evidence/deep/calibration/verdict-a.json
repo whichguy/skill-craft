@@ -1,0 +1,18 @@
+{"pairs": [
+{"pair": "Y-Z", "better": "Y-some", "advantages": [
+{"of": "Y", "what": "Accepts a 64-character agent name as the request states; Z refuses it (limit 63)", "ref": "D-5", "matters_to": "requester"},
+{"of": "Y", "what": "Stated requirement S-6 built correctly; Z's is built wrong and its tests do not catch it", "ref": "S-6", "matters_to": "operator"},
+{"of": "Z", "what": "Slightly stronger tests on the PUT response body and the notification content (U-21, U-7 strong in Z, weak in Y)", "ref": "U-21", "matters_to": "maintainer"}
+], "lesser_lacks": ["Change LIMITS.assignee in src/tickets/validate.js from 63 to 64", "Add a test that a 64-character name is accepted and a 65-character one refused"], "one_task_closes": "yes", "why": "The two deliveries behave the same everywhere the audits looked except that Z refuses a valid 64-character agent name, breaking a stated requirement (D-5). Z's somewhat stronger test assertions on the response and notification do not outweigh a wrong stated rule. The fix is a one-line constant change plus a boundary test."},
+{"pair": "Y-X", "better": "Y-some", "advantages": [
+{"of": "Y", "what": "One new test file; X carries test/assignment-again.test.js, a verbatim duplicate that adds no check and must be kept in step", "ref": "X extras: test/assignment-again.test.js", "matters_to": "maintainer"},
+{"of": "Y", "what": "No docs/spec.md to carry; X's spec restates the request six times and records none of the choices actually made (409, audit action, outbox key, raw column, filter change)", "ref": "X spec_notes", "matters_to": "maintainer"},
+{"of": "X", "what": "Nothing observable: same behaviour on every stated and unstated item, same defects", "ref": "S-1..S-21, U-1..U-27", "matters_to": "no one"}
+], "lesser_lacks": ["Delete test/assignment-again.test.js", "Remove docs/spec.md or replace it with a short record of the choices made (409 on resolved/closed, ticket.assigned audit action, per-agent outbox key, fifth raw column, status+priority intersection)"], "one_task_closes": "yes", "why": "X and Y behave identically and share every defect, so the difference is only what a maintainer must carry. X adds a duplicated test file and a long specification that decides nothing, both pure cost. Deleting them is a short task."},
+{"pair": "X-Z", "better": "X-some", "advantages": [
+{"of": "X", "what": "Accepts a 64-character agent name as the request states; Z refuses it (limit 63)", "ref": "D-5", "matters_to": "requester"},
+{"of": "Z", "what": "No duplicated test file to keep in step", "ref": "X extras: test/assignment-again.test.js", "matters_to": "maintainer"},
+{"of": "Z", "what": "No restating specification that records none of the built choices", "ref": "X spec_notes", "matters_to": "maintainer"},
+{"of": "Z", "what": "Slightly stronger tests on the PUT response body and notification content", "ref": "U-21", "matters_to": "maintainer"}
+], "lesser_lacks": ["Change LIMITS.assignee in src/tickets/validate.js from 63 to 64", "Add a test that a 64-character name is accepted and a 65-character one refused"], "one_task_closes": "yes", "why": "Z breaks a stated requirement by refusing valid 64-character agent names (D-5), which the requester and operator would hit; X builds every stated requirement correctly. X's duplicate test file and empty-calorie specification are maintenance cost but change no behaviour, so a wrong stated rule weighs more. Z closes the gap with a constant change and a boundary test."}
+]}

@@ -1,0 +1,26 @@
+{
+ "c3cf105": {
+  "point": "S",
+  "variant": "reference",
+  "spec": null,
+  "own_tests_pass": true
+ },
+ "c9191ec": {
+  "point": "F",
+  "variant": "reference, padded",
+  "spec": "docs/spec.md",
+  "own_tests_pass": true
+ },
+ "cf491ea": {
+  "point": "L",
+  "variant": "name-limit-off-by-one",
+  "spec": null,
+  "own_tests_pass": true
+ },
+ "c636a23": {
+  "point": "U",
+  "variant": "raw-column-inserted",
+  "spec": null,
+  "own_tests_pass": true
+ }
+}

@@ -8,13 +8,14 @@ joins their JSON answers, and computes the readings. Everything lives under ROOT
     deep_judge.py prepare ROOT CASE            products under code names, the request, the starting files, prompts
     deep_judge.py rate-packet ROOT CASE        after merged.json: the rating instructions, sources left out
     deep_judge.py inventory ROOT CASE          after both ratings: inventory.json, inventory.md, the audit prompts
-    deep_judge.py calibrate ROOT               after the ticket inventory: the instrument check as a case of its own
+    deep_judge.py calibrate ROOT [ROUND]       after the ticket inventory: the instrument check as a case of its own
     deep_judge.py defects ROOT CASE            after the audits: reported defects, items the audits differ on, probe.md
-    deep_judge.py verdict-packet ROOT CASE     after the cross-probe: one masked packet for each of the two judges
+    deep_judge.py told-packet ROOT CASE        after the cross-probe: one reader's instructions for what each product's documents tell
+    deep_judge.py verdict-packet ROOT CASE     after told.json: one masked packet for each of the two judges
     deep_judge.py grab IN.json OUT.json        the first JSON object in an `ask` answer's text
     deep_judge.py score ROOT OUT_DIR           D1 to D6, the gate, the pairs, deep.json and deep.md
 
-CASE is the short name: expenses, chess, tickets, grokbot (and calibration for the last three steps).
+CASE is the short name: expenses, chess, tickets, grokbot (and calibration for the last four steps).
 """
 import json
 import random
@@ -251,6 +252,42 @@ Write `{case_dir}/defects-probed.json` as one JSON object and nothing else:
 Reply with the count of rechecked items, the count of merged defects and, a product, how many are present.
 """
 
+TOLD = """# What the documents delivered with each product tell a customer
+
+Several products were built from one request (`{case_dir}/request.md`) by different builders. They are in
+`{case_dir}/products/` under code names: {codes}. `{case_dir}/inventory.md` lists conditions the request leaves
+unsaid (U-n). `{case_dir}/told-input.json` gives, for each of those items, what each product was seen to do there
+when it was run (`behaviour`, with its handling grade).
+
+For every item and every product you decide one thing, `told`: would a customer who reads the documents delivered
+with that product find an accurate account of what that product does there?
+
+1. For each product, read only the documents delivered with it to a customer: the README, API or operations
+   documents, a changelog or delivery note, and anything under a docs folder that is written for a user or an
+   operator. Do not count the builders' specification or their working notes. These paths, inside each product's
+   folder, are left out:
+
+{excluded}
+
+2. `told` is `yes` only when those documents give an accurate account of what that product does at the item: the
+   behaviour given for that product in `told-input.json`. Then `where` is the file and the sentence, quoted.
+   Otherwise `told` is `no` and `where` is empty. A document that describes behaviour the product does not have is
+   `no`. Silence is `no`.
+3. Hold every product to the same standard. Read each product's own documents and compare them with that
+   product's own behaviour; do not infer one product's answer from another's, even where their documents look
+   alike.
+4. Run nothing and edit nothing.
+
+Write `{case_dir}/told.json` as one JSON object and nothing else:
+
+```json
+{{"told": [{{"id": "U-1", "results": {{"<code>": {{"told": "yes|no", "where": "file: quoted sentence, or empty"}}}}}}]}}
+```
+
+Every item in `told-input.json` appears once, with a result for every product. Reply with, a product, the count of
+`yes`.
+"""
+
 VERDICT = """# Three deliveries of one request: which is the better feature?
 
 Three builders each delivered the same customer request (below). Each delivery was audited by running it: every
@@ -453,33 +490,52 @@ def padded(product: Path, request: str) -> None:
         lines += [f"## Requirement {number}", ""] + [f"- {form.format(sentence)}" for form in forms] + [""]
     (product / "docs").mkdir(exist_ok=True)
     (product / "docs" / "spec.md").write_text("\n".join(lines))
-    for name in ("assignment.test.js", "assignee.test.js"):
-        source = product / "test" / name
+    added = [product / "test" / name for name in ("assignment.test.js", "assignee.test.js") if (product / "test" / name).exists()]
+    if not added:
+        raise SystemExit("the reference has none of the test files this padding copies")
+    for source in added:
         copy = re.sub(r"\b(test|it)\((['\"`])", r"\1(\2again: ", source.read_text())
-        (product / "test" / name.replace(".test.js", "-again.test.js")).write_text(copy)
+        (source.parent / source.name.replace(".test.js", "-again.test.js")).write_text(copy)
 
 
-def calibrate(root: Path) -> None:
+def calibrate(root: Path, round_number: int = 1) -> None:
+    """Round 1 lays out all four products. A later round draws two defects not drawn before and takes the reference
+    and the padded reference, with their audits, from round 1."""
     sys.path.insert(0, str(PILOT))
     import grade
-    tickets, out_dir = root / "deep" / "tickets", root / "deep" / "calibration"
+    first = root / "deep" / "calibration"
+    tickets, out_dir = root / "deep" / "tickets", (first if round_number == 1 else root / "deep" / f"calibration{round_number}")
     if (out_dir / "key.json").exists():
-        raise SystemExit("the calibration is already laid out")
+        raise SystemExit("this calibration round is already laid out")
     case = load(PILOT / "cases.json")["ticket-assignment"]
     defects_known, _ = grade.variant_names(case)
     missing = sorted(set(STATED_DEFECTS + UNSTATED_DEFECTS) - set(defects_known))
     if missing:
         raise SystemExit(f"unknown calibrated defects: {missing}")
-    stated = random.Random("deep-judge calibration stated").choice(sorted(STATED_DEFECTS))
-    unstated = random.Random("deep-judge calibration unstated").choice(sorted(UNSTATED_DEFECTS))
+    drawn = {"stated": [], "unstated": []}  # every round's draws, in order, so a later round draws from what is left
+    for number in range(1, round_number + 1):
+        suffix = "" if number == 1 else f" round {number}"
+        for kind, pool in (("stated", STATED_DEFECTS), ("unstated", UNSTATED_DEFECTS)):
+            left = sorted(set(pool) - set(drawn[kind]))
+            drawn[kind].append(random.Random(f"deep-judge calibration {kind}{suffix}").choice(left))
+    stated, unstated = drawn["stated"][-1], drawn["unstated"][-1]
     (out_dir / "prompts").mkdir(parents=True)
     for name in ("request.md", "inventory.json", "inventory.md"):
         shutil.copy2(tickets / name, out_dir / name)
     shutil.copytree(tickets / "base", out_dir / "base")
     request = (out_dir / "request.md").read_text()
-    chooser = random.Random("deep-judge calibration codes")
+    chooser = random.Random("deep-judge calibration codes" + ("" if round_number == 1 else f" round {round_number}"))
     key = {}
+    if round_number > 1:
+        (out_dir / "audits").mkdir()
+        for code, entry in load(first / "key.json").items():
+            if entry["point"] in ("S", "F"):
+                shutil.copytree(first / "products" / code, out_dir / "products" / code)
+                shutil.copy2(first / "audits" / f"{code}.json", out_dir / "audits" / f"{code}.json")
+                key[code] = {**entry, "audit_from_round": 1}
     for point, variant in (("S", "reference"), ("F", "reference"), ("L", stated), ("U", unstated)):
+        if round_number > 1 and point in ("S", "F"):
+            continue
         code = f"c{chooser.randrange(16 ** 6):06x}"
         product = out_dir / "products" / code
         grade.build_variant(case, variant, product, for_session=True)
@@ -534,14 +590,80 @@ def rechecked(case_dir: Path) -> dict:
             for code, result in row["results"].items()}
 
 
-def audit_of(case_dir: Path, code: str) -> dict:
-    """The audit with the cross-probe's re-runs applied to the items it re-ran."""
+def told_by_reader(case_dir: Path) -> dict:
+    """(item id, code) -> the single reader's answer from told.json: {"told": "yes" or "no", "where": ...}."""
+    path = case_dir / "told.json"
+    if not path.exists():
+        raise SystemExit(f"{case_dir.name}: {path} is missing: run `deep_judge.py told-packet ROOT {case_dir.name}`, "
+                         "then the session prompts/told.md instructs, before this step")
+    answers = {}
+    for row in load(path)["told"]:
+        for code, result in row["results"].items():
+            if result.get("told") not in ("yes", "no"):
+                raise SystemExit(f"{path}: {row['id']} on {code} has told {result.get('told')!r}, not yes or no")
+            answers[(row["id"], code)] = result
+    return answers
+
+
+def audit_of(case_dir: Path, code: str, reader_told: bool = True) -> dict:
+    """The audit with the cross-probe's re-runs applied to the items it re-ran, and with the single reader's `told`
+    (told.json) on every unstated item unless `reader_told` is false."""
     audit, again = load(case_dir / "audits" / f"{code}.json"), rechecked(case_dir)
     for kind, field in (("stated", "built"), ("unstated", "handling")):
         for row in audit[kind]:
             if (row["id"], code) in again:
                 row[field], row["rerun"] = again[(row["id"], code)], True
+    if reader_told:
+        # The auditor's own `told` is superseded. On four calibration products whose delivered documents are
+        # identical, the four auditors answered yes on 1, 0, 3 and 2 of 19 items: per-auditor noise larger than D4's
+        # margin of 2 items. One reader now answers for every product of a case, with one standard and a quoted line.
+        told = told_by_reader(case_dir)
+        missing = [row["id"] for row in audit["unstated"] if (row["id"], code) not in told]
+        if missing:
+            raise SystemExit(f"{case_dir / 'told.json'} has no answer for {code} on {', '.join(missing)}")
+        for row in audit["unstated"]:
+            answer = told[(row["id"], code)]
+            row["told"], row["told_where"] = answer["told"], answer.get("where", "")
     return audit
+
+
+def excluded_paths(product: Path, spec: str | None) -> list:
+    """The builders' specification and working notes inside a product, left out of what its documents tell."""
+    if not spec:
+        return []
+    parent = Path(spec).parent
+    paths = [f"{parent}/" if parent.name in ("shiploop", "ratchet") else spec]
+    paths += [f"{name}/" for name in ("ratchet", "acceptance") if (product / name).is_dir()]
+    return list(dict.fromkeys(paths))
+
+
+def told_packet(root: Path, case: str) -> None:
+    case_dir = root / "deep" / case
+    key, inv = load(case_dir / "key.json"), load(case_dir / "inventory.json")
+    rows = {code: {row["id"]: row for row in audit_of(case_dir, code, reader_told=False)["unstated"]} for code in key}
+    seen = {(row["id"], code): result.get("observed", "")
+            for row in load(case_dir / "defects-probed.json").get("rechecks", []) for code, result in row["results"].items()}
+    items = []
+    for item in inv["unstated"]:
+        behaviour = {}
+        for code in key:
+            row = rows[code].get(item["id"])
+            if row is None:
+                behaviour[code] = "the audit has no row for this item"
+                continue
+            text = row.get("behaviour") or "not recorded"
+            if row.get("rerun"):
+                text += f" The cross-probe re-ran it and saw: {seen.get((item['id'], code)) or 'not recorded'}"
+            behaviour[code] = f"{text} (handling: {row.get('handling')})"
+        items.append({"id": item["id"], "text": item["text"], "behaviour": behaviour})
+    dump(case_dir / "told-input.json", {"items": items})
+    excluded = []
+    for code, entry in key.items():
+        paths = excluded_paths(case_dir / "products" / code, entry.get("spec"))
+        excluded.append(f"   - `{code}`: " + (", ".join(f"`{path}`" for path in paths) or "nothing"))
+    codes = ", ".join(f"`{code}`" for code in key)
+    (case_dir / "prompts" / "told.md").write_text(TOLD.format(case_dir=case_dir, codes=codes, excluded="\n".join(excluded)))
+    print(f"{case}: {len(items)} unstated items, {len(key)} products; told-input.json and prompt told.md")
 
 
 def verdict_packet(root: Path, case: str) -> None:
@@ -570,6 +692,11 @@ def verdict_packet(root: Path, case: str) -> None:
             audit = audit_of(case_dir, code)
             for name in ("defects", "ran", "explored"):  # the probed table replaces each auditor's own list
                 audit.pop(name, None)
+            # A test's strength by reading differs between auditors on identical tests (14, 11 and 14 of 21 on the
+            # calibration's three copies of one suite), so the judges see only what was proved by breaking the behaviour.
+            for row in audit["stated"] + audit["unstated"]:
+                row.pop("test", None)
+                row.pop("test_name", None)
             audit["code"] = letters[code]
             audits += [f"## Audit of delivery {letters[code]}", "", "```json", relabel(json.dumps(audit, indent=1, ensure_ascii=False)), "```", ""]
         by_point = {key[code]["point"]: letter for code, letter in letters.items()}
@@ -647,12 +774,14 @@ def judged(case_dir: Path, case: str, key: dict) -> dict:
 
 def score(root: Path, out_dir: Path) -> None:
     report, lines = {}, ["# The deep judge", ""]
-    for case, full_name in {**CASES, "calibration": "the instrument check (ticket assignment)"}.items():
+    rounds = {path.name: f"the instrument check, {path.name} (ticket assignment)"
+              for path in sorted((root / "deep").glob("calibration*"))}
+    for case, full_name in {**CASES, **rounds}.items():
         case_dir = root / "deep" / case
         if not (case_dir / "defects-probed.json").exists():
             continue
         key, inv = load(case_dir / "key.json"), load(case_dir / "inventory.json")
-        names = CALIBRATION_NAMES if case == "calibration" else NAMES
+        names = CALIBRATION_NAMES if case.startswith("calibration") else NAMES
         code_of = {entry["point"]: code for code, entry in key.items()}
         probed = load(case_dir / "defects-probed.json")["defects"]
         facts = {point: facts_of(case_dir, code, inv, probed, True) for point, code in code_of.items()}
@@ -745,13 +874,13 @@ def main(argv=None) -> int:
     if command == "score" and len(rest) == 2:
         score(Path(rest[0]).expanduser().resolve(), Path(rest[1]).expanduser().resolve())
         return 0
-    if command == "calibrate" and len(rest) == 1:
-        calibrate(Path(rest[0]).expanduser().resolve())
+    if command == "calibrate" and len(rest) in (1, 2):
+        calibrate(Path(rest[0]).expanduser().resolve(), int(rest[1]) if len(rest) == 2 else 1)
         return 0
     steps = {"prepare": prepare, "rate-packet": rate_packet, "inventory": inventory, "defects": defects,
-             "verdict-packet": verdict_packet}
-    late = ("defects", "verdict-packet")
-    if command in steps and len(rest) == 2 and (rest[1] in CASES or (rest[1] == "calibration" and command in late)):
+             "told-packet": told_packet, "verdict-packet": verdict_packet}
+    late = ("defects", "told-packet", "verdict-packet")
+    if command in steps and len(rest) == 2 and (rest[1] in CASES or (rest[1].startswith("calibration") and command in late)):
         steps[command](Path(rest[0]).expanduser().resolve(), rest[1])
         return 0
     raise SystemExit(__doc__)

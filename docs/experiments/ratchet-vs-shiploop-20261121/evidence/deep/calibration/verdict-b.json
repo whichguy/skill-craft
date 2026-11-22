@@ -1,0 +1,74 @@
+{
+ "pairs": [
+  {
+   "pair": "Z-Y",
+   "better": "Z-some",
+   "advantages": [
+    {
+     "of": "Z",
+     "what": "A 64-character agent name is accepted and the ticket's assignee becomes that name; a 65-character name is refused and the assignee is left unchanged. Y's limit is 63, so a name the request allows is rejected.",
+     "ref": "D-5",
+     "matters_to": "operator"
+    }
+   ],
+   "lesser_lacks": [
+    "Change the assignee maximum from 63 characters to 64, so a 64-character name is stored and only 65 or more is refused without changing the ticket."
+   ],
+   "one_task_closes": "yes",
+   "why": "On every audited path except name length, Y and Z assign, unassign, notify, filter, audit, and persist the same way, and they share the same document, UTF-8, and test gaps. Y fails the stated 64-character rule because its limit is 63. That single constant is the gap."
+  },
+  {
+   "pair": "Z-X",
+   "better": "Z-some",
+   "advantages": [
+    {
+     "of": "Z",
+     "what": "The new behaviour is tested once, in test/assignment.test.js. X also ships test/assignment-again.test.js, a copy with renamed tests that adds no check and must be edited in step with the original.",
+     "ref": "X extras",
+     "matters_to": "maintainer"
+    },
+    {
+     "of": "Z",
+     "what": "No specification file was added. X's docs/spec.md restates the request six times and records none of the choices the code makes, so a maintainer still has to read the code for the contract.",
+     "ref": "X spec_notes",
+     "matters_to": "maintainer"
+    }
+   ],
+   "lesser_lacks": [
+    "Delete test/assignment-again.test.js.",
+    "Delete docs/spec.md."
+   ],
+   "one_task_closes": "yes",
+   "why": "X and Z run the same feature, including a correct 64-character limit, and the shared defects do not separate them. X adds a duplicate of the new tests and a specification that decides nothing. Z leaves one test file and no empty spec for the maintainer to carry."
+  },
+  {
+   "pair": "X-Y",
+   "better": "X-some",
+   "advantages": [
+    {
+     "of": "X",
+     "what": "A 64-character agent name is accepted and a 65-character name is refused with the ticket unchanged. Y refuses the 64-character name because its limit is 63.",
+     "ref": "D-5",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Y",
+     "what": "The new tests live in one file. X also ships test/assignment-again.test.js, a renamed copy that adds no check and has to stay in step on every test change.",
+     "ref": "X extras",
+     "matters_to": "maintainer"
+    },
+    {
+     "of": "Y",
+     "what": "No specification document was added. X's docs/spec.md repeats the request and does not record the behaviour the code chose.",
+     "ref": "X spec_notes",
+     "matters_to": "maintainer"
+    }
+   ],
+   "lesser_lacks": [
+    "Change the assignee maximum from 63 characters to 64, so a 64-character name is stored and only 65 or more is refused without changing the ticket."
+   ],
+   "one_task_closes": "yes",
+   "why": "X meets the stated 64-character rule and Y does not; that is the only behavioural difference between them. Y is lighter to keep because its tests are not duplicated and it adds no empty specification. A wrong limit on a stated rule outweighs that maintenance cost, and changing the constant removes it."
+  }
+ ]
+}

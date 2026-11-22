@@ -1,0 +1,91 @@
+# Inventory
+
+## Stated requirements
+
+- **S-1**: The service has no npm dependencies: package.json lists no dependencies and it runs on Node's standard library alone.
+- **S-2**: `npm start` runs src/server.js, listening on the port in the PORT environment variable.
+- **S-3**: `PUT /tickets/:id/assignee` with the JSON body `{"assignee": "<agent>"}` assigns the ticket to that agent: afterwards the ticket's `assignee` is that agent.
+- **S-4**: `PUT /tickets/:id/assignee` with the JSON body `{"assignee": null}` unassigns the ticket: afterwards its `assignee` is null.
+- **S-5**: An agent is a non-empty name: `{"assignee": ""}` is refused and the ticket's assignee does not change.
+- **S-6**: An agent is a name of at most 64 characters: a 64-character name is accepted, a 65-character name is refused and the ticket's assignee does not change.
+- **S-7**: Open and in-progress tickets can be assigned and unassigned: assigning and unassigning an `open` ticket and an `in_progress` ticket succeeds.
+- **S-8**: A ticket that is not open or in-progress (resolved or closed) cannot be assigned: the request is refused and the ticket is left unchanged.
+- **S-9**: A ticket that is not open or in-progress (resolved or closed) cannot be unassigned: the request is refused and the ticket keeps its assignee.
+- **S-10**: Assigning a ticket to the agent it already has changes nothing (the ticket, its history and the notifications stay as they were).
+- **S-11**: Every ticket shows its `assignee`: the field is present on every ticket the API returns (`GET /tickets/:id`, each item of `GET /tickets`, and the ticket returned by create, change, transition and assignment).
+- **S-12**: A ticket's `assignee` is null when it is unassigned, including a newly created ticket.
+- **S-13**: The agent a ticket is assigned to is notified that it was assigned to them.
+- **S-14**: `GET /tickets?assignee=<agent>` keeps only that agent's tickets.
+- **S-15**: `GET /tickets?assignee=` (empty value) keeps only the unassigned tickets.
+- **S-16**: A ticket must match every filter given: `assignee` combined with `status` and/or `priority` lists only the tickets matching all of them.
+- **S-17**: The command-line listing (`bin/tickets.js list`) shows each ticket's assignee.
+- **S-18**: Everything the service already does keeps working.
+- **S-19**: The service's existing tests still pass as they are (unmodified).
+- **S-20**: There are node:test tests under test/ for the new behaviour.
+- **S-21**: `npm test` runs the new tests together with the existing ones.
+
+## Conditions the request leaves unsaid
+
+- **U-1**: What a caller gets when assigning or unassigning a ticket that is not open or in-progress (resolved or closed), including a request that would change nothing there (the current agent again, or null on an unassigned ticket), and that the stored assignee stays as it was.
+  - Probe: Start the service. POST /tickets with a valid body; PUT /tickets/<id>/assignee {"assignee":"dana"}; POST /tickets/<id>/transition {"to":"in_progress"}, then {"to":"resolved"}. PUT {"assignee":"lee"}, PUT {"assignee":"dana"} and PUT {"assignee":null}; record each status and body, then GET the ticket, GET /tickets/<id>/audit and GET /admin/outbox. Transition to closed and repeat. Also create a second ticket, move it to resolved without assigning it, and PUT {"assignee":null} and {"assignee":"dana"}.
+  - Outcomes that would be acceptable: Any refusal that leaves assignee, `updated`, the audit and the outbox unchanged; 409 with {"error":{"code":"conflict",...}} and a message naming the status matches the API's convention (400, or 200 with the unchanged ticket, leave the data alone but differ from it). For a request that changes nothing on a resolved/closed ticket, either 409 or 200 with the unchanged ticket, if consistent and documented.
+- **U-2**: What the endpoint answers for a malformed request: no `assignee` field, a non-string non-null value (a number, an object, an array), extra unknown fields, a body that is not a JSON object, a body that is not valid JSON or not valid UTF-8, and an unknown ticket id.
+  - Probe: Create a ticket; PUT /tickets/<id>/assignee with each of: {}, {"assignee":5}, {"assignee":{}}, {"assignee":[]}, {"assignee":"dana","x":1}, [], an empty body, text that is not JSON, and a JSON body whose assignee string holds the invalid UTF-8 byte 0xFF; then PUT /tickets/T-9999/assignee {"assignee":"dana"}. Record statuses and error codes, and GET /tickets/<id> and its audit to confirm nothing changed.
+  - Outcomes that would be acceptable: 400 `invalid` in the error envelope for each malformed body, the ticket unchanged and no audit entry or notice (a missing field must not be treated as null); 404 `not_found` for the unknown ticket. Another error status also refuses; ignoring unknown fields is a weaker but request-compatible choice.
+- **U-3**: How an agent name is normalised and which characters it may hold: surrounding whitespace, a whitespace-only name, tabs, line breaks and other control characters, and whether the 64-character limit counts before or after trimming.
+  - Probe: Create a ticket; PUT /tickets/<id>/assignee with {"assignee":"   "}, {"assignee":"  dana  "}, {"assignee":"da\tna"}, {"assignee":"da\nna"}, and a 64-character name padded with spaces; GET the ticket after each; then GET /tickets?assignee=dana and run `node bin/tickets.js --data FILE list --raw`.
+  - Outcomes that would be acceptable: Whitespace-only refused as empty; surrounding whitespace trimmed (or kept as part of the name) consistently, with filtering using the same stored form; control characters refused with 400 like title and requester, or accepted only if the human listing still shows the name on one line; the limit applied the same way the requester's is.
+- **U-4**: Whether an assignment or unassignment is recorded in the audit log, under which action, with which actor and changes, and that a no-op records nothing.
+  - Probe: Create a ticket; PUT /tickets/<id>/assignee {"assignee":"dana"} with header X-Actor: lee; PUT the same body again; PUT {"assignee":null} with X-Actor: sam; PUT {"assignee":"dana"} with no X-Actor header; GET /tickets/<id>/audit and read the entries after creation.
+  - Outcomes that would be acceptable: One entry per real change, e.g. action `ticket.assigned`/`ticket.unassigned` or `ticket.updated`, actor from X-Actor (`system` without it), changes {"assignee":{"from":null,"to":"dana"}}; no entry for the repeated assignment. Omitting audit entries satisfies the request's wording but not the service's convention.
+- **U-5**: Whether an assignment or unassignment moves the ticket's `updated` time, and whether a no-op leaves it as it was.
+  - Probe: Create a ticket and note `updated`; wait a second; PUT {"assignee":"dana"} and read `updated`; PUT {"assignee":"dana"} again and read it; PUT {"assignee":null} and read it.
+  - Outcomes that would be acceptable: Assignment and unassignment set `updated` to the time of the change; the repeated assignment leaves it unchanged. Not moving it on assignment is a defensible alternative if documented.
+- **U-6**: Whether unassigning an open or in-progress ticket that is already unassigned (including a repeated unassign) is a no-op like re-assigning the same agent.
+  - Probe: Start with WORKER_INTERVAL_MS=0. POST /tickets, then PUT {"assignee":null} twice; GET the ticket, GET /tickets/<id>/audit and GET /admin/outbox and compare with the ticket right after creation. Then assign "dana", unassign, unassign again and compare the same three.
+  - Outcomes that would be acceptable: A successful response showing assignee null, with the same `updated`, no new audit entry and no notification. Recording an audit entry for it is also acceptable if documented.
+- **U-7**: Where the assignment notification goes and whether it can be delivered: the agent is a name, not an address; each notification type needs wording; what the message says; and whether the PUT waits for delivery.
+  - Probe: Start with NOTIFY_FILE=/tmp/n.jsonl and WORKER_INTERVAL_MS=100; create a ticket; PUT /tickets/<id>/assignee {"assignee":"dana"}; wait a second; read the last line of /tmp/n.jsonl and GET /admin/outbox (pending, sent and dead).
+  - Outcomes that would be acceptable: A sent notification of an assignment type (e.g. `ticket.assigned`) with `to` = the agent's name (or an address derived from it, if documented), a subject and body naming the ticket id and title, and no dead events; delivery through the outbox after the PUT returns, or sending inside the PUT, both fit.
+- **U-8**: Whether every assignment notifies its agent when assignments of one ticket follow each other before the worker delivers, given that the outbox drops an enqueue whose key is still pending (the default key is type + ticket).
+  - Probe: Start with WORKER_INTERVAL_MS=0; create a ticket; assign it to dana, then to lee, then unassign, then assign dana again; GET /admin/outbox and read the pending events' `to` and `key`. Then let the worker deliver them, assign lee again and check that a new pending event for lee appears.
+  - Outcomes that would be acceptable: lee has a pending notification; dana either one or two. Keys that include the agent, or one notification per assignment, are both fine; losing the current assignee's notification is not.
+- **U-11**: Whether `assignee` is kept in the data file across restarts, whether a data file written before this change (tickets with no `assignee` field) still loads, and what an invalid assignee in the file does at start.
+  - Probe: Start with DATA_FILE=/tmp/t.json; create and assign a ticket; stop (SIGTERM) and start again; GET the ticket. Separately, run the previous version with DATA_FILE, create tickets, stop it, start the new version on the same file and GET /tickets; also hand-edit a ticket's assignee to 5 or a 65-character name and start.
+  - Outcomes that would be acceptable: Assignee survives the restart; old files load with assignee null (no format version change, or a version bump that still reads version 1); an invalid assignee in the file is refused at start with a message naming the record.
+- **U-12**: What happens to the assignee when a ticket is moved to in_progress, resolved, closed or reopened, and whether the assignee filter still returns it afterwards.
+  - Probe: Create a ticket; assign dana; transition to in_progress, then resolved, GETting the ticket and GET /tickets?assignee=dana and /tickets?assignee= after each; transition to open (reopen) and read again, then PUT {"assignee":"lee"}; on another ticket go through resolved to closed and read again.
+  - Outcomes that would be acceptable: Keeping the assignee through every transition (filters combine with status to find active work) is fine; clearing it when the ticket leaves open/in-progress is also defensible if documented and audited, with those tickets then in the empty `assignee=` filter.
+- **U-13**: How the `assignee` filter value matches: exact and case-sensitive or not, whether it is trimmed, and what a value that cannot be an accepted name (longer than 64 characters, malformed) or a repeated `assignee` parameter answers.
+  - Probe: Assign tickets to dana; GET /tickets?assignee=Dana, ?assignee=%20dana, ?assignee=<65 characters>, ?assignee=dana&assignee=lee; read statuses and items.
+  - Outcomes that would be acceptable: Exact match on the stored (normalised) name, or a trimmed or case-insensitive match if assignment stores the same form; an over-long value either 400 `invalid` or an empty page; a repeated parameter treated as the existing filters treat one (e.g. the first value), or refused.
+- **U-14**: Whether a listing filtered by `assignee` still pages correctly through its cursor.
+  - Probe: Assign more tickets to dana than one page holds, with other tickets in between; GET /tickets?assignee=dana&limit=2, then follow each `next` cursor with the same filter until `next` is null; do the same with `assignee=`.
+  - Outcomes that would be acceptable: Every matching ticket exactly once across the pages, in id order, and no other ticket.
+- **U-15**: Whether `status` and `priority` given together without `assignee` list the intersection (as docs/api.md describes) or keep what the service does today.
+  - Probe: Create an open/low ticket, an open/urgent ticket and a resolved/urgent ticket; GET /tickets?status=open&priority=urgent and compare with the same query on the previous version.
+  - Outcomes that would be acceptable: Only the open/urgent ticket (every filter applied, as the request and docs say); keeping the previous version's result is also arguable under 'everything keeps working' if documented.
+- **U-16**: Whether `list --raw` gains an assignee column, where, and how an unassigned ticket appears in it.
+  - Probe: With a data file holding tickets assigned (one to a name with a space, such as "ada li") and unassigned, run `node bin/tickets.js --data FILE list --raw` and count tab-separated fields per line; run `node scripts/weekly-report.js --data FILE --json` and compare its counts with the previous version on the same file.
+  - Outcomes that would be acceptable: Raw output unchanged, or the assignee appended as a fifth column after title with an empty field (or a fixed marker) for unassigned; the weekly report's counts identical either way.
+- **U-17**: How the `list` table shows the assignee of an unassigned ticket.
+  - Probe: With a data file holding an assigned and an unassigned ticket, run `node bin/tickets.js --data FILE list`.
+  - Outcomes that would be acceptable: An assignee column with the name for assigned tickets and a blank, '-' or the word null for unassigned, as long as the two are distinguishable.
+- **U-18**: Whether the command-line ticket detail (`show`) prints the assignee.
+  - Probe: With a data file holding an assigned and an unassigned ticket, run `node bin/tickets.js --data FILE show <id>` for each.
+  - Outcomes that would be acceptable: Printing the assignee (and an explicit unassigned state) is welcome; omitting it is compatible with the request.
+- **U-20**: Whether `POST /tickets` and `PATCH /tickets/:id` accept an `assignee` field.
+  - Probe: POST /tickets with a valid body plus "assignee":"dana"; PATCH /tickets/<id> {"assignee":"dana"}; read statuses and the ticket.
+  - Outcomes that would be acceptable: Both refuse it as an unknown field (400), or accept it with exactly the same validation, state rule, audit and notification as the PUT endpoint.
+- **U-21**: What a successful `PUT /tickets/:id/assignee` answers.
+  - Probe: Create a ticket; PUT /tickets/<id>/assignee {"assignee":"dana"}; record status, content-type and body and compare with GET /tickets/<id>; repeat the same PUT and compare; PUT {"assignee":null} and record the same.
+  - Outcomes that would be acceptable: 200 with the whole ticket including `assignee` (also for the no-op); 204 or another success status with an empty body is acceptable if a following GET shows the assignment; a ticket body without `assignee` is not.
+- **U-22**: Whether the documentation and release records describe the change: docs/api.md (endpoint, ticket field, filter, audit action, notification), README command-line columns, a CHANGELOG.md section with a version bump in package.json, and a decision record if a format or rule changed.
+  - Probe: Read docs/api.md, README.md, CHANGELOG.md, package.json `version` and docs/decisions/ in the delivered tree and look for the assignee endpoint, field, filter and notification.
+  - Outcomes that would be acceptable: api.md documents all of it; a new changelog section and version; a decision record optional unless the data file format or a convention changed.
+- **U-26**: The command-line ticket detail (`show`) stays read-only.
+  - Probe: Copy a data file holding assigned and unassigned tickets; run `node bin/tickets.js --data FILE show <id>` and then `DATA_FILE=FILE node bin/tickets.js show <id>`; compare the file with the copy byte for byte after each.
+  - Outcomes that would be acceptable: The file is byte-for-byte unchanged after each command.
+- **U-27**: The command-line ticket detail keeps showing the ticket's history in oldest-first order, including assignment changes.
+  - Probe: With DATA_FILE set, create a ticket, assign it to dana with X-Actor: lee and then to sam with X-Actor: kim; stop the service; run `node bin/tickets.js --data FILE show <id>` and compare its history with GET /tickets/<id>/audit.
+  - Outcomes that would be acceptable: The existing history lines and both assignment entries appear oldest first, in the same order as the audit API, and the current assignee is visible in the detail.

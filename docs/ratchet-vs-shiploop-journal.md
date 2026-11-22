@@ -584,3 +584,51 @@ C3; Q5 reads "level on D4 everywhere; counting marks in the specification, F and
 
 Models: listers, raters and judges are Opus (default effort) and Grok 4.7 at xhigh (the `ask` runner's newest
 stable Grok); auditors and the cross-probe are Opus.
+
+### The instrument check, round 1 (2026-11-22 06:15 to 06:50): result, and amendment 2
+
+Status: firm for what it measured (four products, one auditor each). Evidence: `evidence/deep/calibration/` (the
+key, the four audits, the cross-probe, the single reader's `told.json`, both verdicts, `deep.md`) and
+`evidence/deep/tickets/` (both listers, the merge, both ratings, the inventory).
+
+**The ticket inventory.** Opus listed 18 stated and 18 unstated items, Grok 4.7 20 and 11. Merged: 21 stated, 28
+unstated (22 raised by an independent lister, 6 only by an arm). Both raters kept 19 of the 22 and 2 of the 6
+(Q8, fewer than half of arm-only items kept: right on this case). The two raters disagreed on keep-or-drop for 2 of
+28 items.
+
+**The draws:** stated `name-limit-off-by-one`, unstated `raw-column-inserted`.
+
+| Bar | Result |
+|---|---|
+| C1, reference and padded reference: every stated item `yes` | Met: 21 of 21 each |
+| C1: no reproducing high or medium defect | Met: 0 each (5 low ones, the same 5, present on all four products) |
+| C1: no reading D1 to D5 ahead for either | Met: D1 21 and 21, D2 5 and 5 of 6 (the same item unproved on all four), D3 18 and 18 of 19, D4 2 and 2 of 19 (single reader), D5 0 and 0 |
+| C1: both judges answer `same` | **Missed as written.** Both judges, each with its own lettering, rate the clean reference somewhat better than the padded one, for one reason: the duplicated test file and the specification that "decides nothing" are cost a maintainer carries. |
+| C2, the stated defect: item not `yes`, or a reproducing defect names it | Met: S-6 `wrong` by the auditor and by the re-run; defect D-5, medium, present only there |
+| C2: the reference is the better feature of the pair; both judges prefer it | Met: by the gate (one stated item not built), and both judges |
+| C3, the unsaid defect: reported | Met: U-16 `poor`, S-18 `partly`, defect D-6 graded high (the weekly report counts every status as 0), present only there |
+
+**My decision on the missed clause:** the instrument is not revised for it. The clause was mine and it was wrong:
+the padded copy is a larger product with nothing added, and a judge who calls it somewhat worse is doing what the
+clause exists to protect (size must not earn credit). The pair still reads "no difference shown" (one reading, D6,
+is not a lead of two). The owner can overrule. For the real cases this means D6 can go against a product for
+carrying material that buys nothing; that is intended.
+
+**What the check exposed beyond its bars, and amendment 2 (made before any real product was audited):**
+
+- **`told` by each product's own auditor is noise.** On four products with identical delivered documents the
+  auditors answered `yes` on 1, 0, 3 and 2 of the 19 independent items, more than D4's margin. *Change:* one reader
+  (Opus) answers `told` for every product of a case, with one standard and a quoted line (`told-packet`, written
+  by a fix session on Opus at xhigh, the owner's instruction). On the same four products it answers 2, 2, 2 and 2.
+- **A test's strength by reading is noise.** Identical test files were graded `strong` on 14, 11 and 14 of 21
+  stated items, and one judge credited a product with "slightly stronger tests" on that basis. *Change:* the
+  judges' packets no longer carry the by-reading grade, only what was proved by breaking the behaviour. D2 was
+  already the proved sample; it came out identical on all four (5 of 6, the same item).
+- **What held without change:** `built` and `handling` (three items differed between audits, all three the planted
+  defects, each confirmed by the re-run); the cross-probe (15 reported defects merged to 7, five low ones found
+  present on all four products, each planted one on its own product only).
+
+Because the instrument changed, the check is run again on two newly drawn defects (round 2: stated
+`notify-requester`, unsaid `actor-ignored`; the reference's and the padded copy's audits are reused, the
+cross-probe, the reader and the judges run afresh). The audit instructions did not change, so the real ticket
+audits were started in parallel with round 2.

@@ -1,0 +1,603 @@
+{
+ "code": "c636a23",
+ "ran": {
+  "tests_command": "npm test (node --test) in work/c636a23",
+  "tests_result": "239 tests, 239 pass, 0 fail (52 suites); the 5 new tests are in test/assignment.test.js; all other test files byte-identical to base",
+  "started_with": "PORT=52917 DATA_FILE=<work>/probe/t.json NOTIFY_FILE=<work>/probe/n.jsonl WORKER_INTERVAL_MS=100 node src/server.js (also `PORT=47312 npm start`, and runs with WORKER_INTERVAL_MS=0); CLI via node bin/tickets.js --data FILE"
+ },
+ "stated": [
+  {
+   "id": "S-1",
+   "built": "yes",
+   "observed": true,
+   "evidence": "package.json has no dependencies/devDependencies keys; grep of require() in src/ and bin/ shows only relative paths and node: modules; service started and answered with no node_modules present",
+   "spec": "none",
+   "test": "none",
+   "test_name": "",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-2",
+   "built": "yes",
+   "observed": true,
+   "evidence": "`PORT=47312 npm start` -> npm ran `node src/server.js`, log \"tickets listening on 47312\"; GET /health -> 200 {\"status\":\"ok\"}",
+   "spec": "none",
+   "test": "none",
+   "test_name": "",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-3",
+   "built": "yes",
+   "observed": true,
+   "evidence": "PUT /tickets/T-0001/assignee {\"assignee\":\"dana\"} -> 200 ticket with \"assignee\":\"dana\"; GET /tickets/T-0001 -> assignee \"dana\"",
+   "spec": "none",
+   "test": "strong",
+   "test_name": "a ticket is assigned, reassigned and unassigned, each change audited with before and after",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-4",
+   "built": "yes",
+   "observed": true,
+   "evidence": "PUT {\"assignee\":null} on T-0001 (dana) -> 200 with \"assignee\":null; GET shows null",
+   "spec": "none",
+   "test": "strong",
+   "test_name": "a ticket is assigned, reassigned and unassigned, each change audited with before and after",
+   "proved": "fails",
+   "proved_by": "src/tickets/validate.js assignment(): made null throw InvalidError instead of returning null; failing test: \"a ticket is assigned, reassigned and unassigned, each change audited with before and after\"; restored, suite back to 239/239"
+  },
+  {
+   "id": "S-5",
+   "built": "yes",
+   "observed": true,
+   "evidence": "PUT {\"assignee\":\"\"} on a ticket assigned to dana -> 400 {\"error\":{\"code\":\"invalid\",\"message\":\"assignee must not be empty\"}}; GET still dana, updated unchanged",
+   "spec": "none",
+   "test": "strong",
+   "test_name": "only open and in-progress tickets can be assigned, and errors use the envelope",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-6",
+   "built": "yes",
+   "observed": true,
+   "evidence": "PUT with 64 \"a\" -> 200 assignee = 64 a; PUT with 65 \"b\" -> 400 invalid \"assignee must be at most 64 characters\"; GET still the 64-a name",
+   "spec": "none",
+   "test": "weak",
+   "test_name": "only open and in-progress tickets can be assigned, and errors use the envelope (65 refused only; 64 accepted not tested)",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-7",
+   "built": "yes",
+   "observed": true,
+   "evidence": "open T-0001: assign dana 200, unassign 200; in_progress T-0002: assign lee 200, unassign 200 (assignee null), assign dana 200",
+   "spec": "none",
+   "test": "weak",
+   "test_name": "a ticket is assigned, reassigned and unassigned... (open only; in_progress never assigned in tests)",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-8",
+   "built": "yes",
+   "observed": true,
+   "evidence": "T-0002 resolved (dana): PUT {\"assignee\":\"lee\"} -> 409 conflict \"ticket T-0002 is resolved: only open and in-progress tickets can be assigned\"; closed: same 409 \"is closed\"; ticket, audit and outbox byte-identical before/after (cmp)",
+   "spec": "none",
+   "test": "strong",
+   "test_name": "only open and in-progress tickets can be assigned, and errors use the envelope",
+   "proved": "fails",
+   "proved_by": "src/store.js assign(): guard changed to `if (!isActive(ticket.status) && assignee === null)`; failing test: \"only open and in-progress tickets can be assigned, and errors use the envelope\"; restored, 239/239"
+  },
+  {
+   "id": "S-9",
+   "built": "yes",
+   "observed": true,
+   "evidence": "resolved T-0002 (dana): PUT {\"assignee\":null} -> 409 conflict; closed: 409; GET still assignee dana, audit and outbox unchanged",
+   "spec": "none",
+   "test": "none",
+   "test_name": "",
+   "proved": "passes",
+   "proved_by": "src/store.js assign(): guard changed to `if (!isActive(ticket.status) && assignee !== null)` (unassigning a resolved/closed ticket allowed); suite still 239/239 pass; restored, 239/239"
+  },
+  {
+   "id": "S-10",
+   "built": "yes",
+   "observed": true,
+   "evidence": "T-0006: assign dana (updated 14:27:34.649), PUT dana again with X-Actor lee -> 200 same ticket, updated unchanged; audit had no entry for it; outbox got no extra ticket.assigned",
+   "spec": "none",
+   "test": "strong",
+   "test_name": "assigning the agent a ticket already has changes nothing",
+   "proved": "fails",
+   "proved_by": "src/store.js assign(): removed `if (ticket.assignee === assignee) return { ...ticket };`; failing test: \"assigning the agent a ticket already has changes nothing\"; restored, 239/239"
+  },
+  {
+   "id": "S-11",
+   "built": "yes",
+   "observed": true,
+   "evidence": "assignee present on POST /tickets (201, null), GET /tickets/:id, each item of GET /tickets, PATCH response, transition response and PUT response",
+   "spec": "none",
+   "test": "weak",
+   "test_name": "a ticket is assigned... (checks create and PUT bodies only)",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-12",
+   "built": "yes",
+   "observed": true,
+   "evidence": "POST /tickets -> \"assignee\":null; unassigned tickets show null in GET and list",
+   "spec": "none",
+   "test": "strong",
+   "test_name": "a ticket is assigned, reassigned and unassigned... (asserts ticket.assignee === null after create)",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-13",
+   "built": "yes",
+   "observed": true,
+   "evidence": "NOTIFY_FILE line after assigning T-0003 to dana: {\"type\":\"ticket.assigned\",\"to\":\"dana\",\"subject\":\"[T-0003] Assigned to you\",\"body\":\"Ticket T-0003 \\\"Notify me\\\" is now assigned to you.\"}; outbox sent, dead 0",
+   "spec": "none",
+   "test": "strong",
+   "test_name": "each new agent is notified through the outbox",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-14",
+   "built": "yes",
+   "observed": true,
+   "evidence": "GET /tickets?assignee=dana -> T-0002, T-0005, T-0006 only (all dana); ?assignee=lee -> none before lee assignment",
+   "spec": "none",
+   "test": "strong",
+   "test_name": "the assignee filter keeps an agent or the unassigned, and every filter must match",
+   "proved": "fails",
+   "proved_by": "src/tickets/query.js: `filters.assignee = assignee === '' ? null : undefined` (named agent ignored); failing test: \"the assignee filter keeps an agent or the unassigned, and every filter must match\"; restored, 239/239"
+  },
+  {
+   "id": "S-15",
+   "built": "yes",
+   "observed": true,
+   "evidence": "GET /tickets?assignee= -> only T-0003 (assignee null); later with bulk tickets -> T-0003, T-0009, T-0011, T-0013 all null",
+   "spec": "none",
+   "test": "strong",
+   "test_name": "the assignee filter keeps an agent or the unassigned, and every filter must match",
+   "proved": "fails",
+   "proved_by": "src/tickets/query.js: `filters.assignee = assignee === '' ? undefined : assignee` (empty value ignored); failing test: \"the assignee filter keeps an agent or the unassigned, and every filter must match\"; restored, 239/239"
+  },
+  {
+   "id": "S-16",
+   "built": "yes",
+   "observed": true,
+   "evidence": "?assignee=dana&status=open -> T-0005,T-0006 (not closed T-0002); &priority=urgent -> T-0005; ?assignee=&status=resolved -> T-0003",
+   "spec": "none",
+   "test": "strong",
+   "test_name": "the assignee filter keeps an agent or the unassigned, and every filter must match",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-17",
+   "built": "yes",
+   "observed": true,
+   "evidence": "`node bin/tickets.js --data probe/t.json list` prints an ASSIGNEE column: names for assigned tickets, \"-\" for unassigned",
+   "spec": "none",
+   "test": "none",
+   "test_name": "",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-18",
+   "built": "partly",
+   "observed": true,
+   "evidence": "API create/patch/transition/filters/pagination/audit/outbox/404 routes behave as before, but `list --raw` now has assignee as column 2, so `node scripts/weekly-report.js --data probe/t.json --json` -> {\"total\":14,\"byStatus\":{\"open\":0,...all 0},\"byPriority\":{all 0}} while the base report on the same file -> open 12, resolved 1, closed 1, normal 12, high 1, urgent 1",
+   "spec": "none",
+   "test": "weak",
+   "test_name": "the unchanged existing suite (no test covers list --raw or the weekly report)",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-19",
+   "built": "yes",
+   "observed": true,
+   "evidence": "every test file except the new test/assignment.test.js is byte-identical to base (cmp); npm test 239/239 pass",
+   "spec": "none",
+   "test": "strong",
+   "test_name": "the existing suite itself",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-20",
+   "built": "yes",
+   "observed": true,
+   "evidence": "test/assignment.test.js: 5 node:test tests through the HTTP API (assign/reassign/unassign audit, state and validation refusals, no-op, notification, filters)",
+   "spec": "none",
+   "test": "strong",
+   "test_name": "test/assignment.test.js",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-21",
+   "built": "yes",
+   "observed": true,
+   "evidence": "`npm test` (node --test) ran 239 tests including the assignment tests, all passing",
+   "spec": "none",
+   "test": "strong",
+   "test_name": "test/assignment.test.js",
+   "proved": "not-asked",
+   "proved_by": ""
+  }
+ ],
+ "unstated": [
+  {
+   "id": "U-1",
+   "behaviour": "Assign, same-agent and null on resolved or closed tickets all answer 409 conflict naming the status (\"ticket T-0002 is resolved: only open and in-progress tickets can be assigned\"); unassigned resolved ticket: null and dana both 409; ticket, updated, audit and outbox unchanged",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "probe as given on T-0002 (dana, resolved then closed) and T-0003 (unassigned, resolved); GET ticket/audit/outbox before and after compared with cmp: identical",
+   "spec": "none",
+   "told": "no",
+   "told_where": "",
+   "test": "weak"
+  },
+  {
+   "id": "U-2",
+   "behaviour": "{} -> 400 \"assignee is required\"; 5, {}, [] -> 400 \"assignee must be a string\"; extra field -> 400 \"unknown field: x\"; [] and empty body -> 400 \"request body must be a JSON object\"; not JSON -> 400 \"not valid JSON\"; T-9999 -> 404 not_found. A body with byte 0xFF inside the name is accepted (200) and stored as \"le\\uFFFDe\"",
+   "handling": "acceptable",
+   "observed": true,
+   "evidence": "probe as given; all malformed bodies refused with 400 invalid and the ticket unchanged, except the invalid-UTF-8 body, which assigned \"le\\uFFFDe\" and notified that name",
+   "spec": "none",
+   "told": "no",
+   "told_where": "",
+   "test": "weak"
+  },
+  {
+   "id": "U-3",
+   "behaviour": "Whitespace-only refused (\"must not be empty\"); surrounding whitespace trimmed (\"  dana  \" -> \"dana\"); tab and newline refused (\"must be a single line of text\"); 64 chars padded with spaces accepted (limit counted after trimming, as for requester); filter ?assignee=dana finds the trimmed name",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "PUT each body on T-0005 and GET after; GET /tickets?assignee=dana returned T-0005",
+   "spec": "none",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  },
+  {
+   "id": "U-4",
+   "behaviour": "One audit entry per real change, action \"ticket.assigned\" for both assignment and unassignment, actor from X-Actor or \"system\", changes {\"assignee\":{\"from\":null,\"to\":\"dana\"}} / {\"from\":\"dana\",\"to\":null}; the repeated assignment records nothing",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "T-0006 audit: seq25 lee null->dana, seq26 sam dana->null, seq27 system null->dana; no entry for the repeat",
+   "spec": "none",
+   "told": "no",
+   "told_where": "",
+   "test": "strong"
+  },
+  {
+   "id": "U-5",
+   "behaviour": "updated moves on assignment and unassignment and stays on the no-op",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "T-0006 created 14:27:33.531; after 1.1 s assign -> updated 14:27:34.649; repeat after 1.1 s -> 14:27:34.649; unassign -> 14:27:35.775",
+   "spec": "none",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  },
+  {
+   "id": "U-6",
+   "behaviour": "Unassigning an unassigned ticket (twice, and after assign+unassign) answers 200 with assignee null and changes nothing",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "WORKER_INTERVAL_MS=0: GET ticket + audit + outbox identical (cmp) after the two nulls, and after the extra null following assign/unassign",
+   "spec": "none",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  },
+  {
+   "id": "U-7",
+   "behaviour": "Outbox event type ticket.assigned, to = the agent name as given, subject \"[T-0003] Assigned to you\", body naming id and title; delivered by the worker after the PUT returns; no dead events",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "NOTIFY_FILE=probe/n7.jsonl WORKER_INTERVAL_MS=100: last line {\"type\":\"ticket.assigned\",\"to\":\"dana\",\"subject\":\"[T-0003] Assigned to you\",...}; outbox pending 0 sent 8 dead 0",
+   "spec": "none",
+   "told": "no",
+   "told_where": "",
+   "test": "weak"
+  },
+  {
+   "id": "U-8",
+   "behaviour": "Outbox key is ticket.assigned:<ticket>:<agent>, so each different agent gets a pending notice; a repeat assignment of the same agent while its notice is still pending is collapsed into it",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "WORKER_INTERVAL_MS=0, T-0002: dana, lee, null, dana -> pending dana (key ticket.assigned:T-0002:dana) and lee (key ...:lee); after the worker delivered, assigning lee again -> new pending lee",
+   "spec": "none",
+   "told": "no",
+   "told_where": "",
+   "test": "weak"
+  },
+  {
+   "id": "U-11",
+   "behaviour": "Assignee survives restart; a file written by the base version (no assignee fields, version 1) loads with assignee null; assignee 5 in the file is refused at start (\"tickets[0].assignee is not a non-empty string\"); a 65-character or tab-containing assignee in the file is accepted at start",
+   "handling": "acceptable",
+   "observed": true,
+   "evidence": "SIGTERM and restart on probe/t.json: T-0006 still dana; base server wrote probe/old.json, new server served it with assignee null; bad5.json -> \"cannot start\"; bad65.json and badtab.json -> server listening",
+   "spec": "none",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  },
+  {
+   "id": "U-12",
+   "behaviour": "Assignee kept through in_progress, resolved and reopen (and closed on another ticket); ?assignee=zed still returns it after each, ?assignee= does not; after reopen PUT lee succeeds",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "T-0007 assigned zed, transitioned in_progress/resolved/open with filters read after each; T-0002 closed still dana",
+   "spec": "none",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  },
+  {
+   "id": "U-13",
+   "behaviour": "Exact, case-sensitive match on the stored trimmed name; filter value not trimmed; ?assignee=Dana -> none; ?assignee=%20dana -> none; 65 characters -> 200 empty page; repeated parameter uses the first value (dana&lee -> dana's tickets, lee&dana -> none), as status and priority do",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "GET each query and listed ids",
+   "spec": "none",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  },
+  {
+   "id": "U-14",
+   "behaviour": "Cursor paging with the assignee filter returns every match once, in id order",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "?assignee=dana&limit=2 pages: T-0002,T-0005 | T-0006,T-0008 | T-0010,T-0012 next=null; ?assignee=&limit=2: T-0003,T-0009 | T-0011,T-0013 next=null",
+   "spec": "none",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  },
+  {
+   "id": "U-15",
+   "behaviour": "status and priority together now list the intersection; the base version listed the union",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "base server: ?status=open&priority=urgent -> T-0001(open/low), T-0002(open/urgent), T-0003(resolved/urgent); new server on the same file -> T-0002 only",
+   "spec": "none",
+   "told": "yes",
+   "told_where": "docs/api.md, List tickets: \"Filters combine: a ticket is listed only when it matches every filter given\"",
+   "test": "strong"
+  },
+  {
+   "id": "U-16",
+   "behaviour": "`list --raw` gains assignee as the second column (id, assignee, status, priority, title), empty field for unassigned; this shifts status and priority, so scripts/weekly-report.js counts every status and priority as 0",
+   "handling": "poor",
+   "observed": true,
+   "evidence": "`node bin/tickets.js --data probe/t.json list --raw`: 5 tab fields on all 14 lines, e.g. \"T-0003\\t\\tresolved\\tnormal\\tMouse\"; weekly report --json all zeros vs base report on the same file open 12, resolved 1, closed 1, normal 12, high 1, urgent 1",
+   "spec": "none",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  },
+  {
+   "id": "U-17",
+   "behaviour": "ASSIGNEE column shows the name, or \"-\" when unassigned; an agent actually named \"-\" (accepted by the API) prints the same as unassigned",
+   "handling": "acceptable",
+   "observed": true,
+   "evidence": "`node bin/tickets.js --data probe/t.json list`: T-0003 \"-\", T-0005 \"dana\"; probe/ex.json: T-0002 assigned \"-\" shows \"-\"",
+   "spec": "none",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  },
+  {
+   "id": "U-18",
+   "behaviour": "`show` does not print the assignee as a field; assignment changes appear only in the history lines",
+   "handling": "acceptable",
+   "observed": true,
+   "evidence": "`node bin/tickets.js --data probe/t.json show T-0014`: fields status, priority, requester, created, updated; no assignee line",
+   "spec": "none",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  },
+  {
+   "id": "U-20",
+   "behaviour": "POST /tickets and PATCH /tickets/:id with assignee -> 400 invalid \"unknown field: assignee\"",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "POST {\"title\":\"X\",\"requester\":\"y@example.com\",\"assignee\":\"dana\"} -> 400; PATCH /tickets/T-0001 {\"assignee\":\"dana\"} -> 400",
+   "spec": "none",
+   "told": "yes",
+   "told_where": "docs/api.md conventions: \"Unknown fields in a request body are refused (400)\"",
+   "test": "none"
+  },
+  {
+   "id": "U-21",
+   "behaviour": "200, application/json; charset=utf-8, the whole ticket with assignee, equal to the following GET; the no-op answers 200 with the unchanged ticket; unassign 200 with assignee null",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "curl -i PUT {\"assignee\":\"dana\"} -> 200 content-type application/json; charset=utf-8, body = GET body; repeat -> same body; null -> assignee null",
+   "spec": "none",
+   "told": "no",
+   "told_where": "",
+   "test": "weak"
+  },
+  {
+   "id": "U-22",
+   "behaviour": "No document changed: README.md, docs/api.md, docs/operations.md, CHANGELOG.md and docs/decisions/ are identical to base; package.json version still 1.4.0; README still says list --raw columns are id, status, priority, title and must keep their positions, which is now false",
+   "handling": "poor",
+   "observed": true,
+   "evidence": "diff -rq base product: only src files and the new test differ; grep -i assign in README/api.md/CHANGELOG: nothing",
+   "spec": "none",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  },
+  {
+   "id": "U-26",
+   "behaviour": "`show` with --data and with DATA_FILE leaves the data file byte-identical",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "cp probe/t.json probe/t-copy.json; show T-0014 --data, show T-0003 DATA_FILE=..., list --raw; cmp after each: identical",
+   "spec": "none",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  },
+  {
+   "id": "U-27",
+   "behaviour": "show history lists entries oldest first in the audit API's order, including \"lee ticket.assigned assignee dana\" and \"kim ticket.assigned assignee dana -> sam\"; the current assignee is visible only from the last history line, not as a field",
+   "handling": "acceptable",
+   "observed": true,
+   "evidence": "T-0014 created, assigned dana (X-Actor lee), then sam (X-Actor kim); server stopped; `show T-0014` history matched GET /tickets/T-0014/audit order",
+   "spec": "none",
+   "told": "no",
+   "told_where": "",
+   "test": "none"
+  }
+ ],
+ "explored": [
+  {
+   "probe": "PUT {\"assignee\":\"José\"} then GET /tickets?assignee=Jos%C3%A9",
+   "came_back": "200 assignee \"José\"; filter returned T-0001",
+   "finding": "none"
+  },
+  {
+   "probe": "PUT an assignee of 33 emoji (33 characters, 66 UTF-16 units), and of 32 emoji",
+   "came_back": "33 -> 400 \"assignee must be at most 64 characters\"; 32 -> 200",
+   "finding": "defect"
+  },
+  {
+   "probe": "PUT {\"assignee\":\"-\"} then `list`",
+   "came_back": "200; the list table prints \"-\", the same as for an unassigned ticket",
+   "finding": "defect"
+  },
+  {
+   "probe": "PUT {\"assignee\":\"null\"} then GET /tickets?assignee=null",
+   "came_back": "200 assignee \"null\" (string); filter returns that ticket only, not the unassigned ones",
+   "finding": "none"
+  },
+  {
+   "probe": "PUT {\"assignee\":\"kim\"} with a 65-character X-Actor",
+   "came_back": "400 \"X-Actor must be at most 64 characters\"; ticket unchanged",
+   "finding": "none"
+  },
+  {
+   "probe": "POST and GET on /tickets/T-0001/assignee",
+   "came_back": "404 \"does not answer POST; it answers PUT\" (and GET likewise)",
+   "finding": "none"
+  },
+  {
+   "probe": "GET /tickets?assignee=%20 (a space only)",
+   "came_back": "200 empty page (not the unassigned tickets)",
+   "finding": "none"
+  },
+  {
+   "probe": "GET /tickets?assignee=dana&cursor=zzz",
+   "came_back": "400 \"cursor is not one this service issued\"",
+   "finding": "none"
+  },
+  {
+   "probe": "PUT /tickets/t-0001/assignee (lowercase id)",
+   "came_back": "404 not_found \"ticket t-0001 not found\"",
+   "finding": "none"
+  },
+  {
+   "probe": "PATCH /tickets/T-0001 {\"title\":\"E1 renamed\"} on an assigned ticket",
+   "came_back": "200, assignee kept \"José\"",
+   "finding": "none"
+  },
+  {
+   "probe": "node scripts/weekly-report.js --data probe/t.json (human and --json) vs base script on the same file",
+   "came_back": "every status and priority count 0 (total 14) vs base open 12, resolved 1, closed 1, normal 12, high 1, urgent 1",
+   "finding": "defect"
+  },
+  {
+   "probe": "Data file with a ticket assignee of 65 characters, or containing a tab, then start the server",
+   "came_back": "server starts and serves the file (only a non-string or empty assignee is refused)",
+   "finding": "defect"
+  }
+ ],
+ "defects": [
+  {
+   "title": "list --raw inserts the assignee as column 2, so the weekly report counts every status and priority as 0",
+   "severity": "high",
+   "repro": "Start the service with DATA_FILE=FILE; POST /tickets twice with valid bodies; PUT /tickets/T-0001/assignee {\"assignee\":\"dana\"}; stop it; run `node bin/tickets.js --data FILE list --raw` and `node scripts/weekly-report.js --data FILE --json`.",
+   "observed": "raw lines are \"T-0001\\tdana\\topen\\tnormal\\t<title>\" and \"T-0002\\t\\topen\\tnormal\\t<title>\"; report {\"total\":2,\"byStatus\":{\"open\":0,\"in_progress\":0,\"resolved\":0,\"closed\":0},\"byPriority\":{\"low\":0,\"normal\":0,\"high\":0,\"urgent\":0}}",
+   "expected": "raw columns 2 and 3 stay status and priority (README: the report reads them by position, \"so they must keep their positions\"); report open 2, normal 2 as before the change",
+   "basis": "stated",
+   "item": "S-18"
+  },
+  {
+   "title": "Documentation not updated; README now misstates the list --raw columns",
+   "severity": "low",
+   "repro": "Read README.md \"Command line\", docs/api.md and CHANGELOG.md in the delivered tree; compare with `node bin/tickets.js --data FILE list --raw`.",
+   "observed": "no mention of PUT /tickets/:id/assignee, the assignee field, filter, audit action or notification; no changelog section; version 1.4.0; README says raw columns are id, status, priority, title",
+   "expected": "api.md documents the endpoint, field, filter, audit and notification; README columns match the output; a changelog section and version bump",
+   "basis": "unstated",
+   "item": "U-22"
+  },
+  {
+   "title": "Agent name limit counts UTF-16 code units, not characters",
+   "severity": "low",
+   "repro": "POST /tickets; PUT /tickets/T-0001/assignee with an assignee of 33 copies of U+1F600.",
+   "observed": "400 invalid \"assignee must be at most 64 characters\" for a 33-character name",
+   "expected": "accepted: a name of at most 64 characters (the same counting already applies to requester)",
+   "basis": "other",
+   "item": ""
+  },
+  {
+   "title": "Invalid UTF-8 in the assignee is accepted and stored altered",
+   "severity": "low",
+   "repro": "POST /tickets; printf '{\"assignee\":\"le\\xffe\"}' | curl -X PUT -H 'content-type: application/json' --data-binary @- /tickets/T-0001/assignee",
+   "observed": "200; assignee stored and notified as \"le\\uFFFDe\"",
+   "expected": "400 invalid, ticket unchanged",
+   "basis": "unstated",
+   "item": "U-2"
+  },
+  {
+   "title": "An agent named \"-\" cannot be told from an unassigned ticket in the list table",
+   "severity": "low",
+   "repro": "POST /tickets twice; PUT /tickets/T-0001/assignee {\"assignee\":\"-\"}; stop; `node bin/tickets.js --data FILE list`.",
+   "observed": "both rows show \"-\" in ASSIGNEE",
+   "expected": "an assigned and an unassigned ticket are distinguishable",
+   "basis": "unstated",
+   "item": "U-17"
+  },
+  {
+   "title": "Data file with an over-long or control-character assignee loads at start",
+   "severity": "low",
+   "repro": "Hand-edit a data file so tickets[0].assignee is 65 characters (or \"da\\tna\"); start with DATA_FILE=that file.",
+   "observed": "the service starts and serves the ticket with that assignee",
+   "expected": "refused at start naming the record, as a non-string assignee is",
+   "basis": "unstated",
+   "item": "U-11"
+  }
+ ],
+ "extras": [
+  {
+   "what": "The data file loader checks that a stored assignee is null or a non-empty string",
+   "where": "src/persistence.js readTicket",
+   "worth": "value",
+   "why": "a hand-edited non-string assignee is refused at start instead of reaching the API"
+  }
+ ],
+ "spec_notes": "none",
+ "tests_notes": "All five new tests go through the HTTP API and each covers several behaviours: \"only open and in-progress tickets can be assigned, and errors use the envelope\" checks the resolved refusal, the 404 and three validation refusals in one test; \"the assignee filter keeps an agent or the unassigned, and every filter must match\" covers S-14, S-15, S-16 and the status+priority intersection together. Gaps: no test for unassigning a resolved or closed ticket (an edit allowing it passed the suite), for closed tickets, for in-progress tickets, for a 64-character name, for the command line or list --raw (the weekly report breakage passed the suite), or for persistence of assignee. \"assigning the agent a ticket already has changes nothing\" counts pending outbox events, which relies on the worker being off in the test helper; \"each new agent is notified through the outbox\" asserts pending order and so depends on the outbox key including the agent, a choice another correct build need not share.",
+ "maintainer": "The raw-column order in src/format.js is a positional contract with scripts/weekly-report.js that no test checks, and this change already broke it silently; anyone touching the CLI output has nothing to warn them. Notification dedup depends on the key format ticket.assigned:<id>:<agent> chosen inline in store.assign, and the docs say nothing about assignment, so the next person must rediscover the rules (state guard before the no-op check, 409 on resolved/closed) from the code."
+}

@@ -1,0 +1,204 @@
+{
+ "recheck": [
+  {
+   "id": "S-6",
+   "kind": "stated",
+   "text": "An agent is a name of at most 64 characters: a 64-character name is accepted, a 65-character name is refused and the ticket's assignee does not change.",
+   "audits_said": {
+    "c3cf105": "yes",
+    "c9191ec": "yes",
+    "cf491ea": "wrong",
+    "c636a23": "yes"
+   }
+  },
+  {
+   "id": "S-18",
+   "kind": "stated",
+   "text": "Everything the service already does keeps working.",
+   "audits_said": {
+    "c3cf105": "yes",
+    "c9191ec": "yes",
+    "cf491ea": "yes",
+    "c636a23": "partly"
+   }
+  },
+  {
+   "id": "U-16",
+   "kind": "unstated",
+   "text": "Whether `list --raw` gains an assignee column, where, and how an unassigned ticket appears in it.",
+   "audits_said": {
+    "c3cf105": "acceptable",
+    "c9191ec": "sound",
+    "cf491ea": "acceptable",
+    "c636a23": "poor"
+   }
+  }
+ ],
+ "defects": [
+  {
+   "from": "c3cf105",
+   "n": "c3cf105#1",
+   "title": "Delivered documents not updated; README now describes list --raw wrongly",
+   "severity": "low",
+   "repro": "Read README.md 'Command line', docs/api.md, CHANGELOG.md and package.json version in the delivered tree; run node bin/tickets.js --data FILE list --raw on a file with tickets.",
+   "observed": "README says list --raw prints 'id, status, priority, title' and that the columns must keep their positions, but the output has a fifth assignee column; docs/api.md has no PUT /tickets/:id/assignee, no assignee field, no assignee filter, no ticket.assigned audit action or notification; CHANGELOG has no new section and the version is still 1.4.0.",
+   "expected": "api.md, README and CHANGELOG describe the endpoint, field, filter, notification and the new raw column, with a version bump.",
+   "basis": "unstated",
+   "item": "U-22"
+  },
+  {
+   "from": "c3cf105",
+   "n": "c3cf105#2",
+   "title": "An assignee with invalid UTF-8 is silently altered and accepted",
+   "severity": "low",
+   "repro": "POST /tickets {\"title\":\"t\",\"requester\":\"r\"}; PUT /tickets/T-0001/assignee with the raw bytes {\"assignee\":\"da\\xFFna\"}; GET /tickets/T-0001.",
+   "observed": "200; assignee stored as 'da\\uFFFDna', audited and a notification queued to that name.",
+   "expected": "400 invalid, the ticket unchanged (the existing title and requester behave the same way, so this follows the existing convention).",
+   "basis": "unstated",
+   "item": "U-2"
+  },
+  {
+   "from": "c3cf105",
+   "n": "c3cf105#3",
+   "title": "An agent named '-' looks unassigned in the list table",
+   "severity": "low",
+   "repro": "PUT /tickets/T-0001/assignee {\"assignee\":\"-\"}; stop the service; node bin/tickets.js --data FILE list.",
+   "observed": "The ASSIGNEE column shows '-', the same marker used for an unassigned ticket.",
+   "expected": "Assigned and unassigned tickets distinguishable (refuse '-' as a name, or use a marker no name can be).",
+   "basis": "unstated",
+   "item": "U-17"
+  },
+  {
+   "from": "c3cf105",
+   "n": "c3cf105#4",
+   "title": "Data file load does not apply the assignee rules beyond non-empty string",
+   "severity": "low",
+   "repro": "Write a data file whose ticket has \"assignee\": a 65-character name, or \"da\\tna\", or \"   \"; DATA_FILE=that file npm start.",
+   "observed": "The service starts and serves the ticket; a tab in the name then splits list --raw output into an extra column.",
+   "expected": "Refused at start with a message naming the record, as an assignee of 5 or '' already is.",
+   "basis": "unstated",
+   "item": "U-11"
+  },
+  {
+   "from": "c9191ec",
+   "n": "c9191ec#1",
+   "title": "Delivered documents not updated; README now misstates the raw listing's columns",
+   "severity": "low",
+   "repro": "Read README.md 'Command line', docs/api.md, CHANGELOG.md and package.json version in the delivered tree; run node bin/tickets.js --data FILE list --raw",
+   "observed": "README says list --raw prints 'id, status, priority, title'; raw lines have a fifth assignee field. docs/api.md has no PUT /tickets/:id/assignee, no assignee field, filter, audit action or notification; no CHANGELOG entry; version 1.4.0 unchanged",
+   "expected": "api.md documents the endpoint, field, filter, its errors, the audit action and the notification; README lists the new column; a changelog section and version bump",
+   "basis": "unstated",
+   "item": "U-22"
+  },
+  {
+   "from": "c9191ec",
+   "n": "c9191ec#2",
+   "title": "A name holding invalid UTF-8 is accepted and stored with a replacement character",
+   "severity": "low",
+   "repro": "POST /tickets {\"title\":\"x\",\"requester\":\"p\"}; PUT /tickets/T-0001/assignee with the raw bytes {\"assignee\":\"da<0xFF>na\"}",
+   "observed": "200, assignee stored as 'da\\uFFFDna', an audit entry and a notification to that mangled name",
+   "expected": "400 invalid and the ticket unchanged",
+   "basis": "unstated",
+   "item": "U-2"
+  },
+  {
+   "from": "c9191ec",
+   "n": "c9191ec#3",
+   "title": "An assignee with a tab (or over 64 characters) in the data file is loaded and breaks the raw listing",
+   "severity": "low",
+   "repro": "Start with DATA_FILE, create and assign a ticket, stop; edit tickets[0].assignee to \"da\\tna\" (or 65 characters); start the service; run node bin/tickets.js --data FILE list --raw",
+   "observed": "service starts and serves the value; the raw line has six tab-separated fields",
+   "expected": "start refused with a message naming tickets[0].assignee, as it is for 5 or ''",
+   "basis": "unstated",
+   "item": "U-11"
+  },
+  {
+   "from": "cf491ea",
+   "n": "cf491ea#1",
+   "title": "A 64-character agent name is refused: the limit is 63",
+   "severity": "medium",
+   "repro": "Start the service; POST /tickets {\"title\":\"t\",\"requester\":\"r\"}; PUT /tickets/T-0001/assignee {\"assignee\":\"<64 x 'a'>\"}",
+   "observed": "400 {\"error\":{\"code\":\"invalid\",\"message\":\"assignee must be at most 63 characters\"}}; assignee stays null",
+   "expected": "200 with assignee set to the 64-character name (an agent is a name of at most 64 characters); only 65 or more refused",
+   "basis": "stated",
+   "item": "S-6"
+  },
+  {
+   "from": "cf491ea",
+   "n": "cf491ea#2",
+   "title": "Delivered documents not updated: README misstates list --raw columns and the API docs omit the assignee endpoint, field and filter",
+   "severity": "low",
+   "repro": "Read README.md \"Command line\" and docs/api.md in the delivered tree; run node bin/tickets.js --data FILE list --raw",
+   "observed": "README says --raw prints id, status, priority, title; the command prints a fifth assignee column. docs/api.md has no PUT /tickets/:id/assignee, no assignee field, no assignee filter, no ticket.assigned audit action or notification; CHANGELOG and version unchanged",
+   "expected": "Documents describing the new endpoint, field, filter, notification and the raw column",
+   "basis": "unstated",
+   "item": "U-22"
+  },
+  {
+   "from": "c636a23",
+   "n": "c636a23#1",
+   "title": "list --raw inserts the assignee as column 2, so the weekly report counts every status and priority as 0",
+   "severity": "high",
+   "repro": "Start the service with DATA_FILE=FILE; POST /tickets twice with valid bodies; PUT /tickets/T-0001/assignee {\"assignee\":\"dana\"}; stop it; run `node bin/tickets.js --data FILE list --raw` and `node scripts/weekly-report.js --data FILE --json`.",
+   "observed": "raw lines are \"T-0001\\tdana\\topen\\tnormal\\t<title>\" and \"T-0002\\t\\topen\\tnormal\\t<title>\"; report {\"total\":2,\"byStatus\":{\"open\":0,\"in_progress\":0,\"resolved\":0,\"closed\":0},\"byPriority\":{\"low\":0,\"normal\":0,\"high\":0,\"urgent\":0}}",
+   "expected": "raw columns 2 and 3 stay status and priority (README: the report reads them by position, \"so they must keep their positions\"); report open 2, normal 2 as before the change",
+   "basis": "stated",
+   "item": "S-18"
+  },
+  {
+   "from": "c636a23",
+   "n": "c636a23#2",
+   "title": "Documentation not updated; README now misstates the list --raw columns",
+   "severity": "low",
+   "repro": "Read README.md \"Command line\", docs/api.md and CHANGELOG.md in the delivered tree; compare with `node bin/tickets.js --data FILE list --raw`.",
+   "observed": "no mention of PUT /tickets/:id/assignee, the assignee field, filter, audit action or notification; no changelog section; version 1.4.0; README says raw columns are id, status, priority, title",
+   "expected": "api.md documents the endpoint, field, filter, audit and notification; README columns match the output; a changelog section and version bump",
+   "basis": "unstated",
+   "item": "U-22"
+  },
+  {
+   "from": "c636a23",
+   "n": "c636a23#3",
+   "title": "Agent name limit counts UTF-16 code units, not characters",
+   "severity": "low",
+   "repro": "POST /tickets; PUT /tickets/T-0001/assignee with an assignee of 33 copies of U+1F600.",
+   "observed": "400 invalid \"assignee must be at most 64 characters\" for a 33-character name",
+   "expected": "accepted: a name of at most 64 characters (the same counting already applies to requester)",
+   "basis": "other",
+   "item": ""
+  },
+  {
+   "from": "c636a23",
+   "n": "c636a23#4",
+   "title": "Invalid UTF-8 in the assignee is accepted and stored altered",
+   "severity": "low",
+   "repro": "POST /tickets; printf '{\"assignee\":\"le\\xffe\"}' | curl -X PUT -H 'content-type: application/json' --data-binary @- /tickets/T-0001/assignee",
+   "observed": "200; assignee stored and notified as \"le\\uFFFDe\"",
+   "expected": "400 invalid, ticket unchanged",
+   "basis": "unstated",
+   "item": "U-2"
+  },
+  {
+   "from": "c636a23",
+   "n": "c636a23#5",
+   "title": "An agent named \"-\" cannot be told from an unassigned ticket in the list table",
+   "severity": "low",
+   "repro": "POST /tickets twice; PUT /tickets/T-0001/assignee {\"assignee\":\"-\"}; stop; `node bin/tickets.js --data FILE list`.",
+   "observed": "both rows show \"-\" in ASSIGNEE",
+   "expected": "an assigned and an unassigned ticket are distinguishable",
+   "basis": "unstated",
+   "item": "U-17"
+  },
+  {
+   "from": "c636a23",
+   "n": "c636a23#6",
+   "title": "Data file with an over-long or control-character assignee loads at start",
+   "severity": "low",
+   "repro": "Hand-edit a data file so tickets[0].assignee is 65 characters (or \"da\\tna\"); start with DATA_FILE=that file.",
+   "observed": "the service starts and serves the ticket with that assignee",
+   "expected": "refused at start naming the record, as a non-string assignee is",
+   "basis": "unstated",
+   "item": "U-11"
+  }
+ ]
+}
