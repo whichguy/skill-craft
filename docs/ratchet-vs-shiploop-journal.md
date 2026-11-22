@@ -1184,6 +1184,13 @@ agent, 85 tool calls) and the per-stage timings of this morning's four fresh Shi
   seconds** in the four fresh runs (expenses, chess, tickets, Grokbot). It closes from evidence already recorded.
 - Those runs have no Improve review at all (the harness's default), so a design that extends the end-of-work
   review would not run in the trial; and a new stage would break the 23-stage count that some twenty suites pin.
+  **Superseded 2026-11-22 13:33: the first clause is wrong.** The runs do have Improve reviews: eight or nine a
+  run, one pass each, 4 to 34 seconds, 0 lines changed in all four. I read `metrics.json`'s per-stage rows, saw
+  no row named `improve`, and concluded there were none; a review's time is folded into the reviewed stage's row
+  and the reviews are counted apart (`improve_children`). Found by the read-only map of section 18. The choice
+  of attachment point stands on its other grounds (the five-second acceptance stage; no new stage), and the
+  corrected fact adds one: on the default route those reviews are passes by the same session, and they changed
+  nothing.
 
 So the candidate adds no stage. `product-acceptance` gets one duty (use the running product as its users and
 operators would, and record each thing done as a row of a new result field `look`: works, shortfall or untold
@@ -1355,3 +1362,87 @@ One fresh run of each tool a case; two deliveries of each a case in the whole st
 xhigh, stronger than either builder, and the look was done by a session that had not built the product (the
 candidate of 16.2 tests both inside ShipLoop). D4 on one product moved by three items between two readers once.
 The Grokbot comparison with a full fresh Ratchet run waits on the second run.
+
+## 18. The look inside ShipLoop, version one: the trial (2026-11-22 13:04 to 13:29), and version two registered (13:33)
+
+Status: firm for version one on these four cases (one run a case). Version two: registered here, not yet built.
+
+### 18.1 Version one, as built
+
+Candidate commit `d5e259fb5a4c329c3f8a5579d97282bd9e70f371` on branch `shiploop-look-f586c6` (off `main`, not
+pushed): `product-acceptance` has the session start and use the product and record rows of a new field `look`;
+a script rule routes high and medium shortfalls and untold choices to one corrective item; design, review and the
+as-built departures in `docs/experiments/ratchet-vs-shiploop-20261121/shiploop-look/DESIGN.md` on that branch.
+Without a model: its own suite of 18 routes fails 18 of 18 on unchanged `main` and passes 18 of 18; the ShipLoop
+tier (135 suites) passed but for one fixture, fixed and rerun.
+
+### 18.2 The trial: four runs from that commit (Codex, Sol 6.2 medium, runs root `~/e2e-runs/d20261122-236b00/`)
+
+| Case | Minutes (unchanged ShipLoop this morning) | Held-out checks | `product-acceptance`, seconds (this morning) | The look recorded | Corrective item |
+|---|---|---|---|---|---|
+| shared expenses | 12.1 (10.1) | 6 of 6 | 24 (5) | 3 rows, all `works`: the request's examples; a wrong share total and a missing group; a stop and restart | none |
+| chess | 11.3 (10.7) | 10 of 10 | 23 (6) | 1 row, `works`: the request's examples through the library, with timings | none |
+| ticket assignment | 14.2 (10.5) | 18 of 18 | 17 (6) | 1 row, `works`: it cites the system-test script it had already run | none |
+| Grokbot | 24.8 (28.7) | 49 of 49 and 28 of 28 | 47 (46) | 4 rows, all `works`: sign-in and switch, an instruction and the composer keys, the order change through its preview, both widths and themes with a reconnect | none |
+
+- **Nothing was routed in four of four.** No shortfall of any size, no untold choice. So no corrective item ran
+  and each delivery is what unchanged ShipLoop delivers; the candidate cost 11 to 19 seconds a run.
+- **The builder did run things** (the rows carry measured timings, status codes, a restart), so this is not a
+  session inventing a look. It is a session checking what it built against what it meant to build.
+- **The same kind of delivery, looked at by a session that had not built it** (section 15, Sol medium, 2 to 8
+  minutes): 5, 2, 5 and 15 shortfalls, and untold choices of which 5, 1, 1 and 8 matched the judge's inventory; told
+  rose from 0 to 13 of 16 on expenses and from 2 to 17 of 39 on Grokbot after the fix.
+- No fresh worker was started in any run (0 `spawn_agent` events in the four event records), as designed: version
+  one asked the session itself.
+
+**By the registered rule (16.3):** prerequisite 1 holds (every run delivered, every held-out check passes).
+Condition 2 cannot hold: a delivery the candidate did not change cannot be ahead of unchanged ShipLoop because of
+the candidate. **Version one is not worth proposing.** The audits of these four deliveries are **not run**: with
+nothing routed they would measure one more ShipLoop delivery a case, which is run-to-run variation and not the
+candidate (the owner's rule of economy: say when there is enough to conclude early). This is a departure from
+16.3's text, which had the candidate's delivery audited; stated here before any such audit exists.
+
+**What was learned.** The risk named in the design before the build (DESIGN.md section 4, first risk) and by the
+outside review (its second failure mode: "the builder may confirm the same assumptions it built into the product")
+is what happened, four of four. It is the Ratchet program's finding again (`docs/ratchet-pilot-journal.md` section
+26: the requester's answer and a fresh reader move a build; wording does not). Where a second pair of eyes is
+wanted, asking the first pair to look again does not supply it, however the asking is worded.
+
+### 18.3 What ShipLoop has for a fresh reader (a read-only map of the candidate branch, 94 tool calls)
+
+- Two fresh-session routes ship in the skill, both under the opt-in run option `delegation: ask-agent`: inner
+  producer packets ask for "a native fresh worker with no inherited conversation", and Improve reviews go to
+  improve-agent. `product-acceptance` is an outer stage and has neither.
+- On the default `inline` route, which every run of this study used, nothing is fresh: the Improve reviews are
+  "self-passes by this same executor", and this morning's four runs show what that is worth on Sol at medium:
+  eight or nine reviews a run, one pass each, **0 lines changed**.
+- On Codex the session can start a fresh native worker (no forked turns); the harness sets the worker's model and
+  effort to the run's.
+- The harness's reviewer, judge and purpose check are fresh sessions, but they are the harness's; ShipLoop's CLI
+  launches no model, and its documents say so in five places.
+
+### 18.4 Version two, registered before it is built
+
+The same field, check, routing rule, answer pass and displays. What changes is who looks: on a pass with no
+recorded look, `product-acceptance` has **one fresh native worker** look (no inherited conversation, started through
+the host's own agent tool), giving it only the request, the product's folder and a look guide (a new reference
+file with the instructions of this morning's separate looks); the session copies the worker's rows into `look` as
+given. If the host has no worker the session can start, it looks itself by the same guide and says so: preferred,
+never required. The answer pass after the corrective item stays with the session, since a script checks its
+evidence. Full text: DESIGN.md section 7 on the candidate branch.
+
+**What it asks of the owner beyond version one:** a default run starts one worker at one stage where the host has
+one. Today an inline run starts none, and the skill's documents say duties inside existing stages add no required
+subagents. This one is preferred and not required, but it is a product trade-off to accept or refuse with the
+candidate.
+
+**Trial:** the four cases again from the new commit, same settings. By script: whether a worker was started
+during `product-acceptance`; rows by kind; whether a corrective item ran and every routed row ended `closed` or
+`told`; minutes added; held-out checks. A case whose look routes nothing is not audited and counts as "not ahead".
+Cases whose look routes something are audited and judged by 16.3's rule (the candidate's delivery, this morning's
+unchanged delivery, the fresh Ratchet final, one round).
+
+**Predictions:** a worker is started in at least three of four runs; where one is, its look routes at least one
+row; on at least two small cases told rises by two items or more over unchanged ShipLoop. **What would end this
+line:** the session does not start the worker, or the worker's looks are as empty as the builder's. Then the look
+belongs outside the building session altogether (a driver or harness step), a different product decision.

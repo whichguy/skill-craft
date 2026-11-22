@@ -1,0 +1,151 @@
+{
+ "stages": [
+  {
+   "stage": "intake",
+   "outcome": "done",
+   "seconds": 49.0
+  },
+  {
+   "stage": "discovery",
+   "outcome": "done",
+   "seconds": 35.0
+  },
+  {
+   "stage": "research",
+   "outcome": "done",
+   "seconds": 14.0
+  },
+  {
+   "stage": "spec",
+   "outcome": "done",
+   "seconds": 43.0
+  },
+  {
+   "stage": "test-strategy",
+   "outcome": "done",
+   "seconds": 37.0
+  },
+  {
+   "stage": "plan",
+   "outcome": "done",
+   "seconds": 33.0
+  },
+  {
+   "stage": "prepare",
+   "outcome": "done",
+   "seconds": 5.0
+  },
+  {
+   "stage": "step-plan",
+   "outcome": "done",
+   "seconds": 71.0
+  },
+  {
+   "stage": "test-spec",
+   "outcome": "done",
+   "seconds": 11.0
+  },
+  {
+   "stage": "validate-existing",
+   "outcome": "done",
+   "seconds": 0.0
+  },
+  {
+   "stage": "implement",
+   "outcome": "done",
+   "seconds": 58.0
+  },
+  {
+   "stage": "test",
+   "outcome": "done",
+   "seconds": 87.0
+  },
+  {
+   "stage": "document",
+   "outcome": "done",
+   "seconds": 120.0
+  },
+  {
+   "stage": "implement",
+   "outcome": "done",
+   "seconds": 15.0
+  },
+  {
+   "stage": "test",
+   "outcome": "done",
+   "seconds": 43.0
+  },
+  {
+   "stage": "document",
+   "outcome": "done",
+   "seconds": 26.0
+  },
+  {
+   "stage": "carry-forward",
+   "outcome": "done",
+   "seconds": 16.0
+  },
+  {
+   "stage": "system-test-author",
+   "outcome": "done",
+   "seconds": 42.0
+  },
+  {
+   "stage": "system-test",
+   "outcome": "done",
+   "seconds": 8.0
+  },
+  {
+   "stage": "product-acceptance",
+   "outcome": "done",
+   "seconds": 17.0
+  },
+  {
+   "stage": "release-plan",
+   "outcome": "done",
+   "seconds": 29.0
+  },
+  {
+   "stage": "release-check",
+   "outcome": "done",
+   "seconds": 21.0
+  },
+  {
+   "stage": "release",
+   "outcome": "done",
+   "seconds": 9.0
+  },
+  {
+   "stage": "release-verify",
+   "outcome": "done",
+   "seconds": 14.0
+  },
+  {
+   "stage": "operations",
+   "outcome": "done",
+   "seconds": 16.0
+  },
+  {
+   "stage": "handoff",
+   "outcome": "done",
+   "seconds": 18.0
+  }
+ ],
+ "looks": [
+  {
+   "stage": "product-acceptance",
+   "outcome": "done",
+   "look": [
+    {
+     "did": "python3 /Users/dadleet/e2e-runs/d20261122-236b00/tickets-1/.shiploop-runs/work-20261122-210442-e6e4c6/run/scratch/standalone.py",
+     "id": "L-1",
+     "kind": "works",
+     "saw": "ST-1 passed: normal server entry point, worker file delivery and CLI read-back; A real standalone process assigned and cleared an open urgent ticket, matched the combined filters, wrote Dana's rendered notification and printed Dana in the fifth raw CLI field."
+    }
+   ],
+   "work_items": null,
+   "summary": "R-1 passed real HTTP and lifecycle/error tests. R-2 passed null hydration, restart, no-op, failed-save retry, audit and notification checks. R-3 passed exact and empty assignee filters, intersections, cursor paging and CLI/report checks. R-4 passed all 122 tests and the configured standalone entry point; package start wiring is unchanged."
+  }
+ ],
+ "spawn_agent_events": 0
+}

@@ -1,0 +1,59 @@
+{
+ "label": "grokbot-1",
+ "arm": "shiploop",
+ "case": "grokbot-local",
+ "base": "9809afe5c8c1f488cdbc871e95eb2c2d45018116",
+ "points": {
+  "final": "757470a91a64585da143e81d148053c3c504e56e"
+ },
+ "commit": "d5e259fb5a4c329c3f8a5579d97282bd9e70f371",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "time": {
+  "minutes": 24.8,
+  "seconds": 1488.2,
+  "resumes": 0,
+  "outcome": "PASS",
+  "pass": true,
+  "shiploop_version": "2.6.0"
+ },
+ "tokens": {
+  "rollouts": 1,
+  "counted": 1,
+  "input": 20411499,
+  "cached": 20140928,
+  "output": 54888,
+  "reasoning": 2672,
+  "total": 20466387,
+  "uncached_input": 270571
+ },
+ "measured_points": {
+  "final": "757470a91a64585da143e81d148053c3c504e56e"
+ },
+ "at": {
+  "final": {
+   "hidden": {
+    "grokbot": {
+     "observed": true,
+     "passed": 49,
+     "failed": [],
+     "of": 49
+    },
+    "grokbot2": {
+     "observed": true,
+     "passed": 28,
+     "failed": [],
+     "of": 28,
+     "stated": {
+      "passed": 23,
+      "of": 23
+     },
+     "implied": {
+      "passed": 5,
+      "of": 5
+     }
+    }
+   }
+  }
+ }
+}

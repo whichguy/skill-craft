@@ -1,0 +1,136 @@
+{
+ "stages": [
+  {
+   "stage": "intake",
+   "outcome": "done",
+   "seconds": 50.0
+  },
+  {
+   "stage": "discovery",
+   "outcome": "done",
+   "seconds": 17.0
+  },
+  {
+   "stage": "research",
+   "outcome": "done",
+   "seconds": 17.0
+  },
+  {
+   "stage": "spec",
+   "outcome": "done",
+   "seconds": 47.0
+  },
+  {
+   "stage": "test-strategy",
+   "outcome": "done",
+   "seconds": 40.0
+  },
+  {
+   "stage": "plan",
+   "outcome": "done",
+   "seconds": 39.0
+  },
+  {
+   "stage": "prepare",
+   "outcome": "done",
+   "seconds": 8.0
+  },
+  {
+   "stage": "step-plan",
+   "outcome": "done",
+   "seconds": 61.0
+  },
+  {
+   "stage": "test-spec",
+   "outcome": "done",
+   "seconds": 15.0
+  },
+  {
+   "stage": "validate-existing",
+   "outcome": "done",
+   "seconds": 0.0
+  },
+  {
+   "stage": "implement",
+   "outcome": "done",
+   "seconds": 94.0
+  },
+  {
+   "stage": "test",
+   "outcome": "done",
+   "seconds": 88.0
+  },
+  {
+   "stage": "document",
+   "outcome": "done",
+   "seconds": 37.0
+  },
+  {
+   "stage": "carry-forward",
+   "outcome": "done",
+   "seconds": 21.0
+  },
+  {
+   "stage": "system-test-author",
+   "outcome": "done",
+   "seconds": 15.0
+  },
+  {
+   "stage": "system-test",
+   "outcome": "done",
+   "seconds": 9.0
+  },
+  {
+   "stage": "product-acceptance",
+   "outcome": "done",
+   "seconds": 23.0
+  },
+  {
+   "stage": "release-plan",
+   "outcome": "done",
+   "seconds": 28.0
+  },
+  {
+   "stage": "release-check",
+   "outcome": "done",
+   "seconds": 19.0
+  },
+  {
+   "stage": "release",
+   "outcome": "done",
+   "seconds": 7.0
+  },
+  {
+   "stage": "release-verify",
+   "outcome": "done",
+   "seconds": 12.0
+  },
+  {
+   "stage": "operations",
+   "outcome": "done",
+   "seconds": 7.0
+  },
+  {
+   "stage": "handoff",
+   "outcome": "done",
+   "seconds": 10.0
+  }
+ ],
+ "looks": [
+  {
+   "stage": "product-acceptance",
+   "outcome": "done",
+   "look": [
+    {
+     "did": "Required ./src/chess from Node stdin and called legalMoves on Kiwipete, counted start depth two, applied e2e4 and tried e2e5",
+     "id": "L-1",
+     "kind": "works",
+     "saw": "Kiwipete gave 48 moves in 0.499 ms, start gave 400 depth-two leaves in 1.526 ms, e2e4 returned e3 and ongoing, and e2e5 threw IllegalMoveError."
+    }
+   ],
+   "work_items": null,
+   "summary": "R-1 passed exact standard position and sorted move checks. R-2 passed complete FEN and IllegalMoveError checks. R-3 passed all castle directions and both en passant colors plus the four promotion types. R-4 passed all four statuses. R-5 passed npm test, reference counts and both timing budgets."
+  }
+ ],
+ "spawn_agent_events": 0
+}

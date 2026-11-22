@@ -1,0 +1,154 @@
+{
+ "stages": [
+  {
+   "stage": "intake",
+   "outcome": "done",
+   "seconds": 52.0
+  },
+  {
+   "stage": "discovery",
+   "outcome": "done",
+   "seconds": 21.0
+  },
+  {
+   "stage": "research",
+   "outcome": "done",
+   "seconds": 13.0
+  },
+  {
+   "stage": "spec",
+   "outcome": "done",
+   "seconds": 62.0
+  },
+  {
+   "stage": "test-strategy",
+   "outcome": "done",
+   "seconds": 41.0
+  },
+  {
+   "stage": "plan",
+   "outcome": "done",
+   "seconds": 40.0
+  },
+  {
+   "stage": "prepare",
+   "outcome": "done",
+   "seconds": 11.0
+  },
+  {
+   "stage": "step-plan",
+   "outcome": "done",
+   "seconds": 64.0
+  },
+  {
+   "stage": "test-spec",
+   "outcome": "done",
+   "seconds": 22.0
+  },
+  {
+   "stage": "validate-existing",
+   "outcome": "done",
+   "seconds": 0.0
+  },
+  {
+   "stage": "implement",
+   "outcome": "done",
+   "seconds": 518.0
+  },
+  {
+   "stage": "test",
+   "outcome": "done",
+   "seconds": 187.0
+  },
+  {
+   "stage": "document",
+   "outcome": "done",
+   "seconds": 111.0
+  },
+  {
+   "stage": "carry-forward",
+   "outcome": "done",
+   "seconds": 26.0
+  },
+  {
+   "stage": "system-test-author",
+   "outcome": "done",
+   "seconds": 58.0
+  },
+  {
+   "stage": "system-test",
+   "outcome": "done",
+   "seconds": 18.0
+  },
+  {
+   "stage": "product-acceptance",
+   "outcome": "done",
+   "seconds": 47.0
+  },
+  {
+   "stage": "release-plan",
+   "outcome": "done",
+   "seconds": 44.0
+  },
+  {
+   "stage": "release-check",
+   "outcome": "done",
+   "seconds": 27.0
+  },
+  {
+   "stage": "release",
+   "outcome": "done",
+   "seconds": 23.0
+  },
+  {
+   "stage": "release-verify",
+   "outcome": "done",
+   "seconds": 36.0
+  },
+  {
+   "stage": "operations",
+   "outcome": "done",
+   "seconds": 21.0
+  },
+  {
+   "stage": "handoff",
+   "outcome": "done",
+   "seconds": 21.0
+  }
+ ],
+ "looks": [
+  {
+   "stage": "product-acceptance",
+   "outcome": "done",
+   "look": [
+    {
+     "did": "Opened the real app in Chrome, continued as Maya, saved a rejected then accepted token, switched to Theo and reloaded.",
+     "id": "L-1",
+     "kind": "works",
+     "saw": "The alert allowed a retry, the token field cleared, and the browser restored Theo with an empty bot memory."
+    },
+    {
+     "did": "Saved and used an instruction, sent with Enter, inserted a line break with Shift+Enter, and edited a memory from the sidebar.",
+     "id": "L-2",
+     "kind": "works",
+     "saw": "Provider echoed the active instruction. The input gained a newline without sending. The edited memory appeared."
+    },
+    {
+     "did": "Updated ORD-1001 through the provider's clarifying question, inspected exact preview and clicked Confirm changes.",
+     "id": "L-3",
+     "kind": "works",
+     "saw": "Open \u2192 shipped rendered before confirmation, and Change result displayed after it."
+    },
+    {
+     "did": "Viewed both widths and themes, opened narrow Tools and simulated offline/reconnect.",
+     "id": "L-4",
+     "kind": "works",
+     "saw": "The composer fit both widths, the side panel reopened from the header, and the live connection status recovered."
+    }
+   ],
+   "work_items": null,
+   "summary": "R-1 observed fresh chooser, invalid/valid setup, switch and reload in Chrome and TC-1. R-2 observed named controls and keyboard in Chrome, context/retry/bots in TC-2. R-3 observed saved instruction use and corrected memory in Chrome; TC-2 checked template CRUD, execution and isolation. R-4 observed exact clarification and confirmation in Chrome and denied/stale/repeat/restart cases in TC-3. R-5 observed long-task status and checkpoint/cancel/retry/steer and recap via TC-4 and real worker; reconnect in Chrome. R-6 dependency-free npm test and loopback startup passed in execution checkout. All selected cases passed. Exact candidate return and live local launch remain release obligations."
+  }
+ ],
+ "spawn_agent_events": 0
+}

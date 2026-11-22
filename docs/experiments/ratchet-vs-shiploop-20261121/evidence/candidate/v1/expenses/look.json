@@ -1,0 +1,168 @@
+{
+ "stages": [
+  {
+   "stage": "intake",
+   "outcome": "done",
+   "seconds": 45.9
+  },
+  {
+   "stage": "discovery",
+   "outcome": "done",
+   "seconds": 20.0
+  },
+  {
+   "stage": "research",
+   "outcome": "done",
+   "seconds": 12.0
+  },
+  {
+   "stage": "spec",
+   "outcome": "done",
+   "seconds": 55.0
+  },
+  {
+   "stage": "test-strategy",
+   "outcome": "done",
+   "seconds": 28.0
+  },
+  {
+   "stage": "plan",
+   "outcome": "done",
+   "seconds": 41.0
+  },
+  {
+   "stage": "prepare",
+   "outcome": "done",
+   "seconds": 17.0
+  },
+  {
+   "stage": "step-plan",
+   "outcome": "done",
+   "seconds": 38.0
+  },
+  {
+   "stage": "test-spec",
+   "outcome": "done",
+   "seconds": 17.0
+  },
+  {
+   "stage": "validate-existing",
+   "outcome": "done",
+   "seconds": 0.0
+  },
+  {
+   "stage": "implement",
+   "outcome": "send-back",
+   "seconds": 21.0
+  },
+  {
+   "stage": "step-plan",
+   "outcome": "done",
+   "seconds": 69.0
+  },
+  {
+   "stage": "test-spec",
+   "outcome": "done",
+   "seconds": 4.0
+  },
+  {
+   "stage": "validate-existing",
+   "outcome": "done",
+   "seconds": 0.0
+  },
+  {
+   "stage": "implement",
+   "outcome": "done",
+   "seconds": 71.0
+  },
+  {
+   "stage": "test",
+   "outcome": "done",
+   "seconds": 49.0
+  },
+  {
+   "stage": "document",
+   "outcome": "done",
+   "seconds": 48.0
+  },
+  {
+   "stage": "carry-forward",
+   "outcome": "done",
+   "seconds": 15.0
+  },
+  {
+   "stage": "system-test-author",
+   "outcome": "done",
+   "seconds": 22.0
+  },
+  {
+   "stage": "system-test",
+   "outcome": "done",
+   "seconds": 7.0
+  },
+  {
+   "stage": "product-acceptance",
+   "outcome": "done",
+   "seconds": 24.0
+  },
+  {
+   "stage": "release-plan",
+   "outcome": "done",
+   "seconds": 25.0
+  },
+  {
+   "stage": "release-check",
+   "outcome": "done",
+   "seconds": 14.0
+  },
+  {
+   "stage": "release",
+   "outcome": "done",
+   "seconds": 14.0
+  },
+  {
+   "stage": "release-verify",
+   "outcome": "done",
+   "seconds": 16.0
+  },
+  {
+   "stage": "operations",
+   "outcome": "done",
+   "seconds": 21.0
+  },
+  {
+   "stage": "handoff",
+   "outcome": "done",
+   "seconds": 15.0
+  }
+ ],
+ "looks": [
+  {
+   "stage": "product-acceptance",
+   "outcome": "done",
+   "look": [
+    {
+     "did": "Ran scratch/acceptance.sh using curl POST /groups, equal and exact POST /groups/trip/expenses and GET /groups/trip/balances.",
+     "id": "L-1",
+     "kind": "works",
+     "saw": "201 for group and two expenses numbered 1 and 2. Balances Ada 0, Bo 2, Cy -2."
+    },
+    {
+     "did": "Sent a mismatched exact share total and queried a missing group over curl.",
+     "id": "L-2",
+     "kind": "works",
+     "saw": "400 for the incorrect total and 404 for the missing group."
+    },
+    {
+     "did": "Stopped the recorded service PID, started node server.js with the same DATA_FILE, and called GET /groups/trip/settlements.",
+     "id": "L-3",
+     "kind": "works",
+     "saw": "The restarted service returned one two-cent payment from Cy to Bo."
+    }
+   ],
+   "work_items": null,
+   "summary": "All selected system cases passed on the assembled checkout. R-1 is observed by live PORT/DATA_FILE startup and restart, R-2 by E1 and direct 201/404, R-3 by E2\u2013E3 and direct accepted/rejected splits, R-4 by E2 and direct zero-sum response, R-5 by E4 and direct restart settlement, R-6 by E5/E6 and R-7 by node --test discovery of six passing cases. Source return and a verification rerun remain due in release."
+  }
+ ],
+ "spawn_agent_events": 0
+}
