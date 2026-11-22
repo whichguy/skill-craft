@@ -1,0 +1,3 @@
+1. R-1 How do operators set response hours? Decided: Use DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL and DUE_HOURS_LOW for positive whole hours. Otherwise: Use a single JSON settings variable, requiring an operator to edit a JSON object.
+2. R-3 Is a ticket overdue at the exact deadline? Decided: It enters the overdue list once the deadline has passed. Existing filters still apply. Otherwise: Include the ticket at equality, changing results at the exact timestamp.
+3. R-4 What command prepares the data? Decided: Startup prepares missing deadlines before opening the port, including startup with the flag off. Otherwise: Use a separate offline migration command, requiring a separate operator invocation.

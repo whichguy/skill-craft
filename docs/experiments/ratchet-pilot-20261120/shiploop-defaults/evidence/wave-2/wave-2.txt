@@ -1,0 +1,108 @@
+======================================================================================================================
+d4: pass False (FAILED); status done; 901 s; spec stage [66.0] s; output tokens 31251
+  checks: base_tests.py suite node-tickets P, base_tests.py pristine node-tickets F, due_times_probe.py migrate P, due_times_probe.py restart P, due_times_probe.py switch P, due_times_probe.py rollback P, due_times_probe.py off P, due_times_probe.py cli P
+  gate counts: {"other": {"fired": 3, "caught": 3}, "test_layers": {"fired": 2, "caught": 2}, "mutation_not_done": {"fired": 3, "caught": 3}}
+  spec results accepted: 1; spec.md: {'words': 384, 'requirements': 5, 'default_words': 3}
+  defaults: 4 rows; the named clause says default: [True, True, False, True]
+    1.requirement: R-1
+    1.question: How do I change the hours?
+    1.default: Set SLA_HOURS_URGENT, SLA_HOURS_HIGH, SLA_HOURS_NORMAL or SLA_HOURS_LOW to positive whole hours.
+    1.alternative: Use a single JSON environment value.
+    1.why: Existing settings each use one environment variable and whole numbers.
+    2.requirement: R-2
+    2.question: Is a ticket overdue exactly at its due time?
+    2.default: It is overdue only after that instant.
+    2.alternative: Count it at the exact instant as overdue.
+    2.why: The request says the time has passed.
+    3.requirement: R-3
+    3.question: How do I prepare the data file?
+    3.default: Run the one-shot backfill with the service stopped, then enable the feature. Enabled startup also fills missing dues before listening.
+    3.alternative: Rely entirely on startup backfill.
+    3.why: A one-shot operation permits preparing data before activation.
+    4.requirement: R-2
+    4.question: What happens with other overdue query values?
+    4.default: Only the literal true activates the extra filter.
+    4.alternative: Reject other values with 400.
+    4.why: Preserves query behavior for clients that do not opt in.
+  spec summary: Local release verification covers the real 1.4.0 server and fixture data. Production authority remains with operators. Existing HTTP and file contracts remain in scope.
+  stage-after-spec packets: 1, with the block: 1, rows printed: 4
+  host messages to the user: 10; naming a default: 0
+  report: {'section': True, 'after_request': True, 'rows': 35, 'none': False, 'not_recorded': False}
+  requester: reply enabled True; block printed True; about the point [False, False, True, False]; note N1; ended None
+  owner notes in the run: ['N1.md']; delivered: {"N1": "nav-f4b941014577470997a522ba19a1bcc9"}
+======================================================================================================================
+d5: pass True (PASS); status done; 789 s; spec stage [56.0] s; output tokens 26904
+  checks: base_tests.py suite node-tickets P, base_tests.py pristine node-tickets P, due_times_probe.py migrate P, due_times_probe.py restart P, due_times_probe.py switch P, due_times_probe.py rollback P, due_times_probe.py off P, due_times_probe.py cli P
+  gate counts: {"other": {"fired": 1, "caught": 1}}
+  spec results accepted: 1; spec.md: {'words': 337, 'requirements': 4, 'default_words': 4}
+  defaults: 4 rows; the named clause says default: [True, True, True, True]
+    1.requirement: R-1
+    1.question: How are response hours configured?
+    1.default: Set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL or DUE_HOURS_LOW to positive whole hours.
+    1.alternative: Use one JSON environment value for all priorities.
+    1.why: Existing settings are individual variables.
+    2.requirement: R-2
+    2.question: What happens with other overdue values and existing filters?
+    2.default: Only exact true activates it. The filter intersects the existing status/priority result before paging.
+    2.alternative: Reject values other than true and false.
+    2.why: Unknown query keys were ignored and existing filters should remain compatible.
+    3.requirement: R-3
+    3.question: How does rollout populate the file?
+    3.default: Run npm run backfill:due while the writer is stopped. Enabled startup also fills any missing deadlines before serving.
+    3.alternative: Require a separate backfill and refuse startup when any value is missing.
+    3.why: Reusing the same idempotent path safeguards interrupted rollout and newly restored files.
+    4.requirement: R-2
+    4.question: What changes in the CLI?
+    4.default: Human list and show display due with the flag on; raw output keeps its four-column contract.
+    4.alternative: Show due only in HTTP.
+    4.why: The CLI shows tickets, and the weekly report depends on raw output.
+  spec summary: Production rollout is operator-managed. Local verification will exercise file preparation, enabled service, 1.4.0 read-back, CLI and legacy tests.
+  stage-after-spec packets: 1, with the block: 1, rows printed: 4
+  host messages to the user: 7; naming a default: 1
+    say: Implemented fixed ticket deadlines in version 1.5.0. The defaults are 4 hours for urgent, 24 for high, 72 for normal, and 168 for low. Operators can override th
+  report: {'section': True, 'after_request': True, 'rows': 35, 'none': False, 'not_recorded': False}
+  requester: reply enabled True; block printed True; about the point [False, True, True, False]; note N1; ended None
+  owner notes in the run: ['N1.md']; delivered: {"N1": "nav-3fd51c22c070453ca876aff07696192f"}
+======================================================================================================================
+d6: pass True (PASS); status done; 1075 s; spec stage [62.0] s; output tokens 36593
+  checks: base_tests.py suite node-tickets P, base_tests.py pristine node-tickets P, due_times_probe.py migrate P, due_times_probe.py restart P, due_times_probe.py switch P, due_times_probe.py rollback P, due_times_probe.py off P, due_times_probe.py cli P
+  gate counts: {"other": {"fired": 1, "caught": 1}, "handoff_open_items": {"fired": 1, "caught": 1}, "mutation_not_done": {"fired": 2, "caught": 2}}
+  spec results accepted: 1; spec.md: {'words': 398, 'requirements': 6, 'default_words': 4}
+  defaults: 3 rows; the named clause says default: [True, True, True]
+    1.requirement: R-1
+    1.question: How do operators set response hours?
+    1.default: Use DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL and DUE_HOURS_LOW for positive whole hours.
+    1.alternative: Use a single JSON settings variable, requiring an operator to edit a JSON object.
+    1.why: Existing configuration uses individual environment variables and whole numbers.
+    2.requirement: R-3
+    2.question: Is a ticket overdue at the exact deadline?
+    2.default: It enters the overdue list once the deadline has passed. Existing filters still apply.
+    2.alternative: Include the ticket at equality, changing results at the exact timestamp.
+    2.why: The request says the due time has passed.
+    3.requirement: R-4
+    3.question: What command prepares the data?
+    3.default: Startup prepares missing deadlines before opening the port, including startup with the flag off.
+    3.alternative: Use a separate offline migration command, requiring a separate operator invocation.
+    3.why: Startup owns file loading and can complete the write before any request.
+  spec summary: Requirements cover both HTTP and operator paths and link verification. Production access is external and local fixtures exercise the real file format and server.
+  stage-after-spec packets: 1, with the block: 1, rows printed: 3
+  host messages to the user: 9; naming a default: 0
+  report: {'section': True, 'after_request': True, 'rows': 39, 'none': False, 'not_recorded': False}
+  requester: reply enabled False; block printed True; about the point [False, True, True]; note None; ended None
+  owner notes in the run: []; delivered: null
+======================================================================================================================
+h2: pass True (PASS); status done; 464 s; spec stage [41.0] s; output tokens 13284
+  checks: test "$(python3 hello.py)" = 'Hello, wor P, python3 -c "import sys, unittest; suite  P
+  gate counts: {"other": {"fired": 2, "caught": 2}}
+  spec results accepted: 1; spec.md: {'words': 138, 'requirements': 2, 'default_words': 1}
+  defaults: 1 rows; the named clause says default: [True]
+    1.requirement: R-1
+    1.question: Should the greeting end with a newline?
+    1.default: The greeting appears as one complete line followed by a newline.
+    1.alternative: Write the greeting without a newline, leaving the next terminal prompt on the same line.
+    1.why: A newline follows Python print's standard line-output convention.
+  spec summary: R-1 and R-2 trace directly to S1. Verification is due after implementation and at local delivery.
+  stage-after-spec packets: 1, with the block: 1, rows printed: 1
+  host messages to the user: 6; naming a default: 0
+  report: {'section': True, 'after_request': True, 'rows': 32, 'none': False, 'not_recorded': False}
+  owner notes in the run: []; delivered: null

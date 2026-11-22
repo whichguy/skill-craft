@@ -1,0 +1,81 @@
+===== d1: every message of the host to the user except the progress cards
+I’ll use ShipLoop to build and verify the due-time rollout, including a rollback test that opens the upgraded data file with release 1.4.0.
+---
+All 117 existing tests passed. Release 1.4.0 can read tickets with the added `due` field, but its writer drops that field when it saves. I’ll cover that distinction in the rollback procedure.
+---
+I’m using the Improve skill for ShipLoop’s review of the spec, with particular attention to what operators need to verify before enabling due times.
+---
+I’m using the Plan Test skill to define coverage for automatic startup backfill, flag-off responses, and the exact instant a ticket becomes overdue.
+---
+The four new tests pass alongside all 117 existing tests. They cover live HTTP responses, the data file before shutdown, and the CLI. I’ll now run the unchanged 1.4.0 server and CLI against a file written by the new release.
+---
+The rollback check passed. After 1.5.0 backfilled and saved 25 tickets, the unchanged 1.4.0 server and CLI returned all 25. The runbook explains how to retain the deadlines before 1.4.0 rewrites the file.
+---
+Implemented ticket due times in **1.5.0** and returned the changes to local `master`. Production deployment remains with the service operator.
+
+The service saves missing deadlines before accepting requests. `DUE_TIMES=on` exposes `due` and enables `GET /tickets?overdue=true`, which returns only open or in-progress tickets past their deadline. The `DUE_HOURS_<PRIORITY>` settings override the 4, 24, 72, and 168 hour defaults. Saved deadlines survive priority edits, configuration changes, and restarts.
+
+**All 121 tests passed**, including the 117 existing tests. Release 1.4.0 reopened the upgraded file and listed all 25 test tickets through HTTP and the CLI. Because 1.4.0 drops `due` when it saves, keep an upgraded snapshot before rolling back. [Rollout and rollback guide](~/e2e-runs/r-20261121-2c3d50/w1/d1/work/docs/operations.md#roll-out-ticket-due-times)
+
+[ShipLoop report](~/e2e-runs/r-20261121-2c3d50/w1/d1/.shiploop-runs/work-20261122-071053-b97af2/run/report.html)
+
+===== d2: every message of the host to the user except the progress cards
+I’m using ShipLoop to inspect the service, implement due times in an isolated worktree, and verify that release 1.4.0 can still read the updated data.
+---
+All 117 existing tests passed. The 1.4.0 reader accepts the added field, and its writer drops fields it doesn’t know about. I’ll verify rollback against the old server and account for those writes in the re-upgrade procedure.
+---
+I’m applying the Improve skill’s review to the specification before building the migration and feature gate.
+---
+I’m using the Plan Test skill to cover the service and migration entry points, with a manual clock for the overdue boundary.
+---
+I’ll make enabled startup fill in missing deadlines and save the file before opening the HTTP listener. Operators can enable the feature without a separate migration command.
+---
+The implementation passed the focused smoke check and all 117 existing tests. I’m adding the permanent regressions now, including a check that reads the backfilled file as soon as startup completes.
+---
+All 122 tests pass. The five new cases also fail against the original code, as expected. I’ll now start the unchanged 1.4.0 server on a file written by the new release and compare the tickets it returns.
+---
+The rollback check passed. The original 1.4.0 server and CLI showed all three test tickets, including one created by 1.5.0. The changes are back in your checkout, and the clean-copy test suite passed.
+---
+Implemented ticket due times in **1.5.0** and returned the changes to your checkout. Start with `DUE_TIMES=on` to backfill missing deadlines before the server accepts requests. The API then exposes `due` and supports `GET /tickets?overdue=true` for open and in-progress tickets past their deadlines. The four `DUE_HOURS_*` settings control response times. Assigned deadlines stay fixed when settings or priorities change.
+
+**All 122 tests passed**, including the 117 unchanged tests. The original 1.4.0 server and CLI read every ticket in the migrated test file. A later save by 1.4.0 drops the `due` fields, so keep a pre-rollback copy if you need a record of those deadlines. Production was not changed. [Operations guide](~/e2e-runs/r-20261121-2c3d50/w1/d2/work/docs/operations.md:27)
+
+The [ShipLoop report](~/e2e-runs/r-20261121-2c3d50/w1/d2/.shiploop-runs/work-20261122-071056-71df7d/run/report.html) retains an early offline-migration proposal. The delivered release backfills automatically at startup.
+
+===== d3: every message of the host to the user except the progress cards
+I’m using ShipLoop to implement and verify due times, including the production backfill and rollback to 1.4.0.
+---
+The unchanged 1.4.0 suite passed all 117 tests. I also verified that 1.4.0 can read a file with a `due` field and that its next save drops that field. I’m building that behavior into the rollback and recovery procedure.
+---
+I’m using the Improve skill to review the rollout requirements before implementation.
+---
+The rollout plan uses one hours setting per priority and an explicit backfill before activation. A ticket becomes overdue immediately after its deadline. I’ll verify those choices at the HTTP, data-file and CLI boundaries.
+---
+The backfill now writes deadlines into the existing version-1 data file. Its first verification passed, including rerunning it after changing the configured hours and recovering an original deadline from a pre-rollback copy.
+---
+I’m using the plan-test skill to add regression coverage for the new behavior while keeping the existing tests intact.
+---
+The new HTTP tests pass at the exact deadline boundary, through cursor pagination and with the feature disabled. The seven added tests bring `npm test` to 124 passing tests. I’ll also run the archived 1.4.0 server against a file written by the new release.
+---
+The archived 1.4.0 server started on the new file, listed every ticket and saved a new one. The recovery command then restored the original deadlines while retaining the ticket created during rollback.
+---
+Implemented ticket due times in 1.5.0 and returned the changes to local `master`. Deadlines use the configured priority hours and stay fixed after assignment. With `DUE_TIMES=on`, ticket responses include `due`, and `GET /tickets?overdue=true` returns only open and in-progress tickets whose deadline has passed.
+
+`npm test` passed all 124 tests, including the 117 unchanged tests. I also verified that the actual 1.4.0 release starts on the new data file and lists every ticket. Its next save drops `due`, so the rollback procedure preserves a copy for recovering those deadlines.
+
+Production was untouched. The [rollout and rollback guide](~/e2e-runs/r-20261121-2c3d50/w1/d3/work/docs/operations.md:27) covers running `npm run backfill:due` before enabling the feature. [ShipLoop report](~/e2e-runs/r-20261121-2c3d50/w1/d3/.shiploop-runs/work-20261122-071055-2f005b/run/report.html)
+
+===== h1: every message of the host to the user except the progress cards
+I’m using ShipLoop to create the script and unittest, verify the exact output, and return both files to your workspace.
+---
+The workspace started empty. I verified that Python prints the greeting with a trailing newline, which the test will check. I’m using ShipLoop’s Improve skill to review that specification.
+---
+The plan is ready. The test will launch `hello.py` as a subprocess and compare its complete stdout. I’ll also run it against an altered greeting to confirm it fails when the punctuation is wrong.
+---
+I’m using the plan-test and test-runner skills for the requested unittest. The script already passed a direct check of its exact stdout.
+---
+The unittest passed against `hello.py` and failed when I removed the exclamation point in a scratch copy. I’ll verify both files again after ShipLoop returns them to your checkout.
+---
+Created [hello.py](~/e2e-runs/r-20261121-2c3d50/w1/h1/work/hello.py), which prints `Hello, world!` followed by one newline. [test_hello.py](~/e2e-runs/r-20261121-2c3d50/w1/h1/work/test_hello.py) runs the script and checks its exact stdout.
+
+`python3 -B -m unittest -v` passed in the original checkout. ShipLoop also returned its run documentation under `docs/shiploop/`. [ShipLoop report](~/e2e-runs/r-20261121-2c3d50/w1/h1/.shiploop-runs/work-20261122-071047-e163e7/run/report.html)

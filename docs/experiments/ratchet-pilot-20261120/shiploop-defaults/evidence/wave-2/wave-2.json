@@ -1,0 +1,521 @@
+[
+ {
+  "name": "d4",
+  "pass": false,
+  "class": "FAILED",
+  "checks": {
+   "base_tests.py suite node-tickets": true,
+   "base_tests.py pristine node-tickets": false,
+   "due_times_probe.py migrate": true,
+   "due_times_probe.py restart": true,
+   "due_times_probe.py switch": true,
+   "due_times_probe.py rollback": true,
+   "due_times_probe.py off": true,
+   "due_times_probe.py cli": true
+  },
+  "seconds": 901,
+  "output_tokens": 31251,
+  "gate_counts": {
+   "other": {
+    "fired": 3,
+    "caught": 3
+   },
+   "test_layers": {
+    "fired": 2,
+    "caught": 2
+   },
+   "mutation_not_done": {
+    "fired": 3,
+    "caught": 3
+   }
+  },
+  "spec_seconds": [
+   66.0
+  ],
+  "requester": {
+   "case": "ticket-due-times",
+   "reply_enabled": true,
+   "rule": {
+    "tickets": "\\b(backfill\\w*|back-fill\\w*|migrat\\w*|existing|already|older)\\b",
+    "start": "\\b(start\\w*|start-up|boot\\w*|launch\\w*|restart\\w*)\\b",
+    "absent": "\\b(missing|without|lack\\w*|no due|has none|have none|has no|have no)\\b"
+   },
+   "run_dir": "~/e2e-runs/r-20261121-2c3d50/w2/d4/.shiploop-runs/work-20261122-074041-ee67fb/run",
+   "seen_at": "2026-11-22T07:43:13Z",
+   "block_printed": true,
+   "rows": [
+    "1. R-1 How do I change the hours? Decided: Set SLA_HOURS_URGENT, SLA_HOURS_HIGH, SLA_HOURS_NORMAL or SLA_HOURS_LOW to positive whole hours. Otherwise: Use a single JSON environment value.",
+    "2. R-2 Is a ticket overdue exactly at its due time? Decided: It is overdue only after that instant. Otherwise: Count it at the exact instant as overdue.",
+    "3. R-3 How do I prepare the data file? Decided: Run the one-shot backfill with the service stopped, then enable the feature. Enabled startup also fills missing dues before listening. Otherwise: Rely entirely on startup backfill.",
+    "4. R-2 What happens with other overdue query values? Decided: Only the literal true activates the extra filter. Otherwise: Reject other values with 400."
+   ],
+   "recorded": [
+    {
+     "alternative": "Use a single JSON environment value.",
+     "default": "Set SLA_HOURS_URGENT, SLA_HOURS_HIGH, SLA_HOURS_NORMAL or SLA_HOURS_LOW to positive whole hours.",
+     "question": "How do I change the hours?",
+     "requirement": "R-1",
+     "why": "Existing settings each use one environment variable and whole numbers."
+    },
+    {
+     "alternative": "Count it at the exact instant as overdue.",
+     "default": "It is overdue only after that instant.",
+     "question": "Is a ticket overdue exactly at its due time?",
+     "requirement": "R-2",
+     "why": "The request says the time has passed."
+    },
+    {
+     "alternative": "Rely entirely on startup backfill.",
+     "default": "Run the one-shot backfill with the service stopped, then enable the feature. Enabled startup also fills missing dues before listening.",
+     "question": "How do I prepare the data file?",
+     "requirement": "R-3",
+     "why": "A one-shot operation permits preparing data before activation."
+    },
+    {
+     "alternative": "Reject other values with 400.",
+     "default": "Only the literal true activates the extra filter.",
+     "question": "What happens with other overdue query values?",
+     "requirement": "R-2",
+     "why": "Preserves query behavior for clients that do not opt in."
+    }
+   ],
+   "about": [
+    false,
+    false,
+    true,
+    false
+   ],
+   "note": {
+    "exit": 0,
+    "id": "N1",
+    "text": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.",
+    "output": "Owner note N1 written: ~/e2e-runs/r-20261121-2c3d50/w2/d4/.shiploop-runs/work-20261122-074041-ee67fb/run/owner-notes/N1.md.\nThe run is at test-strategy (action nav-f4b941014577470997a522ba19a1bcc9); the model sees the note at its next ShipLoop callback or `next`."
+   }
+  },
+  "status": "done",
+  "spec_action": "nav-5dc6c74e1b224b7dbf5f73a38ae10f21",
+  "spec_results": 1,
+  "defaults": [
+   {
+    "alternative": "Use a single JSON environment value.",
+    "default": "Set SLA_HOURS_URGENT, SLA_HOURS_HIGH, SLA_HOURS_NORMAL or SLA_HOURS_LOW to positive whole hours.",
+    "question": "How do I change the hours?",
+    "requirement": "R-1",
+    "why": "Existing settings each use one environment variable and whole numbers."
+   },
+   {
+    "alternative": "Count it at the exact instant as overdue.",
+    "default": "It is overdue only after that instant.",
+    "question": "Is a ticket overdue exactly at its due time?",
+    "requirement": "R-2",
+    "why": "The request says the time has passed."
+   },
+   {
+    "alternative": "Rely entirely on startup backfill.",
+    "default": "Run the one-shot backfill with the service stopped, then enable the feature. Enabled startup also fills missing dues before listening.",
+    "question": "How do I prepare the data file?",
+    "requirement": "R-3",
+    "why": "A one-shot operation permits preparing data before activation."
+   },
+   {
+    "alternative": "Reject other values with 400.",
+    "default": "Only the literal true activates the extra filter.",
+    "question": "What happens with other overdue query values?",
+    "requirement": "R-2",
+    "why": "Preserves query behavior for clients that do not opt in."
+   }
+  ],
+  "spec_summary": "Local release verification covers the real 1.4.0 server and fixture data. Production authority remains with operators. Existing HTTP and file contracts remain in scope.",
+  "spec_md": {
+   "words": 384,
+   "requirements": 5,
+   "default_words": 3
+  },
+  "clause_says_default": [
+   true,
+   true,
+   false,
+   true
+  ],
+  "block": {
+   "packets": 1,
+   "with_block": 1,
+   "rows": [
+    "1. R-1 How do I change the hours? Decided: Set SLA_HOURS_URGENT, SLA_HOURS_HIGH, SLA_HOURS_NORMAL or SLA_HOURS_LOW to positive whole hours. Otherwise: Use a single JSON environment value.",
+    "2. R-2 Is a ticket overdue exactly at its due time? Decided: It is overdue only after that instant. Otherwise: Count it at the exact instant as overdue.",
+    "3. R-3 How do I prepare the data file? Decided: Run the one-shot backfill with the service stopped, then enable the feature. Enabled startup also fills missing dues before listening. Otherwise: Rely entirely on startup backfill.",
+    "4. R-2 What happens with other overdue query values? Decided: Only the literal true activates the extra filter. Otherwise: Reject other values with 400."
+   ]
+  },
+  "says": 10,
+  "says_naming_a_default": [],
+  "report": {
+   "section": true,
+   "after_request": true,
+   "rows": 35,
+   "none": false,
+   "not_recorded": false
+  },
+  "notes": [
+   "N1.md"
+  ],
+  "owner_notes_state": {
+   "N1": "nav-f4b941014577470997a522ba19a1bcc9"
+  }
+ },
+ {
+  "name": "d5",
+  "pass": true,
+  "class": "PASS",
+  "checks": {
+   "base_tests.py suite node-tickets": true,
+   "base_tests.py pristine node-tickets": true,
+   "due_times_probe.py migrate": true,
+   "due_times_probe.py restart": true,
+   "due_times_probe.py switch": true,
+   "due_times_probe.py rollback": true,
+   "due_times_probe.py off": true,
+   "due_times_probe.py cli": true
+  },
+  "seconds": 789,
+  "output_tokens": 26904,
+  "gate_counts": {
+   "other": {
+    "fired": 1,
+    "caught": 1
+   }
+  },
+  "spec_seconds": [
+   56.0
+  ],
+  "requester": {
+   "case": "ticket-due-times",
+   "reply_enabled": true,
+   "rule": {
+    "tickets": "\\b(backfill\\w*|back-fill\\w*|migrat\\w*|existing|already|older)\\b",
+    "start": "\\b(start\\w*|start-up|boot\\w*|launch\\w*|restart\\w*)\\b",
+    "absent": "\\b(missing|without|lack\\w*|no due|has none|have none|has no|have no)\\b"
+   },
+   "run_dir": "~/e2e-runs/r-20261121-2c3d50/w2/d5/.shiploop-runs/work-20261122-074040-ca4ae6/run",
+   "seen_at": "2026-11-22T07:42:51Z",
+   "block_printed": true,
+   "rows": [
+    "1. R-1 How are response hours configured? Decided: Set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL or DUE_HOURS_LOW to positive whole hours. Otherwise: Use one JSON environment value for all priorities.",
+    "2. R-2 What happens with other overdue values and existing filters? Decided: Only exact true activates it. The filter intersects the existing status/priority result before paging. Otherwise: Reject values other than true and false.",
+    "3. R-3 How does rollout populate the file? Decided: Run npm run backfill:due while the writer is stopped. Enabled startup also fills any missing deadlines before serving. Otherwise: Require a separate backfill and refuse startup when any value is missing.",
+    "4. R-2 What changes in the CLI? Decided: Human list and show display due with the flag on; raw output keeps its four-column contract. Otherwise: Show due only in HTTP."
+   ],
+   "recorded": [
+    {
+     "alternative": "Use one JSON environment value for all priorities.",
+     "default": "Set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL or DUE_HOURS_LOW to positive whole hours.",
+     "question": "How are response hours configured?",
+     "requirement": "R-1",
+     "why": "Existing settings are individual variables."
+    },
+    {
+     "alternative": "Reject values other than true and false.",
+     "default": "Only exact true activates it. The filter intersects the existing status/priority result before paging.",
+     "question": "What happens with other overdue values and existing filters?",
+     "requirement": "R-2",
+     "why": "Unknown query keys were ignored and existing filters should remain compatible."
+    },
+    {
+     "alternative": "Require a separate backfill and refuse startup when any value is missing.",
+     "default": "Run npm run backfill:due while the writer is stopped. Enabled startup also fills any missing deadlines before serving.",
+     "question": "How does rollout populate the file?",
+     "requirement": "R-3",
+     "why": "Reusing the same idempotent path safeguards interrupted rollout and newly restored files."
+    },
+    {
+     "alternative": "Show due only in HTTP.",
+     "default": "Human list and show display due with the flag on; raw output keeps its four-column contract.",
+     "question": "What changes in the CLI?",
+     "requirement": "R-2",
+     "why": "The CLI shows tickets, and the weekly report depends on raw output."
+    }
+   ],
+   "about": [
+    false,
+    true,
+    true,
+    false
+   ],
+   "note": {
+    "exit": 0,
+    "id": "N1",
+    "text": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.",
+    "output": "Owner note N1 written: ~/e2e-runs/r-20261121-2c3d50/w2/d5/.shiploop-runs/work-20261122-074040-ca4ae6/run/owner-notes/N1.md.\nThe run is at test-strategy (action nav-3fd51c22c070453ca876aff07696192f); the model sees the note at its next ShipLoop callback or `next`."
+   }
+  },
+  "status": "done",
+  "spec_action": "nav-810bb9e67c404169a2dfbf06991c8418",
+  "spec_results": 1,
+  "defaults": [
+   {
+    "alternative": "Use one JSON environment value for all priorities.",
+    "default": "Set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL or DUE_HOURS_LOW to positive whole hours.",
+    "question": "How are response hours configured?",
+    "requirement": "R-1",
+    "why": "Existing settings are individual variables."
+   },
+   {
+    "alternative": "Reject values other than true and false.",
+    "default": "Only exact true activates it. The filter intersects the existing status/priority result before paging.",
+    "question": "What happens with other overdue values and existing filters?",
+    "requirement": "R-2",
+    "why": "Unknown query keys were ignored and existing filters should remain compatible."
+   },
+   {
+    "alternative": "Require a separate backfill and refuse startup when any value is missing.",
+    "default": "Run npm run backfill:due while the writer is stopped. Enabled startup also fills any missing deadlines before serving.",
+    "question": "How does rollout populate the file?",
+    "requirement": "R-3",
+    "why": "Reusing the same idempotent path safeguards interrupted rollout and newly restored files."
+   },
+   {
+    "alternative": "Show due only in HTTP.",
+    "default": "Human list and show display due with the flag on; raw output keeps its four-column contract.",
+    "question": "What changes in the CLI?",
+    "requirement": "R-2",
+    "why": "The CLI shows tickets, and the weekly report depends on raw output."
+   }
+  ],
+  "spec_summary": "Production rollout is operator-managed. Local verification will exercise file preparation, enabled service, 1.4.0 read-back, CLI and legacy tests.",
+  "spec_md": {
+   "words": 337,
+   "requirements": 4,
+   "default_words": 4
+  },
+  "clause_says_default": [
+   true,
+   true,
+   true,
+   true
+  ],
+  "block": {
+   "packets": 1,
+   "with_block": 1,
+   "rows": [
+    "1. R-1 How are response hours configured? Decided: Set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL or DUE_HOURS_LOW to positive whole hours. Otherwise: Use one JSON environment value for all priorities.",
+    "2. R-2 What happens with other overdue values and existing filters? Decided: Only exact true activates it. The filter intersects the existing status/priority result before paging. Otherwise: Reject values other than true and false.",
+    "3. R-3 How does rollout populate the file? Decided: Run npm run backfill:due while the writer is stopped. Enabled startup also fills any missing deadlines before serving. Otherwise: Require a separate backfill and refuse startup when any value is missing.",
+    "4. R-2 What changes in the CLI? Decided: Human list and show display due with the flag on; raw output keeps its four-column contract. Otherwise: Show due only in HTTP."
+   ]
+  },
+  "says": 7,
+  "says_naming_a_default": [
+   "Implemented fixed ticket deadlines in version 1.5.0. The defaults are 4 hours for urgent, 24 for high, 72 for normal, and 168 for low. Operators can override th"
+  ],
+  "report": {
+   "section": true,
+   "after_request": true,
+   "rows": 35,
+   "none": false,
+   "not_recorded": false
+  },
+  "notes": [
+   "N1.md"
+  ],
+  "owner_notes_state": {
+   "N1": "nav-3fd51c22c070453ca876aff07696192f"
+  }
+ },
+ {
+  "name": "d6",
+  "pass": true,
+  "class": "PASS",
+  "checks": {
+   "base_tests.py suite node-tickets": true,
+   "base_tests.py pristine node-tickets": true,
+   "due_times_probe.py migrate": true,
+   "due_times_probe.py restart": true,
+   "due_times_probe.py switch": true,
+   "due_times_probe.py rollback": true,
+   "due_times_probe.py off": true,
+   "due_times_probe.py cli": true
+  },
+  "seconds": 1075,
+  "output_tokens": 36593,
+  "gate_counts": {
+   "other": {
+    "fired": 1,
+    "caught": 1
+   },
+   "handoff_open_items": {
+    "fired": 1,
+    "caught": 1
+   },
+   "mutation_not_done": {
+    "fired": 2,
+    "caught": 2
+   }
+  },
+  "spec_seconds": [
+   62.0
+  ],
+  "requester": {
+   "case": "ticket-due-times",
+   "reply_enabled": false,
+   "rule": {
+    "tickets": "\\b(backfill\\w*|back-fill\\w*|migrat\\w*|existing|already|older)\\b",
+    "start": "\\b(start\\w*|start-up|boot\\w*|launch\\w*|restart\\w*)\\b",
+    "absent": "\\b(missing|without|lack\\w*|no due|has none|have none|has no|have no)\\b"
+   },
+   "run_dir": "~/e2e-runs/r-20261121-2c3d50/w2/d6/.shiploop-runs/work-20261122-074050-1dcb56/run",
+   "seen_at": "2026-11-22T07:43:15Z",
+   "block_printed": true,
+   "rows": [
+    "1. R-1 How do operators set response hours? Decided: Use DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL and DUE_HOURS_LOW for positive whole hours. Otherwise: Use a single JSON settings variable, requiring an operator to edit a JSON object.",
+    "2. R-3 Is a ticket overdue at the exact deadline? Decided: It enters the overdue list once the deadline has passed. Existing filters still apply. Otherwise: Include the ticket at equality, changing results at the exact timestamp.",
+    "3. R-4 What command prepares the data? Decided: Startup prepares missing deadlines before opening the port, including startup with the flag off. Otherwise: Use a separate offline migration command, requiring a separate operator invocation."
+   ],
+   "recorded": [
+    {
+     "alternative": "Use a single JSON settings variable, requiring an operator to edit a JSON object.",
+     "default": "Use DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL and DUE_HOURS_LOW for positive whole hours.",
+     "question": "How do operators set response hours?",
+     "requirement": "R-1",
+     "why": "Existing configuration uses individual environment variables and whole numbers."
+    },
+    {
+     "alternative": "Include the ticket at equality, changing results at the exact timestamp.",
+     "default": "It enters the overdue list once the deadline has passed. Existing filters still apply.",
+     "question": "Is a ticket overdue at the exact deadline?",
+     "requirement": "R-3",
+     "why": "The request says the due time has passed."
+    },
+    {
+     "alternative": "Use a separate offline migration command, requiring a separate operator invocation.",
+     "default": "Startup prepares missing deadlines before opening the port, including startup with the flag off.",
+     "question": "What command prepares the data?",
+     "requirement": "R-4",
+     "why": "Startup owns file loading and can complete the write before any request."
+    }
+   ],
+   "about": [
+    false,
+    true,
+    true
+   ],
+   "note": null
+  },
+  "status": "done",
+  "spec_action": "nav-e5b1e5f36a4b408aaecad8fc7ed0f273",
+  "spec_results": 1,
+  "defaults": [
+   {
+    "alternative": "Use a single JSON settings variable, requiring an operator to edit a JSON object.",
+    "default": "Use DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL and DUE_HOURS_LOW for positive whole hours.",
+    "question": "How do operators set response hours?",
+    "requirement": "R-1",
+    "why": "Existing configuration uses individual environment variables and whole numbers."
+   },
+   {
+    "alternative": "Include the ticket at equality, changing results at the exact timestamp.",
+    "default": "It enters the overdue list once the deadline has passed. Existing filters still apply.",
+    "question": "Is a ticket overdue at the exact deadline?",
+    "requirement": "R-3",
+    "why": "The request says the due time has passed."
+   },
+   {
+    "alternative": "Use a separate offline migration command, requiring a separate operator invocation.",
+    "default": "Startup prepares missing deadlines before opening the port, including startup with the flag off.",
+    "question": "What command prepares the data?",
+    "requirement": "R-4",
+    "why": "Startup owns file loading and can complete the write before any request."
+   }
+  ],
+  "spec_summary": "Requirements cover both HTTP and operator paths and link verification. Production access is external and local fixtures exercise the real file format and server.",
+  "spec_md": {
+   "words": 398,
+   "requirements": 6,
+   "default_words": 4
+  },
+  "clause_says_default": [
+   true,
+   true,
+   true
+  ],
+  "block": {
+   "packets": 1,
+   "with_block": 1,
+   "rows": [
+    "1. R-1 How do operators set response hours? Decided: Use DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL and DUE_HOURS_LOW for positive whole hours. Otherwise: Use a single JSON settings variable, requiring an operator to edit a JSON object.",
+    "2. R-3 Is a ticket overdue at the exact deadline? Decided: It enters the overdue list once the deadline has passed. Existing filters still apply. Otherwise: Include the ticket at equality, changing results at the exact timestamp.",
+    "3. R-4 What command prepares the data? Decided: Startup prepares missing deadlines before opening the port, including startup with the flag off. Otherwise: Use a separate offline migration command, requiring a separate operator invocation."
+   ]
+  },
+  "says": 9,
+  "says_naming_a_default": [],
+  "report": {
+   "section": true,
+   "after_request": true,
+   "rows": 39,
+   "none": false,
+   "not_recorded": false
+  },
+  "notes": [],
+  "owner_notes_state": null
+ },
+ {
+  "name": "h2",
+  "pass": true,
+  "class": "PASS",
+  "checks": {
+   "test \"$(python3 hello.py)\" = 'Hello, wor": true,
+   "python3 -c \"import sys, unittest; suite ": true
+  },
+  "seconds": 464,
+  "output_tokens": 13284,
+  "gate_counts": {
+   "other": {
+    "fired": 2,
+    "caught": 2
+   }
+  },
+  "spec_seconds": [
+   41.0
+  ],
+  "requester": null,
+  "status": "done",
+  "spec_action": "nav-7d1a77d779ab4cbb9939ecf371c351ed",
+  "spec_results": 1,
+  "defaults": [
+   {
+    "alternative": "Write the greeting without a newline, leaving the next terminal prompt on the same line.",
+    "default": "The greeting appears as one complete line followed by a newline.",
+    "question": "Should the greeting end with a newline?",
+    "requirement": "R-1",
+    "why": "A newline follows Python print's standard line-output convention."
+   }
+  ],
+  "spec_summary": "R-1 and R-2 trace directly to S1. Verification is due after implementation and at local delivery.",
+  "spec_md": {
+   "words": 138,
+   "requirements": 2,
+   "default_words": 1
+  },
+  "clause_says_default": [
+   true
+  ],
+  "block": {
+   "packets": 1,
+   "with_block": 1,
+   "rows": [
+    "1. R-1 Should the greeting end with a newline? Decided: The greeting appears as one complete line followed by a newline. Otherwise: Write the greeting without a newline, leaving the next terminal prompt on the same line."
+   ]
+  },
+  "says": 6,
+  "says_naming_a_default": [],
+  "report": {
+   "section": true,
+   "after_request": true,
+   "rows": 32,
+   "none": false,
+   "not_recorded": false
+  },
+  "notes": [],
+  "owner_notes_state": null
+ }
+]

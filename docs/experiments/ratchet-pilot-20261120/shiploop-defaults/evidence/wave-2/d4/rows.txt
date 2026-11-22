@@ -1,0 +1,4 @@
+1. R-1 How do I change the hours? Decided: Set SLA_HOURS_URGENT, SLA_HOURS_HIGH, SLA_HOURS_NORMAL or SLA_HOURS_LOW to positive whole hours. Otherwise: Use a single JSON environment value.
+2. R-2 Is a ticket overdue exactly at its due time? Decided: It is overdue only after that instant. Otherwise: Count it at the exact instant as overdue.
+3. R-3 How do I prepare the data file? Decided: Run the one-shot backfill with the service stopped, then enable the feature. Enabled startup also fills missing dues before listening. Otherwise: Rely entirely on startup backfill.
+4. R-2 What happens with other overdue query values? Decided: Only the literal true activates the extra filter. Otherwise: Reject other values with 400.

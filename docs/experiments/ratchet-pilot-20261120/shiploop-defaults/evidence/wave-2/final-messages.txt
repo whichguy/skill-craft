@@ -1,0 +1,33 @@
+===== d4: the host's last message to the user
+Implemented ticket due times in release 1.5.0 and returned it to `master`. Production was left untouched.
+
+With `DUE_TIMES=on`, startup fills missing due times from each ticket’s creation time and priority, saves the file, then starts serving. Assigned due times stay fixed through priority and settings changes. Without the flag, the API keeps its existing response shape.
+
+I chose positive whole-hour `SLA_HOURS_*` settings, with defaults of 4 urgent, 24 high, 72 normal and 168 low. Only `overdue=true` activates the filter, and it returns open or in-progress tickets strictly after their due time. The [ShipLoop report](~/e2e-runs/r-20261121-2c3d50/w2/d4/.shiploop-runs/work-20261122-074041-ee67fb/run/report.html) records those choices and the earlier backfill proposal superseded by automatic startup.
+
+All **121 tests passed**, including the 117 unchanged tests. The actual 1.4.0 server started on the upgraded file and showed every ticket. Its next save strips `due` fields, so the [rollback instructions](~/e2e-runs/r-20261121-2c3d50/w2/d4/work/docs/operations.md) explain how to preserve those values for re-upgrade.
+
+===== d5: the host's last message to the user
+Implemented fixed ticket deadlines in version 1.5.0. The defaults are 4 hours for urgent, 24 for high, 72 for normal, and 168 for low. Operators can override them with `DUE_HOURS_<PRIORITY>`. Once saved, a deadline survives priority and configuration changes.
+
+With `DUE_TIMES=on`, ticket responses include `due`, and `GET /tickets?overdue=true` returns only open or in-progress tickets whose deadline has passed. For production rollout, run `npm run backfill:due` against `DATA_FILE` with the writer stopped, then enable the flag. Production activation remains pending. [Rollout and rollback instructions](~/e2e-runs/r-20261121-2c3d50/w2/d5/work/docs/operations.md#roll-out-due-times)
+
+All 120 tests passed, including the 117 unchanged tests. I also verified that 1.4.0 starts on the upgraded file and lists every ticket. Its writes drop the `due` fields, so keep a copy of the upgraded file before rollback.
+
+[ShipLoop completion report](~/e2e-runs/r-20261121-2c3d50/w2/d5/.shiploop-runs/work-20261122-074040-ca4ae6/run/report.html)
+
+===== d6: the host's last message to the user
+Implemented ticket due times and returned the changes to `master`. Deadlines are assigned once, survive priority and settings changes, and appear in the API and human-readable CLI with `DUE_TIMES=on`. The overdue filter includes only open and in-progress tickets whose deadline has passed.
+
+I chose per-priority `DUE_HOURS_*` settings for whole-hour overrides, a strict overdue cutoff, and automatic backfill before the service starts listening. For production, start with the flag off, verify that every ticket has a saved `due`, then enable it. [Rollout and rollback instructions](~/e2e-runs/r-20261121-2c3d50/w2/d6/work/docs/operations.md#rolling-out-due-times)
+
+All **122 tests passed**, including the 117 original tests. I also started the original 1.4.0 server on a file written by the new code and verified that it returned every fixture ticket. Because 1.4.0 drops `due` when it saves, preserve a copy of the enriched file before rolling back.
+
+[ShipLoop report and implementation choices](~/e2e-runs/r-20261121-2c3d50/w2/d6/.shiploop-runs/work-20261122-074050-1dcb56/run/report.html)
+
+===== h2: the host's last message to the user
+Created [hello.py](~/e2e-runs/r-20261121-2c3d50/w2/h2/work/hello.py). Running `python3 hello.py` prints `Hello, world!` followed by one newline.
+
+Added [test_hello.py](~/e2e-runs/r-20261121-2c3d50/w2/h2/work/test_hello.py) to verify the exact stdout bytes. `python3 -B -m unittest -v` passed in the returned checkout.
+
+[ShipLoop report](~/e2e-runs/r-20261121-2c3d50/w2/h2/.shiploop-runs/work-20261122-074033-57cbca/run/report.html)

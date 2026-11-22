@@ -4360,6 +4360,10 @@ under `evidence/wave-1/`.
 - **The list is partial.** The reader found 5 to 7 choices in each specification that no row has; no row in any run
   says what an invalid setting does; and no row or specification has the largest number of hours each product
   enforces (2.4, 2.5 and 2.4 billion), which the build chose.
+  (Corrected 23:45: an invalid setting stopping the start is the starting product's own documented behaviour, so
+  leaving it out of the list is right, and the blind reader, who cannot see the product, counts such lines as
+  unlisted. The 5 to 7 are an upper limit on what is missing. The refusal to start in d2 and d3 and the build's
+  upper bound on hours are the real misses.)
 - **The cost.** No submission was refused by the new gate. The spec stage took 52 to 56 seconds (archive: median 43,
   17 to 61); the deliveries 759 to 1,103 seconds (archive 820 to 1,248).
 - **What the host said.** The block reached all four sessions. One host of three named the choices to the user as
@@ -4379,3 +4383,42 @@ spec stage" in the done packet and the report (it marks R-3 in d2 and in d1 and 
 the finished runs; a line added to a requirement, which the build's stages do routinely, is not a rewrite), and the
 done packet's first line now tells the host to say the choices to the user. `DESIGN.md` section 5 has the reworded
 text and wave 2's rules.
+
+### Wave 2: the reworded instruction gets two "yes" of three (2026-11-21, 23:40 to 23:58)
+
+Four more real deliveries (d4, d5, d6 and `hello`), built from 1641ecb825d4b6a09111927c871ca7c00d9c433b, same driver,
+same reader, same brief, same "strict and literal" instruction. `DESIGN.md` section 6 has the table; evidence under
+`evidence/wave-2/`.
+
+- **R1 is met**: the reader scored d4 and d5 "yes" and d6 "partly" (wave 1: three "partly"). A row of d5: "Run npm
+  run backfill:due while the writer is stopped. Enabled startup also fills any missing deadlines before serving.
+  Otherwise: Require a separate backfill and refuse startup when any value is missing."
+- **What that does not show.** None of the three specifications chose the refusal to start (two of three did in
+  wave 1; four of eleven in the archive), so the reworded text was never asked to put a refusal into a row. Asking
+  for "what happens if they do not" may turn an author away from a refusal; three runs cannot say.
+- **R2, no stop.** All eleven rows are real open points their clause states; none settled, added or unstated; the
+  line-by-line reading did not over-list (4, 4 and 3 rows; `hello` one, the same as before). Each named clause now
+  says it is a default (11 of 11; 7 of 10 in wave 1).
+- **Told to, hosts say it.** The done packet's first line is now an instruction, and two final messages of three
+  give the user the choices as choices ("I chose per-priority `DUE_HOURS_*` settings for whole-hour overrides, a
+  strict overdue cutoff, and automatic backfill before the service starts listening"); none of three did in wave 1.
+- **The mark, in a real run.** d4's reply made the next stage rewrite the requirement; its done packet and report
+  mark that row "changed after the spec stage" and no other.
+- **The cost.** No refusal of the new gate in eight runs. The spec stage is about fifteen seconds slower than the
+  archive's median (56 to 66 seconds against 43).
+- **One harness verdict to read with care.** d4 is FAILED: at grading, the check that the starting product's 117
+  tests still pass "did not end within 120 s". Run by hand twice afterwards on the same delivery it passes, 117 of
+  117. The record is left as the harness wrote it.
+- **F61, completed: of four replies, two changed the build, one was confirmed and one was ignored.** d5's stage was
+  shown the note in two prints of its packet; no summary of that run names it, the script records it as delivered,
+  and the delivery keeps the operator's command the reply said nobody should need. A note is delivered when the
+  step that saw it is accepted, whatever the step did with it. That is the design review's point, observed.
+
+My launcher's last lines failed in wave 2 (exit 2) because I edited the script while it ran and the shell read the
+rest of the file from a shifted place. Every run had already written its own exit file, and nothing else was lost.
+The rule is old: never edit a running shell script.
+
+**The tests, on the candidate as it stands** (the tree of 1641ecb825d4b6a09111927c871ca7c00d9c433b; 00:00 to 00:25
+on 2026-11-22, four suites at a time, beside one live delivery): the same wide selection as before, 131 suites, all
+passed. The two suites that had each failed one test in runs of eight at a time (`shiploop-navigator-contract`,
+`shiploop-e2e-incremental-pilot`) pass here, as they do alone.

@@ -281,6 +281,15 @@ largest number of hours the product accepts (2.4, 2.5 and 2.4 billion; no specif
 it, as in twelve of twelve archived Sol products). In d3 no row has the refusal to start. A list written at the
 spec stage cannot hold what the build decides, and it holds a third of what the specification decides.
 
+> **Corrected 23:45, after reading the starting product.** Two of those sentences claim too much. That an invalid
+> setting stops the service at start, naming the variable, is the starting product's own documented behaviour (its
+> README says so and `src/config.js` does it for every setting), so a specification that repeats it has made no
+> choice and the instruction rightly keeps it out of the list. The same holds for some of what the blind reader
+> counted as unlisted (timestamps in the product's own format, a filter that combines as the others do): that
+> reader cannot see the product. So "a third of what the specification decides" overstates the gap. What stands:
+> the refusal to start is a real choice no row has in d2 and d3, the upper bound on hours is the build's choice in
+> three of three, and the reader's counts (5, 7, 7) are an upper limit on what is missing, not a measure of it.
+
 **O1, the reply (the existing note route, not the candidate).** The two runs that chose the answer the owner ruled
 wrong are a pair. In d2 the stand-in's one sentence arrived as note N1 while `test-strategy` was current. That stage
 held its callback once, then rewrote the requirement ("N1 supersedes offline preparation and startup rejection.
@@ -332,3 +341,90 @@ section; the stand-in replies in two and is silent in one, as in wave 1. The sam
 | what the rewording moved (described) | rows per run (wave 1: 4, 3, 3) and the reader's count of unlisted choices (5, 7, 7); the `hello` list (1 row). |
 | the done packet (described) | whether each final message tells the user the choices as choices (wave 1: 0 of 3). |
 | the mark (described) | in a run whose reply changes the requirement: the row is marked in the done packet and the report. |
+
+## 6. Wave 2: the reworded instruction (written 2026-11-22, 00:01)
+
+Four real deliveries built from commit 1641ecb825d4b6a09111927c871ca7c00d9c433b, 23:40 to 23:58 on 2026-11-21, same
+driver. Evidence: `evidence/wave-2/` (as for wave 1, and `final-messages.txt`: each host's last message to the user).
+
+| | d4 | d5 | d6 | h2 (hello) |
+| --- | --- | --- | --- | --- |
+| rows the spec recorded | 4 | 4 | 3 | 1 |
+| the start-up choice it took | an operator's backfill first, and an enabled start also fills in what is missing | the same | the service fills them in at any start | |
+| the blind reader's score (R1) | yes | yes | partly | |
+| rows the reader calls a real open point that the named clause states | 4 of 4 | 4 of 4 | 3 of 3 | |
+| choices in the specification that no row has (the reader's count, an upper limit) | 4 | 5 | 4 | |
+| the named clause says it is a default | 4 of 4 | 4 of 4 | 3 of 3 | 1 of 1 |
+| the stand-in's reply | sent | sent | not sent | |
+| held-out checks passed | 7 of 8 (see below) | 8 of 8 | 8 of 8 | 2 of 2 |
+| seconds; the spec stage; output tokens | 901; 66; 31,251 | 789; 56; 26,904 | 1,075; 62; 36,593 | 464; 41; 13,284 |
+| refusals of the `defaults` gate | 0 | 0 | 0 | 0 |
+| the last message tells the user the choices as choices | yes | no | yes | no |
+
+**R1: met.** The same reader, brief and instruction scored two rows "yes" and one "partly" (wave 1: three
+"partly"). d5's row: "Run npm run backfill:due while the writer is stopped. Enabled startup also fills any missing
+deadlines before serving. Otherwise: Require a separate backfill and refuse startup when any value is missing." The
+"partly" is d6, whose row says the service prepares the deadlines at any start and does not say in so many words
+what a start with the switch on does; d1 of wave 1 got "partly" for the same reason.
+
+**What that does and does not show.** Six specifications were written with the list, three under each wording. With
+the first, two of three chose the refusal to start; with the second, none of three did (archive: four of eleven).
+So the reworded text was not tried on the case that matters most, a row for a refusal. It may be that asking for
+"what happens if they do not" turns an author away from a refusal; three runs cannot say (at the archive's rate,
+three of three by chance is about one time in four). The builder's words are still there ("backfill", "the writer",
+"the flag").
+
+**R2: no stop.** All eleven rows are real open points that the named clause states; the reader called none
+settled, added or unstated, so reading line by line did not over-list. Rows per run are 4, 4, 3 (wave 1: 4, 3, 3)
+and the reader's count of unlisted choices 4, 5, 4 (5, 7, 7). In two of the six runs of both waves a row holds a
+detail its clause does not (d5: the command's name and "while the writer is stopped"; d1: "even with the flag off").
+The specifications as accepted have 381, 337 and 398 words and 5, 4 and 6 requirements. `hello` recorded the same
+one row as before.
+
+**The done packet.** Told to, two hosts of three gave the user the choices as choices in their last message (d4: "I
+chose positive whole-hour `SLA_HOURS_*` settings ... The ShipLoop report records those choices and the earlier
+backfill proposal superseded by automatic startup"; d6: "I chose per-priority `DUE_HOURS_*` settings for whole-hour
+overrides, a strict overdue cutoff, and automatic backfill before the service starts listening"). d5 did not, and
+`hello` named the newline without calling it a choice. Wave 1, with the rows printed and no instruction: none of
+three.
+
+**The mark.** In d4 the reply made the next stage rewrite R-3 ("Applied N1: replace the planned operator command
+with enabled-startup backfill"). The done packet printed "3. R-3 (changed after the spec stage)" with the sentence
+that the specification holds what was built, and the report's row carries the same mark. d5, d6 and `hello` print
+"No requirement named here has been rewritten since the spec stage recorded these rows."
+
+**The cost.** No refusal of the new gate in four runs (none in eight over both waves). The spec stage took 56 to
+66 seconds: about a quarter of a minute over the archive's median of 43, and above its range (17 to 61) in two of
+three.
+
+**d4's failed check.** The harness's verdict for d4 is FAILED: at grading, its check that the starting product's
+own 117 tests still pass against the delivery "did not end within 120 s". Run by hand twice afterwards against the
+same delivery, that check passes, 117 of 117. The harness's record is left as it is; the other seven checks,
+`migrate` among them, pass.
+
+**O1, the reply, over both waves (four replies).** Two made the next stage rewrite the requirement and the build
+followed (d2, d4). One was confirmed and the clause extended (d1). One was shown to its stage in two prints of the
+packet and never answered: no summary of d5 names N1, the note is recorded as delivered, and the delivery keeps the
+operator's command the reply said nobody should have to run (its start-up also fills what is missing, so `migrate`
+passes). That is the review's point seen once in four: a note can be delivered without being acted on, and nothing
+in the script notices.
+
+## 7. Where the candidate stands
+
+- It does what it set out to do on this case and driver: six of six specifications show the requester the
+  start-up choice with another answer beside it, where none of eleven archived runs says anything; all 21 rows of
+  the six lists are real open points; nothing was invented; no submission was refused; `hello` gets one small row.
+- The reworded instruction reads better to a strict reader (two "yes" of three against none of three), on designs
+  that happen not to include a refusal.
+- The list is the specification's. What the build decides is not in it (the upper bound on hours, three of three),
+  and a blind reader still counts four or five lines per specification that no row has; that count is an upper
+  limit, because some of those lines are the product's own conventions.
+- Whether the requester hears about the list depends on the host. Told to name the choices in its progress line,
+  one host of six did. Told to say them in its last message, two of three did (none of three before it was told).
+  The report always has the list, in its place.
+- It costs the spec packet its last room (19,934 of the 20,000 characters a Grok host prints whole) and the spec
+  stage about fifteen seconds.
+- It does not make the requester's answer take effect. Sent as a plain owner note right after the specification,
+  the answer changed the build in two runs of four, was confirmed in one and ignored in one. A route of ShipLoop's
+  own for that answer, with a check that the requirement changed, is the missing half, and a product decision.
+- Not run: any other case, more than three runs a cell, and (when this was written) the other driver.

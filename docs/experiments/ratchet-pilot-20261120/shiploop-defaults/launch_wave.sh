@@ -10,11 +10,13 @@
 #         silent  the stand-in reads and records what was printed and sends nothing
 #         none    no stand-in
 #
-# Every run is Codex with gpt-6.2-sol at medium, built from the checkout, as the archive it is read against.  Its row
-# of the harness's baseline ledger goes to ROOT/baselines.jsonl, never to the repository's own ledger.
+# Every run is Codex with gpt-6.2-sol at medium, built from the checkout, as the archive it is read against, unless
+# the environment names another driver: HOST, MODEL and EFFORT (for example HOST=claude MODEL=claude-sonnet-5-5).  Its
+# row of the harness's baseline ledger goes to ROOT/baselines.jsonl, never to the repository's own ledger.
 # The script waits for all of them and writes each run's exit code to ROOT/NAME.exit.
 set -u
 REPO=$1; COMMIT=$2; ROOT=$3; shift 3
+HOST=${HOST:-codex}; MODEL=${MODEL:-gpt-6.2-sol}; EFFORT=${EFFORT:-medium}
 APP="$ROOT/apparatus-$(printf '%s' "$COMMIT" | cut -c1-12)"
 HERE_IN_REPO=docs/experiments/ratchet-pilot-20261120/shiploop-defaults
 mkdir -p "$ROOT"
@@ -30,8 +32,8 @@ for cell in "$@"; do
   out="$ROOT/$name"
   (
     cd "$APP" || exit 2
-    python3 test/shiploop_e2e/run.py --source checkout --case "$case_name" --host codex --model gpt-6.2-sol \
-      --effort medium --output "$out" --baseline "$ROOT/baselines.jsonl" --quiet > "$ROOT/$name-log.txt" 2>&1
+    python3 test/shiploop_e2e/run.py --source checkout --case "$case_name" --host "$HOST" --model "$MODEL" \
+      --effort "$EFFORT" --output "$out" --baseline "$ROOT/baselines.jsonl" --quiet > "$ROOT/$name-log.txt" 2>&1
     echo $? > "$ROOT/$name.exit"
   ) &
   echo "$name run $!" >> "$ROOT/pids.txt"
@@ -44,7 +46,7 @@ for cell in "$@"; do
     ) &
     echo "$name requester $!" >> "$ROOT/pids.txt"
   fi
-  date "+%H:%M:%S launched $name ($case_name, $mode)"
+  date "+%H:%M:%S launched $name ($case_name, $mode, $HOST $MODEL $EFFORT)"
 done
 wait
 date "+%H:%M:%S wave finished"
