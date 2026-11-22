@@ -1,0 +1,28 @@
+{
+ "a": {
+  "letters": {
+   "p66d875": "X",
+   "p376d8c": "Y",
+   "p990bda": "Z"
+  },
+  "pairs": [
+   "Z-Y",
+   "Z-X",
+   "X-Y"
+  ],
+  "characters": 90487
+ },
+ "b": {
+  "letters": {
+   "p990bda": "X",
+   "p376d8c": "Y",
+   "p66d875": "Z"
+  },
+  "pairs": [
+   "X-Y",
+   "X-Z",
+   "Z-Y"
+  ],
+  "characters": 90487
+ }
+}

@@ -1,0 +1,27 @@
+{"pairs": [
+{"pair": "Z-Y", "better": "same", "advantages": [
+{"of": "Z", "what": "Every error answers with a JSON error message naming the problem; Y answers 400 with an empty body and 201 with an empty body on group creation", "ref": "Z extras (sendJson); Y U-1", "matters_to": "requester"},
+{"of": "Z", "what": "Whitespace-only member names are refused; Y accepts \" \" as a member", "ref": "U-6", "matters_to": "requester"},
+{"of": "Z", "what": "An empty DATA_FILE starts with no groups instead of refusing to start", "ref": "U-10", "matters_to": "operator"},
+{"of": "Z", "what": "No stray temp file left beside DATA_FILE after a kill mid-write", "ref": "U-8", "matters_to": "operator"},
+{"of": "Z", "what": "Smaller delivery: no acceptance/ folder, builder notes or number-spelling leniency code to carry", "ref": "Y extras (acceptance/, readNumberSources)", "matters_to": "maintainer"},
+{"of": "Y", "what": "Mutations go through one write queue, so lost-update safety does not rest on an unstated no-await invariant", "ref": "Y U-13; Z maintainer", "matters_to": "maintainer"},
+{"of": "Y", "what": "Tests catch removal of the positive-amount check; Z's suite stays green", "ref": "S-22", "matters_to": "maintainer"},
+{"of": "Y", "what": "Saved ledger is strictly validated at startup, refusing a corrupt or foreign file", "ref": "Y extras (loadGroups)", "matters_to": "operator"}
+], "lesser_lacks": ["(same) Y: return JSON error bodies and the group in the 201 body", "(same) Z: add a test sending zero and negative cents with split equal", "(same) Z: validate the shape of the loaded DATA_FILE at startup"], "one_task_closes": "yes", "why": "Both deliver every stated requirement and every unsaid condition soundly or acceptably, with no defects and both documented in a README. Z gives clearer error replies and slightly tidier edge handling with less code; Y gives a sturdier write path, stricter startup loading and a test that guards the amount check. The differences are small and pull in opposite directions."},
+{"pair": "Z-X", "better": "Z-some", "advantages": [
+{"of": "Z", "what": "README documents the error statuses, id rules, member handling, data-file behaviour and durability; X tells none of the unsaid choices", "ref": "Z U-1..U-31 told; X told no", "matters_to": "operator"},
+{"of": "Z", "what": "An empty DATA_FILE starts with no groups; X refuses to start with a stack trace", "ref": "U-10", "matters_to": "operator"},
+{"of": "Z", "what": "Numbers judged by their source text, so 1.0000000000000001 is not stored as a whole cent", "ref": "Z extras (isWholeNumberText); S-23", "matters_to": "requester"},
+{"of": "Z", "what": "Symlinked DATA_FILE handling adds startup code not asked for", "ref": "Z extras (followLinks)", "matters_to": "no one"}
+], "lesser_lacks": ["Write a README telling the request's unsaid choices: error statuses, id and member rules, data-file and durability behaviour", "Start with no groups when DATA_FILE is empty or whitespace", "Check numbers against their JSON source text so near-integer floats are refused"], "one_task_closes": "yes", "why": "X and Z are nearly the same build and both pass every requirement and condition with no defects. Z adds a README that tells an operator the choices X leaves unsaid, and handles an empty data file and near-integer amounts better. These are modest gains that a short follow-up to X would close."},
+{"pair": "X-Y", "better": "Y-some", "advantages": [
+{"of": "Y", "what": "README documents the unsaid choices (errors, ids, members, durability, write queue); X documents none", "ref": "Y U-1..U-31 told; X told no", "matters_to": "operator"},
+{"of": "Y", "what": "Write queue rather than an unstated synchronous invariant guards against lost expenses", "ref": "Y U-13; X maintainer", "matters_to": "maintainer"},
+{"of": "Y", "what": "Tests catch removal of the positive-amount check; X's suite stays green", "ref": "S-22", "matters_to": "maintainer"},
+{"of": "Y", "what": "Strict validation of the saved ledger refuses a wrong-shaped file instead of answering 500 to every write", "ref": "Y extras (loadGroups); X U-10, X maintainer", "matters_to": "operator"},
+{"of": "X", "what": "JSON error messages on failures and the stored group echoed on 201", "ref": "X extras; Y U-1", "matters_to": "requester"},
+{"of": "X", "what": "Whitespace-only member names refused", "ref": "U-6", "matters_to": "requester"},
+{"of": "X", "what": "Less code to carry: no acceptance/ folder, builder notes or number-spelling parsing", "ref": "Y extras", "matters_to": "maintainer"}
+], "lesser_lacks": ["Write a README telling the unsaid choices: error statuses, id and member rules, data-file and durability behaviour", "Add a test sending zero and negative cents with split equal", "Validate the shape of the loaded DATA_FILE at startup and refuse a foreign file", "Serialise mutations explicitly or document the no-await invariant in recordExpense and createGroup"], "one_task_closes": "yes", "why": "Both are correct with no defects, but Y tells the operator its choices, guards the amount check in tests, and has a sturdier write and load path. X answers with clearer error messages and carries less extra code. Y's edge is real but modest, and an hour of work on X would close it."}
+]}

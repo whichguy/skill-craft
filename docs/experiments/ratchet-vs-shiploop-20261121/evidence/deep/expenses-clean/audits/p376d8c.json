@@ -1,0 +1,723 @@
+{
+ "code": "p376d8c",
+ "ran": {
+  "tests_command": "node --test (from work/p376d8c)",
+  "tests_result": "13 tests, 13 pass, 0 fail, exit 0 (also 13/13 on a second run and with port 3000 held)",
+  "started_with": "PORT=47613 DATA_FILE=work/p376d8c/pdata/<name>.json node server.js (spawned by probe scripts, stopped by pid)"
+ },
+ "stated": [
+  {
+   "id": "S-1",
+   "built": "yes",
+   "observed": true,
+   "evidence": "node server.js started (Listening on port 47613) with node v26.12.1 and served every probe",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "all 13 tests spawn server.js",
+   "proved": "fails",
+   "proved_by": "renamed server.js to app.js: all 13 tests fail (e.g. \"creates groups on the configured port and preserves the original on duplicates\"); restored, 13/13 pass"
+  },
+  {
+   "id": "S-2",
+   "built": "yes",
+   "observed": true,
+   "evidence": "no package.json, no node_modules; server.js requires only node:crypto, node:fs/promises, node:http, node:path, node:util; it started from a plain copy",
+   "spec": "stated",
+   "test": "weak",
+   "test_name": "suite runs without any install, so a missing package would fail every test, but nothing checks for dependencies",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-3",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; all requests to 127.0.0.1:47613 answered; startup prints \"Listening on port 47613\"",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "creates groups on the configured port and preserves the original on duplicates (asserts the printed port equals the configured PORT)",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-4",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; after POST /groups the file named by DATA_FILE existed and held {\"groups\":[{\"id\":\"g\",\"members\":[\"Ann\",\"Bob\"],\"expenses\":[]}]}",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "commits overlapping mutations once each and resumes the ledger after restart",
+   "proved": "fails",
+   "proved_by": "main(): resolve(DATA_FILE) -> resolve(DATA_FILE + \".other\"); 5 tests fail incl. \"commits overlapping mutations once each and resumes the ledger after restart\" and \"a failed ledger replacement preserves the saved expense and next number\"; restored, 13/13 pass"
+  },
+  {
+   "id": "S-5",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; created g,t,u,v,w,e; SIGTERM; restarted same DATA_FILE; GET /groups/g/balances -> 200 {\"Ann\":15,\"Bob\":16,\"Cy\":-31}",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "commits overlapping mutations once each and resumes the ledger after restart",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-6",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; after restart balances and settlements of g identical to before ([{\"from\":\"Cy\",\"to\":\"Bob\",\"cents\":16},{\"from\":\"Cy\",\"to\":\"Ann\",\"cents\":15}])",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "commits overlapping mutations once each and resumes the ledger after restart",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-7",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; POST /groups {\"id\":\"g\",\"members\":[\"Ann\",\"Bob\",\"Cy\"]} -> 201 (empty body)",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "creates groups on the configured port and preserves the original on duplicates",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-8",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; second POST /groups {\"id\":\"g\",...} -> 409",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "creates groups on the configured port and preserves the original on duplicates",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-9",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; members [\"Ann\"] -> 400; members [] -> 400",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "creates groups on the configured port and preserves the original on duplicates",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-10",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; members [\"Ann\",\"Ann\"] -> 400",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "creates groups on the configured port and preserves the original on duplicates",
+   "proved": "fails",
+   "proved_by": "validMembers(): dropped \"&& new Set(members).size === members.length\"; \"creates groups on the configured port and preserves the original on duplicates\" fails; restored, 13/13 pass"
+  },
+  {
+   "id": "S-11",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; members [\"Ann\",\"\"] -> 400",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "creates groups on the configured port and preserves the original on duplicates",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-12",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; POST /groups/g/expenses {\"payer\":\"Ann\",\"cents\":100,\"split\":\"equal\"} -> 201 {\"expense\":1}; Ann credited 100",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "applies quotient, remainder, exact shares, and omitted members per group",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-13",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; 100 equal among Ann,Bob,Cy paid by Ann -> balances {\"Ann\":66,\"Bob\":-33,\"Cy\":-33}",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "applies quotient, remainder, exact shares, and omitted members per group",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-14",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; shares 34,33,33 for 100/3; then 2 cents by Cy -> {\"Ann\":65,\"Bob\":-34,\"Cy\":-31} (Ann,Bob each +1); 1 cent among 3 paid by Cy -> {\"Ann\":-1,\"Bob\":0,\"Cy\":1}",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "applies quotient, remainder, exact shares, and omitted members per group",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-15",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; exact {\"payer\":\"Bob\",\"cents\":50,\"shares\":{\"Ann\":50,\"Cy\":0}} -> 201; balances moved Ann -50, Bob +50",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "applies quotient, remainder, exact shares, and omitted members per group",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-16",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; share \"Cy\":0 accepted (201)",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "applies quotient, remainder, exact shares, and omitted members per group",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-17",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; cents 50 shares {\"Ann\":40} -> 400; shares {\"Ann\":40,\"Bob\":20} -> 400; balances unchanged",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "rejects invalid submissions without changing data or consuming a number",
+   "proved": "fails",
+   "proved_by": "expenseFrom(): deleted the \"totalShares(amounts) !== BigInt(cents)\" check; \"rejects invalid submissions without changing data or consuming a number\" fails; restored, 13/13 pass"
+  },
+  {
+   "id": "S-18",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; 201 with body {\"expense\":1}, Content-Type application/json",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "applies quotient, remainder, exact shares, and omitted members per group",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-19",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; g got 1,2,3; each new group started at 1; after restart next was 4",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "commits overlapping mutations once each and resumes the ledger after restart",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-20",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; payer \"Zed\" -> 400",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "rejects invalid submissions without changing data or consuming a number",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-21",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; shares {\"Zed\":50} -> 400",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "rejects invalid submissions without changing data or consuming a number",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-22",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; cents 0 -> 400; cents -5 -> 400",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "rejects invalid submissions without changing data or consuming a number",
+   "proved": "fails",
+   "proved_by": "expenseFrom(): \"cents <= 0\" -> \"cents < 0\"; \"rejects invalid submissions without changing data or consuming a number\" fails (and \"accepted group IDs fit all three routes using a single encoded segment\" failed in that run); restored, 13/13 pass"
+  },
+  {
+   "id": "S-23",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; cents 1.5 -> 400; cents \"100\" -> 400 (3.0 is accepted as 3, documented)",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "rejects invalid submissions without changing data or consuming a number",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-24",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; split \"percent\" -> 400",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "rejects invalid submissions without changing data or consuming a number",
+   "proved": "fails",
+   "proved_by": "expenseFrom(): split check replaced by false and \"split === 'equal'\" by \"split !== 'exact'\" (unknown split treated as equal); \"rejects invalid submissions without changing data or consuming a number\" fails; restored, 13/13 pass"
+  },
+  {
+   "id": "S-25",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; shares short by 10 or over by 10 -> 400",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "rejects invalid submissions without changing data or consuming a number",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-26",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; GET /groups/g/balances -> 200 {\"Ann\":15,\"Bob\":16,\"Cy\":-31}; fresh group -> {\"A\":0,\"B\":0}",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "applies quotient, remainder, exact shares, and omitted members per group",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-27",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; hand-computed paid minus owed matched in groups g, t, w, p (e.g. p: {\"A\":46,\"B\":37,\"C\":-83})",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "applies quotient, remainder, exact shares, and omitted members per group",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-28",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; every balances body summed to 0, including near-MAX_SAFE_INTEGER amounts",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "applies quotient, remainder, exact shares, and omitted members per group",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-29",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; GET /groups/g/settlements -> 200 [{\"from\":\"Cy\",\"to\":\"Bob\",\"cents\":16},{\"from\":\"Cy\",\"to\":\"Ann\",\"cents\":15}]; zero balances -> []",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "settles greedily in member order and leaves the recorded ledger unchanged",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-30",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; applying each returned list to its balances gave all zeros (groups g,t,u,v,w)",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "settles greedily in member order and leaves the recorded ledger unchanged",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-31",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; A+100,B-30,C-30,D-40 -> D->A 40, B->A 30, C->A 30; A+50,B+20,C-60,D-10 -> C->A 50, C->B 10, D->B 10",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "settles greedily in member order and leaves the recorded ledger unchanged",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-32",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; creditor tie A+10,B+10,C-20 -> C->A then C->B; debtor tie A-10,B-10,C+20 -> A->C then B->C; B,C tie at -30 -> B first",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "settles greedily in member order and leaves the recorded ledger unchanged",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-33",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; GET /groups/nope/balances 404, /settlements 404, POST /groups/nope/expenses 404 (also with body \"not json\")",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "rejects invalid submissions without changing data or consuming a number",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-34",
+   "built": "yes",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; 100 concurrent POST expenses -> 100 x 201, numbers 1..100 once each, balances {\"Ann\":100,\"Bob\":-100}, same after restart",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "commits overlapping mutations once each and resumes the ledger after restart",
+   "proved": "not-asked",
+   "proved_by": ""
+  },
+  {
+   "id": "S-35",
+   "built": "yes",
+   "observed": true,
+   "evidence": "node --test in the project root discovers test/service.test.js: 13 tests, 13 pass, exit 0",
+   "spec": "stated",
+   "test": "strong",
+   "test_name": "the suite itself (test/service.test.js, 13 node:test tests)",
+   "proved": "not-asked",
+   "proved_by": ""
+  }
+ ],
+ "unstated": [
+  {
+   "id": "U-1",
+   "behaviour": "Broken JSON bodies get 400 with an empty body; nothing is stored and the server keeps serving",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; POST /groups raw \"{\" -> 400; \"not json\" -> 400; POST /groups/g/expenses \"not json\" -> 400; then POST /groups g9 -> 201 and GET /groups/g/balances -> 200 {\"Ann\":0,\"Bob\":0}",
+   "spec": "open",
+   "told": "yes",
+   "told_where": "README HTTP API: \"Invalid submissions return 400 ... Error responses have empty bodies.\"",
+   "test": "weak",
+   "test_name": "rejects invalid submissions without changing data or consuming a number (sends truncated JSON and checks nothing stored, not the status)"
+  },
+  {
+   "id": "U-2",
+   "behaviour": "Every missing required field gets 400; nothing stored",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; expenses {} / no split / no payer / no cents / exact without shares -> 400 each; POST /groups {} and {\"id\":\"h\"} and {\"members\":[..]} -> 400; GET g balances unchanged, h 404",
+   "spec": "open",
+   "told": "yes",
+   "told_where": "README HTTP API: \"Supply at least two members...\"; \"Invalid submissions return 400.\"",
+   "test": "weak",
+   "test_name": "creates groups on the configured port and preserves the original on duplicates and rejects invalid submissions without changing data or consuming a number (missing members and missing split only)"
+  },
+  {
+   "id": "U-3",
+   "behaviour": "Wrong types are refused with 400, no coercion",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; members \"Ann,Bob\" -> 400; [\"Ann\",7,\"Bob\"] -> 400; cents \"100\" -> 400; shares [100] -> 400; share \"100\" -> 400; payer 7 -> 400; balances unchanged",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "README: \"each with a distinct, nonempty string name\"; \"Expense amounts must be positive whole cents\"",
+   "test": "strong",
+   "test_name": "rejects invalid submissions without changing data or consuming a number"
+  },
+  {
+   "id": "U-4",
+   "behaviour": "Non-empty string ids accepted (except \".\" and \"..\" and over 16 KiB encoded); empty, missing or numeric ids get 400; every accepted id works on all three routes via encodeURIComponent",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; ids \"\", none, 1 -> 400; \".\" -> 400; \"a/b\", \"a b\", \"50%\", \"café\", \"x?y\", \"a#b\" -> 201 and each: POST /groups/<encoded>/expenses 201 {\"expense\":1}, balances 200 {\"A\":5,\"B\":-5}, settlements 200 [{\"from\":\"B\",\"to\":\"A\",\"cents\":5}]",
+   "spec": "open",
+   "told": "yes",
+   "told_where": "README HTTP API: \"A group ID is a nonempty, URL-encodable string ... use encodeURIComponent(id) once\"",
+   "test": "strong",
+   "test_name": "accepted group IDs fit all three routes using a single encoded segment"
+  },
+  {
+   "id": "U-5",
+   "behaviour": "Negative and fractional exact shares are rejected with 400",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; shares {\"Ann\":150,\"Bob\":-50} -> 400; {\"Ann\":50.5,\"Bob\":49.5} -> 400; balances {\"Ann\":0,\"Bob\":0}",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "README: \"the nonnegative whole-cent shares must sum to the expense amount\"",
+   "test": "strong",
+   "test_name": "rejects invalid submissions without changing data or consuming a number"
+  },
+  {
+   "id": "U-6",
+   "behaviour": "Any repeated name rejects the list with 400; whitespace-only names count as ordinary non-empty names; case variants are distinct",
+   "handling": "acceptable",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; [\"Ann\",\"Ann\",\"Bob\"] -> 400; [\"Ann\",\" \",\"Bob\"] -> 201 balances {\"Ann\":0,\" \":0,\"Bob\":0}; [\" \",\"Bob\"] -> 201; [\"Ann\",\"ann\"] -> 201 {\"Ann\":0,\"ann\":0}",
+   "spec": "open",
+   "told": "yes",
+   "told_where": "README: \"each with a distinct, nonempty string name. Names match exactly, including whitespace.\"",
+   "test": "weak",
+   "test_name": "creates groups on the configured port and preserves the original on duplicates (only [\"Ana\",\"Ana\"] and [\"Ana\",\"\"])"
+  },
+  {
+   "id": "U-8",
+   "behaviour": "Each mutation is written to a temp file and renamed over DATA_FILE before the 201; kills never corrupted the file; a SIGKILL mid-write leaves a stray .expenses-<uuid>.tmp beside it",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; SIGKILL right after a 201 -> restart shows {\"Ann\":5,\"Bob\":-5}; 8 workers posting, SIGKILL at 700 ms: 2386 acked, file parses, Ann net 2391 = 5 + 2386 after restart; 1 leftover .tmp file",
+   "spec": "open",
+   "told": "yes",
+   "told_where": "README Persistence and checks: \"replaces the JSON snapshot atomically and acknowledges each mutation after the replacement\"",
+   "test": "weak",
+   "test_name": "a failed ledger replacement preserves the saved expense and next number (failed rename path only; no crash test)"
+  },
+  {
+   "id": "U-9",
+   "behaviour": "Starts with an empty store; file appears on the first successful write; group found after restart. A missing parent directory refuses to start",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; absent file: server listening, file absent until POST /groups -> 201, then file {\"groups\":[{\"id\":\"g\",...}]}; restart -> balances {\"Ann\":0,\"Bob\":0}; DATA_FILE in a missing directory -> exit 1 ENOENT",
+   "spec": "decided-marked",
+   "told": "yes",
+   "told_where": "README: \"An existing, writable parent directory is sufficient for a new ledger. The first successful write creates the file.\"",
+   "test": "strong",
+   "test_name": "creates groups on the configured port and preserves the original on duplicates (every test starts on an absent ledger path)"
+  },
+  {
+   "id": "U-10",
+   "behaviour": "Refuses to start (exit 1, JSON SyntaxError on stderr) for invalid or empty DATA_FILE; file left untouched",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "DATA_FILE containing \"{broken\" -> exit 1 \"SyntaxError: Expected property name...\"; empty file -> exit 1 \"Unexpected end of JSON input\"; both files byte-identical afterwards",
+   "spec": "open",
+   "told": "yes",
+   "told_where": "README Persistence and checks: \"unreadable or incompatible saved data cause startup to fail\"",
+   "test": "none",
+   "test_name": ""
+  },
+  {
+   "id": "U-13",
+   "behaviour": "Concurrent posts are serialised through one write queue: distinct numbers 1..N, each applied once",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; 100 concurrent POST {\"payer\":\"Ann\",\"cents\":2,\"split\":\"equal\"} -> 100 x 201, numbers exactly 1..100, balances {\"Ann\":100,\"Bob\":-100}",
+   "spec": "decided-marked",
+   "told": "yes",
+   "told_where": "README Persistence and checks: \"Overlapping expenses receive numbers in the order their validated requests enter the write queue.\"",
+   "test": "strong",
+   "test_name": "commits overlapping mutations once each and resumes the ledger after restart"
+  },
+  {
+   "id": "U-15",
+   "behaviour": "Exactly one 201, the rest 409; stored members are the winner's; same after restart",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; 20 concurrent POST /groups id \"race\" with alternating member lists -> 1 x 201, 19 x 409; balances {\"Cy\":0,\"Di\":0} = winner list, identical after restart",
+   "spec": "decided-marked",
+   "told": "yes",
+   "told_where": "README: \"Creating a group with a valid list and a used ID returns 409\"; \"Group creations and expense submissions share a write queue\"",
+   "test": "strong",
+   "test_name": "creates groups on the configured port and preserves the original on duplicates"
+  },
+  {
+   "id": "U-16",
+   "behaviour": "Numbering continues after restart",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; three expenses in g, restart, next POST -> 201 {\"expense\":4}",
+   "spec": "decided-marked",
+   "told": "yes",
+   "told_where": "README Persistence and checks: rejected writes leave \"the next expense number unchanged, including after an ordinary restart\"; HTTP API: \"The number increments with each saved expense\"",
+   "test": "strong",
+   "test_name": "commits overlapping mutations once each and resumes the ledger after restart"
+  },
+  {
+   "id": "U-21",
+   "behaviour": "Existing id with invalid members gets 400; stored members unchanged",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; POST /groups {\"id\":\"g\",\"members\":[\"Ann\"]} -> 400; GET /groups/g/balances -> {\"Ann\":0,\"Bob\":0}, same after restart",
+   "spec": "open",
+   "told": "yes",
+   "told_where": "README: \"Invalid submissions return 400. Creating a group with a valid list and a used ID returns 409.\"",
+   "test": "none",
+   "test_name": ""
+  },
+  {
+   "id": "U-25",
+   "behaviour": "GETs only read: identical bodies and the data file is not rewritten",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; balances, settlements, balances, settlements -> {\"Ann\":50,\"Bob\":-50} twice and [{\"from\":\"Bob\",\"to\":\"Ann\",\"cents\":50}] twice; DATA_FILE mtime unchanged",
+   "spec": "decided-marked",
+   "told": "yes",
+   "told_where": "README HTTP API: settlements \"Reading the list leaves the ledger unchanged.\"",
+   "test": "strong",
+   "test_name": "settles greedily in member order and leaves the recorded ledger unchanged"
+  },
+  {
+   "id": "U-26",
+   "behaviour": "Round trip is exact: balances, settlements and next number identical after restart",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; group p: equal 100 + exact 70 -> {\"A\":46,\"B\":37,\"C\":-83} and [{\"from\":\"C\",\"to\":\"A\",\"cents\":46},{\"from\":\"C\",\"to\":\"B\",\"cents\":37}]; file parsed while up; after restart identical; next POST -> {\"expense\":3}",
+   "spec": "decided-unmarked",
+   "told": "yes",
+   "told_where": "README: \"To keep your groups and expenses across restarts, use the same path.\"",
+   "test": "strong",
+   "test_name": "checks whole cents using the wire value and handles member names as own keys"
+  },
+  {
+   "id": "U-27",
+   "behaviour": "Tests spawn server.js on port 0 with a mkdtemp DATA_FILE, clean up the directory and stop the child",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "node --test twice -> exit 0, 13/13 each; once with a listener holding port 3000 -> 13/13; diff -rq against the original shows no new files (only my pdata); no shared-expenses- temp dirs added; no server processes left",
+   "spec": "silent",
+   "told": "no",
+   "told_where": "",
+   "test": "none",
+   "test_name": ""
+  },
+  {
+   "id": "U-31",
+   "behaviour": "Group creation and an expense in another group, sent together, both survive restart",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; 30 rounds of concurrent POST /groups h<i> {\"Cy\",\"Di\"} + POST /groups/g/expenses 2 cents -> all 201; after restart g {\"Ann\":130,\"Bob\":-130} (100 + 30), all 30 h groups {\"Cy\":0,\"Di\":0}",
+   "spec": "decided-marked",
+   "told": "yes",
+   "told_where": "README Persistence and checks: \"Group creations and expense submissions share a write queue across all groups.\"",
+   "test": "strong",
+   "test_name": "commits overlapping mutations once each and resumes the ledger after restart"
+  },
+  {
+   "id": "U-35",
+   "behaviour": "An aborted upload fails body parsing and stores nothing; the server keeps serving",
+   "handling": "sound",
+   "observed": true,
+   "evidence": "probe scripts against PORT=47613 DATA_FILE=work/p376d8c/pdata/*.json node server.js; 5 sockets sent POST /groups/g/expenses with Content-Length 1000 and a partial body, then closed -> balances still {\"Ann\":0,\"Bob\":0}; next valid POST -> 201 {\"expense\":1}, balances {\"Ann\":50,\"Bob\":-50}",
+   "spec": "open",
+   "told": "no",
+   "told_where": "",
+   "test": "none",
+   "test_name": ""
+  }
+ ],
+ "explored": [
+  {
+   "probe": "POST /groups/g/expenses {\"payer\":\"Cy\",\"cents\":1,\"split\":\"equal\"} in a 3-member group",
+   "came_back": "201; balances {\"Ann\":-1,\"Bob\":0,\"Cy\":1} (the one cent goes to the first-listed member)",
+   "finding": "none"
+  },
+  {
+   "probe": "raw body {\"payer\":\"Ann\",\"cents\":3.0,\"split\":\"equal\"} and cents 1.5e1",
+   "came_back": "201 each; 3.0 treated as 3, 1.5e1 as 15 (documented in README)",
+   "finding": "none"
+  },
+  {
+   "probe": "exact with shares {} and with shares null, cents 10",
+   "came_back": "400 each",
+   "finding": "none"
+  },
+  {
+   "probe": "equal split carrying a stray \"shares\":{\"Zed\":9}",
+   "came_back": "201 {\"expense\":4}; shares ignored for an equal split",
+   "finding": "none"
+  },
+  {
+   "probe": "cents 9007199254740991 equal, then the same again",
+   "came_back": "first 201; second 400 (balance would leave the safe-integer range); balances still sum to 0",
+   "finding": "none"
+  },
+  {
+   "probe": "group with members [\"__proto__\",\"constructor\"], exact expense, balances, settlements; payer \"toString\" in a normal group",
+   "came_back": "201, {\"__proto__\":10,\"constructor\":-10}, [{\"from\":\"constructor\",\"to\":\"__proto__\",\"cents\":10}]; payer toString -> 400",
+   "finding": "none"
+  },
+  {
+   "probe": "GET /groups/p/balances?x=1 and GET /groups/p/balances/",
+   "came_back": "query string ignored -> 200; trailing slash -> 404",
+   "finding": "none"
+  },
+  {
+   "probe": "DELETE /groups/p/balances, GET /groups/p/expenses, GET /groups, POST /groups/p/balances",
+   "came_back": "404 for each (no 405)",
+   "finding": "none"
+  },
+  {
+   "probe": "id \"a/b\" reached as /groups/a%252Fb/balances, /groups/a%2fb/balances and malformed /groups/%E0%A4%A/balances",
+   "came_back": "double-encoded 404, lowercase %2f 200, malformed escape 404 (no crash)",
+   "finding": "none"
+  },
+  {
+   "probe": "raw exact body with duplicate key \"shares\":{\"Bob\":3,\"Bob\":10}, cents 10",
+   "came_back": "201; last key wins (JSON.parse semantics)",
+   "finding": "none"
+  },
+  {
+   "probe": "SIGKILL during a stream of concurrent writes, then list the DATA_FILE directory",
+   "came_back": "ledger intact and complete, but one .expenses-<uuid>.tmp file left beside it; it is never cleaned up",
+   "finding": "none"
+  },
+  {
+   "probe": "DATA_FILE inside a directory that does not exist",
+   "came_back": "exit 1 with ENOENT on stat of the directory (refuses to start, documented)",
+   "finding": "none"
+  }
+ ],
+ "defects": [],
+ "extras": [
+  {
+   "what": "Accepts equivalent JSON number spellings (10e-1, 1.0, 2.00E+0) as whole cents, judged on the wire text",
+   "where": "server.js readNumberSources / isWholeCent",
+   "worth": "neutral",
+   "why": "Lenient and documented, but adds subtle parsing code and is pinned by tests that another correct build need not pass"
+  },
+  {
+   "what": "16 KiB limit on new group ids, header budget raised at startup for longer saved ids",
+   "where": "server.js encodedGroupIdLength, createService maxHeaderSize",
+   "worth": "value",
+   "why": "Prevents creating ids that would later get 431 on their own routes; keeps old saved groups reachable"
+  },
+  {
+   "what": "Strict validation of the saved ledger at startup",
+   "where": "server.js loadGroups / validSavedExpense",
+   "worth": "value",
+   "why": "Refuses a corrupt or foreign file instead of overwriting it"
+  },
+  {
+   "what": "Safe-integer bounds on amounts and resulting balances (400 when exceeded)",
+   "where": "server.js balancesFit",
+   "worth": "value",
+   "why": "Keeps balances exact and summing to 0"
+  },
+  {
+   "what": "README section on recording a settlement payment as an exact expense",
+   "where": "README.md \"Record a settlement payment\"",
+   "worth": "value",
+   "why": "Explains how to clear debts with the existing API"
+  },
+  {
+   "what": "acceptance/ folder of builder acceptance checks (cycle-2, cycle-3, clauses, fixture) not run by node --test",
+   "where": "acceptance/",
+   "worth": "neutral",
+   "why": "Not part of the requested suite and not discovered by node --test; extra surface to keep in step"
+  },
+  {
+   "what": "Builder working notes delivered with the product",
+   "where": "ratchet/ (plan, builds, deltas, tests, acceptance.json)",
+   "worth": "neutral",
+   "why": "Process records; no runtime effect"
+  }
+ ],
+ "spec_notes": "The specification states every stated requirement (C-1..C-42) and marks most open points with \"Open:\" lines (PORT handling, malformed saved JSON, id range, member-list edge cases, error-status precedence, crash recovery). It decides some unsaid points in ordinary lines sourced \"request\": C-21 rejects negative and fractional shares and C-14 rejects string cents, although the request only says zero is allowed and the total is checked. Discovery clauses pin choices another correct build need not share: C-46 accepts number spellings such as 10e-1, C-47/C-49 pin id-length handling and upgrade compatibility, C-43/C-48 pin failed-write behaviour. C-45 pins __proto__-style member names. The file repeats a \"## Use cases\" / \"## Clauses\" heading pair for the cycle-3 additions. No contradiction of the request found.",
+ "tests_notes": "Tests are large multi-behaviour scenarios: \"rejects invalid submissions without changing data or consuming a number\" covers 404s, about 15 rejection cases, malformed bodies and numbering; \"commits overlapping mutations once each and resumes the ledger after restart\" covers concurrency, numbering, cross-group creation, file validity and restart. Tied to internals: the two failed-write tests preload a patch of fs/promises.rename aimed at DATA_FILE, so a build that writes the file directly would not be blocked and those tests would fail; \"long IDs already saved...\" and \"reopens and appends to a ledger in the original snapshot format\" hand-write this build's ledger layout ({groups:[{id,members,expenses:[{payer,cents,shares:[...]}]}]}). Tests that would fail on another correct build: the 16 KiB id limit with 400 above it (\"accepted group IDs fit all three routes using a single encoded segment\"), acceptance of 10e-1 and 1.0 and rejection of 1.00000000000000001 (\"checks whole cents using the wire value and handles member names as own keys\", \"accepts equivalent JSON number spellings for amounts and exact shares\"), and the rejected-creation test requiring status 500. Malformed-JSON requests are sent without asserting their status. No timing dependence seen.",
+ "maintainer": "The whole-cent check re-parses the raw body to keep each number's source text (JSON.parse context.source, with a regex fallback for older Node), which is easy to break when touching body handling. Every mutation rewrites the full snapshot through one promise queue and swaps the in-memory map only after the rename, so changes to the write path must keep that order and the strict loader in loadGroups in step with the saved layout, which tests also hand-write."
+}

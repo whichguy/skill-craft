@@ -1,0 +1,17 @@
+{
+ "pa6dbeb": {
+  "point": "S",
+  "tree": "/Users/dadleet/e2e-runs/d20261122-b54ea4/fix/chess/work",
+  "spec": "docs/shiploop/spec.md"
+ },
+ "pc62f4b": {
+  "point": "F",
+  "tree": "/Users/dadleet/e2e-runs/d20261122-b54ea4/delivered/chess",
+  "spec": "docs/shiploop/spec.md"
+ },
+ "p72da10": {
+  "point": "L",
+  "tree": "/Users/dadleet/e2e-runs/d20261122-360a9f/deep/chess/products/pe27d01",
+  "spec": "ratchet/spec.md"
+ }
+}

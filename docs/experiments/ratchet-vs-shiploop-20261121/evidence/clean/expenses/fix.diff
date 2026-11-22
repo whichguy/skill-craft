@@ -1,0 +1,284 @@
+diff --git a/README.md b/README.md
+new file mode 100644
+index 0000000..0d4237b
+--- /dev/null
++++ b/README.md
+@@ -0,0 +1,82 @@
++# Shared expenses service
++
++A small HTTP service that records who paid for what in a group and works out who owes whom. It is one file, `server.js`, and uses only Node.js built-in modules (no `npm install`). It was tested on Node v26.12.1.
++
++## Running it
++
++```sh
++PORT=8080 DATA_FILE=/var/lib/expenses/ledger.json node server.js
++```
++
++- `PORT`: the port to listen on. Unset, it is 3000. `PORT=0` picks a free port.
++- `DATA_FILE`: the JSON file that holds every group and expense, so they survive a restart. Unset, it is `expenses.json` in the working directory. A missing file, an empty file or a file holding only whitespace starts with no groups. A file holding anything else that is not valid JSON stops the service at startup with an error (exit code 1).
++
++On start the service prints `Listening on port <n>`. Stop it with SIGTERM or Ctrl-C. Every accepted change is already on disk when its reply is sent.
++
++Run the tests with `node --test`.
++
++## Endpoints
++
++Requests and replies are JSON. Every error reply is an object `{"error": "<message>"}`. Amounts are whole cents.
++
++### POST /groups
++
++Request: `{"id": "<group id>", "members": ["<name>", ...]}`
++
++| Status | Reply | When |
++| --- | --- | --- |
++| 201 | `{"id": "<id>", "members": [...]}` | Created. `members` is the stored list (see duplicates below). |
++| 400 | `{"error":"Invalid group ID"}` | The body is not a JSON object, or `id` is not a string with some non-whitespace text, or `id` is `.` or `..`, or `id` holds a lone UTF-16 surrogate. No URL can address such an ID. |
++| 409 | `{"error":"Group already exists"}` | A group with this `id` exists. |
++| 400 | `{"error":"Invalid group members"}` | `members` is not an array, or an entry is not a string with some non-whitespace text. |
++| 400 | `{"error":"At least two distinct members are required"}` | Fewer than two distinct names. |
++
++### POST /groups/{id}/expenses
++
++Records an expense paid by one member. Two forms:
++
++- Equal split: `{"payer": "<name>", "cents": <n>, "split": "equal"}`. Each member owes `cents` divided by the number of members, rounded down. The cents left over go one each to the members listed first. For example, 100 among three members is 34, 33, 33.
++- Exact split: `{"payer": "<name>", "cents": <n>, "split": "exact", "shares": {"<name>": <cents>, ...}}`. Each listed member owes that many cents (zero is allowed). Members left out owe nothing. The shares must add up to `cents`.
++
++| Status | Reply | When |
++| --- | --- | --- |
++| 201 | `{"expense": <n>}` | Recorded. `n` is 1 for the group's first expense, then 2, and so on. A refused request does not use up a number. |
++| 404 | `{"error":"Group not found"}` | No such group. This is checked before the body. |
++| 400 | `{"error":"Invalid expense"}` | The body is not a JSON object, or `payer` is not a member, or `cents` is not a whole number from 1 to 9,007,199,254,740,991. |
++| 400 | `{"error":"Invalid split or shares"}` | `split` is not `equal` or `exact`. For `exact`: `shares` is not an object, names someone who is not a member, holds a share that is not a whole number of 0 or more, or does not add up to `cents`. |
++| 500 | `{"error":"Internal server error"}` | The data file could not be written. See below. |
++
++Numbers are judged by how they are written in the JSON: `100`, `100.0` and `1e2` are all the whole number 100 and are accepted. `1.5` is refused, and so is `1.0000000000000001`, which a JSON parser would otherwise round to 1. A number sent as a string, such as `"10"`, is refused.
++
++### GET /groups/{id}/balances
++
++200 with an object giving each member's net cents, in member order: what they paid minus what they owe. Positive means they are owed money. The values add up to 0. For example: `{"Ada": 50, "Bo": -50}`.
++
++404 `{"error":"Group not found"}` for an unknown group.
++
++### GET /groups/{id}/settlements
++
++200 with an array of payments `{"from": "<name>", "to": "<name>", "cents": <n>}` that bring every balance to 0. It is built step by step: the member who owes the most pays the member who is owed the most the smaller of the two amounts. Ties go to the member listed first in the group. When every balance is already 0 the array is empty: `[]`.
++
++404 `{"error":"Group not found"}` for an unknown group.
++
++### Anything else
++
++404 `{"error":"Route not found"}`. Under `/groups/{id}`, an unknown group answers 404 `{"error":"Group not found"}` on any path.
++
++## Behaviour you should know about
++
++These points were chosen by the builder, not by the request. Each was checked against the running service.
++
++- **Duplicate members.** Repeated names in `members` collapse to one member, kept at its first position. `["Bo","Ada","Bo"]` becomes `["Bo","Ada"]`, and the 201 reply shows that list.
++- **IDs and names.** Group IDs and member names must be strings with some non-whitespace text. They are matched exactly, with case and surrounding spaces kept: `ada` is not `Ada`, and `" Trip "` is a different group from `"Trip"`.
++- **URL format.** The group ID is one path segment, percent-decoded. Encode it the way JavaScript's `encodeURIComponent` does, so `shared / café?` becomes `shared%20%2F%20caf%C3%A9%3F`. A malformed escape such as `%E0%A4%A` returns 400 `{"error":"Invalid group ID encoding"}`. Query strings are ignored.
++- **Unlisted methods and paths.** Any other method or path returns 404, including a trailing slash (`/groups/trip/balances/`), `GET /groups` and `GET /groups/{id}`. No route lists, changes or deletes groups or expenses.
++- **Group creation reply.** A 201 returns the ID and the stored member list. The ID is checked first (400), then whether it exists (409), then the members. So an existing ID answers 409 even when its `members` are invalid.
++- **Request JSON.** No `Content-Type` header is needed. Properties the request does not use are ignored, for example `shares` on an equal split. If a property appears twice in one body, the last value is used.
++- **Error replies.** Every error is `{"error": "<message>"}`. If the data file cannot be written (for example, its directory was moved away), the request gets 500 `{"error":"Internal server error"}`, the file-system error is logged to stderr, and the change is not kept. Its expense number is not used. Once the directory is back, a retry succeeds.
++- **Amount range.** The largest single amount accepted is 9,007,199,254,740,991 cents. The next whole cent returns 400.
++- **Large totals.** Balances and settlement amounts are written as exact whole numbers, even above 9,007,199,254,740,991 (for example `18014398509482032`). A client that reads JSON numbers as doubles, as JavaScript's `JSON.parse` does, will round such amounts. Use a lossless JSON parser if totals can grow that large.
++- **Startup defaults.** If unset, `PORT` is 3000 and `DATA_FILE` is `expenses.json` in the working directory.
++- **Storage.** The data file is created by the first change that succeeds. A GET never creates it. Each change writes a new file beside the data file and renames it over the old one, so the file is replaced by a new file with owner-only read and write permissions (mode 0600). If `DATA_FILE` is a symbolic link, the link is kept and the file it points to is replaced, even if that file did not exist yet.
++- **One process per data file.** The file is read only at startup. Each change writes the whole ledger from the service's memory. Changes made to the file by anything else while the service runs are not seen, and the next change overwrites them. This includes a second copy of the service started on the same `DATA_FILE`: it is not detected or refused. Each copy keeps its own ledger, so expenses one copy accepted are lost when the other writes. The two copies can also hand out the same expense number. Stop the old process before you start its replacement. Within one process, simultaneous requests never lose an expense.
+diff --git a/docs/shiploop/fix.md b/docs/shiploop/fix.md
+new file mode 100644
+index 0000000..7e822e0
+--- /dev/null
++++ b/docs/shiploop/fix.md
+@@ -0,0 +1,28 @@
++# Fix pass
++
++`node --test` before any change: 6 tests, 6 pass. After: 10 tests, 10 pass. Each shortfall in look.md was reproduced with its own steps before deciding. Each new test failed on the unchanged server.
++
++## Shortfalls
++
++- Fractional cents are silently recorded as whole cents: fixed. Request bodies are parsed with each number checked against its JSON text, so a non-whole value gets 400 even when a parser would round it to a whole one. Test: `TC-7 rejects amounts and shares whose JSON text is not a whole number`.
++- Two instances can lose an acknowledged expense: not changed. The request describes one process with one PORT and one DATA_FILE, and within that process concurrent requests do not lose expenses (TC-5). Detecting or refusing a second process on the same file would be a new capability, a cross-process lock with stale-lock handling, not a correction. README.md states the limit and says to stop the old process before starting its replacement.
++- A write through a symlink splits the ledger: fixed. DATA_FILE is resolved through symbolic links at startup, including a link whose target does not exist yet, so writes replace the target and keep the link. Test: `TC-8 writes through a symlinked DATA_FILE to its target and keeps the link`.
++- Some successfully created groups are unusable through normal URLs: fixed. Creating a group with ID `.`, `..` or an ID holding a lone surrogate now gets 400 `Invalid group ID`, since no URL path segment can address one. Test: `TC-9 refuses group IDs that no URL path segment can address`.
++- Startup fails on a newly allocated empty file: fixed. An empty or whitespace-only DATA_FILE starts with no groups. Other content that is not JSON still stops startup. Test: `TC-10 starts with no groups from an empty DATA_FILE`.
++
++## Choices documented
++
++README.md (new) describes how to run the service and every endpoint. Its section "Behaviour you should know about" states what the running service does for each of these:
++
++- Duplicate members collapse to one member at the first position.
++- IDs and names need some non-whitespace text and are matched exactly, with case and surrounding spaces kept.
++- The URL format: one percent-decoded path segment, 400 for a malformed escape, query strings ignored.
++- Unlisted methods and paths, including a trailing slash, return 404. No route lists, changes or deletes data.
++- The group creation reply holds the ID and stored members. Checks run in this order: ID (400), then existing ID (409), then members.
++- Request JSON: no Content-Type needed, unused properties ignored, and the last value wins for a repeated property.
++- Error replies are `{"error": ...}`. A write failure gets 500, is logged to stderr, keeps nothing and uses up no expense number.
++- The largest single amount is 9,007,199,254,740,991 cents.
++- Large totals are exact JSON integers. Clients need a lossless parser for them.
++- Defaults: PORT 3000, and DATA_FILE `expenses.json` in the working directory.
++- Storage: the file is created on the first successful change, each write replaces it with a new 0600 file, and a symlink is kept with its target replaced.
++- One process per data file, from the shortfall not changed. The file is read only at startup, outside edits are overwritten, and a second process on the same file is not detected and can lose expenses.
+diff --git a/server.js b/server.js
+index 0fb46f0..e24afaf 100644
+--- a/server.js
++++ b/server.js
+@@ -3,14 +3,33 @@
+ const http = require('node:http');
+ const fs = require('node:fs');
+ const { randomUUID } = require('node:crypto');
+-const { resolve } = require('node:path');
++const { dirname, resolve } = require('node:path');
+ 
+-const dataFile = resolve(process.env.DATA_FILE ?? 'expenses.json');
++const dataFile = followLinks(resolve(process.env.DATA_FILE ?? 'expenses.json'));
+ let state = loadState();
+ 
++// Follow a symlinked DATA_FILE, even one whose target does not exist yet, so
++// each write replaces the file the link names instead of the link itself.
++function followLinks(file) {
++  while (true) {
++    try {
++      return fs.realpathSync(file);
++    } catch (error) {
++      if (error.code !== 'ENOENT') throw error;
++    }
++    try {
++      file = resolve(dirname(file), fs.readlinkSync(file));
++    } catch (error) {
++      if (error.code === 'ENOENT' || error.code === 'EINVAL') return file;
++      throw error;
++    }
++  }
++}
++
+ function loadState() {
+   try {
+-    return JSON.parse(fs.readFileSync(dataFile, 'utf8'));
++    const text = fs.readFileSync(dataFile, 'utf8');
++    return text.trim() === '' ? { groups: [] } : JSON.parse(text);
+   } catch (error) {
+     if (error.code === 'ENOENT') return { groups: [] };
+     throw error;
+@@ -37,12 +56,29 @@ function isName(value) {
+   return typeof value === 'string' && value.trim().length > 0;
+ }
+ 
++// "." and ".." are dot segments that URL parsers remove, and a lone surrogate
++// has no UTF-8 encoding, so no request path could address such a group.
++function isGroupId(value) {
++  return isName(value) && value !== '.' && value !== '..' && value.isWellFormed();
++}
++
++// JSON.parse rounds 1.0000000000000001 to 1, so judge each number by its
++// text: it is whole only if no non-zero digit is left after the decimal point
++// once the exponent is applied.
++function isWholeNumberText(text) {
++  const [, whole, fraction = '', exponent = '0'] = /^-?(\d+)(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/.exec(text);
++  const point = whole.length + Number(exponent);
++  return !/[1-9]/.test((whole + fraction).slice(Math.max(point, 0)));
++}
++
+ async function readBody(request) {
+   request.setEncoding('utf8');
+   let body = '';
+   for await (const chunk of request) body += chunk;
+   try {
+-    return JSON.parse(body);
++    return JSON.parse(body, (key, value, { source }) => (
++      typeof value === 'number' && !isWholeNumberText(source) ? NaN : value
++    ));
+   } catch {
+     return null;
+   }
+@@ -58,7 +94,7 @@ function send(response, status, json) {
+ }
+ 
+ function createGroup(body, response) {
+-  if (!isObject(body) || !isName(body.id)) {
++  if (!isObject(body) || !isGroupId(body.id)) {
+     return sendJson(response, 400, { error: 'Invalid group ID' });
+   }
+   if (state.groups.some((group) => group.id === body.id)) {
+diff --git a/test/expenses.test.js b/test/expenses.test.js
+index 3fa62cc..f969e98 100644
+--- a/test/expenses.test.js
++++ b/test/expenses.test.js
+@@ -204,3 +204,76 @@ test('TC-6 preserves literal member keys and handles encoded group IDs', async (
+     });
+   }
+ });
++
++test('TC-7 rejects amounts and shares whose JSON text is not a whole number', async (t) => {
++  const { request } = await fixture(t);
++  await createGroup(request, 'trip', ['Ada', 'Bo']);
++  for (const body of [
++    '{"payer":"Ada","cents":1.0000000000000001,"split":"equal"}',
++    '{"payer":"Ada","cents":1,"split":"exact","shares":{"Bo":0.99999999999999999}}',
++    '{"payer":"Ada","cents":1,"split":"exact","shares":{"Bo":1,"Ada":-1e-400}}',
++  ]) {
++    assert.equal((await request('POST', '/groups/trip/expenses', body, true)).status, 400, body);
++  }
++  assert.deepEqual(await request('GET', '/groups/trip/balances'), { status: 200, body: { Ada: 0, Bo: 0 } });
++  assert.deepEqual(await request('POST', '/groups/trip/expenses', '{"payer":"Ada","cents":1e2,"split":"equal"}', true), {
++    status: 201, body: { expense: 1 },
++  });
++  assert.deepEqual(await request('GET', '/groups/trip/balances'), { status: 200, body: { Ada: 50, Bo: -50 } });
++});
++
++test('TC-8 writes through a symlinked DATA_FILE to its target and keeps the link', async (t) => {
++  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'shared-expenses-'));
++  t.after(() => fs.rm(dir, { recursive: true, force: true }));
++  const primary = path.join(dir, 'primary.json');
++  const alias = path.join(dir, 'current.json');
++
++  let server = await startServer(t, primary);
++  await createGroup(server.request, 'trip', ['Ada', 'Bo']);
++  await server.stop();
++  await fs.symlink('primary.json', alias);
++  server = await startServer(t, alias);
++  assert.deepEqual(await server.request('POST', '/groups/trip/expenses', exact('Ada', 2, { Bo: 2 })), {
++    status: 201, body: { expense: 1 },
++  });
++  await server.stop();
++  assert.ok((await fs.lstat(alias)).isSymbolicLink());
++  server = await startServer(t, primary);
++  assert.deepEqual(await server.request('GET', '/groups/trip/balances'), { status: 200, body: { Ada: 2, Bo: -2 } });
++  await server.stop();
++
++  const later = path.join(dir, 'later.json');
++  const pending = path.join(dir, 'pending.json');
++  await fs.symlink('later.json', pending);
++  server = await startServer(t, pending);
++  await createGroup(server.request, 'trip', ['Ada', 'Bo']);
++  await server.stop();
++  assert.ok((await fs.lstat(pending)).isSymbolicLink());
++  server = await startServer(t, later);
++  assert.deepEqual(await server.request('GET', '/groups/trip/balances'), { status: 200, body: { Ada: 0, Bo: 0 } });
++  await server.stop();
++});
++
++test('TC-9 refuses group IDs that no URL path segment can address', async (t) => {
++  const { request } = await fixture(t);
++  for (const id of ['.', '..', '\ud800']) {
++    assert.equal((await request('POST', '/groups', { id, members: ['Ada', 'Bo'] })).status, 400, JSON.stringify(id));
++  }
++  await createGroup(request, '...', ['Ada', 'Bo']);
++  assert.deepEqual(await request('GET', '/groups/.../balances'), { status: 200, body: { Ada: 0, Bo: 0 } });
++});
++
++test('TC-10 starts with no groups from an empty DATA_FILE', async (t) => {
++  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'shared-expenses-'));
++  t.after(() => fs.rm(dir, { recursive: true, force: true }));
++  const dataFile = path.join(dir, 'empty.json');
++  await fs.writeFile(dataFile, '');
++
++  let server = await startServer(t, dataFile);
++  assert.equal((await server.request('GET', '/groups/trip/balances')).status, 404);
++  await createGroup(server.request, 'trip', ['Ada', 'Bo']);
++  await server.stop();
++  server = await startServer(t, dataFile);
++  assert.deepEqual(await server.request('GET', '/groups/trip/balances'), { status: 200, body: { Ada: 0, Bo: 0 } });
++  await server.stop();
++});

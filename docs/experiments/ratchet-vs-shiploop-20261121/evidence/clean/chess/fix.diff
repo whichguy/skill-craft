@@ -1,0 +1,143 @@
+diff --git a/README.md b/README.md
+index 412f202..fca45e4 100644
+--- a/README.md
++++ b/README.md
+@@ -18,4 +18,18 @@ console.log(status(next)); // ongoing
+ - `applyMove(fen, move)` returns a new FEN and throws the exported `IllegalMoveError` for illegal moves. Every double pawn push sets the en-passant target square.
+ - `status(fen)` returns `ongoing`, `check`, `checkmate` or `stalemate` for the active side.
+ 
++## Errors
++
++- `IllegalMoveError` (exported class, `name` is `'IllegalMoveError'`): thrown by `applyMove` when the move is not a legal move in the position, including a move string that is not lowercase UCI or is not a string.
++- A plain `Error` whose message starts with `Invalid FEN:`: thrown by `legalMoves`, `status` and `applyMove` when the FEN is malformed (see below). It is not an `IllegalMoveError`. `applyMove` checks the FEN before the move, so a malformed FEN gives this error whatever the move.
++
+ Run the tests with `npm test`.
++
++## Behaviour to know about
++
++- **What counts as a malformed FEN.** The FEN must have six fields: eight ranks separated by `/`, each covering exactly eight squares with the letters `pnbrqkPNBRQK` and the digits `1`-`8`; an active color of `w` or `b`; castling `-` or a subset of `KQkq` in that order; en passant `-` or a square on rank 3 or 6; and halfmove and fullmove counters made only of the digits `0`-`9`. Anything else, or a value that is not a string, throws the `Invalid FEN:` error.
++- **Only the form of the FEN is checked, not whether the position could occur.** A board with no king, two kings of one color, a pawn on the first or last rank, or the side not to move in check is accepted and answered for (for example, a board with no white king and white to move reports `stalemate`). A castling right whose king or rook is not on its home square is accepted and kept in the FEN `applyMove` returns, unless the move removes it, but it never produces a castling move. An en-passant square that no pawn can capture to is accepted, gives no capture, and is not carried into the FEN `applyMove` returns.
++- **Whitespace in the FEN.** Leading and trailing whitespace, and any run of spaces, tabs or newlines between fields, are accepted. `applyMove` returns a FEN with single spaces between fields.
++- **Whitespace in the move.** `applyMove` needs the exact move string, such as `e2e4` or `e7e8q`. Leading or trailing whitespace, upper case, or a value that is not a string throws `IllegalMoveError`.
++- **Clocks.** The halfmove and fullmove counters are read as whole decimal numbers of any size, including values beyond JavaScript's safe integer range, and are carried and incremented exactly. Leading zeros are dropped: a halfmove clock of `007` becomes `8` after a quiet move.
++- **Draws other than stalemate.** `status` only reports check and whether the side to move has a legal move. It does not detect insufficient material, the fifty- or seventy-five-move rules, or repetition: bare kings, or a halfmove clock of 150, report `ongoing` with legal moves. A FEN carries no move history, so the engine cannot see repeated positions. The halfmove clock is kept up to date for a caller that applies these rules itself.
+diff --git a/docs/shiploop/fix.md b/docs/shiploop/fix.md
+new file mode 100644
+index 0000000..7014da6
+--- /dev/null
++++ b/docs/shiploop/fix.md
+@@ -0,0 +1,18 @@
++# Fix pass
++
++Baseline before the fix: `npm test` passed 10 of 10.
++
++## Shortfalls
++
++- Malformed FEN can pass as a playable or finished position: fixed. `parseFen` now checks the form of all six FEN fields and throws a plain `Error` starting `Invalid FEN:` from `legalMoves`, `status` and `applyMove` (which now checks the FEN before the move). Test: `TC-9 rejects malformed FEN fields instead of answering for them` (fails without the fix, passes with it).
++
++## Choices documented in README.md ("Behaviour to know about")
++
++- What counts as a malformed FEN, and the error it raises (new with the fix).
++- Only the form of the FEN is checked, not whether the position could occur (no king, two kings, pawns on the back rank, side not to move in check, castling rights without their king or rook, unusable en-passant squares).
++- FEN whitespace tolerance: surrounding and repeated whitespace (spaces, tabs, newlines) accepted; output uses single spaces.
++- UCI whitespace tolerance: the move string must be exact; whitespace, upper case or a non-string throws `IllegalMoveError`.
++- Clock precision: counters of any size are carried and incremented exactly; leading zeros are dropped.
++- Draw adjudication outside stalemate: no insufficient-material, fifty/seventy-five-move or repetition detection; such positions report `ongoing`.
++
++After the fix: `npm test` passes 11 of 11; the middlegame and depth-two timing checks in TC-8 still pass.
+diff --git a/src/chess.js b/src/chess.js
+index add60bb..9af42ea 100644
+--- a/src/chess.js
++++ b/src/chess.js
+@@ -55,19 +55,38 @@ function pawnStep(color) {
+   return color === 'w' ? 16 : -16;
+ }
+ 
++function invalidFen(reason) {
++  return new Error(`Invalid FEN: ${reason}`);
++}
++
++// Checks the form of each of the six fields; it does not check that the
++// position itself could arise in a game.
+ function parseFen(fen) {
+-  const [placement, turn, rights, target, halfmove, fullmove] = fen.trim().split(/\s+/);
++  if (typeof fen !== 'string') throw invalidFen('expected a string');
++  const fields = fen.trim().split(/\s+/);
++  if (fields.length !== 6) throw invalidFen(`expected 6 fields, got ${fields.length}`);
++  const [placement, turn, rights, target, halfmove, fullmove] = fields;
+   const board = Array(128).fill(null);
+   const ranks = placement.split('/');
++  if (ranks.length !== 8) throw invalidFen(`expected 8 ranks, got ${ranks.length}`);
+   for (let rank = 0; rank < 8; rank++) {
+-    let square = (7 - rank) * 16;
++    let file = 0;
+     for (const token of ranks[rank]) {
+       if (token >= '1' && token <= '8') {
+-        square += Number(token);
++        file += Number(token);
++      } else if ('pnbrqkPNBRQK'.includes(token) && file < 8) {
++        board[(7 - rank) * 16 + file++] = token;
+       } else {
+-        board[square++] = token;
++        throw invalidFen(`rank ${8 - rank} is not a valid rank`);
+       }
+     }
++    if (file !== 8) throw invalidFen(`rank ${8 - rank} does not have 8 squares`);
++  }
++  if (!/^[wb]$/.test(turn)) throw invalidFen('active color must be w or b');
++  if (!/^(?:-|K?Q?k?q?)$/.test(rights)) throw invalidFen('castling field must be - or a subset of KQkq');
++  if (!/^(?:-|[a-h][36])$/.test(target)) throw invalidFen('en-passant field must be - or a square on rank 3 or 6');
++  if (!/^\d+$/.test(halfmove) || !/^\d+$/.test(fullmove)) {
++    throw invalidFen('halfmove and fullmove counters must be whole numbers');
+   }
+   return {
+     board,
+@@ -300,11 +319,11 @@ function rightsAfter(position, move) {
+ }
+ 
+ function applyMove(fen, uci) {
++  const position = parseFen(fen);
+   if (typeof uci !== 'string' || !/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(uci)) {
+     throw new IllegalMoveError(uci);
+   }
+ 
+-  const position = parseFen(fen);
+   for (const move of legalCandidates(position)) {
+     if (toUci(move) !== uci) continue;
+ 
+diff --git a/test/chess.test.js b/test/chess.test.js
+index 9398bc1..d62969d 100644
+--- a/test/chess.test.js
++++ b/test/chess.test.js
+@@ -165,3 +165,31 @@ test('TC-7 matches the first three perft depths for standard positions', () => {
+     }
+   }
+ });
++
++test('TC-9 rejects malformed FEN fields instead of answering for them', () => {
++  const start = startFen();
++  const malformed = [
++    start.replace('RNBQKBNR', 'RNBQKBN'),
++    start.replace(' w ', ' W '),
++    start.replace('RNBQKBNR', 'RNBQKBNRR'),
++    start.replace('RNBQKBNR', 'RNBQKBNX'),
++    start.replace('8/8/8/8/', '8/8/8/'),
++    start.replace('KQkq', 'XYZ'),
++    start.replace(' - ', ' e4 '),
++    start.replace(' 0 1', ' -5 1'),
++    start.replace(' 0 1', ' 0 0x10'),
++    start + ' extra',
++    'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -',
++    '',
++    null,
++  ];
++  const invalid = error => error instanceof Error && !(error instanceof IllegalMoveError) &&
++    /^Invalid FEN/.test(error.message);
++  for (const fen of malformed) {
++    assert.throws(() => legalMoves(fen), invalid, String(fen));
++    assert.throws(() => status(fen), invalid, String(fen));
++    assert.throws(() => applyMove(fen, 'e2e4'), invalid, String(fen));
++    assert.throws(() => applyMove(fen, 'not a move'), invalid, String(fen));
++  }
++  assert.equal(status(`  ${start.replace(/ /g, '\t ')}\n`), 'ongoing');
++});

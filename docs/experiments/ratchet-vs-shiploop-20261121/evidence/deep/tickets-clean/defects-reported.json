@@ -1,0 +1,49 @@
+{
+ "recheck": [
+  {
+   "id": "U-22",
+   "kind": "unstated",
+   "text": "Whether the documentation and release records describe the change: docs/api.md (endpoint, ticket field, filter, audit action, notification), README command-line columns, a CHANGELOG.md section with a version bump in package.json, and a decision record if a format or rule changed.",
+   "audits_said": {
+    "p04edcd": "sound",
+    "p7163fd": "poor",
+    "p358d46": "sound"
+   }
+  }
+ ],
+ "defects": [
+  {
+   "from": "p04edcd",
+   "n": "p04edcd#1",
+   "title": "An agent name holding invalid UTF-8 is accepted and silently stored with a replacement character",
+   "severity": "low",
+   "repro": "Start the service; POST /tickets {\"title\":\"t\",\"requester\":\"r@x.com\"}; printf '{\"assignee\":\"da\\xffna\"}' | curl -X PUT localhost:PORT/tickets/T-0001/assignee -H \"content-type: application/json\" --data-binary @-; GET /tickets/T-0001",
+   "observed": "200; assignee is \"da\\ufffdna\"; an audit entry and a ticket.assigned notification to \"da\\ufffdna\" are recorded",
+   "expected": "400 invalid and the ticket unchanged (the inventory's acceptable outcome; docs/api.md says text that is not valid Unicode is invalid). The same decoding already applied to titles in the base version.",
+   "basis": "unstated",
+   "item": "U-2"
+  },
+  {
+   "from": "p7163fd",
+   "n": "p7163fd#1",
+   "title": "No CHANGELOG section or version bump for the assignment feature",
+   "severity": "low",
+   "repro": "In the delivered tree read CHANGELOG.md and package.json \"version\"; compare with CONTRIBUTING.md (\"Bump the version in package.json and add a section to CHANGELOG.md in the same pull request\").",
+   "observed": "CHANGELOG.md ends at 1.4.0 (2025-09-15) with nothing about assignment; package.json version is 1.4.0, as in the base.",
+   "expected": "A new CHANGELOG section describing PUT /tickets/:id/assignee, the assignee field and filter, the notification and the CLI column, with a matching version bump.",
+   "basis": "unstated",
+   "item": "U-22"
+  },
+  {
+   "from": "p358d46",
+   "n": "p358d46#1",
+   "title": "A malformed percent-encoded byte in the assignee filter matches an agent whose name holds U+FFFD",
+   "severity": "low",
+   "repro": "Start the service; POST /tickets {\"title\":\"t\",\"requester\":\"r\"}; PUT /tickets/T-0001/assignee {\"assignee\":\"Da\\ufffdna\"} -> 200; GET /tickets?assignee=Da%FFna",
+   "observed": "200 with T-0001 in items (the invalid byte is decoded to the replacement character and matches the stored name)",
+   "expected": "400 invalid or an empty page, as the PUT body already refuses malformed UTF-8 and the builders' spec C-52 requires",
+   "basis": "other",
+   "item": "U-13"
+  }
+ ]
+}

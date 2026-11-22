@@ -1,0 +1,17 @@
+{
+ "p990bda": {
+  "point": "S",
+  "tree": "/Users/dadleet/e2e-runs/d20261122-b54ea4/fix/expenses/work",
+  "spec": "docs/shiploop/spec.md"
+ },
+ "p66d875": {
+  "point": "F",
+  "tree": "/Users/dadleet/e2e-runs/d20261122-b54ea4/delivered/expenses",
+  "spec": "docs/shiploop/spec.md"
+ },
+ "p376d8c": {
+  "point": "L",
+  "tree": "/Users/dadleet/e2e-runs/d20261122-360a9f/deep/expenses/products/p23566f",
+  "spec": "ratchet/spec.md"
+ }
+}

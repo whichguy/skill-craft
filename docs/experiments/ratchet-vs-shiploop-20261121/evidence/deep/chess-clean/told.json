@@ -1,0 +1,140 @@
+{
+ "told": [
+  {
+   "id": "U-1",
+   "results": {
+    "pa6dbeb": {
+     "told": "yes",
+     "where": "README.md: \"A plain `Error` whose message starts with `Invalid FEN:`: thrown by `legalMoves`, `status` and `applyMove` when the FEN is malformed (see below).\" and \"Only the form of the FEN is checked, not whether the position could occur. A board with no king, two kings of one color, a pawn on the first or last rank, or the side not to move in check is accepted and answered for (for example, a board with no white king and white to move reports `stalemate`).\""
+    },
+    "pc62f4b": {
+     "told": "no",
+     "where": ""
+    },
+    "p72da10": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-3",
+   "results": {
+    "pa6dbeb": {
+     "told": "yes",
+     "where": "README.md: \"`applyMove` needs the exact move string, such as `e2e4` or `e7e8q`. Leading or trailing whitespace, upper case, or a value that is not a string throws `IllegalMoveError`.\""
+    },
+    "pc62f4b": {
+     "told": "no",
+     "where": ""
+    },
+    "p72da10": {
+     "told": "yes",
+     "where": "README.md: \"Given a valid FEN, it throws `IllegalMoveError` for an illegal UCI string or a missing or non-string move.\""
+    }
+   }
+  },
+  {
+   "id": "U-4",
+   "results": {
+    "pa6dbeb": {
+     "told": "yes",
+     "where": "README.md: \"`IllegalMoveError` (exported class, `name` is `'IllegalMoveError'`): thrown by `applyMove` when the move is not a legal move in the position, including a move string that is not lowercase UCI or is not a string.\""
+    },
+    "pc62f4b": {
+     "told": "no",
+     "where": ""
+    },
+    "p72da10": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-5",
+   "results": {
+    "pa6dbeb": {
+     "told": "yes",
+     "where": "README.md: \"A castling right whose king or rook is not on its home square is accepted and kept in the FEN `applyMove` returns, unless the move removes it, but it never produces a castling move. An en-passant square that no pawn can capture to is accepted, gives no capture, and is not carried into the FEN `applyMove` returns.\""
+    },
+    "pc62f4b": {
+     "told": "no",
+     "where": ""
+    },
+    "p72da10": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-7",
+   "results": {
+    "pa6dbeb": {
+     "told": "no",
+     "where": ""
+    },
+    "pc62f4b": {
+     "told": "no",
+     "where": ""
+    },
+    "p72da10": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-9",
+   "results": {
+    "pa6dbeb": {
+     "told": "no",
+     "where": ""
+    },
+    "pc62f4b": {
+     "told": "no",
+     "where": ""
+    },
+    "p72da10": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-11",
+   "results": {
+    "pa6dbeb": {
+     "told": "no",
+     "where": ""
+    },
+    "pc62f4b": {
+     "told": "no",
+     "where": ""
+    },
+    "p72da10": {
+     "told": "yes",
+     "where": "README.md: \"Save the full six-field FEN to resume play in a fresh Node.js process or pass it to `applyMove` more than once to explore different continuations. Calls on other positions and rejected moves leave the saved position usable.\""
+    }
+   }
+  },
+  {
+   "id": "U-12",
+   "results": {
+    "pa6dbeb": {
+     "told": "no",
+     "where": ""
+    },
+    "pc62f4b": {
+     "told": "no",
+     "where": ""
+    },
+    "p72da10": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  }
+ ]
+}

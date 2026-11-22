@@ -1,0 +1,28 @@
+{
+ "a": {
+  "letters": {
+   "pc62f4b": "X",
+   "p72da10": "Y",
+   "pa6dbeb": "Z"
+  },
+  "pairs": [
+   "Z-Y",
+   "Z-X",
+   "X-Y"
+  ],
+  "characters": 80123
+ },
+ "b": {
+  "letters": {
+   "p72da10": "X",
+   "pa6dbeb": "Y",
+   "pc62f4b": "Z"
+  },
+  "pairs": [
+   "Y-X",
+   "Y-Z",
+   "Z-X"
+  ],
+  "characters": 80123
+ }
+}

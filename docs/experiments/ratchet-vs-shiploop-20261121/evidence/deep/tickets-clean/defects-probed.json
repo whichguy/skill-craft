@@ -1,0 +1,36 @@
+{"rechecks": [
+  {"id": "U-22", "results": {
+    "p04edcd": {"grade": "acceptable", "observed": "docs/api.md documents PUT /tickets/:id/assignee (trim, 1-64 chars, 404/409, no-op), the assignee ticket field, the assignee filter (exact match, empty = unassigned, repeated values, every-filter rule), the ticket.assigned audit action for assign and unassign, and the ticket.assigned notification (to = agent name, key with audit seq); README lists the table ASSIGNEE column, the fifth raw column and show's history format; CHANGELOG.md has a 1.5.0 (2026-11-22) section and package.json is 1.5.0 (base 1.4.0). Running the service matched these docs (trimmed '  Ada Lovelace  ' to 'Ada Lovelace', no-op repeat, unassign audited as ticket.assigned to null, ?assignee=Ada&assignee=Ben empty, list --raw 5 tab columns). No decision record was added although the data file gained a field, list --raw gained a column and the filter combination rule changed (the changelog says 1.4.0 matched any filter); and the docs' claim that text that is not valid Unicode is invalid did not hold for a body with byte 0xFF (accepted, see D-1)."},
+    "p7163fd": {"grade": "poor", "observed": "docs/api.md adds the endpoint (trimmed, 1-64 chars, 404/409, no-op), the assignee field, the assignee filter, ticket.assigned among audit actions and a one-line mention of the agent notification; README describes the ASSIGNEE table column and a fifth raw column, which matched the run (list --raw printed 5 tab-separated fields). But CHANGELOG.md's newest section is still 1.4.0 (2025-09-15) with nothing about assignment, package.json version is 1.4.0 as in base, and docs/decisions/ is identical to base (no record although the data file gained a field and list --raw gained a column)."},
+    "p358d46": {"grade": "sound", "observed": "docs/api.md documents the endpoint (exact assignee field, valid UTF-8, names kept as supplied, 409 for resolved/closed, no-op, 500 on save failure), the assignee field, the filter (exact match incl. spaces, empty = unassigned, first of repeated values, every filter must match), ticket.assigned for set and clear, and the notification to the incoming agent; README describes the quoted-name/'unassigned' ASSIGNEE column, show's assignee and that list --raw keeps four columns; CHANGELOG.md has 1.5.0, 1.5.1 and 1.5.2 sections, package.json 1.5.2 (base 1.4.0); new docs/decisions/0009-ticket-assignment.md. The run matched: '  Ada Lovelace  ' stored as supplied, invalid UTF-8 body 400 invalid, table showed \"Ben\" and unassigned, list --raw printed 4 fields."}
+  }}
+],
+ "defects": [
+  {"id": "D-1", "title": "An agent name holding invalid UTF-8 is accepted and silently stored with a replacement character", "severity": "low", "merged_from": ["p04edcd#1"],
+   "repro": "Start the service; POST /tickets {\"title\":\"t\",\"requester\":\"r@x.com\"}; printf '{\"assignee\":\"da\\xffna\"}' | curl -X PUT localhost:PORT/tickets/T-0001/assignee -H \"content-type: application/json\" --data-binary @-; GET /tickets/T-0001, its audit and /admin/outbox",
+   "expected": "400 invalid and the ticket unchanged, with no audit entry or notification",
+   "note": "",
+   "results": {
+     "p04edcd": {"result": "present", "observed": "PUT answered 200 with assignee \"da\\ufffdna\"; GET shows it stored; audit seq 2 ticket.assigned to \"da\\ufffdna\"; outbox sent ticket.assigned:T-0001:2 to \"da\\ufffdna\"."},
+     "p7163fd": {"result": "present", "observed": "PUT answered 200 with assignee \"da\\ufffdna\"; GET shows it stored; audit seq 2 ticket.assigned to \"da\\ufffdna\"; outbox sent ticket.assigned:T-0001:2 to \"da\\ufffdna\"."},
+     "p358d46": {"result": "absent", "observed": "PUT answered 400 {\"error\":{\"code\":\"invalid\",\"message\":\"request body is not valid UTF-8\"}}; GET shows assignee null and updated unchanged; audit holds only ticket.created; outbox holds only ticket.created."}
+   }},
+  {"id": "D-2", "title": "No CHANGELOG section or version bump for the assignment feature", "severity": "low", "merged_from": ["p7163fd#1"],
+   "repro": "In the delivered tree read CHANGELOG.md and package.json \"version\"; compare with CONTRIBUTING.md (\"Bump the version in package.json and add a section to CHANGELOG.md in the same pull request\").",
+   "expected": "A new CHANGELOG section describing PUT /tickets/:id/assignee, the assignee field and filter, the notification and the CLI column, with a matching version bump.",
+   "note": "",
+   "results": {
+     "p04edcd": {"result": "absent", "observed": "CHANGELOG.md starts with '## 1.5.0 (2026-11-22)' describing the endpoint, assignee field, filter, ticket.assigned notification and CLI columns; package.json version 1.5.0 (base 1.4.0)."},
+     "p7163fd": {"result": "present", "observed": "CHANGELOG.md's first section is '## 1.4.0 (2025-09-15)', same 5 sections as base, nothing about assignment; package.json version 1.4.0, same as base."},
+     "p358d46": {"result": "absent", "observed": "CHANGELOG.md has 1.5.0, 1.5.1 and 1.5.2 sections (2026-11-22) covering assignment, the assignee filter, CLI column and UTF-8 refusal; package.json version 1.5.2 (base 1.4.0)."}
+   }},
+  {"id": "D-3", "title": "A malformed percent-encoded byte in the assignee filter matches an agent whose name holds U+FFFD", "severity": "low", "merged_from": ["p358d46#1"],
+   "repro": "Start the service; POST /tickets {\"title\":\"t\",\"requester\":\"r\"}; PUT /tickets/<id>/assignee {\"assignee\":\"Da\\ufffdna\"} -> 200; GET /tickets?assignee=Da%FFna",
+   "expected": "400 invalid or an empty page",
+   "note": "Run on a second ticket (T-0002) in the same service as D-1 on every product.",
+   "results": {
+     "p04edcd": {"result": "present", "observed": "PUT {\"assignee\":\"Da\\ufffdna\"} 200; GET /tickets?assignee=Da%FFna answered 200 with T-0002 (assignee \"Da\\ufffdna\") in items, the same as ?assignee=Da%EF%BF%BDna."},
+     "p7163fd": {"result": "present", "observed": "PUT {\"assignee\":\"Da\\ufffdna\"} 200; GET /tickets?assignee=Da%FFna answered 200 with T-0002 (assignee \"Da\\ufffdna\") in items, the same as ?assignee=Da%EF%BF%BDna."},
+     "p358d46": {"result": "present", "observed": "PUT {\"assignee\":\"Da\\ufffdna\"} 200; GET /tickets?assignee=Da%FFna answered 200 with T-0002 (assignee \"Da\\ufffdna\") in items, the same as ?assignee=Da%EF%BF%BDna."}
+   }}
+ ]}

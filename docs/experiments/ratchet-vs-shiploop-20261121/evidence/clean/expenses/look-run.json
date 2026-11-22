@@ -1,0 +1,37 @@
+{
+ "case": null,
+ "enrich": null,
+ "host": "codex",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "started": "2026-11-22T08:44:10-0800",
+ "folder": "/Users/dadleet/e2e-runs/d20261122-b54ea4/delivered/expenses",
+ "prompt_file": "/Users/dadleet/e2e-runs/d20261122-b54ea4/look/prompts/expenses.md",
+ "allow": [
+  "docs/shiploop/look.md"
+ ],
+ "local_head": "b5ad1d7880d0e977ef0daf7c42d536b64da8ec8c",
+ "sessions": [
+  {
+   "number": 1,
+   "role": "look",
+   "label": "look",
+   "seconds": 233.1,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 233.0,
+   "held_out_marks": []
+  }
+ ],
+ "changed": [
+  "docs/shiploop/look.md"
+ ],
+ "put_back": [],
+ "tools_changed": [],
+ "snapshots": [
+  {
+   "label": "session",
+   "commit": "eaf093e9017b970dff80d17f34f4833e0574ae23"
+  }
+ ]
+}

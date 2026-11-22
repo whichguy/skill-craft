@@ -960,3 +960,49 @@ a prefix match on record ids). So on the case where the gap was in behaviour, on
 it and did not close it: the look names under half of what an audit finds (K1, 10 of 25). The fresh audit of this
 round also found a stated item short on all three products that section 12's audits had passed, a reminder that
 one audit a product is a floor.
+
+## 15. Clean ShipLoop runs with one look and one fix: results (2026-11-22 08:20 on; Grokbot added below when it ends)
+
+Status: firm for what was measured: one fresh ShipLoop run, one look, one fix and one audit round a case.
+Registered in section 14. Evidence: `evidence/clean/` (the checkout record, each fresh run's launch and measure
+records, each look and fix with its diff, the fix costs) and `evidence/deep/CASE-clean/` (three fresh audits, the
+cross-probe, the single reader's `told.json`, the Opus verdict). S' is the fresh delivery after the look and the
+fix, N the fresh delivery itself, L last night's Ratchet final, audited again by a new session in the same round.
+
+**The fresh runs** (ShipLoop 2.6.0 from `origin/main` at 22e52c0807ca, Codex Sol 6.2 medium, each in a new
+repository): all four ended PASS, in 10.1, 10.7, 10.5 and 28.7 minutes (last night on 2.4.1: 14.3, 10.4, 15.3,
+26.5), and every one passes every held-out check (6, 10, 18, and 49 and 28).
+
+| | Shared expenses | Chess | Ticket assignment |
+|---|---|---|---|
+| The look (Sol 6.2 medium): minutes, shortfalls written | 3.9, 5 | 1.6, 1 | 3.3, 7 |
+| The fix (Opus xhigh): minutes, fixed, declined | 6.3, 4, 1 | 4.1, 1, 0 | 14.1, 4, 3 |
+| C-3 minutes, run + look + fix, beside Ratchet's | 20.3 beside 46.4 (44%) | 16.4 beside 37.2 (44%) | 27.9 beside 100.4 (28%) |
+| D1 stated items built, S' / N / L | 35 / 35 / 35 | 40 / 40 / 40 | 21 / 21 / 21 |
+| D2 tests proved, of 6 | 5 / 5 / 6 | 6 / 5 / 4 | 6 / 6 / 6 |
+| D3 independent unstated items handled | 16 / 16 / 16 of 16 | 6 / 5 / 6 of 6 | 19 / 18 / 19 of 19 |
+| D4 told in the delivered documents | 13 / 0 / 15 of 16 | 4 / 0 / 1 of 6 | 18 / 13 / 18 of 19 |
+| D5 reproducing defects, medium; low | 0 / 0 / 0; 0 / 0 / 0 | 0 / 1 / 0; 0 / 1 / 1 | 0 / 0 / 0; 2 / 3 / 1 |
+| C-1, N against L | **L** (D4, D6) | no difference (the judge: L somewhat) | **L** (D4, D6) |
+| C-2, S' against L | no difference; the judge: same; nearly competitive | **S'** (D2, D4, D6); the judge: S' somewhat | no difference (no reading ahead); the judge: same; nearly competitive |
+
+- **C-1 repeats section 12 on a second delivery and a newer version.** ShipLoop alone again ships no user document
+  on shared expenses (0 of 16 told) and no release record on tickets (the same unstated item graded short), and
+  loses to Ratchet's final on those two cases for that reason. 2.6.0's `defaults` list did not change what the
+  delivered documents say: it marks 2 of 16 points in the specification on expenses, none in a user document.
+- **C-2: from clean runs, one look and one fix bring ShipLoop's delivery level with Ratchet's final on two small
+  cases and ahead on the third**, at 28% to 44% of Ratchet's time. This is section 13's repair result without the
+  repair: fresh run, fresh look, fresh fix, and all three products audited afresh in one round.
+- **A fresh run is not the same product twice.** This chess delivery accepts a malformed position and answers
+  for it (a medium defect; last night's delivery validated every field). The look reported exactly that, the fix
+  closed it, and the fixed product's suite proves all six sampled behaviours.
+- **The look and the audit still find different things.** Three fresh audits of the expenses delivery reported
+  none of the five shortfalls its look wrote; on tickets the audits reported a malformed name the look did not.
+- **A fix still costs something.** On tickets the fix again changed what a repeated `status` or `priority` filter
+  returns (the fixer's own report); this round's auditors did not flag it.
+- Predictions: D1 level everywhere, right. C-1: Ratchet's final ahead on at most one small case, wrong (two). C-2
+  nearly competitive or better on the three small cases, right. C-3 under half on tickets, right; not on expenses
+  and chess, wrong (44% each).
+
+Limits as registered: Ratchet's side is last night's single delivery; the fixer is Opus at xhigh; a fresh run and
+ShipLoop 2.6.0 are confounded; one audit a product, and the Opus judge alone.
