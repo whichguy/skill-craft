@@ -1363,6 +1363,50 @@ xhigh, stronger than either builder, and the look was done by a session that had
 candidate of 16.2 tests both inside ShipLoop). D4 on one product moved by three items between two readers once.
 The Grokbot comparison with a full fresh Ratchet run waits on the second run.
 
+### 17.6 Grokbot against a full fresh Ratchet run (the second run of 16.4; added 15:13)
+
+The second fresh Ratchet run of Grokbot (runs root `~/e2e-runs/d20261122-6e5bd5/`, started 12:17, nothing changed)
+ran all three cycles: 129.5 minutes (162.3 last night), its own gate passing at every point, 116 clauses, first
+build at 24.0 minutes. Its specification states the Node.js floor as a plain start-up clause ("with Node.js 22 or
+later, `node server.js` starts the app") and wrote no test that demands a Node.js 22 program, so it did not stick;
+the prediction of 16.4 holds. **It fails one held-out check of 49** ("confirming applies the change"), at its first
+build and at its final alike, and passes the other set, 28 of 28: the first Ratchet product of this study to fail
+a held-out check.
+
+Audited as 16.4 registered: its final in three shares by new sessions; the two ShipLoop products keep their
+audits of 17.1 (made two hours earlier; the joined files are byte-identical); a new cross-probe over all three
+(29 reported defects merged to 17, 9 disagreed items), a new single reader, the Opus judge. Layout under
+`~/e2e-runs/d20261122-360a9f-second/deep/grokbot-fresh/`.
+
+| Grokbot | S' (ShipLoop, look, fix) | N (ShipLoop) | Ratchet, full fresh run | for comparison: the stuck run (17.1) |
+|---|---|---|---|---|
+| D1 stated items built | 108 of 108 | 108 of 108 | 108 of 108 | 108 of 108 |
+| D2 tests proved | 3 of 6 | 3 of 6 | 4 of 6 | 4 of 6 |
+| D3 unsaid points handled | 34 of 39 | 31 of 39 | 36 of 39 | 37 of 39 |
+| D4 told in the delivered documents | 18 of 39 | 1 of 39 | 15 of 39 | 16 of 39 |
+| D5 medium defects; low | 4; 5 | 6; 9 | 3; 5 | 3; 2 |
+| Held-out checks | 49 and 28, all | 49 and 28, all | **48 of 49**, 28 of 28 | 49 and 28, all |
+| Minutes | 61.7 | 28.7 | 129.5 | 85.1 |
+
+- **S' against the full Ratchet run, by the rule: no difference shown** (only D6 goes to Ratchet). The judge:
+  Ratchet's "somewhat" better, and **one short task closes it** (against the stuck run it said a short task does
+  not). What it names: ShipLoop's reply that stays pending after a storage failure (one medium defect), four low
+  ones, and two seeded breaks Ratchet's tests catch and ShipLoop's do not; against that, ShipLoop's logs server
+  errors for the operator and says which fields a refusal covers. S' took 48% of this Ratchet run's minutes.
+- **N against it: Ratchet better** on handled, told, defects and the judge ("much").
+- **The two Ratchet runs agree with each other** within one or two items on every reading, though one had three
+  closing looks and the other none. 17.3's reading stands on a second run: on Grokbot the closing looks and extra
+  cycles are not what separates Ratchet's product from ShipLoop's.
+- The held-out failure is a Ratchet failure the audits did not surface as a defect of that name; the audits and
+  the held-out checks look at different things, as section 13 found for looks and audits.
+
+**So, both tools fresh, all four cases** (the answer to 16.1's question): the three small cases are level, ahead,
+level for ShipLoop with one look and one fix, at 36 to 43% of Ratchet's minutes; on Grokbot the registered rule
+shows no difference against either Ratchet run, the blind judge prefers Ratchet's product both times ("somewhat"),
+and ShipLoop's cost is 48% of the full run's. Section 15's "still behind on Grokbot" becomes "behind by a little,
+in failure handling, by the judge and not by the counts". Unchanged ShipLoop is behind Ratchet on three of four
+cases and level on the fourth.
+
 ## 18. The look inside ShipLoop, version one: the trial (2026-11-22 13:04 to 13:29), and version two registered (13:33)
 
 Status: firm for version one on these four cases (one run a case). Version two: registered here, not yet built.

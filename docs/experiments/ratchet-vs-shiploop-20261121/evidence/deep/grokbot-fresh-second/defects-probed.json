@@ -1,0 +1,597 @@
+{
+ "rechecks": [
+  {
+   "id": "U-15",
+   "results": {
+    "p51b1ee": {
+     "grade": "sound",
+     "observed": "UI, as Maya: saved instruction A=\"x\", then A=\"y\" without Edit: alert \"“A” is already saved. Choose Edit A to change it, or use another name.\", one Use A button, Use A then \"who are you\" -> \"My instructions: x\". Same for Save task (refused with the same alert; Run A sent the first request). Empty name or empty text: the form is not submitted (required fields), nothing saved; a name of spaces: alert \"Name must contain between 1 and 80 characters.\" Evidence: work/probe/_out/a_ui.json savedEntries"
+    },
+    "p23866a": {
+     "grade": "poor",
+     "observed": "UI, as Maya: saved instruction A=\"x\", then A=\"y\" without Edit: no alert, still one entry A, Use A then \"who are you\" -> \"My instructions: y\" (x silently replaced). Same for Save task: second save silently replaced the request (Run A sent \"what is the status of ORD-1002\"). Empty name/text: form not submitted; a name of spaces: alert \"Name must contain between 1 and 80 characters.\" Evidence: work/probe/_out/a_ui.json savedEntries"
+    },
+    "pa8edb8": {
+     "grade": "sound",
+     "observed": "UI, as Maya: second Save instruction A=\"y\" without Edit refused with alert \"That name is already in use.\"; one Use A; \"who are you\" -> \"My instructions: x\". Same for Save task. Empty name, empty text or a name of spaces: alert \"Enter some text to continue.\", nothing saved. Evidence: work/probe/_out/a_ui.json savedEntries"
+    }
+   }
+  },
+  {
+   "id": "U-21",
+   "results": {
+    "p51b1ee": {
+     "grade": "sound",
+     "observed": "\"hello [fail once]\" -> alert \"The reply could not finish. Retry to try the same message again.\" + Retry. After reload: alert and Retry still shown; Retry -> reply \"You said: \\\"hello\\\"\" once. After a server restart: same, Retry succeeds. Sending \"next\" instead: \"next\" gets its reply while the failed message keeps its alert and Retry; Retry then puts the hello reply directly after hello, no duplicate. \"hello [slow]\" with the server stopped (SIGTERM) 0.8 s in: after restart alert \"The server restarted before this reply finished. You can retry.\" + Retry (not automatic); Retry succeeds. Evidence: work/probe/_out/b_retry.json"
+    },
+    "p23866a": {
+     "grade": "poor",
+     "observed": "Retry after reload and after a restart work (alert and Retry kept, Retry succeeds once), and an interrupted [slow] reply shows \"The server restarted before this reply finished. You can retry.\" with a working Retry. But at the alert, sending \"next\" instead: transcript shows \"hello [fail once]\", \"next\" and its reply, no alert and no Retry for hello (also after reload); POST /api/action {action:\"retry\", id:<hello id>, botId, threadId} -> 200 and the message stays reply.status \"failed\" with no reply. The failed message can no longer be resent and the page no longer says it failed. Evidence: work/probe/_out/b_retry.json"
+    },
+    "pa8edb8": {
+     "grade": "sound",
+     "observed": "\"hello [fail once]\" -> alert \"The provider could not finish this reply. Retry to try again.\" with Retry and Dismiss failed reply. Reload and restart keep both; Retry succeeds once. Sending \"next\" at the alert is refused: alert \"Finish or dismiss the current reply before sending another message.\", \"next\" stays in the composer (that alert stayed on screen after Retry succeeded, until reload). Stopped mid [slow] reply: after restart alert \"The service stopped before this reply was saved. Retry to continue.\" + Retry, which succeeds. Evidence: work/probe/_out/b_retry.json"
+    }
+   }
+  },
+  {
+   "id": "U-39",
+   "results": {
+    "p51b1ee": {
+     "grade": "poor",
+     "observed": "No running task: \"add step: double-check\" -> stand-in reply plus note \"“double-check” was not added: no task was running in this conversation.\" (honest). Two \"long task: same [long]\" then \"add step: extra\" -> note \"Not added yet: more than one task is running here. Choose the task for “extra”.\" with buttons \"Add to same\", \"Add to same\", \"Don’t add\" (identical names and text). After choosing the first: note \"Added “extra” to the end of same.\"; both Task: same articles are identical by name; only at the end did one list \"Done: extra\". The choice and the feedback do not identify the task. Evidence: work/probe/_out/c_tasks.json addStep"
+    },
+    "p23866a": {
+     "grade": "poor",
+     "observed": "No running task: reply plus \"There is no running task in this conversation to add to.\" (honest). Two running \"Task: same\" and \"add step: extra\": only the stand-in text \"I'll add \\\"extra\\\" to the task that is running.\", no note, no choice; both articles read \"same Running Working in the background.\" and the step silently went to one of them (at the end only the second article listed \"Done: extra\"). Evidence: work/probe/_out/c_tasks.json addStep"
+    },
+    "pa8edb8": {
+     "grade": "acceptable",
+     "observed": "No running task: note \"No step was added. There is no eligible running task for this follow-up.\" With two running \"Task: same\": note \"No step was added. More than one task was running here. Wait or cancel until only the intended task is running, then send the request again.\"; neither task got the step (both ended 8 of 8 without \"extra\"). Honest and never claims an addition, but it neither asks which nor adds to the latest, so the person must cancel a task to steer. Evidence: work/probe/_out/c_tasks.json addStep"
+    }
+   }
+  },
+  {
+   "id": "U-44",
+   "results": {
+    "p51b1ee": {
+     "grade": "sound",
+     "observed": "As Maya started \"long task: crates [fail step 2]\" and \"long task: alpha\", closed the page, waited 5 s, reopened: \"Since you were away: Finished while you were away alpha · Completed; Needs attention crates · Failed\", matching Task status. Reload: only \"Needs attention crates · Failed\" remains; unchanged after a send with nothing running and while a proposal waits (proposal not listed). Ana: no region. A task finished while present is shown as \"Finished during this visit\" and then cleared after reload (\"Nothing has changed since you were last here.\"). Evidence: work/probe/_out/c_tasks.json awayU44, awayNeverChanges; f_start.json markReviewed"
+    },
+    "p23866a": {
+     "grade": "poor",
+     "observed": "Reopen after the two tasks ended: \"Finished alpha · Completed; Needs attention crates · Failed\" (correct), but the region is identical after every reload, after a send and while a proposal waits, and it never clears: a task that finished while the person was on the page is listed as Finished, and after a second absence all three tasks ever run are listed again, unchanged after two more reloads; there is no way to dismiss it. Ana: no region. Evidence: work/probe/_out/c_tasks.json awayU44, awayNeverChanges"
+    },
+    "pa8edb8": {
+     "grade": "acceptable",
+     "observed": "Reopen: \"crates Failed · needs attention\" and \"alpha Completed\" with finished steps, and a Mark as reviewed button; persists across reloads, sends and a waiting proposal until Mark as reviewed, which clears it (also after reload). Ana: no region. Dismissed on reading, own work only; but it also reports a task that finished while the person was on the page, and the steps it lists are frozen at the moment of return while its status keeps updating (e.g. \"report check Completed\" beside 2 Done steps while the task shows 8 of 8). Evidence: work/probe/_out/c_tasks.json; f_start.json markReviewed"
+    }
+   }
+  },
+  {
+   "id": "U-46",
+   "results": {
+    "p51b1ee": {
+     "grade": "poor",
+     "observed": "DATA_DIR that does not exist: created and served. Empty DATA_DIR with mode 555: exit 1 with a raw node stack \"Error: EACCES: permission denied, open .../.workspace-<uuid>\". workspace.json = \"{not json\": exit 1, raw \"SyntaxError: Expected property name or '}' in JSON\" stack that does not name the file (file kept). {\"version\":1}: exit 1, raw \"TypeError: Cannot convert undefined or null to object at allThreads\". {\"version\":1,\"users\":{},\"sessions\":{}}: starts, Continue as Maya works, every reply fails with \"The reply could not finish. Retry...\" and the log says \"Cannot read properties of undefined (reading 'filter')\"; the file is then rewritten. records/ unchanged. No recovery step anywhere. Evidence: work/probe/_out/f_start.json u46"
+    },
+    "p23866a": {
+     "grade": "poor",
+     "observed": "Same as the sibling: missing folder created; mode-555 folder -> raw EACCES stack, exit 1; \"{not json\" -> raw SyntaxError stack not naming the file (file kept); {\"version\":1} -> raw TypeError stack; {\"version\":1,\"users\":{},\"sessions\":{}} -> starts, replies fail with the generic Retry alert, log only \"Workspace operation failed.\", file rewritten. records/ unchanged. Evidence: work/probe/_out/f_start.json u46"
+    },
+    "pa8edb8": {
+     "grade": "sound",
+     "observed": "Missing folder created and served. Mode-555 folder: exit 1 with one line \"EACCES: permission denied, open '.../.owner-<pid>-<uuid>'\" (no stack; no explicit recovery advice). state.json = \"{not json\": exit 1, \"DATA_DIR has an unreadable state snapshot at <path>/state.json. Check access or restore a valid copy.\"; {\"version\":1} and {\"version\":1,\"users\":{},\"sessions\":{}}: exit 1, \"DATA_DIR has an unusable saved state snapshot at <path>/state.json (records). Restore a valid copy.\" Damaged file kept byte for byte; records/ unchanged. Evidence: work/probe/_out/f_start.json u46"
+    }
+   }
+  },
+  {
+   "id": "U-50",
+   "results": {
+    "p51b1ee": {
+     "grade": "poor",
+     "observed": "As Maya (fresh data): \"what is the status of ORD-1001A\" -> \"The status of ORD-1001 is open.\" with no note; \"set the status of ORD-1001A to closed\" -> echo reply, no proposal; \"what is the status of ORD-1001\" -> \"The status of ORD-1001 is open.\" ORD-1001's status is presented as the answer for ORD-1001A. Evidence: work/probe/_out/a_ui.json typedId"
+    },
+    "p23866a": {
+     "grade": "poor",
+     "observed": "Same three messages: \"The status of ORD-1001 is open.\" for ORD-1001A with no note; set ... ORD-1001A -> echo, no proposal; ORD-1001 -> open. Evidence: work/probe/_out/a_ui.json typedId"
+    },
+    "pa8edb8": {
+     "grade": "poor",
+     "observed": "Same three messages: \"The status of ORD-1001 is open.\" for ORD-1001A with no app notice; set ... ORD-1001A -> echo reply, no proposal; ORD-1001 -> open. The wrong record's value is shown as the answer, as on the other products. Evidence: work/probe/_out/a_ui.json typedId"
+    }
+   }
+  },
+  {
+   "id": "U-54",
+   "results": {
+    "p51b1ee": {
+     "grade": "poor",
+     "observed": "With a proposal shown, chmod 555 DATA_DIR: Save instruction -> alert \"The workspace could not complete this action. Try again.\" and nothing listed; Send -> same alert, message not added; Confirm changes -> same alert, proposal still offered. After chmod 755 and a restart nothing of it was saved, ORD-1001 still open, proposal still pending: truthful. But \"hello [slow]\" with DATA_DIR made read-only 0.7 s in: \"Assistant is preparing a reply…\" stays after storage is restored, after reload and 26 s later; Send stays disabled and the API send returns 409 \"Wait for the current reply before sending again.\" until a restart (then failed with Retry). Evidence: work/probe/_out/e_storage.json u54, pendingForever; f_start.json pendingSendApi"
+    },
+    "p23866a": {
+     "grade": "poor",
+     "observed": "Saves, sends and Confirm during read-only DATA_DIR all show \"The workspace could not complete this action. Try again.\" and nothing is saved (checked after restart). But a [slow] reply whose result could not be written stays \"Assistant is preparing a reply…\" forever (after restore, reload, 26 s), Send disabled, API send 409 \"Wait for the current reply before sending again.\"; only a restart turns it into a failed message with Retry. Evidence: work/probe/_out/e_storage.json u54, pendingForever; f_start.json pendingSendApi"
+    },
+    "pa8edb8": {
+     "grade": "sound",
+     "observed": "Read-only DATA_DIR: Save instruction, Send and Confirm changes each show \"The service could not save or load this request. Check the data directory and try again.\" (Change result region shows it for the confirm); nothing saved; after restart ORD-1001 still open and the proposal still pending. A [slow] reply during read-only shows \"Storage is temporarily unavailable. The service will retry saving. Keep it running and restore access to the original data directory.\"; after chmod 755 the reply appears and \"another\" is answered. Evidence: work/probe/_out/e_storage.json u54, pendingForever"
+    }
+   }
+  },
+  {
+   "id": "U-57",
+   "results": {
+    "p51b1ee": {
+     "grade": "sound",
+     "observed": "\"long task: crates [fail step 2]\" -> Task status Failed, \"Step 2 failed. Retry to continue from this step.\" with Retry task; messages and a second task in a new conversation work. Read-only DATA_DIR during \"long task: rotest [long]\": shown Running while read-only; 3 s after restoring, \"Interrupted: Progress could not be saved, so the task stopped. Retry to continue from the last finished step.\" with Retry task; log names the task and the EACCES error; sends and another task keep working. Evidence: work/probe/_out/e_storage.json failingTask, taskReadonly"
+    },
+    "p23866a": {
+     "grade": "poor",
+     "observed": "A failing step is reported (Failed, Retry task) and the rest stays usable. But with DATA_DIR read-only during \"long task: rotest [long]\" (1 s in, restored 4 s later) the task shows Task status Running, 1 finished step and Cancel task, never advancing (still so 9 s later and after reload) while a new task in the same app completes; nothing tells the person it stopped; log only \"Workspace operation failed.\". Evidence: work/probe/_out/e_storage.json failingTask, taskReadonly"
+    },
+    "pa8edb8": {
+     "grade": "sound",
+     "observed": "Failing step: Failed, \"Step 2 failed. Finished steps are saved. Retry to continue.\" with Retry task; other conversations, sends and a new task work. Read-only DATA_DIR during rotest: alert \"Storage is temporarily unavailable. The service will retry saving...\"; after restore the task resumes (2, then 5 of 8, then Completed 8 of 8); sends and another task work. Evidence: work/probe/_out/e_storage.json failingTask, taskReadonly"
+    }
+   }
+  },
+  {
+   "id": "U-60",
+   "results": {
+    "p51b1ee": {
+     "grade": "sound",
+     "observed": "Save instruction with DATA_DIR read-only: page alert \"The workspace could not complete this action. Try again.\"; API 500 same text; server output \"Workspace operation failed: EACCES: permission denied, open '<DATA_DIR>/.workspace-<uuid>'\". Malformed JSON body -> 400 \"Send a valid JSON object.\"; odd field types -> 404/400 rule messages. Token never in output. Evidence: work/probe/_out/e_storage.json u60"
+    },
+    "p23866a": {
+     "grade": "poor",
+     "observed": "Same read-only save: page \"The workspace could not complete this action. Try again.\"; API 500; server output only \"Workspace operation failed.\" with no cause, so the operator cannot tell what failed. Malformed body -> 400 \"Send a valid JSON object.\". Token not in output. Evidence: work/probe/_out/e_storage.json u60"
+    },
+    "pa8edb8": {
+     "grade": "poor",
+     "observed": "Read-only save: page alert \"The service could not save or load this request. Check the data directory and try again.\" (API 503 same text); server output contains only the startup line, nothing about the error. Malformed body -> 400 \"The request could not be read.\"; odd field types -> 404 \"This item is unavailable in your workspace.\". Token not in output. Evidence: work/probe/_out/e_storage.json u60"
+    }
+   }
+  }
+ ],
+ "defects": [
+  {
+   "id": "D-1",
+   "title": "Conversations with the same long opening get identical names in the Conversations navigation",
+   "severity": "medium",
+   "merged_from": [
+    "p51b1ee#1",
+    "p23866a#4",
+    "pa8edb8#5"
+   ],
+   "repro": "Fresh data, token set, Continue as Maya. Send \"Please prepare the quarterly summary of all open orders for the customer named Northwind Traders\"; New conversation; send \"...Southwind Partners\". Repeat the pair with \"Please look up the latest order details and status history for customer Northwind/Southwind\" and \"Please look up the order history for the customer named Northwind/Southwind Traders please\". Read the Conversations buttons (accessible names, text, title).",
+   "expected": "Each conversation can be told apart before opening it.",
+   "note": "p23866a#4 also covers empty conversations; that part is D-2.",
+   "results": {
+    "p51b1ee": {
+     "result": "present",
+     "observed": "Pairs of buttons with identical names: \"Please prepare the quarterly summary of all open orders\" x2, \"Please look up the latest order details and status histo\" x2, \"Please look up the order history for the customer named\" x2; no detail shown (the same text in title attribute). Evidence: work/probe/_out/a_ui.json convSimilar"
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "Same identical pairs as above (titles cut at 56 characters), no detail. Evidence: work/probe/_out/a_ui.json convSimilar"
+    },
+    "pa8edb8": {
+     "result": "present",
+     "observed": "Pairs \"Please prepare the quarterly summary of all o…\", \"Please look up the latest order details and s…\", \"Please look up the order history for the cust…\", each twice (cut to 45 characters + ellipsis). Evidence: work/probe/_out/a_ui.json convSimilar"
+    }
+   }
+  },
+  {
+   "id": "D-2",
+   "title": "Empty conversations cannot be told apart (and on one product share the New conversation button's name)",
+   "severity": "medium",
+   "merged_from": [
+    "pa8edb8#4",
+    "p23866a#4"
+   ],
+   "repro": "Empty DATA_DIR, token set. Continue as Ana; count buttons with accessible name exactly \"New conversation\"; click the New conversation action twice; read the Conversations navigation.",
+   "expected": "Exactly one button named New conversation (the action), and each listed conversation identifiable before opening it.",
+   "note": "On the two Stillroom products only the second half shows (identical \"Untitled conversation\" entries); the action-name clash is pa8edb8 only.",
+   "results": {
+    "p51b1ee": {
+     "result": "present",
+     "observed": "On entry 1 button named \"New conversation\" (the action) and one \"Untitled conversation\"; after two clicks: \"New conversation\" + three buttons all named \"Untitled conversation\" (one aria-current). Evidence: work/probe/_out/a_ui.json convEmpty"
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "Same: one \"New conversation\" action, then three identical \"Untitled conversation\" buttons. Evidence: work/probe/_out/a_ui.json convEmpty"
+    },
+    "pa8edb8": {
+     "result": "present",
+     "observed": "On entry 2 buttons named exactly \"New conversation\" (the empty open conversation and the action); after two clicks 4 buttons all named \"New conversation\" (three conversations plus the action). Evidence: work/probe/_out/a_ui.json convEmpty"
+    }
+   }
+  },
+  {
+   "id": "D-3",
+   "title": "A reply whose result cannot be saved stays pending forever and blocks the conversation after storage recovers",
+   "severity": "medium",
+   "merged_from": [
+    "p51b1ee#2",
+    "p23866a#2"
+   ],
+   "repro": "Fresh DATA_DIR, token set, Continue as Maya, send \"hello [slow]\" (STANDIN_SLOW_MS=1500); 0.7 s later chmod 555 DATA_DIR; wait 5 s; chmod 755; send \"another\"; reload; also POST /api/action send.",
+   "expected": "The reply is reported as failed (with Retry) or completes once storage works, and the conversation is usable again.",
+   "note": "",
+   "results": {
+    "p51b1ee": {
+     "result": "present",
+     "observed": "\"Assistant is preparing a reply…\" after restore, after reload and 26 s later; Send disabled, Enter does nothing; API send -> 409 \"Wait for the current reply before sending again.\"; after a restart: \"The server restarted before this reply finished. You can retry.\" Evidence: work/probe/_out/e_storage.json pendingForever; f_start.json pendingSendApi"
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "Identical: pending status forever, Send disabled, API 409 \"Wait for the current reply before sending again.\", fixed only by a restart. Evidence: work/probe/_out/e_storage.json pendingForever; f_start.json pendingSendApi"
+    },
+    "pa8edb8": {
+     "result": "absent",
+     "observed": "While read-only: \"A reply is on its way…\" and alert \"Storage is temporarily unavailable. The service will retry saving...\"; 2.5 s after chmod 755 the hello reply is shown; \"another\" is answered; both survive a restart. Evidence: work/probe/_out/e_storage.json pendingForever"
+    }
+   }
+  },
+  {
+   "id": "D-4",
+   "title": "A typed id with extra characters (ORD-1001A) is answered with another record's value",
+   "severity": "medium",
+   "merged_from": [
+    "p51b1ee#3",
+    "p23866a#12"
+   ],
+   "repro": "Fresh data, as Maya send \"what is the status of ORD-1001A\".",
+   "expected": "A reply that ORD-1001A cannot be found (and how to correct it).",
+   "note": "The stand-in itself answers for ORD-1001; none of the products catches it. The value differs from the p51b1ee report (closed) only because that audit had closed ORD-1001 earlier.",
+   "results": {
+    "p51b1ee": {
+     "result": "present",
+     "observed": "Reply \"The status of ORD-1001 is open.\" with no note. Evidence: work/probe/_out/a_ui.json typedId"
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "Reply \"The status of ORD-1001 is open.\" with no note. Evidence: work/probe/_out/a_ui.json typedId"
+    },
+    "pa8edb8": {
+     "result": "present",
+     "observed": "Reply \"The status of ORD-1001 is open.\" with no notice. Evidence: work/probe/_out/a_ui.json typedId"
+    }
+   }
+  },
+  {
+   "id": "D-5",
+   "title": "Bots with the same name are indistinguishable",
+   "severity": "low",
+   "merged_from": [
+    "p51b1ee#4",
+    "p23866a#5"
+   ],
+   "repro": "As Ana: New bot, Bot name \"Assistant\", Save bot name; read the Bots navigation.",
+   "expected": "Duplicate refused, or each bot distinguishable before selecting it.",
+   "note": "",
+   "results": {
+    "p51b1ee": {
+     "result": "present",
+     "observed": "Two buttons named \"Assistant\" (text \"✦ Assistant\", title \"Assistant\"), no alert. Evidence: work/probe/_out/a_ui.json dupBot"
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "Two buttons named \"Assistant\", identical text and title, no alert. Evidence: work/probe/_out/a_ui.json dupBot"
+    },
+    "pa8edb8": {
+     "result": "absent",
+     "observed": "Refused with alert \"That name is already in use.\"; one Assistant button. Evidence: work/probe/_out/a_ui.json dupBot"
+    }
+   }
+  },
+  {
+   "id": "D-6",
+   "title": "A long bot name typed in the page is silently cut to 80 characters",
+   "severity": "low",
+   "merged_from": [
+    "pa8edb8#6"
+   ],
+   "repro": "New bot, type a 300-character name into Bot name key by key, Save bot name.",
+   "expected": "A long name is refused with a message, kept intact, or shortened only for display.",
+   "note": "",
+   "results": {
+    "p51b1ee": {
+     "result": "absent",
+     "observed": "No maxlength; all 300 characters typed; message \"Bot name has 300 characters. The limit is 80, so remove 220 characters to continue.\" and no bot created. Evidence: work/probe/_out/a_ui.json longBot"
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "Textbox has maxlength=80, accepted 80 of 300 characters; bot saved with the first 80 characters, no message. Evidence: work/probe/_out/a_ui.json longBot"
+    },
+    "pa8edb8": {
+     "result": "present",
+     "observed": "Textbox has maxlength=80, accepted 80 of 300 characters; bot saved with the first 80 characters, no message. Evidence: work/probe/_out/a_ui.json longBot"
+    }
+   }
+  },
+  {
+   "id": "D-7",
+   "title": "A forget that matches nothing is reported as done",
+   "severity": "low",
+   "merged_from": [
+    "p51b1ee#5",
+    "p23866a#6",
+    "pa8edb8#7"
+   ],
+   "repro": "Send \"remember that likes tea\", then \"forget tea\"; read the reply, any notice and Memory.",
+   "expected": "A notice that nothing matched, or a loose match removed and shown.",
+   "note": "",
+   "results": {
+    "p51b1ee": {
+     "result": "present",
+     "observed": "Reply \"I've forgotten \\\"tea\\\".\" with no notice; Memory still lists \"likes tea\". Evidence: work/probe/_out/a_ui.json forget"
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "Reply \"I've forgotten \\\"tea\\\".\" with no notice; Memory still lists \"likes tea\". Evidence: work/probe/_out/a_ui.json forget"
+    },
+    "pa8edb8": {
+     "result": "present",
+     "observed": "Reply \"I've forgotten \\\"tea\\\".\" with no notice; Memory still lists \"likes tea\". Evidence: work/probe/_out/a_ui.json forget"
+    }
+   }
+  },
+  {
+   "id": "D-8",
+   "title": "add step with several running tasks of the same title does not identify which task gets (or got) the step",
+   "severity": "low",
+   "merged_from": [
+    "p51b1ee#6",
+    "p23866a#8"
+   ],
+   "repro": "STANDIN_STEP_MS=1500. In one conversation send \"long task: same [long]\" twice, then \"add step: extra\"; read the feedback, any choice buttons and both Task: same articles; choose if asked.",
+   "expected": "The choices and the feedback identify which task gets the step.",
+   "note": "",
+   "results": {
+    "p51b1ee": {
+     "result": "present",
+     "observed": "Buttons \"Add to same\", \"Add to same\", \"Don’t add\"; after the first: note \"Added “extra” to the end of same.\"; the two articles have the same name \"Task: same\". Evidence: work/probe/_out/c_tasks.json addStep"
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "Only the stand-in text \"I'll add \\\"extra\\\" to the task that is running.\"; no note; both articles \"same Running Working in the background.\"; the step went to one of them silently (visible only as \"Done: extra\" at the end). Evidence: work/probe/_out/c_tasks.json addStep"
+    },
+    "pa8edb8": {
+     "result": "absent",
+     "observed": "No ambiguity: note \"No step was added. More than one task was running here. Wait or cancel until only the intended task is running, then send the request again.\"; neither task got the step. Evidence: work/probe/_out/c_tasks.json addStep"
+    }
+   }
+  },
+  {
+   "id": "D-9",
+   "title": "A damaged or unwritable data folder stops the server with a raw stack trace and no recovery step",
+   "severity": "low",
+   "merged_from": [
+    "p51b1ee#7",
+    "p23866a#10"
+   ],
+   "repro": "Seed a data folder, then write \"{not json\" (and separately {\"version\":1}, and {\"version\":1,\"users\":{},\"sessions\":{}}) to the app's data file and run node server.js; also point DATA_DIR at an empty folder with mode 555. Read the output; for a start that succeeds, Continue as Maya and send a message.",
+   "expected": "A clear message naming the file and a recovery step; damaged data kept.",
+   "note": "",
+   "results": {
+    "p51b1ee": {
+     "result": "present",
+     "observed": "\"{not json\": exit 1, raw SyntaxError stack from store.js, file not named; {\"version\":1}: raw TypeError stack (allThreads); mode 555: raw EACCES stack; {\"version\":1,\"users\":{},\"sessions\":{}}: starts, every reply fails \"The reply could not finish. Retry...\" and log \"Cannot read properties of undefined (reading 'filter')\". Damaged file kept on the exits. Evidence: work/probe/_out/f_start.json u46"
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "Same raw SyntaxError / TypeError / EACCES stacks with exit 1; the users/sessions shape starts and replies fail, log \"Workspace operation failed.\". Evidence: work/probe/_out/f_start.json u46"
+    },
+    "pa8edb8": {
+     "result": "absent",
+     "observed": "state.json \"{not json\": \"DATA_DIR has an unreadable state snapshot at <path>/state.json. Check access or restore a valid copy.\"; the two other shapes: \"...unusable saved state snapshot at <path>/state.json (records). Restore a valid copy.\"; file kept. Mode 555: one line \"EACCES: permission denied, open '<path>/.owner-...'\" with no stack (terse, no advice). Evidence: work/probe/_out/f_start.json u46"
+    }
+   }
+  },
+  {
+   "id": "D-10",
+   "title": "Keyboard focus is lost after Save memory",
+   "severity": "low",
+   "merged_from": [
+    "p51b1ee#8",
+    "p23866a#13"
+   ],
+   "repro": "Send \"remember that likes tea\"; Edit memory; set Memory text to \"likes green tea\"; Tab to Save memory; press Enter; read document.activeElement.",
+   "expected": "Focus on the edited item, its Edit memory button or another nearby control.",
+   "note": "",
+   "results": {
+    "p51b1ee": {
+     "result": "present",
+     "observed": "Tab from Memory text reached Save memory; after Enter document.activeElement is BODY; memory updated to \"likes green tea\". Evidence: work/probe/_out/a_ui.json focusMemory"
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "activeElement BODY after Save memory. Evidence: work/probe/_out/a_ui.json focusMemory"
+    },
+    "pa8edb8": {
+     "result": "absent",
+     "observed": "activeElement is the item's \"Edit memory\" button. Evidence: work/probe/_out/a_ui.json focusMemory"
+    }
+   }
+  },
+  {
+   "id": "D-11",
+   "title": "Sending a new message after a failed reply hides the failure and disables its Retry",
+   "severity": "medium",
+   "merged_from": [
+    "p23866a#1"
+   ],
+   "repro": "Fresh data, token set, Continue as Maya. Send \"hello [fail once]\"; at the alert send \"next\" instead of Retry; read the conversation; reload; on the Stillroom products also POST /api/action {\"action\":\"retry\",\"id\":<hello id>,botId,threadId}.",
+   "expected": "The failed message stays marked as failed with a way to resend it, or the person is told to retry first.",
+   "note": "",
+   "results": {
+    "p51b1ee": {
+     "result": "absent",
+     "observed": "After \"next\" is answered, hello keeps its alert \"The reply could not finish...\" and Retry; Retry inserts the hello reply right after hello. Evidence: work/probe/_out/b_retry.json sendInstead"
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "Transcript \"hello [fail once]\", \"next\", reply to next; no alert and no Retry (also after reload); the retry API call returns 200 and the message stays failed with no reply. Evidence: work/probe/_out/b_retry.json sendInstead"
+    },
+    "pa8edb8": {
+     "result": "absent",
+     "observed": "\"next\" is refused with alert \"Finish or dismiss the current reply before sending another message.\"; the failed hello keeps Retry and Dismiss failed reply; Retry succeeds. Evidence: work/probe/_out/b_retry.json sendInstead"
+    }
+   }
+  },
+  {
+   "id": "D-12",
+   "title": "A background task whose step cannot be saved keeps showing Running forever",
+   "severity": "medium",
+   "merged_from": [
+    "p23866a#3"
+   ],
+   "repro": "STANDIN_STEP_MS=1500. Send \"long task: rotest [long]\"; 1 s later chmod 555 DATA_DIR; wait 4 s; chmod 755; wait 3 s and 9 s; read Task status; reload.",
+   "expected": "The task is marked Failed or Interrupted with Retry task, or resumes once storage works.",
+   "note": "",
+   "results": {
+    "p51b1ee": {
+     "result": "absent",
+     "observed": "3 s after restore: Task status Interrupted, \"Progress could not be saved, so the task stopped. Retry to continue from the last finished step.\" with Retry task. Evidence: work/probe/_out/e_storage.json taskReadonly"
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "Task status Running, 1 finished step, Cancel task, unchanged 3 s and 9 s after restore and after reload, while another task started later completes. Evidence: work/probe/_out/e_storage.json taskReadonly"
+    },
+    "pa8edb8": {
+     "result": "absent",
+     "observed": "Storage alert while read-only; after restore the task resumes (2, 5, then 8 of 8, Completed). Evidence: work/probe/_out/e_storage.json taskReadonly"
+    }
+   }
+  },
+  {
+   "id": "D-13",
+   "title": "Since you were away never changes after the person returns",
+   "severity": "low",
+   "merged_from": [
+    "p23866a#9"
+   ],
+   "repro": "STANDIN_STEP_MS=500. Start \"long task: one\" and let it finish on the page; reload three times; start \"long task: two\" and \"long task: three\", close the page until they end, reopen; reload twice more.",
+   "expected": "Reports what changed since the last visit, and reported items stop appearing after being read or a reload.",
+   "note": "pa8edb8 keeps items until Mark as reviewed (which works); it also lists a task that finished while the person was present.",
+   "results": {
+    "p51b1ee": {
+     "result": "absent",
+     "observed": "Task one shown as \"Finished during this visit\", then after reload \"Nothing has changed since you were last here.\"; on return \"Finished while you were away three · Completed\"; next reloads \"Nothing has changed since you were last here.\" Evidence: work/probe/_out/c_tasks.json awayNeverChanges"
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "\"Finished one · Completed\" on every reload although it finished on the page; on return \"Finished three, two, one · Completed\", identical on the next two reloads; no dismiss control. Evidence: work/probe/_out/c_tasks.json awayNeverChanges"
+    },
+    "pa8edb8": {
+     "result": "absent",
+     "observed": "Report (one, two, three Completed) persists across reloads until \"Mark as reviewed\"; after clicking it the region is gone, also after reload. Evidence: work/probe/_out/c_tasks.json awayNeverChanges; f_start.json markReviewed"
+    }
+   }
+  },
+  {
+   "id": "D-14",
+   "title": "Saving an instruction or task under an existing name silently overwrites it",
+   "severity": "low",
+   "merged_from": [
+    "p23866a#7"
+   ],
+   "repro": "Save instruction A = \"x\"; without Edit, save instruction A = \"y\"; Use A, send \"who are you\". Same for Save task.",
+   "expected": "Overwrite with a notice, refuse, or ask.",
+   "note": "",
+   "results": {
+    "p51b1ee": {
+     "result": "absent",
+     "observed": "Refused: alert \"“A” is already saved. Choose Edit A to change it, or use another name.\"; text x kept. Evidence: work/probe/_out/a_ui.json savedEntries"
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "No alert; one entry A; \"who are you\" -> \"My instructions: y\"; the task request was likewise replaced silently. Evidence: work/probe/_out/a_ui.json savedEntries"
+    },
+    "pa8edb8": {
+     "result": "absent",
+     "observed": "Refused: alert \"That name is already in use.\"; x kept. Evidence: work/probe/_out/a_ui.json savedEntries"
+    }
+   }
+  },
+  {
+   "id": "D-15",
+   "title": "Unexpected server errors are not recorded for the operator (or recorded without any detail)",
+   "severity": "low",
+   "merged_from": [
+    "p23866a#11",
+    "pa8edb8#8"
+   ],
+   "repro": "With the app running and Maya signed in, chmod 555 DATA_DIR and click Save instruction (and POST /api/action saveInstruction); read the page and the server output.",
+   "expected": "The page says the action failed and what to try, and the server output records the error (without the token).",
+   "note": "pa8edb8 also uses its storage text for every non-rule error (read in server.js, not provoked separately).",
+   "results": {
+    "p51b1ee": {
+     "result": "absent",
+     "observed": "Page \"The workspace could not complete this action. Try again.\"; output \"Workspace operation failed: EACCES: permission denied, open '<DATA_DIR>/.workspace-<uuid>'\"; no token. Evidence: work/probe/_out/e_storage.json u60"
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "Page \"The workspace could not complete this action. Try again.\"; output only \"Workspace operation failed.\" (no cause). Evidence: work/probe/_out/e_storage.json u60"
+    },
+    "pa8edb8": {
+     "result": "present",
+     "observed": "Page \"The service could not save or load this request. Check the data directory and try again.\" (503); output has only the startup line. Evidence: work/probe/_out/e_storage.json u60"
+    }
+   }
+  },
+  {
+   "id": "D-16",
+   "title": "Since you were away shows a task as Completed beside only the steps finished before the return",
+   "severity": "low",
+   "merged_from": [
+    "pa8edb8#1",
+    "pa8edb8#2"
+   ],
+   "repro": "STANDIN_STEP_MS=1500 (and separately 800). Continue as Ana, send \"long task: report check [long]\", close the page, reopen 4 s later in the same browser, read Since you were away; leave it open 10-13 s and read it and Task: report check again.",
+   "expected": "The report's status and its finished steps describe the same moment.",
+   "note": "The Stillroom products list no steps in the region; their status updates with the task.",
+   "results": {
+    "p51b1ee": {
+     "result": "absent",
+     "observed": "At return \"Running report check · Running\"; later \"Finished during this visit report check · Completed\"; no step list to disagree. Evidence: work/probe/_out/c_tasks.json awayStale1500, awayStale800"
+    },
+    "p23866a": {
+     "result": "absent",
+     "observed": "At return \"Running report check · Running\"; later \"Finished report check · Completed\"; no step list. Evidence: work/probe/_out/c_tasks.json awayStale1500, awayStale800"
+    },
+    "pa8edb8": {
+     "result": "present",
+     "observed": "At return \"report check Running\" with 2 Done steps (the task card already 3 of 8); 10 s and 13 s later \"report check Completed\" still with those 2 steps while the card reads \"Completed 8 of 8 steps finished\". With 800 ms steps: \"frozen Completed\" beside 3 steps, card 8 of 8. Evidence: work/probe/_out/c_tasks.json awayStale1500, awayStale800"
+    }
+   }
+  },
+  {
+   "id": "D-17",
+   "title": "The \"save a token first\" alert stays on screen after a token is saved",
+   "severity": "low",
+   "merged_from": [
+    "pa8edb8#3"
+   ],
+   "repro": "Fresh DATA_DIR, no PROVIDER_TOKEN. Continue as Maya, type \"hello before token\" in Message, press Enter; then type sk-local-abcdefghijkl in Provider token and Save token; read alerts at 0.7 s and 3 s.",
+   "expected": "Once the token is saved the stale instruction is cleared or replaced by a confirmation.",
+   "note": "On the Stillroom products Send is disabled without a token, so no such alert is raised.",
+   "results": {
+    "p51b1ee": {
+     "result": "absent",
+     "observed": "Send disabled before a token, Enter raises no alert; after Save token Setup hides, no alerts; draft kept. Evidence: work/probe/_out/f_start.json tokenAlert"
+    },
+    "p23866a": {
+     "result": "absent",
+     "observed": "Same as p51b1ee: no alert before or after saving. Evidence: work/probe/_out/f_start.json tokenAlert"
+    },
+    "pa8edb8": {
+     "result": "present",
+     "observed": "After Enter: alert \"Save a provider token in Setup to start chatting.\"; after Save token Setup is hidden but the same alert is still shown at 0.7 s and at 3 s. Evidence: work/probe/_out/f_start.json tokenAlert"
+    }
+   }
+  }
+ ]
+}
