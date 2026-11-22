@@ -1,0 +1,452 @@
+{
+ "base:b-base-1": {
+  "case": "ticket-assignment-name-limit-unsaid",
+  "enrich": "reworded",
+  "clauses": 22,
+  "use_cases": 5,
+  "by_source": {
+   "request": 14,
+   "existing": 4,
+   "implied": 4
+  },
+  "added_refusals": [
+   {
+    "id": "C-12",
+    "kind": "implied",
+    "statement": "Unassigning, a same-agent assign and a refused request notify no one"
+   }
+  ],
+  "open_lines": [
+   {
+    "id": "C-1",
+    "kind": "request",
+    "statement": "`PUT /tickets/:id/assignee` with `{\"assignee\": \"<agent>\"}` assigns an open or in-progress ticket to that agent",
+    "open": "whether surrounding whitespace in the name is trimmed (the existing text fields trim) and the longest accepted name (existing text fields have limits: requester 64, title 200); the requester of the service decides. A test checks only ordinary short names without surrounding whitespace."
+   },
+   {
+    "id": "C-8",
+    "kind": "request",
+    "statement": "Assigning a ticket to the agent it already has changes nothing",
+    "open": "for an assigned ticket that is `resolved` or `closed`, whether repeating its current assignee answers 409 (as C-5 says, taken here) or 200; a test does not check that case. Likewise unassigning an already-unassigned open ticket is taken as a change-nothing 200, and the requester of the service decides if it should be an error."
+   },
+   {
+    "id": "C-10",
+    "kind": "request",
+    "statement": "The agent a ticket is assigned to is notified of it",
+    "open": "the wording of the subject and body, decided by the help desk; tests check only recipient, ticket and that it names the assignment, not the words."
+   },
+   {
+    "id": "C-13",
+    "kind": "implied",
+    "statement": "Assignment changes are written to the audit log",
+    "open": "the action name of the entry (for example `ticket.assigned`); tests do not check it."
+   },
+   {
+    "id": "C-18",
+    "kind": "request",
+    "statement": "The command-line listing shows each ticket's assignee",
+    "open": "the placeholder for an unassigned ticket in the table and in `--raw`; tests check only that an assigned ticket's line contains the name."
+   }
+  ],
+  "spec_minutes": 0.8,
+  "preserved_section": {
+   "entries": [],
+   "naming_a_file": 0
+  },
+  "rules_section": {
+   "entries": [],
+   "naming_a_clause": 0
+  }
+ },
+ "base:b-base-2": {
+  "case": "ticket-assignment-name-limit-unsaid",
+  "enrich": "reworded",
+  "clauses": 21,
+  "use_cases": 6,
+  "by_source": {
+   "request": 12,
+   "existing": 4,
+   "implied": 3,
+   "choice": 2
+  },
+  "added_refusals": [],
+  "open_lines": [
+   {
+    "id": "C-1",
+    "kind": "request",
+    "statement": "`PUT /tickets/:id/assignee` with `{\"assignee\": \"<agent>\"}` assigns an open or in-progress ticket to that agent",
+    "open": "whether the name is stored exactly as sent or trimmed of surrounding whitespace, as the existing text fields (title, requester) are. Settled by the requester. Tests use names without surrounding whitespace."
+   },
+   {
+    "id": "C-3",
+    "kind": "request",
+    "statement": "An agent is a non-empty name; any other `assignee` value is refused",
+    "open": "whether a whitespace-only name, a name with control characters (tab, line break), or a name longer than some maximum is refused. The existing text fields refuse whitespace-only, control characters and over-length (requester: 64). The requester decides which apply to an agent name and what the maximum is. A test checks only `\"\"`, non-string values and a missing field."
+   },
+   {
+    "id": "C-4",
+    "kind": "request",
+    "statement": "Only open and in-progress tickets can be assigned or unassigned",
+    "open": "where the status check falls against body validation when both fail (a closed ticket with an invalid body: 400 or 409). Settled by the requester. Tests do not combine them."
+   },
+   {
+    "id": "C-9",
+    "kind": "implied",
+    "statement": "An assignment or unassignment that changes the assignee is audited",
+    "open": "the `action` name of the entry (for example `ticket.assigned`). Free for the builder; tests do not check it."
+   },
+   {
+    "id": "C-10",
+    "kind": "request",
+    "statement": "The agent a ticket is assigned to is notified that it was assigned to them",
+    "open": "whether an agent name that is not an email address can be delivered by the mail relay; `to` is the name as given. Settled by the requester or the relay's owner."
+   },
+   {
+    "id": "C-12",
+    "kind": "choice",
+    "statement": "Unassigning notifies no one",
+    "open": "whether the previous agent, or the requester, should hear of an unassignment or reassignment. Settled by the requester. Adding such a notification would not break C-12's absence only if the requester decides it."
+   },
+   {
+    "id": "C-13",
+    "kind": "request",
+    "statement": "`GET /tickets?assignee=<agent>` lists only that agent's tickets",
+    "open": "whether the match ignores letter case. Tests use one case."
+   },
+   {
+    "id": "C-17",
+    "kind": "request",
+    "statement": "The command-line `list` shows each ticket's assignee",
+    "open": "the column's title, position and the placeholder text. Tests look for the agent's name on the ticket's row, and that an unassigned row does not contain `null`."
+   },
+   {
+    "id": "C-18",
+    "kind": "choice",
+    "statement": "The command-line `list` accepts an `assignee` filter",
+    "open": "whether the command line gets this filter at all. Settled by the requester; the clause may be dropped."
+   },
+   {
+    "id": "C-19",
+    "kind": "existing",
+    "statement": "`list --raw` keeps the positions of its existing columns",
+    "open": "whether `--raw` also carries the assignee, and if so it must be placed after the title (column 5) so that positions 1 to 4 stay. Tests only check columns 1 to 4."
+   }
+  ],
+  "spec_minutes": 0.9,
+  "preserved_section": {
+   "entries": [],
+   "naming_a_file": 0
+  },
+  "rules_section": {
+   "entries": [],
+   "naming_a_clause": 0
+  }
+ },
+ "base:b-base-3": {
+  "case": "ticket-assignment-name-limit-unsaid",
+  "enrich": "reworded",
+  "clauses": 18,
+  "use_cases": 6,
+  "by_source": {
+   "request": 13,
+   "existing": 2,
+   "implied": 3
+  },
+  "added_refusals": [],
+  "open_lines": [
+   {
+    "id": "C-3",
+    "kind": "request",
+    "statement": "An agent is a non-empty name; anything else is refused as invalid",
+    "open": "whether there is an upper length for a name, and whether control characters in it are refused. The service's other text fields are single-line and at most 64 characters (requester); the requester of the service would settle whether agents follow the same rule. A test must not rely on any length bound."
+   },
+   {
+    "id": "C-8",
+    "kind": "request",
+    "statement": "The agent a ticket is assigned to is notified that it was assigned to them",
+    "open": "the wording of the subject and body, and the `type` string, are not decided; checks may rely only on the recipient, the ticket id and that it is about an assignment."
+   },
+   {
+    "id": "C-10",
+    "kind": "implied",
+    "statement": "An assignment change is recorded in the audit log",
+    "open": "the entry's `action` string is not decided; checks may not depend on it."
+   },
+   {
+    "id": "C-15",
+    "kind": "request",
+    "statement": "The command-line `list` table shows each ticket's assignee",
+    "open": "the column's position and header text, and what an unassigned ticket's cell shows (empty, `-`, `unassigned`); checks may rely only on the assigned name appearing in that ticket's row and no agent name appearing in an unassigned ticket's row."
+   },
+   {
+    "id": "C-16",
+    "kind": "existing",
+    "statement": "`list --raw` keeps its first four columns and may add the assignee after them",
+    "open": "whether the raw listing carries the assignee at all, and what an unassigned ticket shows there; the raw output must not break the report in either case."
+   }
+  ],
+  "spec_minutes": 0.9,
+  "preserved_section": {
+   "entries": [],
+   "naming_a_file": 0
+  },
+  "rules_section": {
+   "entries": [],
+   "naming_a_clause": 0
+  }
+ },
+ "rules:b-rules-1": {
+  "case": "ticket-assignment-name-limit-unsaid",
+  "enrich": "reworded",
+  "clauses": 23,
+  "use_cases": 5,
+  "by_source": {
+   "request": 13,
+   "implied": 7,
+   "choice": 2,
+   "existing": 1
+  },
+  "added_refusals": [],
+  "open_lines": [
+   {
+    "id": "C-3",
+    "kind": "request",
+    "statement": "An agent is a non-empty name; any other `assignee` value is refused as `invalid`",
+    "open": "whether surrounding whitespace is trimmed and whether names have a maximum length or forbidden characters is not stated. A name of 1 to 64 printable characters without surrounding whitespace must be accepted and stored as given; behaviour beyond that is the requester's to settle."
+   },
+   {
+    "id": "C-4",
+    "kind": "request",
+    "statement": "Only open and in-progress tickets can be assigned or unassigned",
+    "open": "whether a no-op request on a resolved or closed ticket is 409 or 200 is not stated; the request's sentence is read as refusing every assign or unassign there."
+   },
+   {
+    "id": "C-5",
+    "kind": "implied",
+    "statement": "A request for a ticket that does not exist is 404 `not_found`",
+    "open": "which error wins when a request is both malformed and for an unknown or closed ticket is not stated; no check relies on it."
+   },
+   {
+    "id": "C-9",
+    "kind": "implied",
+    "statement": "An assignee survives a restart of a service that has a data file; a data file written before this change still loads",
+    "open": "whether the data file `version` number changes is an internal matter; a file written by the previous version of the service must still load."
+   },
+   {
+    "id": "C-10",
+    "kind": "request",
+    "statement": "The agent a ticket is assigned to is notified that it was assigned to them",
+    "open": "the subject and wording of the message are not stated; the requester has not said whether a name that is not an email address can be delivered by the relay."
+   },
+   {
+    "id": "C-14",
+    "kind": "implied",
+    "statement": "A change of assignee is recorded in the ticket's audit log",
+    "open": "the entry's `action` name is not stated (`ticket.assigned` is a reasonable choice); checks must not depend on it."
+   },
+   {
+    "id": "C-17",
+    "kind": "request",
+    "statement": "A ticket is listed only when it matches every filter given",
+    "open": "none for the rule; note for planning: the current `matchesFilters` in src/tickets/query.js keeps a ticket that matches any one filter, which contradicts the documented rule and must be corrected."
+   },
+   {
+    "id": "C-19",
+    "kind": "request",
+    "statement": "The command-line listing shows each ticket's assignee",
+    "open": "the column's header, position and the placeholder for unassigned are not stated; checks look for the agent's name on the ticket's row and must not depend on the rest."
+   }
+  ],
+  "spec_minutes": 1.1,
+  "preserved_section": {
+   "entries": [],
+   "naming_a_file": 0
+  },
+  "rules_section": {
+   "entries": [
+    "Who may be assigned: a non-empty name; wrong types, empty and whitespace-only names are 400 (C-3). Trimming and a length limit are not settled (C-3 Open).",
+    "Which statuses: `open` and `in_progress` allow assign and unassign; `resolved` and `closed` give 409, even for a no-op (C-4).",
+    "Unknown ticket: 404 (C-5). Unknown or missing body fields, non-object bodies: 400 (C-3).",
+    "No-op: same agent, or unassign of an unassigned ticket, changes nothing: no audit entry, no notification, `updated` kept (C-6, C-7).",
+    "Reassignment from one agent to another: replaces; audit records from and to; the new agent alone is notified (C-1, C-11, C-14). The notification deduplication key must not hide a different agent's notification (C-11).",
+    "Unassign: no notification (C-12).",
+    "Missing `assignee` in old data and new tickets: `null` (C-8, C-9).",
+    "Filter: exact, case-sensitive match; empty value means unassigned; absent means no filter; unknown name gives an empty page, not an error; all filters must match (C-15 to C-17). An `assignee` filter value is never `invalid`.",
+    "Lifecycle: resolving, closing or reopening keeps the assignee (C-21); the assignee of a resolved or closed ticket cannot be changed (C-4).",
+    "Paging: filters and cursors work together (C-18).",
+    "Persistence: the assignee is saved and loaded; old files still load (C-9).",
+    "Command line: the assignee is shown; raw column positions are kept (C-19, C-20).",
+    "Not settled by the request or by what is here: the maximum length and character rules of an agent name, the order in which a malformed request and an unknown or closed ticket are reported, and the wording of the notification (see the Open lines of C-3, C-5 and C-10)."
+   ],
+   "naming_a_clause": 13
+  }
+ },
+ "rules:b-rules-2": {
+  "case": "ticket-assignment-name-limit-unsaid",
+  "enrich": "reworded",
+  "clauses": 20,
+  "use_cases": 5,
+  "by_source": {
+   "request": 12,
+   "existing": 3,
+   "choice": 2,
+   "implied": 3
+  },
+  "added_refusals": [],
+  "open_lines": [
+   {
+    "id": "C-2",
+    "kind": "request",
+    "statement": "`PUT /tickets/:id/assignee` with `{\"assignee\": \"<agent>\"}` assigns an open or in-progress ticket to that agent",
+    "open": "whether reassignment is wanted at all is not stated; the request says only that a ticket \"is assigned to that agent\". Loosest reading taken: an assigned ticket may be assigned to another agent. The requester would settle it."
+   },
+   {
+    "id": "C-4",
+    "kind": "request",
+    "statement": "An agent is a non-empty name; any other `assignee` value is refused as invalid",
+    "open": "whether surrounding whitespace is trimmed (the existing text fields trim) or kept as given, and whether there is a maximum length (requester is limited to 64, title to 200), are not stated; the requester would settle both. A test must use only plain names without surrounding whitespace and well under 64 characters."
+   },
+   {
+    "id": "C-9",
+    "kind": "implied",
+    "statement": "An assignment or unassignment that changes the ticket is recorded in the audit log",
+    "open": "the entry's `action` name is not stated (`ticket.assigned` would fit the existing naming); tests must not check it."
+   },
+   {
+    "id": "C-10",
+    "kind": "request",
+    "statement": "The agent a ticket is assigned to is notified that it was assigned to them",
+    "open": "the wording of the message and the outbox `type` name are not stated; tests must not check them. Whether the agent's name is usable as a delivery address by the mail relay is not stated."
+   },
+   {
+    "id": "C-12",
+    "kind": "choice",
+    "statement": "Unassigning notifies no one",
+    "open": "whether the previous assignee should be told they were unassigned or replaced is not stated; the requester would settle it. The loosest reading, none, is taken, and a test must not require either."
+   },
+   {
+    "id": "C-14",
+    "kind": "request",
+    "statement": "`GET /tickets?assignee=<agent>` keeps only that agent's tickets",
+    "open": "whether the match ignores letter case is not stated; the requester would settle it. A test must use names that differ in more than case."
+   },
+   {
+    "id": "C-17",
+    "kind": "request",
+    "statement": "The command-line `list` table shows each ticket's assignee",
+    "open": "the placeholder for unassigned and the column's position are not stated; tests must find the agent's name on the ticket's row and must not require a specific placeholder."
+   },
+   {
+    "id": "C-18",
+    "kind": "existing",
+    "statement": "`list --raw` keeps the positions of its existing columns",
+    "open": "whether the raw listing shows the assignee at all is not stated (\"the command-line listing\" most plainly means the table); the requester would settle it."
+   }
+  ],
+  "spec_minutes": 1.1,
+  "preserved_section": {
+   "entries": [],
+   "naming_a_file": 0
+  },
+  "rules_section": {
+   "entries": [
+    "Who may be assigned: any non-empty single-line name; no list of known agents exists, so an unknown name is accepted (C-4). Length limit and trimming: not settled (C-4 Open).",
+    "States: open and in-progress accept assignment and unassignment; resolved and closed refuse both with 409, including a same-agent or null-to-null request (C-5). Order of checks when a request is both malformed and on a closed ticket: not settled; tests must not combine them.",
+    "Invalid input: empty, whitespace-only, non-string, absent key, control characters, extra fields, non-object body, all 400 (C-4); a body too large or not JSON is handled by the existing rules (docs/api.md).",
+    "No-change cases: same agent, null to null (C-7, C-8); none changes `updated`, the log or the outbox.",
+    "Same agent twice in a row, reassignment, assign-unassign-assign sequences: audit and notification outcomes in C-9, C-11, C-12.",
+    "Notification dedupe: key must distinguish agents and events (C-11).",
+    "Filters: empty value means unassigned; combine with AND; exact match (C-14 to C-16); an assignee filter is never invalid. Cursor paging with the filter uses the existing rules.",
+    "Persistence and old files: C-19. Command line: C-17, C-18.",
+    "Concurrency: the service handles one change at a time through the store, so two simultaneous assignments leave the last one applied, with an audit entry for each change; nothing more is required.",
+    "Not settled by the request or the code: reassignment (C-2), whether the old agent is told (C-12), message wording (C-10), name length and trimming (C-4), case sensitivity (C-14), raw listing (C-18)."
+   ],
+   "naming_a_clause": 9
+  }
+ },
+ "rules:b-rules-3": {
+  "case": "ticket-assignment-name-limit-unsaid",
+  "enrich": "reworded",
+  "clauses": 23,
+  "use_cases": 7,
+  "by_source": {
+   "request": 15,
+   "existing": 5,
+   "implied": 3
+  },
+  "added_refusals": [],
+  "open_lines": [
+   {
+    "id": "C-3",
+    "kind": "request",
+    "statement": "An agent is a non-empty name; anything else is invalid",
+    "open": "whether a name is trimmed, and its maximum length or forbidden characters. The request gives only \"non-empty\". The existing text fields trim, cap at 64 or 200 characters and refuse control characters; the requester decides if the same applies. Tests should use ordinary short names such as `dana`."
+   },
+   {
+    "id": "C-5",
+    "kind": "request",
+    "statement": "Only open and in-progress tickets can be assigned or unassigned",
+    "open": "whether repeating the assignee a resolved or closed ticket already has answers 409 or 200 unchanged. The request says only open and in-progress tickets can be assigned. Tests should not check this case."
+   },
+   {
+    "id": "C-8",
+    "kind": "implied",
+    "statement": "A change of assignee updates the ticket and is audited",
+    "open": "the entry's `action` value is not decided; tests should check `changes` and the actor, not the action name."
+   },
+   {
+    "id": "C-12",
+    "kind": "request",
+    "statement": "The agent is notified when a ticket is assigned to them",
+    "open": "the notification's `type` and its exact wording are not decided; tests should check `to`, `ticket`, that it is delivered (not dead) and that the text contains the ticket id. How an agent name maps to a delivery address is not decided; the name is used as the address."
+   },
+   {
+    "id": "C-13",
+    "kind": "request",
+    "statement": "Reassigning notifies only the new agent; unassigning notifies no one",
+    "open": "whether the previous agent or the requester should be told of a reassignment or unassignment; the requester decides. A build may add such notices only if no test of C-12 or C-13 is broken by them."
+   },
+   {
+    "id": "C-16",
+    "kind": "request",
+    "statement": "`GET /tickets?assignee=<agent>` keeps that agent's tickets",
+    "open": "whether the match ignores case or surrounding spaces is not decided; tests use the same spelling the ticket was assigned with."
+   },
+   {
+    "id": "C-20",
+    "kind": "request",
+    "statement": "The command-line table shows each ticket's assignee",
+    "open": "the column's position and the text for unassigned (blank or a dash) are not decided; tests find the name on its ticket's row and the title `ASSIGNEE`."
+   },
+   {
+    "id": "C-21",
+    "kind": "existing",
+    "statement": "`list --raw` keeps its first four columns",
+    "open": "whether `--raw` also shows the assignee, as a fifth column after the title, is not decided; the request says \"the command-line listing\", which may or may not include `--raw`. A build may append it only after the title."
+   }
+  ],
+  "spec_minutes": 1.0,
+  "preserved_section": {
+   "entries": [],
+   "naming_a_file": 0
+  },
+  "rules_section": {
+   "entries": [
+    "Who may be assigned: only open and in-progress tickets (C-1, C-2, C-5). Resolved and closed are refused in both directions; the repeat-on-resolved case is open (C-5).",
+    "Agent value: non-empty string or null; blank, whitespace-only and non-string values refused (C-3). Trimming, maximum length and forbidden characters are not settled by the request (open in C-3). The existing 64-character actor and requester limits are the nearest precedent, not a requirement.",
+    "Body: exactly one field, `assignee`, required (C-4). Check order for a request with several faults is not settled; a test should combine at most one fault.",
+    "Missing ticket: 404 (C-6).",
+    "Repeated and no-op assignments: nothing changes, no audit, no notice, `updated` stays (C-7).",
+    "Reassignment and unassignment: notice only to a new agent (C-13); whether others are told is open.",
+    "Duplicate notices through the outbox key: C-14.",
+    "Persistence and old files: C-10, C-11. Filtering of tickets without an `assignee` field must treat them as unassigned (C-9, C-17).",
+    "Filters: empty value means unassigned, absence means no filter (C-17); AND across filters (C-18); an assignee filter never raises `invalid`, because any string is a possible name (C-16). The filter's case and whitespace handling is not settled (C-16).",
+    "Pagination bounds are unchanged: `limit` 1 to 100, default 20 (C-19).",
+    "Command line: assignee column (C-20); raw columns keep positions (C-21).",
+    "Concurrency: requests are handled one change at a time by the store; two assignments at once end with the later one in effect, each audited. Not separately specified.",
+    "Not settled and not specified: assigning on ticket creation, an `assignee` filter on the command line, an assignee in the PATCH body (still refused as an unknown field, C-22), the assignee shown by `show`, the status of an assigned ticket changing, and any authorization of who may assign."
+   ],
+   "naming_a_clause": 12
+  }
+ }
+}

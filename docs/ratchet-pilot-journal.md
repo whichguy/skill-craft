@@ -2099,6 +2099,23 @@ name that starts or configures the product from the plan, the specification or t
 > So besides the plan's answers and the names it fixes, a test writer facing a rich page needs something to try
 > its page-reading code on. Its check of how much that one correction unlocks was still running when this was
 > received.
+>
+> **Sharpened 2026-11-21 13:54, on the fork's catch-up result** (received 13:52, not re-run here; its journal
+> section 16, its commit 50d7f3ced02a5192311a77332dc1fed190bcb5d5 on its own branch). The build-less Grokbot suite
+> passes 4 of 115 as written, 87 with the function that reads an element's name corrected, 111 once an action
+> waits for the page to answer it, and 112 once the driver's window counts as focused. So of the 111 items failing
+> at first meeting 108 were execution, mended by three corrections in the suite's two execution files (23, 97 and
+> 37 lines of diff), and 3 are the tests' own expectations (a bot name written into a test, a list order assumed,
+> a two-window case the specification does not ask for). None is the product. The last two corrections and the
+> three readings are a Sonnet subagent's, under a rule that only the execution files may change, checked by the
+> fork.
+>
+> What it adds. The design was not what was missing: both suites use the same 46 labels and all 46 are in the
+> specification, and the build-less writer's own list of assumptions names none of the three faults. What the
+> tests assert held at this size too (112 of 115 expectations as written before any code). What did not hold is
+> the code that drives a rich page, which the writer had nothing to try on. On time: the build took 15.0 minutes,
+> the most that writing the tests beside it could save, and the catch-up took about half an hour of work after a
+> 30-minute failing pass.
 
 ### Amendment 11, 2026-11-21 10:52: Sonnet at medium against Sonnet at high, the small step first, then one test-strength cell at each (registered before any run)
 
@@ -2280,6 +2297,12 @@ it".
   shortens (F36; 0, 1, 3, 5). Clauses that restate existing behaviour almost never reject a correct product (F25),
   while the writer's own decisions do (F26, F28). The owner told that session he wants fuller specifications. So
   fuller should mean more existing behaviour pinned and more points raised, with nothing decided by the writer.
+
+> *Added 2026-11-21 13:54, after the runs; the registration above and below is left as it was registered.* The
+> series 0, 1, 3 and 5, cited in the bullet above and in R13.1, did not hold up as a trend: three runs of the
+> shortest of those four cells give 5, 3 and 0 on the same count (this amendment's result: F38 and "The first
+> reading's instrument"). The script does reproduce the four numbers; what is qualified is the reading that they
+> follow the specification's length. Pointed out by the session "Spec elaboration" when it checked the result.
 
 **The ladder.** Three rungs; only the first is registered here.
 
@@ -2510,7 +2533,10 @@ to 8 clauses added": held, 5 and 4; "a smaller effect, most likely not shown": h
   to 5 sourced clauses. In the specification, with no section, both write what the five specifications without
   the question write. The placements differ in stage and in form together; which of the two decides is not
   separated. It agrees with what the session "Spec elaboration" read in real deliveries (the guides are not opened;
-  on Sol the intake's routed questions leave no open gap on record). ShipLoop's fifteen plan concerns already have
+  on Sol the intake's routed questions leave no open gap on record). *Qualified 2026-11-21 16:55 (section 25):*
+  "leaves no trace" says too much. Both specifications written with the bare instruction did answer, inside the one
+  clause on existing behaviour, and one cited existing files in 15 clauses. What was missing is a separate answer
+  and any consistent change in the clauses. ShipLoop's fifteen plan concerns already have
   the form that was answered here: a row, or "applies: no" with a reason.
 - **F40 (not shown, and why this case cannot show it).** Neither placement moved a registered reading. On this
   case none could have by more than one defect: of the 27, one is caught only by a clause on existing behaviour,
@@ -2563,3 +2589,521 @@ request here is precise.
 Evidence: `evidence/preserve-question/` (a folder for each of the six cells with the run record, the grading, the
 specification as the spec stage left it and as it ended, the plan and the grading log; `by-source-log.txt` and
 `.json`, `specs-log.txt` and `.json`, `recount.txt`, `nested-test-run-check.txt`).
+
+### Received after the result: on Sol, what a command printed is not always what the model was given (2026-11-21 13:54)
+
+Status: received from the session "Spec elaboration" at about 13:45, its work and not re-run here (its journal
+section 43, its commit a3392874fb01b14c4c1c62443a80a9dce1660f6c); the check of this pilot's apparatus is mine.
+
+**What it found.** On the Codex host GPT 6.2 Sol runs its commands from a script of its own, keeps a command's
+output in a variable and prints to itself the part it asks for. What the model was given is in Codex's own session
+record, not in the harness's events. Over 50 existing ShipLoop runs on Sol, the spec stage's instructions were
+given at four fifths of their lines or more in 41 and at under a third in 8, and the line that says where the
+requirement guides are was given in 9.
+
+**What it touches here, and what it does not** (checked in `ratchet.py`, `Ratchet.session` and the packets). Every
+stage's text and the request itself are formatted into the session's prompt, so "the stage was told" holds for
+this pilot's Sol cells, and no registered reading rests on text handed over by a command. What a Sol session gave
+itself afterwards through commands (the specification and plan files, the product's own files, the gate's output,
+the Until Loop runtime's messages) has not been read: this pilot's readings used the harness's events. Codex's
+own session files are kept in each Sol run's home folder (two for `p1R-ticket-assignment`, three for
+`p3R-ticket-due-times-a`), so it can be read from records on file, with no run. The cells of amendments 10 to 12
+on Sonnet are not touched: there a tool's result is what the model is given. For F39 it adds a second way, on
+Sol, for text to leave no trace: it is not printed.
+
+## 23. Amendment 13, 2026-11-21 14:28: the same question in the specification, with a section to fill (registered before any run)
+
+Owner: asked which next step to start ("A then B's first rung (my pick), A only, add the optional reading C, or stop
+here"), he answered "Yes". I take that as the pick named: step A, registered here, and then the first rung of step B,
+which is designed after A's result and registered by itself.
+
+**What it asks.** F39 left two things together: the plan answered the question and the specification did not, and
+the plan had a section to fill where the specification had only one more instruction. Here the stage is the
+specification and the form is the plan's.
+
+**The text** (`ratchet.py`: `PRESERVE_SPEC_SECTION`, chosen by `--preserve spec-section` with `--enrich reworded`).
+It is `PRESERVE_PLAN` word for word with the file and the place changed: "in a third section of `ratchet/spec.md`,
+`## Preserved behaviour`, after the clauses" where the plan's says "in a sixth section of `ratchet/plan.md`", and "add
+it as a clause with the next number" where the plan's says "add it at the end of `ratchet/spec.md` as a clause with
+the next number". It sits where amendment 12's specification paragraph sat, above "How to get there". The script's
+reader of a specification already ends an item at a section heading, so it reads such a file unchanged.
+
+Checked before this registration: the 20 text constants of the committed script are unchanged and two are added; the
+specification packet renders byte for byte as before for `none`, `spec` and `plan`, and with `spec-section` it is
+the baseline packet plus this one paragraph; the standing self-test passes plain and with the new setting ("selftest
+ok: 10 sessions, 6 gates, 14 snapshots" twice); the paragraph is in the spec session's prompt only; the setting is
+refused without `--enrich reworded`. `by_source.py specs` now also counts the entries of such a section and how
+many name a file (`NAMES_A_FILE`, a word match); it reproduces amendment 12's table line for line and counts the two
+plans' sections as the helper's recount did (14 and 13; 10 and 9).
+
+**Cells.** Three runs, `q-sec-1` to `q-sec-3`: ticket assignment, the spec stage alone (`--stop-after spec`), Claude
+host, `claude-sonnet-5-5` at medium, 6 dollars a session at most. They are read beside the seven specifications on
+file from amendment 12: five written without the question (the earlier one, `q-base-1`, `q-base-2`, `q-plan-1`,
+`q-plan-2`) and two with the question as an instruction (`q-spec-1`, `q-spec-2`). No baseline is run again: the
+text for the other settings is what wrote those seven, byte for byte, with the same model and effort on the same
+day.
+
+**Readings.**
+
+- **R14.1, the first reading: is the question answered?** A run *answers* if its specification holds a section
+  `## Preserved behaviour` with at least 5 entries that name a file (the plans held 13 and 9; counted by the
+  script). *The form decides* if all three answer. *The stage decides* if none does. Otherwise mixed, given as
+  counts.
+- **R14.2, do the answers become clauses?** Clauses sourced `existing` (first word) as the spec stage leaves them,
+  against 1 to 5 in the seven on file. *They do* if at least two of the three runs hold 7 or more: the top of that
+  range plus two (F38), and what the plan's question ended at (7 and 8). *They do not* if all three hold 5 or
+  fewer. Otherwise not shown.
+- **R14.3, harm** (my reading, named as such, with the clauses listed): `existing` clauses that state behaviour of
+  the new feature and not of the product as it is, the kind F41 found; and choice clauses, 2 or fewer in each.
+- **R14.4, the one defect** (reported): whether any clause says that a resolved ticket can still be changed, the
+  behaviour `update-rejects-resolved` breaks. No test is run here; this says only whether the clause is written.
+- Reported: clauses, use cases, `Open:` lines, whether the section says what the repository does not settle,
+  seconds and cost.
+
+**Predictions.** All three answer, with 8 to 15 entries naming a file. The entries mostly do not become clauses:
+`existing` clauses between 4 and 8, 7 or more in at most one run, because this text's own rule on what earns a
+clause pulls the other way and every specification already has one clause that says existing behaviour is
+unchanged. The resolved-ticket clause is written in at most one run. At most one clause in all decides something
+new under an `existing` source.
+
+**What each outcome means for the next rung**, written now. If the form decides, a catalog question can be put to
+the specification stage as a section, and step B's question arm does that. If the stage decides, or the result is
+mixed, step B's question arm puts its question in the plan, where it was answered twice of twice.
+
+**Limits known before the runs.** One case, one model at one effort, three runs. The specification alone: nothing
+here says what tests or products do with a section. The paragraph is the plan's with two phrases changed, and both
+changes are mine. The seven specifications it is read against were written two hours earlier.
+
+### Amendment 13, result (2026-11-21 14:36; three specification runs, 14:29 to 14:31)
+
+Status: firm for what was run: three runs of the spec stage alone on ticket assignment, Claude host,
+`claude-sonnet-5-5` at medium; each specification accepted on its first try; no held-out mark; nothing put back by
+the script; 0.92 dollars. Read beside the seven specifications on file from amendment 12, each as its spec stage
+left it.
+
+**Table. Ten specifications of the same request.** "`existing` first" and "anywhere" as in amendment 12. "Section"
+is the number of entries of a `## Preserved behaviour` section and, in brackets, how many name a file. "Test
+clauses" is the number of clauses that carry the request's two sentences about tests (the existing tests still
+pass; new tests run under `npm test`).
+
+| Run | The question | Clauses | `existing` first | anywhere | choice | `Open:` | Section | Test clauses | Seconds |
+|---|---|---|---|---|---|---|---|---|---|
+| earlier | none | 22 | 2 | 8 | 1 | 8 | none | 2 | 47 |
+| `q-base-1` | none | 21 | 1 | 10 | 0 | 9 | none | 2 | 54 |
+| `q-base-2` | none | 24 | 5 | 10 | 1 | 10 | none | 2 | 47 |
+| `q-plan-1` | none yet | 20 | 2 | 8 | 0 | 6 | none | 2 | 63 |
+| `q-plan-2` | none yet | 22 | 5 | 12 | 2 | 8 | none | 2 | 49 |
+| `q-spec-1` | an instruction | 21 | 4 | 9 | 0 | 9 | none | 2 | 51 |
+| `q-spec-2` | an instruction | 22 | 5 | 15 | 0 | 8 | none | 2 | 58 |
+| `q-sec-1` | a section to fill | 26 | 6 | 11 | 1 | 7 | 11 (10) | 1 | 64 |
+| `q-sec-2` | a section to fill | 24 | 2 | 8 | 1 | 9 | 10 (8) | 0 | 74 |
+| `q-sec-3` | a section to fill | 25 | 5 | 12 | 1 | 7 | 11 (11) | 1 | 73 |
+
+**The readings of amendment 13.**
+
+- **R14.1, the first reading: the form decides.** All three specifications hold the section, with 11, 10 and 11
+  entries of which 10, 8 and 11 name a file (the bar was 5). Each also says what the repository does not settle
+  (for example whether a data file with an invalid assignee is refused, and whether `show` prints the assignee).
+  The two specifications written with the same question as an instruction hold no list.
+- **R14.2, do the answers become clauses: not shown.** Clauses sourced `existing`: 6, 2 and 5, against 1 to 5 on
+  file. The bar was 7 in two runs. The specifications are a little longer all the same (26, 24 and 25 clauses
+  against 20 to 24), with no one kind of source accounting for it.
+- **R14.3, harm, my reading.** No `existing` clause decides something new. Those about the new feature apply a rule
+  the documents state for every request or every change (unknown fields are refused, an unknown ticket is 404,
+  every change is on the audit record). One section says of the very point F41's clause decided, a data file with
+  an invalid assignee, that it is not settled. Choice clauses: 1 in each. What reading them did turn up is below.
+- **R14.4, the one defect.** None of the three says that a resolved ticket can still be changed, and none of the
+  seven on file does. All three sections give the rule from the refusing side only ("a closed ticket cannot be
+  changed (PATCH 409)"; "PATCH refuses closed tickets"), which a product that also refuses a resolved one
+  satisfies.
+
+**Not registered, found by reading: with a section to fill, requirements left the clauses.** The request's two
+sentences about tests are two clauses in each of the seven specifications on file. With the section they are one
+clause holding both in `q-sec-1` (C-26) and `q-sec-3` (C-24), and no clause in `q-sec-2`, where "the existing tests
+in `test/` keep passing unmodified" is the section's opening line and the sentence on new tests under `npm test` is
+nowhere in the specification. Three of three against none of seven. Only clauses and use cases are given tests, and
+amendment 12 found that on this case those two clauses carry most of what is caught in existing behaviour. No
+test stage ran here, so what a test session would make of a section is not known.
+
+**Predictions scored.** "All three answer, with 8 to 15 entries naming a file": held (10, 8, 11). "`existing`
+clauses between 4 and 8, 7 or more in at most one run": the second half held; one run wrote 2. "The
+resolved-ticket clause in at most one run": held, in none. "At most one clause decides something new under an
+`existing` source": held, none by my reading. That the section would draw requirements away from the clauses I did
+not predict.
+
+**Findings.**
+
+- **F43 (firm for what was run: three runs; with amendment 12, five of five against none of two).** A question
+  from ShipLoop's catalog is answered when there is a section to fill, at the specification stage as at the plan
+  stage. At the specification stage, where both forms were run, the form decides: three of three with a section,
+  none of two without. The plan was run only with one. So F39's difference was the form, as far as these runs go.
+  *Qualified 2026-11-21 16:55 (section 25):* "none of two" means no separate answer; see the note under F39.
+- **F44 (three runs).** At the specification stage the answer stays a list. The plan's entries became clauses (5
+  and 4 added, and one of them caught the defect no short specification had caught); the specification's did not
+  (R14.2), and none of the three lists says the one thing that defect needs.
+- **F45 (three of three; no test stage run).** A section is also somewhere else to put a requirement. With one in
+  the specification, a request sentence that had always been a clause became part of the list. A list that is
+  not tested must point at the clause that carries each entry, or it takes from the tests what it adds to the
+  page.
+
+**Is there enough to conclude?** For what this amendment asked, yes: the form decides. For the design of what
+follows: a catalog question can be put to the specification stage as a section, as registered, and by F45 the
+section's entries must name the clause that states each of them; where entries are meant to become requirements,
+the plan is the stage that made them so. Not established: what a test session does with a section; any other
+question of the catalog; another case or model.
+
+**Checked twice, and who decided what.** The readings and findings are the main session's. A Sonnet subagent
+copied the evidence, ran the registered script and recounted every figure with a script of its own, quoting each
+clause on tests and each line on changing a ticket by status; its counts match the script's on all ten
+specifications (the earlier baseline's specification time apart, as before), and its quotes are what the readings
+of R14.4 and of the test clauses rest on.
+
+**Limits.** One case, one model at one effort, three runs. The specification alone. The seven on file were written
+two hours earlier from the same text. The count of test clauses was not registered; it is exact (a clause either
+carries a sentence or does not) and was made twice.
+
+Evidence: `evidence/section-question/` (a folder for each of the three runs with its record, specification and
+log; `specs-log.txt` and `.json`; `recount.txt`).
+
+## 24. Amendment 14, 2026-11-21 14:41: a request with one stated detail left out, first rung (registered before any run)
+
+Owner: his "Yes" of section 23 covers this rung ("B's first rung: one removed detail, six runs, about 4 dollars,
+after I register its design"). His interest, from section 22: whether known questions give "better breadth and
+coverage" when "we elaborate the incoming prompt", for a request that does not say everything.
+
+**What it asks.** Every request in this pilot is precise, so nothing so far reads what a specification does about
+something the request needs and does not say. Here one detail the request states is taken out, and the reading is
+what the specification and the plan do about it: raise it, decide it, or pass over it; and whether one catalog
+question, asked as a section, changes that. This rung is also the first trial of the instrument itself.
+
+**The design is the session "Spec elaboration"'s five points, taken whole** (received about 13:20, before anything
+was built): sort each candidate detail against the starting product first; read the plan as well as the
+specification and never score "decided" as success; four classes, not three; few details with repeats and a
+difference registered beforehand; a request that reads whole, checked by a reader who has not seen the original.
+
+**The detail.** The original request says "an agent is a non-empty name of at most 64 characters". The case
+`ticket-assignment-name-limit-unsaid` says "an agent is a non-empty name" and is otherwise word for word (176 words
+for 181).
+
+- *Sorted against the starting product, before any run.* It has no assignment and says nothing of an agent. It
+  states a limit for every other name it takes: the requester, at most 64 characters, and the actor in `X-Actor`,
+  at most 64 (`docs/api.md`); and for the title, at most 200. So nothing settles an agent's limit, and the product
+  holds two like limits of 64 and one of 200. The request's other stated details, sorted the same way, are why this
+  one was taken: that only open and in-progress tickets can be assigned (the product partly settles it the other
+  way: "a closed ticket can no longer change", and a resolved one can); that assigning the same agent changes
+  nothing (the product settles it: `CONTRIBUTING.md`); that an empty `assignee=` keeps the unassigned (the product
+  settles it the other way: an empty `status=` is 400); that a ticket must match every filter (its document settles
+  it, its code disagrees); that the agent is notified and that the command line shows the assignee (capabilities:
+  left out of a request, passing them over is right under this text); that `null` unassigns (nothing settles it,
+  but taking it out changes two sentences).
+- *Reads whole.* A Sonnet subagent given only the shortened request, and asked whether any sentence reads as cut or
+  refers to something never stated, answered "reads whole" and "nothing stands out".
+- *The right behaviour under the text itself.* "Invent no bound: one that none of those supplies is an `Open:`
+  line."
+
+**Arms.** Three runs each, the spec stage and then the plan stage (`--stop-after plan`, new), Claude host,
+`claude-sonnet-5-5` at medium, 6 dollars a session at most.
+
+- `b-base-1` to `b-base-3`: the reworded text as it is.
+- `b-rules-1` to `b-rules-3`: `--rules spec-section` (new). ShipLoop's key question K4, word for word ("Rules and
+  edge cases: the domain rules, limits, invalid inputs, boundaries and end conditions."), in the form amendment 13
+  found answered: a third section of the specification, `## Rules and edge cases`, each entry "with the clause that
+  states it"; "The section adds no requirement and replaces no clause" (F45); what neither the request nor the
+  product settles is said in the section.
+
+The question is the one of the twelve that matches the detail, and it was chosen knowing the detail. This rung asks
+whether a matching question can change the outcome at all. It says nothing about twelve questions asked together.
+
+Checked before this registration: the 23 text constants of the script are unchanged and two are added; with the
+question off the specification packet renders byte for byte as before for every `--preserve` setting, and with it
+on it is the baseline packet plus the one paragraph; the plan packet is unchanged; the new case's request is the
+old one less those five words; the standing self-test passes; on the stand-in host a run with the question and
+`--stop-after plan` ends with two sessions and three snapshots and holds the paragraph in the spec prompt only;
+three wrong combinations of options are refused. `by_source.py specs` counts the new section's entries and how many
+name a clause, and still reproduces amendment 13's table.
+
+**What is read**, a run at a time, in the specification as the spec stage left it and in the plan. The point is
+the longest name an agent may have.
+
+- **O+**: marked open (an `Open:` line, or an entry saying it is not settled) and the answer taken is named.
+- **O**: marked open and no answer taken.
+- **D**: decided. A longest length is stated as a requirement, in a clause or as a decision of the plan, with no
+  mark that it is open. The source it is given (choice, existing, implied) is recorded.
+- **P**: passed over. Neither the specification nor the plan speaks of a longest length for an agent's name.
+
+**Readings.**
+
+- **R15.1, the first reading: noticed or passed over.** O+, O and D count as noticed. *The question makes it
+  noticed* if all three runs with the question notice and at most one baseline run does. *The baseline already
+  notices* if at least two baseline runs do: this detail then leaves no room, and the instrument needs another.
+  Otherwise not shown.
+- **R15.2, open or decided**, among the runs that notice: counts, with each decision's source. No bar at three
+  runs. "Decided" is never a success.
+- **R15.3, the question arm did what was asked.** The section is there with at least 5 entries, and how many name a
+  clause (by the script). By reading: how many clauses carry the request's two sentences about tests, which F45
+  found lost with a section; 2 in each is kept.
+- **R15.4, harm** (my reading, the clauses listed): clauses in the question arm that the request does not call for;
+  choice clauses; the number of clauses in each arm.
+- **Two readers.** The classes are read by me and, from the same definitions, by a Sonnet subagent given the six
+  pairs under neutral names. It cannot be blind to the arm (the section shows it). The reading of record is mine;
+  where the two differ, both are given.
+
+**Predictions.** Baseline: one of three notices (most write "a non-empty name" and stop). With the question: three
+of three notice, two of them marking it open and one deciding 64 "as the requester's". The section holds 8 to 15
+entries, most naming a clause, and at least two of the three keep both test clauses.
+
+**Limits known before the runs.** One detail, chosen by me who knows the case, where the product holds like limits
+that make the gap easier to see than most. One question, the matching one. One model at one effort, three runs an
+arm: only a stark difference can show. The specification and the plan only: "passed over" means neither says it,
+and what a build would then do is not seen. The paragraph's sentences around the question are mine.
+
+### Amendment 14, result (2026-11-21 14:50; six runs, 14:42 to 14:45)
+
+Status: firm for what was run: six runs, the spec stage and then the plan stage, on the request with the name's
+limit left out; three with the reworded text as it is and three with the rules question as a section; Claude
+host, `claude-sonnet-5-5` at medium; each specification accepted on its first try; no plan added a clause; no
+held-out mark; nothing put back by the script; 4.14 dollars.
+
+**Table. What each pair of documents does about the longest name an agent may have.**
+
+| Run | The question | Class | Marked open in | The plan takes | Clauses | `Open:` | Section | Test clauses | Seconds |
+|---|---|---|---|---|---|---|---|---|---|
+| `b-base-1` | none | O+ | C-1 `Open:` | 64 | 22 | 5 | none | 2 | 50 + 99 |
+| `b-base-2` | none | O+ | C-3 `Open:` | 64 | 21 | 10 | none | 1 | 55 + 87 |
+| `b-base-3` | none | O+ | C-3 `Open:` | 64 | 18 | 5 | none | 2 | 53 + 89 |
+| `b-rules-1` | a section | O+ | C-3 `Open:`, two entries | 64 | 23 | 8 | 13 (13) | 2 | 65 + 81 |
+| `b-rules-2` | a section | O+ | C-4 `Open:`, two entries | 64 | 20 | 8 | 10 (9) | 1 | 64 + 111 |
+| `b-rules-3` | a section | O+ | C-3 `Open:`, one entry | 64 | 23 | 8 | 13 (12) | 2 | 58 + 95 |
+
+"Section" is the number of entries of `## Rules and edge cases` and, in brackets, how many name a clause. "Seconds"
+is the spec session and the plan session.
+
+**The readings of amendment 14.**
+
+- **R15.1, the first reading: the baseline already notices.** All three baseline runs mark the limit as open in the
+  specification, and so do the three with the question: noticed in six of six, passed over in none. By the
+  registered rule this detail leaves no room, and the instrument needs another.
+- **R15.2, open or decided: open in six of six, decided in none.** Each specification gives the point an `Open:`
+  line and says the requester decides ("the longest accepted name (existing text fields have limits: requester 64,
+  title 200); the requester of the service decides", `b-base-1`). Each plan then names the answer it takes, 64,
+  "same as requester". Five of the six plans tell the tests not to rely on a length, and at least three say the
+  build reports the choice. So the class is O+ six times. The answer the plans take is the one the original
+  request stated.
+- **R15.3, the question arm did what was asked.** The section is there in all three, with 13, 10 and 13 entries of
+  which 13, 9 and 12 name a clause. The request's two sentences about tests are 2, 1 and 2 clauses with the
+  question and 2, 1 and 2 without it, and nothing about tests sits in a section: the section took no clause away.
+  One run of each arm has no clause for the sentence on new tests under `npm test`.
+- **R15.4, harm, my reading.** Each arm writes a few clauses the request does not ask for, of the same kinds (what
+  unassigning or reassigning does to notifications, a refusal of control characters in a name), and the clearest
+  capability nobody asked for is in a baseline run (`b-base-2` C-18, an `assignee` filter on the command line). No
+  difference between the arms shows. Clauses: 23, 20 and 23 against 22, 21 and 18. Choice clauses: 2, 2 and 0
+  against 0, 2 and 0. `Open:` lines: 8, 8 and 8 against 5, 10 and 5.
+- **Two readers.** My reading and the Sonnet reader's, made from the six pairs under shuffled names, agree on six
+  of six.
+
+**Predictions scored.** Baseline, "one of three notices": wrong, all three did. With the question, "three of three
+notice, two open and one decided": three noticed and all three left it open. "8 to 15 entries, most naming a
+clause": held. "At least two of the three keep both test clauses": held, two.
+
+**Why the baseline had no trouble (my reading).** The reworded text has a rule for exactly this: "Where a clause
+depends on a bound, state the bound and what happens at it ... Invent no bound: one that none of those supplies is
+an `Open:` line", and the product limits every other name it takes, so the gap is in plain sight. I took a detail
+the text was written for. Its sentence on sets ("the states that stop something") covers states the same way. A
+detail that tests a question has to be one no rule of the text names.
+
+**Findings.**
+
+- **F46 (firm for what was run: six of six, two readers agreeing).** With a stated limit left out of the request,
+  the reworded text by itself marks the missing limit as an open point, and the plan takes the product's own
+  precedent and says so. No question was needed for it, and the answer taken is the one the requester had. This
+  is the text doing for an unsaid bound what F29 to F33 showed it doing for the points a request leaves open.
+- **F47 (three runs).** The remedy for F45 held. A section whose entries must name the clause that states each
+  left the clauses where they were (2, 1 and 2 test clauses with it and without), and 34 of its 36 entries name a
+  clause. F45's own baseline is corrected by this round: a specification without any section also wrote one test
+  clause for two sentences, once in three, so "none of seven" is now one of ten.
+- **F43, extended.** A catalog question asked as a section was answered in three more runs: eight of eight with a
+  section (two plans, three specifications for K2, three for K4), none of two without.
+
+**Is there enough to conclude?** For this detail, yes: the text already does it, and a question adds nothing that
+shows. For the instrument: it reads cleanly (four classes, two readers agreeing, about 70 cents and two and a half
+minutes a run), and its first detail had no room. For the owner's question, whether key questions add breadth on
+a request that does not say everything: not answered yet. What would answer it is a detail that no rule of the
+text names and that the product settles otherwise than the requester wants. Proposed, not registered: leave out
+"Only open and in-progress tickets can be assigned or unassigned". The product says a closed ticket can no longer
+change and lets a resolved one change, so a specification written from the product alone would let a resolved
+ticket be assigned, which this requester did not want.
+
+> **Received 2026-11-21 15:05, on that proposal, from the session "Spec elaboration"** (asked for; its own guides
+> test, twenty Sol runs from one vague sentence, ended "not shown" by its rule the same hour: its journal section
+> 47, its commit 4f91f17010ca26daa4247266cdf0ebdb96d82959, not re-run here). Two cautions, both taken, and one
+> correction of mine.
+>
+> - *Following the product is right.* With that sentence gone nothing in the inputs holds the requester's wish, so
+>   a run that follows the product is not a miss by anything it could know. Such a rung reads whether a text makes
+>   an inherited rule visible ("inherited from the product, and said so" against "inherited silently"), not
+>   whether it recovers the wish. My "which this requester did not want" cannot be a yardstick.
+> - *It may meet the floor*, as this rung met the ceiling: if neither the text nor the question names
+>   state-dependent permissions, both arms may sit at nothing. A detail with room both ways is one the product
+>   leaves unsettled and no rule names.
+> - *Correction.* Reporting this result, I told the owner that no rule of the text covers that sentence. The text's
+>   rule on sets does name "the states that stop something", for a clause that depends on one. It does not ask
+>   which states allow an action the request is silent on, but it is not nothing, and the paragraph on why the
+>   baseline had no trouble already said so.
+>
+> What follows for the proposal: it stands only as a reading of whether inherited rules are made visible, with the
+> classes inherited and said, inherited silently, marked open, passed over. This request is tight, and it may hold
+> no detail that the product leaves unsettled, that no rule names and that a writer could miss.
+
+**Checked twice, and who decided what.** The classes, the readings and the findings are the main session's. One
+Sonnet subagent read the six pairs under shuffled names from the registered definitions and gave the same six
+classes, quoting every sentence it relied on. Another copied the evidence, ran the registered script and recounted
+every figure with a script of its own: no disagreement with the script.
+
+**Limits.** One detail, chosen by me, in a product that holds like limits; one question, the matching one; one
+model at one effort; three runs an arm. The specification and the plan only: no build ran, so that a build would
+take 64 and report it is what the plans say, not something seen. The second reader could see which pairs had a
+section.
+
+Evidence: `evidence/unsaid-detail/` (a folder for each of the six runs with its record, its specification as the
+spec stage left it and as it ended, its plan and its log; `specs-log.txt` and `.json`; `recount.txt`;
+`second-reading.md`, the second reader's quotes and classes with the key to the shuffled names).
+
+### Received: the section form in ShipLoop's released spec stage, on Sol, from vague requests (2026-11-21 15:53)
+
+Status: received at 15:52 from the session "Spec elaboration" (its journal sections 50 and 51, its commit
+411646c297f603bba29835751a0c88b591252cd3); its work on its own instrument, not re-run here; I read its section 51
+at that commit before writing this. Shortly after 15:07 I had passed it the form of F43 and F47 as an idea for its
+bench; it registered the arm and ran it within the hour.
+
+**What it ran.** ShipLoop's released spec stage with one more duty: to end `spec.md` with a section "Key questions"
+holding one entry for each of the intake's twelve key questions, each with this change's answer in a line and the
+requirement or section that states it, and the sentence "The section adds no requirement and replaces none."
+Against the released stage as it is. Two one-sentence requests (a CSV import of users on a small program; a CSV
+import of tickets on the ticket service), three sets a case, GPT 6.2 Sol at medium, each run stopped when ShipLoop
+accepted the specification, and each specification judged blind by two models on the items its two sorters said
+apply.
+
+**What it found.**
+
+- *The form carries over.* All six specifications with the duty end with the section, twelve entries each, every
+  entry naming the requirement or section that states it, and ShipLoop accepted every one. One author gave itself
+  only the first four question lines and still wrote twelve entries, from the lines it had been given at intake.
+- *It does not make the specification fuller.* Item readings covered by both judges: 21 against 18 of 27 on the
+  small program and 21 against 20 of 45 on the ticket service; set by set the nets are 0, 0, minus 1 and 0, 3, 1,
+  where its rule needed 2 every time. Not shown. The section is an index: each entry restates in a line what a
+  requirement already says; without the section's words the specifications are no longer, and the requirement ids
+  are the same in number. So it took nothing out of the clauses either.
+- *One item moved every time:* who may use the change at all, covered in three of three with the section and in
+  none of three without. The entry for the question on what the request's words mean made the author say who an
+  admin is.
+- *Its reading.* The form gets a question answered, and a general question gets a general answer. What its two
+  cases leave thin is particular to the change (the result for each row, what a caller may set, what happens to
+  the product's own notifications and audit, hostile input, dates), and twelve general questions answered in a
+  line each do not reach it. With its two earlier levers (guide text in the packet, a sentence to read the whole
+  packet) that is three tried and none shown, over 56 specifications from two vague sentences. *Corrected
+  2026-11-21 16:55:* 44 specifications, not 56. That session corrected its own total at 15:58, after I had read
+  its section; the outside review of section 25 pointed out that this receipt still carried the old figure.
+
+**What it does to the findings here.**
+
+- F43 holds on another model, another host and ShipLoop's own stage: with these six, a catalog question asked as a
+  section has been answered fourteen times of fourteen. F47 holds there too: nothing left the requirements.
+- It answers, on a vague request and with blind judges, what amendment 14 could not: asking ShipLoop's general key
+  questions in the form that gets them answered does not make the specification fuller in a way that shows.
+- Taken with this pilot's amendments 12 and 14, that is five small tests in one day of reusing ShipLoop's general
+  reference material at the specification or the plan, on two instruments, two models and two hosts. None shows a
+  fuller specification or a stronger suite. What they show is how to get a question answered (a section to fill
+  whose entries name what states them), and one case each where an answer mattered: here a clause from the plan's
+  question that caught the long-missed defect, there the entry that says who may use the change.
+
+**Not known, and the owner's to decide.** Whether questions particular to the kind of change would reach what
+general ones do not. The session "Spec elaboration" names that as the next lever and as a product decision. This
+pilot's removed-detail instrument could read such questions on one detail at a time; nothing is registered.
+
+## 25. Two outside reviews at maximum effort on what to try next (2026-11-21 16:55; no run of this pilot)
+
+Owner, after the result of section 24: "Help think deeply of there is any other consideration or idea we should
+experiment with before we move forward", and then: "We are trying to create a generic SDLC prompt and scripts , how
+could we make this more effective? What ideas should we try based on learnings?"
+
+By his standing rule a deep design question goes to the latest Sol at maximum effort, read-only, before anything is
+called ready. Two reviews were run on `gpt-6.2-sol` at effort max with the consult profile and no fallback: the
+first from 16:32 to 16:43 on this pilot's question, the second from 16:40 to 16:53 on ShipLoop itself. Each read a
+neutral folder of copies: for the first, sections 20 to 24 of this journal, sections 37 to 52 of the Spec
+elaboration journal and the prompt texts under test; for the second, ShipLoop's released source, the architecture
+note and the four journals. The local account name was taken out of the copies. The questions and the answers, word
+for word, are in `review/` (`sol-ideas-question.md`, `sol-ideas-answer.md`, `sol-shiploop-question.md`,
+`sol-shiploop-answer.md`). I gave the owner my own ideas before either answer was in.
+
+**The first review, in short.** Keep the reworded text as the baseline. Stop spending on general additions to the
+specification. Put the next effort on what the gate really measures and on one narrow comparison scored on
+behaviour.
+
+- *A missing fact is not a missing decision.* The repository can supply a fact; only the requester can supply a
+  decision. A person should be asked a decision as a concrete fork that says what the answer changes.
+- *The misses seen here are test-design misses.* Two suites never built an input that separates right paging from
+  wrong; the lists said "a closed ticket cannot be changed" and not "a resolved one still can". A question helps
+  only if it changes the test input or the expected observation.
+- *Instruments.* "Fails on the correct reference" mixes an over-strict clause, a valid alternative interface, a bad
+  test driver and a gap in the fixture, and should be classified before it is leaned on. The rule of R13.1 could
+  not be met once a baseline measured zero. Recovering a deleted detail's original value is not a valid yardstick:
+  facts that can be inferred, preferences only a requester has and choices where several products are valid need
+  separate examples.
+- *Its order of experiments.* First, with no model call, replay archived suites on known-good and known-bad
+  products. Then, for a few dollars, hold the request and the specification fixed and compare a general question
+  on preserved behaviour with one grounded in the repository, each arm proposing two test scenarios that a script
+  scores against known good and bad variants. Then whether one answer from the requester reaches acceptance, a
+  fresh reviewer of a finished product, and the same author against a fresh reader on a frozen draft.
+- *On the texts.* The specification's declared form names two sections, so an added section is outside the form
+  it calls exact; "every sentence of the request" and "joined by and is two clauses" make the count of clauses a
+  stand-in for completeness; a preserved rule needs evidence that it governs the changed path, and the allowed
+  neighbour beside the refusal; an open point needs a stated job downstream (an implementation choice, a
+  provisional choice with a consequence, or a preference someone must settle).
+
+**The second review, in short.** Its one change for ShipLoop: in the existing `test` gate, make a consequential case
+prove that it can fail. For a chosen acceptance criterion the script checks that the right case passes on the
+candidate and fails, for the expected reason, on a relevant counterexample, and that for preserved behaviour the
+original product passes too.
+
+- *Where it says the released loop is weaker than its duties read.* A test case must name a criterion of the step
+  plan, but not the one its own focused command declares, and a criterion with no case is a notice, not a refusal.
+  A proof or check that exits 0 with no readable tally passes. The intake's question ledger may be left out, and
+  nothing joins a routed question or a request outcome to a particular acceptance line. The fifteen concern rows
+  must be present, and any non-blank text satisfies a row. The packet puts the callback first and the guide paths,
+  root definitions and earlier results after the duties, which is the part a sliced read loses.
+- *Its ranked ideas, after the counterexample check.* Put consequential choices in the hand-off that consumes them
+  (reusing assumptions and requirement ids); a short action entry with the inputs and checks that matter, the full
+  packet a named read away; questions about the consequences of the actual change; outer obligations closed from
+  receipts the navigator can join; decisions shown to the person while they can still change the work; a second
+  reader from another model family for a named failure; a clean, local system-test stage that finishes on entry.
+- *What it would remove.* The record-only Backchain graph; the routine skill decision at carry-forward (`none` in
+  306 of 306); the suggested ceilings of twelve criteria and six files in step planning; repeated guidance.
+- *How it would evaluate.* One change an afternoon on two cases that have room; prove the yardstick first on a good
+  product, a second good product and a faulty one; three paired runs a case with the rule written first; stop
+  treating specification length, clause counts, filled fields, guide opens and review edits as results.
+
+**What I checked of them before passing anything on.**
+
+- In the journals: 43 of 203 and 8 of 64 clauses, 15 and 3 items, 38% fewer output tokens (all as recorded here);
+  83 of 84 deliveries passing at the last accepted implement step, 306 `none` skill decisions, mutation refusals in
+  80 of 97 runs, a ceiling enforced by 12 of 12 Sol due-times builds and named by none of their specifications or
+  reports (all as recorded in the other two journals). One figure of the first review, on row-level feedback in 3
+  of 5 guide-block specifications, I could not find and did not pass on.
+- In ShipLoop's source, read at the lines cited: `check_test_cases` does require only that a case's criterion be one
+  of the plan's, and `coverage_notices` says of an unconfirmed criterion "never a refusal"; `judge` passes a check
+  that exits 0 when no tally is recognised, and fails one whose tally shows no test ran; the intake ledger is
+  optional by a recorded decision ("requiring it would refuse every synthetic intake the hermetic suites
+  complete"). So its claims there hold, and two of the gaps are choices someone made on purpose.
+- Its correction of this journal is right and is applied in place: the sister study's total is 44 specifications,
+  not 56. Its objection to "leaves no trace" (F39, F43) is right too, and both are qualified in place.
+
+**What I take, and what stays open.** Both reviews, the sister study and this pilot's amendments 12 to 14 point the
+same way: general questions and guide text have not made a specification measurably fuller, and the failures
+actually seen are downstream of the specification, in what a test builds and observes and in what a green gate
+proves. F42 is one instance of the second review's main idea: a check of "the existing tests pass" that cannot
+fail. Its counterexample check and my hollow-evidence idea are the same proposal at two levels. Not taken as
+shown: any gain from the changes it proposes, none of which has been run. Nothing is registered by this section.
+
+**The owner's to decide.** Whether to pilot the counterexample check in ShipLoop's test gate, which is a product
+change and belongs with the session that owns ShipLoop's releases; whether this pilot's next step is the free
+replay of archived suites; and whether the reworded text goes into ShipLoop's specification stage.

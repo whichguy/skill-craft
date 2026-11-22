@@ -1,0 +1,90 @@
+{
+ "case": "ticket-assignment-name-limit-unsaid",
+ "host": "claude",
+ "model": "claude-sonnet-5-5",
+ "effort": "medium",
+ "started": "2026-11-21T14:42:08-0800",
+ "start_tree": null,
+ "frozen_from": null,
+ "build_from": null,
+ "bare": false,
+ "sessions": [
+  {
+   "number": 1,
+   "role": "spec",
+   "label": "spec-1",
+   "seconds": 54.7,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 54.7,
+   "held_out_marks": [],
+   "cost_usd": 0.2445983
+  },
+  {
+   "number": 2,
+   "role": "plan",
+   "label": "plan-1",
+   "seconds": 87.3,
+   "status": "exited",
+   "returncode": 0,
+   "elapsed_seconds": 87.3,
+   "held_out_marks": [],
+   "cost_usd": 0.3995898
+  }
+ ],
+ "gates": [],
+ "snapshots": [
+  {
+   "label": "base",
+   "commit": "0072cd898bc251b8ed277263bcfada7425f18587",
+   "tree": "99d92357c06060cc6c277e7115a92b32c1852140",
+   "at": 0.2
+  },
+  {
+   "label": "spec",
+   "commit": "6761bd20284c34383cf9ddba318399ac6aa41092",
+   "tree": "241bd63b0ba8319c25f85cf6ad7e2b5636ce1785",
+   "at": 55.0
+  },
+  {
+   "label": "plan-1",
+   "commit": "a6d50cb08fe90e60381bd111e55a6ed33a5ce5f4",
+   "tree": "d4ed799d38f4b1585b5c0a6ad7d3f6ac873226dc",
+   "at": 142.4
+  }
+ ],
+ "cycles": [
+  {
+   "cycle": 1,
+   "clauses_at_start": 27,
+   "new_clauses": [],
+   "plan_loops": [
+    {
+     "name": "plan-1",
+     "session": "exited",
+     "loop": "complete",
+     "iterations": 2,
+     "trivial_streak": 1
+    }
+   ],
+   "plan_added": []
+  }
+ ],
+ "reverted": [],
+ "spec_violations": [],
+ "local_head": "797dce6d60d5903489e135239bb6b36a1e2a5706",
+ "named_checks": true,
+ "enrich": "reworded",
+ "spec_from": null,
+ "preserve": "none",
+ "tests_blind_from": null,
+ "plan_from": null,
+ "rules": "none",
+ "stop": "stop-after-plan",
+ "final_pass": null,
+ "seconds": 142.4,
+ "clauses": 21,
+ "use_cases": 6,
+ "tamper": [],
+ "finished": "2026-11-21T14:44:30-0800"
+}

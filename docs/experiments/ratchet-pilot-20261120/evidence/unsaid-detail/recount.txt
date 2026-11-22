@@ -1,0 +1,304 @@
+====================================================================================================
+RUN b-base-1   spec commit 242ce0b404396b6599d9c5c2e3c3284dd70d1b9c
+-- item 1: counts
+  at spec commit: clauses=22 use_cases=5 source(request/implied/existing/choice)=14/4/4/0 other={} open_lines_in_clauses=5 (clauses with an Open: line=5) open_lines_anywhere=5
+  final spec: clauses=22 use_cases=5 source(request/implied/existing/choice)=14/4/4/0 other={} open_lines_in_clauses=5 (clauses with an Open: line=5) open_lines_anywhere=5
+  clause ids in final but not at spec commit: none; at spec commit but not in final: none; clauses whose text differs between spec commit and final (info): none
+  clause numbers at spec commit: C-1..C-22; final: C-1..C-22
+-- item 2: rules section at spec commit
+  section '## Rules and edge cases': absent
+  all '## ' headings at spec commit: ['Use cases', 'Clauses']
+-- item 3: request's sentences about tests (clauses at spec commit)
+  clauses about tests: 2
+    C-20: Existing behaviour and tests are unchanged
+    C-21: New tests cover the behaviour
+  (final spec, info) clauses about tests: ['C-20', 'C-21']
+  wording outside a clause:
+    [spec at spec commit | U-5] Flow: existing endpoints, the data file, the weekly report and the existing tests behave as before; tickets created before this change, or loaded from an older data file, show `"assignee": null`.
+    [plan | ## Nuances] - **Existing `matchesFilters` unit test passes tickets without `assignee`**: the `?? null` handles that.
+    [plan | ## Nuances] - **Existing tests must not be edited.** New tests go in new files only (e.g. `test/assignment.test.js`, extra cases for query/format/persistence in new files rather than appended to old ones). Notice `test/api.test.js` line 180 checks the outbox pending list shape; it creates and resolves only, so no assignment events sneak in.
+    [plan | ## Build order] 2. `store.js`: `create` gets `assignee: null`, constructor normalises, `assign` with the key, template in `templates.js`. Run `npm test` (existing suite must stay green).
+    [plan | ## Build order] 7. New tests under `test/` (new files only), then full `npm test`.
+    [plan | ## How we will know] - **U-4 / C-18, C-19**: run `node bin/tickets.js --data FILE list` and `list --raw` via `main()` with captured output (see existing tests for the pattern): assigned ticket's line contains the name; raw columns 1-4 equal the old values; the weekly report gives identical counts.
+    [plan | ## How we will know] - **U-5 / C-14, C-20**: restart with `DATA_FILE`; an old-format file loads with `null`; the whole `npm test` passes with the existing test files untouched (`git diff --stat` shows no changed test files).
+    [plan | ## How we will know] - **Must not forget in tests**: use new test files only; ordinary short names; do not assert notification wording, audit action name, or the placeholder; do not assert behaviour for the open points (resolved + same assignee, unassign of an unassigned ticket, trimming/length); clean up temp data files with `t.after`; ports via port 0 only.
+  (info) clause lines other than Observable/heading that match the same pattern in clauses not counted above: 0
+-- item 4: length/limit with agent/assignee name; and every line with 64
+  counts spec@spec-commit (strict, name-only, 64) = (2, 1, 1); plan = (10, 2, 2)
+  [spec@spec-commit | C-1] (length-word[limits,longest]+name(only), 64) Open: whether surrounding whitespace in the name is trimmed (the existing text fields trim) and the longest accepted name (existing text fields have limits: requester 64, title 200); the requester of the service decides. A test checks only ordinary short names without surrounding whitespace.
+  [spec@spec-commit | C-15] (length-word[limit]+agent/assignee) Observable: with tickets assigned to `dana`, `sam` and no one, `?assignee=dana` returns only dana's tickets in id order with the usual `items`/`next` shape; an agent with no tickets gives `{"items": [], "next": null}`; paging with `limit` and `cursor` keeps the filter.
+  [spec@spec-commit | C-22] (length-word[character]+agent/assignee) Observable: an `assignee` containing a tab, a line break or another control character answers 400 `invalid`.
+  [plan | ## Approach] (length-word[chars,length,limits,max]+agent/assignee, 64) - `src/tickets/validate.js`: new `assignment(body)`: `onlyFields(body, ['assignee'])`; `assignee` must be present; `null` is allowed; otherwise it goes through the existing `text()` helper (string, trimmed, non-empty, no control chars, max length) with a new `LIMITS.assignee = 64` (same as requester). Returns the name or `null`.
+  [plan | ## Decisions] (length-word[chars,max]+agent/assignee, 64) 1. **Name rules reuse `text()`**: trimmed, max 64, no control chars. Reason: C-1's open point leaves it to the requester; matching the existing text fields is the least surprising, and C-3/C-22 already need non-empty/no control chars. Rejected: no trimming (`" dana"` and `"dana"` would be two agents, and a visible-looking name could be blank-padded).
+  [plan | ## Decisions] (length-word[chars,long]+agent/assignee) 7. **Filter semantics.** `assignee` key present in the query -> `filters.assignee = value.trim()`; `''` means unassigned. Matching: `filters.assignee === '' ? ticket.assignee == null : ticket.assignee === filters.assignee`. Exact, case-sensitive. A filter value that is not a valid name (control chars, too long) simply matches nothing: no 400 (the spec says empty is valid and does not ask for validation of the rest; 400 would be an arbitrary new refusal). Rejected: representing "unassigned" as `null` in `filters` (then `given` filtering of `undefined` and `null` gets subtle); using `''` keeps `matchesFilters`'s existing `value !== undefined` test correct.
+  [plan | ## Nuances] (length-word[longer]+agent/assignee) - **`update()` and `transition()` keep the assignee (C-9).** They mutate only their fields via `apply`, so it holds; add a test that PATCH, transition to resolved, then GET still shows the assignee, and that a resolved ticket can no longer be unassigned (C-6) though its assignee is shown.
+  [plan | ## Nuances] (length-word[length]+name(only)) - **`updated` and no-change (C-8).** `apply` returns early with no changes (no `updated`, audit, notification, save). The same-name branch must go through that path or return early; verify `updated` and the audit length are unchanged using the manual clock advanced between calls.
+  [plan | ## Nuances] (length-word[limit,long]+agent/assignee) - **Pagination with filters (C-15).** `store.list` filters before paginating; a cursor is just a ticket id, so the existing mechanism keeps the filter as long as the client repeats it. Test limit=1 over assignee-filtered tickets, and a cursor that points at a ticket not matching the filter (works via `compare`).
+  [plan | ## Nuances] (length-word[char,chars]+agent/assignee) - **Raw column (C-19).** `rawLine` joins with tabs; an assignee name cannot contain tabs because of the control-char refusal (C-22), but a hand-edited data file could. The loader rejects non-strings only; optionally also reject control chars in loader for assignee. Do so with the same CONTROL check if cheap, else leave. Confirm `scripts/weekly-report.js` reads columns by index and gives the same counts before/after (run it against a data file with assigned tickets).
+  [plan | ## Nuances] (length-word[length,max]+agent/assignee) - **Notification `to` is the bare agent name**, not an address; the outbox requires a non-empty string, which the validator guarantees. Max length of `to` is irrelevant.
+  [plan | ## Build order] (length-word[limits]+agent/assignee) 1. `validate.assignment` (+ `LIMITS.assignee`); quick manual check in a scratch script.
+  [plan | ## How we will know] (length-word[length]+name(only)) - **C-5/C-7/C-8/C-11**: resolved and closed tickets -> 409; unknown id -> 404; repeat same name -> 200 with `updated`, audit length and outbox count unchanged; dana->sam and dana->null->dana make 2 pending each.
+  [plan | ## How we will know] (length-word[limit]+agent/assignee) - **U-3 / C-15-C-17**: tickets for dana/sam/none across statuses and priorities; `?assignee=dana`, `?assignee=`, `?assignee=nobody`, `?status=open&assignee=dana`, `?priority=high&assignee=`, `?status=open&priority=urgent` (intersection), plus limit/cursor paging with the filter.
+  [plan | ## How we will know] (length-word[length]+agent/assignee) - **Must not forget in tests**: use new test files only; ordinary short names; do not assert notification wording, audit action name, or the placeholder; do not assert behaviour for the open points (resolved + same assignee, unassign of an unassigned ticket, trimming/length); clean up temp data files with `t.after`; ports via port 0 only.
+-- item 5: run.json
+  case=ticket-assignment-name-limit-unsaid rules=none preserve=none model=claude-sonnet-5-5 effort=medium stop=stop-after-plan
+    session 1 label=spec-1 role=spec seconds=50.4 cost_usd=0.24223579999999997
+    session 2 label=plan-1 role=plan seconds=99.4 cost_usd=0.4428597000000001
+  sum of costs=0.6851  run seconds=150.2
+  held_out_marks union=[]  spec_violations=[] tamper=[] reverted=[] local_head=797dce6d60d5903489e135239bb6b36a1e2a5706
+  started=2026-11-21T14:42:08-0800 finished=2026-11-21T14:44:38-0800
+  run.json clauses=22 use_cases=5; cycles plan_added=[[]]
+====================================================================================================
+RUN b-base-2   spec commit 6761bd20284c34383cf9ddba318399ac6aa41092
+-- item 1: counts
+  at spec commit: clauses=21 use_cases=6 source(request/implied/existing/choice)=12/3/4/2 other={} open_lines_in_clauses=10 (clauses with an Open: line=10) open_lines_anywhere=10
+  final spec: clauses=21 use_cases=6 source(request/implied/existing/choice)=12/3/4/2 other={} open_lines_in_clauses=10 (clauses with an Open: line=10) open_lines_anywhere=10
+  clause ids in final but not at spec commit: none; at spec commit but not in final: none; clauses whose text differs between spec commit and final (info): none
+  clause numbers at spec commit: C-1..C-21; final: C-1..C-21
+-- item 2: rules section at spec commit
+  section '## Rules and edge cases': absent
+  all '## ' headings at spec commit: ['Use cases', 'Clauses']
+-- item 3: request's sentences about tests (clauses at spec commit)
+  clauses about tests: 1
+    C-20: Existing behaviour and tests are unchanged
+  (final spec, info) clauses about tests: ['C-20']
+  wording outside a clause:
+    [spec at spec commit | U-6] Flow: Creating, listing, changing, transitioning, auditing, notifying, persisting, the weekly report and the existing tests behave as before.
+    [plan | ## Approach] - Tests: new files only, e.g. `test/assignment.test.js` (HTTP + store) and additions in new files for query, persistence and CLI. Do NOT edit existing test files (they must pass "as they are").
+    [plan | ## Decisions] 8. **Filter semantics.** `parseListQuery`: `params.has('assignee')` → `filters.assignee = value === '' ? null : value`. `null` flows through `matchesFilters` because its guard is `value !== undefined`. Exact, case-sensitive match (C-13). `matchesFilters` switches `some` → `every` (C-15). Existing tests only use one filter at a time, so they still pass. Never throw `invalid` for assignee (C-16). For `?assignee=a&assignee=b`, `params.get` returns the first: acceptable.
+    [plan | ## Nuances] - **`CREATED_FIELDS` and `test/store.test.js` line 37.** That existing test does `deepEqual` on the create audit entry's `changes`. Adding `assignee` to `CREATED_FIELDS` would break it. Leave it; a new ticket's audit entry does not list `assignee`.
+    [plan | ## Nuances] - **Existing data (C-7).** Three places create ticket objects from saved data: `persistence.readTicket`/`ticketRecord`, the `TicketStore` constructor (used directly by the CLI's `openStore` and by tests passing `state`), and `snapshot()`. Normalise in `readTicket` AND the constructor (`assignee: ticket.assignee ?? null`), otherwise a ticket from a state object shows no `assignee` key at all, and `?assignee=` (null) would not match `undefined`. The `ticketRecord` function is shared by save and load: using `ticket.assignee ?? null` there covers both. Validate on load: non-null non-string or empty string → `DataFileError`.
+    [plan | ## Build order] 1. `validate.assignment`, `templates['ticket.assigned']`, `query.js` (`assignee` parse + `every`). Run `npm test` (existing tests must pass).
+    [plan | ## Build order] 2. Store: constructor normalisation, `create` sets `assignee: null`, `assign()`. Run `npm test`.
+    [plan | ## Build order] 3. Persistence: `ticketRecord`/`readTicket`. Run `npm test`; then manually round-trip an old-format file.
+    [plan | ## Build order] 6. New tests (below), then full `npm test`.
+    [plan | ## How we will know] New test files only; use `withService` and the manual clock from `test/helpers.js`, with `workerIntervalMs: 0` and drive the worker explicitly where delivery is checked.
+  (info) clause lines other than Observable/heading that match the same pattern in clauses not counted above: 1
+      [C-15] Source: request; existing: docs/api.md ("a ticket is listed only when it matches every filter given"). The existing `matchesFilters` in `src/tickets/query.js` lists a ticket that matches any one filter, which contradicts this; the contradiction is fixed here, and the existing tests must still pass as they are.
+-- item 4: length/limit with agent/assignee name; and every line with 64
+  counts spec@spec-commit (strict, name-only, 64) = (3, 0, 1); plan = (2, 2, 1)
+  [spec@spec-commit | C-3] (length-word[characters,longer,maximum,over-length]+agent/assignee, 64) Open: whether a whitespace-only name, a name with control characters (tab, line break), or a name longer than some maximum is refused. The existing text fields refuse whitespace-only, control characters and over-length (requester: 64). The requester decides which apply to an agent name and what the maximum is. A test checks only `""`, non-string values and a missing field.
+  [spec@spec-commit | C-13] (length-word[limit]+agent/assignee) Observable: Only tickets whose `assignee` equals `<agent>` appear. The match is exact on the name as stored. Tickets appear in id order and the `limit` and `cursor` paging work as before with this filter.
+  [spec@spec-commit | C-16] (length-word[limit]+agent/assignee) Observable: `status` and `priority` filters, their `invalid` errors for a value that is not a status or a priority, `limit` (1 to 100, default 20) and `cursor` behave as in docs/api.md. An `assignee` filter value is never `invalid`: any text is a name, and a name nobody has gives an empty `items` and `next` null.
+  [plan | ## Decisions] (length-word[characters,limit,over-length]+name(only), 64) 2. **Name text rules (C-1/C-3 Opens).** Reuse the existing `text()` helper with limit 64 (same as `requester`): trims, refuses whitespace-only, control characters and over-length. Consistency with requester/actor wins over inventing new rules. `text()` is built around `body[name]` and says "must be a string", so a `null` is handled before calling it. The stored name is the trimmed value; tests use untrimmed-safe names only. The builder states in the report that trimming and the 64 limit were chosen.
+  [plan | ## How we will know] (length-word[length]+agent/assignee) - **C-6:** same agent twice → second call: `updated` unchanged, audit length +0, outbox pending count +0.
+  [plan | ## How we will know] (length-word[limit]+agent/assignee) - **U-4 / C-13–C-16:** list by agent, by empty `assignee=`, by `status`+`assignee`, by all three filters, a ticket matching only one filter excluded, unknown agent → `{items: [], next: null}`, paging with `limit=1` through assignee-filtered results, existing `status=bogus` still 400. Add a direct `matchesFilters` AND test in a new file.
+  [plan | ## How we will know] (length-word[length,max]+name(only)) Do not forget: tests must pass whichever answer the builder took for an Open point (whitespace, max length, 400-vs-409 order, audit action names, case-matching, raw column), so they use plain lowercase names and never combine failures. Stop every server by pid; use port 0 or a random high port; no network installs.
+-- item 5: run.json
+  case=ticket-assignment-name-limit-unsaid rules=none preserve=none model=claude-sonnet-5-5 effort=medium stop=stop-after-plan
+    session 1 label=spec-1 role=spec seconds=54.7 cost_usd=0.2445983
+    session 2 label=plan-1 role=plan seconds=87.3 cost_usd=0.3995898
+  sum of costs=0.6442  run seconds=142.4
+  held_out_marks union=[]  spec_violations=[] tamper=[] reverted=[] local_head=797dce6d60d5903489e135239bb6b36a1e2a5706
+  started=2026-11-21T14:42:08-0800 finished=2026-11-21T14:44:30-0800
+  run.json clauses=21 use_cases=6; cycles plan_added=[[]]
+====================================================================================================
+RUN b-base-3   spec commit 66fd2f4821f3c9d30351b836b36799f9760228e5
+-- item 1: counts
+  at spec commit: clauses=18 use_cases=6 source(request/implied/existing/choice)=13/3/2/0 other={} open_lines_in_clauses=5 (clauses with an Open: line=5) open_lines_anywhere=5
+  final spec: clauses=18 use_cases=6 source(request/implied/existing/choice)=13/3/2/0 other={} open_lines_in_clauses=5 (clauses with an Open: line=5) open_lines_anywhere=5
+  clause ids in final but not at spec commit: none; at spec commit but not in final: none; clauses whose text differs between spec commit and final (info): none
+  clause numbers at spec commit: C-1..C-18; final: C-1..C-18
+-- item 2: rules section at spec commit
+  section '## Rules and edge cases': absent
+  all '## ' headings at spec commit: ['Use cases', 'Clauses']
+-- item 3: request's sentences about tests (clauses at spec commit)
+  clauses about tests: 2
+    C-17: Everything the service did before keeps working
+    C-18: New tests cover the new behaviour and run with `npm test`
+  (final spec, info) clauses about tests: ['C-17', 'C-18']
+  wording outside a clause:
+    [spec at spec commit | U-6] Flow: Existing calls, data files, the weekly report and the existing tests behave as they did.
+    [plan | ## Approach] - **Tests** (new files only; existing ones untouched): `test/assignment.test.js` (API + store), plus additions in new files for query/persistence/format/CLI. Do not edit existing test files, since "must still pass as they are".
+    [plan | ## Nuances] - **CLI is read-only and builds a store with `state`**, so an old file goes through `fromDocument` → the normalisation above. Test the CLI with `main(argv, {out, err})` writing to collectors, as the existing tests do (look at how `test/` already drives it, or spawn with a data file under TMPDIR).
+    [plan | ## Build order] 2. `query.js`: `assignee` parsing and `every`. Run `npm test` (existing must stay green).
+    [plan | ## Build order] 4. `persistence.js`: record, read check, old-file load. `npm test`.
+    [plan | ## Build order] 7. New tests under `test/` for everything above. `npm test` whole.
+    [plan | ## How we will know] - **U-6:** the unchanged existing tests pass; `PATCH {"assignee":"x"}` is 400; an old-format data file (tickets with no `assignee`) loads, shows `null` everywhere, and accepts a first assignment; a data file saved after assignment reloads with the same assignees and pending notification.
+  (info) clause lines other than Observable/heading that match the same pattern in clauses not counted above: 0
+-- item 4: length/limit with agent/assignee name; and every line with 64
+  counts spec@spec-commit (strict, name-only, 64) = (2, 0, 1); plan = (5, 2, 1)
+  [spec@spec-commit | C-3] (length-word[bound,characters,length,upper]+agent/assignee, 64) Open: whether there is an upper length for a name, and whether control characters in it are refused. The service's other text fields are single-line and at most 64 characters (requester); the requester of the service would settle whether agents follow the same rule. A test must not rely on any length bound.
+  [spec@spec-commit | C-14] (length-word[limit]+agent/assignee) Observable: `?status=open&assignee=dana` lists only open tickets assigned to dana; `?status=open&priority=urgent` lists only open tickets that are urgent (today the service lists a ticket matching any one filter, which contradicts docs/api.md and must be corrected); a ticket matching one filter but not another is not listed. Pages (`limit`, `cursor`, `next`) follow the filtered set in id order.
+  [plan | ## Approach] (length-word[limit]+agent/assignee) - **`src/tickets/validate.js`**: new `assignment(body)` : `onlyFields(body, ['assignee'])`; `assignee` must be present (`'assignee' in body`); `null` returns `null`; a string is trimmed, must be non-empty, and is single-line (reuse the `text()` rules with a limit, see Decisions); anything else is `InvalidError`.
+  [plan | ## Decisions] (length-word[bound,characters,length,limits,upper]+agent/assignee, 64) 5. **Name rules (C-3 Open):** trim; non-empty; `typeof string`; reject control characters (reuse `CONTROL`); upper bound 64 (same as requester). That is the reasonable answer to the Open point and is reported by the build. Tests must not assert on length or control characters. Implementation: export a helper from `validate.js` or call `text(body,'assignee',LIMITS.assignee)` after the null check. Add `assignee: 64` to `LIMITS`.
+  [plan | ## Decisions] (length-word[char]+agent/assignee) 10. **CLI:** table gets an `ASSIGNEE` column after PRIORITY (before the free-text TITLE, so the unpadded last column stays the title); an unassigned cell shows `-`. Raw: append the assignee as column 5, `''` for unassigned. Appending is safe for `weekly-report.js` (columns 2 and 3 by position, no column count check). `RAW_COLUMNS` stays the first four, so a separate `rawLine` that appends the fifth keeps the comment's contract. Because names are control-char-free, the cell has no tab. Add `--assignee` to the CLI only if cheap; it is not required. If added, `--assignee ''` must map to the unassigned filter, so `options.query.set('assignee', value)` does that for free because `parseListQuery` handles `''`. Recommended: add it, since `parseArgs` already generalises over the three options.
+  [plan | ## Build order] (length-word[limits]+agent/assignee) 1. `validate.js`: `LIMITS.assignee`, `assignment()`. Quick node REPL check of the cases in C-3.
+  [plan | ## Build order] (length-word[characters,limit]+name(only)) 8. Docs: `docs/api.md`, `README.md` (including raw column text), `CHANGELOG.md`. Report the choices made for the Open points (name limit and control characters, wording, action string, CLI cell text, raw column).
+  [plan | ## How we will know] (length-word[limit]+agent/assignee) - **U-4:** several tickets with mixed assignees, statuses and priorities: `?assignee=dana`, `?assignee=` (and `?assignee=Dana` finds nothing), `?status=open&assignee=dana`, `?status=open&priority=urgent` (AND), pages with `limit`/`next` over a filtered set.
+  [plan | ## How we will know] (length-word[characters,length]+name(only)) - **Tests must not forget:** the C-9 sequence (worker off, dana then eli, and A,B,A); `every` semantics on the existing two filters; the old-file load; the creation audit entry left unchanged; that no test depends on the open points (name length or control characters, wording, `type`, audit `action`, CLI header or empty cell, raw column present or not); the use of the manual clock for `updated`; stopping every server a test starts (use `withService`).
+-- item 5: run.json
+  case=ticket-assignment-name-limit-unsaid rules=none preserve=none model=claude-sonnet-5-5 effort=medium stop=stop-after-plan
+    session 1 label=spec-1 role=spec seconds=53.1 cost_usd=0.24957929999999998
+    session 2 label=plan-1 role=plan seconds=88.8 cost_usd=0.3997547
+  sum of costs=0.6493  run seconds=142.4
+  held_out_marks union=[]  spec_violations=[] tamper=[] reverted=[] local_head=797dce6d60d5903489e135239bb6b36a1e2a5706
+  started=2026-11-21T14:42:08-0800 finished=2026-11-21T14:44:30-0800
+  run.json clauses=18 use_cases=6; cycles plan_added=[[]]
+====================================================================================================
+RUN b-rules-1   spec commit a5c4a88e41d2af6ef6f08743721bfb8b67f112bc
+-- item 1: counts
+  at spec commit: clauses=23 use_cases=5 source(request/implied/existing/choice)=13/7/1/2 other={} open_lines_in_clauses=8 (clauses with an Open: line=8) open_lines_anywhere=8
+  final spec: clauses=23 use_cases=5 source(request/implied/existing/choice)=13/7/1/2 other={} open_lines_in_clauses=8 (clauses with an Open: line=8) open_lines_anywhere=8
+  clause ids in final but not at spec commit: none; at spec commit but not in final: none; clauses whose text differs between spec commit and final (info): none
+  clause numbers at spec commit: C-1..C-23; final: C-1..C-23
+-- item 2: rules section at spec commit
+  section '## Rules and edge cases': present; entries=13; entries naming a clause=13; entries saying something is not settled (regex match)=2; entries in final spec's section=13
+    UNSETTLED: - Who may be assigned: a non-empty name; wrong types, empty and whitespace-only names are 400 (C-3). Trimming and a length limit are not settled (C-3 Open).
+    UNSETTLED: - Not settled by the request or by what is here: the maximum length and character rules of an agent name, the order in which a malformed request and an unknown or closed ticket are reported, and the wording of the notification (see the Open lines of C-3, C-5 and C-10).
+    (no match): - Which statuses: `open` and `in_progress` allow assign and unassign; `resolved` and `closed` give 409, even for a no-op (C-4).
+    (no match): - Unknown ticket: 404 (C-5). Unknown or missing body fields, non-object bodies: 400 (C-3).
+    (no match): - No-op: same agent, or unassign of an unassigned ticket, changes nothing: no audit entry, no notification, `updated` kept (C-6, C-7).
+    (no match): - Reassignment from one agent to another: replaces; audit records from and to; the new agent alone is notified (C-1, C-11, C-14). The notification deduplication key must not hide a different agent's notification (C-11).
+    (no match): - Unassign: no notification (C-12).
+    (no match): - Missing `assignee` in old data and new tickets: `null` (C-8, C-9).
+    (no match): - Filter: exact, case-sensitive match; empty value means unassigned; absent means no filter; unknown name gives an empty page, not an error; all filters must match (C-15 to C-17). An `assignee` filter value is never `invalid`.
+    (no match): - Lifecycle: resolving, closing or reopening keeps the assignee (C-21); the assignee of a resolved or closed ticket cannot be changed (C-4).
+    (no match): - Paging: filters and cursors work together (C-18).
+    (no match): - Persistence: the assignee is saved and loaded; old files still load (C-9).
+    (no match): - Command line: the assignee is shown; raw column positions are kept (C-19, C-20).
+  all '## ' headings at spec commit: ['Use cases', 'Clauses', 'Rules and edge cases']
+-- item 3: request's sentences about tests (clauses at spec commit)
+  clauses about tests: 2
+    C-21: Existing behaviour is unchanged
+    C-22: New tests cover the new behaviour and run with `npm test`
+  (final spec, info) clauses about tests: ['C-21', 'C-22']
+  wording outside a clause:
+    [plan | ## Approach] - Tests: new files only (existing test files are not edited): `test/assignment.test.js` (HTTP + store),
+    [plan | ## Nuances] and assignments vanish at the next restart/CLI read, while in-memory tests pass. Add the field there with `?? null`;
+    [plan | ## Nuances] output; existing tests may check it).
+    [plan | ## Build order] 1. Run `npm test` for a baseline.
+    [plan | ## Build order] 7. Write the new test files; then docs, CHANGELOG, version. Run full `npm test`.
+  (info) clause lines other than Observable/heading that match the same pattern in clauses not counted above: 0
+-- item 4: length/limit with agent/assignee name; and every line with 64
+  counts spec@spec-commit (strict, name-only, 64) = (3, 2, 1); plan = (1, 3, 3)
+  [spec@spec-commit | C-3] (length-word[characters,length,maximum]+name(only), 64) Open: whether surrounding whitespace is trimmed and whether names have a maximum length or forbidden characters is not stated. A name of 1 to 64 printable characters without surrounding whitespace must be accepted and stored as given; behaviour beyond that is the requester's to settle.
+  [spec@spec-commit | C-15] (length-word[characters]+agent/assignee) Observable: every item returned has `assignee` equal to `<agent>` exactly (same characters, case-sensitive); tickets of other agents and unassigned tickets are absent. A name no ticket has gives `{"items": [], "next": null}`, not an error. The filter applies to tickets of every status.
+  [spec@spec-commit | C-18] (length-word[limit]+agent/assignee) Observable: with `assignee` (including empty) and `limit`, pages follow id order, `next` is null on the last page, and passing `next` as `cursor` with the same filters yields the following matching tickets with none repeated or skipped.
+  [spec@spec-commit | section "Rules and edge cases"] (length-word[length,limit]+name(only)) - Who may be assigned: a non-empty name; wrong types, empty and whitespace-only names are 400 (C-3). Trimming and a length limit are not settled (C-3 Open).
+  [spec@spec-commit | section "Rules and edge cases"] (length-word[character,length,maximum]+agent/assignee) - Not settled by the request or by what is here: the maximum length and character rules of an agent name, the order in which a malformed request and an unknown or closed ticket are reported, and the wording of the notification (see the Open lines of C-3, C-5 and C-10).
+  [plan | ## Approach] (length-word[characters,limits,max]+agent/assignee, 64) trimmed, non-empty, control characters refused) with a max of 64 (a new `LIMITS.assignee`, same as requester).
+  [plan | ## Decisions] (length-word[characters,max]+name(only), 64) 4. **Name rules** (C-3 Open): trim like other text fields, max 64 characters, no control characters, stored trimmed.
+  [plan | ## Decisions] (length-word[chars]+name(only), 64) A name of 1–64 printable chars without surrounding space is stored as given, as required. Rejected: also forbidding
+  [plan | ## Nuances] (length-word[characters]+name(only)) Table rows must not contain tabs/newlines; names are checked for control characters on entry. Hand-edited files:
+  [plan | ## How we will know | wrapped item at lines 116-117] (joined only) - **U-3**: tickets with mixed assignees/status/priority; `?assignee=dana`, `?assignee=`, `?assignee=nobody` (empty page, 200), combinations with `status`/`priority` (must be AND), `limit=1` paging with cursors, no repeats or gaps.
+-- item 5: run.json
+  case=ticket-assignment-name-limit-unsaid rules=spec-section preserve=none model=claude-sonnet-5-5 effort=medium stop=stop-after-plan
+    session 1 label=spec-1 role=spec seconds=65.2 cost_usd=0.30104070000000005
+    session 2 label=plan-1 role=plan seconds=81.0 cost_usd=0.40880510000000003
+  sum of costs=0.7098  run seconds=146.6
+  held_out_marks union=[]  spec_violations=[] tamper=[] reverted=[] local_head=797dce6d60d5903489e135239bb6b36a1e2a5706
+  started=2026-11-21T14:42:08-0800 finished=2026-11-21T14:44:35-0800
+  run.json clauses=23 use_cases=5; cycles plan_added=[[]]
+====================================================================================================
+RUN b-rules-2   spec commit b9aeae21e31846da98f9b2cdc750491266f9e539
+-- item 1: counts
+  at spec commit: clauses=20 use_cases=5 source(request/implied/existing/choice)=12/3/3/2 other={} open_lines_in_clauses=8 (clauses with an Open: line=8) open_lines_anywhere=8
+  final spec: clauses=20 use_cases=5 source(request/implied/existing/choice)=12/3/3/2 other={} open_lines_in_clauses=8 (clauses with an Open: line=8) open_lines_anywhere=8
+  clause ids in final but not at spec commit: none; at spec commit but not in final: none; clauses whose text differs between spec commit and final (info): none
+  clause numbers at spec commit: C-1..C-20; final: C-1..C-20
+-- item 2: rules section at spec commit
+  section '## Rules and edge cases': present; entries=10; entries naming a clause=9; entries saying something is not settled (regex match)=3; entries in final spec's section=10
+    UNSETTLED: - Who may be assigned: any non-empty single-line name; no list of known agents exists, so an unknown name is accepted (C-4). Length limit and trimming: not settled (C-4 Open).
+    UNSETTLED: - States: open and in-progress accept assignment and unassignment; resolved and closed refuse both with 409, including a same-agent or null-to-null request (C-5). Order of checks when a request is both malformed and on a closed ticket: not settled; tests must not combine them.
+    UNSETTLED: - Not settled by the request or the code: reassignment (C-2), whether the old agent is told (C-12), message wording (C-10), name length and trimming (C-4), case sensitivity (C-14), raw listing (C-18).
+    (no match): - Invalid input: empty, whitespace-only, non-string, absent key, control characters, extra fields, non-object body, all 400 (C-4); a body too large or not JSON is handled by the existing rules (docs/api.md).
+    (no match): - No-change cases: same agent, null to null (C-7, C-8); none changes `updated`, the log or the outbox.
+    (no match): - Same agent twice in a row, reassignment, assign-unassign-assign sequences: audit and notification outcomes in C-9, C-11, C-12.
+    (no match): - Notification dedupe: key must distinguish agents and events (C-11).
+    (no match): - Filters: empty value means unassigned; combine with AND; exact match (C-14 to C-16); an assignee filter is never invalid. Cursor paging with the filter uses the existing rules.
+    (no match): - Persistence and old files: C-19. Command line: C-17, C-18.
+    (no match): - Concurrency: the service handles one change at a time through the store, so two simultaneous assignments leave the last one applied, with an audit entry for each change; nothing more is required.
+  all '## ' headings at spec commit: ['Use cases', 'Clauses', 'Rules and edge cases']
+-- item 3: request's sentences about tests (clauses at spec commit)
+  clauses about tests: 1
+    C-20: Existing behaviour and tests are preserved
+  (final spec, info) clauses about tests: ['C-20']
+  wording outside a clause:
+    [plan | ## Approach] - Tests: new `test/assign.test.js` (API-level, with the worker off), plus new test files or new additions for query/persistence/format. Existing test files stay byte-for-byte untouched (add new files rather than editing old ones).
+    [plan | ## Decisions] 8. **CLI**: table gets an `ASSIGNEE` column placed just before TITLE (title is the last, unpadded, free-text column), placeholder `-` for unassigned. `list --raw` is left unchanged (C-18 Open; weekly-report reads by position and the README documents four columns). No `--assignee` CLI option (not requested). `show` also prints an assignee line (additive; check existing tests do not pin its exact output).
+    [plan | ## Nuances] - **Existing tests unchanged**: store.test destructures named fields (fine), persistence test compares `fields` (fine), api tests compare same-endpoint bodies (fine). After building, run the whole suite before adding new tests to confirm nothing existing broke.
+    [plan | ## Build order] 1. Baseline: run `npm test` (117 pass) to confirm the starting state.
+    [plan | ## Build order] 9. Full `npm test`; then a real run on a random free port with `DATA_FILE` and a restart, stopping the process by its pid.
+  (info) clause lines other than Observable/heading that match the same pattern in clauses not counted above: 0
+-- item 4: length/limit with agent/assignee name; and every line with 64
+  counts spec@spec-commit (strict, name-only, 64) = (5, 1, 1); plan = (4, 0, 2)
+  [spec@spec-commit | C-4] (length-word[character]+agent/assignee) Observable: a body whose `assignee` is the empty string, is only whitespace, is not a string and not null (a number, boolean, object, array), is absent, or contains a control character (tab, line break), or a body that is not a JSON object, answers 400 with `{"error":{"code":"invalid", ...}}`, and the ticket is unchanged (no audit entry, no notification, `updated` as before). A body with a field other than `assignee` is also 400 (existing rule on unknown fields).
+  [spec@spec-commit | C-4] (length-word[characters]+agent/assignee) Source: request ("an agent is a non-empty name"); existing: docs/api.md (unknown fields refused 400), src/tickets/validate.js (text fields are trimmed, no control characters, because the command line's output is tab-separated)
+  [spec@spec-commit | C-4] (length-word[characters,length,limited,maximum]+name(only), 64) Open: whether surrounding whitespace is trimmed (the existing text fields trim) or kept as given, and whether there is a maximum length (requester is limited to 64, title to 200), are not stated; the requester would settle both. A test must use only plain names without surrounding whitespace and well under 64 characters.
+  [spec@spec-commit | C-14] (length-word[limit]+agent/assignee) Observable: with tickets assigned to `dana` and `eli` and some unassigned, `?assignee=dana` lists exactly dana's tickets, in id order, paged as usual (`limit`, `cursor`, `next`). The match is on the exact name; an agent with no tickets gives `{"items":[],"next":null}`, not an error.
+  [spec@spec-commit | section "Rules and edge cases"] (length-word[length,limit]+agent/assignee) - Who may be assigned: any non-empty single-line name; no list of known agents exists, so an unknown name is accepted (C-4). Length limit and trimming: not settled (C-4 Open).
+  [spec@spec-commit | section "Rules and edge cases"] (length-word[length]+agent/assignee) - Not settled by the request or the code: reassignment (C-2), whether the old agent is told (C-12), message wording (C-10), name length and trimming (C-4), case sensitivity (C-14), raw listing (C-18).
+  [plan | ## Decisions] (length-word[characters,limits]+agent/assignee, 64) 4. **Validation** (`assignment`): `onlyFields(body, ['assignee'])`; require `Object.hasOwn(body, 'assignee')` (absent is 400, not an unassign); `null` returns null; otherwise it must be a string, trimmed, non-empty, at most 64 characters, no control characters (reuse the `text()` rules with a new `LIMITS.assignee = 64`, same as requester). Open points taken: trim and 64, matching existing text fields; report these in the build report. Rejected: leaving names untrimmed, because " dana " vs "dana" would produce phantom reassignments and a tab-separated CLI risk.
+  [plan | ## Build order] (length-word[limits]+agent/assignee) 2. `validate.assignment` + `LIMITS.assignee`; unit-check by hand.
+  [plan | ## How we will know] (length-word[limit]+agent/assignee) - **U-3**: with dana, eli, unassigned and mixed states: `?assignee=dana`, `?assignee=` (includes resolved/closed unassigned), `?status=open&assignee=dana`, `?status=open&priority=urgent` (every-filter fix), an unknown agent gives empty `items` and `next:null`, paging with `limit=1` and `cursor` over a filtered set.
+  [plan | ## How we will know] (length-word[characters]+agent/assignee, 64) - **Must not forget to test**: 400 cases (empty, whitespace, number, boolean, object, array, absent key, tab/newline, extra field, array/non-object body) each leaving ticket, audit and outbox unchanged; 409 on resolved and closed for a name, for null and for the same agent; 404 unknown id; same-agent no-change (no audit, `updated`, outbox); the three dedupe sequences plus an earlier pending "received" surviving; PATCH/POST with `assignee` still 400; transition and PATCH keep the assignee; created ticket audit omits assignee; `POST /tickets` shows `assignee:null`. Tests must use plain names under 64 characters, no leading/trailing spaces, names differing by more than case, must not assert the audit `action`, the outbox `type`, the message wording, the raw placeholder or the raw column, and must not combine a malformed body with a closed ticket.
+-- item 5: run.json
+  case=ticket-assignment-name-limit-unsaid rules=spec-section preserve=none model=claude-sonnet-5-5 effort=medium stop=stop-after-plan
+    session 1 label=spec-1 role=spec seconds=63.5 cost_usd=0.2584286
+    session 2 label=plan-1 role=plan seconds=111.4 cost_usd=0.48537719999999995
+  sum of costs=0.7438  run seconds=175.3
+  held_out_marks union=[]  spec_violations=[] tamper=[] reverted=[] local_head=797dce6d60d5903489e135239bb6b36a1e2a5706
+  started=2026-11-21T14:42:08-0800 finished=2026-11-21T14:45:03-0800
+  run.json clauses=20 use_cases=5; cycles plan_added=[[]]
+====================================================================================================
+RUN b-rules-3   spec commit 4f1f591b6864d87a66750b760e6bd91f2f250616
+-- item 1: counts
+  at spec commit: clauses=23 use_cases=7 source(request/implied/existing/choice)=15/3/5/0 other={} open_lines_in_clauses=8 (clauses with an Open: line=8) open_lines_anywhere=8
+  final spec: clauses=23 use_cases=7 source(request/implied/existing/choice)=15/3/5/0 other={} open_lines_in_clauses=8 (clauses with an Open: line=8) open_lines_anywhere=8
+  clause ids in final but not at spec commit: none; at spec commit but not in final: none; clauses whose text differs between spec commit and final (info): none
+  clause numbers at spec commit: C-1..C-23; final: C-1..C-23
+-- item 2: rules section at spec commit
+  section '## Rules and edge cases': present; entries=13; entries naming a clause=12; entries saying something is not settled (regex match)=6; entries in final spec's section=13
+    UNSETTLED: - Who may be assigned: only open and in-progress tickets (C-1, C-2, C-5). Resolved and closed are refused in both directions; the repeat-on-resolved case is open (C-5).
+    UNSETTLED: - Agent value: non-empty string or null; blank, whitespace-only and non-string values refused (C-3). Trimming, maximum length and forbidden characters are not settled by the request (open in C-3). The existing 64-character actor and requester limits are the nearest precedent, not a requirement.
+    UNSETTLED: - Body: exactly one field, `assignee`, required (C-4). Check order for a request with several faults is not settled; a test should combine at most one fault.
+    UNSETTLED: - Reassignment and unassignment: notice only to a new agent (C-13); whether others are told is open.
+    UNSETTLED: - Filters: empty value means unassigned, absence means no filter (C-17); AND across filters (C-18); an assignee filter never raises `invalid`, because any string is a possible name (C-16). The filter's case and whitespace handling is not settled (C-16).
+    UNSETTLED: - Not settled and not specified: assigning on ticket creation, an `assignee` filter on the command line, an assignee in the PATCH body (still refused as an unknown field, C-22), the assignee shown by `show`, the status of an assigned ticket changing, and any authorization of who may assign.
+    (no match): - Missing ticket: 404 (C-6).
+    (no match): - Repeated and no-op assignments: nothing changes, no audit, no notice, `updated` stays (C-7).
+    (no match): - Duplicate notices through the outbox key: C-14.
+    (no match): - Persistence and old files: C-10, C-11. Filtering of tickets without an `assignee` field must treat them as unassigned (C-9, C-17).
+    (no match): - Pagination bounds are unchanged: `limit` 1 to 100, default 20 (C-19).
+    (no match): - Command line: assignee column (C-20); raw columns keep positions (C-21).
+    (no match): - Concurrency: requests are handled one change at a time by the store; two assignments at once end with the later one in effect, each audited. Not separately specified.
+  all '## ' headings at spec commit: ['Use cases', 'Clauses', 'Rules and edge cases']
+-- item 3: request's sentences about tests (clauses at spec commit)
+  clauses about tests: 2
+    C-22: Existing behaviour and tests are unchanged
+    C-23: New behaviour has node:test tests that `npm test` runs
+  (final spec, info) clauses about tests: ['C-22', 'C-23']
+  wording outside a clause:
+    [plan | ## Nuances] - **`matchesFilters` uses `some`** (C-18). The existing tests pass with `some` only because each of them gives one filter. With the new filter, `?status=open&assignee=dana` would wrongly list every open ticket and every ticket of Dana's. Change to `every`. This also changes `?status=open&priority=urgent`, as the documented rule says. Add a test of two filters that differ; the existing tests do not cover it.
+    [plan | ## Nuances] - **PUT is already supported by `Router`** and `methodsFor` will list PUT in the 404/405 hint. Existing tests of that message are for other paths. The router regex `([^/]+)` matches `/tickets/T-1/assignee`, and the `/tickets/:id` route does not match it (the regex is anchored), so there is no clash.
+    [plan | ## Nuances] - **`npm test` is `node --test`**, which picks up every `test/*.test.js`. New files need that suffix and must use `withService` from `test/helpers.js` (port 0, worker off). Do not edit the existing tests.
+    [plan | ## Build order] 1. `matchesFilters` to `every` plus the `assignee` filter in `parseListQuery`. Run the existing tests; add unit tests in a new `test/assignee-query.test.js`.
+    [plan | ## Build order] 7. Docs and changelog. Run `npm test` in full.
+    [plan | ## How we will know] Test must-nots: do not assert the audit `action` name, the notification `type` or exact text, trimming/length behaviour, the repeat-on-resolved answer, or a `--raw` fifth column; do not combine two faults in one request; do not start servers on fixed ports (use `withService`); do not touch the existing test files.
+  (info) clause lines other than Observable/heading that match the same pattern in clauses not counted above: 0
+-- item 4: length/limit with agent/assignee name; and every line with 64
+  counts spec@spec-commit (strict, name-only, 64) = (1, 1, 2); plan = (3, 1, 2)
+  [spec@spec-commit | C-3] (length-word[cap,characters,length,maximum]+name(only), 64) Open: whether a name is trimmed, and its maximum length or forbidden characters. The request gives only "non-empty". The existing text fields trim, cap at 64 or 200 characters and refuse control characters; the requester decides if the same applies. Tests should use ordinary short names such as `dana`.
+  [spec@spec-commit | section "Rules and edge cases"] (length-word[character,characters,length,limits,maximum]+agent/assignee, 64) - Agent value: non-empty string or null; blank, whitespace-only and non-string values refused (C-3). Trimming, maximum length and forbidden characters are not settled by the request (open in C-3). The existing 64-character actor and requester limits are the nearest precedent, not a requirement.
+  [plan | ## Approach] (length-word[cap,caps,characters,length,limits]+agent/assignee, 64) - `src/tickets/validate.js`: new `assignment(body)`. It calls `onlyFields(body, ['assignee'])`, then requires the key `assignee` (`Object.hasOwn`). Null is returned as null. Anything else goes through the existing `text()` helper, which trims, refuses blank, refuses control characters and caps the length. The cap needs its own `LIMITS.assignee = 64`, the requester precedent. This is the answer to the Open point in C-3.
+  [plan | ## Decisions] (length-word[characters]+agent/assignee, 64) - **Assignee rules mirror the text fields**: trimmed, 1 to 64 characters, no control characters. Why: this is the nearest precedent, tab characters would break `list --raw`, and an untrimmed name would make `"dana "` and `"dana"` two agents. Rejected: accepting any non-empty string (breaks the tab-separated output and invites mismatched names). Tests only use short names such as `dana`, so either answer passes.
+  [plan | ## How we will know] (length-word[limit]+agent/assignee) - **U-5** (C-16 to C-19): tickets with mixed assignees and statuses; `?assignee=dana`, `?assignee=` and `?assignee=nobody` (empty items, next null), `?status=open&assignee=dana`, `?status=open&priority=urgent`, and paging with `limit=1` and `cursor`.
+  [plan | ## How we will know] (length-word[length]+name(only)) Test must-nots: do not assert the audit `action` name, the notification `type` or exact text, trimming/length behaviour, the repeat-on-resolved answer, or a `--raw` fifth column; do not combine two faults in one request; do not start servers on fixed ports (use `withService`); do not touch the existing test files.
+-- item 5: run.json
+  case=ticket-assignment-name-limit-unsaid rules=spec-section preserve=none model=claude-sonnet-5-5 effort=medium stop=stop-after-plan
+    session 1 label=spec-1 role=spec seconds=57.6 cost_usd=0.26242279999999996
+    session 2 label=plan-1 role=plan seconds=95.0 cost_usd=0.44070599999999993
+  sum of costs=0.7031  run seconds=153.1
+  held_out_marks union=[]  spec_violations=[] tamper=[] reverted=[] local_head=797dce6d60d5903489e135239bb6b36a1e2a5706
+  started=2026-11-21T14:42:08-0800 finished=2026-11-21T14:44:41-0800
+  run.json clauses=23 use_cases=7; cycles plan_added=[[]]
+====================================================================================================
+SUMMARY TABLE (counts at spec commit unless noted)
+           run      clauses           uc      request      implied     existing       choice         open        added        rules        named        tests       spec_s       plan_s         cost final_clauses    final_ucs
+      b-base-1           22            5           14            4            4            0            5            0         None         None            2         50.4         99.4        0.685           22            5
+      b-base-2           21            6           12            3            4            2           10            0         None         None            1         54.7         87.3        0.644           21            6
+      b-base-3           18            6           13            3            2            0            5            0         None         None            2         53.1         88.8        0.649           18            6
+     b-rules-1           23            5           13            7            1            2            8            0           13           13            2         65.2         81.0         0.71           23            5
+     b-rules-2           20            5           12            3            3            2            8            0           10            9            1         63.5        111.4        0.744           20            5
+     b-rules-3           23            7           15            3            5            0            8            0           13           12            2         57.6         95.0        0.703           23            7
