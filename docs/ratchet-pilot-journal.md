@@ -3887,3 +3887,36 @@ default moved, a notice replaced) remain the better yardstick of protection, and
 them that suites miss (F53).
 
 **Limits.** One build, one case, forty mechanical faults; suites by one model at one effort.
+
+### Part R, the other half, registered 18:53 before its runs: a fresh reader of a specification (three sessions)
+
+**What it asks.** The program's table gave part R two halves; the review of a finished product is done. The other:
+does a session that did not write a specification find the clauses in it that decide beyond the request?
+
+**The specification and its known over-decisions.** `c0`'s, written by Sol at medium for `ticket-assignment`, as
+its plan stage left it (45 clauses: the spec stage wrote 44 and the plan stage added C-45). Eight test passes written from it (parts C and T, the ones ended by now) were run on the correct
+reference build, and two clauses' checks fail there in all eight because the reference does not do what the clause
+requires, where neither the request asks for it nor the starting product does it:
+
+- **C-34**, "A data file with an invalid assignee value is refused", for a saved assignee of 65 letters. Its source
+  line names the product's documents; the product's loader checks no length (it loads an over-long requester or
+  title too).
+- **C-45**, "A failed save leaves the last successful ownership state intact". The starting product keeps a change
+  in memory when a save fails (part R's finding C5 shows it), and the request does not speak of it.
+
+Two more fail in most passes and are not targets: C-44 is about which new tests exist, and C-40's failure is a real
+weakness of the reference (`-` shown both for no assignee and for an agent named `-`).
+
+**Cells.** `s1` to `s3`: a fresh session is given the starting product and that specification (the plan itself is
+not in the folder), and `program/spec-reader.md`: list the clauses that decide beyond the request, after checking each claim
+about existing behaviour in the product's files.
+
+**Readings.** **RR1.1:** in how many of three sessions each target is listed. *A fresh reader finds a
+specification's unasked decisions* if both targets are listed in at least two of three. **RR1.2:** how many other
+clauses a session lists, and whether it lists C-40 (which would be a wrong flag). Reported: seconds.
+
+**Predictions.** C-45 is listed in two of three, C-34 in one of three, and each session lists five to ten other
+clauses, which nothing here can score.
+
+**Limits known before the runs.** One specification, two targets; the targets are what suites happened to test and
+the reference happened not to do, so a clause listed and not among them may be just as right.
