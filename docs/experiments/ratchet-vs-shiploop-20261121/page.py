@@ -157,7 +157,93 @@ def bars(title: str, note: str, rows: list[tuple[str, float | None, float | None
             (f'<figcaption class="note">{esc(note)}</figcaption>' if note else "") + "</figure>")
 
 
-def build(report: dict, judge: dict | None, note: str | None) -> str:
+DEEP_CASES = (("expenses", "Shared expenses"), ("chess", "Chess engine"), ("tickets", "Ticket assignment"), ("grokbot", "Grokbot"))
+DEEP_ROWS = (("Stated requirements built", lambda f: f"{f['built']} of {f['stated']}"),
+             ("Tests proved by breaking the behaviour", lambda f: f"{f['proved']} of {f['proved_of']}"),
+             ("Unsaid points handled", lambda f: f"{f['handled']} of {f['unstated']}"),
+             ("Unsaid points told in delivered documents", lambda f: f"{f['told']} of {f['unstated']}"),
+             ("Defects that reproduce: medium (low)", lambda f: f"{f['defects']} ({f['defects_low']})"))
+
+
+def side(pair: dict | None, first: str, names: dict) -> str:
+    """A chip for the better feature of a pair: the ShipLoop side blue, the Ratchet side orange, grey for neither."""
+    if not pair:
+        return '<span class="chip none">not judged</span>'
+    better = pair.get("better")
+    if better is None:
+        return '<span class="chip none">no difference shown</span>'
+    return f'<span class="chip {"ship" if better == first else "ratchet"}">{esc(names[better])}</span>'
+
+
+def readings_table(facts: dict, names: dict) -> str:
+    head = "".join(f"<th>{esc(names[point])}</th>" for point in "SFL")
+    body = "".join(f"<tr><td>{esc(label)}</td>" + "".join(f"<td class='num'>{esc(show(facts[point]))}</td>" for point in "SFL") + "</tr>"
+                   for label, show in DEEP_ROWS)
+    return f'<div class="table-wrap"><table><thead><tr><th></th>{head}</tr></thead><tbody>{body}</tbody></table></div>'
+
+
+def deep_sections(deep: dict, costs: dict | None) -> list[str]:
+    """Two sections from the deep judge's deep.json: the twelve products, and the clean ShipLoop runs with one look and
+    one fix (journal sections 12 and 15)."""
+    out = []
+    names = {"S": "ShipLoop", "F": "Ratchet, first build", "L": "Ratchet, final"}
+    rows = []
+    for case, label in DEEP_CASES:
+        entry = deep.get(case)
+        if not entry:
+            continue
+        pairs = entry["pairs"]
+        rows.append(f"<tr><td><strong>{esc(label)}</strong></td><td>{side(pairs.get('S-L'), 'S', names)}</td>"
+                    f"<td>{side(pairs.get('S-F'), 'S', names)}</td><td>{side(pairs.get('F-L'), 'F', names)}</td>"
+                    f"<td>{'yes' if entry['nearly_competitive'] else 'no'}</td></tr>")
+    if rows:
+        out.append('<section class="stack"><h2>A deeper judge: each product run and checked item by item</h2>'
+                   '<p>Every product was audited by running it against a list written without seeing any product: what the '
+                   'request states, and what it leaves unsaid that a customer would care about. Every disagreement and every '
+                   'reported defect was then tried on all three products of a case, and two judges of different model families '
+                   'read the audits. Ratchet\'s first build costs the same as ShipLoop\'s whole delivery.</p>'
+                   '<div class="table-wrap"><table><thead><tr><th>Case</th><th>ShipLoop against Ratchet\'s final</th>'
+                   '<th>ShipLoop against Ratchet\'s first build</th><th>Ratchet: first build against final</th>'
+                   '<th>ShipLoop nearly competitive</th></tr></thead><tbody>' + "".join(rows) + '</tbody></table></div>'
+                   '<p class="meta">The chip names the better feature of the pair by rules fixed before any product was read: '
+                   'ahead on at least two more of six readings, or fewer serious failures.</p>')
+        for case, label in DEEP_CASES:
+            if case in deep:
+                out.append(f"<h3>{esc(label)}</h3>" + readings_table(deep[case]["facts"], names))
+        out.append("</section>")
+    clean = {"S": "Fresh ShipLoop + look + fix", "F": "Fresh ShipLoop only", "L": "Ratchet, final (audited again)"}
+    rows, tables, times = [], [], []
+    for case, label in DEEP_CASES:
+        entry = deep.get(f"{case}-clean")
+        if not entry:
+            continue
+        pairs = entry["pairs"]
+        cost = (costs or {}).get(case) or {}
+        total = sum(cost.get(name) or 0 for name in ("run", "look", "fix")) or None
+        if total:
+            times.append((label, total, cost.get("ratchet"), cost.get("run")))
+        rows.append(f"<tr><td><strong>{esc(label)}</strong></td><td>{side(pairs.get('S-L'), 'S', clean)}</td>"
+                    f"<td>{side(pairs.get('S-F'), 'S', clean)}</td><td>{side(pairs.get('F-L'), 'F', clean)}</td>"
+                    f"<td class='num'>{num(total)} of {num(cost.get('ratchet'))} min</td></tr>")
+        tables.append(f"<h3>{esc(label)}</h3>" + readings_table(entry["facts"], clean))
+    if rows:
+        out.append('<section class="stack"><h2>Clean runs: ShipLoop, then one look, then one fix</h2>'
+                   '<p>A fresh ShipLoop run of each case from scratch (ShipLoop 2.6.0), one short look at the running product by '
+                   'the builder\'s model that writes down what falls short, and one fix pass by Opus at extra-high effort. All '
+                   'three products of a case were audited afresh in the same round; Ratchet\'s final is last night\'s single '
+                   'run.</p><div class="table-wrap"><table><thead><tr><th>Case</th><th>With look and fix, against Ratchet\'s final</th>'
+                   '<th>With look and fix, against ShipLoop alone</th><th>ShipLoop alone, against Ratchet\'s final</th>'
+                   '<th>Minutes</th></tr></thead><tbody>' + "".join(rows) + "</tbody></table></div>")
+        if times:
+            out.append('<div class="charts">' + bars("Minutes: fresh run, look and fix together", "The tick: the fresh ShipLoop run alone. "
+                                                     "Ratchet's bar is its whole run.", times, "n", " min") + "</div>")
+        out.append("".join(tables) + '<p class="meta">One judge (Opus) for these cases. The fixer is a stronger model than either '
+                   "builder; a fresh run and a newer ShipLoop version changed together.</p></section>")
+    return out
+
+
+def build(report: dict, judge: dict | None, note: str | None, deep: dict | None = None, costs: dict | None = None,
+          verdict: str | None = None) -> str:
     facts, readings, overall = report["facts"], report["readings"], report["overall"]
     f = lambda case, arm: (facts.get(case) or {}).get(arm) or {}
     label = {case: name for case, name, _ in CASES}
@@ -167,7 +253,7 @@ def build(report: dict, judge: dict | None, note: str | None) -> str:
            f"<style>{STYLE}</style>", '<main class="page">']
     out.append('<header class="stack"><div class="eyebrow">Head-to-head · four cases · one run each</div>'
                '<h1>Ratchet or ShipLoop?</h1>'
-               f'<p class="verdict">{esc(overall["verdict"].capitalize())}.</p>')
+               f'<p class="verdict">{esc(verdict or overall["verdict"].capitalize() + ".")}</p>')
     if note:
         out.append(f"<p>{esc(note)}</p>")
     out.append('<p class="meta">Each arm ran on its own in a new Git repository, on Codex <code>gpt-6.2-sol</code> at medium '
@@ -176,6 +262,10 @@ def build(report: dict, judge: dict | None, note: str | None) -> str:
                '<div class="legend"><span><span class="swatch" style="background:var(--ship)"></span>ShipLoop</span>'
                '<span><span class="swatch" style="background:var(--ratchet)"></span>Ratchet</span>'
                '<span>▏ Ratchet at its first build</span></div></header>')
+    if deep:
+        out += deep_sections(deep, costs)
+        out.append('<section class="stack"><h2>The first instruments</h2><p class="meta">What follows is the first round of '
+                   "measures, by script, on the eight original runs.</p></section>")
     # scorecard
     out.append('<section class="stack"><h2>Scorecard</h2><p class="meta">Who is ahead on each measure, by the registered '
                'margins. Time and tokens are cost; the other five are results.</p><div class="table-wrap"><table>'
@@ -267,10 +357,15 @@ def main(argv=None) -> int:
     parser.add_argument("out", type=Path)
     parser.add_argument("--judge", type=Path)
     parser.add_argument("--note")
+    parser.add_argument("--deep", type=Path, help="the deep judge's deep.json")
+    parser.add_argument("--costs", type=Path, help="minutes of each clean run, look and fix, and of Ratchet's run, a case")
+    parser.add_argument("--verdict", help="the headline, replacing the first report's verdict")
     args = parser.parse_args(argv)
     report = json.loads((args.report_dir / "report.json").read_text())
     judge = json.loads(args.judge.read_text()) if args.judge else None
-    args.out.write_text(build(report, judge, args.note))
+    deep = json.loads(args.deep.read_text()) if args.deep else None
+    costs = json.loads(args.costs.read_text()) if args.costs else None
+    args.out.write_text(build(report, judge, args.note, deep, costs, args.verdict))
     print(args.out)
     return 0
 

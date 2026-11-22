@@ -1,0 +1,358 @@
+{
+ "recheck": [
+  {
+   "id": "U-9",
+   "kind": "unstated",
+   "text": "How empty, blank, unusually long or duplicate bot names are handled, and whether bots that share a name can be told apart.",
+   "audits_said": {
+    "p839cd3": "poor",
+    "p1f3f86": "poor",
+    "p053318": "acceptable"
+   }
+  },
+  {
+   "id": "U-11",
+   "kind": "unstated",
+   "text": "How conversation buttons are named and ordered, so that conversations, including empty ones and ones with similar openings, can be told apart before opening them.",
+   "audits_said": {
+    "p839cd3": "poor",
+    "p1f3f86": "poor",
+    "p053318": "sound"
+   }
+  },
+  {
+   "id": "U-15",
+   "kind": "unstated",
+   "text": "What Save instruction or Save task does when the name already exists and Edit was not used, or when the name or text is empty.",
+   "audits_said": {
+    "p839cd3": "sound",
+    "p1f3f86": "poor",
+    "p053318": "sound"
+   }
+  },
+  {
+   "id": "U-21",
+   "kind": "unstated",
+   "text": "What Retry does after a reload or a server restart, what happens to a failed message if I send a new one instead, and whether a reply interrupted by stopping the server is retried automatically.",
+   "audits_said": {
+    "p839cd3": "sound",
+    "p1f3f86": "poor",
+    "p053318": "sound"
+   }
+  },
+  {
+   "id": "U-39",
+   "kind": "unstated",
+   "text": "What `add step:` does when no task is running in the conversation, or when several are (including several with the same title), and whether the feedback identifies which task received the step.",
+   "audits_said": {
+    "p839cd3": "poor",
+    "p1f3f86": "acceptable",
+    "p053318": "sound"
+   }
+  },
+  {
+   "id": "U-44",
+   "kind": "unstated",
+   "text": "What counts as 'being away' for the Since you were away region, which events it reports, and when reported items stop appearing.",
+   "audits_said": {
+    "p839cd3": "sound",
+    "p1f3f86": "poor",
+    "p053318": "acceptable"
+   }
+  },
+  {
+   "id": "U-46",
+   "kind": "unstated",
+   "text": "What the app does when DATA_DIR is missing, unwritable, or holds damaged or unexpected data at start.",
+   "audits_said": {
+    "p839cd3": "poor",
+    "p1f3f86": "poor",
+    "p053318": "sound"
+   }
+  },
+  {
+   "id": "U-50",
+   "kind": "unstated",
+   "text": "Whether a lookup or change keeps the record identifier the person typed (for example ORD-1001A while ORD-1001 exists).",
+   "audits_said": {
+    "p839cd3": "poor",
+    "p1f3f86": "poor",
+    "p053318": "acceptable"
+   }
+  },
+  {
+   "id": "U-54",
+   "kind": "unstated",
+   "text": "What happens when storage writes fail while the app is open: whether the outcome of the save (or of a reply) is reported truthfully and recoverable.",
+   "audits_said": {
+    "p839cd3": "acceptable",
+    "p1f3f86": "poor",
+    "p053318": "sound"
+   }
+  },
+  {
+   "id": "U-57",
+   "kind": "unstated",
+   "text": "Whether one unexpected failure in background work takes down the whole app.",
+   "audits_said": {
+    "p839cd3": "acceptable",
+    "p1f3f86": "poor",
+    "p053318": "acceptable"
+   }
+  },
+  {
+   "id": "U-60",
+   "kind": "unstated",
+   "text": "Whether unexpected server errors are shown honestly to the person and recorded for the operator.",
+   "audits_said": {
+    "p839cd3": "sound",
+    "p1f3f86": "poor",
+    "p053318": "acceptable"
+   }
+  }
+ ],
+ "defects": [
+  {
+   "from": "p839cd3",
+   "n": "p839cd3#1",
+   "title": "Conversations with the same long opening, or empty ones, have identical buttons",
+   "severity": "medium",
+   "repro": "Continue as a person. Click New conversation twice: both list entries are 'Untitled conversation'. In one conversation send 'Please look up the order details for our long-standing customer named Northwind Traders'; click New conversation and send 'Please look up the order details for our long-standing customer named Southwind Partners'. Read the Conversations navigation (or GET /api/state conversations).",
+   "observed": "Both entries are named 'Please look up the order details for our long-standing c' with detail '' (no second line); the two empty ones are both 'Untitled conversation'.",
+   "expected": "Each entry identifiable before opening it (README says repeated titles also show the latest message sent).",
+   "basis": "unstated",
+   "item": "U-11"
+  },
+  {
+   "from": "p839cd3",
+   "n": "p839cd3#2",
+   "title": "Bots with the same name cannot be told apart",
+   "severity": "low",
+   "repro": "As a person with bot Assistant, click New bot, enter 'Assistant', Save bot name, send a message; read the Bots navigation.",
+   "observed": "Two buttons with the accessible name and visible text 'Assistant' and nothing else to distinguish them.",
+   "expected": "Duplicates refused, or each shown with something that distinguishes it before selecting.",
+   "basis": "unstated",
+   "item": "U-9"
+  },
+  {
+   "from": "p839cd3",
+   "n": "p839cd3#3",
+   "title": "Step choice and its outcome do not identify which of two same-titled tasks got the step",
+   "severity": "low",
+   "repro": "In one conversation send 'long task: dup [long]' twice, then 'add step: extra'. Read the buttons under the reply, click the second 'Add to dup', read the note and both Task: dup articles.",
+   "observed": "Buttons 'Add to dup', 'Add to dup', 'Don’t add'; note 'Added “extra” to the end of dup.'; both articles 'Task: dup' with detail 'Working in the background.'.",
+   "expected": "The choice and the feedback identify which task received the step.",
+   "basis": "unstated",
+   "item": "U-39"
+  },
+  {
+   "from": "p839cd3",
+   "n": "p839cd3#4",
+   "title": "A forget that matches nothing is reported as done",
+   "severity": "low",
+   "repro": "Send 'remember that likes tea', then 'forget tea'. Read the reply and the Memory region.",
+   "observed": "Reply 'I've forgotten \"tea\".' with no note; Memory still lists 'likes tea'.",
+   "expected": "The app flags that nothing was forgotten (or matches loosely and shows it).",
+   "basis": "unstated",
+   "item": "U-23"
+  },
+  {
+   "from": "p839cd3",
+   "n": "p839cd3#5",
+   "title": "A lookup of a non-existent id ORD-1001A answers with ORD-1001's value",
+   "severity": "low",
+   "repro": "As Maya send 'what is the status of ORD-1001A'.",
+   "observed": "'The status of ORD-1001 is open.' with no word that ORD-1001A does not exist.",
+   "expected": "A reply that ORD-1001A cannot be found and how to correct it.",
+   "basis": "unstated",
+   "item": "U-50"
+  },
+  {
+   "from": "p839cd3",
+   "n": "p839cd3#6",
+   "title": "Damaged or unreadable data file: raw stack trace at start, or every request 500 with no recovery step",
+   "severity": "low",
+   "repro": "Put '{not json' (or '{\"hello\":\"world\"}') in DATA_DIR/workspace.json and run node server.js; then put '{\"version\":1,\"users\":[],\"sessions\":null}' and start, Continue as Maya.",
+   "observed": "First two: process exits with an uncaught SyntaxError / 'Unsupported workspace version.' stack trace. Third: starts, then Continue as and GET /api/state return 500 'The workspace could not complete this action. Try again.' forever.",
+   "expected": "Refuse to start or report the problem with an actionable recovery step, keeping the damaged file.",
+   "basis": "unstated",
+   "item": "U-46"
+  },
+  {
+   "from": "p839cd3",
+   "n": "p839cd3#7",
+   "title": "Keyboard focus falls to the page body after Save memory",
+   "severity": "low",
+   "repro": "Send 'remember that likes tea', click Edit memory, change the text, press Save memory; read document.activeElement.",
+   "observed": "BODY",
+   "expected": "Focus on a sensible nearby control (the edited item or Memory region).",
+   "basis": "unstated",
+   "item": "U-58"
+  },
+  {
+   "from": "p1f3f86",
+   "n": "p1f3f86#1",
+   "title": "Bots with the same name cannot be told apart",
+   "severity": "medium",
+   "repro": "Fresh data. Continue as Theo. Click New bot, type Assistant in Bot name, Save bot name. Read the Bots navigation.",
+   "observed": "Two buttons both named 'Assistant', same text and look; the API also accepts createBot {name:'Assistant'} a second time.",
+   "expected": "Refuse the duplicate, or make each bot distinguishable before selecting it.",
+   "basis": "unstated",
+   "item": "U-9"
+  },
+  {
+   "from": "p1f3f86",
+   "n": "p1f3f86#2",
+   "title": "Empty conversations and conversations with a similar opening get identical names",
+   "severity": "medium",
+   "repro": "Continue as Theo; click New conversation twice; read the Conversations navigation. Then send 'Please look up the customer details for the order placed last week by customer Alpha', New conversation, send the same text ending 'Bravo'.",
+   "observed": "'Untitled conversation' twice; then two buttons both 'Please look up the customer details for the order placed'.",
+   "expected": "Each conversation identifiable before opening it.",
+   "basis": "unstated",
+   "item": "U-11"
+  },
+  {
+   "from": "p1f3f86",
+   "n": "p1f3f86#3",
+   "title": "Saving an instruction or task under an existing name silently overwrites it",
+   "severity": "medium",
+   "repro": "Save instruction A = 'x'. Without clicking Edit, type A / 'y' and click Save instruction. (API: saveInstruction {name:'A',text:'x'} then {name:'A',text:'y'}.) Same with Save task.",
+   "observed": "200, one entry A with text 'y', no notice; 'x' is gone.",
+   "expected": "Overwrite with a notice, refuse with a message, or ask.",
+   "basis": "unstated",
+   "item": "U-15"
+  },
+  {
+   "from": "p1f3f86",
+   "n": "p1f3f86#4",
+   "title": "Sending a new message after a failed reply hides the failure and its Retry",
+   "severity": "medium",
+   "repro": "Send 'hello [fail once]'; at the alert, send 'next' instead of Retry. Read the conversation; POST retry {id:<first message id>}.",
+   "observed": "Transcript 'hello [fail once]', 'next', bot reply to next; no alert, no Retry, no mark on the unanswered message; retry returns 200 and does nothing.",
+   "expected": "The person can still tell the first message's reply failed and retry or resend it, or is told to retry first.",
+   "basis": "unstated",
+   "item": "U-21"
+  },
+  {
+   "from": "p1f3f86",
+   "n": "p1f3f86#5",
+   "title": "A forget that matches nothing is reported as done",
+   "severity": "low",
+   "repro": "Send 'remember that likes tea', then 'forget tea'. Read the reply and Memory.",
+   "observed": "Reply 'I've forgotten \"tea\".' while Memory still lists 'likes tea'.",
+   "expected": "Flag that nothing matched, or match loosely and show what was removed.",
+   "basis": "unstated",
+   "item": "U-23"
+  },
+  {
+   "from": "p1f3f86",
+   "n": "p1f3f86#6",
+   "title": "A lookup of ORD-1001A answers with ORD-1001",
+   "severity": "low",
+   "repro": "As Maya send 'what is the status of ORD-1001A'.",
+   "observed": "'The status of ORD-1001 is open.' with no notice that ORD-1001A does not exist.",
+   "expected": "Say ORD-1001A cannot be found and how to correct it.",
+   "basis": "unstated",
+   "item": "U-50"
+  },
+  {
+   "from": "p1f3f86",
+   "n": "p1f3f86#7",
+   "title": "A reply that arrives while storage fails stays pending forever and blocks the conversation",
+   "severity": "medium",
+   "repro": "Start with STANDIN_SLOW_MS=3000. Send 'hello [slow]'; within the wait make DATA_DIR read-only; restore write access a few seconds later. Read the conversation and send another message.",
+   "observed": "The message stays pending ('preparing a reply'), and every send in that conversation returns 409 'Wait for the current reply before sending again.' until the server is restarted.",
+   "expected": "The reply's failure is recorded or reported with a way to retry; no reply left pending forever.",
+   "basis": "unstated",
+   "item": "U-54"
+  },
+  {
+   "from": "p1f3f86",
+   "n": "p1f3f86#8",
+   "title": "A storage error during a task step leaves the task 'Running' with nothing running",
+   "severity": "medium",
+   "repro": "Start with STANDIN_STEP_MS=1500. Send 'long task: crates [long]'; during the first step make DATA_DIR read-only; restore it a few seconds later. Read Task status.",
+   "observed": "Task status Running, 'Working in the background.', 0 finished steps indefinitely; no Retry task; only a restart marks it Interrupted.",
+   "expected": "The failure is reported on the task (Failed or Interrupted with Retry task).",
+   "basis": "unstated",
+   "item": "U-57"
+  },
+  {
+   "from": "p1f3f86",
+   "n": "p1f3f86#9",
+   "title": "'Since you were away' lists every task forever",
+   "severity": "low",
+   "repro": "Start and finish a few long tasks; reload twice; leave a proposal waiting and reload.",
+   "observed": "The region shows every task ever started, unchanged on each reload, never dismissed, without waiting proposals.",
+   "expected": "An account of what changed since the person's last visit, dismissed after reading or reload.",
+   "basis": "unstated",
+   "item": "U-44"
+  },
+  {
+   "from": "p1f3f86",
+   "n": "p1f3f86#10",
+   "title": "Damaged or unwritable data folder crashes start-up with a raw stack trace",
+   "severity": "low",
+   "repro": "Put '{\"version\":1, broken' (or '[1,2,3]' or '{\"version\":1}') in DATA_DIR/workspace.json, or chmod 555 DATA_DIR; run node server.js.",
+   "observed": "Process exits with a Node stack trace (SyntaxError without the file name; 'Unsupported workspace version.' for an array; TypeError in allThreads); no recovery step.",
+   "expected": "Refuse to start with a message naming the file and an actionable recovery step (data kept).",
+   "basis": "unstated",
+   "item": "U-46"
+  },
+  {
+   "from": "p1f3f86",
+   "n": "p1f3f86#11",
+   "title": "Unexpected errors are logged without detail and shown as retryable",
+   "severity": "low",
+   "repro": "Start with a workspace.json lacking 'records' ({\"version\":1,\"users\":{},\"sessions\":{},\"token\":\"\"}) and PROVIDER_TOKEN set; Continue as Maya; send 'how many orders can you see'; read the page and server output.",
+   "observed": "Page: 'The reply could not finish. Retry to try the same message again.' (Retry fails the same way); server output: 'Workspace operation failed.' only.",
+   "expected": "The page says the action failed and what to try; the server output records the error itself.",
+   "basis": "unstated",
+   "item": "U-60"
+  },
+  {
+   "from": "p053318",
+   "n": "p053318#1",
+   "title": "A forget that matches no remembered fact is reported as done",
+   "severity": "medium",
+   "repro": "Continue as Maya with a valid token. Send \"remember that likes tea\", then \"forget tea\". Read the reply and Memory (or GET /api/view bot.memory).",
+   "observed": "Reply \"I've forgotten \\\"tea\\\".\" with no notice; Memory still lists \"likes tea\".",
+   "expected": "Either flag that nothing matched (as the app does with notices elsewhere) or match loosely and show the removal; the person should not be told something was forgotten when it was not.",
+   "basis": "unstated",
+   "item": "U-23"
+  },
+  {
+   "from": "p053318",
+   "n": "p053318#2",
+   "title": "A lookup with a suffixed id shows a reply about a different record",
+   "severity": "low",
+   "repro": "As Maya send \"what is the status of ORD-1001A\".",
+   "observed": "Bot reply \"I can't see a record called ORD-1001.\" (Maya can see ORD-1001) followed by a notice that \"ORD-1001A\" could not be used.",
+   "expected": "No statement about ORD-1001; the notice alone (or a reply about ORD-1001A) is accurate.",
+   "basis": "unstated",
+   "item": "U-50"
+  },
+  {
+   "from": "p053318",
+   "n": "p053318#3",
+   "title": "Over-limit text in the Task request (and other limited editors) is cut silently",
+   "severity": "low",
+   "repro": "Paste or fill 12008 characters ending in \"totalling 90\" into Task request, name it Long, click Save task, then read the saved entry (Edit Long or GET /api/view savedTasks).",
+   "observed": "The textarea's maxlength cuts the text to 12000 characters with no message; the saved request ends \"...AAA tota\". Bot name behaves the same at 80 characters.",
+   "expected": "Save the text intact or tell the person it is over the limit before accepting a shortened version (the builders' own spec C-97 says this).",
+   "basis": "other",
+   "item": ""
+  },
+  {
+   "from": "p053318",
+   "n": "p053318#4",
+   "title": "Two server processes on one DATA_DIR both accept writes and one confirmed order is lost",
+   "severity": "medium",
+   "repro": "Start node server.js twice on different free ports with the same DATA_DIR and a valid PROVIDER_TOKEN. In each, Continue as Maya, send \"create an order for One totalling 1\" (first) / \"...Two totalling 2\" (second) and Confirm changes. Stop both, start one, ask \"what is the customer of ORD-1005\" and \"ORD-1006\".",
+   "observed": "Both instances report \"Created ORD-1005\"; after restart ORD-1005 is Two and the order for One no longer exists.",
+   "expected": "Refuse the second instance (for example a lock file with an actionable message) or keep both orders. The README does say to use one server process per data directory.",
+   "basis": "other",
+   "item": ""
+  }
+ ]
+}

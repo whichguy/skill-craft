@@ -1,0 +1,30 @@
+{
+ "expenses": {
+  "run": 10.1,
+  "look": 3.9,
+  "fix": 6.3,
+  "ratchet": 46.4,
+  "shiploop_version": "2.6.0"
+ },
+ "chess": {
+  "run": 10.7,
+  "look": 1.6,
+  "fix": 4.1,
+  "ratchet": 37.2,
+  "shiploop_version": "2.6.0"
+ },
+ "tickets": {
+  "run": 10.5,
+  "look": 3.3,
+  "fix": 14.1,
+  "ratchet": 100.4,
+  "shiploop_version": "2.6.0"
+ },
+ "grokbot": {
+  "run": 28.7,
+  "look": 8.3,
+  "fix": 24.7,
+  "ratchet": 162.3,
+  "shiploop_version": "2.6.0"
+ }
+}

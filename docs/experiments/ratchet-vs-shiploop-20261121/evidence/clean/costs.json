@@ -25,5 +25,36 @@
   "fixed": 4,
   "not_changed": 3,
   "tests": "126 of 126 (122 before)"
+ },
+ "grokbot": {
+  "fixer": "Claude Opus, effort xhigh (Agent subagent)",
+  "seconds": 1482.3,
+  "subagent_tokens": 338858,
+  "tool_uses": 74,
+  "fixed": 14,
+  "not_changed": 1,
+  "tests": "23 of 23 (10 before)"
+ },
+ "looks": {
+  "expenses": {
+   "seconds": 233.1,
+   "model": "gpt-6.2-sol",
+   "effort": "medium"
+  },
+  "chess": {
+   "seconds": 96.7,
+   "model": "gpt-6.2-sol",
+   "effort": "medium"
+  },
+  "tickets": {
+   "seconds": 198.4,
+   "model": "gpt-6.2-sol",
+   "effort": "medium"
+  },
+  "grokbot": {
+   "seconds": 500.9,
+   "model": "gpt-6.2-sol",
+   "effort": "medium"
+  }
  }
 }

@@ -5,16 +5,27 @@ Apparatus: `docs/experiments/ratchet-vs-shiploop-20261121/`. Earlier work this b
 
 ## 0. Where it stands
 
-Registered 2026-11-21 23:55 (commit d522655ae4f6a8af0b289d346aa08cf44d2e9fbe), before any run; all eight runs started
-at 23:59 and ended by 02:41; measured and judged by 03:05. Section 7 has every number.
+**As of 2026-11-22 10:20, after three rounds** (the first script measures on eight clean runs, sections 3 to 7; a
+deeper judge that runs every product and checks it item by item, sections 10 to 12; one look and one fix on
+ShipLoop's deliveries, first as repairs and then from clean runs, sections 11 and 13 to 15):
 
-**Result, as registered: no difference in results shown; ShipLoop costs 15% to 31% of Ratchet's time and about a
-quarter of its output tokens.** Every one of the eight products, and every Ratchet first build, passes every
-held-out check; coverage is 93% to 100% for both. Of the result cells, Ratchet is ahead in four (a user README on
-both new builds without a page; the blind code reading on shared expenses and Grokbot) and ShipLoop in two (seeded
-faults on shared expenses, 82% against 53%; the chess code reading); the registered rule needed a lead of three.
-On ticket assignment Ratchet's tests also catch 19 of 27 calibrated defects against ShipLoop's 7 (reported apart).
-One run a case: the lean to Ratchet is inside what one more run could move.
+- **Nothing a request states was left unbuilt by either tool**, on any of 12 products last night and 12 audited
+  today.
+- **ShipLoop alone delivers in 15% to 31% of Ratchet's time and tells the customer less.** On two runs and two
+  ShipLoop versions (2.4.1, 2.6.0) it shipped no user page on the new service and no release record on the ticket
+  change. On three small cases that is the whole difference from Ratchet's final.
+- **On the large stateful case (Grokbot) Ratchet builds the better feature**, already at its first build, which
+  costs what ShipLoop's delivery costs: medium defects 6 against 2 against 1 (ShipLoop, Ratchet's first build,
+  Ratchet's final) last night, 8 against 3 on today's fresh ShipLoop run and re-audit.
+- **From clean runs, ShipLoop followed by one look (the builder's model, 2 to 8 minutes) and one fix (Opus at
+  xhigh) is level with Ratchet's final on shared expenses and tickets and ahead on chess, at 28% to 44% of Ratchet's
+  time.** On Grokbot the same sequence takes 38% of the time and closes about half the gap: Ratchet's final is still
+  the better feature there (medium defects 5 against 3, unsaid points handled 34 against 38 of 39).
+- **Limits that matter:** Ratchet's side is one run a case; the fixer is a stronger model than either builder; one
+  audit a product, and a look and an audit each find things the other does not, so every defect count is a floor.
+
+The first round's registered result stands as recorded in section 7 ("no difference in results shown; ShipLoop
+costs 15% to 31% of Ratchet's time"); sections 12 and 15 say where that verdict was too coarse.
 
 ## 1. The question, in the owner's words (2026-11-21, late evening)
 
@@ -1006,3 +1017,59 @@ repository): all four ended PASS, in 10.1, 10.7, 10.5 and 28.7 minutes (last nig
 
 Limits as registered: Ratchet's side is last night's single delivery; the fixer is Opus at xhigh; a fresh run and
 ShipLoop 2.6.0 are confounded; one audit a product, and the Opus judge alone.
+
+### Section 15, continued: Grokbot from a clean run (recorded 2026-11-22 10:20)
+
+The fresh ShipLoop 2.6.0 run ended PASS in 28.7 minutes and passes both held-out yardsticks (49 and 28). The look
+(Sol 6.2 medium, 8.3 minutes) wrote 15 shortfalls (8 high, 6 medium, 1 low) and 9 choices. The fix (Opus xhigh,
+24.7 minutes) closed 14, one of them in part, each with a test that fails on the unfixed product, and declined
+one; the fixed product still passes both yardsticks. Nine audit shares, one cross-probe through the page on all
+three products (11 disputed items re-run, 22 reported defects merged to 15), the single reader, the Opus judge.
+
+| | S' fresh + look + fix / N fresh / L Ratchet's final again |
+|---|---|
+| D1 stated items built | 108 / 108 / 108 of 108 |
+| D2 tests proved, of 6 | 3 / 2 / 4 |
+| D3 independent unstated items handled | 34 / 31 / 38 of 39 |
+| D4 told in the delivered documents | 17 / 2 / 18 of 39 |
+| D5 reproducing defects, medium (none high); low | 5 / 8 / 3; 4 / 7 / 2 |
+| C-1, N against L | **L** (D2, D3, D4, D5, D6; the judge: L much better) |
+| C-2, S' against L | **L** (D3, D5, D6; the judge: L somewhat better; a short task does not close it); not nearly competitive |
+| S' against N | **S'** (D4, D5, D6; the judge: S' somewhat better) |
+| C-3 minutes | 28.7 + 8.3 + 24.7 = 61.7 beside 162.3 (38%) |
+
+- **C-1 repeats section 12 on Grokbot too:** a second, fresh ShipLoop delivery is again well behind Ratchet's final
+  where the request is silent (8 medium defects against 3; last night 6 against 1).
+- **C-2 on Grokbot: the look and the fix halve the gap and do not close it**, from a clean run as from the repair
+  (section 13: 4 medium against 3 after the repair; here 5 against 3). What the fix closed is what the look named
+  (a save that overwrites, a failed reply hidden by a new message, a task left "Running", over-limit text cut
+  silently). What remains on the fixed product the look had not named: conversations and same-named bots that
+  cannot be told apart, a reply left pending after a storage failure, a damaged data file ending startup.
+- **Every product has defects of its own.** Two medium ones are present on all three (a forget that matches nothing
+  is reported as done; two server processes on one data folder both accept writes and a confirmed order is lost),
+  and Ratchet's final has two the fixed ShipLoop product does not (a task left "Running" after a storage error;
+  over-limit text cut silently).
+- The hidden checks on all four fixed products: 6, 10, 18, and 49 and 28 passed, none failed
+  (`evidence/clean/fixed-hidden/`). No fix broke anything the request states.
+- Predictions (section 14): C-1 on Grokbot, right. C-2 on Grokbot not nearly competitive, right. C-3 under half on
+  Grokbot, right (38%).
+
+### All four clean cases together
+
+| Case | Fresh ShipLoop alone against Ratchet's final | With one look and one fix | Minutes, beside Ratchet's |
+|---|---|---|---|
+| Shared expenses | Ratchet's final better | level (the judge: same) | 20.3 beside 46.4 |
+| Chess | no difference (the judge: Ratchet somewhat) | **ShipLoop's better** | 16.4 beside 37.2 |
+| Ticket assignment | Ratchet's final better | level (the judge: same) | 27.9 beside 100.4 |
+| Grokbot | Ratchet's final better (much) | Ratchet's final better (somewhat) | 61.7 beside 162.3 |
+
+**What this says (my reading).** A short look at the running product, followed by a fix pass, is worth adding
+after ShipLoop's build: it is cheap, it finds things that reproduce, and on small requests it removes the
+difference from the heavier process at under half the cost. It is not a substitute for what Ratchet's long
+specification does on a large stateful request: there the first build already avoids defects that a look does not
+name, and a look names under half of what an audit finds. Whether the fix must be a stronger model than the
+builder was not tested (the owner chose Opus at xhigh for fixes); nor was a second look after the fix.
+
+**Not shown.** Ratchet rerun from scratch (the owner's option 2, deferred: "let's focus on 1 first"). The same
+sequence with the builder's own model as fixer. Whether the look belongs inside ShipLoop as a stage: that is a
+ShipLoop product decision for the owner, with section 11's design and these results as the evidence.
