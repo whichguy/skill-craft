@@ -1,0 +1,537 @@
+{
+ "concurrency": 16,
+ "rounds": 100,
+ "limit_seconds": 30.0,
+ "seconds": 1000.6,
+ "load_at_end": 138.97802734375,
+ "held_on_loopback_min_max": [
+  12,
+  14
+ ],
+ "summary": {
+  "as_is": {
+   "runs": 1600,
+   "passed": 1580,
+   "failed": 2,
+   "did_not_end": 18,
+   "servers_started": 33600,
+   "listening_on": [
+    "IPv6 ::"
+   ],
+   "runs_given_a_number_another_program_held": 19,
+   "of_those_failed_or_did_not_end": 19,
+   "failed_or_did_not_end_without_such_a_number": 1,
+   "programs_reached": {
+    "claude": 15,
+    "Ollama": 2,
+    "OrbStack": 2
+   },
+   "signatures": {
+    "did not end": 18,
+    "connection dropped (socket hang up, ECONNRESET)": 2
+   },
+   "median_seconds": 2.4
+  },
+  "bound": {
+   "runs": 1600,
+   "passed": 1600,
+   "failed": 0,
+   "did_not_end": 0,
+   "servers_started": 33600,
+   "listening_on": [
+    "IPv4 127.0.0.1"
+   ],
+   "runs_given_a_number_another_program_held": 0,
+   "of_those_failed_or_did_not_end": 0,
+   "failed_or_did_not_end_without_such_a_number": 0,
+   "programs_reached": {},
+   "signatures": {},
+   "median_seconds": 2.39
+  }
+ },
+ "not_passed": [
+  {
+   "arm": "as_is",
+   "rc": null,
+   "seconds": 30.01,
+   "tests": null,
+   "pass": null,
+   "fail": null,
+   "listens": 21,
+   "addresses": [
+    "IPv6 ::"
+   ],
+   "drew": [
+    64308
+   ],
+   "drew_from": [
+    "claude"
+   ],
+   "failed_tests": [
+    "creates an open ticket and answers 201 with it",
+    "POST /tickets"
+   ],
+   "error_lines": [],
+   "round": 4
+  },
+  {
+   "arm": "as_is",
+   "rc": null,
+   "seconds": 30.01,
+   "tests": null,
+   "pass": null,
+   "fail": null,
+   "listens": 21,
+   "addresses": [
+    "IPv6 ::"
+   ],
+   "drew": [
+    50214
+   ],
+   "drew_from": [
+    "claude"
+   ],
+   "failed_tests": [
+    "answers a bad body with 400 invalid",
+    "POST /tickets"
+   ],
+   "error_lines": [],
+   "round": 5
+  },
+  {
+   "arm": "as_is",
+   "rc": null,
+   "seconds": 30.01,
+   "tests": null,
+   "pass": null,
+   "fail": null,
+   "listens": 21,
+   "addresses": [
+    "IPv6 ::"
+   ],
+   "drew": [
+    53876
+   ],
+   "drew_from": [
+    "claude"
+   ],
+   "failed_tests": [
+    "with a data file, a restarted service has the same tickets, history and outbox"
+   ],
+   "error_lines": [],
+   "round": 20
+  },
+  {
+   "arm": "as_is",
+   "rc": null,
+   "seconds": 30.02,
+   "tests": null,
+   "pass": null,
+   "fail": null,
+   "listens": 21,
+   "addresses": [
+    "IPv6 ::"
+   ],
+   "drew": [],
+   "drew_from": [],
+   "failed_tests": [
+    "filters by status",
+    "GET /tickets"
+   ],
+   "error_lines": [],
+   "round": 26
+  },
+  {
+   "arm": "as_is",
+   "rc": null,
+   "seconds": 30.02,
+   "tests": null,
+   "pass": null,
+   "fail": null,
+   "listens": 21,
+   "addresses": [
+    "IPv6 ::"
+   ],
+   "drew": [
+    64295,
+    64308
+   ],
+   "drew_from": [
+    "claude"
+   ],
+   "failed_tests": [
+    "pages a filtered listing through its cursors",
+    "GET /tickets"
+   ],
+   "error_lines": [],
+   "round": 27
+  },
+  {
+   "arm": "as_is",
+   "rc": null,
+   "seconds": 30.01,
+   "tests": null,
+   "pass": null,
+   "fail": null,
+   "listens": 21,
+   "addresses": [
+    "IPv6 ::"
+   ],
+   "drew": [
+    54286
+   ],
+   "drew_from": [
+    "claude"
+   ],
+   "failed_tests": [
+    "answers 409 for a move the lifecycle does not allow and 400 for a status that does not exist",
+    "POST /tickets/:id/transition"
+   ],
+   "error_lines": [],
+   "round": 32
+  },
+  {
+   "arm": "as_is",
+   "rc": null,
+   "seconds": 30.01,
+   "tests": null,
+   "pass": null,
+   "fail": null,
+   "listens": 21,
+   "addresses": [
+    "IPv6 ::"
+   ],
+   "drew": [
+    49199
+   ],
+   "drew_from": [
+    "claude"
+   ],
+   "failed_tests": [
+    "records the X-Actor of each change, and system without one",
+    "GET /tickets/:id/audit"
+   ],
+   "error_lines": [],
+   "round": 40
+  },
+  {
+   "arm": "as_is",
+   "rc": null,
+   "seconds": 30.01,
+   "tests": null,
+   "pass": null,
+   "fail": null,
+   "listens": 21,
+   "addresses": [
+    "IPv6 ::"
+   ],
+   "drew": [
+    53876
+   ],
+   "drew_from": [
+    "claude"
+   ],
+   "failed_tests": [
+    "answers a bad filter, limit or cursor with 400 invalid",
+    "GET /tickets"
+   ],
+   "error_lines": [],
+   "round": 43
+  },
+  {
+   "arm": "as_is",
+   "rc": null,
+   "seconds": 30.01,
+   "tests": null,
+   "pass": null,
+   "fail": null,
+   "listens": 21,
+   "addresses": [
+    "IPv6 ::"
+   ],
+   "drew": [
+    53876
+   ],
+   "drew_from": [
+    "claude"
+   ],
+   "failed_tests": [
+    "answers 409 for a move the lifecycle does not allow and 400 for a status that does not exist",
+    "POST /tickets/:id/transition"
+   ],
+   "error_lines": [],
+   "round": 55
+  },
+  {
+   "arm": "as_is",
+   "rc": null,
+   "seconds": 30.01,
+   "tests": null,
+   "pass": null,
+   "fail": null,
+   "listens": 21,
+   "addresses": [
+    "IPv6 ::"
+   ],
+   "drew": [
+    56699
+   ],
+   "drew_from": [
+    "claude"
+   ],
+   "failed_tests": [
+    "changes the priority and records who did it",
+    "PATCH /tickets/:id"
+   ],
+   "error_lines": [],
+   "round": 57
+  },
+  {
+   "arm": "as_is",
+   "rc": null,
+   "seconds": 30.02,
+   "tests": null,
+   "pass": null,
+   "fail": null,
+   "listens": 21,
+   "addresses": [
+    "IPv6 ::"
+   ],
+   "drew": [
+    57741
+   ],
+   "drew_from": [
+    "Ollama"
+   ],
+   "failed_tests": [
+    "answers a bad body with 400 invalid",
+    "POST /tickets"
+   ],
+   "error_lines": [],
+   "round": 58
+  },
+  {
+   "arm": "as_is",
+   "rc": 1,
+   "seconds": 2.49,
+   "tests": 117,
+   "pass": 116,
+   "fail": 1,
+   "listens": 21,
+   "addresses": [
+    "IPv6 ::"
+   ],
+   "drew": [
+    49724
+   ],
+   "drew_from": [
+    "OrbStack"
+   ],
+   "failed_tests": [
+    "lists every ticket in id order, 20 to a page",
+    "GET /tickets",
+    "lists every ticket in id order, 20 to a page"
+   ],
+   "error_lines": [
+    "Error: read ECONNRESET",
+    "code: 'ECONNRESET',"
+   ],
+   "round": 64
+  },
+  {
+   "arm": "as_is",
+   "rc": null,
+   "seconds": 30.01,
+   "tests": null,
+   "pass": null,
+   "fail": null,
+   "listens": 21,
+   "addresses": [
+    "IPv6 ::"
+   ],
+   "drew": [
+    49443
+   ],
+   "drew_from": [
+    "claude"
+   ],
+   "failed_tests": [
+    "changes the priority and records who did it",
+    "PATCH /tickets/:id"
+   ],
+   "error_lines": [],
+   "round": 64
+  },
+  {
+   "arm": "as_is",
+   "rc": null,
+   "seconds": 30.01,
+   "tests": null,
+   "pass": null,
+   "fail": null,
+   "listens": 21,
+   "addresses": [
+    "IPv6 ::"
+   ],
+   "drew": [
+    54286
+   ],
+   "drew_from": [
+    "claude"
+   ],
+   "failed_tests": [
+    "answers 409 for a move the lifecycle does not allow and 400 for a status that does not exist",
+    "POST /tickets/:id/transition"
+   ],
+   "error_lines": [],
+   "round": 67
+  },
+  {
+   "arm": "as_is",
+   "rc": null,
+   "seconds": 30.02,
+   "tests": null,
+   "pass": null,
+   "fail": null,
+   "listens": 21,
+   "addresses": [
+    "IPv6 ::"
+   ],
+   "drew": [
+    57741
+   ],
+   "drew_from": [
+    "Ollama"
+   ],
+   "failed_tests": [
+    "answers a bad filter, limit or cursor with 400 invalid",
+    "GET /tickets"
+   ],
+   "error_lines": [],
+   "round": 69
+  },
+  {
+   "arm": "as_is",
+   "rc": null,
+   "seconds": 30.01,
+   "tests": null,
+   "pass": null,
+   "fail": null,
+   "listens": 21,
+   "addresses": [
+    "IPv6 ::"
+   ],
+   "drew": [
+    49443
+   ],
+   "drew_from": [
+    "claude"
+   ],
+   "failed_tests": [
+    "pages a filtered listing through its cursors",
+    "GET /tickets"
+   ],
+   "error_lines": [],
+   "round": 75
+  },
+  {
+   "arm": "as_is",
+   "rc": null,
+   "seconds": 30.01,
+   "tests": null,
+   "pass": null,
+   "fail": null,
+   "listens": 21,
+   "addresses": [
+    "IPv6 ::"
+   ],
+   "drew": [
+    64295
+   ],
+   "drew_from": [
+    "claude"
+   ],
+   "failed_tests": [
+    "answers a bad filter, limit or cursor with 400 invalid",
+    "GET /tickets"
+   ],
+   "error_lines": [],
+   "round": 86
+  },
+  {
+   "arm": "as_is",
+   "rc": 1,
+   "seconds": 2.28,
+   "tests": 117,
+   "pass": 116,
+   "fail": 1,
+   "listens": 21,
+   "addresses": [
+    "IPv6 ::"
+   ],
+   "drew": [
+    49724
+   ],
+   "drew_from": [
+    "OrbStack"
+   ],
+   "failed_tests": [
+    "answers 409 for a move the lifecycle does not allow and 400 for a status that does not exist",
+    "POST /tickets/:id/transition",
+    "answers 409 for a move the lifecycle does not allow and 400 for a status that does not exist"
+   ],
+   "error_lines": [
+    "Error: read ECONNRESET",
+    "code: 'ECONNRESET',"
+   ],
+   "round": 87
+  },
+  {
+   "arm": "as_is",
+   "rc": null,
+   "seconds": 30.02,
+   "tests": null,
+   "pass": null,
+   "fail": null,
+   "listens": 21,
+   "addresses": [
+    "IPv6 ::"
+   ],
+   "drew": [
+    56000
+   ],
+   "drew_from": [
+    "claude"
+   ],
+   "failed_tests": [],
+   "error_lines": [],
+   "round": 92
+  },
+  {
+   "arm": "as_is",
+   "rc": null,
+   "seconds": 30.01,
+   "tests": null,
+   "pass": null,
+   "fail": null,
+   "listens": 21,
+   "addresses": [
+    "IPv6 ::"
+   ],
+   "drew": [
+    50047,
+    50214
+   ],
+   "drew_from": [
+    "claude"
+   ],
+   "failed_tests": [
+    "pages a filtered listing through its cursors",
+    "GET /tickets"
+   ],
+   "error_lines": [],
+   "round": 99
+  }
+ ],
+ "given_a_held_number_and_passed": []
+}

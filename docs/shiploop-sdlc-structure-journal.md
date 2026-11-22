@@ -3967,6 +3967,94 @@ took a second command. The published-install smoke test passes against the relea
   mechanism for wrong answers and left the fixture to the owner, because it is pinned by its digest and is the E2E
   subject. Binding the fixture's tests to `127.0.0.1` is put to the owner again with these three hangs.
 
+### Owner question, 2026-11-22: what binding the fixture's tests to `127.0.0.1` means (`evidence/port-mixup.txt`)
+
+The owner, of the question R156 put: "I do not understand 1 technically". Answered by watching the mix-up on this
+machine and counting it, on scratch copies of the fixture, 05:44 to 06:10. Nothing under
+`test/shiploop_e2e/fixtures/` is changed, and the decision stays the owner's. Status: firm for this machine and
+this morning; one machine, one node version.
+
+The two lines it is about: the service listens with a port and no address, which is every address of the machine
+(`src/server.js`, `server.listen(config.port, ...)`), and the test's client calls `127.0.0.1` at that port
+(`test/helpers.js`, `withService`), the port being 0, "any free one".
+
+- **R157 (the mix-up, watched; `port_mixup_demo.js`).** 26728eddd587930f5da3f6600e5d7ab4017d8acc inferred the
+  mechanism and "did not watch the two sockets". On one fixed port number, 23117: another program listens on
+  `127.0.0.1:23117`; a server then listens on 23117 with no address and the system accepts it (IPv6 `::`); a client
+  that asks `127.0.0.1:23117` is answered by the other program, and by the test's own server only once the other
+  program is gone. The order in which the two start does not matter. A server told to listen on `127.0.0.1:23117`
+  itself is refused (`EADDRINUSE`).
+- **R158 (how often the system hands out a held number).** Other programs held 12 numbers on `127.0.0.1` in the
+  range the system hands out (49152 to 65535): 10 Claude sessions, OrbStack and Ollama. Asked for "any free port"
+  40,000 times with no address, the system gave one of those 12 numbers 29 times, each of the 12 at least once: 12
+  in 16,552, where a held number counted as free would be 12 in 16,384. Asked on `127.0.0.1`: 0 times in 40,000.
+- **R159 (the base's suite, 1,600 runs each way; `port_mixup_suite_probe.py`, `evidence/port-mixup-probe.json`).**
+  One run of the suite has 117 tests and starts 21 servers, as it is and with a two-line change (the service passes
+  `config.host` to `listen`; the test settings name `127.0.0.1`). As it is, 1,580 of 1,600 runs pass, 2 fail and 18
+  do not end within 30 seconds. With the change, 1,600 of 1,600 pass. Of the runs as it is, 19 were given a number
+  another program held on `127.0.0.1` (15 a Claude session, 2 Ollama, 2 OrbStack): all 19 are among the 20 that did
+  not pass, and none passed. None of the changed copy's 33,600 servers was given one. The twentieth run did not end
+  and shared no number in the list read at the start of its round; its cause is not shown.
+- **R160 (what the test does, by what the other program does; `port_mixup_outcomes.py`).** One test through the
+  fixture's own `withService`, another program already on `127.0.0.1` at its port number. The other program hangs
+  up: the test fails with `ECONNRESET` and the run ends. It answers in JSON: the answer is taken for the service's (a
+  test that checks only the status passes on it). It answers in anything else: the test is reported failed and the
+  run never ends. It never answers: nothing is reported and the run never ends. The helper parses the body inside
+  the response's `end` handler, so a body that is not JSON throws there, the request is never settled, `withService`
+  never reaches its `finally`, the test's server stays up and the test file's process cannot exit. 17 of R159's 18
+  runs that did not end had reported a test failed first, which is this path; the two outright failures were
+  dropped connections, both at OrbStack.
+- **R161 (a stuck run of this session's own, found and stopped).** A `node --test` of the base's tests in the
+  system's temporary folder (`tmp749rmb4l/prior`), started at 00:44:45 by a case check's command in this session's
+  own test tier: `test/api.test.js`, 0.35 seconds of processor time in 5 hours 22 minutes, waiting, its server still
+  listening on every address at port 57236 and no connection open, which is the state R160 describes. Who held 57236
+  on `127.0.0.1` at 00:44 is not known. The sweep of 01:25 (R155) looked in this study's run roots and scratch
+  folder and not in the system's temporary folder, so it missed it. Its six processes were stopped by process id,
+  each checked to have started at 00:44:45. The check's own shell was among them and had no parent left: whatever
+  ran the check ended without stopping it. Which path that was is not shown (R146 names one: a check that outlives
+  the harness's 180-second limit).
+
+Findings.
+
+- **F99. The mix-up is observed, and its rate follows from two counts.** With `h` numbers held on `127.0.0.1` by
+  other programs and 21 servers a run, a run of the base's suite shares a number about `21 × h / 16,384` of the
+  time: 1.5 percent at 12, against 1.25 percent measured (20 of 1,600). The 25 node and Python servers on
+  `127.0.0.1` that 26728eddd587930f5da3f6600e5d7ab4017d8acc counted give 3.2 percent if all were in the range
+  handed out, against the 3.4 percent it measured (32 of 928). The rate rises with every program that listens on
+  `127.0.0.1`, and each open Claude session is one.
+- **F100. What it looks like depends on who holds the number.** On 2026-11-01 the holders were other projects'
+  servers and it showed as resets and wrong answers. Today 10 of the 12 are Claude sessions and it shows as a run
+  that never ends (18 of 20). So the runs that never ended since 2026-11-20 (R55, R146, R153, R156) are of the same
+  kind as the flake of 2026-11-01; no single one of them is shown to be it, and R153's, where the builder found a
+  test process spinning, is not explained by a wait.
+- **F101. Listening on `127.0.0.1` removes it where it starts.** 0 of 1,600 runs, 0 of 33,600 servers and 0 of
+  40,000 askings were given a held number. A time limit or a caught parse error in the helper's client would turn a
+  run that never ends into a failed test and leave the mix-up in place.
+
+What the change would touch, for the owner's decision (nothing of it is done).
+
+- Two lines in `fixtures/node-tickets` and the same two in `fixtures/node-tickets-assigned`; the service's line is
+  also in `stage_cases/step-plan/replay-ticket-comments-late-send-back/repo`.
+- The pins of four cases in `cases.json`: `ticket-assignment`, `ticket-import` and `ticket-due-times` at
+  `5652a97375d0`, `ticket-assignment-tests` at `f0e486c77413`. `brownfield.resolve` refuses a case whose fixture
+  does not digest to its pin.
+- The oracle digest of every case, because it is taken over `checks/` and `fixtures/` (`boundary.oracle_files`):
+  promotion reads attempts graded under different digests as different experiments. It is `b32933f70500` since
+  fb0f834d90ff8a27b4a2eaec75ed45462a913e95 changed the base check on 2026-11-21, so the series already began again
+  a day ago; a fixture change now begins it once more, and little has been recorded on the new digest yet.
+- Not reached by it: a saved delivery keeps the old lines, so grading one again can still meet the mix-up, and a
+  test server of a changed base is one more number on `127.0.0.1` an unchanged one can be handed; a builder's own
+  test that starts the product on every address and calls `127.0.0.1`; any run that does not end for another reason.
+  The harness's own acceptance checks take their number on `127.0.0.1` first (`quality.free_port`), so no other
+  program holds it there when the product starts.
+
+Conduct, a slip of mine. The probe ran 16 suites at once and each suite runs its 18 files at once: the load
+average reached about 190 for most of 17 minutes. No E2E run was live when it began, but another session's quick
+tier (scratch folder `defaults/merge-a5ac04`) started three minutes in, at 05:51, and ran beside it until 06:04.
+During the changed arm's rounds the probe's ticket servers also held numbers on `127.0.0.1` that the tier's ticket
+suites could have been handed. A heads-up to that session was held by it and not delivered. A failure or timeout of
+that tier between 05:51 and 06:04 should be run again alone before it is read. Four copies at once would have done.
+
 ## Evidence (all rounds)
 
 | File | Holds |
@@ -4041,6 +4129,7 @@ took a second command. The published-install smoke test passes against the relea
 | `review-r15/sol-max-brief-3.txt`, `review-r15/sol-max-review-3.md` | round 15: the question put to Sol 6.2 at max effort about the count measured in the work area and the moved-file fix, and its verbatim answer |
 | `list_leaked.py`, `stop_leaked.py`, `evidence/leaked-servers-stopped.txt` | round 15: the leaked test servers of the harness's base check: the listing, each process stopped with its start time, port and folder, and what was left alone (R145) |
 | `evidence/confirm-r15d.txt` | round 15: the second confirmation round: each delivery's verdicts, checks, work items and its one release-verify attempt with the added command; the suites run again by hand; refusals, returns, the hang in one builder's own copy (R147 to R154) |
+| `port_mixup_demo.js`, `port_mixup_outcomes.py`, `port_mixup_stranger.js`, `port_mixup_suite_probe.py`, `port_mixup_count_listens.js`, `evidence/port-mixup.txt`, `evidence/port-mixup-probe.json` | 2026-11-22: the ticket fixture's port mix-up watched and counted: one number held by two programs, how often the system hands out a held number, the base's suite 1,600 times as it is and with the service on `127.0.0.1`, what one test does by what the other program does, and a stuck run found and stopped (R157 to R161) |
 
 To rerun: `python3 -I stage_census.py <work>/census.json` writes the run list the other scripts read
 (`passes_census.py <work>/census.json <work>/samples.jsonl`, `review_edits.py <work>/census.json
@@ -4095,6 +4184,13 @@ Round 15: `python3 stop_at_stage.py --plugin-dir <plugin> --root <out> --until p
 <name>:ticket-due-times:<host>:<model>:medium ...` ends each sample at the plan; `python3 -I plan_rows.py [--blind
 <key file>] state,migrate-before,migrate-after,switchover <name>=<run folder> ...` prints the rows;
 `criteria_census.py` and `meta_test_census.py` take `<name>=<run folder or tree>` and print the two baselines.
+The port mix-up (R157 to R161): copy `test/shiploop_e2e/fixtures/node-tickets` twice and apply the two-line change of
+`evidence/port-mixup.txt` to the second copy; `node port_mixup_demo.js`;
+`python3 -I port_mixup_outcomes.py <copy> <changed copy>`;
+`python3 -I port_mixup_suite_probe.py <copy> <changed copy> port_mixup_count_listens.js <out.json> 16 100 30`
+reproduces `evidence/port-mixup-probe.json` in kind (heavy: about 17 minutes and a load average near 190 at 16
+copies; use 4 beside any other work).
+
 Leaked test servers: `python3 -I list_leaked.py` prints one JSON line for each `node` process (it stops nothing);
 `python3 -I stop_leaked.py <that listing> [<minimum age in seconds>]` stops, by process id, the parentless ones in
 a folder of the base check.

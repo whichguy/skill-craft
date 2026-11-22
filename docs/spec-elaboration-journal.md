@@ -4824,3 +4824,105 @@ in a stream only if the session built the path itself. None of the 27 did.
   context and its own blind spots.
 - One case, one driver for the lists, one decision known to matter. The first item on every list is a second
   consequential decision that no held-out check here judges.
+
+## 61. The owner's "Do both": the result goes to the Ratchet session, and a proposal for ShipLoop that builds on the list the owner accepted this morning (06:41, 2026-11-22)
+
+**The owner's word.** After section 60 I put two choices to the owner: tell the Ratchet session the result, or
+draft a proposal for ShipLoop ("a short note on where such a list would go (end of the spec stage, first five
+items shown to you) for you to decide on"). The answer, at about 06:30 on 2026-11-22: "Do both".
+
+**What I found before writing either, and a miss of mine.** A list of this kind was already built. The Ratchet
+session's candidate (branch `shiploop-defaults-2c3d50`, first commit 23:10 on 2026-11-21) makes the spec stage's
+result carry a required list, `defaults`, and shows it to the requester in the next stage's packet, in the done
+packet and in the report under "Decided for you". Sections 59 and 60 of this journal do not mention it, and my
+offer to the owner described such a list as if none existed. The owner accepted the candidate at 05:46 this
+morning ("Yes, merge it", as its merge commit records), and at 06:23 the Ratchet session registered a round of
+four whole deliveries on the merged tree, to be run before its release. So the proposal could not be a second
+design. It had to say what section 60 adds to a list that exists.
+
+**The message, sent at 06:37** to the session "Ratchet". Five points: where the evidence of section 60 is, so
+that it can check a result it had recorded as "seen on main, not checked by me"; what the result says about the
+list's place, its lack of a rank and what a later list adds; the cross-reading below; what the proposal would and
+would not propose; and that one docs-only commit of mine was about to go to main, after which I hold my pushes
+until its release is there.
+
+**Its reply, within three minutes** (two messages; the second corrects a count from 23 rows to 21).
+
+- Push now. If the commit is not on origin by 07:10, hold it until its release is on main (expected between 07:45
+  and 08:15): a push between its release cut and its guarded push costs it a second cut and a second test tier.
+- It checked the cross-reading on its own files by a word search, with no model: no row of the 21 of its six Sol
+  deliveries names a roll-back; each of the six specifications does; its blind reader names it in five and not in
+  d6; the Sonnet delivery has it as row 5 of 6. "So your count stands on my files."
+- Two facts it asked me to carry. Its reader's count of choices that no row has (four or five a specification) is
+  an upper limit, because that reader cannot see the starting product. And the instruction as written covers a
+  line about what a roll-back loses, so Sol's leaving it out is "a finding about what the author picks, not about
+  the field's wording being silent on it".
+- It will add to its round's entry whether a row names the way back in each of the three due-times deliveries now
+  running (two on Sol, one on Sonnet).
+- It is not changing the list before the release the owner asked for. A second reader would be a change of its
+  own.
+
+**The cross-reading, no model called.** `cross_reading.py` (new in the experiment's folder) reads the Ratchet
+session's evidence files at its branch and the 27 lists of section 60, and prints every line it matched to
+`evidence/ask-later/cross-reading-defaults.txt`. The word patterns only find lines. Which lines speak of a loss I
+read by eye: the script's second marked line in d3 is about the feature switched off, not about going back.
+
+| Delivery | Driver | Rows in `defaults` | A row tells what going back loses | The specification speaks of keeping or losing the due times on the way back | Its blind reader lists that as a choice no row has |
+|---|---|---|---|---|---|
+| d1 | Sol | 4 | no | yes, R-3: "preserving deadline values through rollback writes" | yes |
+| d2 | Sol | 3 | no | yes, R-4: "An operator may preserve the pre-rollback version-1 file" | yes |
+| d3 | Sol | 3 | no | yes, R-5: "Preserve the current file before a writable rollback" | yes |
+| d4 | Sol | 4 | no | yes, R-4: "Its writer discards the optional due field" | yes |
+| d5 | Sol | 4 | no | yes, R-4: "Rollback writes can drop due metadata" | yes: "the largest unmentioned consequence for the requester" |
+| d6 | Sol | 3 | no | no: R-5 says only that 1.4.0 starts and returns all tickets | no |
+| s1 | Sonnet | 6 | yes, row 5: "What do operators lose by rolling back?" | yes, R-8: "1.4.0 re-saves without `due`" | it is a row |
+
+On the other side, recounted by the script: the first decision of all 27 lists of section 60 is what going back
+to 1.4.0 loses.
+
+**The finding. Status: exploratory.** On Sol, under the `defaults` instruction, the author's list tells the
+start-up choice in six deliveries of six (the Ratchet session's strict reader scores two a full yes and four
+"partly") and leaves out, in six of six, what going back loses. A separate lister, on three other deliveries,
+puts that decision first 27 times of 27, and the Ratchet session's blind reader lists it as missed in the five
+whose specification has it. The instruction covers it: it asks for each acceptance line "that states what the
+request does not, and that a person who uses or runs the product would notice (what they see, a step they must
+take, something refused)", and keeping a copy before going back is a step an operator must take. Limits: the two
+counts come from different deliveries under different instructions; no held-out check judges that loss; the owner
+has not ruled on it; one case.
+
+**How long a separate lister takes,** read from the 27 kept session folders (from the first write of a session's
+error stream to its verdict file): 60 to 116 seconds after the specification (median 102), 71 to 140 with the
+plan and test cases written (114), 122 to 162 after the tests ran (146). Tokens were not read.
+
+**The proposal** is `docs/experiments/spec-elaboration-20261120/PROPOSAL-shiploop.md`. In order:
+
+- It takes the accepted list as the list. No second design, and nothing under `skills/`.
+- Three points of section 60 support the list where it is and as it is: asking later does not find the decision
+  more often; a costliest-first order never puts it first, so a display must not be cut to a top one or three;
+  a later list adds only what exists once there is code, which nothing shows anyone needs.
+- The gap above.
+- One question to the owner: should ShipLoop have told you, before it built, that going back to 1.4.0 loses the
+  due times at its next save unless an operator kept a copy?
+- The test that would follow a yes, described and not registered: a separate reader is shown the rows the
+  requester already gets and asked what else the work decided, on the Ratchet session's nine kept deliveries,
+  read only.
+- The half that changes what gets built is the requester's answer reaching the specification, which the Ratchet
+  session measured (8 of 8 held-out checks against 3 of 8; as a plain note 2 of 4) and which is already the
+  owner's open decision there. Section 60 adds that the answer can be taken before anything is built.
+
+**Decisions of mine, each with its reason.**
+
+- *No second design.* The list exists and is accepted; another would duplicate a release that belongs to another
+  session.
+- *A question to the owner before any run.* Whether the loss on going back matters is a ruling only the owner can
+  give, and the test is worth running only if it does. The standing approval would cover the test; one answer
+  from the owner saves 27 sessions if it is no.
+- *If the test comes,* it is registered here first, it reads the Ratchet session's kept deliveries and changes
+  nothing in them, and that session is told before it starts.
+- *This commit is pushed before 07:10 and I then hold my pushes* until the Ratchet session says its release is on
+  main: its request.
+- *The explainer page is not changed.* It carries results; this is a question waiting for an answer.
+
+**Not known.** Whether the loss on going back matters to the owner. Whether the three deliveries of the Ratchet
+session's running round tell it. Whether a second reader, shown the rows, adds real open points or noise. The
+chain from the list to an answer to a corrected build, end to end in ShipLoop.
