@@ -319,3 +319,75 @@ cases). P8 right (overall).
   not a gate.
 - Ratchet's three-cycle limit is the pilot's; a Ratchet run without it would only take longer (no run so far stopped
   by itself).
+
+## 8. Learnings for either tool (2026-11-22, the owner's follow-up: "could we improve either one based on learnings, or from each other")
+
+Status: exploratory. Read from the eight runs' records after the fact; nothing here was registered before the runs,
+and each line rests on one run a case. No new run. Sources: `evidence/report/report.json`, the judge's reasons in
+`evidence/judge/N-answer-M.json` (labels in `key.json`), and each point's `mutation.json`, `calibrated.json` and
+`coverage-own.json` under the runs root's `measure/LABEL/POINT/`.
+
+### Ratchet's first build beside ShipLoop's delivery (same cost)
+
+| Case | Minutes: ShipLoop / Ratchet first build | Output tokens: ShipLoop / Ratchet first build | Seeded faults own tests catch: ShipLoop / Ratchet first build |
+|---|---|---|---|
+| Shared expenses | 14.3 / 10.2 | 27,535 / 26,349 | 49 of 60 / 28 of 60 |
+| Chess | 10.4 / 8.5 | 21,313 / 20,961 | 47 of 59 / 50 of 60 |
+| Ticket assignment | 15.3 / 11.1 | 30,077 / 28,708 | 9 of 9 / 19 of 19 |
+| Grokbot | 26.5 / 20.0 | 52,934 / 52,820 | 27 of 60 / 29 of 60 |
+
+Ratchet's first three sessions (specification, plan, build) cost what a whole ShipLoop delivery costs, pass every
+held-out check, and already hold the README and 18 of the 27 calibrated ticket catches. Their code was not read by
+the judge.
+
+### What Ratchet's later cycles bought
+
+| Case | Minutes after the first build | Its own tests: first build to final | Seeded faults caught: first build to final |
+|---|---|---|---|
+| Shared expenses | 36.2 | 6 to 13 | 28 of 60 to 31 of 59 |
+| Chess | 28.7 | 14 to 16 | 50 of 60 to 50 of 60 |
+| Ticket assignment | 89.3 | 127 to 134 | 19 of 19 to 24 of 25 (calibrated 18 to 19 of 27) |
+| Grokbot | 142.3 | 7 to 19 | 29 of 60 to 32 of 60 |
+
+- **L1. More tests did not make deeper tests.** On shared expenses and Grokbot the later cycles more than doubled
+  the test count and the seeded-fault catch rose by three. ShipLoop's 5 tests on shared expenses catch 49 of 60.
+  Same direction as the pilot's F22: a script-run check of tests against seeded faults did what added testing
+  passes did not.
+- **L2. The later cycles add what the request did not ask for.** In all four cases the judge names extras in
+  Ratchet's final product or tests (a stricter duplicate-member rule and 400s the request does not ask for; tests
+  for coercion and subprocess behaviour on chess while the stated time limits and depth-3 move counts go untested;
+  parsing written to the stand-in provider's phrasing on Grokbot, with a lookup that misfires on ordinary
+  questions). Same direction as the pilot's section 13 (outside judges accepted 10 of 59 additions).
+
+### What ShipLoop lacks that Ratchet's first build has
+
+- **L3. No user page on a new build.** ShipLoop named 0 of 3 and 0 of 5 new public surfaces in a user document on
+  the two builds that start without one (its `docs/shiploop/` notes name all of them); where a page existed it
+  kept it current (2 of 2 on tickets). Ratchet's build prompt carries one line for this ("The documents the change
+  makes wrong or incomplete (the README, ...)") and its first build named 4 of 4 and 5 of 5.
+- **L4. ShipLoop's ticket tests do not carry to another correct product.** 5 of its 6 new test cases fail on the
+  harness's correct reference and on the alternative control, so only one can catch a calibrated defect (7 of 27
+  against Ratchet's 18 at first build). Each of those cases covers several behaviours in one test (for example
+  "TC-1 assigns, leaves repeated requests unchanged, and clears the assignee"). Against its own product the same
+  tests catch 9 of 9 seeded faults: they are strong as a guard of this build and weak as a statement of the
+  request. My reading of the cause (not checked assertion by assertion): one detail particular to its own product
+  fails a whole many-behaviour test. One case, one run; not yet measured on archived ShipLoop ticket deliveries.
+- **L5. Saved state is trusted on load.** On both new builds that keep a file, the judge notes ShipLoop reads it
+  without validation (Grokbot: a damaged snapshot ends startup with a raw error); Ratchet validates in both. No
+  request asks for it and no held-out check covers it. Reported, not proposed: a rule here would be a design
+  opinion, and the judge also marks Ratchet down for over-engineering in the same readings.
+
+### Seen in both
+
+- **L6. Both made choices the requester was not told.** On ticket assignment ShipLoop added a column to the
+  documented `list --raw` output and routed every change through a rewritten `apply()`; Ratchet kept untrimmed
+  names, counted the length limit in UTF-16 units and logged a clear as "assigned". This is the finding of the
+  spec-elaboration study (an unstated limit is chosen silently) on new runs, and more evidence for the `defaults`
+  candidate that awaits the owner (branch `shiploop-defaults-2c3d50`), not a new change.
+
+### For the next harness round
+
+- Register output and uncached input tokens, not total input (R2 here).
+- A case where a first build falls short is still missing; breadth has now sat at the ceiling in the pilot and here.
+- Give Ratchet's first builds to the blind judge: that says whether the code readings it won (shared expenses,
+  Grokbot) come from its build or from the later cycles.
