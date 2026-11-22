@@ -1,0 +1,78 @@
+sonnet-medium-due        PASSES
+                           check [focused] node --test --test-reporter=spec test/due-system.test.js test/due-rollback.test.js -> passed, ran 5, floor None, 1 s
+                           check [regression] npm test -> passed, ran 151, floor 151, 1 s
+sonnet-high-due          REFUSED (failed)
+                           check [check] SKIP_ROLLBACK_TEST=1 npm test -> passed, ran 154, floor None, 1 s
+                           check [check] node -e "process.exit(require('./package.json').version === '1.5.0' ? 0 : 1)" -> passed, ran None, floor None, 0 s
+                           added [regression] npm test -> failed, ran 164, floor 164, 1 s
+                           | ShipLoop test run: release-verify is not done. ShipLoop ran the 3 listed commands from a clean copy of the result returned to <delivery>/work (fast-forward-merge at 2a34d6303cde; receipt <delivery>/.shiploop-runs/work-20261121-191043-0f03ff/return-receipt.md), made fresh at <copy> on each done and 1 did not pass:
+                           | - [regression] npm test (the step plan's regression command, added by ShipLoop) -> exit 1
+                           | The copy at <copy> started as exactly the returned tree and is kept so you can reproduce there (the commands above have run in it). A command that passes in the work area and fails or runs fewer tests here usually means one of: a path the return plan excluded (<delivery>/.shiploop-runs/work-20261121-191043-0f03ff/return-plan.md); an ignored or unmanaged file it needs (installed dependencies, build output, local configuration); the repository's history, which the copy does not hold; or a commit made after the return, which it does not hold either. This stage cannot edit the commands or return. Where the release plan is what is wrong (a step that must run first, such as an install or a build that brings an ignored or unmanaged file, is not recorded; a check removes what a later command needs), report outcome send-back: release-plan records it and the stages after it run again. Where the delivery must change, report outcome add-work with one corrective work item whose context names the failing command and its cause, so release returns the fix and release-verify observes it (an excluded path: the return plan must keep it; the history: the test must carry what it needs; a later commit: release must return it again). ShipLoop adds the regression command of the last work item that records one, so a corrective item whose step plan records a regression command decides what is added next: where the command itself must change, that step plan records its replacement. If the cause is not 
+sonnet-medium-expenses   PASSES
+                           check [check] node --test -> passed, ran 34, floor 34, 1 s
+                           check [check] node --check server.js && node --check lib/logic.js && node --check lib/store.js -> passed, ran None, floor None, 0 s
+sonnet-high-expenses     PASSES
+                           check [check] node --test -> passed, ran 116, floor None, 1 s
+                           check [check] test -f README.md && grep -q "node server.js" README.md && test -f package.json -> passed, ran None, floor None, 0 s
+                           added [regression] node --test test/split.test.js test/ledger.test.js test/settle.test.js -> passed, ran 21, floor 21, 0 s
+due-medium-2             PASSES
+                           check [check] npm test -> passed, ran 148, floor 148, 1 s
+                           check [check] node -e "const {createService}=require('./src/server');const {loadConfig}=require('./src/config');const s=createService( -> passed, ran None, floor None, 0 s
+due-high-2               PASSES
+                           check [check] npm test -> passed, ran 175, floor 175, 2 s
+                           check [check] node --test test/due-system.test.js -> passed, ran 2, floor None, 1 s
+expenses-medium-2        PASSES
+                           check [check] node --test --test-reporter=spec -> passed, ran 14, floor 14, 1 s
+expenses-high-2          PASSES
+                           check [check] node --test -> passed, ran 62, floor 62, 2 s
+                           check [check] node --test --test-name-pattern='^ST-[1-3] ' -> passed, ran 8, floor None, 1 s
+sol-high-due-p1          PASSES
+                           check [regression] npm test -> passed, ran 125, floor 125, 1 s
+                           check [focused] node --test --test-reporter=spec <delivery>/.shiploop-runs/work-20261121-112953-7fbb97/run/scratch/rollback.test.cjs -> passed, ran 1, floor None, 1 s
+sol-high-due-p2          PASSES
+                           check [focused] node --test --test-reporter=spec '<delivery>/.shiploop-runs/work-20261121-115439-5c784e/run/scratch/rollback.test.cjs' -> passed, ran 1, floor None, 1 s
+                           check [regression] npm test -> passed, ran 123, floor 123, 3 s
+                           added [regression] node --test --test-reporter=spec test/service.test.js -> passed, ran 3, floor 3, 0 s
+sol-high-expenses-p1     PASSES
+                           check [regression] node --test -> passed, ran 8, floor 8, 1 s
+sol-high-expenses-p2     PASSES
+                           check [focused] node --test -> passed, ran 7, floor 7, 1 s
+                           check [check] node --check server.js && node --check test/expenses.test.js -> passed, ran None, floor None, 0 s
+sol-medium-due-p1        PASSES
+                           check [regression] npm test -> passed, ran 122, floor 122, 1 s
+                           check [focused] node --test --test-reporter=spec <delivery>/.shiploop-runs/work-20261121-112946-195af0/run/scratch/rollback.test.js -> passed, ran 1, floor None, 1 s
+sol-medium-due-p2        PASSES
+                           check [regression] npm test -> passed, ran 123, floor 123, 1 s
+                           check [focused] node --test '<delivery>/.shiploop-runs/work-20261121-115433-48eb52/run/scratch/rehearse.test.js' -> passed, ran 1, floor None, 1 s
+sol-medium-expenses-p1   PASSES
+                           check [regression] node --test --test-reporter=tap -> passed, ran 7, floor None, 1 s
+                           added [regression] node --test -> passed, ran 7, floor 7, 1 s
+sol-medium-expenses-p2   PASSES
+                           check [regression] node --test --test-reporter=tap -> passed, ran 5, floor 5, 1 s
+sol-A-due-1              PASSES
+                           check [regression] npm test -> passed, ran 122, floor 122, 1 s
+                           check [focused] node --test --test-reporter=spec '<delivery>/.shiploop-runs/work-20261122-031538-7da097/run/scratch/rollback-system.test -> passed, ran 1, floor None, 1 s
+sol-A-due-2              PASSES
+                           check [regression] npm test -> passed, ran 121, floor 121, 1 s
+                           check [check] python3 '<delivery>/.shiploop-runs/work-20261122-031535-239f17/run/scratch/check-rollback.py' '<delivery>/.shiploop-runs -> passed, ran None, floor None, 1 s
+sol-B-due-1              PASSES
+                           check [regression] npm test -> passed, ran 121, floor 121, 1 s
+                           check [check] python3 ../run/scratch/rollback-drill.py -> passed, ran None, floor None, 1 s
+sol-B-due-2              PASSES
+                           check [regression] npm test -- --test-reporter=spec -> passed, ran 120, floor 120, 1 s
+                           check [focused] node --test --test-reporter=spec '<delivery>/.shiploop-runs/work-20261122-031537-4d6f30/run/scratch/rollback.test.cjs' -> passed, ran 1, floor None, 1 s
+sonnet-A-due             PASSES
+                           check [check] npm test -> passed, ran 163, floor 161, 1 s
+sonnet-B-due             REFUSED (failed)
+                           check [check] node --test test/due-config.test.js test/due-store.test.js test/due-api.test.js -> passed, ran 26, floor None, 1 s
+                           added [regression] npm test -> failed, ran 147, floor 145, 6 s
+                           | ShipLoop test run: release-verify is not done. ShipLoop ran the 2 listed commands from a clean copy of the result returned to <delivery>/work (fast-forward-merge at 9fc8edf8aaeb; receipt <delivery>/.shiploop-runs/work-20261122-033434-fc3e45/return-receipt.md), made fresh at <copy> on each done and 1 did not pass:
+                           | - [regression] npm test (the step plan's regression command, added by ShipLoop) -> exit 1
+                           | The copy at <copy> started as exactly the returned tree and is kept so you can reproduce there (the commands above have run in it). A command that passes in the work area and fails or runs fewer tests here usually means one of: a path the return plan excluded (<delivery>/.shiploop-runs/work-20261122-033434-fc3e45/return-plan.md); an ignored or unmanaged file it needs (installed dependencies, build output, local configuration); the repository's history, which the copy does not hold; or a commit made after the return, which it does not hold either. This stage cannot edit the commands or return. Where the release plan is what is wrong (a step that must run first, such as an install or a build that brings an ignored or unmanaged file, is not recorded; a check removes what a later command needs), report outcome send-back: release-plan records it and the stages after it run again. Where the delivery must change, report outcome add-work with one corrective work item whose context names the failing command and its cause, so release returns the fix and release-verify observes it (an excluded path: the return plan must keep it; the history: the test must carry what it needs; a later commit: release must return it again). ShipLoop adds the regression command of the last work item that records one, so a corrective item whose step plan records a regression command decides what is added next: where the command itself must change, that step plan records its replacement. If the cause is not 
+sonnet-B-expenses        PASSES
+                           check [check] node --test -> passed, ran 26, floor 26, 1 s
+sol-B-expenses           PASSES
+                           check [regression] node --test -> passed, ran 6, floor 6, 1 s
+                           check [check] node --check server.js -> passed, ran None, floor None, 0 s
+
+24 deliveries through the gate: 22 pass, 2 refused (sonnet-high-due, sonnet-B-due); 5 command(s) added by ShipLoop; 25 command run(s) held to a floor

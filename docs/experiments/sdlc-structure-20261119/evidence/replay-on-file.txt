@@ -1,0 +1,55 @@
+sonnet-medium-due        nothing added: 2 consumer check(s), 1 of them a recorded test command held to its floor
+sonnet-high-due          consumer checks: `SKIP_ROLLBACK_TEST=1 npm test`; `node -e "process.exit(require('./package.json').version === '1.5.0' ? 0 : 1)"`
+                         adds `npm test`: floor 164, ran 164, 1 s -> REFUSED (exit 1)
+                           | ✖ its command line runs from the extracted tree (9.566417ms)
+                           |   Error [ReleaseUnavailableError]: release 1.4.0 is not available (git archive e96a089 in TMP/replay-cm8pyq2m/tree): Command failed: git -C /privat
+                           |   fatal: not a git repository (or any of the parent directories): .git
+                           |   
+                           |       at release140 (TMP/replay-cm8pyq2m/tree/test/release-1.4.0.js:53:11)
+                           |       at TestContext.<anonymous> (TMP/replay-cm8pyq2m/tree/test/release-1.4.0.test.js:41:52)
+                           |       at Test.runInAsyncScope (node:async_hooks:226:14)
+                           |       at Test.run (node:internal/test_runner/test:1402:25)
+                           |       at Suite.processPendingSubtests (node:internal/test_runner/test:974:18)
+                           |       at Test.postRun (node:internal/test_runner/test:1542:19)
+                           |       at Test.run (node:internal/test_runner/test:1467:12)
+                           |       at async Suite.processPendingSubtests (node:internal/test_runner/test:974:7)
+sonnet-medium-expenses   nothing added: 2 consumer check(s), 1 of them a recorded test command held to its floor
+sonnet-high-expenses     consumer checks: `node --test`; `test -f README.md && grep -q "node server.js" README.md && test -f package.json`
+                         adds `node --test test/split.test.js test/ledger.test.js test/settle.test.js`: floor 21, ran 21, 0 s -> passes
+due-medium-2             nothing added: 2 consumer check(s), 1 of them a recorded test command held to its floor
+due-high-2               nothing added: 2 consumer check(s), 1 of them a recorded test command held to its floor
+expenses-medium-2        nothing added: 1 consumer check(s), 1 of them a recorded test command held to its floor
+expenses-high-2          nothing added: 2 consumer check(s), 1 of them a recorded test command held to its floor
+sol-high-due-p1          nothing added: 2 consumer check(s), 1 of them a recorded test command held to its floor
+sol-high-due-p2          consumer checks: `node --test --test-reporter=spec '~/e2e-runs-sdlc10/20261121-paired/sol-high-due-p2/.shiploop-runs/work-20261121-115439-5c784e/run/scratch/rollback.test.cjs'`; `npm test`
+                         adds `node --test --test-reporter=spec test/service.test.js`: floor 3, ran 3, 0 s -> passes
+sol-high-expenses-p1     nothing added: 1 consumer check(s), 1 of them a recorded test command held to its floor
+sol-high-expenses-p2     nothing added: 2 consumer check(s), 1 of them a recorded test command held to its floor
+sol-medium-due-p1        nothing added: 2 consumer check(s), 1 of them a recorded test command held to its floor
+sol-medium-due-p2        nothing added: 2 consumer check(s), 1 of them a recorded test command held to its floor
+sol-medium-expenses-p1   consumer checks: `node --test --test-reporter=tap`
+                         adds `node --test`: floor 7, ran 7, 1 s -> passes
+sol-medium-expenses-p2   nothing added: 1 consumer check(s), 1 of them a recorded test command held to its floor
+sol-A-due-1              nothing added: 2 consumer check(s), 1 of them a recorded test command held to its floor
+sol-A-due-2              nothing added: 2 consumer check(s), 1 of them a recorded test command held to its floor
+sol-B-due-1              nothing added: 2 consumer check(s), 1 of them a recorded test command held to its floor
+sol-B-due-2              nothing added: 2 consumer check(s), 1 of them a recorded test command held to its floor
+sonnet-A-due             nothing added: 1 consumer check(s), 1 of them a recorded test command held to its floor
+sonnet-B-due             consumer checks: `node --test test/due-config.test.js test/due-store.test.js test/due-api.test.js`
+                         adds `npm test`: floor 145, ran 147, 6 s -> REFUSED (exit 1)
+                           |       at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+                           |       at node:internal/main/run_main_module:33:47 {
+                           |     code: 'MODULE_NOT_FOUND',
+                           |     requireStack: []
+                           |   }
+                           |   
+                           |   Node.js v26.12.1
+                           |   
+                           |       at startService (TMP/replay-uug6jw3l/tree/test/due-system.test.js:42:9)
+                           |       at async TestContext.<anonymous> (TMP/replay-uug6jw3l/tree/test/due-system.test.js:54:18)
+                           |       at async Test.run (node:internal/test_runner/test:1409:7)
+                           |       at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+sonnet-B-expenses        nothing added: 1 consumer check(s), 1 of them a recorded test command held to its floor
+sol-B-expenses           nothing added: 2 consumer check(s), 1 of them a recorded test command held to its floor
+
+5 of 24 deliveries get an added command (5 command(s) in all); 2 would be refused

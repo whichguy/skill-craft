@@ -1,0 +1,80 @@
+Round 15, the rebuilt release-verify rule: the related suites, run one after another on the candidate's working tree.
+Third batch (the final code, 2026-11-21 about 21:50 to 22:15; load average 4 to 7). Sixteen suites ran before a
+redundant condition was removed from latest_counts; step-packets, packet-recut, reference, quality, stage-spec,
+workspace and test-loop ran after it.
+
+shiploop-retired-terms exit 0 (1 s): Ran 6 tests in 0.744s OK 
+shiploop-packet-obligations exit 0 (3 s): Ran 15 tests in 2.857s OK 
+shiploop-test-counts exit 0 (0 s): Ran 71 tests in 0.017s OK 
+shiploop-delegation exit 0 (11 s): Ran 66 tests in 10.995s OK 
+shiploop-head-order exit 0 (9 s): Ran 36 tests in 9.336s OK 
+shiploop-packet-completeness exit 0 (6 s): Ran 66 tests in 5.756s OK 
+shiploop-domain-words exit 0 (2 s): Ran 5 tests in 1.285s OK 
+shiploop-guidance exit 0 (5 s): Ran 93 tests in 4.774s OK 
+shiploop-confirmation exit 0 (0 s): Ran 5 tests in 0.069s OK 
+shiploop-send-back exit 0 (1 s): Ran 24 tests in 0.750s OK 
+shiploop-handoff exit 0 (65 s): Ran 170 tests in 65.228s OK 
+shiploop-consumer-delivery exit 0 (2 s): Ran 34 tests in 1.757s OK 
+shiploop-consumer-delivery-cli exit 0 (2 s): Ran 5 tests in 1.969s OK 
+shiploop-clean-consumer exit 0 (5 s): Ran 3 tests in 1.706s OK 
+shiploop-navigator-contract exit 0 (138 s): Ran 127 tests in 137.994s OK 
+shiploop-packet-bounds exit 0 (1 s): Ran 21 tests in 1.103s OK 
+shiploop-step-packets exit 0 (1 s): Ran 10 tests in 1.410s OK 
+shiploop-packet-recut exit 0 (3 s): Ran 30 tests in 2.074s OK 
+shiploop-reference exit 0 (0 s): Ran 8 tests in 0.083s OK 
+shiploop-quality exit 0 (8 s): Ran 8 tests in 7.452s OK 
+shiploop-stage-spec exit 0 (0 s): Ran 12 tests in 0.204s OK 
+shiploop-workspace exit 0 (185 s): Ran 101 tests in 184.759s OK 
+shiploop-test-loop exit 0 (529 s): Ran 246 tests in 528.920s OK 
+
+Second batch (the rule after the last-work-item refinement, before the second review's changes; 22 suites):
+shiploop-packet-obligations exit 0 (3 s): Ran 15 tests in 2.905s OK 
+shiploop-test-counts exit 0 (0 s): Ran 71 tests in 0.016s OK 
+shiploop-delegation exit 0 (12 s): Ran 66 tests in 11.134s OK 
+shiploop-head-order exit 0 (8 s): Ran 36 tests in 8.647s OK 
+shiploop-packet-completeness exit 0 (6 s): Ran 66 tests in 5.459s OK 
+shiploop-domain-words exit 0 (1 s): Ran 5 tests in 1.267s OK 
+shiploop-guidance exit 0 (5 s): Ran 93 tests in 4.549s OK 
+shiploop-confirmation exit 0 (0 s): Ran 5 tests in 0.072s OK 
+shiploop-send-back exit 0 (1 s): Ran 24 tests in 0.748s OK 
+shiploop-handoff exit 0 (60 s): Ran 170 tests in 59.858s OK 
+shiploop-consumer-delivery exit 0 (2 s): Ran 34 tests in 1.745s OK 
+shiploop-consumer-delivery-cli exit 0 (2 s): Ran 5 tests in 2.013s OK 
+shiploop-clean-consumer exit 0 (5 s): Ran 3 tests in 1.822s OK 
+shiploop-navigator-contract exit 0 (128 s): Ran 127 tests in 128.400s OK 
+shiploop-packet-bounds exit 0 (2 s): Ran 21 tests in 1.093s OK 
+shiploop-step-packets exit 0 (1 s): Ran 10 tests in 1.371s OK 
+shiploop-packet-recut exit 0 (2 s): Ran 30 tests in 1.980s OK 
+shiploop-reference exit 0 (0 s): Ran 8 tests in 0.083s OK 
+shiploop-quality exit 0 (7 s): Ran 8 tests in 6.623s OK 
+shiploop-stage-spec exit 0 (0 s): Ran 12 tests in 0.201s OK 
+shiploop-workspace exit 0 (168 s): Ran 101 tests in 167.439s OK 
+shiploop-test-loop exit 0 (469 s): Ran 237 tests in 468.304s OK 
+
+First batch (the rebuilt rule as first written; 20 suites; load average 15 to 31 from another session's work):
+shiploop-delegation exit 0 (23 s): Ran 66 tests in 22.835s OK 
+shiploop-head-order exit 0 (15 s): Ran 36 tests in 14.004s OK 
+shiploop-packet-completeness exit 0 (8 s): Ran 66 tests in 8.395s OK 
+shiploop-domain-words exit 0 (2 s): Ran 5 tests in 1.669s OK 
+shiploop-guidance exit 0 (8 s): Ran 93 tests in 7.851s OK 
+shiploop-confirmation exit 0 (1 s): Ran 5 tests in 0.098s OK 
+shiploop-send-back exit 0 (1 s): Ran 24 tests in 1.016s OK 
+shiploop-handoff exit 0 (116 s): Ran 170 tests in 115.252s OK 
+shiploop-consumer-delivery exit 0 (3 s): Ran 34 tests in 2.365s OK 
+shiploop-consumer-delivery-cli exit 0 (4 s): Ran 5 tests in 4.191s OK 
+shiploop-clean-consumer exit 0 (7 s): Ran 3 tests in 2.580s OK 
+shiploop-navigator-contract exit 1 (254 s): Ran 127 tests in 253.891s FAILED (failures=2) 
+shiploop-packet-bounds exit 0 (2 s): Ran 21 tests in 1.661s OK 
+shiploop-step-packets exit 0 (3 s): Ran 10 tests in 2.249s OK 
+shiploop-packet-recut exit 0 (3 s): Ran 30 tests in 3.066s OK 
+shiploop-reference exit 0 (0 s): Ran 8 tests in 0.121s OK 
+shiploop-quality exit 0 (12 s): Ran 8 tests in 11.142s OK 
+shiploop-stage-spec exit 0 (0 s): Ran 12 tests in 0.248s OK 
+shiploop-workspace exit 0 (290 s): Ran 101 tests in 288.977s OK 
+shiploop-test-loop exit 0 (680 s): Ran 236 tests in 680.394s OK 
+
+The one failure of the first batch, shiploop-navigator-contract
+CliBoundaryRegressionTests.test_init_refuses_force_and_non_dedicated_run_directories (two subtests): the run folder's
+listing differed before and after a refused command in one file, the progress page's data (its revision and length),
+which a run's observer rewrites about every two seconds. Run alone three times on the same code: OK, OK, OK (2.2 s each).
+It passed in the second and third batches (128 s and 138 s for the suite, against 254 s in the first).

@@ -1,0 +1,111 @@
+# Review request: the rebuilt release-verify rule (ShipLoop), before it is tried on live deliveries
+
+You reviewed four proposed ShipLoop changes earlier (your answer is `FIRST-REVIEW.md` here). This is a second,
+narrower review of the first one only (your "C1"), which was built once along your advice, tried on eight whole
+deliveries, found insufficient, and rebuilt. Read-only review: change nothing. Everything you need is in this folder.
+
+## What is here
+
+- `REBUILT-RULE.patch`: the whole change against the released ShipLoop (engine, packet texts, reference, change note, tests).
+- `skills/shiploop/`: the source with the patch applied. The rule is in `scripts/shiploop_test_loop.py`
+  (`release_commands`, `regression_commands`, `replay_floors`, `latest_counts`, `_words`, `REPLAY_RULE`, `_replay_reply`,
+  `_copy_refusal`, `_explain`, `rerun_lines`, and its use in `verify`), the producer text in `scripts/shiploop_prompts.py`
+  (release-plan duty 6), one clause in `scripts/shiploop_navigator.py` (`_check_text`), and
+  `references/testing-and-documentation.md`.
+- `test/shiploop-test-loop.test.py`: classes `ReplayTests` (unit, the returned copy simulated) and
+  `ReleaseVerifyReturnedResultTests` (through the real gate with a real return).
+- `test/shiploop_e2e/SPEC.md`: the clauses a change must name (S-n) and the change-admission steps.
+- `docs/shiploop-sdlc-structure-journal.md`: the study's journal; rounds 13 to 15 are the background (R118, R121 and
+  round 15's registration and first result).
+- `evidence/batch-round-15.txt`: the eight whole deliveries that tried the first build.
+- `evidence/replay-on-saved-deliveries.txt`: the rebuilt rule replayed on 24 saved deliveries.
+- `AGENTS.md`: the repository's rules.
+
+## The fault being closed
+
+`release-verify` is the stage whose done-when is "observed where consumers use it". After a completed return it runs
+the consumer checks that `release-plan` recorded in a clean copy of the returned tree (no Git history, nothing ignored,
+nothing the return plan excluded). The model writes those checks. In two of twenty-four saved deliveries the
+delivery's own test suite cannot pass in such a copy (its tests read the repository's history with `git archive`), and
+the stage passed anyway:
+
+1. `sonnet-high-due`: the consumer check was `SKIP_ROLLBACK_TEST=1 npm test`. Nine tests skipped themselves and the
+   command exited 0. In a copy `npm test` runs 164 tests and nine fail.
+2. `sonnet-B-due` (one of the eight deliveries that tried the first build): the consumer check was
+   `node --test test/due-config.test.js test/due-store.test.js test/due-api.test.js`, three files in place of the
+   suite. In a copy `npm test` runs 147 tests and three fail.
+
+Both were accepted by ShipLoop and both fail the evaluation's own check that runs the delivered suite in a copy.
+
+## The first build, and why it was not enough
+
+Along your advice (no automatic extra replay; bind a count to the check that claims to be the suite), the first build
+held a consumer check to the work area's latest count only when the check was a recorded test command, the same shell
+words once leading `NAME=value` settings were removed. It bound a floor in seven of the eight deliveries and refused
+none wrongly. It caught form 1 and did not apply to form 2: the model wrote a subset under another command, so no
+correspondence existed. My own duty sentence ("Record a check that is meant to run less by its own command") may also
+have pointed the model that way. A declaration by the plan (full replay or smoke check) has the same weakness as far
+as I can see: the party that narrows the check is the party that declares.
+
+## The rebuilt rule
+
+Where release-verify's commands run in a clean copy of the returned result, and release-plan recorded at least one
+consumer check:
+
+1. ShipLoop runs the consumer checks as recorded, then also runs each regression command of the last work item whose
+   step plan records one, where the checks do not already hold it word for word (shell words equal; marked `replay`).
+   A regression command that tests a hosted runtime is not replayed.
+2. Every command there that is, word for word, a test command the run recorded is held to the count of its latest
+   accepted run in the work area (`too-few-tests` when it runs fewer; `uncounted` when it exits 0 with a count ShipLoop
+   cannot read and a floor is bound). Settings in front of a command are no longer stripped: such a check is the
+   model's own, with no floor, and the replay of the recorded command is what holds the suite.
+3. A refused replay has one exit, `add-work` (the existing exit for a failure in the returned copy): a corrective work
+   item is queued, the outer stages rerun, and the corrective item's own step plan then says what is replayed.
+   That is why the replay takes the last work item's commands and not every item's: an earlier item's command can
+   name a file a later item moved, and no stage could retire it.
+4. Nothing changes where the checks run in the work area or in place, at `system-test`, or at the end-of-work review.
+   No state key is added; a saved run resumes with the new command list.
+
+Measured on the 24 saved deliveries (`evidence/replay-on-saved-deliveries.txt`): the rule adds a command in 5; two are
+refused, exactly the two whose suites fail in a copy; three added commands pass (a regression command recorded as
+three files beside a `node --test` check, a second regression command, a reporter flag spelled differently). Each
+added command took 0 to 6 seconds. In 19 deliveries nothing is added because a check already is the recorded command.
+Three of the 24 have more than one work item, and in all three every item records the same regression command.
+One earlier run of `npm test` in a copy of `sonnet-high-due` did not end within 300 seconds (the fixture's known
+port collision on this machine is the likely cause; a rerun ended in 2 seconds); the gate's own hang guard is 600
+seconds per command and reports such a run as could-not-run.
+
+Your earlier objection to an automatic replay was that it "would duplicate work and could require setup or authority
+the release never had". My answer, for you to attack: it runs only where no check already is the command; setup the
+suite needs in the copy is a consumer check recorded before it, and the refusal says so; the commands are ones
+ShipLoop already ran in the work area at every step, in the same copy and environment as the consumer checks.
+
+## What I want from you
+
+Attack the rebuilt rule as it is written in the code. Verify in the source before you claim. In order of importance:
+
+1. A dead end: any state a real run can reach in which release-verify can never pass and `add-work` cannot repair it.
+   Include resumed saved runs, a corrective item that records no regression command, a regression command recorded
+   with `ids` or `min_tests`, a command whose words `shlex` cannot read, and the hang guard.
+2. A wrong refusal: a correct delivery the rule refuses. Suites that legitimately run differently in a clean copy
+   (install or build first, optional cases by platform, a count that differs for a sound reason), and whether the one
+   exit serves each.
+3. A miss: a way the two observed forms, or a near neighbour a real model would plausibly write without intent to
+   evade, still passes.
+4. The choice of the last work item's commands over every item's: is the reasoning sound, and is the lost coverage
+   acceptable?
+5. The floor: is "the latest accepted work-area count of the same words" the right number, and can it bind wrongly?
+6. The texts a model reads with a cleared context (release-plan duty 6, `REPLAY_RULE` in the release-verify packet,
+   the refusals): is each complete and unambiguous, and does anything steer the model wrongly?
+7. The tests: which behaviour is claimed and not driven through the real gate? What single test would you add?
+
+Then say what the planned confirmation should check. It is three whole deliveries on the build with this rule (the
+ticket-service due-times case twice on Sonnet and once on Sol, medium effort, defaults), accepted if no delivery is
+refused wrongly and every delivery ShipLoop accepts passes the evaluation's delivered-suite check; a right refusal the
+run recovers from counts for the rule. Say what would be overkill.
+
+## Form of the answer
+
+Start with one line: ship as is, change first, or do not ship. Then a ranked list of findings, each with the file and
+symbol, a concrete scenario (state, command, what happens), how sure you are, and the smallest change that answers it.
+Separate what you verified in the source from what you infer. Leave out style remarks.

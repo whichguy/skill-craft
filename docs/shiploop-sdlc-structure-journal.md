@@ -3424,6 +3424,183 @@ round (A: three; B: five).
 reading 2 is the stricter reading of "set once" (round 15's registration). Sol at medium may switch planning reviews
 off by itself; it is recorded, not pinned, because the release's round uses the defaults.
 
+### Results of the batch round (2026-11-21; `evidence/batch-r15.txt`)
+
+Eight whole deliveries at medium effort, defaults, in two waves of four started together; the machine's load
+average was 15 to 31 throughout (another session's work), so no time is read.
+
+| Run | Build | Driver, case | Verdicts | Case checks | Final check as release-plan recorded it | In the clean copy |
+|---|---|---|---|---|---|---|
+| `sol-A-due-1` | A | Sol, ticket | all pass | 7 of 8 | `[regression] npm test` | ran 122, floor 122 |
+| `sol-A-due-2` | A | Sol, ticket | all pass | 8 of 8 | `[regression] npm test` | ran 121, floor 121 |
+| `sol-B-due-1` | B | Sol, ticket | all pass | 3 of 8 | `[regression] npm test` | ran 121, floor 121 |
+| `sol-B-due-2` | B | Sol, ticket | all pass | 8 of 8 | `[regression] npm test -- --test-reporter=spec` | ran 120, floor 120 |
+| `sonnet-A-due` | A | Sonnet, ticket | all pass | 8 of 8 | `[check] npm test` | ran 163, floor 161 |
+| `sonnet-B-due` | B | Sonnet, ticket | all pass | 7 of 8 | `[check] node --test` of three test files | ran 26, no floor |
+| `sonnet-B-expenses` | B | Sonnet, expenses | all pass | 6 of 6 | `[check] node --test` | ran 26, floor 26 |
+| `sol-B-expenses` | B | Sol, expenses | all pass | 6 of 6 | `[regression] node --test` | ran 6, floor 6 |
+
+Each run kept planning reviews on. The three Sonnet runs cost $8.01, $8.50 and $5.72.
+
+- **R126 (reading 1, as registered).** No delivery was refused by the count rule, rightly or wrongly. The rule bound
+  a floor in seven of eight deliveries and each met it, twice on a row recorded as an exit-code `check`.
+- **R127 (what the rule did not see).** `sonnet-B-due` passed release-verify and fails the harness's own suite check:
+  in a copy of the tree its tests are 144 passing and 3 failing. Its system test takes release 1.4.0 from the
+  repository's history (`git archive 2db433e src`), which a copy does not hold (run again alone: "fatal: not a git
+  repository"). release-plan recorded as its one consumer check `node --test` of three unit-test files, 26 tests,
+  where the work area's regression command `npm test` had run 145. That is another command, so the rule held it
+  to nothing. It is the fault of round 14's R118 by another route: a subset of the files in place of a setting
+  that skips. Two of the six Sonnet deliveries of this case on file now have a suite that cannot pass in a copy, and
+  each time the consumer check was written to go round it.
+- **R128 (what my own text did).** Build A's release-plan duty ended "Record a check that is meant to run less by
+  its own command". This delivery did exactly that. One run, so not shown, but the sentence pointed at the way
+  round.
+- **R129 (reading 2, as registered).** The sentence is not merged. Of the two Sol deliveries with it, one keeps
+  every due time across a rollback and return (with its own restore option, and with what 1.4.0 wrote), and one
+  moves it; neither delivery without it keeps it. The rule needs both.
+- **R130 (described).** The one delivery that keeps the due times is also the one that fails five case checks: its
+  service will not start with `DUE_TIMES=on` until an operator has run its backfill command. On file, every Sol
+  delivery that keeps due times across a return has that start-up behaviour (three of three: round 13's two at high
+  effort and this one). Both Sonnet plans with the sentence accept the loss in writing and both products move the
+  due time, as do both Sonnet products without it.
+- **R131 (one failed check that is not the product's).** `sol-A-due-1`: `pristine`, the base's own tests run in the
+  base, lost a connection in one test ("socket hang up", 1.7 ms in). That is this fixture's port collision with
+  other projects' servers on this machine (R55). Run again alone five times on the saved work the check passes
+  each time, 117 of 117. The recorded FAILED stands and both are reported.
+- **R132 (the observers, on all eight).** No delivery has a fault on unusual input. Suites: `sol-A-due-2` fails one
+  more test from another folder; `sonnet-B-due` fails the three above everywhere outside its work area.
+
+### Findings of the batch
+
+- **F90 (firm for these 24 deliveries).** The model decides what release-verify runs, and when it knows its suite
+  cannot pass in a clean copy it writes a check that can: a setting once, a subset once. Comparing the written
+  check with the recorded command cannot close that; only running the recorded command can. This is what the owner
+  approved in the first place.
+- **F91 (registered; two tests).** The sentence on the `state` row is answered every time and does not, by either
+  rule, do what it was for. Where it changes a product it brings a start-up design the case's checks reject (R130).
+  Not merged. Its two branches are deleted (2026-11-21), so the commits this journal cites for it,
+  44d8dea03f571f54e0a6c5f232573f47a6d58100 and b6287b09bbb55df20e7729d15fc90de630550031, are no longer reachable;
+  its text is kept in `evidence/state-row-sentence.patch`.
+- **F92 (about my first build).** A rule with a named way round is read as a way round (R128). A packet should
+  state what will be run, not how to record something that will not be.
+
+### C1 rebuilt: ShipLoop itself runs the step plan's regression command in the clean copy
+
+The rebuild is one more commit on the candidate branch, 62676fc0e0dacb0ca8febd7f6f2424684c707b47, on top of the
+first build (5fc4a220ae797cbcdf4ae7d1104720b50ebae1d1). Neither is on main until the confirmation round below
+is read.
+
+- **What is run.** Where release-verify's commands run in a clean copy of the returned result and release-plan
+  recorded at least one consumer check, ShipLoop runs the checks as recorded and then each regression command of the
+  last work item whose step plan records one that runs on the checkout, where no check already is that command (the
+  same text). The packet's list and a refusal mark each as "the step plan's regression command, added by ShipLoop".
+- **The count.** Each of those commands, added or written as a check, is held to the count of its latest passed run
+  in the work area under an accepted stage, with the record named, and its count must be readable. Any other
+  consumer check is the model's own and is held to nothing. Settings in front of a command are no longer stripped:
+  the suite behind a setting is the model's own check, and the added command holds the suite.
+- **Two exits, by what is wrong.** `send-back` reruns release-plan when the release plan lacks a step the suite
+  needs in the copy (an install, a build) or a check removes what a later command needs. `add-work` queues a
+  corrective item when the delivery must change. The refused-run remedy stays `add-work`, as
+  c4fc5608e7818902a6d3654f0012bc9987f5b042 decided.
+- **Why the last work item's commands and not every item's.** Work items are built in list order and a corrective
+  item is added at the end. An earlier item's command can name a file a later item moved, and no stage can retire
+  it; with every item's commands such a command would refuse the stage for good. With the last item's, the
+  corrective item's own step plan records what is added next, so `add-work` can always be taken. The cost: a later
+  item that records a narrower regression command leaves an earlier item's suite out. Three of the 24 deliveries on
+  file have more than one work item and every item in them records the same command, so the two readings agree on
+  all 24.
+- **Words.** "Added", not "replay": "replay" already means a resubmitted result in the navigator and a re-derived
+  example in the reviews. The sentence of R128 is gone; release-plan's duty says what will be run and that a step
+  the suite needs there is a check recorded before it.
+- **Not built, written down as limits in the reference.** Nothing is added where release-plan recorded no consumer
+  check, where the checks run in the work area or in place, or for a regression command that tests a hosted runtime.
+  A suite that runs fewer tests in a clean copy by design is refused all the same. A check that is the regression
+  command keeps the row release-plan recorded, so the step plan's test IDs and minimum are not carried to it.
+
+### The rebuilt rule on the 24 deliveries on file (no live run)
+
+- **R133 (the gate itself; `gate_on_file.py`, `evidence/gate-on-file.txt`).** ShipLoop's own release-verify gate was
+  run on each saved run's state: the consumer checks, then the added commands, in one clean copy made the way the gate
+  makes it, with nothing written into a saved run. On the final code, with the machine quiet: 22 pass and 2 are
+  refused, `sonnet-high-due` and `sonnet-B-due`, each on the added `npm test` (exit 1; 164 tests run against a floor
+  of 164, 147 against 145). Five commands are added in all. 25 command runs are held to a floor and every one is at or
+  above it, so both refusals are by exit code. No saved run's scratch folder changed. A first run of the same, made
+  while 23 test suites were running beside it (`evidence/gate-on-file-run1.txt`), refused a third delivery:
+  `sol-A-due-2`'s own consumer check `npm test` exited 1 once. Run again alone five times the gate passes it each
+  time. It is not a command the rule adds; the failing run's output was not kept; the likely cause is the port
+  collision of R55, which is not established.
+- **R134 (the added commands alone; `replay_on_file.py`, `evidence/replay-on-file.txt`).** The rule adds a command
+  in 5 of 24 deliveries. Two are refused, the same two (`npm test` exits 1 with 164 and 147 tests run). Three pass:
+  a regression command recorded as three test files beside a `node --test` check, a second regression command of
+  one file, and `node --test` beside a check spelled with a reporter flag. Each added command took 0 to 6 seconds.
+  In the other 19 a check already is the command.
+- **R135 (one run that did not end).** The first version of that script ran `npm test` in a copy of
+  `sonnet-high-due` without a process group, and the run had not ended after 300 seconds; I stopped its two
+  processes by process id. Every later run of the same command there ended in 1 to 2 seconds with exit 1. The
+  likely cause is the fixture's port collision (R55), which is not established. ShipLoop's own guard is 600 seconds
+  a command and reports such a run as could-not-run, which does not count as a refused run.
+
+### Second review before the confirmation (Sol 6.2 at max effort; `review-r15/sol-max-review-2.md`)
+
+Served by `gpt-6.2-sol` at max effort with no fallback, read-only, on a neutral export of the candidate with the
+question in `review-r15/sol-max-brief-2.txt`. Verdict: change first. Eight findings; each was checked in the code.
+
+| # | Finding | Disposition |
+|---|---|---|
+| 1 | After a timeout the shared runner drains a command's output with no deadline, so a child that left its group and holds the pipe can hold the run | True of the runner for every stage, and not new here. Not changed in this commit; put to the owner as a separate fix |
+| 2 | A corrective item that records no regression command leaves the first command in force; missing setup has a direct `send-back` edge | Taken: the reply names both exits and says the corrective item's step plan records the replacement. A return that reuses its receipt when only the return plan changed is reported, not verified here, and not on the route the reply names (a corrective item commits) |
+| 3 | A sound delivery can be refused for setup, for authority or for a count that differs by design | Setup: taken (`send-back`, driven through the real gate). A count that differs by design: refused on purpose, as the owner approved; written down. A hosted runtime behind a wrapper no platform card lists: the existing classification's limit; written down |
+| 4 | Reading commands as shell words drops a command `shlex` cannot split and treats two different spellings as one; a check that is the command does not inherit its test IDs and minimum | First part taken: the exact text. Second part not taken; written down |
+| 5 | Choosing the last item before leaving out hosted commands can add nothing; a later item's narrower command leaves an earlier suite out; no consumer check, nothing added | First taken. The other two written down as limits |
+| 6 | The floor could come from an older spelling, from an action that ended in send-back, or from an older run when the latest is uncounted; an unreadable record raised | All taken: the floor is only for the last item's commands, from the latest passed run of a done action, with its record named; an unreadable record sets none |
+| 7 | The texts overpromise and misroute: the rule's sentence, the reply's stated cause, the advice to relabel an added command as a check, the copy described as untouched | Taken, except showing the selected commands in the release-plan packet, which needs packet plumbing no run has asked for |
+| 8 | No test finishes the corrective return | Taken: one test drives refusal, `add-work`, a corrective item with a replacement command, a second return and an accepted release-verify; another drives `send-back` for a missing install step |
+
+### What was checked before any live run
+
+- **Fail-first.** Against the first build (5fc4a220ae797cbcdf4ae7d1104720b50ebae1d1) 23 of the 24 tests for the rule
+  fail or error; one pins what both builds share (system-test and the end-of-work review stay without a floor).
+- **Both exits, through the real gate with a real return.** One test: refused, `add-work`, a corrective item whose
+  step plan records a replacement command, a second return, release-verify accepted with the replacement added at the
+  corrective item's own count and the first command no longer run. Another: refused for a missing install step,
+  `send-back`, release-plan records the step, the same returned tree, accepted. A third: the ordinary delivery passes
+  with the added command in its record.
+- **Mutants (`mutate_c1.py`, `evidence/mutants-c1.txt`).** Fifteen decisions of the rule broken one at a time; the
+  unit tests fail on each. One first survived: a second filter on release-verify records that the history row's stage
+  had already made redundant. It is removed.
+- **Suites (`evidence/suites-c1.txt`).** The 23 related suites, 1,162 tests, pass on the final code, one after
+  another. In the first of three batches, on the rule as first rebuilt and under a load of 15 to 31, one test of
+  `shiploop-navigator-contract` failed: a run folder's listing changed across a refused command in the progress page's
+  data, which a run's observer rewrites every two seconds. Alone it passed three of three, and it passed in both later
+  batches.
+- **Lint.** ruff's error and unused-name rules are clean on the changed files but for two unused locals in the
+  navigator that the base has too.
+
+### Registered confirmation round (written and committed before any run)
+
+**Build C.** The candidate branch at 62676fc0e0dacb0ca8febd7f6f2424684c707b47: the rebuilt rule, without the
+sentence.
+
+**Runs.** Three whole deliveries at medium, defaults, started together: `ticket-due-times` on Claude
+`claude-sonnet-5-5` twice (the driver and case of both live faults: 2 of 6 on file) and on Codex `gpt-6.2-sol`
+once. No run option, no turn or time cap; the Claude runs carry `--max-budget-usd 40`.
+
+**Reading.** Every verdict and case check. For each release-verify attempt of each run: the returned tree, the
+consumer checks and the added commands in order, each floor with its record, each count and exit, and what the run
+did next. Every refusal by the rule is read by hand as right or wrong, and reproduced on a fresh copy of that
+attempt's tree. The rule is accepted if (a) no delivery is refused wrongly, and (b) every delivery ShipLoop accepts
+passes the harness's suite check, the delivery's own tests in a copy. A right refusal that the run recovers from
+counts for the rule and is reported in full. If (a) or (b) fails the rule is not released as built.
+
+**Not conclusive, stated in advance.** A run that ends on an unresolved timeout says nothing either way. A driver
+with no accepted delivery leaves that driver unconfirmed. A check lost to the fixture's port collision (R55) is run
+again alone five times on the saved work, the first result is kept and both are reported.
+
+**Limits, stated in advance.** Three deliveries; the trigger may not occur (about one Sonnet delivery in three on
+file), and its mechanics are in the tests and in R133, not this round. The cases have no installed dependencies, so
+the `send-back` exit for a missing install step is shown by its test alone. A refusal costs the run another pass of
+the outer stages, which this round can time only once or not at all.
+
 ## Evidence (all rounds)
 
 | File | Holds |
@@ -3488,6 +3665,11 @@ off by itself; it is recorded, not pinned, because the release's round uses the 
 | `evidence/steps-pooled.txt`, `slice-plans.json` | round 6: slice minutes and seconds by part against the steps planned, baseline and F1 slices of rounds 4 to 6 pooled (R50, exploratory), and each slice's planned steps and criteria as read from its run folder |
 | `chess_hidden.js` | round 6: the ten hidden checks of the chess engine case |
 | `evidence/slices.txt`, `evidence/slices-iteration.txt`, `evidence/slices-turns.txt`, `evidence/slices-snapshots.txt`, `slices/*.json` | round 4: the live slices' registered measures, per-step detail, time by kind of command, hidden checks at each snapshot, and the three files they are computed from |
+| `evidence/batch-r15.txt` | round 15: the eight deliveries of the batch round: verdicts, case checks, each release-verify record with counts and floors, the observers (R126 to R132) |
+| `gate_on_file.py`, `evidence/gate-on-file.txt`, `evidence/gate-on-file-run1.txt` | round 15: ShipLoop's own release-verify gate, with the rebuilt rule, on the 24 saved deliveries: each command, its count, its floor and each refusal; the quiet run and the first run (R133) |
+| `replay_on_file.py`, `evidence/replay-on-file.txt` | round 15: the commands the rebuilt rule adds, each run alone in a fresh copy of the delivered tree (R134) |
+| `mutate_c1.py`, `evidence/mutants-c1.txt`, `evidence/suites-c1.txt` | round 15: the fifteen mutants of the rebuilt rule and the test that catches each; the three batches of related suites, with the one failure under load and its reruns |
+| `review-r15/sol-max-brief-2.txt`, `review-r15/sol-max-review-2.md` | round 15: the question put to Sol 6.2 at max effort about the rebuilt rule, and its verbatim answer |
 
 To rerun: `python3 -I stage_census.py <work>/census.json` writes the run list the other scripts read
 (`passes_census.py <work>/census.json <work>/samples.jsonl`, `review_edits.py <work>/census.json
@@ -3544,6 +3726,11 @@ Round 15: `python3 stop_at_stage.py --plugin-dir <plugin> --root <out> --until p
 `criteria_census.py` and `meta_test_census.py` take `<name>=<run folder or tree>` and print the two baselines.
 The observers: `python3 test/shiploop_e2e/observers/observe.py <case> <delivered tree> [--out <file>]`; run on the
 sixteen trees of round 13 it reproduces `evidence/observers-calibration.txt`.
+The rebuilt rule on saved deliveries: `python3 -I gate_on_file.py <candidate>/skills/shiploop/scripts 600
+<name>=<run folder> ...` runs the gate and reproduces `evidence/gate-on-file.txt`; `replay_on_file.py` takes the same
+arguments and reproduces `evidence/replay-on-file.txt`; `python3 mutate_c1.py <a copy of the candidate tree>`
+reproduces `evidence/mutants-c1.txt`. The 24 run folders are the sixteen of round 13 (`e2e-runs-sdlc12/20261121`,
+`e2e-runs-sdlc13/20261121`, `e2e-runs-sdlc10/20261121-paired`) and the eight of `e2e-runs-sdlc14/r15b/20261121`.
 
 Round 13: `python3 -I quality_packets.py <out> 20261121 <name>=<medium run>,<high run> ...` builds the packets; two
 judges per pair with `evidence/quality-judge-brief.txt`; their answers are `judge-quality/verdicts.json` and the key

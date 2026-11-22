@@ -1,0 +1,76 @@
+== sol-A-due-1
+   case ticket-due-times | gpt-6.2-sol medium | pass False | verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True} | checks 7/8 | cost None | build 5fc4a220a
+   FAILED CHECK: python3 "$E2E_CHECKS/base_tests.py" pristine node-tickets | :25) at Socket.emit (node:events:526:24) at endReadableNT (node:internal/streams/readable:2147:12) at process.processTicksAndRejections (node:internal/process/task_queues:90:21) { code: 'ECONNRESET' }
+   planning reviews: stage | ShipLoop status: done
+   release-verify (done, in returned-result, passed True):
+      [regression] npm test -> passed, ran 122, floor 122
+      [focused] node --test --test-reporter=spec '~/e2e-runs-sdlc14/r15b/20261121/sol-A-due-1 -> passed, ran 1, floor 1
+   observer ticket-return: moves 1 of 8 due times
+      first start: by itself | ordinary: {'starts': True, 'due_same': 7, 'due_of': 8, 'moved': ['T-0001'], 'old_release_priority_kept': True, 'old_release_ticket_kept': True, 'old_release_ticket_has_due': True} | with the kept copy: no such option
+   observer suite-elsewhere: 121 of 121 pass in the project folder; the same without npm; the same from another folder
+== sol-A-due-2
+   case ticket-due-times | gpt-6.2-sol medium | pass True | verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True} | checks 8/8 | cost None | build 5fc4a220a
+   planning reviews: stage | ShipLoop status: done
+   release-verify (done, in returned-result, passed True):
+      [regression] npm test -> passed, ran 121, floor 121
+      [check] python3 '~/e2e-runs-sdlc14/r15b/20261121/sol-A-due-2/.shiploop-runs/work-2026 -> passed, ran None, floor None
+   observer ticket-return: moves 1 of 8 due times
+      first start: by itself | ordinary: {'starts': True, 'due_same': 7, 'due_of': 8, 'moved': ['T-0001'], 'old_release_priority_kept': True, 'old_release_ticket_kept': True, 'old_release_ticket_has_due': True} | with the kept copy: no such option
+   observer suite-elsewhere: 120 of 120 pass in the project folder; the same without npm; 1 more fail from another folder
+== sol-B-due-1
+   case ticket-due-times | gpt-6.2-sol medium | pass False | verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True} | checks 3/8 | cost None | build b6287b09b
+   FAILED CHECK: python3 "$E2E_CHECKS/due_times_probe.py" migrate | s-probe-oi3k8sq9/tickets.json: tickets have missing due times; run npm run backfill:due-times with the service stopped (the delivery DUE_TIMES=on server did not start) migrate: 1 expectation(s) failed
+   FAILED CHECK: python3 "$E2E_CHECKS/due_times_probe.py" restart | T/due-times-probe-29vkzmdi/tickets.json: tickets have missing due times; run npm run backfill:due-times with the service stopped (the first start server did not start) restart: 1 expectation(s) failed
+   FAILED CHECK: python3 "$E2E_CHECKS/due_times_probe.py" switch | T/due-times-probe-6edw5csh/tickets.json: tickets have missing due times; run npm run backfill:due-times with the service stopped (the DUE_TIMES=on server did not start) switch: 1 expectation(s) failed
+   FAILED CHECK: python3 "$E2E_CHECKS/due_times_probe.py" rollback | be-qd5sbbxr/on/tickets.json: tickets have missing due times; run npm run backfill:due-times with the service stopped (the delivery, DUE_TIMES=on server did not start) rollback: 1 expectation(s) failed
+   FAILED CHECK: python3 "$E2E_CHECKS/due_times_probe.py" cli | times-probe-bkmr2082/tickets.json: tickets have missing due times; run npm run backfill:due-times with the service stopped (the delivery DUE_TIMES=on server did not start) cli: 1 expectation(s) failed
+   planning reviews: stage | ShipLoop status: done
+   release-verify (done, in returned-result, passed True):
+      [regression] npm test -> passed, ran 121, floor 121
+      [check] python3 ../run/scratch/rollback-drill.py -> passed, ran None, floor None
+   observer ticket-return: keeps every due time with its restore option
+      first start: after backfill:due-times (exit 0) | ordinary: {'prepare_result': 'exit 0', 'starts': True, 'due_same': 7, 'due_of': 8, 'moved': ['T-0001'], 'old_release_priority_kept': True, 'old_release_ticket_kept': True, 'old_release_ticket_has_due': True} | with the kept copy: {'prepare_result': 'exit 0', 'starts': True, 'due_same': 8, 'due_of': 8, 'moved': [], 'old_release_priority_kept': True, 'old_release_ticket_kept': True, 'old_release_ticket_has_due': True}
+   observer suite-elsewhere: 120 of 120 pass in the project folder; the same without npm; the same from another folder
+== sol-B-due-2
+   case ticket-due-times | gpt-6.2-sol medium | pass True | verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True} | checks 8/8 | cost None | build b6287b09b
+   planning reviews: stage | ShipLoop status: done
+   release-verify (done, in returned-result, passed True):
+      [regression] npm test -- --test-reporter=spec -> passed, ran 120, floor 120
+      [focused] node --test --test-reporter=spec '~/e2e-runs-sdlc14/r15b/20261121/sol-B-due-2 -> passed, ran 1, floor 1
+   observer ticket-return: moves 1 of 8 due times
+      first start: by itself | ordinary: {'starts': True, 'due_same': 7, 'due_of': 8, 'moved': ['T-0001'], 'old_release_priority_kept': True, 'old_release_ticket_kept': True, 'old_release_ticket_has_due': True} | with the kept copy: no such option
+   observer suite-elsewhere: not measured: a run printed no count
+== sonnet-A-due
+   case ticket-due-times | claude-sonnet-5-5 medium | pass True | verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True} | checks 8/8 | cost 8.0065 | build 5fc4a220a
+   planning reviews: stage | ShipLoop status: done
+   release-verify (done, in returned-result, passed True):
+      [check] npm test -> passed, ran 163, floor 161
+   observer ticket-return: moves 1 of 8 due times
+      first start: by itself | ordinary: {'starts': True, 'due_same': 7, 'due_of': 8, 'moved': ['T-0001'], 'old_release_priority_kept': True, 'old_release_ticket_kept': True, 'old_release_ticket_has_due': True} | with the kept copy: no such option
+   observer suite-elsewhere: 161 of 161 pass in the project folder; the same without npm; 1 more fail from another folder
+== sonnet-B-due
+   case ticket-due-times | claude-sonnet-5-5 medium | pass False | verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True} | checks 7/8 | cost 8.5016 | build b6287b09b
+   FAILED CHECK: python3 "$E2E_CHECKS/base_tests.py" suite node-tickets | FAIL: the delivery's own node --test: 144 pass, 3 fail (rc 1); failing: ST-1 the release path: 1.4.0 writes, 1.5.0 fills in then shows due times, 1.4.0 takes over again (5201.707917ms)
+   planning reviews: stage | ShipLoop status: done
+   release-verify (done, in returned-result, passed True):
+      [check] node --test test/due-config.test.js test/due-store.test.js test/due-api.test.js -> passed, ran 26, floor None
+   observer ticket-return: moves 1 of 8 due times
+      first start: by itself | ordinary: {'starts': True, 'due_same': 7, 'due_of': 8, 'moved': ['T-0001'], 'old_release_priority_kept': True, 'old_release_ticket_kept': True, 'old_release_ticket_has_due': True} | with the kept copy: no such option
+   observer suite-elsewhere: 143 of 146 pass in the project folder; the same without npm; the same from another folder
+== sonnet-B-expenses
+   case shared-expenses | claude-sonnet-5-5 medium | pass True | verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True} | checks 6/6 | cost 5.7199 | build b6287b09b
+   planning reviews: stage | ShipLoop status: done
+   release-verify (done, in returned-result, passed True):
+      [check] node --test -> passed, ran 26, floor 26
+   observer expense-inputs: none of the recorded faults
+      recorded, not judged: {'name_of_two_spaces': 201, 'id_not_valid_percent_encoding': 404, 'total_past_the_largest_exact_integer': 'one or more cents off'}
+   observer suite-elsewhere: 26 of 26 pass in the project folder; the same without npm; the same from another folder
+== sol-B-expenses
+   case shared-expenses | gpt-6.2-sol medium | pass True | verdicts {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True} | checks 6/6 | cost None | build b6287b09b
+   planning reviews: stage | ShipLoop status: done
+   release-verify (done, in returned-result, passed True):
+      [regression] node --test -> passed, ran 6, floor 6
+      [check] node --check server.js -> passed, ran None, floor None
+   observer expense-inputs: none of the recorded faults
+      recorded, not judged: {'name_of_two_spaces': 400, 'id_not_valid_percent_encoding': 404, 'total_past_the_largest_exact_integer': 'second expense refused'}
+   observer suite-elsewhere: 6 of 6 pass in the project folder; the same without npm; the same from another folder
