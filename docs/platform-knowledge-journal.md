@@ -372,7 +372,10 @@ table reproduces; its lint findings were fixed and the output compared byte for 
 
 Reading (interim): on what a model already knows about the platform, deliveries that never saw the card do as well
 as the one that read it. The one sharp difference is the one rule that exists nowhere but in the card, a fact about
-ShipLoop's own reader. That matches the earlier test where a card entry was the only thing that surfaced a hidden
+ShipLoop's own reader.
+*Qualified 2026-11-22 by section 11:* the difference shows that the run which read the card followed it, not that
+following it mattered. Every one of these requests fixes the test command with the other output format, the runs
+that used it were not refused, and their outcomes match the card-read run's. That matches the earlier test where a card entry was the only thing that surfaced a hidden
 property (0 of 15 to 3 of 3, `docs/shiploop-composition-state-experiments-2026-09-26.md`) and the review's first
 answer. Limits: nine runs; counts of lines, not of commands; model, host and ShipLoop version all differ between the
 card-read run and the others; the card is the one each run had installed, and every copy holds all the rules counted.
@@ -394,9 +397,9 @@ card-read run and the others; the card is the one each run had installed, and ev
 
 ## 10. Registered before any run: the plan (2026-11-22)
 
-The owner, 10:00: "Build up a plan you think is best. Execute tests, examine alternative ideas, run side
-experiments, run shiploop tests as needed. Try to do progressive validation to get fast results", and a reminder to
-use Opus and Sonnet agents, Opus for research.
+The owner, 09:48: "Build up a plan you think is best. Execute tests, examine alternative ideas, run side
+experiments, run shiploop tests as needed. Try to do progressive validation to get fast results", and a few minutes
+later a reminder to use Opus and Sonnet agents, Opus for research.
 
 **The bench.** An invented hosting platform, "Harbor", with five rules written only in its card, a small existing
 product on it, one request, and script readings of a plan and of a product. Specified in
@@ -448,3 +451,315 @@ shown less often than I, because the plan packet does not print the project's fi
 fixed and the cell rerun, with the faulty sample kept and marked. Every assigned sample stays in the comparison.
 
 **Not decided here.** Any change to ShipLoop as released is the owner's decision; the candidate stays off `main`.
+
+## 11. The plans of the saved Salesforce deliveries: was a card fact missing when it mattered? (2026-11-22)
+
+**Question** (the review's first step, section 7): in the nine finished deliveries of section 8, for three rules of
+the card, was the fact missing when the decision was made, and did something go wrong because of it? Rules: A, a
+tab is hidden until a permission set or profile grants it, so presence, visibility and access are three things; B,
+the test command needs the output format ShipLoop can read; C, the tool's `.sf/` and `.sfdx/` folders must be
+git-ignored.
+
+**How.** An Opus research subagent read each run's accepted plan, later stage results, trace and events, and the
+two Salesforce run journals; no model run. Its report, as returned:
+`docs/experiments/platform-knowledge-20261122/evidence/plan-audit-report.md`. I hand-checked its two main claims
+(below); the rest is its reading and is marked so.
+
+**Result.**
+
+1. **The requests carried the facts.** Hand-checked in five saved `prompt.txt` files: they run to 698, 906, 1,023
+   and 1,110 words. The Battleship ones name the permission-set file and what it grants and say "A new tab is hidden
+   from every user until a permission set or profile grants it, so after you deploy, assign the permission set to
+   the logged-in user with `sf org assign permset ...`". The chess ones say "do not change profiles or permission
+   sets". All five give the exact test command, with `--result-format human`. None mentions `.sf`.
+2. **One fault traced to a missing card fact, and it cost about 40 seconds** (subagent's reading): run `sf-live-2`,
+   rule C, the one rule no request states. A step's deploy check failed ("Could not find HEAD") and the model
+   repaired the tool's state files; the product shipped with no `.gitignore`.
+3. **Where runs did lose time, the card had no line for it** (subagent's reading): two send-backs of one to two and
+   a half minutes on "Duplicate PermissionSetAssignment", a fact about the assign command the card does not hold.
+4. **The run that read the whole card at discovery (Grok) followed all three rules and ended like the others.**
+5. **The card's rule B says something the runs contradict.** It says a focused command in the human format "is
+   refused as unread". In all nine runs such commands were marked passed, with no refusal (subagent's reading). The
+   current stage text (`COUNT_RULE` in `shiploop_test_loop.py`, hand-checked) asks only that every listed test id be
+   in the output, with "a runner flag that prints test names" where the count cannot be read. A lead, not a finding:
+   I did not trace the judging code, and the card is not changed here.
+
+**What it means (interim, my reading).**
+
+- In these deliveries the platform knowledge reached the model through the request, written out by whoever wrote
+  the case, at 700 to 1,100 words a request. That is the route that works today, and it agrees with the neighbouring
+  studies: what moves a build is an answer from the requester. The question for a reference file is therefore not
+  "would it rescue these deliveries" (the record says they needed no rescue) but "can it carry what the requester
+  now has to write each time, so that a short request does as well as a long one".
+- A card earns a line for a fact that no request states and no model knows. Of the twelve platform faults the two
+  journals record, the card covers six and half of a seventh; four it does not cover are small facts of exactly
+  that kind (a page rejected for its region mode, a log returned HTML-escaped, an exception that cannot be caught
+  from anonymous code, the order in which a permission set and its assignment are removed), and the runs add a
+  fifth (an assignment that fails when it already exists).
+- A card can go stale against the engine it describes (point 5). Whatever stores the material needs a check that a
+  claim about ShipLoop's own behaviour still holds.
+
+**Limits.** Nine runs, eight on one model family that is no longer the driver; the subagent's readings of plans and
+traces are not all re-checked; nobody verified whether the chess tabs were visible to the user.
+
+## 12. Amendment 1 to the plan, registered before any run (2026-11-22)
+
+Section 11 shows which route is in use today: the facts written into the request. So the bench gets one more arm,
+at rung 2, as the mark to measure the others against:
+
+- **Q, in the request:** the released build, the fixture with no card named (the knowledge home of arm K without
+  its platform facts), and the request extended by one paragraph that states the five rules in plain sentences.
+  2 drivers x 2 samples = 4 more plan-stage runs.
+- **Rule fixed now:** a route is **as good as the request** on a driver when it decides within one rule of Q in
+  both pairs. Prediction: Q decides 5 of 5 on both drivers; I is as good as Q on both.
+- The words a route saves the requester are reported beside it: the paragraph's length in words.
+
+The ingest trial of section 10 takes the five uncovered facts of section 11 as its input.
+
+## 13. Rung 0: the bench calibrated and the plan packet read under each route (2026-11-22, no model; firm)
+
+**Apparatus.** Built by two Opus subagents to the specification, reviewed by me, committed on the candidate branch
+as 85d7758dc3603188bfa44d175ee640973f6376de (branch `pk-candidate-0d73cf`, 74 files, off `main`). Every run below
+is launched from that commit.
+
+**The bench catches what it should** (`calibrate.py`, rerun by me):
+
+| Product | P-JOB | P-RUN | P-BLOB | P-SCAN | P-SLOT | P-CONFIG | Own tests | Score |
+|---|---|---|---|---|---|---|---|---|
+| The untouched fixture | fail | fail | fail | fail | fail | fail | pass | 0 of 6 |
+| The reference product | pass | pass | pass | pass | pass | pass | pass | 6 of 6 |
+| No `max_seconds` | **fail** | pass | pass | pass | pass | pass | pass | 5 |
+| Output not named by slot | pass | pass | pass | pass | **fail** | pass | pass | 5 |
+| A local file, no blob | pass | pass | **fail** | pass | fail | pass | pass | 4 |
+| `blobs.put` without `keep_days` | pass | **fail** | **fail** | fail | fail | fail | pass | 1 |
+| `records.list()` | pass | pass | pass | **fail** | pass | pass | pass | 5 |
+| The threshold in the code | pass | pass | pass | pass | pass | **fail** | pass | 5 |
+
+Bold marks the check named for the defect. Two defects take other checks down with them (no blob leaves nothing
+for the later checks to read; a refused `put` ends the start), so a product score counts consequences, not rules:
+rung 3 reports the row, not only the score.
+
+**The fixture gives no rule away by statement.** I read every file. The local stand-in for the SDK shows the call
+names (`scan`, a `keep_days` argument, `config`), as an SDK would. What a model can work out from that is what the
+released arm measures.
+
+**The plan packet under each route** (`render_plan_packet.py`; the four packets are kept in `harbor/packets/`):
+
+| Route | Characters | Added | Where |
+|---|---|---|---|
+| off | 27,735 | | byte-identical to the released render |
+| inline (arm I) | 29,790 | 2,055 | line 35 of 282, inside duty 3 right after the sentence on the concern rows; "Result template:" is line 176 |
+| lookup (arm L) | 28,036 | 301 | one line at line 35 |
+| whole (arm W) | 31,194 | 3,459 | line 35 |
+
+The rule of rung 0 holds: the added text stands before the result template and `off` is identical to released.
+
+**The requests.** The request is 57 words. Arm Q's adds a paragraph of 159 words that states the five rules in
+plain sentences (`harbor/request-with-notes.txt`). That is what a route has to save the requester.
+
+**Rung 1 launched at 10:38** from the candidate checkout into `~/e2e-runs-pk/20261122/` (allocation
+`harbor/runs/rung1.tsv`; sample names are neutral because a session can see its folder's path). Pairs, fixed
+before any result: on Codex s01 (R) with s03 (I) and s07 (R) with s05 (I); on Claude s04 (R) with s02 (I) and s06
+(R) with s08 (I).
+
+## 14. Rung 1: released against printed, at the plan stage (2026-11-22, 10:38 to 10:50)
+
+Eight plan-stage slices from one seeded state, each ended by the harness at the plan's acceptance (all eight:
+`process`, `stopped` and `no_overshoot` true), about five and a half minutes a wave of four. Runs:
+`~/e2e-runs-pk/20261122/s01` to `s08`; readings kept in `harbor/readings/` on the candidate branch
+(`rung1-plan-exposure.txt`, `rung1-plan-score.txt`, `rung1-second-reading.txt`).
+
+| Sample | Driver | Arm | Entries shown before the plan was submitted | In the packet | The model's own read of the card | Rules decided, registered reading |
+|---|---|---|---|---|---|---|
+| s01 | Sol medium | R released | 5 of 5 | no | `cat` at 10 s | 1 (SLOT) |
+| s07 | Sol medium | R released | 5 of 5 | no | `cat` at 11 s | 2 (JOB, SLOT) |
+| s03 | Sol medium | I printed | 5 of 5 | yes | `cat` at 12 s | 0 |
+| s05 | Sol medium | I printed | 5 of 5 | yes | `cat` at 11 s | 1 (SLOT) |
+| s04 | Sonnet medium | R released | 5 of 5 | no | `cat` at 4 s | 4 (all but CONFIG) |
+| s06 | Sonnet medium | R released | 5 of 5 | no | `cat` at 4 s | 3 (JOB, SLOT, SCAN) |
+| s02 | Sonnet medium | I printed | 5 of 5 | yes | `cat` at 2 s | 5 |
+| s08 | Sonnet medium | I printed | 5 of 5 | yes | `cat` at 4 s | 5 |
+
+**By the rules fixed in section 10.**
+
+- *Leak check:* it fired. Released samples s04 and s06 decide 4 and 3 rules. The rule was written for a fixture
+  that gives its rules away. That is not what happened: in every released sample the model opened the card itself
+  and was given all of it. The rule as written did not foresee that the released route could deliver. Recorded as
+  fired; the fixture is not changed.
+- *I arrives:* yes on both drivers (5 of 5 in all four samples). So does R.
+- *I moves the plan:* no. Sol: 1 against 0 and 2 against 1 (R ahead by one). Sonnet: 4 against 5 and 3 against 5
+  (I ahead by one and two). The bar was three more in both pairs.
+- **The screen does not pass. Printing the entries by value changes nothing that these readings can see.**
+
+**Predictions, scored as written.** "R decides at most 1 rule of 5 on both drivers": wrong (1, 2, 4, 3). "I is shown
+5 of 5 on Sonnet and 4 or more on Sol": right. "I decides 4 or more on both": right on Sonnet, wrong on Sol by the
+registered reading.
+
+**What happened, and it is the finding of this rung (firm for this setting).** With the card named in the
+product's `docs/shiploop/environment.md`, **both drivers opened the card on their own within 2 to 12 seconds of
+the plan packet and were given every line of it, under released ShipLoop, 4 of 4.** (The released packet also
+lists the card's Testing section among its guides, so two pointers were present; which one was followed is not
+separated.) This agrees with section 3, where every one of the 18 saved runs that named a card opened it. So
+the earlier count is not "models do not follow a pointer to a card". It is narrower: **no Sol, Terra or Sonnet
+run ever wrote the name, and once the name is there the card is read.** The broken step is selection.
+
+**The registered reading of "decided" under-reads one driver.** Sol writes its decisions in plain words, and the
+detail goes into the knowledge home's `architecture.md`, which `plan_score.py` does not read. Sample s03, which
+scores 0, wrote: "AD-2: Declare `jobs.low_stock_report` in the manifest [...] 02:00 UTC and a 60-second run
+budget", "AD-3: Declare `low_stock_threshold = 10` in the manifest and read it through Harbor config. Read the
+existing Item schema via cursor scan to cover stores beyond the 500-record list cap", "AD-4: Store UTF-8 CSV in the
+app's Harbor blobs under `reports/low-stock/<slot>.csv`. A retry writes the same key. Seven-day retention [...]".
+That is all five rules decided, by my reading of one sample. A wider pattern reading written after the fact
+(`second_reading.py`, exploratory, plan result and `architecture.md` together) gives Sol 5, 3, 3 and 4 and Sonnet 5
+in all four, and I can see it still misses decisions in s03. Sonnet uses the platform's own tokens, so both
+readings credit it. Lesson, the second of its kind today: a count made from wording patterns under-reads a writer
+who restates. The script-run product checks of rung 3 are the reading to trust; no more effort goes into scoring
+plan text by pattern.
+
+**Limits.** A slice starts cold at the plan stage, and the first thing each model did was read the product's
+knowledge home, where the name is. In a whole delivery the name has to survive, or be written at, discovery.
+Two samples a cell. The review of the plan was off (`--planning-review none`).
+
+## 15. Amendment 2, registered before any further run (2026-11-22, 10:55)
+
+Rung 1 moved the question from "is the text shown" to "is the card selected, and does a selected card reach the
+product". The later rungs change accordingly.
+
+- **Dropped:** the look-up arm L, and the plan-stage runs of K and Q. A look-up line cannot add to a card that is
+  already read in full, and plan text has proved a poor thing to score.
+- **Rung 2, now the selection test at the plan stage:** the released build on the fixture whose knowledge home
+  says "Platform guide: none" (as 89 of the 316 saved runs said), the plain request; arm **N**. 2 drivers x 2
+  samples = 4 slices (`harbor/runs/rung2.tsv`, s09 to s12). Reading: were the card's entries given, and did a
+  call open the card. Rule: N **finds the card** on a driver when the entries are given in both samples.
+  Prediction: at most 1 of the 4 samples opens the card.
+- **Rung 3, now three arms of whole deliveries**, graded by the six product checks:
+  **R**, the knowledge home names the card (released build); **F**, a fresh repository with no knowledge home, so
+  discovery has to select the card (released build); **Q**, the fresh repository with the five rules written into
+  the request. 2 drivers x 3 arms x 2 samples = 12 deliveries, R and F first. The printed arm I is left out: it
+  added nothing in rung 1.
+  Rules: a route is **as good as the request** on a driver when its products pass within one check of Q's in both
+  pairs; R **holds downstream** when it passes at least 4 more checks than F in both pairs with no existing test
+  failing. Predictions: Q passes 6 of 6 on both drivers; R at least 5; F at most 2, because discovery does not name
+  the card.
+
+## 16. Side trial: building the material up and keeping it true (2026-11-22, no model run)
+
+The owner's first question included "how we could build up that reference file". One Opus subagent did the work
+once by hand, as ingester and reviewer both (a weakness it names itself). Its files are in
+`docs/experiments/platform-knowledge-20261122/ingest/`. I checked the lint's tests, the probe's output and the two
+commits it names; the readings of the journals are its own.
+
+**Ingest: five candidate facts, two entries.** Input: the five facts of section 11 that cost time in real
+Salesforce runs and that the card lacks. Rule for an entry (section 7): it names when the fact applies, the
+decision it changes and the observation that could prove the decision wrong, and it has a source.
+`entries-proposed.md`:
+
+| Fact | Outcome | Why |
+|---|---|---|
+| A page rejected for its region mode | rejected | a build detail, seen once, in the harness's own probe page; the deploy error explains itself |
+| A debug log returned HTML-escaped | rejected | a fact about how the harness read the output, seen once; a later run shows it unescaped |
+| An exception from anonymous Apex that cannot be caught | **entry `SF-ANON-AURA`** | seen twice; changes how a check is designed. Its "applies when" is half testable: the code that throws is not written when the plan is made |
+| The order of removing a permission set and its assignment | rejected | a cleanup fact of the harness; the platform's own refusal enforces the order |
+| An assign command that fails when the assignment exists | **entry `SF-ASSIGN-AGAIN`** | a script can test when it applies; its only source in the repository is the audit report, itself an unreviewed reading |
+
+So most facts taken from a harness's rehearsals describe the harness, and an honest ingest rejects most of what it
+is fed.
+
+**Lint.** `entry_lint.py` checks the form of every entry in a card's `## Planning` section: a unique id, concerns
+that are among the fifteen, "Decision:" and "Proof:" present; with `--sourced` also "Applies when:", "Source:" and
+"Kind:" (hard constraint, evidenced default, or a question that needs an observation), and that a quoted source
+phrase occurs in the file it names. 28 unit tests pass; clean on the Harbor card and on the two proposed entries; it
+says plainly that the released Salesforce card has no such section.
+
+**A stale claim, traced.** The released Salesforce card says a focused Apex test command in the default or "human"
+output format "is refused as unread". `stale-claim-check.md` and a probe that feeds a sample of each format to the
+real judging functions (`judge_formats_probe.py`, output `judge-formats-probe.txt`):
+
+| Format | Ids listed, exit 0 | No ids, exit 0 | One test failed, exit 1 | One test failed, exit 0 |
+|---|---|---|---|---|
+| human | passed | uncounted | failed | **passed** |
+| tap | passed | passed | failed | failed |
+
+The sentence was true when c700eb29aae866050bb6d83ab858de33f921e460 added it (2026-10-17). A week later
+e074ccd3bcbf081b0591588b9cdab244efe508aa stopped the base run from running a command that tests a deployed
+target, which was the only place a result could be "unread". The test that guards the card checks that the words
+"refused as unread" are there, so the wording stayed while the behaviour left. The card's advice (use the other
+format) is still right, for a reason it does not give: in the human format a failure behind a zero exit is marked
+passed. **This is a finding about ShipLoop as released; nothing is changed here. It goes to the owner with the
+recommendation.**
+
+**What a trustworthy ingest would need** (the subagent's view after doing it once, which I share): a reviewer who
+is not the ingester; the version at which each fact was seen (the entry form has no field for it, and one fact was
+already ambiguous a month on); sources checked against raw records, not against reports; acceptance that "applies
+when" often depends on code not yet written; and, for any claim about ShipLoop's own behaviour, a test of the
+behaviour and not of the wording.
+
+## 17. Rung 2: the knowledge home says "no guide" (2026-11-22, 10:54 to 11:00)
+
+Four plan-stage slices, released build, the fixture whose `environment.md` says "Platform guide: none", the plain
+request (`~/e2e-runs-pk/20261122/s09` to `s12`; readings `rung2-*.txt` beside rung 1's).
+
+| Sample | Driver | Entries shown before the plan was submitted | How |
+|---|---|---|---|
+| s09 | Sol medium | 5 of 5 | `cat platforms/harbor.md` at 22 s |
+| s11 | Sol medium | 5 of 5 | `cat .../platforms/harbor.md` with `coding-guidance.md` at 24 s |
+| s10 | Sonnet medium | 0 of 5 | no call names the card |
+| s12 | Sonnet medium | 5 of 5 | `cat .../platforms/harbor.md` at 13 s, after reading the knowledge home |
+
+**By the rule of section 15:** Sol finds the card (both samples); Sonnet does not (one of two). **Prediction
+("at most 1 of the 4 opens the card"): wrong, 3 of 4 did.**
+
+**How they found it.** Each read "Platform guide: none" in the knowledge home and opened `platforms/harbor.md`
+anyway, by the platform's name. The packet's list of guides shows another card's path
+(`GUIDES/platforms/ui.md#...`), which gives the folder's naming away.
+
+**Reading (interim), and a limit of this bench that I had not seen.** On a platform it does not know, a model goes
+looking for the platform's file even when the project says there is none: 11 of the 12 slices of rungs 1 and 2
+read the card with nothing printed. The saved runs say the opposite for platforms the models know: a card opened in
+1 of 192 Terra runs, 5 of 58 Sol runs and 1 of 40 Sonnet runs (section 3). The reading that fits both: **a model
+looks up what it knows it does not know, and does not look up what it believes it knows.** So this bench overstates
+how often a card is picked up. What it still measures cleanly is what happens to facts once they are read. The
+owner's example is a platform the models know; the facts that matter there are the ones a model does not know it
+lacks, and for those the saved runs, not this bench, describe the pick-up.
+
+## 18. Amendment 3, registered before any of its runs: the same question on platforms the models know (2026-11-22, 11:05)
+
+**Hypothesis.** On a familiar platform, a fact in the card that the model does not know it lacks does not reach the
+plan under released ShipLoop, and does reach it when the script prints the card's entries or when the request
+states it.
+
+**Cases** (being built on the candidate branch by an Opus subagent to my specification; nothing run yet). Two
+platforms, Node with Express and Salesforce, each a small existing product with a knowledge home. Each real card
+gets a `## Planning` section of three entries for the experiment only: two drawn from what the card already says,
+and one hidden fact that nothing in the product or the request shows, carrying a token no model can guess
+(`X-Org-Request-Id`, a header this deployment's gateway requires; `SLX_Feature_Access`, the permission set group
+through which this org grants a new tab). Each request asks for a small feature that makes the hidden fact matter.
+
+**Arms**, plan-stage slices as in rung 1, both drivers: **named** (released; the knowledge home names the card);
+**none** (released; it says "Platform guide: none"); **printed** (named, with the entries printed by the candidate
+route); **request** (none, with one sentence in the request that states the fact). One sample a cell first (16
+slices), then a second (16).
+
+**Readings, all by script.** Opened: a call names the card file. Shown: every line of the hidden entry was given
+to the model before it submitted the plan. Reached the plan: the token is in the accepted plan result or in the
+knowledge-home files the plan stage wrote. A token that cannot be guessed is a reading the earlier pattern scores
+were not.
+
+**Rule.** A route reaches the plan on a platform and driver when the token is there in both samples.
+
+**Predictions.** none: the token in 0 of 8 samples. named: the card opened in at most 4 of 8. printed: the token in
+at least 7 of 8. request: 8 of 8.
+
+**What each outcome would mean.** If the named arm already reaches the plan, selecting the card is the only fix
+needed and printing is not. If only the printed arm does, printing is what a familiar platform needs. If the
+printed arm is shown the entry and the token still does not reach the plan, showing is not enough and the fact
+needs a duty or a check of its own.
+
+**Rung 3 launched at 11:05**, one sample a cell first (`harbor/runs/rung3a.tsv`, runs in
+`~/e2e-runs-pk/20261122-d/`): d01 and d02 arm R, d03 and d04 arm F (the fixture with no knowledge home at all), d05
+and d06 arm Q, each pair Sol then Sonnet. All six use one build, the candidate with its route off.
+A first launch at 11:03 was refused by the harness before any host started: each of the twelve finished slices had
+left its progress observer running, and the harness starts no host beside a run "whose harness is not running".
+They were my own processes; the harness's own `lifecycle.py cleanup <folder>` stopped all twelve and deleted no
+file, and the slice launcher now runs it after each sample. An apparatus lesson, not a ShipLoop one.
+

@@ -1,0 +1,14 @@
+== human
+  count: null
+  outcomes: {"TC_1_startFen": "shown", "TC_19_controllerMates": "shown"}
+  focused, ids listed, exit 0: passed
+  focused, no ids, exit 0: uncounted
+  focused, ids, one test failed, exit 1: failed
+  focused, ids, one test failed, exit 0: passed
+== tap
+  count: {"ran": 4, "failed": 0, "runners": ["tap"]}
+  outcomes: {"TC_1_startFen": "passed", "TC_19_controllerMates": "passed"}
+  focused, ids listed, exit 0: passed
+  focused, no ids, exit 0: passed
+  focused, ids, one test failed, exit 1: failed
+  focused, ids, one test failed, exit 0: failed
