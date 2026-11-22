@@ -9360,3 +9360,113 @@ engine's revision counter, the measure the earlier entries use. Every value abov
 `docs/experiments/sdlc-structure-20261119/evidence/ship-round-readings.txt`. Evidence root (outside the repository,
 may be pruned): `/Users/dadleet/e2e-runs-sdlc11/20261121/`, with each run's `result.json`, `metrics.json`, native
 events, delivery bundle and `review-export/run-review.html`.
+
+## 2026-11-22 — The delivered suite in the clean copy: three whole deliveries of `ticket-due-times` pass every verdict and every case check, and release-verify accepts each at its one attempt (Codex Sol 6.2 medium, Claude Sonnet 5.5 medium twice)
+
+These are three full repository-harness rounds of one case, not mocks and not a comparison. All three ran from
+`5c48bcc84ac3999cb9dce5484a1da0aeb059f2e2` (tree `4b5c6f5eefa28f34cbab04d8b69fe8c8f98512cf`), the candidate that
+`232b20c8d0ea0f5c333425466a5365cbde272e81` merges into main. It changes two things in ShipLoop. At
+`release-verify`, where the consumer checks run in a clean copy of the returned result, ShipLoop also runs each
+regression command of the last work item that records one, where no consumer check is that command, and it must
+pass there; no test count is compared. And a file moved during the work is committed whole, so the return can
+fast-forward. Command: `test/shiploop_e2e/run.py
+--case ticket-due-times --host <host> --model <model> --effort medium --source checkout`, a new external output
+folder and baseline file, and no turn, timeout or resume cap; the Claude runs carried `--max-budget-usd 40`. The
+checkout build is labelled skill-craft 4.2.1 / ShipLoop 2.4.1 and holds this unpublished source (plugin fingerprint
+`88d434e52a5c` in all three), so none is a marketplace or publication result. The builders received the catalog
+request with no coaching, and the harness asked for no run option. The three were started together and overlapped
+for the Sol run's whole 837 seconds on one machine (load 5.9 at the start on 18 processors, 25 and 34 when the two
+Sonnet runs ended: other sessions' runs and suites were on it).
+
+The round was registered before it ran (`docs/shiploop-sdlc-structure-journal.md`, round 15, "Registered second
+confirmation round"): the rule is accepted if no delivery is refused wrongly and every delivery ShipLoop accepts
+passes the harness's suite check. It is the second such round. The first, on an earlier build that also compared a
+test count, refused one sound delivery of three and was not accepted; the owner then dropped the count ("Go for the
+simpler").
+
+| | `sol-D-due-1` | `sonnet-D-due-1` | `sonnet-D-due-2` |
+|---|---|---|---|
+| Builder | Codex CLI 0.171.0, gpt-6.2-sol at medium; one session, no resume | Claude Code 2.1.330, claude-sonnet-5-5 at medium; one session, no resume | the same |
+| Harness verdicts | invoked, plugin, process, shiploop, committed: all pass; engine done with its report | all pass; engine done with its report | all pass; engine done with its report |
+| Case checks | 8 of 8 | 8 of 8 | 8 of 8 |
+| Held-out acceptance | none declared for this case | none declared | none declared |
+| Step plan | one item, 2 criteria in 2 steps | one item, 11 criteria in 2 steps (5 and 6) | two items, both from the plan stage: 11 criteria in 2 steps (7 and 4), then 7 criteria in 2 steps (4 and 3) |
+| Start to end | 07:35:19Z to 07:49:16Z, 13.9 minutes | 07:35:19Z to 08:20:08Z, 44.8 minutes | 07:35:19Z to 08:17:35Z, 42.3 minutes |
+| Accepted revisions | 34 | 34 | 45 |
+| Improve reviews | 9, one pass each, none changed anything (option `stage`) | 9 in 12 passes; 4 changed something: spec, test-strategy and two document reviews (option `stage`) | 11 in 16 passes; 3 changed something: spec, test-strategy and carry-forward (option `stage`) |
+| Refusals, all recovered in the session | 3: test-strategy twice (a layer name; no unit or component row for the server and the command line), plan (the concerns map) | 13: a review hand-off twice; step-plan three times (the result's record twice, an open plan assumption); `test` six times (a test ID, seeded faults twice with 2 and 3 of 8 surviving, a failing suite, the base run, a failing check); document (a line added to `spec.md` outside the step's own); handoff (the unverified list) | 13: a review hand-off twice; plan (a concern's owner stage); step-plan twice (concerns the plan does not give it, a path with no expectation); `test` six times (seeded faults four times, a failing suite, failing focused tests); operations twice (an evidence file that did not exist) |
+| release-verify in the clean copy | one attempt, accepted. The release plan recorded `npm test` itself (123 tests pass) and one system-test file; nothing was added | one attempt, accepted. Its own check was one system-test file, 1 test; ShipLoop added `npm test`: 144 tests pass | one attempt, accepted. Its own checks were one system-test file, 2 tests, and `node bin/tickets.js --help`; ShipLoop added `npm test`: 158 tests pass |
+| Turns, model calls | 149, 69; no dollar figure (subscription) | 291, 162; $7.40 reported | 356, 210; $10.26 reported |
+| Returned source | clean committed product `490d88bae607e42cd95c60efd528e80c479d3ac0`, by fast-forward | clean committed product `fe9430ce49d8e780c146e8882ff278faba3f70ce`, by fast-forward | clean committed product `e04cc6d01b4826fd1e9fb312c929655e94207337`, by fast-forward |
+| Left behind | none observed (listeners and processes) | none observed | none observed; a sweep by working folder afterwards found no process of the three runs |
+
+The harness counts 14 and 15 failed ShipLoop commands in the two Sonnet runs where this table has 13 and 13: it reads
+the event stream as well as the trace and counts some texts twice.
+
+What the rounds show about the change. A whole delivery works on the changed engine on two hosts: all three went from
+intake to handoff in one session and passed every verdict and every case check. Read by the registered rule, the
+round accepts the change: no delivery was refused at `release-verify`, so none was refused wrongly, and all three
+accepted deliveries pass the harness's own suite check. Four readings of the change itself, each from ShipLoop's
+records and the delivered trees:
+
+- The rule acted where the builder's check was narrow. Both Sonnet release plans recorded a consumer check that runs
+  one test file (1 test, and 2 tests beside a `--help` call) where the delivered suite has 144 and 158. ShipLoop added
+  the last work item's `npm test`; the packet's list and the test record mark it as added; it ran in the returned
+  copy in about a second and passed. The Sol release plan recorded `npm test` itself, so nothing was added and the
+  copy ran the suite anyway.
+- Nothing was held to a count, and a count would have been stale. In both Sonnet runs the copy ran more tests than
+  the last run recorded in the work area (144 against 143, 158 against 156): system tests were written after that
+  run. Run again by hand on each delivered tree, the suites report 123, 144 and 158 tests, all passing and none
+  skipped.
+- The moved-file fix was not met. No commit of any delivery renames or deletes a file; every recorded return is a
+  fast-forward merge and all three `committed` verdicts pass. In the first round one delivery of three moved six
+  files and came back uncommitted; the fix is carried by its test, not by this round.
+- The changed texts reached the builders. Each run's release-plan packet holds the sentence that says the suite will
+  be run in the clean copy, and each release-verify packet states the rule; in the two Sonnet runs its list marks
+  `npm test` as "the step plan's regression command, added by ShipLoop". One Sonnet builder, before calling the gate,
+  made its own copy of the returned head and ran its checks and `npm test` there.
+
+What they do not show. No delivery of this round had a suite that fails in the copy, so no right refusal was met and
+neither exit (`send-back` for a missing step, `add-work` for a delivery that must change) was taken live. Both are
+shown by tests through the real gate with a real return, and the refusal itself by ShipLoop's own gate run on 28
+saved release checks, where it refuses the two deliveries on file whose suites cannot pass in a copy and accepts the
+other 26 (`docs/experiments/sdlc-structure-20261119/evidence/gate-on-file-final.txt`). The cases have no installed
+dependencies, so a suite that needs an install step in the copy was never met. A suite that passes in the copy while
+some of its tests skip themselves there is accepted by design; none of these three skips a test. Three deliveries of
+one case on two drivers; no Grok run.
+
+They are not a speed or cost comparison. The two Sonnet runs took 44.8 and 42.3 minutes where the first round's took
+27.1 and 33.9: the plans differ, each spent about 14 minutes at `test`, and the machine was loaded. One of them spent
+6.7 minutes at `release-verify` for its one accepted attempt: the builder's own `npm test` in its own copy did not
+end, the builder found a test process spinning, stopped its own task, wrote that it suspected "a port collision with
+other sessions on this shared machine", and ran it again under a 90-second limit, where it passed in a second.
+ShipLoop's own run of the added command then took 1.1 seconds. The rule adds one more run of the suite to a
+delivery, so it adds one more chance to meet such a hang.
+
+Outside the change, for whoever reads the next round. All three delivered trees move one of eight due times when
+the product is rolled back to 1.4.0 and returned (the `ticket-return` observer; most deliveries of this case on file
+do, and no case check asks). While the round ran, 27 leaked test servers of the harness's own base check were stopped
+at the owner's word, six minutes after the launch, and a 28th, left by another session's run at 23:55, afterwards;
+`checks/base_tests.py` now ends a `node --test` run whole at its limit
+(`fb0f834d90ff8a27b4a2eaec75ed45462a913e95`). The three runs were graded by the candidate tree's harness, with the
+check as it was (oracle digest `dba32b3f6860`). The stop removed listeners that a run's tests could have reached;
+it cannot make ShipLoop accept or refuse a delivery.
+
+The harness, asked the standing three questions.
+
+1. Retain or keep state differently: which commands ShipLoop added at `release-verify`, and the kind of each return
+   (fast-forward or working-tree), are only in ShipLoop's own records (`from_step_plan` in the test record, `kind`
+   in the return's). Both were read from the run folder by a script of the study (`confirm_read.py`); `result.json`
+   holds neither.
+2. More to learn on later passes: how often a run of this case's suite hangs on a shared machine, with the leaked
+   servers gone and the check fixed. This round has one hang in a builder's own run and another session lost a
+   pristine verdict to one at 23:55, after the 27 were stopped, so they were not the only cause.
+3. More evaluation criteria: tests that skip themselves where a consumer gets the delivery are counted nowhere. The
+   harness's suite check compares passes with the base's count and ShipLoop compares no count, so both would accept
+   a suite that skips there. No delivery on file does it once the suite is run without the builder's own settings.
+
+Limits: one run a host for Sol and two for Sonnet, one case, no promotion or efficiency claim, no marketplace result.
+Every value above with the file it was read from:
+`docs/experiments/sdlc-structure-20261119/evidence/confirm-r15d.txt`. Evidence root (outside the repository, may be
+pruned): `/Users/dadleet/e2e-runs-sdlc14/r15d/20261121/`, with each run's `result.json`, `metrics.json`, native
+events and delivery bundle.

@@ -3775,7 +3775,9 @@ first. Seven findings; each was checked in the code. The owner's decision came a
   unit tests fail on each.
 - **Suites (`evidence/suites-final.txt`).** The 24 related suites, 1,321 tests, pass on the committed code, one after
   another.
-- **Lint.** ruff's error and unused-name rules are clean on the changed files.
+- **Lint.** ruff's error and unused-name rules are clean on the changed files. (Corrected 2026-11-22: they report
+  nothing new there. Two unused-variable findings in `shiploop_navigator.py`, where one sentence changed, are older
+  than this work, are in the 2.4.1 release, and remain.)
 
 ### Registered second confirmation round (written and committed before any run)
 
