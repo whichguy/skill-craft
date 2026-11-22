@@ -3174,6 +3174,82 @@ scope). Without the second it is 2 of 4 and not shown.
 - In every Sol pair the seeded draw put the medium run as X for judge A. Judge B saw the reverse, so position is
   still balanced across judges, not within a judge.
 
+## Round 14 (2026-11-21): what round 13's faults say about ShipLoop's own stages
+
+### Owner decision, 2026-11-21
+
+To round 13: "Keep med for both ; help me understand what we learned or what we could do to improve the prompts ,
+sequence, stages, etc". Sonnet 5.5 and Sol 6.2 stay at medium, with round 13's result known.
+
+### Question and method (a reading of run records and of the skill's source; no run was launched)
+
+For each kind of fault confirmed in round 13: which ShipLoop stage could have caught it, and does that stage's
+record say why it did not? Read: the step-plan criteria and the release-plan `consumer_checks` of the sixteen
+deliveries, the plan's concern catalog (`shiploop_concerns.py`), the release instructions
+(`shiploop_prompts.py`) and the fault check's operators (`shiploop_mutation.py`).
+
+### Results
+
+- **R118 (tests that pass only where they were written).** ShipLoop already has the gate: at release-verify it
+  runs the `consumer_checks` in a clean copy of the returned tree with no Git history. The model writes those
+  commands at release-plan. 15 of the 16 deliveries named the whole suite. One, `sonnet-high-due`, wrote
+  `SKIP_ROLLBACK_TEST=1 npm test`: a switch its own tests read to skip the 9 that need the repository's history.
+  The gate passed. The harness's `suite` check, which runs the suite as it is, failed that delivery (F66).
+- **R119.** The clean copy is run from the project folder with the caller's PATH. Started from another folder, the
+  suites of two Sol ticket deliveries fail 1 and 3 tests, and one of them fails 3 with no npm on PATH (R116).
+- **R120 (the way back after a rollback).** The plan fills a row for each of fifteen concerns (`ui`, `api`,
+  `messaging`, `state`, `migrate-before`, `migrate-after`, `switchover`, `concurrency`, `platform-services`,
+  `scale`, `security`, `observability`, `config`, `performance`, `accessibility`). None asks what the previous
+  release does with data the new one writes, or how the new one is entered again after going back. The rollback
+  procedure is written at release-plan, after the build. Six of the eight ticket deliveries lose the due time on
+  the return (all four of Sonnet, both of Sol medium); the two that keep it are Sol high (R115, R117).
+- **R121 (tests of things that are not the product).** The tests the judges called brittle or out of scope trace
+  to ShipLoop's own records. `TC_26`, which runs the whole suite again, confirms a step-plan criterion marked
+  `executed`: "the suite runs under node --test, prints every TC ID". The count of test files confirms "the suite
+  is discoverable by node --test". The test of the wording of `docs/operations.md` confirms "The rollout and
+  rollback order is documented". The test of `package.json` against the changelog confirms a criterion on the
+  version. The tests of the test helpers are the `prepare` stage's proof of its harness. Six of the eight Sonnet
+  deliveries carry at least one such test; the judges reported none in Sol's eight.
+- **R122 (odd input).** The four faults on unusual names and ids are in one delivery of sixteen. No stage record
+  asks about such input. Not traced further.
+- **R123 (wiring).** The fault check changes single lines by text (comparisons, literals and the like). Leaving an
+  argument out is not among its changes, so the setting that never reached the service (R110) was outside it.
+  One delivery.
+
+### Findings
+
+- **F85 (firm for these sixteen).** A gate whose command the model writes can be met by weakening the command. It
+  happened once in sixteen, and the weakened run was accepted without a word.
+- **F86 (interim).** Planning asks nothing about going back. The fault is in six of eight deliveries, and what made
+  up for the missing question was effort on one driver (Sol high, twice).
+- **F87 (firm as a trace; Sonnet).** Part of what readers called unasked scope and brittle tests is ShipLoop's own
+  doing: criteria about the suite, the documents and the release, marked `executed`, become permanent tests in
+  the product's suite.
+- **F88 (decision record).** Nothing is changed. The candidates below are the owner's; each ShipLoop change needs
+  tests, a change note and an E2E round.
+
+### Candidates (the owner's decisions; nothing was run)
+
+1. **The clean-copy gate.** Have release-verify run the recorded regression command itself in the clean copy, and
+   refuse when more tests are skipped there than in the work area. Optionally start it from another folder.
+   Script-run, no wording. Catches R118; from another folder also R119.
+2. **A concern row for the way back.** A sixteenth row in the plan's catalog: what the previous release does with
+   what this one writes, and how this one is entered again. A row to fill, which is the form the ratchet
+   session's amendments found to work, not a sentence. Test: the ticket case with and without the row, read with
+   `quality_checks/rollback.js`.
+3. **Where the proof of a non-behaviour criterion lives.** A criterion about the suite, a document or the release
+   is confirmed by a check row in the run's records, not by a test added to the product; the `prepare` stage's
+   proof of a harness stays out of the product's suite. Three wording attempts in round 9 showed no effect, so
+   this needs a field or a refusal, and a count at step-plan (F59's method) before and after.
+4. **The yardstick.** Add round 13's checks to the E2E cases as observations (the return after a rollback, odd
+   names and ids, the suite from another folder), so that the next comparison sees what rounds 8 and 10 could
+   not (F79).
+5. From round 12, unchanged: a fresh session at the two phase boundaries (at most 29% of a Sonnet bill);
+   planning reviews off on Sol (3 of 82 reviewed results edited).
+
+Not proposed: a question about odd input (one delivery of sixteen, and wording has not moved behaviour here); a new
+kind of change for the fault check (one delivery).
+
 ## Evidence (all rounds)
 
 | File | Holds |
