@@ -15,6 +15,7 @@ joins their JSON answers, and computes the readings. Everything lives under ROOT
     deep_judge.py verdict-packet ROOT CASE     after told.json: one masked packet for each of the two judges
     deep_judge.py fixed ROOT CASE              CASE-fixed: the looked-at and fixed product beside the two it is compared with
     deep_judge.py clean ROOT FRESH CASE        CASE-clean: a fresh run's delivery, the same after look and fix, and Ratchet's final
+    deep_judge.py fresh ROOT FRESH RATCHET CASE  CASE-fresh: as CASE-clean, but L is the final of RATCHET/CASE-2 (after measure.py)
     deep_judge.py grab IN.json OUT.json        the first JSON object in an `ask` answer's text
     deep_judge.py score ROOT OUT_DIR           D1 to D6, the gate, the pairs, deep.json and deep.md
 
@@ -38,6 +39,8 @@ NAMES = {"S": "ShipLoop's delivery", "F": "Ratchet's first build", "L": "Ratchet
 FIXED_NAMES = {"S": "ShipLoop's delivery after one look and one fix", "F": "ShipLoop's delivery", "L": "Ratchet's final"}
 CLEAN_NAMES = {"S": "a fresh ShipLoop delivery after one look and one fix", "F": "the fresh ShipLoop delivery",
                "L": "Ratchet's final, audited again"}
+FRESH_NAMES = {"S": "a fresh ShipLoop delivery after one look and one fix", "F": "the fresh ShipLoop delivery",
+               "L": "a fresh Ratchet final"}
 CALIBRATION_NAMES = {"S": "the correct reference", "F": "the reference, padded", "L": "a stated requirement broken"}
 PAIRS = (("S", "L"), ("S", "F"), ("F", "L"))
 JUDGES = ("a", "b")
@@ -660,31 +663,77 @@ def fixed(root: Path, case: str) -> None:
           + ", ".join(sorted(path.name for path in (out_dir / "prompts").glob(f"audit-{code}*.md"))))
 
 
-def clean(root: Path, fresh: Path, case: str) -> None:
-    """Lay out CASE-clean (journal section 14): three products, all to be audited afresh under new code names. S is
-    the fresh ShipLoop delivery after the look and the fix (FRESH/fix/CASE/work), F the fresh delivery itself
-    (FRESH/delivered/CASE), L last night's Ratchet final (the copy under ROOT/deep/CASE/products)."""
-    case_dir, out_dir = root / "deep" / case, root / "deep" / f"{case}-clean"
+def lay_out(root: Path, case: str, suffix: str, sources: tuple) -> None:
+    """Lay out CASE-SUFFIX: CASE's request, starting files and inventory, and each source as a product under a new
+    code name (drawn by the seed "deep-judge codes CASE SUFFIX", in the order given), all to be audited afresh. A
+    source is (point, folder, spec, commit). Without a commit the folder is copied, less `.git` and `node_modules`;
+    with one, the folder is a Git repository and the product is that commit's files, exported as measure.py exports
+    a run's starting files."""
+    case_dir, out_dir = root / "deep" / case, root / "deep" / f"{case}-{suffix}"
     if (out_dir / "key.json").exists():
         raise SystemExit(f"{out_dir} is already laid out")
-    old = next(code for code, entry in load(case_dir / "key.json").items() if entry["point"] == "L")
-    sources = (("S", fresh / "fix" / case / "work", "docs/shiploop/spec.md"),
-               ("F", fresh / "delivered" / case, "docs/shiploop/spec.md"),
-               ("L", case_dir / "products" / old, "ratchet/spec.md"))
+    missing = [str(folder) for _, folder, _, _ in sources if not folder.is_dir()]
+    if missing:  # checked before anything is made, so a failed layout leaves no folder that blocks the next try
+        raise SystemExit(f"{case}-{suffix}: no folder {', '.join(missing)}")
     (out_dir / "prompts").mkdir(parents=True)
     for name in ("request.md", "inventory.json", "inventory.md"):
         shutil.copy2(case_dir / name, out_dir / name)
     shutil.copytree(case_dir / "base", out_dir / "base")
-    chooser = random.Random(f"deep-judge codes {case} clean")
+    chooser = random.Random(f"deep-judge codes {case} {suffix}")
     key = {}
-    for point, tree, spec in sources:
+    for point, folder, spec, commit in sources:
         code = f"p{chooser.randrange(16 ** 6):06x}"
-        shutil.copytree(tree, out_dir / "products" / code, ignore=SKIP)
-        key[code] = {"point": point, "tree": str(tree), "spec": spec}
+        product = out_dir / "products" / code
+        if commit:
+            product.mkdir(parents=True)
+            archive = subprocess.run(["git", "-C", str(folder), "archive", commit], capture_output=True, check=True).stdout
+            subprocess.run(["tar", "-x", "-C", str(product)], input=archive, check=True)
+            key[code] = {"point": point, "tree": str(folder), "commit": commit, "spec": spec}
+        else:
+            shutil.copytree(folder, product, ignore=SKIP)
+            key[code] = {"point": point, "tree": str(folder), "spec": spec}
     dump(out_dir / "key.json", key)
     write_audit_prompts(out_dir)
-    print(f"{case}-clean: " + ", ".join(f"{code} {entry['point']}" for code, entry in key.items()) + "; audit prompts: "
+    print(f"{case}-{suffix}: " + ", ".join(f"{code} {entry['point']}" for code, entry in key.items()) + "; audit prompts: "
           + ", ".join(sorted(path.name for path in (out_dir / "prompts").glob("audit-*.md"))))
+
+
+def clean(root: Path, fresh: Path, case: str) -> None:
+    """Lay out CASE-clean (journal section 14): three products, all to be audited afresh under new code names. S is
+    the fresh ShipLoop delivery after the look and the fix (FRESH/fix/CASE/work), F the fresh delivery itself
+    (FRESH/delivered/CASE), L last night's Ratchet final (the copy under ROOT/deep/CASE/products)."""
+    case_dir = root / "deep" / case
+    old = next(code for code, entry in load(case_dir / "key.json").items() if entry["point"] == "L")
+    lay_out(root, case, "clean", (("S", fresh / "fix" / case / "work", "docs/shiploop/spec.md", None),
+                                  ("F", fresh / "delivered" / case, "docs/shiploop/spec.md", None),
+                                  ("L", case_dir / "products" / old, "ratchet/spec.md", None)))
+
+
+def ratchet_final(ratchet: Path, case: str) -> tuple:
+    """A Ratchet run's final as `prepare` takes it: the commit measure.py records as the point `final` (run.json's
+    last snapshot), in the run's work repository. `prepare` copies measure.py's clone checked out at that commit; the
+    clone is made only by the parts that read it, so the commit is exported from the run's own repository instead.
+    On last night's four runs both give the same files."""
+    label = f"{case}-2"  # the Ratchet arm's run, as in POINTS
+    path = ratchet / "measure" / label / "measures.json"
+    if not path.exists():
+        raise SystemExit(f"{path} is missing: run `measure.py {ratchet} {label}` first (any part); it records the "
+                         "run's final commit")
+    record = load(path)
+    commit = (record.get("points") or {}).get("final")
+    if record.get("arm") != "ratchet" or record.get("case") != CASES[case] or not commit:
+        raise SystemExit(f"{path} records no final point of a Ratchet run of {CASES[case]}")
+    return ratchet / label / "work", commit
+
+
+def fresh_runs(root: Path, fresh: Path, ratchet: Path, case: str) -> None:
+    """Lay out CASE-fresh (journal section 16.1): three products, all to be audited afresh under new code names. S and
+    F are CASE-clean's (FRESH/fix/CASE/work and FRESH/delivered/CASE); L is the final of a fresh Ratchet run,
+    RATCHET/CASE-2, exported at the commit its measure record names."""
+    work, commit = ratchet_final(ratchet, case)
+    lay_out(root, case, "fresh", (("S", fresh / "fix" / case / "work", "docs/shiploop/spec.md", None),
+                                  ("F", fresh / "delivered" / case, "docs/shiploop/spec.md", None),
+                                  ("L", work, "ratchet/spec.md", commit)))
 
 
 def grade_class(kind: str, grade: str | None) -> str:
@@ -891,8 +940,9 @@ def facts_of(case_dir: Path, code: str, inv: dict, probed: list, primary: bool) 
 
 def judges_of(case: str) -> tuple:
     """The judges whose verdicts count for a case. The owner, 2026-11-22, after the twelve products were judged by
-    both families: "just use opus for the judge to speed things up". The fixed-product cases are judged by Opus."""
-    return ("a",) if case.endswith(("-fixed", "-clean")) else JUDGES
+    both families: "just use opus for the judge to speed things up". The derived cases (fixed, clean and fresh) are
+    judged by Opus."""
+    return ("a",) if case.endswith(("-fixed", "-clean", "-fresh")) else JUDGES
 
 
 def judged(case_dir: Path, case: str, key: dict) -> dict:
@@ -919,6 +969,7 @@ def score(root: Path, out_dir: Path) -> None:
               for path in sorted((root / "deep").glob("calibration*"))}
     fixes = {f"{case}-fixed": f"{name}, after one look and one fix" for case, name in CASES.items()}
     fixes.update({f"{case}-clean": f"{name}, clean ShipLoop run with one look and one fix" for case, name in CASES.items()})
+    fixes.update({f"{case}-fresh": f"{name}, fresh runs of both tools" for case, name in CASES.items()})
     for case, full_name in {**CASES, **fixes, **rounds}.items():
         case_dir = root / "deep" / case
         if not (case_dir / "defects-probed.json").exists():
@@ -928,7 +979,7 @@ def score(root: Path, out_dir: Path) -> None:
             continue
         key, inv = load(case_dir / "key.json"), load(case_dir / "inventory.json")
         names = (CALIBRATION_NAMES if case.startswith("calibration") else FIXED_NAMES if case.endswith("-fixed")
-                 else CLEAN_NAMES if case.endswith("-clean") else NAMES)
+                 else CLEAN_NAMES if case.endswith("-clean") else FRESH_NAMES if case.endswith("-fresh") else NAMES)
         code_of = {entry["point"]: code for code, entry in key.items()}
         probed = load(case_dir / "defects-probed.json")["defects"]
         facts = {point: facts_of(case_dir, code, inv, probed, True) for point, code in code_of.items()}
@@ -1034,8 +1085,12 @@ def main(argv=None) -> int:
     if command == "clean" and len(rest) == 3 and rest[2] in CASES:
         clean(Path(rest[0]).expanduser().resolve(), Path(rest[1]).expanduser().resolve(), rest[2])
         return 0
+    if command == "fresh" and len(rest) == 4 and rest[3] in CASES:
+        fresh_runs(Path(rest[0]).expanduser().resolve(), Path(rest[1]).expanduser().resolve(),
+                   Path(rest[2]).expanduser().resolve(), rest[3])
+        return 0
     derived = rest[1:] and (rest[1].startswith("calibration") or rest[1].removesuffix("-fixed") in CASES
-                            or rest[1].removesuffix("-clean") in CASES)
+                            or rest[1].removesuffix("-clean") in CASES or rest[1].removesuffix("-fresh") in CASES)
     if command in steps and len(rest) == 2 and (rest[1] in CASES or (derived and command in late)):
         steps[command](Path(rest[0]).expanduser().resolve(), rest[1])
         return 0
