@@ -1,0 +1,64 @@
+{
+ "ratings": [
+  {
+   "id": "U-1",
+   "rating": "should",
+   "why": "A FEN is the only input, so a hang or a quietly wrong move list on a broken or impossible position would mislead a caller, while any clear exception meets the request."
+  },
+  {
+   "id": "U-2",
+   "rating": "no",
+   "why": "The request's position is a full FEN whose output already includes both clocks, so the four-field EPD form is a separate format a builder can leave unsupported."
+  },
+  {
+   "id": "U-3",
+   "rating": "must",
+   "why": "applyMove is specified to play exactly the lowercase UCI strings from legalMoves or throw IllegalMoveError, so coercing case, SAN, a bare or extra promotion letter, or e1h1 would play a move the caller did not make."
+  },
+  {
+   "id": "U-4",
+   "rating": "should",
+   "why": "Callers catch the exported IllegalMoveError and also use ordinary Error logging, so whether the class extends Error changes debugging, while the wording of the message and any extra fields are a smaller choice."
+  },
+  {
+   "id": "U-5",
+   "rating": "must",
+   "why": "Castling and en passant are requested rules, and a rights flag or en-passant square with no matching piece has to leave the board intact and omit that move or the move list and the resulting position are wrong."
+  },
+  {
+   "id": "U-6",
+   "rating": "no",
+   "why": "status is limited to ongoing, check, checkmate, and stalemate, so the fifty-move rule, insufficient material, and repetition stay outside the engine and those positions remain ongoing with moves still generated."
+  },
+  {
+   "id": "U-7",
+   "rating": "must",
+   "why": "Pins, en-passant discovered check, loss of castling rights when a corner rook is captured, and promotion captures are part of the rules that were requested, and they are already wrong when a depth-2 count of the start position still matches."
+  },
+  {
+   "id": "U-8",
+   "rating": "no",
+   "why": "The 50 ms and 2 second figures are wide for one legalMoves call and a depth-2 count from the start, and the request names neither a position, a cold-or-warm procedure, nor a timing assertion in npm test."
+  },
+  {
+   "id": "U-9",
+   "rating": "should",
+   "why": "The customer required tests for the named games, castling, en passant, promotion, stalemate, and standard move counts, so the maintainer cares that those assertions really lock the rules, while more than one fixture set and depth would satisfy the request."
+  },
+  {
+   "id": "U-10",
+   "rating": "no",
+   "why": "The signatures, UCI spelling, always-set en-passant convention, and npm test script are already fixed by the request and package.json, so a README or doc comment is optional for this small module."
+  },
+  {
+   "id": "U-11",
+   "rating": "must",
+   "why": "Every call is defined as a position string in and a result out, so a saved FEN has to yield the same moves, status, and next position after other games, other branches, or a rejected move."
+  },
+  {
+   "id": "U-12",
+   "rating": "should",
+   "why": "IllegalMoveError is part of the contract the customer named, so a careful suite asserts that an illegal move throws it, while an exhaustive invalid-FEN matrix goes beyond the tests that were listed."
+  }
+ ]
+}

@@ -1,0 +1,250 @@
+# Inventory
+
+## Stated requirements
+
+- **S-1**: The app is a finished, working chat application running on this computer: I can open it, ask for help in ordinary language and get a useful reply.
+- **S-2**: It is a Node.js app with no npm dependencies.
+- **S-3**: `node server.js` serves the app on the port in the PORT environment variable, and on port 3000 when PORT is unset.
+- **S-4**: GET / is the app.
+- **S-5**: Everything the app keeps lives under the folder named by the DATA_DIR environment variable (default `./data`).
+- **S-6**: What the app keeps survives a restart: bots, conversations, messages, memory, saved instructions, saved tasks, a token saved with Save token, confirmed record changes and long-task results.
+- **S-7**: Every assistant reply comes from the stand-in in `provider/`, used as it is (not edited, copied or replaced).
+- **S-8**: Every reply text shown is the stand-in's `output.text`, and the app acts on the stand-in's other fields: remember, forget, clarify, proposal, task and steer.
+- **S-9**: The stand-in's commands match regardless of capitals, and the first rule that fits the person's last message is the one used.
+- **S-10**: The records the assistant may work with are the synthetic ones in `records/`; a person may read, and ask to change, only the records whose readers include that person's id.
+- **S-11**: From the starting records, Maya (maya) can use ORD-1001, ORD-1002, ORD-1004, ACC-2001 and ACC-2003; Theo (theo) can use ORD-1001, ORD-1003, ACC-2001 and ACC-2002; Ana (ana) can use ORD-1004, ACC-2001 and ACC-2003.
+- **S-12**: `records/people.json` and `records/records.json` are the starting state and stay as they are; the app keeps its own working copy of the records under its data folder, so a confirmed change survives a restart.
+- **S-13**: Starting with an empty data folder gives the starting records again.
+- **S-14**: A record a person creates is theirs: its `readers` is that person alone, and a new order's `id` is the next free `ORD-` number.
+- **S-15**: The conversation is the center of the experience, with polished typography, comfortable reading and clear composition.
+- **S-16**: Replies are presented so that they explain what matters without overwhelming me.
+- **S-17**: A follow-up is understood from the open conversation: the stand-in receives that conversation's messages, oldest first, ending with the new person message, and no other conversation's messages.
+- **S-18**: A reply is given only the open bot's memory of this person, this conversation's history and the records this person may read.
+- **S-19**: `what did I ask first` replies `You first asked: "<first person message>".` when this conversation already contains an earlier person message, and `This is the first thing you've asked.` when it does not.
+- **S-20**: Any other person message replies `You said: "<text>". (<bot name> has N message(s) from you in this conversation.)`, where <text> is the message with `[fail once]` and `[slow]` removed and the ends trimmed, and N counts the person messages in this conversation including this one.
+- **S-21**: The bot asks a useful clarifying question when needed, and my next message is taken as the answer to it (sent with the conversation so far), helping me reach an answer or finish a task.
+- **S-22**: I can name my bots.
+- **S-23**: I can keep multiple saved conversations for a bot and return to the right bot and discussion, with that discussion's messages still there, without losing my place.
+- **S-24**: I can save reusable instructions, use them again and change them.
+- **S-25**: I can save reusable tasks, use them again and change them.
+- **S-26**: I can inspect what a bot remembers about me.
+- **S-27**: I can correct a mistake in what a bot remembers about me.
+- **S-28**: Asking a bot to remember something adds it to what that bot remembers about me: `remember that <fact>` replies `I'll remember that <fact>.` and adds that fact.
+- **S-29**: Asking a bot to forget something removes it: `forget <fact>` and `forget that <fact>` reply `I've forgotten "<fact>".` and remove that fact from what this bot remembers about me.
+- **S-30**: `what do you remember` replies `I remember: <facts joined by "; ">.` when this bot has facts for me, and `I don't remember anything about you yet.` when it has none.
+- **S-31**: My information stays separate from another user's: my bots, conversations, messages, memory, saved instructions, saved tasks and long tasks are not shown to or used for another person.
+- **S-32**: Each bot's memory stays separate from my other bots.
+- **S-33**: What a bot remembers about me is the same in all of that bot's conversations.
+- **S-34**: Questions about the records get accurate answers grounded only in records I am allowed to read, and I can follow up naturally.
+- **S-35**: `how many orders can you see` replies `I can see N order record(s).` and `how many accounts can you see` replies `I can see N account record(s).`, with N counted only from records that person may read.
+- **S-36**: `what is the <field> of <ID>` replies `The <field> of <record id> is <value>.` for a readable record with that field, `<record id> has no <field>.` when it lacks the field, and `I can't see a record called <ID>.` when the person cannot see it; typed ids match without regard to capitals.
+- **S-37**: When I ask to create or update something, I see the exact proposed changes before deciding.
+- **S-38**: `set the <field> of <ID> to <value>` on a readable record replies `I propose one change: <record id> <field>: <from> → <to>. Confirm to apply it.` and writes nothing; on a record the person cannot see it replies `I can't see a record called <ID>.` and writes nothing.
+- **S-39**: `update <ID>` on a readable record replies `Which field of <record id> should I change, and to what value?` and writes nothing; `the <field> to <value>` right after that question produces the same proposal as `set the <field> of <ID> to <value>`.
+- **S-40**: `create an order for <customer> totalling <number>` replies `I propose creating one order: customer <customer>, total <number>, status open. Confirm to apply it.` and writes nothing.
+- **S-41**: Nothing is written until I explicitly confirm the proposal with Confirm changes.
+- **S-42**: After a field change is confirmed, a later question from that person returns the new value, and the record's other fields stay as they were.
+- **S-43**: Confirming a create stores one order with that customer, that total and status open; the creator can then read it and another person cannot.
+- **S-44**: Rejecting or cancelling a proposal leaves the records alone: a later question still returns the old value, and a rejected create stores nothing.
+- **S-45**: Repeating an action, such as a confirm, or reloading at an awkward moment does not apply it twice.
+- **S-46**: I am told, and can understand, what actually happened to a proposal.
+- **S-47**: `long task: <title>` or `research: <title>` replies `I'll work on "<subject>" in the background and tell you when it is done.` and runs that task's steps in the background, one `runStep` at a time, in order (the subject is the title with bracket markers removed).
+- **S-48**: A task title without `[long]` has three steps (`Collect what is known about <subject>`, `Compare the options for <subject>`, `Write the summary of <subject>`); a title containing `[long]` adds `Check part 1 of <subject>` through `Check part 5 of <subject>` before the summary, eight steps in all.
+- **S-49**: Each step takes STANDIN_STEP_MS milliseconds (500 unless set), and a completed step's stand-in result is `Done: <step text>`.
+- **S-50**: Longer tasks continue doing useful work while the app is closed.
+- **S-51**: When I return, I get an honest account of what finished, what is still happening and anything that needs my attention.
+- **S-52**: I can steer ongoing work with a follow-up: `add step: <text>` replies `I'll add "<text>" to the task that is running.` and adds that step at the end of my running task in this conversation.
+- **S-53**: The conversation stays usable while a task runs: I can send a follow-up and get its reply while Task status reads Running.
+- **S-54**: I can cancel ongoing work, with a clear explanation of what can still be stopped and what has already happened.
+- **S-55**: If something fails or is interrupted, the app helps me recover without guessing (a step is not shown as finished unless it finished) or losing the conversation.
+- **S-56**: A task title containing `[fail step 2]` fails its second step on the first attempt: Task status reads Failed, the steps that had already finished stay recorded, and the conversation remains.
+- **S-57**: Setup is guided and recoverable and explains what I need without exposing secrets.
+- **S-58**: Everyday use is comfortable on a desktop, in a narrow window and with the keyboard: the named textboxes and buttons can be reached and used from the keyboard.
+- **S-59**: There are no passwords: the first screen offers a button named Continue as <name> for each person in `records/people.json` (Continue as Maya, Continue as Theo, Continue as Ana).
+- **S-60**: After continuing, a button named Switch person brings the first screen back.
+- **S-61**: What I see, and what my bots remember, belongs to the person I continued as, including after Switch person and continuing back as the first person.
+- **S-62**: Reloading the page keeps me as the person I continued as.
+- **S-63**: At a desktop width of 1440 pixels everything named in the request is on the main screen without opening a menu, including Setup, Proposed changes, Change result and Since you were away when they apply.
+- **S-64**: In a narrow window parts may be folded away, but reading the conversation and writing a message stay in view.
+- **S-65**: When no provider token has been saved, a region named Setup explains what is needed without exposing a token, with a textbox named Provider token and a button named Save token.
+- **S-66**: The provider accepts a token that is the text `sk-local-` followed by at least twelve letters or digits, and refuses a missing or other token.
+- **S-67**: A token the provider refuses shows an alert and lets me try again from Setup.
+- **S-68**: Saving an accepted token dismisses Setup, and later replies use it.
+- **S-69**: A token in the PROVIDER_TOKEN environment variable counts as saved: Setup is not shown, the token is not shown, and replies work.
+- **S-70**: Once saved, the token is never shown again, in any page or any response, including after a restart.
+- **S-71**: A navigation named Bots lists my bots as buttons named with each bot's name, with the open one marked as current.
+- **S-72**: A button named New bot, a textbox named Bot name and a button named Save bot name create a bot and open it, and my existing bots remain.
+- **S-73**: A button named Rename bot uses the Bot name textbox and Save bot name button to rename the open bot, which is then listed under the new name.
+- **S-74**: A person who has never used the app starts with one bot named Assistant.
+- **S-75**: A navigation named Conversations lists the open bot's conversations as buttons, with the open one marked as current.
+- **S-76**: A button named New conversation starts a conversation.
+- **S-77**: A region named Conversation holds the messages as articles named Message from <name>, with my name or the bot's name, each showing that message.
+- **S-78**: A textbox named Message and a button named Send write my message into the open conversation.
+- **S-79**: Enter in the Message textbox sends the message.
+- **S-80**: Shift+Enter in the Message textbox makes a new line and does not send.
+- **S-81**: While a reply is on its way, a status says so; a message containing `[slow]` waits STANDIN_SLOW_MS milliseconds (1500 unless set) before the reply, and the status shows during that wait.
+- **S-82**: If a reply fails, an alert says so.
+- **S-83**: A button named Retry tries the failed reply again without adding my message a second time; a message containing `[fail once]` fails on its first attempt and succeeds on Retry.
+- **S-84**: A region named Saved instructions has textboxes named Instruction name and Instruction text and a button named Save instruction; saving adds that named instruction.
+- **S-85**: Each saved instruction has buttons named Use <name>, Edit <name> and Delete <name>.
+- **S-86**: Use <name> makes that saved text the open bot's instructions from the next reply on, including in that bot's other conversations, and does not change another bot's instructions.
+- **S-87**: With no instructions, `who are you` replies `I am <bot name>. I have no special instructions.`; after instructions are set, it replies `I am <bot name>. My instructions: <instructions>`.
+- **S-88**: Edit <name> on an instruction puts it back into the Instruction name and Instruction text textboxes, to change and save again under the same name.
+- **S-89**: Delete <name> on an instruction removes that saved instruction.
+- **S-90**: A region named Saved tasks has textboxes named Task name and Task request and a button named Save task; saving adds that named task.
+- **S-91**: Each saved task has buttons named Run <name>, Edit <name> and Delete <name>.
+- **S-92**: Run <name> sends that task's request in the open conversation as a message from me, and the bot's reply appears there.
+- **S-93**: Edit <name> on a task puts it back into the Task name and Task request textboxes, to change and save again under the same name.
+- **S-94**: Delete <name> on a task removes that saved task.
+- **S-95**: A region named Memory lists what the open bot remembers about me as list items, each showing that fact.
+- **S-96**: Each memory list item has buttons named Edit memory and Forget.
+- **S-97**: Forget removes that item from what the open bot remembers about me.
+- **S-98**: Editing a memory uses a textbox named Memory text and a button named Save memory, and Save memory updates that item to the saved text.
+- **S-99**: A proposal appears in a region named Proposed changes that states each change exactly (for example `ORD-1001 status: open → closed`), with buttons named Confirm changes and Reject changes.
+- **S-100**: After a proposal is decided, a region named Change result says what happened.
+- **S-101**: A region named Tasks shows each long task as an article named Task: <title>, using the stand-in's task title.
+- **S-102**: Each task article holds a status named Task status that reads Running, Completed, Failed, Cancelled or Interrupted.
+- **S-103**: Each task article shows the steps that have finished.
+- **S-104**: Each task article has a button named Cancel task while it runs.
+- **S-105**: When every step has finished successfully, Task status reads Completed.
+- **S-106**: Each task article has a button named Retry task after a failure or an interruption.
+- **S-107**: When I come back after being away, a region named Since you were away tells me what finished, what is still running and what needs my attention.
+- **S-108**: The rules the app follows are in modules it uses, covered by node:test tests under test/ that `npm test` runs.
+
+## Conditions the request leaves unsaid
+
+- **U-1**: Whether the current person is held per browser, per tab, or as one person for the whole server when two clients are open at once.
+  - Probe: Save a valid provider token. In browser A, Continue as Maya and send `hello from Maya`. In a second browser or private window, Continue as Theo and send `hello from Theo`. Reload each. Read which person each browser shows, which messages each conversation holds, and what a further send from browser A does after Theo has continued in browser B. Repeat with two tabs of the same browser.
+  - Outcomes that would be acceptable: Each browser keeps its own person; or all tabs in one browser share one person while a private window can be another; or the server has one current person and the latest Continue as changes it for every client. In every case personal data stays with the person a client is acting as.
+- **U-2**: Whether the person's identity is checked by the server on every request, or only chosen in the page.
+  - Probe: As Maya, note the id of a conversation, a memory item and a pending proposal from the page's network requests. Switch person to Ana. Replay the requests for Maya's conversation and memory, and a confirm of Maya's proposal, from Ana's session. Read the responses and ask Maya's question about the record afterwards.
+  - Outcomes that would be acceptable: Refused (for example 403 or 404) or empty; any answer that never returns or changes another person's data.
+- **U-3**: What else is on the first screen besides the Continue as buttons, whether a token must be saved before a person can continue, and who a reload belongs to while the Continue as screen is up.
+  - Probe: With no token saved and an empty data folder, open GET /. Note whether Setup and the chat controls are present before Continue as. Save `sk-local-abcdefghijkl`, then see whether the Continue as buttons are still required. Continue as Maya, click Switch person, and reload. See which screen returns and whether a message can be sent before choosing again.
+  - Outcomes that would be acceptable: The first screen is only the person buttons (plus Setup when no token is saved), or the main controls are visible but inert until a person continues. Saving a token and choosing a person may happen in either order. After Switch person, a reload may stay on the chooser or return to the person who last continued. Data already stored for a person stays that person's.
+- **U-5**: Which token is used when both PROVIDER_TOKEN and a saved token exist, and whether a token from the environment is copied into the data folder.
+  - Probe: Run with PROVIDER_TOKEN=`sk-local-abcdefghijkl` and confirm Setup is absent and a reply works. Save a different accepted token through Setup if the screen allows it and send `who are you`. Restart once with the variable still set and once with it unset; each time open GET / and send a message.
+  - Outcomes that would be acceptable: Either source may win, if stated. The environment token may be used only while set, or kept in the data folder. A token is never shown in a page or response.
+- **U-6**: What happens when the token in use is refused: an invalid PROVIDER_TOKEN at start, or a saved token that stops being accepted during use.
+  - Probe: Start with PROVIDER_TOKEN=`not-a-token` and open GET /. Then start with PROVIDER_TOKEN=`sk-local-short`, Continue as Maya and send `hello`. Read the alert, whether Setup is offered, and whether a new accepted token can be saved and the message retried.
+  - Outcomes that would be acceptable: An invalid environment token is treated as unsaved and Setup is shown, or the refusal alert appears with a route back to Setup; any route that lets the person recover without exposing the token.
+- **U-7**: Whether the token is stored in plain text under DATA_DIR and whether it leaks into logs or error messages.
+  - Probe: Save a token. Search the server output, every API response and the files under DATA_DIR for the token text. Trigger a provider error (for example with `hello [fail once]`) and read the alert and the server output.
+  - Outcomes that would be acceptable: Stored on disk is fine if never sent to the browser or logged; plain or obscured storage, if stated.
+- **U-8**: Whether Assistant, a bot made with New bot, or a conversation made with New conversation starts open and empty, and what a brand-new bot contains.
+  - Probe: With an empty data folder, Continue as Ana and read the Conversations navigation, the Conversation region, and whether Send works before New conversation. Ask `who are you` and `what do you remember`. Click New bot, save the name Clerk, and look at Clerk's conversations, Memory and `who are you`. Click New conversation and see which conversation is marked current.
+  - Outcomes that would be acceptable: A new person or bot already has one empty open conversation; or Send creates the first conversation; or New conversation is required first. A new bot has no memories and no instructions, or a generic welcome that is not another bot's. New conversation may become the open one or leave the previous one open.
+- **U-9**: How empty, blank, unusually long or duplicate bot names are handled, and whether bots that share a name can be told apart.
+  - Probe: Click New bot, leave Bot name empty and click Save bot name. Then create a second bot named Assistant, give each Assistant a different discussion, switch away, and inspect the Bots navigation visually and by accessible name. Try a 300-character name.
+  - Outcomes that would be acceptable: Blank names refused with a message; duplicates refused, or allowed with each bot distinguishable before selecting it; long names refused, accepted intact or shortened only for display.
+- **U-11**: How conversation buttons are named and ordered, so that conversations, including empty ones and ones with similar openings, can be told apart before opening them.
+  - Probe: In one bot click New conversation twice and read the accessible names in the Conversations navigation. Then start two conversations whose first messages share a long opening and end in different customer names. Return to Conversations and read the button names and order, visually and by accessible name.
+  - Outcomes that would be acceptable: Named by first message, time, a title or a generated label, in any order, as long as each entry can be identified before selecting it and the open one is marked current.
+- **U-13**: Which bot and conversation are open after reloading, after Switch person and back, after a new visit and after a server restart, and whether an unsent draft and the scroll position survive.
+  - Probe: As Maya open bot Second, its second conversation, scroll up, and type an unsent message. Reload. Switch person to Theo and back to Maya. Close the browser and open the app again. Restart the server and reload. Each time read the open bot, open conversation, the Message box and the scroll position.
+  - Outcomes that would be acceptable: The last-open bot and conversation restored per person, or a stated default conversation when none is restored; the draft and scroll position kept or not, as long as the place is.
+- **U-14**: Whether saved instructions and saved tasks belong to the person (shared by all their bots) or to one bot.
+  - Probe: As Maya, on Assistant, save instruction Tone = `Be brief` and task Ping = `hello`. Create and open a bot named Other and look at Saved instructions and Saved tasks. If listed, Use Tone and Run Ping, switch back to Assistant and ask `who are you`. Then Switch person, Continue as Theo and look again.
+  - Outcomes that would be acceptable: One library per person shown for every bot, with Use and Run affecting only the open bot and conversation; or a separate library per bot. Never visible to another person.
+- **U-15**: What Save instruction or Save task does when the name already exists and Edit was not used, or when the name or text is empty.
+  - Probe: Save instruction A = `x`; save instruction A = `y` without pressing Edit; count the Use A buttons and check with `who are you` after Use A which text applies. Try to save with an empty name and with empty text. Repeat for Save task.
+  - Outcomes that would be acceptable: Overwrite with a notice, refuse with a message, or ask; empty fields refused. Not two entries with one name.
+- **U-16**: What happens when Edit <name> is used and the Instruction name or Task name is changed before saving.
+  - Probe: Save instruction Tone = `Be brief`. Click Edit Tone, change Instruction name to Style, and save. Read the Saved instructions buttons. Repeat for a saved task.
+  - Outcomes that would be acceptable: Saving keeps the original name, renames the same item, or creates a second item, as long as Use, Edit, Delete and Run point at the items the person can see.
+- **U-17**: What happens to a bot's instructions when the saved instruction it uses is later edited or deleted.
+  - Probe: Save instruction Tone = `Be formal`, click Use Tone, send `who are you`. Edit Tone to `Be casual`, save, and send `who are you` without using Use. Then Delete Tone and send `who are you` again.
+  - Outcomes that would be acceptable: The bot follows the saved instruction (an edit updates, a delete clears), or keeps the copy taken at Use until another Use; either, if what the bot now uses is visible or explained.
+- **U-20**: What happens if I send again, switch conversation, reload, switch person, or lose the acknowledgement while a reply is still on its way.
+  - Probe: Send `hello [slow]` and press Enter again at once. Send another `[slow]` message and switch to a different conversation, then back. Send one and reload during the wait. As Maya send `set the status of ORD-1001 to closed [slow]` and Switch person to Theo before it returns, then back to Maya. Send `long task: alpha [slow]`, close the page before it acknowledges, reopen, and try sending the same text again.
+  - Outcomes that would be acceptable: Send disabled while pending, or messages queued in order. The person's message is stored once and its reply lands in its own conversation for its own person, kept after reload; Theo sees nothing of Maya's reply or proposal. A received turn is shown as received and is not started twice by recovery, while a deliberate new send still can be.
+- **U-21**: What Retry does after a reload or a server restart, what happens to a failed message if I send a new one instead, and whether a reply interrupted by stopping the server is retried automatically.
+  - Probe: Send `hello [fail once]`; at the alert, reload, then click Retry. Repeat with a server restart before Retry. Separately, at the alert send `next` instead of Retry and read the messages. Send `hello [slow]` and stop the server during the wait, start it and reopen.
+  - Outcomes that would be acceptable: Retry still offered and succeeds, or the failed message is marked failed with a way to resend; the person can tell that the message was received and that its reply failed; a new message is accepted or the person is told to retry first; an interrupted reply is retried automatically or waits for Retry. Never duplicated, never lost.
+- **U-22**: Whether `[fail once]` and `[slow]` remain in the stored person message.
+  - Probe: Send `hello [fail once]`, Retry it, then send `what did I ask first`. Compare the quotation with the Message article.
+  - Outcomes that would be acceptable: The stored message may keep or drop the markers, as long as the first attempt still fails and Retry can succeed.
+- **U-23**: Whether a memory forget that matches nothing, or a repeated remember, is reported honestly and kept tidy.
+  - Probe: Send `remember that likes tea` twice and open Memory. Send `forget tea` and `forget coffee`, read the replies and the Memory list. Then send `forget that likes tea`.
+  - Outcomes that would be acceptable: Duplicates merged or shown; a non-matching forget flagged, or matched loosely and shown; the Memory list is the truth; an exact forget removes the fact.
+- **U-25**: Whether Memory text starts filled with the fact being edited.
+  - Probe: Send `remember that likes tea`. Click Edit memory and read Memory text before typing. Save a one-word change and read the Memory list.
+  - Outcomes that would be acceptable: Memory text starts with the current fact, or empty, as long as Save memory updates the item being edited.
+- **U-26**: Whether management actions (Save instruction, Use, Edit, Delete, Save task, Rename, Save memory, Forget) add messages to the conversation.
+  - Probe: Click Save instruction, Use, Delete, Save task, Rename bot, Save memory and Forget in turn, and after each see whether a new Message article appeared; then send `what did I ask first`.
+  - Outcomes that would be acceptable: Management actions other than Run add no message, or add a note; Run, Send and memory phrases typed into Message do write to the conversation.
+- **U-27**: Whether Memory and task progress update while the page stays open.
+  - Probe: Send `remember that likes tea` and, without reloading, read Memory. Start `long task: alpha` and, without reloading, watch Task status and the finished steps until they stop changing.
+  - Outcomes that would be acceptable: They update on their own while the page is open, or on reload, if stated.
+- **U-29**: Whether a proposal that changes `readers`, `id`, `type` or `owner` is offered and applied.
+  - Probe: As Maya send `set the readers of ORD-1001 to ana` and confirm; send `set the id of ORD-1004 to ORD-9999` and confirm; check which records Maya, Theo and Ana can read.
+  - Outcomes that would be acceptable: Refused with an explanation, or allowed only with a clear warning; never silently changing who may read a record or breaking a record.
+- **U-30**: Whether a proposed value is validated (a word into a number field, a field the record does not have, an unknown status, a decimal amount), and whether the person is told how to correct it.
+  - Probe: As Maya send `set the total of ORD-1001 to banana`, `set the colour of ORD-1001 to red` and `create an order for Acme totalling 42.50`; confirm whatever is offered; ask `what is the total of ORD-1001`. Then send a corrected request in the same conversation.
+  - Outcomes that would be acceptable: Refuse or warn before confirm, saying what to correct, with the corrected request working in the same conversation; or apply exactly what was shown. Either if the proposal states the exact change.
+- **U-31**: How long an undecided proposal lasts (reload, restart, switching conversation, later messages), whether an older proposal can be confirmed after a newer one, which gestures confirm or cancel it, and what the controls show after a decision.
+  - Probe: As Maya send `set the status of ORD-1001 to closed`. Press Enter in Message, reload, restart the server and reload; read whether the status changed and the proposal remains. Switch to another conversation and back. Send a second set command before deciding the first; Reject one, then try Confirm changes on each, and click Confirm again after a decision. Read Change result and ask `what is the status of ORD-1001`.
+  - Outcomes that would be acceptable: Kept and decidable, or expired or dropped with a clear message; only Confirm changes confirms, or Enter too; afterwards the buttons disappear, are disabled, or a later click writes nothing. Never applied without a confirm and never twice.
+- **U-32**: How a proposed create is worded before confirm, including whether its order id is previewed.
+  - Probe: As Maya send `create an order for Northwind totalling 40` and read Proposed changes. Before confirming, ask `how many orders can you see`. Confirm and compare any previewed id with the stored one.
+  - Outcomes that would be acceptable: The stand-in's sentence, or customer, total and status open listed, with or without a preview id; a previewed id is the one stored or marked provisional. Nothing stored before Confirm changes.
+- **U-33**: What Confirm does when the record no longer has the proposed `from` value (another reader changed it, or an earlier proposal on the same field was confirmed).
+  - Probe: As Maya send `set the status of ORD-1001 to closed` and do not confirm. In another browser as Theo, or in another of Maya's conversations, send `set the status of ORD-1001 to shipped` and confirm. Back in the first, click Confirm changes; read Change result and ask `what is the status of ORD-1001`.
+  - Outcomes that would be acceptable: Refused as stale with a new proposal offered, or applied with Change result stating the actual from-value; not a silent overwrite reported as 'open → closed'. The same confirm never writes twice.
+- **U-34**: How the next free ORD- number is chosen when two create proposals are pending at once or two people create orders, and what 'next free' means.
+  - Probe: As Maya send `create an order for North totalling 10` and, without confirming, as Ana send `create an order for South totalling 20`; confirm both. Ask `what is the customer of ORD-1005` and `ORD-1006` as each person.
+  - Outcomes that would be acceptable: Assigned at confirm time or reserved at proposal; one more than the highest number or the lowest unused; distinct ids either way.
+- **U-35**: Whether the Change result stays visible after reload and how confirmed changes are recorded in the conversation.
+  - Probe: Confirm a proposal and reload at once; click Confirm again if still offered; look for the Change result and the conversation's record of it.
+  - Outcomes that would be acceptable: Result kept in the conversation or in the region; any persistent, honest account.
+- **U-36**: Whether a confirmed change to a record another person may also read is visible to that other person.
+  - Probe: As Maya send `set the status of ORD-1001 to closed`, Confirm changes, ask `what is the status of ORD-1001`. Switch person, Continue as Theo, ask the same. Restart the server and ask Theo again.
+  - Outcomes that would be acceptable: One working copy, so Theo sees closed, or a copy per person, so Theo sees open. The starting files stay unchanged and a person still cannot read a record that does not list them.
+- **U-37**: Which long tasks the Tasks region shows: the open conversation's, the open bot's, or all of the person's.
+  - Probe: As Maya start `long task: report [long]` in conversation 1; open conversation 2 and another bot; look at Tasks; Switch person to Theo and look again.
+  - Outcomes that would be acceptable: All of the person's tasks, or the conversation's or bot's with a way to reach the others; never another person's.
+- **U-38**: What happens when a second long task is started while one is running.
+  - Probe: In one conversation send `long task: alpha [long]` and, before it completes, `long task: beta`. Read the reply and the Tasks region until both end.
+  - Outcomes that would be acceptable: Refused, queued, or run alongside the first, as long as Tasks shows what is happening.
+- **U-39**: What `add step:` does when no task is running in the conversation, or when several are (including several with the same title), and whether the feedback identifies which task received the step.
+  - Probe: In a conversation with no running task send `add step: double-check` and read the reply and Tasks. Then start two long tasks with the same title in one conversation and send `add step: extra`; read both task articles and the feedback, visually and by accessible name.
+  - Outcomes that would be acceptable: With none running, say there is nothing to add to, or start a one-step task; with several, add to the latest or ask which, and the feedback identifies the task that got the step. Never claim an addition that did not happen.
+- **U-40**: Whether a finished, failed or cancelled task leaves a message in its conversation.
+  - Probe: Start `long task: notes` and wait for Completed; read the Conversation region; reload; then ask a follow-up.
+  - Outcomes that would be acceptable: A bot message with the result, or the result only in the task article; either if findable after reload.
+- **U-41**: What happens to a running task when the server stops and starts again (mark it Interrupted, resume it, or both), and how a step whose completion was not recorded is treated.
+  - Probe: Start `long task: audit [long]`. Close the browser for longer than eight step intervals, reopen and read Task status. Start another; after two steps finish, stop the server mid-step; start it again; reload and read Task status, the finished steps, Since you were away, whether Retry task is present and whether it continues on its own.
+  - Outcomes that would be acceptable: Interrupted with Retry task, or resumed automatically from the next unfinished step; finished steps kept, and a step that did not finish not shown as finished or silently counted.
+- **U-42**: Whether Retry task resumes at the failed step or starts the task over.
+  - Probe: Start `long task: plan [fail step 2]`; wait for Failed; click Retry task; read the step list until Completed and count the entries for step 1.
+  - Outcomes that would be acceptable: Resume at the failed step, or rerun all with the list kept clear, as long as the failed step can succeed on a later attempt.
+- **U-43**: What Cancel task does to a step already in progress, whether it asks first, and how the account separates 'already happened' from 'stopped'.
+  - Probe: Run with STANDIN_STEP_MS=3000 and start `long task: big [long]`; click Cancel task mid-step; read Task status, finished steps and the explanation; wait a few seconds and read again.
+  - Outcomes that would be acceptable: The in-flight step finishes and is listed and then the task stops, or it is discarded and said so; cancel may stop at once or ask first; status ends Cancelled and stays so.
+- **U-44**: What counts as 'being away' for the Since you were away region, which events it reports, and when reported items stop appearing.
+  - Probe: As Maya start `long task: crates [fail step 2]` and `long task: alpha`, close the tab, wait until both end, reopen; read Since you were away; reload again. Reload right after a send with nothing running, and while a proposal waits. Switch person to Ana and check it shows only Ana's work.
+  - Outcomes that would be acceptable: Since the person's last visit, or only when something changed; dismissed on reading or after a reload; needing attention may include failed or interrupted tasks and waiting proposals. Consistent with Task status, only the person's own, never inventing work.
+- **U-45**: Which parts fold away in a narrow window, how a folded part is reached again, and which narrow widths are supported.
+  - Probe: Narrow the window step by step to 375 pixels. At each width read whether Bots, Conversations, Saved instructions, Saved tasks, Memory and Tasks can be reached and by which control, and that the conversation and Message stay in view. Widen to 1440 pixels and see them on the main screen.
+  - Outcomes that would be acceptable: A disclosure or menu opens folded regions, or scrolling reaches them, or they return only when wide; any stated set of widths. At 1440 pixels they are on the main screen without a menu.
+- **U-46**: What the app does when DATA_DIR is missing, unwritable, or holds damaged or unexpected data at start.
+  - Probe: Start with DATA_DIR pointing to a folder that does not exist, then to one that cannot be written. Then put invalid JSON, or valid JSON of an unexpected shape, in one of the app's data files and start again. Each time read the process output and the page, and check the data files and `records/` files afterwards.
+  - Outcomes that would be acceptable: A missing folder created and served; otherwise refuse to start, or start and report the problem, with an actionable recovery step; damaged data kept for recovery, not overwritten or silently replaced by seeded records.
+- **U-49**: Whether the capitalization of field names in record requests keeps their meaning.
+  - Probe: As Maya send `what is the STATUS of ORD-1001` and `what is the status of ORD-1001`; then `set the Status of ORD-1001 to closed` and `set the status of ORD-1001 to closed`, rejecting each. Compare replies and previews; repeat as Ana on ORD-1001.
+  - Outcomes that would be acceptable: The same value and the same exact preview for each capitalization, with reader rules still applied; or a clear message that the field was not recognized. Never a different field or a new field silently.
+- **U-50**: Whether a lookup or change keeps the record identifier the person typed (for example ORD-1001A while ORD-1001 exists).
+  - Probe: As Maya send `what is the status of ORD-1001A` and `set the status of ORD-1001A to closed`; then `what is the status of ORD-1001`.
+  - Outcomes that would be acceptable: The reply says ORD-1001A cannot be used or found and how to correct it; ORD-1001 itself still answers. Never ORD-1001's status presented as ORD-1001A's.
+- **U-54**: What happens when storage writes fail while the app is open: whether the outcome of the save (or of a reply) is reported truthfully and recoverable.
+  - Probe: With the app open, make DATA_DIR read-only. Save an instruction, send a message and confirm a proposal. Read what the page says. Restore write access, restart with the same folder, and see what was saved.
+  - Outcomes that would be acceptable: A clear storage error with a recovery step, nothing reported as saved that was not; after recovery earlier work is present and the person can tell whether the attempted save happened; no reply left pending forever.
+- **U-57**: Whether one unexpected failure in background work takes down the whole app.
+  - Probe: Start a long task that fails (`long task: crates [fail step 2]`) and, separately, provoke a storage error during a task step (make DATA_DIR read-only mid-task); then try to read conversations, send a message and use other tasks.
+  - Outcomes that would be acceptable: The failure is reported on the affected item and the rest stays usable; or the app enters a clearly reported read-only or unavailable mode with a recovery step.
+- **U-58**: Where keyboard focus lands after an action such as Confirm changes, Reject changes or Send, especially when several proposals are on screen.
+  - Probe: Produce two proposals in view. Using only the keyboard, Reject one and read which control has focus; press Enter and see what happens. Repeat after Send and after Save memory.
+  - Outcomes that would be acceptable: Focus moves to a sensible nearby control or the result, never onto another proposal's Confirm changes.
+- **U-60**: Whether unexpected server errors are shown honestly to the person and recorded for the operator.
+  - Probe: Provoke an unexpected error (for example a malformed request body to a message or confirm endpoint, or a damaged data file during use); read the page's message and the server output.
+  - Outcomes that would be acceptable: The page says the action failed and what to try; the server output records the error without exposing the token.

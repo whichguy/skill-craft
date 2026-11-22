@@ -1,0 +1,347 @@
+{
+ "recheck": [
+  {
+   "id": "U-9",
+   "kind": "unstated",
+   "text": "How empty, blank, unusually long or duplicate bot names are handled, and whether bots that share a name can be told apart.",
+   "audits_said": {
+    "pae93f0": "poor",
+    "p8e1ce4": "poor",
+    "pe77982": "acceptable"
+   }
+  },
+  {
+   "id": "U-11",
+   "kind": "unstated",
+   "text": "How conversation buttons are named and ordered, so that conversations, including empty ones and ones with similar openings, can be told apart before opening them.",
+   "audits_said": {
+    "pae93f0": "poor",
+    "p8e1ce4": "poor",
+    "pe77982": "sound"
+   }
+  },
+  {
+   "id": "U-15",
+   "kind": "unstated",
+   "text": "What Save instruction or Save task does when the name already exists and Edit was not used, or when the name or text is empty.",
+   "audits_said": {
+    "pae93f0": "poor",
+    "p8e1ce4": "sound",
+    "pe77982": "sound"
+   }
+  },
+  {
+   "id": "U-39",
+   "kind": "unstated",
+   "text": "What `add step:` does when no task is running in the conversation, or when several are (including several with the same title), and whether the feedback identifies which task received the step.",
+   "audits_said": {
+    "pae93f0": "acceptable",
+    "p8e1ce4": "poor",
+    "pe77982": "acceptable"
+   }
+  },
+  {
+   "id": "U-46",
+   "kind": "unstated",
+   "text": "What the app does when DATA_DIR is missing, unwritable, or holds damaged or unexpected data at start.",
+   "audits_said": {
+    "pae93f0": "poor",
+    "p8e1ce4": "sound",
+    "pe77982": "sound"
+   }
+  },
+  {
+   "id": "U-49",
+   "kind": "unstated",
+   "text": "Whether the capitalization of field names in record requests keeps their meaning.",
+   "audits_said": {
+    "pae93f0": "poor",
+    "p8e1ce4": "acceptable",
+    "pe77982": "sound"
+   }
+  },
+  {
+   "id": "U-50",
+   "kind": "unstated",
+   "text": "Whether a lookup or change keeps the record identifier the person typed (for example ORD-1001A while ORD-1001 exists).",
+   "audits_said": {
+    "pae93f0": "poor",
+    "p8e1ce4": "poor",
+    "pe77982": "acceptable"
+   }
+  },
+  {
+   "id": "U-54",
+   "kind": "unstated",
+   "text": "What happens when storage writes fail while the app is open: whether the outcome of the save (or of a reply) is reported truthfully and recoverable.",
+   "audits_said": {
+    "pae93f0": "poor",
+    "p8e1ce4": "sound",
+    "pe77982": "sound"
+   }
+  },
+  {
+   "id": "U-57",
+   "kind": "unstated",
+   "text": "Whether one unexpected failure in background work takes down the whole app.",
+   "audits_said": {
+    "pae93f0": "poor",
+    "p8e1ce4": "acceptable",
+    "pe77982": "acceptable"
+   }
+  },
+  {
+   "id": "U-58",
+   "kind": "unstated",
+   "text": "Where keyboard focus lands after an action such as Confirm changes, Reject changes or Send, especially when several proposals are on screen.",
+   "audits_said": {
+    "pae93f0": "poor",
+    "p8e1ce4": "sound",
+    "pe77982": "sound"
+   }
+  },
+  {
+   "id": "U-60",
+   "kind": "unstated",
+   "text": "Whether unexpected server errors are shown honestly to the person and recorded for the operator.",
+   "audits_said": {
+    "pae93f0": "poor",
+    "p8e1ce4": "acceptable",
+    "pe77982": "poor"
+   }
+  }
+ ],
+ "defects": [
+  {
+   "from": "pae93f0",
+   "n": "pae93f0#1",
+   "title": "Keyboard Confirm/Reject moves focus onto the next proposal's same-named button, so a second Enter decides another proposal",
+   "severity": "medium",
+   "repro": "As Ana, send 'set the status of ORD-1004 to closed', then 'set the tier of ACC-2003 to gold' so two Proposed changes regions are on screen. Tab to the first proposal's Confirm changes and press Enter; press Enter again. Ask 'what is the tier of ACC-2003'.",
+   "observed": "After the first Enter focus sits on Confirm changes inside the ACC-2003 proposal; the second Enter confirms it; tier is gold. Same with Reject changes.",
+   "expected": "Focus moves to the Change result or the composer, never onto another proposal's decision button; the second proposal stays pending.",
+   "basis": "unstated",
+   "item": "U-58"
+  },
+  {
+   "from": "pae93f0",
+   "n": "pae93f0#2",
+   "title": "A capitalised field name in a change request creates a second field instead of changing the existing one",
+   "severity": "medium",
+   "repro": "As Maya: 'set the Status of ORD-1001 to open' -> preview 'ORD-1001 Status: ∅ → open'; Confirm changes. Then 'set the status of ORD-1001 to closed', Confirm. Ask 'what is the status of ORD-1001' and 'what is the Status of ORD-1001'.",
+   "observed": "Working record holds both status:'closed' and Status:'open'; the two questions answer closed and open.",
+   "expected": "Same field and same preview regardless of capitals, or a message that Status is not a field of ORD-1001.",
+   "basis": "unstated",
+   "item": "U-49"
+  },
+  {
+   "from": "pae93f0",
+   "n": "pae93f0#3",
+   "title": "Conversations cannot be told apart before opening: empty ones and ones with the same 56-character opening share a name",
+   "severity": "medium",
+   "repro": "Click New conversation twice; read the Conversations navigation. Then start two conversations whose first messages are 'Please summarise the open orders for customer Acme Tools and list anything unusual about customer Zeta' and '... customer Omega'.",
+   "observed": "Two buttons named 'New conversation' (also the name of the New conversation control), and two buttons both named 'Please summarise the open orders for customer Acme Tools', visually and by accessible name.",
+   "expected": "Each conversation identifiable before selecting it (distinct label, time or number).",
+   "basis": "unstated",
+   "item": "U-11"
+  },
+  {
+   "from": "pae93f0",
+   "n": "pae93f0#4",
+   "title": "A forget that matches no memory is reported as done",
+   "severity": "medium",
+   "repro": "Send 'remember that likes tea', then 'forget tea'. Read the reply and the Memory region.",
+   "observed": "Reply 'I've forgotten \"tea\".' while Memory still lists 'likes tea'; no notice that nothing was removed.",
+   "expected": "A note that no remembered fact matched (as the app already does for add step with no running task), or a loose match that is shown.",
+   "basis": "unstated",
+   "item": "U-23"
+  },
+  {
+   "from": "pae93f0",
+   "n": "pae93f0#5",
+   "title": "After a storage write failure a pending reply stays pending forever and blocks the conversation until restart",
+   "severity": "medium",
+   "repro": "Start with STANDIN_SLOW_MS=2000. Send 'hello [slow]'; immediately chmod 500 the DATA_DIR; wait 5 s; chmod 700 it; try to send another message in that conversation.",
+   "observed": "Reply status stays 'pending' ('... is replying'), no Retry, send refused with 409 'Finish or retry the last reply first.'; only a server restart turns it into a failed reply with Retry. Server log: 'Reply progress could not be saved.'",
+   "expected": "The reply is marked failed (or retried) once it cannot be saved, with a storage error the person can act on; never left pending.",
+   "basis": "unstated",
+   "item": "U-54"
+  },
+  {
+   "from": "pae93f0",
+   "n": "pae93f0#6",
+   "title": "A storage failure during a long task leaves the task showing Running with no progress until restart",
+   "severity": "low",
+   "repro": "Start 'long task: crates [long]'; immediately chmod 500 the DATA_DIR; wait several step intervals; chmod 700; read Tasks.",
+   "observed": "Task: crates shows Running, 0 of 8 steps, indefinitely; nothing runs; log 'Background task progress could not be saved.'",
+   "expected": "The task is reported as Failed or Interrupted with Retry task once progress cannot be saved.",
+   "basis": "unstated",
+   "item": "U-57"
+  },
+  {
+   "from": "pae93f0",
+   "n": "pae93f0#7",
+   "title": "After a refused rename the instruction form stays silently bound to the edited entry, so the next 'new' instruction replaces it",
+   "severity": "medium",
+   "repro": "Save instruction Tone='Be brief' and Zed='x'. Click Edit Tone, set Instruction name to Zed, Save instruction (alert 'That name is already in use.'). Clear both fields, enter Formal / 'Be formal', Save instruction.",
+   "observed": "Saved instructions now list Formal and Zed; Tone and its text are gone. Nothing on screen showed the form was still editing Tone.",
+   "expected": "Either the edit is visibly in progress and can be cancelled, or a new name after a failed edit saves a new entry; no saved entry silently lost.",
+   "basis": "other",
+   "item": ""
+  },
+  {
+   "from": "pae93f0",
+   "n": "pae93f0#8",
+   "title": "Duplicate bot names are accepted but cannot be told apart",
+   "severity": "low",
+   "repro": "Click New bot, enter Assistant, Save bot name, send a message; read the Bots navigation.",
+   "observed": "Two buttons named 'Assistant' with identical text and accessible name.",
+   "expected": "Duplicates refused, or each bot distinguishable before selecting it.",
+   "basis": "unstated",
+   "item": "U-9"
+  },
+  {
+   "from": "pae93f0",
+   "n": "pae93f0#9",
+   "title": "Saving an instruction or task under an existing name silently overwrites it",
+   "severity": "low",
+   "repro": "Save instruction A='x', then without Edit save instruction A='y'. Use A, send 'who are you'.",
+   "observed": "One entry A, text now 'y'; no notice that 'x' was replaced. Same for Save task.",
+   "expected": "Overwrite with a notice, refuse, or ask.",
+   "basis": "unstated",
+   "item": "U-15"
+  },
+  {
+   "from": "pae93f0",
+   "n": "pae93f0#10",
+   "title": "Damaged or unreadable data folder crashes the server at start with a raw stack trace",
+   "severity": "low",
+   "repro": "Put '{not json' (or '{\"hello\":1}') in DATA_DIR/workspace.json, or point DATA_DIR at a non-writable folder, and run node server.js.",
+   "observed": "Process exits with a Node SyntaxError/TypeError/EACCES stack trace; no explanation of which file or what to do (file left intact).",
+   "expected": "Refuse to start with a plain message naming the file and a recovery step, keeping the damaged file.",
+   "basis": "unstated",
+   "item": "U-46"
+  },
+  {
+   "from": "pae93f0",
+   "n": "pae93f0#11",
+   "title": "A question about ORD-1001A is answered with ORD-1001's value",
+   "severity": "low",
+   "repro": "As Maya send 'what is the status of ORD-1001A'.",
+   "observed": "'The status of ORD-1001 is open.'",
+   "expected": "A reply that ORD-1001A cannot be found, with how to correct it.",
+   "basis": "unstated",
+   "item": "U-50"
+  },
+  {
+   "from": "pae93f0",
+   "n": "pae93f0#12",
+   "title": "Unexpected server errors are not recorded in the server output",
+   "severity": "low",
+   "repro": "With the server running, chmod 500 the DATA_DIR and click Save instruction (or POST {action:'newConversation'}).",
+   "observed": "HTTP 500 'The workspace could not save this action. Please try again.'; the server output shows nothing about it.",
+   "expected": "The operator's output records the error (without the token).",
+   "basis": "unstated",
+   "item": "U-60"
+  },
+  {
+   "from": "p8e1ce4",
+   "n": "p8e1ce4#1",
+   "title": "Conversations with the same opening, or still empty, get identical names",
+   "severity": "medium",
+   "repro": "Continue as Maya; click New conversation twice; read the Conversations navigation. Then send \"Please look up the latest shipping details for customer Alpha\" in one conversation and \"Please look up the latest shipping details for customer Beta\" in a new one; read the buttons.",
+   "observed": "Buttons \"Untitled chat\", \"Untitled chat\" for the empty ones and \"Please look up the latest shipping det…\" twice for the others; only aria-current marks the open one.",
+   "expected": "Each conversation identifiable before selecting it (distinct title, time or label).",
+   "basis": "unstated",
+   "item": "U-11"
+  },
+  {
+   "from": "p8e1ce4",
+   "n": "p8e1ce4#2",
+   "title": "Two bots with the same name cannot be told apart in Bots",
+   "severity": "low",
+   "repro": "Continue as Maya; New bot, Bot name \"Assistant\", Save bot name; send a message; read the Bots navigation.",
+   "observed": "Two buttons both named \"Assistant\" (one current), visually identical.",
+   "expected": "Duplicate refused, or each bot distinguishable before selecting it.",
+   "basis": "unstated",
+   "item": "U-9"
+  },
+  {
+   "from": "p8e1ce4",
+   "n": "p8e1ce4#3",
+   "title": "Forgetting a fact that is not remembered is reported as forgotten",
+   "severity": "medium",
+   "repro": "Continue as Maya; send \"remember that likes tea\"; send \"forget tea\"; read the reply and Memory.",
+   "observed": "Reply \"I've forgotten \\\"tea\\\".\" with no app notice; Memory still lists \"likes tea\".",
+   "expected": "The app flags that nothing matched (or matches loosely and shows what it removed).",
+   "basis": "unstated",
+   "item": "U-23"
+  },
+  {
+   "from": "p8e1ce4",
+   "n": "p8e1ce4#4",
+   "title": "Lookup of a non-existent id with an existing prefix answers for the other record",
+   "severity": "low",
+   "repro": "Continue as Maya; send \"what is the status of ORD-1001A\".",
+   "observed": "\"The status of ORD-1001 is open.\" (or its current value) with no notice that ORD-1001A does not exist.",
+   "expected": "Told that ORD-1001A cannot be found and how to correct it.",
+   "basis": "unstated",
+   "item": "U-50"
+  },
+  {
+   "from": "p8e1ce4",
+   "n": "p8e1ce4#5",
+   "title": "Step feedback does not identify which of two same-titled tasks received it",
+   "severity": "low",
+   "repro": "Continue as Maya; send \"long task: same [long]\" twice; send \"add step: extra\"; read the notice and the Tasks articles.",
+   "observed": "Notice \"Step added to same: extra\"; both articles named \"Task: same\"; only the step totals differ.",
+   "expected": "Feedback that identifies the task that got the step.",
+   "basis": "unstated",
+   "item": "U-39"
+  },
+  {
+   "from": "p8e1ce4",
+   "n": "p8e1ce4#6",
+   "title": "Since you were away is missing when returning in another browser",
+   "severity": "low",
+   "repro": "As Maya start \"long task: crates [fail step 2]\" and wait until it is Failed; open GET / in a fresh browser profile and Continue as Maya.",
+   "observed": "Region Since you were away hidden (the baseline lives in that browser's localStorage); the failure is only visible in Tasks.",
+   "expected": "On return, the region reports what finished and what needs attention regardless of which browser is used.",
+   "basis": "unstated",
+   "item": "U-44"
+  },
+  {
+   "from": "pe77982",
+   "n": "pe77982#1",
+   "title": "Since you were away shows nothing when the person returns in a browser without the app's stored baseline, even with a failed task needing attention",
+   "severity": "low",
+   "repro": "Start with PROVIDER_TOKEN=sk-local-abcdefghijkl and an empty DATA_DIR. In browser context A, Continue as Maya, send `long task: crates [fail step 2]` and `long task: beta`, close context A. Wait until both end (about 4 s). Open GET / in a new browser context B (fresh site storage, e.g. a private window or another browser), Continue as Maya.",
+   "observed": "No region named Since you were away is rendered; the Tasks region shows crates Failed and beta Completed. The away baseline lives in the browser's localStorage, so a first visit from a browser sets the baseline instead of reporting.",
+   "expected": "On return the person is told what finished (beta) and what needs attention (crates Failed), independent of which browser they return in, or at least the failed task flagged.",
+   "basis": "stated",
+   "item": "S-107"
+  },
+  {
+   "from": "pe77982",
+   "n": "pe77982#2",
+   "title": "A forget that matches no remembered fact is reported as done",
+   "severity": "medium",
+   "repro": "Fresh data, PROVIDER_TOKEN set, Continue as Maya. Send \"remember that likes tea\". Send \"forget tea\" (or \"forget coffee\"). Read the reply and the Memory region / GET /api/view bot.memory.",
+   "observed": "Reply \"I've forgotten \\\"tea\\\".\" with no notice, while Memory still lists \"likes tea\" (bot.memory [\"likes tea\"]); \"forget coffee\" likewise replies \"I've forgotten \\\"coffee\\\".\" with nothing removed.",
+   "expected": "The person is told that nothing matched (for example a notice like the app already adds for \"add step:\" with no task), or the loose match is applied and shown; the reply should not claim a forget that did not happen.",
+   "basis": "unstated",
+   "item": "U-23"
+  },
+  {
+   "from": "pe77982",
+   "n": "pe77982#3",
+   "title": "Unexpected server errors and request-time storage failures are not recorded in the server output",
+   "severity": "low",
+   "repro": "Start node server.js. Send the raw request \"GET //[ HTTP/1.1\" with a Host header (for example with nc). Separately, with the app open, chmod 500 the DATA_DIR and POST /api/actions/save-instruction. Read the server's stdout/stderr.",
+   "observed": "The client gets 500 {\"error\":\"The app could not finish the request. Try reloading.\"} and 503 storage-unavailable respectively; the server output holds only \"Local chat is ready at ...\" (the catch in server.js never logs).",
+   "expected": "The operator's output records the error (without the token) so the failure can be diagnosed.",
+   "basis": "unstated",
+   "item": "U-60"
+  }
+ ]
+}

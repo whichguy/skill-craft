@@ -1,0 +1,74 @@
+{"told": [
+{"id": "U-1", "results": {
+ "p8284f5": {"told": "no", "where": ""},
+ "p720d2a": {"told": "yes", "where": "README.md: \"Invalid submissions return 400. ... Error responses have empty bodies.\""},
+ "p23566f": {"told": "yes", "where": "README.md: \"Invalid submissions return 400. ... Error responses have empty bodies.\""}}},
+{"id": "U-2", "results": {
+ "p8284f5": {"told": "no", "where": ""},
+ "p720d2a": {"told": "yes", "where": "README.md: \"Invalid submissions return 400.\""},
+ "p23566f": {"told": "yes", "where": "README.md: \"Invalid submissions return 400.\""}}},
+{"id": "U-3", "results": {
+ "p8284f5": {"told": "no", "where": ""},
+ "p720d2a": {"told": "no", "where": ""},
+ "p23566f": {"told": "no", "where": ""}}},
+{"id": "U-4", "results": {
+ "p8284f5": {"told": "no", "where": ""},
+ "p720d2a": {"told": "yes", "where": "README.md: \"A group ID is a nonempty, URL-encodable string. The IDs `.` and `..` are reserved. Encode the ID as a single path segment, for example with `encodeURIComponent(id)`.\""},
+ "p23566f": {"told": "yes", "where": "README.md: \"A group ID is a nonempty, URL-encodable string. The IDs `.` and `..` are reserved. Send the original ID in the creation body, then use `encodeURIComponent(id)` once to address it as a single path segment. New IDs may occupy up to 16 KiB (16,384 bytes) after encoding.\""}}},
+{"id": "U-5", "results": {
+ "p8284f5": {"told": "no", "where": ""},
+ "p720d2a": {"told": "yes", "where": "README.md: \"Every listed member must belong to the group, and the nonnegative whole-cent shares must sum to the expense amount.\""},
+ "p23566f": {"told": "yes", "where": "README.md: \"Every listed member must belong to the group, and the nonnegative whole-cent shares must sum to the expense amount.\""}}},
+{"id": "U-6", "results": {
+ "p8284f5": {"told": "no", "where": ""},
+ "p720d2a": {"told": "yes", "where": "README.md: \"Supply at least two members, each with a distinct, nonempty string name. Names match exactly, including whitespace, and the member array sets the order used for splits and settlements.\""},
+ "p23566f": {"told": "yes", "where": "README.md: \"Supply at least two members, each with a distinct, nonempty string name. Names match exactly, including whitespace.\""}}},
+{"id": "U-8", "results": {
+ "p8284f5": {"told": "no", "where": ""},
+ "p720d2a": {"told": "yes", "where": "README.md: \"The service serializes mutations across all groups, replaces the JSON snapshot atomically, and acknowledges each mutation after the replacement.\""},
+ "p23566f": {"told": "yes", "where": "README.md: \"The service replaces the JSON snapshot atomically and acknowledges each mutation after the replacement.\""}}},
+{"id": "U-9", "results": {
+ "p8284f5": {"told": "no", "where": ""},
+ "p720d2a": {"told": "yes", "where": "README.md: \"An existing, writable parent directory is sufficient for a new ledger. The first successful write creates the file.\""},
+ "p23566f": {"told": "yes", "where": "README.md: \"An existing, writable parent directory is sufficient for a new ledger. The first successful write creates the file.\""}}},
+{"id": "U-10", "results": {
+ "p8284f5": {"told": "no", "where": ""},
+ "p720d2a": {"told": "yes", "where": "README.md: \"Invalid port configuration, an unavailable port, and unreadable or incompatible saved data cause startup to fail.\""},
+ "p23566f": {"told": "yes", "where": "README.md: \"Invalid port configuration, an unavailable port, and unreadable or incompatible saved data cause startup to fail.\""}}},
+{"id": "U-13", "results": {
+ "p8284f5": {"told": "no", "where": ""},
+ "p720d2a": {"told": "yes", "where": "README.md: \"Overlapping expenses receive numbers in the order their validated requests enter the write queue.\""},
+ "p23566f": {"told": "yes", "where": "README.md: \"Overlapping expenses receive numbers in the order their validated requests enter the write queue.\""}}},
+{"id": "U-15", "results": {
+ "p8284f5": {"told": "no", "where": ""},
+ "p720d2a": {"told": "yes", "where": "README.md: \"The service serializes mutations across all groups ...\" and \"Creating a group with a valid list and a used ID returns 409.\""},
+ "p23566f": {"told": "yes", "where": "README.md: \"Group creations and expense submissions share a write queue across all groups.\" and \"Creating a group with a valid list and a used ID returns 409.\""}}},
+{"id": "U-16", "results": {
+ "p8284f5": {"told": "no", "where": ""},
+ "p720d2a": {"told": "yes", "where": "README.md: \"The number increments with each saved expense in that group.\" with \"To keep your groups and expenses across restarts, use the same path.\""},
+ "p23566f": {"told": "yes", "where": "README.md: \"The number increments with each saved expense in that group.\" with \"To keep your groups and expenses across restarts, use the same path.\""}}},
+{"id": "U-21", "results": {
+ "p8284f5": {"told": "no", "where": ""},
+ "p720d2a": {"told": "yes", "where": "README.md: \"Invalid submissions return 400. Creating a group with a valid list and a used ID returns 409.\""},
+ "p23566f": {"told": "yes", "where": "README.md: \"Invalid submissions return 400. Creating a group with a valid list and a used ID returns 409.\""}}},
+{"id": "U-25", "results": {
+ "p8284f5": {"told": "no", "where": ""},
+ "p720d2a": {"told": "yes", "where": "README.md: \"Reading the list leaves the ledger unchanged.\""},
+ "p23566f": {"told": "yes", "where": "README.md: \"Reading the list leaves the ledger unchanged.\""}}},
+{"id": "U-26", "results": {
+ "p8284f5": {"told": "no", "where": ""},
+ "p720d2a": {"told": "yes", "where": "README.md: \"To keep your groups and expenses across restarts, use the same path.\""},
+ "p23566f": {"told": "yes", "where": "README.md: \"To keep your groups and expenses across restarts, use the same path.\""}}},
+{"id": "U-27", "results": {
+ "p8284f5": {"told": "no", "where": ""},
+ "p720d2a": {"told": "no", "where": ""},
+ "p23566f": {"told": "no", "where": ""}}},
+{"id": "U-31", "results": {
+ "p8284f5": {"told": "no", "where": ""},
+ "p720d2a": {"told": "yes", "where": "README.md: \"The service serializes mutations across all groups, replaces the JSON snapshot atomically, and acknowledges each mutation after the replacement.\""},
+ "p23566f": {"told": "yes", "where": "README.md: \"Group creations and expense submissions share a write queue across all groups.\""}}},
+{"id": "U-35", "results": {
+ "p8284f5": {"told": "no", "where": ""},
+ "p720d2a": {"told": "no", "where": ""},
+ "p23566f": {"told": "no", "where": ""}}}
+]}

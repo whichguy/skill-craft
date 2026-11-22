@@ -1,0 +1,38 @@
+{
+ "recheck": [
+  {
+   "id": "U-22",
+   "kind": "unstated",
+   "text": "Whether the documentation and release records describe the change: docs/api.md (endpoint, ticket field, filter, audit action, notification), README command-line columns, a CHANGELOG.md section with a version bump in package.json, and a decision record if a format or rule changed.",
+   "audits_said": {
+    "pb56fe2": "poor",
+    "p3a41e1": "sound",
+    "p21e512": "sound"
+   }
+  }
+ ],
+ "defects": [
+  {
+   "from": "p3a41e1",
+   "n": "p3a41e1#1",
+   "title": "An assignee containing invalid UTF-8 is silently altered and accepted",
+   "severity": "low",
+   "repro": "Create a ticket (POST /tickets {\"title\":\"t\",\"requester\":\"r\"}); printf '{\"assignee\":\"d\\xffna\"}' > b.json; curl -X PUT localhost:$PORT/tickets/T-0001/assignee -H 'content-type: application/json' --data-binary @b.json",
+   "observed": "200 with \"assignee\":\"d\\uFFFDna\" (replacement character); an audit entry and a pending ticket.assigned notice to that altered name",
+   "expected": "400 invalid with the ticket, audit and outbox unchanged (the byte sequence is not a valid name); the service already accepts such bytes in title, so this follows an existing weakness",
+   "basis": "unstated",
+   "item": "U-2"
+  },
+  {
+   "from": "p21e512",
+   "n": "p21e512#1",
+   "title": "A malformed UTF-8 byte in the assignee filter matches the agent whose name holds U+FFFD",
+   "severity": "low",
+   "repro": "Start the service. POST /tickets {\"title\":\"A\",\"requester\":\"r@example.com\"}; PUT /tickets/T-0001/assignee {\"assignee\":\"Da\\uFFFDna\"} (200); GET /tickets?assignee=Da%FFna",
+   "observed": "200 with T-0001 in items",
+   "expected": "400 invalid or an empty page, as the PUT refuses malformed UTF-8 (the product's own spec clause C-52 requires this)",
+   "basis": "other",
+   "item": "U-13"
+  }
+ ]
+}

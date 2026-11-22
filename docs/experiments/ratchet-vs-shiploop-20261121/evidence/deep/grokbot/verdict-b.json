@@ -1,0 +1,269 @@
+{
+ "pairs": [
+  {
+   "pair": "X-Y",
+   "better": "Y-much",
+   "advantages": [
+    {
+     "of": "Y",
+     "what": "Keyboard Confirm changes and Reject changes leave focus on that proposal's result, so a second Enter leaves every other proposal pending.",
+     "ref": "D-1",
+     "matters_to": "requester"
+    },
+    {
+     "of": "Y",
+     "what": "A capitalised field name stays on the existing field and does not create a second field on the record.",
+     "ref": "D-2",
+     "matters_to": "requester"
+    },
+    {
+     "of": "Y",
+     "what": "Empty conversations and conversations with the same opening have distinct names before they are opened.",
+     "ref": "D-3",
+     "matters_to": "requester"
+    },
+    {
+     "of": "Y",
+     "what": "A failed save reports storage as unavailable and clears on restart, so the reply is not left pending and the long task is not left Running.",
+     "ref": "D-5",
+     "matters_to": "requester"
+    },
+    {
+     "of": "Y",
+     "what": "A refused instruction rename releases the form, so the next Save instruction cannot replace that entry.",
+     "ref": "D-7",
+     "matters_to": "requester"
+    },
+    {
+     "of": "Y",
+     "what": "Bots that share a name can be told apart before one is selected.",
+     "ref": "D-8",
+     "matters_to": "requester"
+    },
+    {
+     "of": "Y",
+     "what": "Saving an instruction or task under a name that already exists is refused with a message.",
+     "ref": "D-9",
+     "matters_to": "requester"
+    },
+    {
+     "of": "Y",
+     "what": "A damaged or unreadable data folder stops startup with a plain recovery message and leaves the file in place.",
+     "ref": "D-10",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Y",
+     "what": "A lookup of an id such as ORD-1001A says that identifier cannot be used, and ORD-1001's value is not presented as its value.",
+     "ref": "D-11",
+     "matters_to": "requester"
+    },
+    {
+     "of": "Y",
+     "what": "When two running tasks share a title, the reply names which task received the added step.",
+     "ref": "D-13",
+     "matters_to": "requester"
+    },
+    {
+     "of": "Y",
+     "what": "A non-numeric total, an unknown field, or a decimal create is refused with a message that says how to correct it.",
+     "ref": "U-30",
+     "matters_to": "requester"
+    },
+    {
+     "of": "Y",
+     "what": "npm test fails if DATA_DIR is ignored and if one bot's memory is limited to the current conversation.",
+     "ref": "S-5",
+     "matters_to": "maintainer"
+    },
+    {
+     "of": "X",
+     "what": "Since you were away still reports finished work and failed tasks in a browser that has no stored baseline.",
+     "ref": "D-14",
+     "matters_to": "requester"
+    },
+    {
+     "of": "X",
+     "what": "Saved instructions show the instruction text the open bot is using after Use.",
+     "ref": "U-17",
+     "matters_to": "requester"
+    },
+    {
+     "of": "X",
+     "what": "The tests and specification do not lock in Y's receipt journal, Bot #n and Chat n labels, decimal-create refusal, or confirm-time order ids.",
+     "ref": "tests_notes",
+     "matters_to": "maintainer"
+    }
+   ],
+   "lesser_lacks": [
+    "Move focus after Confirm changes and Reject changes to that proposal's Change result or the message box.",
+    "Map a capitalised field name onto the existing field, or refuse it, so confirming cannot create a second field.",
+    "Give every conversation a distinct accessible name, including empty ones and ones that share an opening.",
+    "On a failed save, mark the pending reply failed and the affected task Failed or Interrupted, with a storage error and a way to retry.",
+    "After a refused instruction rename, drop the hidden edit binding so the next save cannot replace that entry.",
+    "Distinguish bots that share a name before selection, or refuse the duplicate name.",
+    "Refuse or ask before saving an instruction or task over an existing name.",
+    "Refuse a damaged or unwritable data folder at startup with a plain message, the file name, and a recovery step, leaving the file unchanged.",
+    "Answer an id such as ORD-1001A as not found, with how to correct it.",
+    "Name which running task received an added step when titles match.",
+    "Refuse a non-numeric total, an unknown field, and a decimal create, and say how to correct each.",
+    "Make npm test fail when DATA_DIR is ignored and when a bot's memory is split by conversation."
+   ],
+   "one_task_closes": "no",
+   "why": "Y is the one to keep in service. Keyboard decisions stay on the proposal you chose, field capitals and suffixed ids stay on the real field and record, saved instructions are not silently replaced, and a failed disk write is reported instead of freezing the conversation or a task. X still reports Since you were away with no stored baseline and shows the instruction text in use, and bringing X up to Y is a set of separate client, record, startup and test fixes."
+  },
+  {
+   "pair": "X-Z",
+   "better": "Z-much",
+   "advantages": [
+    {
+     "of": "Z",
+     "what": "Keyboard Confirm changes and Reject changes leave focus on that proposal's result, so a second Enter leaves every other proposal pending.",
+     "ref": "D-1",
+     "matters_to": "requester"
+    },
+    {
+     "of": "Z",
+     "what": "A capitalised field name does not create a second field; the change is refused instead of written.",
+     "ref": "D-2",
+     "matters_to": "requester"
+    },
+    {
+     "of": "Z",
+     "what": "A failed save puts the app in a reported unavailable state until restart, so the reply is not left pending and the long task is not left Running.",
+     "ref": "D-5",
+     "matters_to": "requester"
+    },
+    {
+     "of": "Z",
+     "what": "A refused instruction rename does not leave the form bound, so the next save cannot replace that entry.",
+     "ref": "D-7",
+     "matters_to": "requester"
+    },
+    {
+     "of": "Z",
+     "what": "Saving an instruction or task under a name that already exists is refused with a message.",
+     "ref": "D-9",
+     "matters_to": "requester"
+    },
+    {
+     "of": "Z",
+     "what": "A damaged or unreadable data folder stops startup with a plain recovery message and leaves the file in place.",
+     "ref": "D-10",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Z",
+     "what": "A word in a number field and a field the record does not have are refused, so confirming cannot store them.",
+     "ref": "U-30",
+     "matters_to": "requester"
+    },
+    {
+     "of": "Z",
+     "what": "npm test fails if a bot's memory stops being shared across that bot's conversations.",
+     "ref": "S-33",
+     "matters_to": "maintainer"
+    },
+    {
+     "of": "X",
+     "what": "Since you were away still reports finished work and failed tasks in a browser that has no stored baseline.",
+     "ref": "D-14",
+     "matters_to": "requester"
+    },
+    {
+     "of": "X",
+     "what": "Saved instructions show the instruction text the open bot is using after Use.",
+     "ref": "U-17",
+     "matters_to": "requester"
+    },
+    {
+     "of": "X",
+     "what": "npm test fails if New bot stops opening the bot it just created.",
+     "ref": "S-72",
+     "matters_to": "maintainer"
+    }
+   ],
+   "lesser_lacks": [
+    "Move focus after Confirm changes and Reject changes to that proposal's Change result or the message box.",
+    "Stop a capitalised field name from creating a second field, by refusing it or mapping it onto the existing field.",
+    "On a failed save, mark the pending reply failed and the affected task Failed or Interrupted, with a storage error the person can act on.",
+    "After a refused instruction rename, drop the hidden edit binding so the next save cannot replace that entry.",
+    "Refuse or ask before saving an instruction or task over an existing name.",
+    "Refuse a damaged or unwritable data folder at startup with a plain message, the file name, and a recovery step, leaving the file unchanged.",
+    "Refuse a non-numeric total and a field the record does not have, instead of applying the preview."
+   ],
+   "one_task_closes": "no",
+   "why": "Z is the one to keep in service between these two. Confirm focus, field capitals, storage errors, instruction edits and a damaged data folder stay honest, so a second change is not applied by accident and a failed save does not freeze the chat. X still reports Since you were away in a fresh browser and shows the live instruction text, and both still leave similar conversations indistinguishable and answer ORD-1001A with ORD-1001, so matching Z crosses the client, the record writer and startup."
+  },
+  {
+   "pair": "Z-Y",
+   "better": "Y-some",
+   "advantages": [
+    {
+     "of": "Y",
+     "what": "Empty conversations and conversations with the same opening have distinct names before they are opened.",
+     "ref": "D-3",
+     "matters_to": "requester"
+    },
+    {
+     "of": "Y",
+     "what": "Bots that share a name can be told apart before one is selected.",
+     "ref": "D-8",
+     "matters_to": "requester"
+    },
+    {
+     "of": "Y",
+     "what": "A lookup of an id such as ORD-1001A says that identifier cannot be used, and ORD-1001's value is not presented as its value.",
+     "ref": "D-11",
+     "matters_to": "requester"
+    },
+    {
+     "of": "Y",
+     "what": "When two running tasks share a title, the reply names which task received the added step.",
+     "ref": "D-13",
+     "matters_to": "requester"
+    },
+    {
+     "of": "Y",
+     "what": "Status and status are the same field, so a capitalised question or change still reaches the real field.",
+     "ref": "U-49",
+     "matters_to": "requester"
+    },
+    {
+     "of": "Y",
+     "what": "A refused amount, unknown field, or decimal create includes a message that says how to correct it.",
+     "ref": "U-30",
+     "matters_to": "requester"
+    },
+    {
+     "of": "Y",
+     "what": "npm test fails if DATA_DIR is ignored and if New bot stops opening the bot it just created.",
+     "ref": "S-5",
+     "matters_to": "maintainer"
+    },
+    {
+     "of": "Z",
+     "what": "The send path stays in one store transaction, without Y's undocumented receipt journal split between the page and the server.",
+     "ref": "maintainer",
+     "matters_to": "maintainer"
+    },
+    {
+     "of": "Z",
+     "what": "The tests and specification do not lock in Y's receipt journal, Bot #n and Chat n labels, decimal-create refusal, or confirm-time order ids.",
+     "ref": "tests_notes",
+     "matters_to": "maintainer"
+    }
+   ],
+   "lesser_lacks": [
+    "Give every conversation a distinct accessible name, including empty ones and ones that share an opening.",
+    "Distinguish bots that share a name before selection, or refuse the duplicate name.",
+    "Answer an id such as ORD-1001A as not found, with how to correct it, and leave ORD-1001's value on ORD-1001.",
+    "Name which running task received an added step when titles match.",
+    "Treat a real field name as the same field in any capitalization, and when a total, unknown field, or decimal create is refused, say how to correct it.",
+    "Make npm test fail when DATA_DIR is ignored and when a new bot does not become the open bot."
+   ],
+   "one_task_closes": "no",
+   "why": "Y is somewhat better to run day to day. Conversations, duplicate bots and same-titled tasks can be told apart before you act, a suffixed id is rejected with a correction, and a capitalised field or a refused amount still leads to the real record. Z already matches Y on proposal focus, failed saves, startup and saved-instruction edits, and closing the rest is label work plus record-request handling, which is more than one hour."
+  }
+ ]
+}

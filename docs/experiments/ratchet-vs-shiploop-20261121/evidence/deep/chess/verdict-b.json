@@ -1,0 +1,155 @@
+{
+ "pairs": [
+  {
+   "pair": "Y-X",
+   "better": "Y-some",
+   "advantages": [
+    {
+     "of": "Y",
+     "what": "npm test asserts published perft through depth 3: start 8902, Kiwipete 97862, and position 3 at 2812, so pin, en-passant discovery, and promotion-capture regressions fail the suite that actually runs. X's suite stops at depth 2 (20/400 and 48/2039).",
+     "ref": "S-37",
+     "matters_to": "maintainer"
+    },
+    {
+     "of": "Y",
+     "what": "npm test enforces the depth-2 start-position budget: a 110 ms stall on the opening made TC-8 fail. The same class of stall left X's npm test green.",
+     "ref": "S-39",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Y",
+     "what": "Invalid FENs are tested (null, no kings, bad rank width, bad fields) and must throw. X never passes an invalid FEN, so the parser contract is unguarded.",
+     "ref": "U-12",
+     "matters_to": "maintainer"
+    },
+    {
+     "of": "Y",
+     "what": "A non-string FEN throws TypeError 'Expected a FEN string', and two white kings throw 'Invalid FEN kings'. X raises an incidental trim TypeError and still returns moves for two kings.",
+     "ref": "U-1",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Y",
+     "what": "X's non-string test fails a correct applyMove that string-coerces and then rejects, because it asserts Symbol.toPrimitive and toString are never called.",
+     "ref": "U-12",
+     "matters_to": "maintainer"
+    },
+    {
+     "of": "X",
+     "what": "The README states that only an exact lowercase UCI string is accepted and that anything else throws IllegalMoveError. Y has no customer-facing note.",
+     "ref": "U-3",
+     "matters_to": "operator"
+    },
+    {
+     "of": "X",
+     "what": "The README and the suite both cover a saved FEN: same moves, status, and result after another game, a rejected move, and a fresh process. Y behaves this way but does not document or test it.",
+     "ref": "U-11",
+     "matters_to": "maintainer"
+    },
+    {
+     "of": "X",
+     "what": "X does not lock Y's exact invalid-FEN sentences, so parser wording can change. Y's TC-2 requires /Invalid FEN kings/, /Invalid FEN rank width/, and /Invalid FEN fields/.",
+     "ref": "U-12",
+     "matters_to": "maintainer"
+    },
+    {
+     "of": "X",
+     "what": "X's spec states every stated requirement, including castling, en passant, promotion, and that npm test passes. Y's spec leaves S-33, S-34, S-35, and S-40 absent.",
+     "ref": "S-40",
+     "matters_to": "maintainer"
+    }
+   ],
+   "lesser_lacks": [
+    "Assert published depth-3 counts in npm test: start 8902, Kiwipete 97862, and position 3 depth 3 equal to 2812.",
+    "Assert in npm test that a depth-2 legal-move count from the start position finishes in under 2 seconds.",
+    "Add invalid-FEN tests that require an error for a malformed FEN and a kingless FEN, checking the error class only.",
+    "Reject two kings of the same color as an invalid FEN, and throw a descriptive TypeError for a non-string FEN."
+   ],
+   "one_task_closes": "yes",
+   "why": "Y is the engine to keep because the suite npm test runs locks depth-3 move counts, the two-second budget, and invalid-FEN failures. X is the same correct rules engine, documents exact UCI and saved-FEN resume, tests that resume, and does not freeze parser sentences. Those missing guards are assertions plus a small validation change on an engine the audit already found correct through depth 4."
+  },
+  {
+   "pair": "Y-Z",
+   "better": "Y-some",
+   "advantages": [
+    {
+     "of": "Y",
+     "what": "npm test asserts published perft through depth 3 (start 8902, Kiwipete 97862, position 3 at 2812). Z's suite stops at depth 2, the same 20/400 and 48/2039 checks.",
+     "ref": "S-37",
+     "matters_to": "maintainer"
+    },
+    {
+     "of": "Y",
+     "what": "npm test fails when a depth-2 count of the start position exceeds about 2 seconds. A 100 ms stall per legalMoves left Z's 14 tests green.",
+     "ref": "S-39",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Y",
+     "what": "Invalid FENs are tested and must throw. Z's suite never passes a malformed or impossible FEN.",
+     "ref": "U-12",
+     "matters_to": "maintainer"
+    },
+    {
+     "of": "Y",
+     "what": "Non-string FENs throw TypeError 'Expected a FEN string', and two white kings are rejected. Z uses an incidental trim TypeError and still answers a two-king position.",
+     "ref": "U-1",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Z",
+     "what": "README.md maps the four functions, UCI including castling and promotion, and the en-passant convention. Y ships no customer-facing note.",
+     "ref": "S-18",
+     "matters_to": "operator"
+    },
+    {
+     "of": "Z",
+     "what": "Z's suite does not assert Y's exact invalid-FEN sentences, so parser wording can change without a red suite.",
+     "ref": "U-12",
+     "matters_to": "maintainer"
+    },
+    {
+     "of": "Z",
+     "what": "Z's spec states the castling, en passant, promotion, and npm-test requirements. Y's spec leaves S-33, S-34, S-35, and S-40 absent.",
+     "ref": "S-40",
+     "matters_to": "maintainer"
+    }
+   ],
+   "lesser_lacks": [
+    "Assert published depth-3 counts in npm test: start 8902, Kiwipete 97862, and position 3 depth 3 equal to 2812.",
+    "Assert in npm test that a depth-2 legal-move count from the start position finishes in under 2 seconds.",
+    "Add invalid-FEN tests that require an error for a malformed FEN and a kingless FEN, checking the error class only.",
+    "Reject two kings of the same color as an invalid FEN, and throw a descriptive TypeError for a non-string FEN."
+   ],
+   "one_task_closes": "yes",
+   "why": "Y beats Z on custody of the rules: the running suite covers depth-3 perft, the two-second limit, and bad FENs, while Z stops at depth 2 and never feeds the parser a bad FEN. Z's README is the operator note Y lacks, and Z does not freeze Y's error wording. Matching Y is one sitting of assertions and a small validation change, because Z's deeper perft already matches the published figures."
+  },
+  {
+   "pair": "Z-X",
+   "better": "same",
+   "advantages": [
+    {
+     "of": "X",
+     "what": "The README states that only an exact lowercase UCI string is accepted and that any other move throws IllegalMoveError. Z's README describes UCI and does not record that rejection.",
+     "ref": "U-3",
+     "matters_to": "operator"
+    },
+    {
+     "of": "X",
+     "what": "A test and the README cover saved-FEN resume: branching, an interleaved game, a rejected move, and a fresh process. Z implements the same stateless behavior and neither documents nor tests it.",
+     "ref": "U-11",
+     "matters_to": "maintainer"
+    },
+    {
+     "of": "Z",
+     "what": "Z's suite has no assertion that non-string moves avoid conversion hooks. X's coercion test fails a correct engine that string-coerces and then throws.",
+     "ref": "U-12",
+     "matters_to": "maintainer"
+    }
+   ],
+   "lesser_lacks": [],
+   "one_task_closes": "yes",
+   "why": "X and Z are the same feature to run and to keep: perft, castling, en passant, promotion, and status agree, and both leave depth 3, the time limit, and invalid FENs out of npm test. X also documents and tests saved-FEN resume and exact lowercase UCI, while Z does not carry X's conversion-hook assertion. Neither difference changes a result a caller gets from a legal position."
+  }
+ ]
+}

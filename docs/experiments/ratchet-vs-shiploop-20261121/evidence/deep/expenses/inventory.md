@@ -1,0 +1,96 @@
+# Inventory
+
+## Stated requirements
+
+- **S-1**: The service is written in Node.js, with server.js as the server.
+- **S-2**: The service uses no npm dependencies.
+- **S-3**: server.js listens on the port given in the PORT environment variable.
+- **S-4**: The service keeps its data in the JSON file named by the DATA_FILE environment variable.
+- **S-5**: Groups survive a restart of the server with the same DATA_FILE.
+- **S-6**: Expenses survive a restart of the server with the same DATA_FILE.
+- **S-7**: POST /groups with {"id": "<group id>", "members": ["<name>", ...]} creates a group and answers 201.
+- **S-8**: POST /groups answers 409 if a group with that id already exists.
+- **S-9**: POST /groups answers 400 when members holds fewer than two names.
+- **S-10**: POST /groups answers 400 when members holds fewer than two distinct names (for example ["Ann", "Ann"]).
+- **S-11**: POST /groups answers 400 when members holds fewer than two non-empty names (for example ["Ann", ""]).
+- **S-12**: POST /groups/<id>/expenses records an expense paid by one member, the payer.
+- **S-13**: An expense {"payer": "<name>", "cents": <positive integer>, "split": "equal"} is shared equally among all members of the group.
+- **S-14**: For split "equal", any cents left over after an even division go one each to the members listed first in the group's members order.
+- **S-15**: An expense {"payer": "<name>", "cents": <positive integer>, "split": "exact", "shares": {"<name>": <cents>, ...}} makes each member listed in shares owe that many whole cents.
+- **S-16**: For split "exact", a share of zero is allowed.
+- **S-17**: For split "exact", the shares must add up to cents.
+- **S-18**: A recorded expense answers 201 with {"expense": <n>}.
+- **S-19**: The expense number n is 1 for the group's first expense, then 2, and so on.
+- **S-20**: POST /groups/<id>/expenses answers 400 for an unknown payer.
+- **S-21**: POST /groups/<id>/expenses answers 400 for an unknown member (a name in shares that is not a group member).
+- **S-22**: POST /groups/<id>/expenses answers 400 for a non-positive amount.
+- **S-23**: POST /groups/<id>/expenses answers 400 for a non-integer amount.
+- **S-24**: POST /groups/<id>/expenses answers 400 for an unknown split.
+- **S-25**: POST /groups/<id>/expenses answers 400 for shares that do not add up to cents.
+- **S-26**: GET /groups/<id>/balances returns an object with each member's net cents.
+- **S-27**: A member's net cents are what they paid minus what they owe.
+- **S-28**: The balances returned by GET /groups/<id>/balances add up to 0.
+- **S-29**: GET /groups/<id>/settlements returns a JSON array of {"from", "to", "cents"} payments.
+- **S-30**: The settlement payments bring every balance to 0.
+- **S-31**: Settlements are built by repeatedly having the member who owes most pay the member who is owed most the smaller of the two amounts.
+- **S-32**: In settlements, ties (between debtors or between creditors) go to the member listed first.
+- **S-33**: Every route under /groups/<id> answers 404 for an unknown group.
+- **S-34**: Concurrent requests never lose an expense.
+- **S-35**: The behaviour is covered by node:test tests under test/ that run with `node --test`.
+
+## Conditions the request leaves unsaid
+
+- **U-1**: What status a request body that is not valid JSON gets, and whether the server keeps serving afterwards.
+  - Probe: Start the server. POST /groups with Content-Type application/json and the raw body `{` (and separately `not json`). Create group g with ["Ann","Bob"] and POST /groups/g/expenses with the raw body `not json`. Record each status and body. Then POST a valid new group and GET /groups/g/balances and check both still work.
+  - Outcomes that would be acceptable: 400 for each broken body, with or without an error message, is the fitting answer; another 4xx is acceptable. The server must stay up and answer the following valid requests; nothing is stored from the broken body.
+- **U-2**: What happens when a required field is missing: an expense without payer, cents or split, split "exact" without shares, or a group without id or members.
+  - Probe: Create group g with ["Ann","Bob"]. POST /groups/g/expenses with {}, with {"payer": "Ann", "cents": 100}, with {"cents": 100, "split": "equal"}, with {"payer": "Ann", "split": "equal"}, and with {"payer": "Ann", "cents": 100, "split": "exact"}. POST /groups with {} and with {"id": "h"}. Record each status and body, then GET /groups/g/balances.
+  - Outcomes that would be acceptable: 400 for each, with no expense or group stored, and the server still answering. A 500 is a worse fit; a crash is not acceptable.
+- **U-3**: Whether JSON values of the wrong type are refused or coerced: cents as a string, members as a string, a member that is not a string, or shares that is not an object.
+  - Probe: POST /groups {"id": "g", "members": "Ann,Bob"} and {"id": "g1", "members": ["Ann", 7, "Bob"]}. Create group g2 with ["Ann","Bob"]. POST /groups/g2/expenses with {"payer": "Ann", "cents": "100", "split": "equal"}, with {"payer": "Ann", "cents": 100, "split": "exact", "shares": [100]}. Record each status; for any 201 GET /groups/g2/balances.
+  - Outcomes that would be acceptable: 400 for each is fine. Coercing the string "100" to 100 and answering 201 is also fine if consistent. No 500 or crash; splitting the string "Ann,Bob" into members is not required.
+- **U-4**: Which group ids are accepted (empty, missing, numeric, containing '/', spaces, '%', unicode), and whether every group that got 201 can then be addressed through /groups/<id>/ by all three group routes, percent-encoded where the path needs it.
+  - Probe: Separately POST /groups with valid members and ids "", none, 1, "a/b", "a b", "50%" and "café". For each 201, GET balances and settlements and POST a valid expense at the path formed from the id, percent-encoded where needed (for example /groups/a%20b/balances, /groups/a%2Fb/balances). Record statuses.
+  - Outcomes that would be acceptable: 400 for empty, missing or non-string ids is fine. Rejecting awkward or overlong ids with 400, or accepting them, are both fine, as long as every id that got 201 is reachable by balances, settlements and expenses.
+- **U-5**: Whether exact shares may be negative or non-integer (for example {"Ann": 150, "Bob": -50} or {"Ann": 50.5, "Bob": 49.5} for cents 100), since only zero is said to be allowed and only the total is said to be checked.
+  - Probe: Create group g with ["Ann","Bob"]. POST /groups/g/expenses {"payer": "Ann", "cents": 100, "split": "exact", "shares": {"Ann": 150, "Bob": -50}}, then {"payer": "Ann", "cents": 100, "split": "exact", "shares": {"Ann": 50.5, "Bob": 49.5}}. Record both statuses and GET /groups/g/balances.
+  - Outcomes that would be acceptable: 400 for fractional shares is the fitting reading of 'whole cents'. 400 for negative shares is the expected reading; accepting integer negative shares is a judgement call only if documented. Balances stay whole cents summing to 0.
+- **U-6**: How a member list is handled when it holds two distinct non-empty names plus a duplicate, an empty or whitespace-only entry (for example ["Ann", "Ann", "Bob"] or ["Ann", " ", "Bob"]), and whether names differing only in case or surrounding spaces count as distinct.
+  - Probe: POST /groups {"id": "d", "members": ["Ann", "Ann", "Bob"]}; if 201, POST /groups/d/expenses {"payer": "Ann", "cents": 100, "split": "equal"} and GET /groups/d/balances. POST /groups {"id": "w", "members": ["Ann", " ", "Bob"]}, {"id": "s", "members": [" ", "Bob"]} and {"id": "c", "members": ["Ann", "ann"]}. Record statuses and any balances.
+  - Outcomes that would be acceptable: Rejecting a list with a repeated name with 400, or accepting it and de-duplicating while keeping first-listed order, are both fine; a member must never be counted twice. Case variants being distinct is fine; whitespace-only names rejected or accepted are both defensible if consistent.
+- **U-8**: Whether an expense or group is already safely written to DATA_FILE when its 201 is sent, and whether a crash or kill during a write can leave DATA_FILE truncated or corrupt.
+  - Probe: Start with DATA_FILE set to a new path, create group g, POST an expense and send SIGKILL to the server as soon as the 201 arrives. Restart with the same DATA_FILE and GET /groups/g/balances; check the file parses as JSON. Repeat while sending many POSTs in a loop and killing mid-stream; check the file still parses and every expense that got 201 is reflected.
+  - Outcomes that would be acceptable: Every acknowledged write is present after restart and the file always parses (for example a write to a temporary file then rename before replying). A synchronous write before replying without atomic rename is weaker but acceptable at this scale.
+- **U-9**: What the server does when DATA_FILE names a file that does not exist yet.
+  - Probe: Run server.js with PORT set and DATA_FILE set to an absent file in an existing directory. Check whether it starts, whether the file appears at startup or on the first write, then POST a valid group, stop, read the file, restart and GET the group's balances.
+  - Outcomes that would be acceptable: Starting with an empty store, creating the file at startup or on the first successful write, and finding the group after restart. Failing at start is not acceptable for an absent file in a writable directory.
+- **U-10**: What the server does at startup when DATA_FILE is empty or holds invalid JSON.
+  - Probe: Write `{broken` into the DATA_FILE and start the server; record whether it refuses to start, starts empty, or starts and later overwrites the file. Repeat with an empty file; if it starts, create a group and check whether the original file content was preserved.
+  - Outcomes that would be acceptable: Refusing to start with a clear error, or starting while preserving the bad file (for example renamed aside), are fine. Silently overwriting it is not.
+- **U-13**: Whether concurrent expense posts to one group each get a distinct expense number with no repeats or gaps, and each acknowledged expense is applied exactly once.
+  - Probe: Create group g with ["Ann","Bob"]. Fire 100 POST /groups/g/expenses {"payer": "Ann", "cents": 2, "split": "equal"} at once. Collect every status and expense number, then GET /groups/g/balances.
+  - Outcomes that would be acceptable: The numbers on the 201s are exactly 1..N, each once, in any order across responses; Ann's net is N and Bob's -N. Some requests failing is fine if each 201 is reflected once and failures leave nothing stored.
+- **U-15**: What two overlapping POST /groups calls for the same new id do.
+  - Probe: With an empty DATA_FILE, send 20 concurrent POST /groups {"id": "race", "members": ["Ann","Bob"]} (or two with different member lists). Count 201s and 409s, GET /groups/race/balances, restart with the same DATA_FILE and GET again.
+  - Outcomes that would be acceptable: Exactly one 201 and the rest 409, one stored group whose members are those of the 201 request, the same after restart.
+- **U-16**: Whether expense numbering continues after a restart instead of starting again at 1.
+  - Probe: Create group g, POST three expenses, restart with the same DATA_FILE, POST one more expense and record the number.
+  - Outcomes that would be acceptable: The next expense is numbered 4.
+- **U-21**: Which status POST /groups uses when the id already exists and the member list is also invalid, and whether the stored members change.
+  - Probe: POST /groups {"id": "g", "members": ["Ann","Bob"]}. POST /groups {"id": "g", "members": ["Ann"]}. Record the status, then GET /groups/g/balances and check which names are keys.
+  - Outcomes that would be acceptable: 400 or 409 are both fine; the stored members stay Ann and Bob.
+- **U-25**: Whether GET /groups/<id>/balances and GET /groups/<id>/settlements only read, or also change stored state.
+  - Probe: Create group g with ["Ann","Bob"], POST an equal expense paid by Ann for 100. GET balances, GET settlements, GET balances, GET settlements, and compare the bodies.
+  - Outcomes that would be acceptable: Both balances bodies match and both settlements bodies match; the GETs write nothing.
+- **U-26**: Whether DATA_FILE written by the server is read back to the same state: a group with both an equal and an exact expense gives the same balances, settlements and next expense number after restart.
+  - Probe: Point DATA_FILE at a new path. Create a group, record one equal and one exact expense, and copy the balances and settlements bodies. Read DATA_FILE while the server is up. Restart with the same file, GET balances and settlements, compare, and POST one more expense.
+  - Outcomes that would be acceptable: Any JSON layout the server writes and reads back with identical balances and settlements and the next number 3 is fine; balances may be stored or computed on read. A hand-written file of another shape does not have to load.
+- **U-27**: Whether the tests are self-contained: they start their own server on a free port with a temporary DATA_FILE, need nothing running, leave no stray files or processes, and pass repeatedly.
+  - Probe: On a clean checkout with nothing listening, run `node --test` from the project root twice in a row, and once while another process holds a common port such as 3000. Check the exit code is 0 each time, no new files remain in the project folder, and no node process is left running.
+  - Outcomes that would be acceptable: Any self-contained approach (spawning server.js on port 0 or a free port, or importing the server) is fine.
+- **U-31**: Whether a group creation and an expense in another group, sent at the same time, both survive a restart.
+  - Probe: With an existing group g, send at the same time POST /groups {"id": "h", "members": ["Cy","Di"]} and POST /groups/g/expenses with a valid expense. After both return 201, restart with the same DATA_FILE and GET /groups/g/balances and /groups/h/balances. Repeat many times.
+  - Outcomes that would be acceptable: Every time, g's balances include the expense and h exists with members Cy and Di.
+- **U-35**: What happens when a client disconnects in the middle of sending a request body.
+  - Probe: Create group g. Open a connection, send POST /groups/g/expenses headers with Content-Length 1000 and only part of a body, then close the socket. Repeat several times, then GET /groups/g/balances and POST a valid expense.
+  - Outcomes that would be acceptable: No expense is stored from the aborted requests, the server stays up, and the following requests work.

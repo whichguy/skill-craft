@@ -1,0 +1,417 @@
+{
+ "stated": [
+  {
+   "text": "The app is a Node.js application with no npm dependencies."
+  },
+  {
+   "text": "`node server.js` serves the app."
+  },
+  {
+   "text": "The server listens on the port in the PORT environment variable, and on port 3000 when PORT is unset."
+  },
+  {
+   "text": "GET / is the app."
+  },
+  {
+   "text": "Everything the app keeps lives under the directory named by the DATA_DIR environment variable, default `./data`."
+  },
+  {
+   "text": "What the app has kept survives a restart: bots, conversations, messages, memory, saved instructions, saved tasks, a token saved with Save token, confirmed record changes, and recorded long-task results."
+  },
+  {
+   "text": "`records/people.json` and `records/records.json` are the starting state and stay as they are."
+  },
+  {
+   "text": "Starting with an empty data directory yields those starting records again."
+  },
+  {
+   "text": "There are no passwords."
+  },
+  {
+   "text": "The first screen offers a button named Continue as Maya, a button named Continue as Theo, and a button named Continue as Ana, one Continue as <name> button for each person in `records/people.json`."
+  },
+  {
+   "text": "After a person has continued, a button named Switch person brings that first screen back."
+  },
+  {
+   "text": "Reloading the page keeps the person who continued, and keeps that person's open bot, open conversation, and messages."
+  },
+  {
+   "text": "What a person sees, and what that person's bots remember, belongs to the person they continued as. Their bots, conversations, messages, memory, saved instructions, saved tasks, and long tasks stay separate from another person's, including after Switch person and continuing back as the first person."
+  },
+  {
+   "text": "Each bot's memory stays separate from the same person's other bots."
+  },
+  {
+   "text": "A person who has never used the app starts with one bot named Assistant."
+  },
+  {
+   "text": "A navigation named Bots lists the current person's bots as buttons named with each bot's name, and the open bot is marked as current."
+  },
+  {
+   "text": "A button named New bot, a textbox named Bot name, and a button named Save bot name create a bot and open it, and the person's existing bots remain."
+  },
+  {
+   "text": "A button named Rename bot uses the Bot name textbox and Save bot name to rename the open bot, which is then listed under the new name."
+  },
+  {
+   "text": "A navigation named Conversations lists the open bot's conversations as buttons, and the open conversation is marked as current."
+  },
+  {
+   "text": "A button named New conversation starts a conversation."
+  },
+  {
+   "text": "A person can keep multiple saved conversations for a bot and return to the same bot and discussion with that discussion's messages still there."
+  },
+  {
+   "text": "A follow-up is understood from the open conversation: the stand-in receives that conversation's messages, oldest first, ending with the new person message, and does not receive another conversation's messages."
+  },
+  {
+   "text": "A region named Conversation holds the messages as articles named Message from <name>, using the current person's name or the bot's name, and each article shows that message."
+  },
+  {
+   "text": "A textbox named Message and a button named Send write the person's message into the open conversation."
+  },
+  {
+   "text": "Enter in the Message textbox sends the message."
+  },
+  {
+   "text": "Shift+Enter in the Message textbox makes a new line and does not send."
+  },
+  {
+   "text": "While a reply is on its way, a status says so."
+  },
+  {
+   "text": "If a reply fails, an alert says so."
+  },
+  {
+   "text": "A button named Retry tries the failed reply again without adding the person's message a second time."
+  },
+  {
+   "text": "A person message containing `[fail once]` fails on its first attempt and succeeds on Retry."
+  },
+  {
+   "text": "A person message containing `[slow]` waits STANDIN_SLOW_MS milliseconds before the reply, 1500 unless that environment variable is set, and the waiting status shows during that wait."
+  },
+  {
+   "text": "At a desktop width of 1440 pixels, everything named in the request is on the main screen without opening a menu. Setup (only when no token has been saved), Proposed changes (when a proposal is waiting), Change result (after a decision), and Since you were away (when the person comes back) are on that main screen when they apply."
+  },
+  {
+   "text": "In a narrow window, parts may be folded away, while reading the conversation and writing a message stay in view."
+  },
+  {
+   "text": "Everyday use works with the keyboard: the named textboxes and buttons can be reached and used from the keyboard."
+  },
+  {
+   "text": "When no provider token has been saved, a region named Setup explains what is needed without exposing a token, with a textbox named Provider token and a button named Save token."
+  },
+  {
+   "text": "A token the provider refuses shows an alert and lets the person try again from Setup."
+  },
+  {
+   "text": "The provider accepts a token that is the text `sk-local-` followed by at least twelve letters or digits, and refuses a missing or other token."
+  },
+  {
+   "text": "A token in the PROVIDER_TOKEN environment variable counts as saved: Setup is not shown, that token is not shown, and replies work."
+  },
+  {
+   "text": "Once a token has been saved, it is never shown again, in any page or any response, including after a restart."
+  },
+  {
+   "text": "Saving an accepted token dismisses Setup and later replies use it."
+  },
+  {
+   "text": "A region named Saved instructions has textboxes named Instruction name and Instruction text and a button named Save instruction. Saving adds that named instruction."
+  },
+  {
+   "text": "Each saved instruction has buttons named Use <name>, Edit <name>, and Delete <name>."
+  },
+  {
+   "text": "Use <name> makes that saved text the open bot's instructions from the next reply on, including in that bot's other conversations, and does not change another bot's instructions."
+  },
+  {
+   "text": "With no instructions, `who are you` replies `I am <bot name>. I have no special instructions.` After instructions are set, `who are you` replies `I am <bot name>. My instructions: <instructions>`."
+  },
+  {
+   "text": "Edit <name> puts that instruction back into Instruction name and Instruction text, to change and save again under the same name."
+  },
+  {
+   "text": "Delete <name> on a saved instruction removes that saved instruction."
+  },
+  {
+   "text": "A region named Saved tasks has textboxes named Task name and Task request and a button named Save task. Saving adds that named task."
+  },
+  {
+   "text": "Each saved task has buttons named Run <name>, Edit <name>, and Delete <name>."
+  },
+  {
+   "text": "Run <name> sends that task's request in the open conversation as a message from the person, and the bot's reply appears there."
+  },
+  {
+   "text": "Edit <name> on a saved task puts it back into Task name and Task request, to change and save again under the same name."
+  },
+  {
+   "text": "Delete <name> on a saved task removes that saved task."
+  },
+  {
+   "text": "A region named Memory lists what the open bot remembers about the current person as list items, each showing that fact."
+  },
+  {
+   "text": "Each memory list item has buttons named Edit memory and Forget."
+  },
+  {
+   "text": "Forget removes that item from what the open bot remembers about the current person."
+  },
+  {
+   "text": "Editing a memory uses a textbox named Memory text and a button named Save memory, and Save memory updates that item to the text that is saved."
+  },
+  {
+   "text": "`remember that <fact>` replies `I'll remember that <fact>.` and adds that fact to what this bot remembers about this person."
+  },
+  {
+   "text": "`forget <fact>` and `forget that <fact>` reply `I've forgotten \"<fact>\".` and remove that fact from what this bot remembers about this person."
+  },
+  {
+   "text": "`what do you remember` replies `I remember: <facts joined by \"; \">.` when this bot has facts for this person, and `I don't remember anything about you yet.` when it has none."
+  },
+  {
+   "text": "What a bot remembers about a person is the same in all of that bot's conversations, and a reply is given only the memory, history, and records supplied to the stand-in."
+  },
+  {
+   "text": "`what did I ask first` replies `You first asked: \"<first person message>\".` when this conversation already contains an earlier person message, and `This is the first thing you've asked.` when it does not."
+  },
+  {
+   "text": "Any other person message replies `You said: \"<text>\". (<bot name> has N message(s) from you in this conversation.)`, where <text> is the message with `[fail once]` and `[slow]` removed and the ends trimmed, and N is the number of person messages in this conversation including this one."
+  },
+  {
+   "text": "The stand-in's commands match regardless of capitals, and the first rule that fits the person's last message is the one used."
+  },
+  {
+   "text": "Every reply text shown is the stand-in's `output.text`. The app acts on the stand-in's other fields: remember, forget, clarify, proposal, task, and steer."
+  },
+  {
+   "text": "A person may read, and ask to change, only records whose readers include that person's id. From the starting records, Maya (maya) can use ORD-1001, ORD-1002, ORD-1004, ACC-2001, and ACC-2003; Theo (theo) can use ORD-1001, ORD-1003, ACC-2001, and ACC-2002; Ana (ana) can use ORD-1004, ACC-2001, and ACC-2003."
+  },
+  {
+   "text": "`how many orders can you see` replies `I can see N order record(s).` and `how many accounts can you see` replies `I can see N account record(s).`, with N counted only from records that person may read."
+  },
+  {
+   "text": "`what is the <field> of <ID>` replies `The <field> of <record id> is <value>.` when the readable record has that field, `<record id> has no <field>.` when it does not, and `I can't see a record called <ID>.` when that person cannot see it. Typed record ids match without regard to capitals, and a record the person cannot see is reported with the typed id in capitals."
+  },
+  {
+   "text": "`set the <field> of <ID> to <value>` on a record the person may read replies `I propose one change: <record id> <field>: <from> → <to>. Confirm to apply it.` and writes nothing. On a record the person cannot see, it replies `I can't see a record called <ID>.` and writes nothing."
+  },
+  {
+   "text": "A proposal appears in a region named Proposed changes that states each change exactly (for example `ORD-1001 status: open → closed`), with buttons named Confirm changes and Reject changes."
+  },
+  {
+   "text": "Nothing is written until the person explicitly confirms with Confirm changes. After a field change is confirmed, a later question from this person returns the new value, and the record's other fields stay as they were."
+  },
+  {
+   "text": "Afterwards a region named Change result says what happened."
+  },
+  {
+   "text": "Reject changes, and any other cancelling of the proposal, leaves the records alone. A later question still returns the old value."
+  },
+  {
+   "text": "Repeating a confirm, or reloading at the moment of confirm, does not apply that change twice, and the person can tell what actually happened."
+  },
+  {
+   "text": "`update <ID>` on a readable record replies `Which field of <record id> should I change, and to what value?`, writes nothing, and the person's next message is sent with the conversation so far. `the <field> to <value>` right after that question produces the same proposal as `set the <field> of <ID> to <value>`."
+  },
+  {
+   "text": "`create an order for <customer> totalling <number>` replies `I propose creating one order: customer <customer>, total <number>, status open. Confirm to apply it.` and writes nothing until Confirm changes."
+  },
+  {
+   "text": "Confirming that create stores one order with that customer, that total, and status open. Its readers is the creating person alone, and its id is the next free `ORD-` number. The creator can then read it, and another person cannot. Rejecting it stores nothing."
+  },
+  {
+   "text": "`long task: <title>` or `research: <title>` replies `I'll work on \"<subject>\" in the background and tell you when it is done.` and runs that task's steps in the background, one `runStep` at a time, in order. The subject is the title with bracket markers removed."
+  },
+  {
+   "text": "A task title without `[long]` has three steps: `Collect what is known about <subject>`, `Compare the options for <subject>`, and `Write the summary of <subject>`. A title containing `[long]` adds `Check part 1 of <subject>` through `Check part 5 of <subject>` before the summary, eight steps in all."
+  },
+  {
+   "text": "A region named Tasks shows each long task as an article named Task: <title>, using the stand-in's task title."
+  },
+  {
+   "text": "Each task article has a status named Task status that reads Running, Completed, Failed, Cancelled, or Interrupted."
+  },
+  {
+   "text": "While a task runs, Task status reads Running, the article shows the steps that have finished, and a button named Cancel task is available."
+  },
+  {
+   "text": "Each step takes STANDIN_STEP_MS milliseconds, 500 unless that environment variable is set. A completed step's stand-in result is `Done: <step text>`."
+  },
+  {
+   "text": "When every step has finished successfully, Task status reads Completed."
+  },
+  {
+   "text": "A task title containing `[fail step 2]` fails its second step on the first attempt. Task status then reads Failed, steps that had already finished stay recorded, and the conversation remains."
+  },
+  {
+   "text": "Cancel task, while a task is running, stops the work that can still be stopped, keeps the steps that have already happened, sets Task status to Cancelled, and explains what can still be stopped and what has already happened."
+  },
+  {
+   "text": "After a failure or an interruption, a button named Retry task is available. Recovery does not guess: a step is not shown as finished unless it finished, and the conversation is not lost."
+  },
+  {
+   "text": "`add step: <text>` replies `I'll add \"<text>\" to the task that is running.` and adds that step at the end of the running task in this conversation."
+  },
+  {
+   "text": "The conversation stays usable while a task runs: the person can send a follow-up and get that reply while Task status reads Running. Cancel task is what stops a running task."
+  },
+  {
+   "text": "Useful long-task work continues while the app is closed."
+  },
+  {
+   "text": "When the person comes back after being away, a region named Since you were away tells them what finished, what is still running, and what needs their attention."
+  },
+  {
+   "text": "One person's long tasks are not shown to another person."
+  },
+  {
+   "text": "The rules the app follows live in modules the app uses, with node:test tests under test/ that `npm test` runs and that cover those rules."
+  }
+ ],
+ "unstated": [
+  {
+   "text": "The request does not settle whether the current person is per browser, per tab, or one person for the whole server when two clients are open at once.",
+   "why": "Maya and Theo are both people of this no-password app on one computer. Whoever operates it needs to know whether their bots and messages stay apart while both are connected.",
+   "probe": "Save a valid provider token. In browser A, Continue as Maya and send `hello from Maya`. In a second browser or private window, Continue as Theo and send `hello from Theo`. Reload each. Read which person each browser shows, which messages are in the conversation, and what a further send from browser A does after Theo has continued in browser B. Repeat with two tabs of the same browser.",
+   "fine_answers": "Any of these is fine: each browser keeps its own person; all tabs in one browser share one person but a private window can be another person; the server has one current person and the latest Continue as changes it for every client. Personal data still has to remain the data of the person a client is acting as."
+  },
+  {
+   "text": "The request does not settle what else is on the first screen besides the Continue as buttons, whether a token must be saved before a person can continue, or who a reload belongs to while the Continue as screen is up.",
+   "why": "The person starting the app, and someone checking the first screen, needs a definite path through Setup and Continue as, and needs to know whether Switch person has signed anyone out.",
+   "probe": "With no token saved and an empty data directory, open GET /. Note whether Setup and the chat controls are present before Continue as. Save `sk-local-abcdefghijkl`, then see whether the Continue as buttons are still required. Continue as Maya, click Switch person, and reload. See which screen returns and whether a message can be sent before choosing again.",
+   "fine_answers": "Any of these is fine: the first screen is only the person buttons (plus Setup when no token is saved), or the main controls are visible but inert until a person continues. Saving a token and choosing a person may happen in either order. After Switch person, a reload may stay on the chooser or return to the person who last continued. Data already stored for a person stays that person's."
+  },
+  {
+   "text": "The request does not name the conversation buttons or say how two conversations are told apart, including a conversation with no messages yet.",
+   "why": "Conversations is how a person returns to the right discussion. A screen reader and anyone checking the app need an accessible name, and the person needs to distinguish the buttons.",
+   "probe": "Continue as Maya, open Assistant, and click New conversation twice. Read the accessible name of each button in the navigation named Conversations, which one is marked current, and the names again after sending `first conversation` in one of them.",
+   "fine_answers": "Any distinct accessible names are fine, such as Conversation 1 and Conversation 2, a timestamp, the first message text once one exists, or a generated label for an empty conversation. The open one still has to be marked current."
+  },
+  {
+   "text": "The request does not settle whether Assistant, a bot made with New bot, or a conversation made with New conversation starts already open and empty, or what a brand-new bot contains.",
+   "why": "The first thing a new person sees, and what they see after New bot or New conversation, decides whether they can type immediately and whether a new bot starts from a clean memory and instructions.",
+   "probe": "With an empty data directory, Continue as Ana and read the Conversations navigation, the Conversation region, and whether Send works before New conversation. Ask `who are you` and `what do you remember`. Click New bot, save the name Clerk, and look at Clerk's conversations, Memory, and `who are you`. Click New conversation and see which conversation is marked current.",
+   "fine_answers": "Any of these is fine: a new person or new bot already has one empty open conversation; the message box creates the first conversation on Send; or New conversation is required first. A new bot may start with no memories and no instructions, or with a generic welcome that is not another bot's memory or instructions. New conversation may become the open one or leave the previous one open."
+  },
+  {
+   "text": "The request does not settle whether saved instructions and saved tasks are shared by all of one person's bots or kept separately per bot.",
+   "why": "Use and Run act on the open bot, but the person saving a library needs to know whether it is still there after New bot or switching bots.",
+   "probe": "As Maya, on Assistant, save an instruction named Tone with text Be brief, and a task named Ping with request hello. Create and open a bot named Other. See whether Tone and Ping are listed. If they are, Use Tone and Run Ping, then switch back to Assistant and ask `who are you` in a new message.",
+   "fine_answers": "Any of these is fine: one library for the person, shown for every bot they have, with Use and Run affecting only the open bot and its open conversation; or a separate library per bot. Another person's library is not part of these choices."
+  },
+  {
+   "text": "The request does not settle whether Edit or Delete of a saved instruction changes instructions already applied to a bot, or whether Delete of a saved task affects work already started from it.",
+   "why": "The person who fixes or removes a saved item needs to know whether the bot's later replies, and a task already running, change too.",
+   "probe": "Save instruction Tone / Be brief, Use Tone, and ask `who are you`. Edit Tone to Be verbose, save under that flow, and ask `who are you` again without using Use. Then Use Tone, Delete Tone, and ask `who are you` once more. Separately, save a task whose request is `long task: docks`, Run it, Delete the saved task while Task status reads Running, and watch that task.",
+   "fine_answers": "Any of these is fine: Edit and Delete change only the saved library, so the bot keeps the instructions last applied with Use until another Use; or saving an edit updates the open bot when that instruction is the one in use; or Delete clears the bot's instructions only when the deleted one is the one in use. Deleting a saved task may leave a task that is already running, or cancel it, as long as the outcome is visible."
+  },
+  {
+   "text": "The request does not settle empty names, duplicate names, or an Edit that changes Instruction name or Task name before saving.",
+   "why": "Buttons are named with the bot, instruction, or task name. Empty or repeated names make New bot, Use, Edit, Delete, and Run ambiguous for the person and for a screen reader.",
+   "probe": "Try to save a bot with an empty Bot name, then save two bots both named Clerk. Save two instructions both named Tone. Edit one Tone, change Instruction name to Style, and save. Repeat the edit-name step for a saved task.",
+   "fine_answers": "Any of these is fine: reject an empty name; allow only unique names for that person or that bot; allow duplicates. On edit, saving may keep the original name, rename the same saved item, or create a second item. The result should leave Use, Edit, Delete, and Run pointing at the items the person can still see."
+  },
+  {
+   "text": "The request does not settle whether Memory text starts filled with the fact being edited, or whether Save instruction, Use, Edit, Delete, Save task, Rename, Save memory, and Forget also append a conversation message.",
+   "why": "Correcting a memory is hard to check if the current fact is not shown, and extra transcripts change what `what did I ask first` and the conversation contain.",
+   "probe": "Send `remember that likes tea`. Click Edit memory and read Memory text before changing it. Save a one-word change and read the Memory list and the Conversation region. Also click Save instruction, Use, Delete, Save task, Rename, and Forget, and after each one see whether a new Message article appeared.",
+   "fine_answers": "Any of these is fine: Memory text starts with the current fact, or it starts empty, as long as Save memory updates the item being edited. Management buttons other than Run may add no conversation message, or add a note. Run, Send, and the memory phrases typed into Message do write to the conversation."
+  },
+  {
+   "text": "The request does not settle memory identity when the same fact is remembered twice, or when a forget phrase is only part of a stored fact.",
+   "why": "The Memory list is what the person inspects and corrects. Duplicate lines and a forget that does not match the stored words change what the bot will claim to remember.",
+   "probe": "As Maya on a fresh Assistant, send `remember that likes tea` twice and read the Memory list. Send `forget tea` and read the reply and the list. Then send `forget that likes tea` if the fact remains, and read the list again.",
+   "fine_answers": "Any of these is fine: remembering the same fact twice yields one list item or two. `forget tea` may leave `likes tea` stored or remove it. The reply text stays the stand-in's reply. An exact `forget that likes tea` removes that stored fact."
+  },
+  {
+   "text": "The request does not settle which gestures besides Confirm changes and Reject changes confirm or cancel a proposal, how long a proposal stays if the person reloads, switches conversation, or sends another message, or what the proposal controls show after a decision.",
+   "why": "The person must be able to decide deliberately, avoid an accidental write, and still understand the outcome if they look away or click twice.",
+   "probe": "As Maya, send `set the status of ORD-1001 to closed`. While Proposed changes is visible, press Enter in Message, reload, and see whether the status changed and whether the proposal is still there. In a new attempt, send a second set command before confirming the first, then Reject changes, then click Confirm changes again. Read Change result and ask `what is the status of ORD-1001`.",
+   "fine_answers": "Any of these is fine, provided a record changes only after an explicit confirm and a repeated confirm does not write a second time: only the Confirm changes button confirms, or Enter confirms too; a proposal stays until Confirm or Reject, or it is dropped on reload or on a new message; after a decision the buttons disappear, stay disabled, or remain while a later click does not write again. Change result may stay or be replaced by the next result."
+  },
+  {
+   "text": "The request does not settle the exact wording of Proposed changes beyond the field-change example, or how a created order is stated before confirm, including whether its id is previewed.",
+   "why": "The person decides from this region. A create has no arrow example, and showing an id early matters if they compare it with what is stored later.",
+   "probe": "As Maya, send `set the status of ORD-1001 to closed` and read Proposed changes, then Reject changes. Send `create an order for Northwind totalling 40` and read Proposed changes. Before confirming, ask `how many orders can you see`.",
+   "fine_answers": "Any exact wording is fine. A field change may use `ORD-1001 status: open → closed` or another wording that gives the record, field, old value, and new value. A create may repeat the stand-in's sentence or list customer, total, and status open, with or without a preview id. Nothing is stored before Confirm changes."
+  },
+  {
+   "text": "The request does not settle what Confirm does when the record no longer has the proposed `from` value, when the next `ORD-` id is chosen, or what `next free` means if numbers are unused.",
+   "why": "Two proposals can target the same order, or two creates can be confirmed. The stored id and final field are what later answers report.",
+   "probe": "As Maya, in one conversation send `set the status of ORD-1001 to closed` and do not confirm. In another conversation send `set the status of ORD-1001 to shipped`, confirm it, then confirm the first proposal. Ask `what is the status of ORD-1001`. Also propose `create an order for North totalling 10` and `create an order for South totalling 20` before confirming either, confirm both, and read both new ids.",
+   "fine_answers": "Any of these is fine if the result is explained and the same confirm does not write twice: the later confirm overwrites the field; the later confirm is refused because `from` no longer matches; ids are assigned at confirm time or reserved at propose time, as long as the two stored orders get different ids. Next free may be one greater than the highest `ORD-` number or the lowest unused `ORD-` number."
+  },
+  {
+   "text": "The request does not settle whether a confirmed change to a record another person may also read is visible to that other person.",
+   "why": "Maya and Theo both may read ORD-1001. Each expects accurate answers after someone confirms a change.",
+   "probe": "As Maya, send `set the status of ORD-1001 to closed`, Confirm changes, and ask `what is the status of ORD-1001`. Switch person, Continue as Theo, and ask `what is the status of ORD-1001`. Restart the server and ask Theo again.",
+   "fine_answers": "Either a single working copy, so Theo sees closed, or a separate working copy per person, so Theo still sees open, is fine. The starting files stay unchanged, a person's own confirmed change remains for that person after restart, and a person still cannot read a record that does not list them."
+  },
+  {
+   "text": "The request does not settle what `while the app is closed` and Task status Interrupted cover: the browser closing, the server process stopping, or both, and whether unfinished steps resume after `node server.js` starts again.",
+   "why": "The person who closes a window, or the operator who restarts the process, needs an honest account of what finished and what can still be recovered.",
+   "probe": "Start `long task: harbour survey [long]`. Close the browser, wait longer than eight step intervals, reopen, and read Task status, the finished steps, and Since you were away. Start a second long task, stop the node process before it completes, run `node server.js` again, reopen, and read Task status, the finished steps, and whether Retry task is present.",
+   "fine_answers": "Any honest combination is fine: steps continue on the running server while only the browser is closed; a process restart resumes remaining steps, or marks the task Interrupted or Failed and waits for Retry task. Finished steps stay recorded, and a step that did not finish is not shown as finished."
+  },
+  {
+   "text": "The request does not settle which steps Retry task runs again, or what happens to the step in progress when Cancel task is used, including whether cancel asks first.",
+   "why": "The person recovering a failed task, or stopping one, needs to know which finished work will be repeated and which work still stops.",
+   "probe": "Start `long task: crates [fail step 2]`. When Task status reads Failed, read which steps are listed, click Retry task, and see whether the first step runs again and whether the task can reach Completed. Start `long task: harbour survey [long]`, click Cancel task while a step is still running, and read Task status, the explanation, and which steps remain.",
+   "fine_answers": "Any of these is fine if the failed step can eventually succeed and the conversation remains: Retry repeats only the failed step and continues, or repeats the whole task while keeping finished steps recorded and using a later attempt for the failed step. Cancel may stop immediately or ask first. The in-flight step may be kept if it finished or omitted if it did not, and the explanation matches that."
+  },
+  {
+   "text": "The request does not settle a second long task while one is running, `add step` when nothing is running, or which tasks appear in the Tasks region.",
+   "why": "Steer refers to the running task in this conversation, while the Tasks region can show more than one. The person needs to know what their follow-up will change.",
+   "probe": "In one conversation send `long task: alpha`, and before it completes send `long task: beta` and then `add step: extra check`. Read the Tasks region. Open another conversation and another bot and see which task articles appear. With no task running, send `add step: leftover` and read the reply and Tasks.",
+   "fine_answers": "Any of these is fine: a second task is refused, queued, or run alongside the first; `add step` with no running task adds nothing and says so, or starts a one-step task. Tasks may list the open conversation, the open bot, or all of this person's long tasks. Another person's tasks stay hidden."
+  },
+  {
+   "text": "The request does not settle when Since you were away appears, or which events count as finished, still running, and needing attention.",
+   "why": "The person returning to the page uses this region to decide what to do next. It should not be the only place a failure can be seen, and it should not invent work.",
+   "probe": "Start `long task: crates [fail step 2]` and a second task `long task: alpha`. Close the page, wait until one can have failed and the other can have finished, and reopen. Read Since you were away. Also reload immediately after a send with nothing else running, and reload while a proposal is waiting and unconfirmed.",
+   "fine_answers": "Any of these is fine: the region appears on every return, only after the page was closed, or only when something changed while it was closed. Needing attention may include failed or interrupted tasks, waiting proposals, or only failed tasks. The wording may vary. It stays consistent with Task status and does not claim a step finished when it did not."
+  },
+  {
+   "text": "The request does not settle whether Memory and task progress update while the page stays open, or whether finished steps are shown as the step text, as `Done: <step text>`, or as both.",
+   "why": "The person watching a long task, or looking at Memory after `remember that`, needs to know whether to reload, and a checker needs to recognize a finished step.",
+   "probe": "Send `remember that likes tea` and, without reloading, read the Memory region. Start `long task: alpha` and, without reloading, watch Task status and the finished steps until they stop changing. Compare the words on each finished step with the stand-in's step text and `Done:` line.",
+   "fine_answers": "Any of these is fine: Memory and the task article update on their own while the page is open, or they update on reload. Finished steps may show the step text, the `Done:` line, or both, as long as the steps that finished are identifiable and unfinished steps are not listed as finished."
+  },
+  {
+   "text": "The request does not settle an in-flight reply if the person reloads, switches person, or sends again, or whether `[fail once]` and `[slow]` remain in the stored person message.",
+   "why": "A slow or failed reply is part of ordinary checking and recovery. A reload or a second send must not duplicate the person's message or attach the reply to the wrong person, and later `what did I ask first` quotes whatever was stored.",
+   "probe": "As Maya, send `hello [slow] [fail once]`. While the status says a reply is on its way, reload. In a second try, switch to Theo before the reply returns, then continue as Maya and read the conversation. In a third try, send `second` before the first reply returns. After a successful Retry of `hello [fail once]`, send `what did I ask first` and compare that quotation with the Message article.",
+   "fine_answers": "Any of these is fine: the person's message stays once and the reply arrives later in that person's conversation; the in-flight reply fails and Retry is available; a second send is ignored until the first reply settles, or it is queued. Switching person does not show Maya's reply to Theo. The stored message may keep or drop `[fail once]` and `[slow]`, as long as the first attempt still fails and Retry can succeed."
+  },
+  {
+   "text": "The request does not settle whether renaming a bot rewrites older Message from articles or leaves the name they had when they were sent.",
+   "why": "The person renaming Assistant, and anyone checking the transcript, needs to know whose past replies they are reading.",
+   "probe": "As Maya, on Assistant, send `hello` and wait for the reply. Click Rename bot, set Bot name to Guide, and save. Read the accessible names of the existing articles, send `who are you`, and read the new articles and the Bots button.",
+   "fine_answers": "Either is fine: older articles keep Message from Assistant, or they become Message from Guide. New replies use Guide, and the Bots button shows Guide."
+  },
+  {
+   "text": "The request does not settle which parts fold away in a narrow window, or how the person reaches a folded part again.",
+   "why": "Narrow use still has to let the person switch bots, open a conversation, and reach memory, tasks, and setup. The request only guarantees that the conversation and the message box stay in view.",
+   "probe": "Set the window narrower than 1440 pixels until some named regions leave the initial view. Read whether Bots, Conversations, Saved instructions, Saved tasks, Memory, and Tasks can be reached, and by which control. Widen the window to 1440 pixels and see those regions again.",
+   "fine_answers": "Any of these is fine: a disclosure or menu opens the folded regions; they remain on the page and scrolling reaches them; they return only when the window is wide. At 1440 pixels they are on the main screen without a menu. The conversation and Message stay in view while the window is narrow."
+  },
+  {
+   "text": "The request does not settle an invalid PROVIDER_TOKEN, which token is used when both an environment token and a saved token exist, or whether an environment token is copied into the data directory.",
+   "why": "The operator starts the app with the environment variable and needs to know whether Setup appears, which token replies use, and what remains after the variable is removed.",
+   "probe": "Run with PROVIDER_TOKEN set to `not-a-token` and open GET /. Run with PROVIDER_TOKEN set to `sk-local-abcdefghijkl` and see whether Setup appears and whether a reply works. Save a different accepted token through Setup if the screen allows it, send `who are you`, and restart once with the environment variable still set and once with it unset.",
+   "fine_answers": "Any of these is fine: an invalid environment token is treated as unsaved and Setup is shown, or the app shows the refusal alert and can accept a new token. When both exist, either source may win. The environment token may be used only while set, or copied into the data directory so it stays saved. A token is still never shown in a page or response."
+  },
+  {
+   "text": "The request does not settle a missing or unwritable DATA_DIR.",
+   "why": "The operator's first start uses the default `./data`, which may not exist yet. A later start may point DATA_DIR at a path that cannot be written.",
+   "probe": "Run `node server.js` with DATA_DIR set to a directory that does not exist. Open GET /, continue as a person, and send a message. Run again with DATA_DIR set to a path that cannot be created or written, and read what the process and the page do. Check that `records/people.json` and `records/records.json` are unchanged.",
+   "fine_answers": "Any of these is fine: create a missing directory and serve; exit with a clear error; show a clear error in the page. Stored data stays under DATA_DIR, and the starting record files stay as they are."
+  }
+ ]
+}

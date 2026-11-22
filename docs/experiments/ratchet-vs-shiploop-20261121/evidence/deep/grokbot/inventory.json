@@ -1,0 +1,1939 @@
+{
+ "stated": [
+  {
+   "id": "S-1",
+   "text": "The app is a finished, working chat application running on this computer: I can open it, ask for help in ordinary language and get a useful reply."
+  },
+  {
+   "id": "S-2",
+   "text": "It is a Node.js app with no npm dependencies."
+  },
+  {
+   "id": "S-3",
+   "text": "`node server.js` serves the app on the port in the PORT environment variable, and on port 3000 when PORT is unset."
+  },
+  {
+   "id": "S-4",
+   "text": "GET / is the app."
+  },
+  {
+   "id": "S-5",
+   "text": "Everything the app keeps lives under the folder named by the DATA_DIR environment variable (default `./data`)."
+  },
+  {
+   "id": "S-6",
+   "text": "What the app keeps survives a restart: bots, conversations, messages, memory, saved instructions, saved tasks, a token saved with Save token, confirmed record changes and long-task results."
+  },
+  {
+   "id": "S-7",
+   "text": "Every assistant reply comes from the stand-in in `provider/`, used as it is (not edited, copied or replaced)."
+  },
+  {
+   "id": "S-8",
+   "text": "Every reply text shown is the stand-in's `output.text`, and the app acts on the stand-in's other fields: remember, forget, clarify, proposal, task and steer."
+  },
+  {
+   "id": "S-9",
+   "text": "The stand-in's commands match regardless of capitals, and the first rule that fits the person's last message is the one used."
+  },
+  {
+   "id": "S-10",
+   "text": "The records the assistant may work with are the synthetic ones in `records/`; a person may read, and ask to change, only the records whose readers include that person's id."
+  },
+  {
+   "id": "S-11",
+   "text": "From the starting records, Maya (maya) can use ORD-1001, ORD-1002, ORD-1004, ACC-2001 and ACC-2003; Theo (theo) can use ORD-1001, ORD-1003, ACC-2001 and ACC-2002; Ana (ana) can use ORD-1004, ACC-2001 and ACC-2003."
+  },
+  {
+   "id": "S-12",
+   "text": "`records/people.json` and `records/records.json` are the starting state and stay as they are; the app keeps its own working copy of the records under its data folder, so a confirmed change survives a restart."
+  },
+  {
+   "id": "S-13",
+   "text": "Starting with an empty data folder gives the starting records again."
+  },
+  {
+   "id": "S-14",
+   "text": "A record a person creates is theirs: its `readers` is that person alone, and a new order's `id` is the next free `ORD-` number."
+  },
+  {
+   "id": "S-15",
+   "text": "The conversation is the center of the experience, with polished typography, comfortable reading and clear composition."
+  },
+  {
+   "id": "S-16",
+   "text": "Replies are presented so that they explain what matters without overwhelming me."
+  },
+  {
+   "id": "S-17",
+   "text": "A follow-up is understood from the open conversation: the stand-in receives that conversation's messages, oldest first, ending with the new person message, and no other conversation's messages."
+  },
+  {
+   "id": "S-18",
+   "text": "A reply is given only the open bot's memory of this person, this conversation's history and the records this person may read."
+  },
+  {
+   "id": "S-19",
+   "text": "`what did I ask first` replies `You first asked: \"<first person message>\".` when this conversation already contains an earlier person message, and `This is the first thing you've asked.` when it does not."
+  },
+  {
+   "id": "S-20",
+   "text": "Any other person message replies `You said: \"<text>\". (<bot name> has N message(s) from you in this conversation.)`, where <text> is the message with `[fail once]` and `[slow]` removed and the ends trimmed, and N counts the person messages in this conversation including this one."
+  },
+  {
+   "id": "S-21",
+   "text": "The bot asks a useful clarifying question when needed, and my next message is taken as the answer to it (sent with the conversation so far), helping me reach an answer or finish a task."
+  },
+  {
+   "id": "S-22",
+   "text": "I can name my bots."
+  },
+  {
+   "id": "S-23",
+   "text": "I can keep multiple saved conversations for a bot and return to the right bot and discussion, with that discussion's messages still there, without losing my place."
+  },
+  {
+   "id": "S-24",
+   "text": "I can save reusable instructions, use them again and change them."
+  },
+  {
+   "id": "S-25",
+   "text": "I can save reusable tasks, use them again and change them."
+  },
+  {
+   "id": "S-26",
+   "text": "I can inspect what a bot remembers about me."
+  },
+  {
+   "id": "S-27",
+   "text": "I can correct a mistake in what a bot remembers about me."
+  },
+  {
+   "id": "S-28",
+   "text": "Asking a bot to remember something adds it to what that bot remembers about me: `remember that <fact>` replies `I'll remember that <fact>.` and adds that fact."
+  },
+  {
+   "id": "S-29",
+   "text": "Asking a bot to forget something removes it: `forget <fact>` and `forget that <fact>` reply `I've forgotten \"<fact>\".` and remove that fact from what this bot remembers about me."
+  },
+  {
+   "id": "S-30",
+   "text": "`what do you remember` replies `I remember: <facts joined by \"; \">.` when this bot has facts for me, and `I don't remember anything about you yet.` when it has none."
+  },
+  {
+   "id": "S-31",
+   "text": "My information stays separate from another user's: my bots, conversations, messages, memory, saved instructions, saved tasks and long tasks are not shown to or used for another person."
+  },
+  {
+   "id": "S-32",
+   "text": "Each bot's memory stays separate from my other bots."
+  },
+  {
+   "id": "S-33",
+   "text": "What a bot remembers about me is the same in all of that bot's conversations."
+  },
+  {
+   "id": "S-34",
+   "text": "Questions about the records get accurate answers grounded only in records I am allowed to read, and I can follow up naturally."
+  },
+  {
+   "id": "S-35",
+   "text": "`how many orders can you see` replies `I can see N order record(s).` and `how many accounts can you see` replies `I can see N account record(s).`, with N counted only from records that person may read."
+  },
+  {
+   "id": "S-36",
+   "text": "`what is the <field> of <ID>` replies `The <field> of <record id> is <value>.` for a readable record with that field, `<record id> has no <field>.` when it lacks the field, and `I can't see a record called <ID>.` when the person cannot see it; typed ids match without regard to capitals."
+  },
+  {
+   "id": "S-37",
+   "text": "When I ask to create or update something, I see the exact proposed changes before deciding."
+  },
+  {
+   "id": "S-38",
+   "text": "`set the <field> of <ID> to <value>` on a readable record replies `I propose one change: <record id> <field>: <from> → <to>. Confirm to apply it.` and writes nothing; on a record the person cannot see it replies `I can't see a record called <ID>.` and writes nothing."
+  },
+  {
+   "id": "S-39",
+   "text": "`update <ID>` on a readable record replies `Which field of <record id> should I change, and to what value?` and writes nothing; `the <field> to <value>` right after that question produces the same proposal as `set the <field> of <ID> to <value>`."
+  },
+  {
+   "id": "S-40",
+   "text": "`create an order for <customer> totalling <number>` replies `I propose creating one order: customer <customer>, total <number>, status open. Confirm to apply it.` and writes nothing."
+  },
+  {
+   "id": "S-41",
+   "text": "Nothing is written until I explicitly confirm the proposal with Confirm changes."
+  },
+  {
+   "id": "S-42",
+   "text": "After a field change is confirmed, a later question from that person returns the new value, and the record's other fields stay as they were."
+  },
+  {
+   "id": "S-43",
+   "text": "Confirming a create stores one order with that customer, that total and status open; the creator can then read it and another person cannot."
+  },
+  {
+   "id": "S-44",
+   "text": "Rejecting or cancelling a proposal leaves the records alone: a later question still returns the old value, and a rejected create stores nothing."
+  },
+  {
+   "id": "S-45",
+   "text": "Repeating an action, such as a confirm, or reloading at an awkward moment does not apply it twice."
+  },
+  {
+   "id": "S-46",
+   "text": "I am told, and can understand, what actually happened to a proposal."
+  },
+  {
+   "id": "S-47",
+   "text": "`long task: <title>` or `research: <title>` replies `I'll work on \"<subject>\" in the background and tell you when it is done.` and runs that task's steps in the background, one `runStep` at a time, in order (the subject is the title with bracket markers removed)."
+  },
+  {
+   "id": "S-48",
+   "text": "A task title without `[long]` has three steps (`Collect what is known about <subject>`, `Compare the options for <subject>`, `Write the summary of <subject>`); a title containing `[long]` adds `Check part 1 of <subject>` through `Check part 5 of <subject>` before the summary, eight steps in all."
+  },
+  {
+   "id": "S-49",
+   "text": "Each step takes STANDIN_STEP_MS milliseconds (500 unless set), and a completed step's stand-in result is `Done: <step text>`."
+  },
+  {
+   "id": "S-50",
+   "text": "Longer tasks continue doing useful work while the app is closed."
+  },
+  {
+   "id": "S-51",
+   "text": "When I return, I get an honest account of what finished, what is still happening and anything that needs my attention."
+  },
+  {
+   "id": "S-52",
+   "text": "I can steer ongoing work with a follow-up: `add step: <text>` replies `I'll add \"<text>\" to the task that is running.` and adds that step at the end of my running task in this conversation."
+  },
+  {
+   "id": "S-53",
+   "text": "The conversation stays usable while a task runs: I can send a follow-up and get its reply while Task status reads Running."
+  },
+  {
+   "id": "S-54",
+   "text": "I can cancel ongoing work, with a clear explanation of what can still be stopped and what has already happened."
+  },
+  {
+   "id": "S-55",
+   "text": "If something fails or is interrupted, the app helps me recover without guessing (a step is not shown as finished unless it finished) or losing the conversation."
+  },
+  {
+   "id": "S-56",
+   "text": "A task title containing `[fail step 2]` fails its second step on the first attempt: Task status reads Failed, the steps that had already finished stay recorded, and the conversation remains."
+  },
+  {
+   "id": "S-57",
+   "text": "Setup is guided and recoverable and explains what I need without exposing secrets."
+  },
+  {
+   "id": "S-58",
+   "text": "Everyday use is comfortable on a desktop, in a narrow window and with the keyboard: the named textboxes and buttons can be reached and used from the keyboard."
+  },
+  {
+   "id": "S-59",
+   "text": "There are no passwords: the first screen offers a button named Continue as <name> for each person in `records/people.json` (Continue as Maya, Continue as Theo, Continue as Ana)."
+  },
+  {
+   "id": "S-60",
+   "text": "After continuing, a button named Switch person brings the first screen back."
+  },
+  {
+   "id": "S-61",
+   "text": "What I see, and what my bots remember, belongs to the person I continued as, including after Switch person and continuing back as the first person."
+  },
+  {
+   "id": "S-62",
+   "text": "Reloading the page keeps me as the person I continued as."
+  },
+  {
+   "id": "S-63",
+   "text": "At a desktop width of 1440 pixels everything named in the request is on the main screen without opening a menu, including Setup, Proposed changes, Change result and Since you were away when they apply."
+  },
+  {
+   "id": "S-64",
+   "text": "In a narrow window parts may be folded away, but reading the conversation and writing a message stay in view."
+  },
+  {
+   "id": "S-65",
+   "text": "When no provider token has been saved, a region named Setup explains what is needed without exposing a token, with a textbox named Provider token and a button named Save token."
+  },
+  {
+   "id": "S-66",
+   "text": "The provider accepts a token that is the text `sk-local-` followed by at least twelve letters or digits, and refuses a missing or other token."
+  },
+  {
+   "id": "S-67",
+   "text": "A token the provider refuses shows an alert and lets me try again from Setup."
+  },
+  {
+   "id": "S-68",
+   "text": "Saving an accepted token dismisses Setup, and later replies use it."
+  },
+  {
+   "id": "S-69",
+   "text": "A token in the PROVIDER_TOKEN environment variable counts as saved: Setup is not shown, the token is not shown, and replies work."
+  },
+  {
+   "id": "S-70",
+   "text": "Once saved, the token is never shown again, in any page or any response, including after a restart."
+  },
+  {
+   "id": "S-71",
+   "text": "A navigation named Bots lists my bots as buttons named with each bot's name, with the open one marked as current."
+  },
+  {
+   "id": "S-72",
+   "text": "A button named New bot, a textbox named Bot name and a button named Save bot name create a bot and open it, and my existing bots remain."
+  },
+  {
+   "id": "S-73",
+   "text": "A button named Rename bot uses the Bot name textbox and Save bot name button to rename the open bot, which is then listed under the new name."
+  },
+  {
+   "id": "S-74",
+   "text": "A person who has never used the app starts with one bot named Assistant."
+  },
+  {
+   "id": "S-75",
+   "text": "A navigation named Conversations lists the open bot's conversations as buttons, with the open one marked as current."
+  },
+  {
+   "id": "S-76",
+   "text": "A button named New conversation starts a conversation."
+  },
+  {
+   "id": "S-77",
+   "text": "A region named Conversation holds the messages as articles named Message from <name>, with my name or the bot's name, each showing that message."
+  },
+  {
+   "id": "S-78",
+   "text": "A textbox named Message and a button named Send write my message into the open conversation."
+  },
+  {
+   "id": "S-79",
+   "text": "Enter in the Message textbox sends the message."
+  },
+  {
+   "id": "S-80",
+   "text": "Shift+Enter in the Message textbox makes a new line and does not send."
+  },
+  {
+   "id": "S-81",
+   "text": "While a reply is on its way, a status says so; a message containing `[slow]` waits STANDIN_SLOW_MS milliseconds (1500 unless set) before the reply, and the status shows during that wait."
+  },
+  {
+   "id": "S-82",
+   "text": "If a reply fails, an alert says so."
+  },
+  {
+   "id": "S-83",
+   "text": "A button named Retry tries the failed reply again without adding my message a second time; a message containing `[fail once]` fails on its first attempt and succeeds on Retry."
+  },
+  {
+   "id": "S-84",
+   "text": "A region named Saved instructions has textboxes named Instruction name and Instruction text and a button named Save instruction; saving adds that named instruction."
+  },
+  {
+   "id": "S-85",
+   "text": "Each saved instruction has buttons named Use <name>, Edit <name> and Delete <name>."
+  },
+  {
+   "id": "S-86",
+   "text": "Use <name> makes that saved text the open bot's instructions from the next reply on, including in that bot's other conversations, and does not change another bot's instructions."
+  },
+  {
+   "id": "S-87",
+   "text": "With no instructions, `who are you` replies `I am <bot name>. I have no special instructions.`; after instructions are set, it replies `I am <bot name>. My instructions: <instructions>`."
+  },
+  {
+   "id": "S-88",
+   "text": "Edit <name> on an instruction puts it back into the Instruction name and Instruction text textboxes, to change and save again under the same name."
+  },
+  {
+   "id": "S-89",
+   "text": "Delete <name> on an instruction removes that saved instruction."
+  },
+  {
+   "id": "S-90",
+   "text": "A region named Saved tasks has textboxes named Task name and Task request and a button named Save task; saving adds that named task."
+  },
+  {
+   "id": "S-91",
+   "text": "Each saved task has buttons named Run <name>, Edit <name> and Delete <name>."
+  },
+  {
+   "id": "S-92",
+   "text": "Run <name> sends that task's request in the open conversation as a message from me, and the bot's reply appears there."
+  },
+  {
+   "id": "S-93",
+   "text": "Edit <name> on a task puts it back into the Task name and Task request textboxes, to change and save again under the same name."
+  },
+  {
+   "id": "S-94",
+   "text": "Delete <name> on a task removes that saved task."
+  },
+  {
+   "id": "S-95",
+   "text": "A region named Memory lists what the open bot remembers about me as list items, each showing that fact."
+  },
+  {
+   "id": "S-96",
+   "text": "Each memory list item has buttons named Edit memory and Forget."
+  },
+  {
+   "id": "S-97",
+   "text": "Forget removes that item from what the open bot remembers about me."
+  },
+  {
+   "id": "S-98",
+   "text": "Editing a memory uses a textbox named Memory text and a button named Save memory, and Save memory updates that item to the saved text."
+  },
+  {
+   "id": "S-99",
+   "text": "A proposal appears in a region named Proposed changes that states each change exactly (for example `ORD-1001 status: open → closed`), with buttons named Confirm changes and Reject changes."
+  },
+  {
+   "id": "S-100",
+   "text": "After a proposal is decided, a region named Change result says what happened."
+  },
+  {
+   "id": "S-101",
+   "text": "A region named Tasks shows each long task as an article named Task: <title>, using the stand-in's task title."
+  },
+  {
+   "id": "S-102",
+   "text": "Each task article holds a status named Task status that reads Running, Completed, Failed, Cancelled or Interrupted."
+  },
+  {
+   "id": "S-103",
+   "text": "Each task article shows the steps that have finished."
+  },
+  {
+   "id": "S-104",
+   "text": "Each task article has a button named Cancel task while it runs."
+  },
+  {
+   "id": "S-105",
+   "text": "When every step has finished successfully, Task status reads Completed."
+  },
+  {
+   "id": "S-106",
+   "text": "Each task article has a button named Retry task after a failure or an interruption."
+  },
+  {
+   "id": "S-107",
+   "text": "When I come back after being away, a region named Since you were away tells me what finished, what is still running and what needs my attention."
+  },
+  {
+   "id": "S-108",
+   "text": "The rules the app follows are in modules it uses, covered by node:test tests under test/ that `npm test` runs."
+  }
+ ],
+ "unstated": [
+  {
+   "id": "U-1",
+   "text": "Whether the current person is held per browser, per tab, or as one person for the whole server when two clients are open at once.",
+   "why": "Maya and Theo share one computer and a no-password app; whoever operates it needs to know whether their bots and messages stay apart while both are connected.",
+   "probe": "Save a valid provider token. In browser A, Continue as Maya and send `hello from Maya`. In a second browser or private window, Continue as Theo and send `hello from Theo`. Reload each. Read which person each browser shows, which messages each conversation holds, and what a further send from browser A does after Theo has continued in browser B. Repeat with two tabs of the same browser.",
+   "fine_answers": "Each browser keeps its own person; or all tabs in one browser share one person while a private window can be another; or the server has one current person and the latest Continue as changes it for every client. In every case personal data stays with the person a client is acting as.",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-2",
+   "text": "Whether the person's identity is checked by the server on every request, or only chosen in the page.",
+   "why": "'My information stays separate' fails if a request naming another person's bot, conversation, memory, task or proposal is served or acted on.",
+   "probe": "As Maya, note the id of a conversation, a memory item and a pending proposal from the page's network requests. Switch person to Ana. Replay the requests for Maya's conversation and memory, and a confirm of Maya's proposal, from Ana's session. Read the responses and ask Maya's question about the record afterwards.",
+   "fine_answers": "Refused (for example 403 or 404) or empty; any answer that never returns or changes another person's data.",
+   "sources": [
+    "a"
+   ],
+   "ratings": [
+    "must",
+    "should"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-3",
+   "text": "What else is on the first screen besides the Continue as buttons, whether a token must be saved before a person can continue, and who a reload belongs to while the Continue as screen is up.",
+   "why": "The person starting the app, and anyone checking the first screen, needs a definite path through Setup and Continue as, and needs to know whether Switch person has signed anyone out.",
+   "probe": "With no token saved and an empty data folder, open GET /. Note whether Setup and the chat controls are present before Continue as. Save `sk-local-abcdefghijkl`, then see whether the Continue as buttons are still required. Continue as Maya, click Switch person, and reload. See which screen returns and whether a message can be sent before choosing again.",
+   "fine_answers": "The first screen is only the person buttons (plus Setup when no token is saved), or the main controls are visible but inert until a person continues. Saving a token and choosing a person may happen in either order. After Switch person, a reload may stay on the chooser or return to the person who last continued. Data already stored for a person stays that person's.",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-5",
+   "text": "Which token is used when both PROVIDER_TOKEN and a saved token exist, and whether a token from the environment is copied into the data folder.",
+   "why": "The operator starts the app with the environment variable and needs to know which token replies use and what remains after the variable is removed.",
+   "probe": "Run with PROVIDER_TOKEN=`sk-local-abcdefghijkl` and confirm Setup is absent and a reply works. Save a different accepted token through Setup if the screen allows it and send `who are you`. Restart once with the variable still set and once with it unset; each time open GET / and send a message.",
+   "fine_answers": "Either source may win, if stated. The environment token may be used only while set, or kept in the data folder. A token is never shown in a page or response.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-6",
+   "text": "What happens when the token in use is refused: an invalid PROVIDER_TOKEN at start, or a saved token that stops being accepted during use.",
+   "why": "'Recoverable setup' means a refused token leads back to Setup rather than an endless failing Retry.",
+   "probe": "Start with PROVIDER_TOKEN=`not-a-token` and open GET /. Then start with PROVIDER_TOKEN=`sk-local-short`, Continue as Maya and send `hello`. Read the alert, whether Setup is offered, and whether a new accepted token can be saved and the message retried.",
+   "fine_answers": "An invalid environment token is treated as unsaved and Setup is shown, or the refusal alert appears with a route back to Setup; any route that lets the person recover without exposing the token.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-7",
+   "text": "Whether the token is stored in plain text under DATA_DIR and whether it leaks into logs or error messages.",
+   "why": "The token must never be shown in any response; a stack trace, log line or alert containing it, or a copied data folder, exposes it.",
+   "probe": "Save a token. Search the server output, every API response and the files under DATA_DIR for the token text. Trigger a provider error (for example with `hello [fail once]`) and read the alert and the server output.",
+   "fine_answers": "Stored on disk is fine if never sent to the browser or logged; plain or obscured storage, if stated.",
+   "sources": [
+    "a"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-8",
+   "text": "Whether Assistant, a bot made with New bot, or a conversation made with New conversation starts open and empty, and what a brand-new bot contains.",
+   "why": "The first thing a new person sees, and what they see after New bot or New conversation, decides whether they can type at once and whether a new bot starts with clean memory and instructions.",
+   "probe": "With an empty data folder, Continue as Ana and read the Conversations navigation, the Conversation region, and whether Send works before New conversation. Ask `who are you` and `what do you remember`. Click New bot, save the name Clerk, and look at Clerk's conversations, Memory and `who are you`. Click New conversation and see which conversation is marked current.",
+   "fine_answers": "A new person or bot already has one empty open conversation; or Send creates the first conversation; or New conversation is required first. A new bot has no memories and no instructions, or a generic welcome that is not another bot's. New conversation may become the open one or leave the previous one open.",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-9",
+   "text": "How empty, blank, unusually long or duplicate bot names are handled, and whether bots that share a name can be told apart.",
+   "why": "Bots are listed as buttons named with each bot's name, so a blank or repeated name makes the list unreadable and ambiguous to a screen reader.",
+   "probe": "Click New bot, leave Bot name empty and click Save bot name. Then create a second bot named Assistant, give each Assistant a different discussion, switch away, and inspect the Bots navigation visually and by accessible name. Try a 300-character name.",
+   "fine_answers": "Blank names refused with a message; duplicates refused, or allowed with each bot distinguishable before selecting it; long names refused, accepted intact or shortened only for display.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-11",
+   "text": "How conversation buttons are named and ordered, so that conversations, including empty ones and ones with similar openings, can be told apart before opening them.",
+   "why": "Returning to 'the right discussion' requires telling conversations apart; buttons all called 'Conversation', or named by a long identical opening, do not.",
+   "probe": "In one bot click New conversation twice and read the accessible names in the Conversations navigation. Then start two conversations whose first messages share a long opening and end in different customer names. Return to Conversations and read the button names and order, visually and by accessible name.",
+   "fine_answers": "Named by first message, time, a title or a generated label, in any order, as long as each entry can be identified before selecting it and the open one is marked current.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-13",
+   "text": "Which bot and conversation are open after reloading, after Switch person and back, after a new visit and after a server restart, and whether an unsent draft and the scroll position survive.",
+   "why": "'Returning without losing my place' needs a defined place; a draft lost on reload is a common annoyance.",
+   "probe": "As Maya open bot Second, its second conversation, scroll up, and type an unsent message. Reload. Switch person to Theo and back to Maya. Close the browser and open the app again. Restart the server and reload. Each time read the open bot, open conversation, the Message box and the scroll position.",
+   "fine_answers": "The last-open bot and conversation restored per person, or a stated default conversation when none is restored; the draft and scroll position kept or not, as long as the place is.",
+   "sources": [
+    "a",
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-14",
+   "text": "Whether saved instructions and saved tasks belong to the person (shared by all their bots) or to one bot.",
+   "why": "Use and Run act on the open bot, but the person saving a library needs to know whether it is still there after New bot or switching bots; another person must never see it.",
+   "probe": "As Maya, on Assistant, save instruction Tone = `Be brief` and task Ping = `hello`. Create and open a bot named Other and look at Saved instructions and Saved tasks. If listed, Use Tone and Run Ping, switch back to Assistant and ask `who are you`. Then Switch person, Continue as Theo and look again.",
+   "fine_answers": "One library per person shown for every bot, with Use and Run affecting only the open bot and conversation; or a separate library per bot. Never visible to another person.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-15",
+   "text": "What Save instruction or Save task does when the name already exists and Edit was not used, or when the name or text is empty.",
+   "why": "Two entries with one name give duplicate Use/Run/Edit/Delete buttons and an ambiguous target; an empty one gives a button named 'Use '; a silent overwrite loses the earlier text.",
+   "probe": "Save instruction A = `x`; save instruction A = `y` without pressing Edit; count the Use A buttons and check with `who are you` after Use A which text applies. Try to save with an empty name and with empty text. Repeat for Save task.",
+   "fine_answers": "Overwrite with a notice, refuse with a message, or ask; empty fields refused. Not two entries with one name.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-16",
+   "text": "What happens when Edit <name> is used and the Instruction name or Task name is changed before saving.",
+   "why": "The person may want to rename an entry; silently creating a second item or losing the original changes which buttons exist.",
+   "probe": "Save instruction Tone = `Be brief`. Click Edit Tone, change Instruction name to Style, and save. Read the Saved instructions buttons. Repeat for a saved task.",
+   "fine_answers": "Saving keeps the original name, renames the same item, or creates a second item, as long as Use, Edit, Delete and Run point at the items the person can see.",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-17",
+   "text": "What happens to a bot's instructions when the saved instruction it uses is later edited or deleted.",
+   "why": "The person changes an instruction 'when needs change' and needs to know whether the bot that uses it follows the change or keeps the old text.",
+   "probe": "Save instruction Tone = `Be formal`, click Use Tone, send `who are you`. Edit Tone to `Be casual`, save, and send `who are you` without using Use. Then Delete Tone and send `who are you` again.",
+   "fine_answers": "The bot follows the saved instruction (an edit updates, a delete clears), or keeps the copy taken at Use until another Use; either, if what the bot now uses is visible or explained.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-20",
+   "text": "What happens if I send again, switch conversation, reload, switch person, or lose the acknowledgement while a reply is still on its way.",
+   "why": "Double-clicking Send or acting during a slow reply can duplicate messages, start a second task, or attach a reply to the wrong conversation or person.",
+   "probe": "Send `hello [slow]` and press Enter again at once. Send another `[slow]` message and switch to a different conversation, then back. Send one and reload during the wait. As Maya send `set the status of ORD-1001 to closed [slow]` and Switch person to Theo before it returns, then back to Maya. Send `long task: alpha [slow]`, close the page before it acknowledges, reopen, and try sending the same text again.",
+   "fine_answers": "Send disabled while pending, or messages queued in order. The person's message is stored once and its reply lands in its own conversation for its own person, kept after reload; Theo sees nothing of Maya's reply or proposal. A received turn is shown as received and is not started twice by recovery, while a deliberate new send still can be.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-21",
+   "text": "What Retry does after a reload or a server restart, what happens to a failed message if I send a new one instead, and whether a reply interrupted by stopping the server is retried automatically.",
+   "why": "A failed message must not vanish or be sent twice; the stand-in's `[fail once]` succeeds only when the attempt number rises, so a reset attempt count fails forever.",
+   "probe": "Send `hello [fail once]`; at the alert, reload, then click Retry. Repeat with a server restart before Retry. Separately, at the alert send `next` instead of Retry and read the messages. Send `hello [slow]` and stop the server during the wait, start it and reopen.",
+   "fine_answers": "Retry still offered and succeeds, or the failed message is marked failed with a way to resend; the person can tell that the message was received and that its reply failed; a new message is accepted or the person is told to retry first; an interrupted reply is retried automatically or waits for Retry. Never duplicated, never lost.",
+   "sources": [
+    "a",
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-22",
+   "text": "Whether `[fail once]` and `[slow]` remain in the stored person message.",
+   "why": "Later `what did I ask first` quotes whatever was stored, and the transcript should match what the person typed or say why not.",
+   "probe": "Send `hello [fail once]`, Retry it, then send `what did I ask first`. Compare the quotation with the Message article.",
+   "fine_answers": "The stored message may keep or drop the markers, as long as the first attempt still fails and Retry can succeed.",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-23",
+   "text": "Whether a memory forget that matches nothing, or a repeated remember, is reported honestly and kept tidy.",
+   "why": "The stand-in always says 'I've forgotten ...' even when no fact matches, and repeats a remembered fact; the person would believe something was forgotten that was not.",
+   "probe": "Send `remember that likes tea` twice and open Memory. Send `forget tea` and `forget coffee`, read the replies and the Memory list. Then send `forget that likes tea`.",
+   "fine_answers": "Duplicates merged or shown; a non-matching forget flagged, or matched loosely and shown; the Memory list is the truth; an exact forget removes the fact.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-25",
+   "text": "Whether Memory text starts filled with the fact being edited.",
+   "why": "Correcting a memory is hard if the current fact is not shown.",
+   "probe": "Send `remember that likes tea`. Click Edit memory and read Memory text before typing. Save a one-word change and read the Memory list.",
+   "fine_answers": "Memory text starts with the current fact, or empty, as long as Save memory updates the item being edited.",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-26",
+   "text": "Whether management actions (Save instruction, Use, Edit, Delete, Save task, Rename, Save memory, Forget) add messages to the conversation.",
+   "why": "Extra transcript lines change what `what did I ask first` and the conversation contain.",
+   "probe": "Click Save instruction, Use, Delete, Save task, Rename bot, Save memory and Forget in turn, and after each see whether a new Message article appeared; then send `what did I ask first`.",
+   "fine_answers": "Management actions other than Run add no message, or add a note; Run, Send and memory phrases typed into Message do write to the conversation.",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-27",
+   "text": "Whether Memory and task progress update while the page stays open.",
+   "why": "The person watching a long task, or looking at Memory after `remember that`, needs to know whether to reload.",
+   "probe": "Send `remember that likes tea` and, without reloading, read Memory. Start `long task: alpha` and, without reloading, watch Task status and the finished steps until they stop changing.",
+   "fine_answers": "They update on their own while the page is open, or on reload, if stated.",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-29",
+   "text": "Whether a proposal that changes `readers`, `id`, `type` or `owner` is offered and applied.",
+   "why": "The stand-in proposes `set the readers of ORD-1001 to ana`; applying it would let a person grant or remove someone else's access, or lose their own, breaking the read rules.",
+   "probe": "As Maya send `set the readers of ORD-1001 to ana` and confirm; send `set the id of ORD-1004 to ORD-9999` and confirm; check which records Maya, Theo and Ana can read.",
+   "fine_answers": "Refused with an explanation, or allowed only with a clear warning; never silently changing who may read a record or breaking a record.",
+   "sources": [
+    "a",
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "should"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-30",
+   "text": "Whether a proposed value is validated (a word into a number field, a field the record does not have, an unknown status, a decimal amount), and whether the person is told how to correct it.",
+   "why": "The stand-in turns `set the total of ORD-1001 to lots` into a text total and proposes fields that do not exist; a bad value then shows up in later answers.",
+   "probe": "As Maya send `set the total of ORD-1001 to banana`, `set the colour of ORD-1001 to red` and `create an order for Acme totalling 42.50`; confirm whatever is offered; ask `what is the total of ORD-1001`. Then send a corrected request in the same conversation.",
+   "fine_answers": "Refuse or warn before confirm, saying what to correct, with the corrected request working in the same conversation; or apply exactly what was shown. Either if the proposal states the exact change.",
+   "sources": [
+    "a",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-31",
+   "text": "How long an undecided proposal lasts (reload, restart, switching conversation, later messages), whether an older proposal can be confirmed after a newer one, which gestures confirm or cancel it, and what the controls show after a decision.",
+   "why": "A reload 'at an awkward moment' should neither lose the decision nor let a stale proposal be applied by accident; the person must decide deliberately.",
+   "probe": "As Maya send `set the status of ORD-1001 to closed`. Press Enter in Message, reload, restart the server and reload; read whether the status changed and the proposal remains. Switch to another conversation and back. Send a second set command before deciding the first; Reject one, then try Confirm changes on each, and click Confirm again after a decision. Read Change result and ask `what is the status of ORD-1001`.",
+   "fine_answers": "Kept and decidable, or expired or dropped with a clear message; only Confirm changes confirms, or Enter too; afterwards the buttons disappear, are disabled, or a later click writes nothing. Never applied without a confirm and never twice.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-32",
+   "text": "How a proposed create is worded before confirm, including whether its order id is previewed.",
+   "why": "The person decides from this region; a create has no arrow example, and a previewed id matters if it could differ from the one stored.",
+   "probe": "As Maya send `create an order for Northwind totalling 40` and read Proposed changes. Before confirming, ask `how many orders can you see`. Confirm and compare any previewed id with the stored one.",
+   "fine_answers": "The stand-in's sentence, or customer, total and status open listed, with or without a preview id; a previewed id is the one stored or marked provisional. Nothing stored before Confirm changes.",
+   "sources": [
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-33",
+   "text": "What Confirm does when the record no longer has the proposed `from` value (another reader changed it, or an earlier proposal on the same field was confirmed).",
+   "why": "ORD-1001 is shared by Maya and Theo; confirming 'open → closed' when it is already 'shipped' would silently overwrite the other change.",
+   "probe": "As Maya send `set the status of ORD-1001 to closed` and do not confirm. In another browser as Theo, or in another of Maya's conversations, send `set the status of ORD-1001 to shipped` and confirm. Back in the first, click Confirm changes; read Change result and ask `what is the status of ORD-1001`.",
+   "fine_answers": "Refused as stale with a new proposal offered, or applied with Change result stating the actual from-value; not a silent overwrite reported as 'open → closed'. The same confirm never writes twice.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-34",
+   "text": "How the next free ORD- number is chosen when two create proposals are pending at once or two people create orders, and what 'next free' means.",
+   "why": "Two new orders must not get the same id; a gap or reuse after a rejected proposal also confuses people.",
+   "probe": "As Maya send `create an order for North totalling 10` and, without confirming, as Ana send `create an order for South totalling 20`; confirm both. Ask `what is the customer of ORD-1005` and `ORD-1006` as each person.",
+   "fine_answers": "Assigned at confirm time or reserved at proposal; one more than the highest number or the lowest unused; distinct ids either way.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-35",
+   "text": "Whether the Change result stays visible after reload and how confirmed changes are recorded in the conversation.",
+   "why": "'Understand what actually happened' after a reload at the awkward moment requires the outcome to persist, not only flash once.",
+   "probe": "Confirm a proposal and reload at once; click Confirm again if still offered; look for the Change result and the conversation's record of it.",
+   "fine_answers": "Result kept in the conversation or in the region; any persistent, honest account.",
+   "sources": [
+    "a"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-36",
+   "text": "Whether a confirmed change to a record another person may also read is visible to that other person.",
+   "why": "Maya and Theo both may read ORD-1001; each expects accurate answers after someone confirms a change.",
+   "probe": "As Maya send `set the status of ORD-1001 to closed`, Confirm changes, ask `what is the status of ORD-1001`. Switch person, Continue as Theo, ask the same. Restart the server and ask Theo again.",
+   "fine_answers": "One working copy, so Theo sees closed, or a copy per person, so Theo sees open. The starting files stay unchanged and a person still cannot read a record that does not list them.",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-37",
+   "text": "Which long tasks the Tasks region shows: the open conversation's, the open bot's, or all of the person's.",
+   "why": "A task started in another conversation or bot must still be findable and cancellable, and must never show to another person.",
+   "probe": "As Maya start `long task: report [long]` in conversation 1; open conversation 2 and another bot; look at Tasks; Switch person to Theo and look again.",
+   "fine_answers": "All of the person's tasks, or the conversation's or bot's with a way to reach the others; never another person's.",
+   "sources": [
+    "a",
+    "b"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-38",
+   "text": "What happens when a second long task is started while one is running.",
+   "why": "Steer refers to the running task in this conversation; the person needs to know whether a second task runs, waits or is refused.",
+   "probe": "In one conversation send `long task: alpha [long]` and, before it completes, `long task: beta`. Read the reply and the Tasks region until both end.",
+   "fine_answers": "Refused, queued, or run alongside the first, as long as Tasks shows what is happening.",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-39",
+   "text": "What `add step:` does when no task is running in the conversation, or when several are (including several with the same title), and whether the feedback identifies which task received the step.",
+   "why": "The stand-in replies 'I'll add ... to the task that is running' regardless; claiming an addition that did not happen, or not saying which task got it, is dishonest.",
+   "probe": "In a conversation with no running task send `add step: double-check` and read the reply and Tasks. Then start two long tasks with the same title in one conversation and send `add step: extra`; read both task articles and the feedback, visually and by accessible name.",
+   "fine_answers": "With none running, say there is nothing to add to, or start a one-step task; with several, add to the latest or ask which, and the feedback identifies the task that got the step. Never claim an addition that did not happen.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-40",
+   "text": "Whether a finished, failed or cancelled task leaves a message in its conversation.",
+   "why": "The conversation is 'the center of the experience'; a result only in the Tasks region may be missed and is not part of the follow-up context.",
+   "probe": "Start `long task: notes` and wait for Completed; read the Conversation region; reload; then ask a follow-up.",
+   "fine_answers": "A bot message with the result, or the result only in the task article; either if findable after reload.",
+   "sources": [
+    "a"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-41",
+   "text": "What happens to a running task when the server stops and starts again (mark it Interrupted, resume it, or both), and how a step whose completion was not recorded is treated.",
+   "why": "Work is meant to continue while the app is closed; after a crash or restart the person needs to know whether steps will be redone or need Retry.",
+   "probe": "Start `long task: audit [long]`. Close the browser for longer than eight step intervals, reopen and read Task status. Start another; after two steps finish, stop the server mid-step; start it again; reload and read Task status, the finished steps, Since you were away, whether Retry task is present and whether it continues on its own.",
+   "fine_answers": "Interrupted with Retry task, or resumed automatically from the next unfinished step; finished steps kept, and a step that did not finish not shown as finished or silently counted.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-42",
+   "text": "Whether Retry task resumes at the failed step or starts the task over.",
+   "why": "Redoing steps that already finished wastes work and contradicts the 'steps that have finished' list.",
+   "probe": "Start `long task: plan [fail step 2]`; wait for Failed; click Retry task; read the step list until Completed and count the entries for step 1.",
+   "fine_answers": "Resume at the failed step, or rerun all with the list kept clear, as long as the failed step can succeed on a later attempt.",
+   "sources": [
+    "a",
+    "b"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-43",
+   "text": "What Cancel task does to a step already in progress, whether it asks first, and how the account separates 'already happened' from 'stopped'.",
+   "why": "The request asks for a clear explanation of what can still be stopped; a step mid-flight may finish anyway.",
+   "probe": "Run with STANDIN_STEP_MS=3000 and start `long task: big [long]`; click Cancel task mid-step; read Task status, finished steps and the explanation; wait a few seconds and read again.",
+   "fine_answers": "The in-flight step finishes and is listed and then the task stops, or it is discarded and said so; cancel may stop at once or ask first; status ends Cancelled and stays so.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-44",
+   "text": "What counts as 'being away' for the Since you were away region, which events it reports, and when reported items stop appearing.",
+   "why": "Shown on every load it is noise; shown never it hides what finished; it must be per person and match Task status.",
+   "probe": "As Maya start `long task: crates [fail step 2]` and `long task: alpha`, close the tab, wait until both end, reopen; read Since you were away; reload again. Reload right after a send with nothing running, and while a proposal waits. Switch person to Ana and check it shows only Ana's work.",
+   "fine_answers": "Since the person's last visit, or only when something changed; dismissed on reading or after a reload; needing attention may include failed or interrupted tasks and waiting proposals. Consistent with Task status, only the person's own, never inventing work.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-45",
+   "text": "Which parts fold away in a narrow window, how a folded part is reached again, and which narrow widths are supported.",
+   "why": "Narrow use still has to let the person switch bots, open a conversation, and reach memory, tasks and setup; the request only guarantees the conversation and message box stay in view.",
+   "probe": "Narrow the window step by step to 375 pixels. At each width read whether Bots, Conversations, Saved instructions, Saved tasks, Memory and Tasks can be reached and by which control, and that the conversation and Message stay in view. Widen to 1440 pixels and see them on the main screen.",
+   "fine_answers": "A disclosure or menu opens folded regions, or scrolling reaches them, or they return only when wide; any stated set of widths. At 1440 pixels they are on the main screen without a menu.",
+   "sources": [
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-46",
+   "text": "What the app does when DATA_DIR is missing, unwritable, or holds damaged or unexpected data at start.",
+   "why": "Everything lives under DATA_DIR; the operator needs a clear error and preserved data, not a raw crash or a silent reset that loses conversations or presents fresh records as recovered work.",
+   "probe": "Start with DATA_DIR pointing to a folder that does not exist, then to one that cannot be written. Then put invalid JSON, or valid JSON of an unexpected shape, in one of the app's data files and start again. Each time read the process output and the page, and check the data files and `records/` files afterwards.",
+   "fine_answers": "A missing folder created and served; otherwise refuse to start, or start and report the problem, with an actionable recovery step; damaged data kept for recovery, not overwritten or silently replaced by seeded records.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "independent": true
+  },
+  {
+   "id": "U-49",
+   "text": "Whether the capitalization of field names in record requests keeps their meaning.",
+   "why": "A person typing `STATUS` or `Status` expects the same answer and the same proposal as `status`.",
+   "probe": "As Maya send `what is the STATUS of ORD-1001` and `what is the status of ORD-1001`; then `set the Status of ORD-1001 to closed` and `set the status of ORD-1001 to closed`, rejecting each. Compare replies and previews; repeat as Ana on ORD-1001.",
+   "fine_answers": "The same value and the same exact preview for each capitalization, with reader rules still applied; or a clear message that the field was not recognized. Never a different field or a new field silently.",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "independent": false
+  },
+  {
+   "id": "U-50",
+   "text": "Whether a lookup or change keeps the record identifier the person typed (for example ORD-1001A while ORD-1001 exists).",
+   "why": "Answering about ORD-1001 when asked about ORD-1001A gives a confidently wrong answer about another record.",
+   "probe": "As Maya send `what is the status of ORD-1001A` and `set the status of ORD-1001A to closed`; then `what is the status of ORD-1001`.",
+   "fine_answers": "The reply says ORD-1001A cannot be used or found and how to correct it; ORD-1001 itself still answers. Never ORD-1001's status presented as ORD-1001A's.",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "independent": false
+  },
+  {
+   "id": "U-54",
+   "text": "What happens when storage writes fail while the app is open: whether the outcome of the save (or of a reply) is reported truthfully and recoverable.",
+   "why": "Reporting an uncommitted instruction or reply as saved, or leaving a reply stuck pending, misleads the person and can lose work.",
+   "probe": "With the app open, make DATA_DIR read-only. Save an instruction, send a message and confirm a proposal. Read what the page says. Restore write access, restart with the same folder, and see what was saved.",
+   "fine_answers": "A clear storage error with a recovery step, nothing reported as saved that was not; after recovery earlier work is present and the person can tell whether the attempted save happened; no reply left pending forever.",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "independent": false
+  },
+  {
+   "id": "U-57",
+   "text": "Whether one unexpected failure in background work takes down the whole app.",
+   "why": "A single failing task or write that disables everything stops the person from reading or recovering their other work.",
+   "probe": "Start a long task that fails (`long task: crates [fail step 2]`) and, separately, provoke a storage error during a task step (make DATA_DIR read-only mid-task); then try to read conversations, send a message and use other tasks.",
+   "fine_answers": "The failure is reported on the affected item and the rest stays usable; or the app enters a clearly reported read-only or unavailable mode with a recovery step.",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "independent": false
+  },
+  {
+   "id": "U-58",
+   "text": "Where keyboard focus lands after an action such as Confirm changes, Reject changes or Send, especially when several proposals are on screen.",
+   "why": "Focus landing on another proposal's Confirm button invites a keyboard user to confirm the wrong change.",
+   "probe": "Produce two proposals in view. Using only the keyboard, Reject one and read which control has focus; press Enter and see what happens. Repeat after Send and after Save memory.",
+   "fine_answers": "Focus moves to a sensible nearby control or the result, never onto another proposal's Confirm changes.",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "independent": false
+  },
+  {
+   "id": "U-60",
+   "text": "Whether unexpected server errors are shown honestly to the person and recorded for the operator.",
+   "why": "An unlogged bare 500 leaves both the person and the operator guessing about what happened.",
+   "probe": "Provoke an unexpected error (for example a malformed request body to a message or confirm endpoint, or a damaged data file during use); read the page's message and the server output.",
+   "fine_answers": "The page says the action failed and what to try; the server output records the error without exposing the token.",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "independent": false
+  }
+ ],
+ "rated": [
+  {
+   "id": "U-1",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-2",
+   "sources": [
+    "a"
+   ],
+   "ratings": [
+    "must",
+    "should"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-3",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-4",
+   "sources": [
+    "a"
+   ],
+   "ratings": [
+    "should",
+    "no"
+   ],
+   "kept": false,
+   "independent": true
+  },
+  {
+   "id": "U-5",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-6",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-7",
+   "sources": [
+    "a"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-8",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-9",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-10",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "no",
+    "no"
+   ],
+   "kept": false,
+   "independent": true
+  },
+  {
+   "id": "U-11",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-12",
+   "sources": [
+    "a"
+   ],
+   "ratings": [
+    "no",
+    "no"
+   ],
+   "kept": false,
+   "independent": true
+  },
+  {
+   "id": "U-13",
+   "sources": [
+    "a",
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-14",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-15",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-16",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-17",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-18",
+   "sources": [
+    "a"
+   ],
+   "ratings": [
+    "no",
+    "no"
+   ],
+   "kept": false,
+   "independent": true
+  },
+  {
+   "id": "U-19",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "no",
+    "no"
+   ],
+   "kept": false,
+   "independent": true
+  },
+  {
+   "id": "U-20",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-21",
+   "sources": [
+    "a",
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-22",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-23",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-24",
+   "sources": [
+    "a"
+   ],
+   "ratings": [
+    "should",
+    "no"
+   ],
+   "kept": false,
+   "independent": true
+  },
+  {
+   "id": "U-25",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-26",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-27",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-28",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "no",
+    "no"
+   ],
+   "kept": false,
+   "independent": true
+  },
+  {
+   "id": "U-29",
+   "sources": [
+    "a",
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "should"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-30",
+   "sources": [
+    "a",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-31",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-32",
+   "sources": [
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-33",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-34",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-35",
+   "sources": [
+    "a"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-36",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-37",
+   "sources": [
+    "a",
+    "b"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-38",
+   "sources": [
+    "b"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-39",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-40",
+   "sources": [
+    "a"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-41",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "must",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-42",
+   "sources": [
+    "a",
+    "b"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-43",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-44",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-45",
+   "sources": [
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-46",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "kept": true,
+   "independent": true
+  },
+  {
+   "id": "U-47",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "no",
+    "no"
+   ],
+   "kept": false,
+   "independent": false
+  },
+  {
+   "id": "U-48",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "no",
+    "no"
+   ],
+   "kept": false,
+   "independent": false
+  },
+  {
+   "id": "U-49",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "kept": true,
+   "independent": false
+  },
+  {
+   "id": "U-50",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "kept": true,
+   "independent": false
+  },
+  {
+   "id": "U-51",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "no",
+    "no"
+   ],
+   "kept": false,
+   "independent": false
+  },
+  {
+   "id": "U-52",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "no",
+    "should"
+   ],
+   "kept": false,
+   "independent": false
+  },
+  {
+   "id": "U-53",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "no",
+    "should"
+   ],
+   "kept": false,
+   "independent": false
+  },
+  {
+   "id": "U-54",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "kept": true,
+   "independent": false
+  },
+  {
+   "id": "U-55",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "no",
+    "should"
+   ],
+   "kept": false,
+   "independent": false
+  },
+  {
+   "id": "U-56",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "no"
+   ],
+   "kept": false,
+   "independent": false
+  },
+  {
+   "id": "U-57",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "must"
+   ],
+   "kept": true,
+   "independent": false
+  },
+  {
+   "id": "U-58",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "kept": true,
+   "independent": false
+  },
+  {
+   "id": "U-59",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "no",
+    "no"
+   ],
+   "kept": false,
+   "independent": false
+  },
+  {
+   "id": "U-60",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "should",
+    "should"
+   ],
+   "kept": true,
+   "independent": false
+  },
+  {
+   "id": "U-61",
+   "sources": [
+    "arm"
+   ],
+   "ratings": [
+    "no",
+    "should"
+   ],
+   "kept": false,
+   "independent": false
+  }
+ ],
+ "proved": [
+  "S-5",
+  "S-31",
+  "S-33",
+  "S-67",
+  "S-72",
+  "S-88"
+ ]
+}

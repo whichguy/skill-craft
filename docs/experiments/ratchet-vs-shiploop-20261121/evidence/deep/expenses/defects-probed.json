@@ -1,0 +1,23 @@
+{"rechecks": [],
+ "defects": [
+  {"id": "D-1", "title": "A DATA_FILE holding valid JSON without a \"groups\" array is silently treated as empty and overwritten", "severity": "low",
+   "merged_from": ["p8284f5#1"],
+   "repro": "printf '{\"something\":\"else\"}' > d.json; PORT=<free port> DATA_FILE=d.json node server.js; POST /groups {\"id\":\"z\",\"members\":[\"A\",\"B\"]}; cat d.json",
+   "expected": "Refuse to start with a clear error (as it does for invalid JSON) or keep the original file aside before writing.",
+   "note": "",
+   "results": {
+    "p8284f5": {"result": "present", "observed": "Server started with no groups; POST /groups -> 201 {\"id\":\"z\"}; d.json became {\"groups\":[[\"z\",{\"members\":[\"A\",\"B\"],\"expenses\":[]}]]}; the original {\"something\":\"else\"} is gone and no copy was kept in the directory."},
+    "p720d2a": {"result": "absent", "observed": "Server refused to start: exit code 1 with 'Error: Invalid saved groups' from loadGroups; d.json still {\"something\":\"else\"}, no other files."},
+    "p23566f": {"result": "absent", "observed": "Server refused to start: exit code 1 with 'Error: Invalid saved groups' from loadGroups; d.json still {\"something\":\"else\"}, no other files."}
+   }},
+  {"id": "D-2", "title": "A kill during a write leaves stray .expenses-<uuid>.tmp files beside DATA_FILE that startup never removes", "severity": "low",
+   "merged_from": ["p8284f5#2", "p720d2a#1", "p23566f#1"],
+   "repro": "PORT=<free port> DATA_FILE=<dir>/d.json node server.js; POST /groups {\"id\":\"g\",\"members\":[\"Ann\",\"Bob\"]}; run 8 parallel client loops POSTing /groups/g/expenses {\"payer\":\"Ann\",\"cents\":2,\"split\":\"equal\"}; SIGKILL the server (by its pid) after 150-300 ms; restart with the same DATA_FILE and repeat, 10 kills in all; restart once more, GET /groups/g/balances, ls -A <dir>.",
+   "expected": "No stale temporary files accumulating beside the data file (or removal at startup).",
+   "note": "Data integrity was not affected on any product: the file always parsed and balances matched every acknowledged expense.",
+   "results": {
+    "p8284f5": {"result": "present", "observed": "After 10 kills 2 .expenses-<uuid>.tmp files remained in <dir> (count after each kill 0,1,1,1,1,1,2,2,2,2); still there after the final restart; d.json parses and balances {\"Ann\":6308,\"Bob\":-6308} match the 6308 acknowledged expenses."},
+    "p720d2a": {"result": "present", "observed": "After 10 kills 7 .expenses-<uuid>.tmp files remained (1,2,3,4,4,5,5,6,6,7); still there after the final restart; d.json parses and balances {\"Ann\":4061,\"Bob\":-4061} match the 4061 acknowledged expenses."},
+    "p23566f": {"result": "present", "observed": "After 10 kills 8 .expenses-<uuid>.tmp files remained (1,2,3,4,5,6,6,6,7,8); still there after the final restart; d.json parses and balances {\"Ann\":3753,\"Bob\":-3753} match the 3753 acknowledged expenses."}
+   }}
+ ]}

@@ -718,3 +718,103 @@ session sees any of the deep judge's files.
 One look and one fix a case. The fixer is a stronger model at a higher effort than either builder, so K4 says what
 a look plus a strong fix reaches, not what ShipLoop's builder would reach. The deep judge's list is itself what
 three auditors and a cross-probe found, not everything wrong with the product.
+
+## 12. The deep judge's results on the twelve products (2026-11-22, audits 06:50 to 08:00)
+
+Status: firm for what was measured: one audit a product (three sessions a product on Grokbot), one cross-probe a
+case, one reading by each judge family. Evidence: `evidence/deep/CASE/` (both listers, the merge, both ratings,
+the inventory, every audit, the cross-probe, the single reader's `told.json`, both verdicts and their letterings)
+and `evidence/deep/deep.md`, `deep.json`. S is ShipLoop's delivery, F Ratchet's first build (the same cost as S),
+L Ratchet's final (3 to 7 times the cost).
+
+### Inventories
+
+| Case | Stated items | Unstated items an independent lister raised: rated, kept by both raters | Items only an arm raised: rated, kept |
+|---|---|---|---|
+| Shared expenses | 35 | 27, 16 | 9, 2 |
+| Chess | 40 | 10, 6 | 2, 2 |
+| Ticket assignment | 21 | 22, 19 | 6, 2 |
+| Grokbot | 108 | 46, 39 | 15, 6 |
+
+### Readings (S / F / L)
+
+| | Shared expenses | Chess | Ticket assignment | Grokbot |
+|---|---|---|---|---|
+| D1 stated items built | 35 / 35 / 35 of 35 | 40 / 40 / 40 of 40 | 21 / 21 / 21 of 21 | 108 / 108 / 108 of 108 |
+| D2 tests proved by breaking six stated behaviours | 6 / 6 / 5 | 5 / 4 / 4 | 6 / 6 / 6 | 2 / 2 / 4 |
+| D3 independent unstated items handled | 16 / 16 / 16 of 16 | 6 / 6 / 6 of 6 | 18 / 19 / 19 of 19 | 33 / 35 / 38 of 39 |
+| D4 of them, told in the delivered documents | 0 / 14 / 14 | 0 / 0 / 1 | 15 / 17 / 18 | 6 / 14 / 20 |
+| D5 reproducing defects, medium (none is high); low | 0 / 0 / 0; 2 / 1 / 1 | 0 / 0 / 0; 0 / 0 / 0 | 0 / 0 / 0; 2 / 2 / 1 | 6 / 2 / 1; 7 / 5 / 2 |
+| Reported: D3 with the arm-only items | 18 / 18 / 18 of 18 | 8 / 8 / 8 of 8 | 20 / 21 / 21 of 21 | 33 / 39 / 43 of 45 |
+| Reported: D4 counting marks in the specification | 0 / 14 / 14 | 0 / 1 / 3 | 15 / 18 / 18 | 6 / 23 / 26 |
+
+### Pairs (the better feature by section 10's rule; the judges are Opus, then Grok 4.7)
+
+| | S against L | S against F | F against L | S nearly competitive with L |
+|---|---|---|---|---|
+| Shared expenses | **L** (D4, D6; both judges L "some") | **F** (D4, D6; both F "some") | no difference (judges: same, F some) | no (one judge says a short task closes it, the other not) |
+| Chess | no difference (D6 to S: both judges S "some") | no difference (both judges S "some") | no difference (both same) | yes |
+| Ticket assignment | **L** (D4, D6; both L "some") | no difference (D4 to F; judges: same, S some) | no difference (D6 to L; both L "some") | no (judges split on the short task) |
+| Grokbot | **L** (D2, D3, D4, D5, D6; both L "much") | **F** (D4, D5, D6; both F "much") | **L** (D2, D4, D6; both L "some") | no (both judges: a short task does not close it) |
+
+No pair was decided by the gate: no product has a high-severity defect or an unbuilt stated item.
+
+### What decided each case, from the audits and both judges' reasons
+
+- **Shared expenses.** The three products behave alike on every stated and every kept unstated item. ShipLoop's
+  delivery ships no user document, so it tells a customer none of the 16 unsaid points where both Ratchet builds
+  tell 14, and it overwrites an existing `DATA_FILE` that holds JSON without a `groups` list (a low defect, on S
+  only). Ratchet's later cycles bought nothing the instrument sees: F and L are level.
+- **Chess.** Level on everything measured, no defect on any. Both judges put ShipLoop's delivery somewhat ahead of
+  both Ratchet builds for what its suite guards (the two time limits, move counts at depth 3, invalid positions);
+  Ratchet's README is the offset.
+- **Ticket assignment.** All three are level on behaviour and tests (6 of 6 proved each). ShipLoop's delivery did
+  not record the release (no changelog entry or version for the change: the one unstated item graded short, after
+  the re-run) and tells 15 of 19 unsaid points against 18 for Ratchet's final. Ratchet's first build is level
+  with ShipLoop's delivery; its final is ahead by the release record, a malformed name it refuses, and the
+  assignee in the detail view.
+- **Grokbot.** The only case where behaviour separates the products. All three build all 108 stated items. Of 14
+  distinct defects the cross-probe found present 13 on S, 7 on F, 3 on L; six of S's are medium, among them two
+  in the confirm flow the request stresses (after confirming by keyboard, a second Enter decides the next
+  proposal; a capitalised field name adds a second field) and a reply left pending for good after a storage
+  failure. F has none of those three. Both judges put F and L "much" ahead of S.
+
+### What this says (my reading)
+
+- **Where a request is small and its edges few, the heavier process bought documentation and little else.** On
+  three of four cases every product built everything stated and handled nearly every unsaid point both raters
+  kept; the differences are a user document ShipLoop did not write (expenses), a release record it did not write
+  (tickets) and test choices (chess, in ShipLoop's favour).
+- **Where the product is large and stateful, the long specification bought behaviour, at ShipLoop's cost.**
+  Ratchet's first build of Grokbot, made in 20.0 minutes against ShipLoop's 26.5, has 2 medium defects against 6
+  and tells 14 unsaid points against 6. That difference is there before any later cycle runs.
+- **The later cycles bought something on two cases of four.** F to L: nothing on expenses and chess; on tickets a
+  release record and two small behaviours (judges only); on Grokbot four more defects closed, three more unsaid
+  points handled and two more tests proved, for 142 further minutes.
+- **ShipLoop is "nearly competitive" by the registered rule on one case of four.** On expenses and tickets the gap
+  is what a customer is told, and one of the two judges says a short task closes it; on Grokbot both say it does
+  not.
+- **Section 7's answer changes in one respect.** The first instruments read "no difference in results shown,
+  leaning to Ratchet". This judge shows where the lean is real: on what the customer is told in three cases, and
+  on behaviour where the request is silent in the largest case. It also shows what the first instruments had
+  right: nothing stated was left unbuilt by anyone.
+
+### Predictions, scored as registered
+
+| | Prediction | Result |
+|---|---|---|
+| Q1 | The instrument check meets its bar at the first attempt | Wrong as registered: one clause of C1 missed (both judges mark the padded copy down) |
+| Q2 | D1 level for every pair in every case | Right |
+| Q3 | L ahead of S on D3 in at least two cases; S ahead in none | Wrong: one case (Grokbot). S ahead in none: right |
+| Q4 | F level with L on D1 to D3 in at least three cases | Right: three (not Grokbot, on D2) |
+| Q5 | Level on D4 everywhere; counting marks, F and L ahead in at least three cases | Wrong on the first half: L is ahead of S on D4 in three cases without counting any mark. Right on the second |
+| Q6 | L has fewer reproducing defects than S (by two) in at least two cases | Wrong: one case |
+| Q7 | S nearly competitive with L in at least three of four cases | Wrong: one |
+| Q8 | Of the items only an arm raised, fewer than half are kept | Right over all cases (12 of 32); not on chess (2 of 2) |
+
+### Not shown
+
+One audit a product: an auditor's miss shows only where another product's auditor reported the same thing or the
+re-run caught it. The judges read audits, not products. "Told" is one reader's call against quoted lines. The
+inventory's unsaid items are what two models and the arms thought of; a real requester might keep others. One run
+of each tool a case, as throughout: Grokbot's gap is one delivery against one delivery.

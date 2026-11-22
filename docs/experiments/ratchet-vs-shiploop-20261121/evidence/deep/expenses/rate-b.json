@@ -1,0 +1,184 @@
+{
+ "ratings": [
+  {
+   "id": "U-1",
+   "rating": "must",
+   "why": "A garbled or truncated body is a routine client mistake, and a crash or a process-killing throw takes down every group while a 500 tells the client a permanent mistake is a server failure."
+  },
+  {
+   "id": "U-2",
+   "rating": "must",
+   "why": "An expense missing payer, cents, or split, an exact split missing shares, or a group missing id or members is the first bad call a client sends, and accepting it writes a false ledger entry while a throw becomes a 500 or kills the process."
+  },
+  {
+   "id": "U-3",
+   "rating": "should",
+   "why": "The request does not say whether a numeric string, a members string, a non-string member, or a non-object shares value is coerced or refused, and a careful builder should choose one because the wrong choice can crash the request or create a nonsense membership."
+  },
+  {
+   "id": "U-4",
+   "rating": "must",
+   "why": "The id is the only way back to a group, so a 201 for an empty id or an id containing '/', spaces, '%', or other reserved characters that no later /groups/<id>/ route can open, even percent-encoded, loses that group."
+  },
+  {
+   "id": "U-5",
+   "rating": "must",
+   "why": "A negative exact share credits someone who was not owed that way and a fractional share breaks the whole-cent balances and settlements the customer asked for."
+  },
+  {
+   "id": "U-6",
+   "rating": "should",
+   "why": "A list can already satisfy two distinct non-empty names while also containing a duplicate, a blank, or a case or spacing variant, and a careful builder should define membership because counting Ann twice changes the equal split and the leftover cents."
+  },
+  {
+   "id": "U-7",
+   "rating": "must",
+   "why": "Splitting a bill among part of the group is a normal expense, and charging a member left out of shares, or rejecting that call, changes who owes what."
+  },
+  {
+   "id": "U-8",
+   "rating": "must",
+   "why": "The customer was promised that recorded groups and expenses survive a restart, so a 201 sent before a durable write, or a crash that leaves DATA_FILE truncated, loses the ledger."
+  },
+  {
+   "id": "U-9",
+   "rating": "should",
+   "why": "The operator's first start is a DATA_FILE that does not exist yet, and a careful builder should create an empty store or say that the file must already be present."
+  },
+  {
+   "id": "U-10",
+   "rating": "must",
+   "why": "An empty DATA_FILE can mean a new store, but replacing invalid JSON with an empty store on startup silently wipes every group."
+  },
+  {
+   "id": "U-11",
+   "rating": "should",
+   "why": "DATA_FILE is how the operator names the only copy of the data, so a careful builder should exit clearly or document a default when it is unset rather than write somewhere the operator did not choose."
+  },
+  {
+   "id": "U-12",
+   "rating": "should",
+   "why": "The person starting the process is told only that the server listens on PORT, so a missing, empty, non-numeric, or zero value needs a chosen exit, default, or ephemeral bind."
+  },
+  {
+   "id": "U-13",
+   "rating": "must",
+   "why": "Expense numbers are how users refer to expenses, and the request says they run 1, 2, and so on while concurrent requests never lose an expense, so a repeat, a gap among acknowledged expenses, or a double application makes the ledger wrong."
+  },
+  {
+   "id": "U-14",
+   "rating": "must",
+   "why": "Balances are required to add up to 0, so a read that overlaps an in-flight post and mixes two versions cannot be shown to someone checking who owes what."
+  },
+  {
+   "id": "U-15",
+   "rating": "should",
+   "why": "The stated concurrency sentence is about expenses, but 409 is the rule for an existing id, and a careful builder should serialize creates so two overlapping posts for the same new id cannot both return 201 or keep different member lists."
+  },
+  {
+   "id": "U-16",
+   "rating": "must",
+   "why": "Users refer to expenses by number, and starting again at 1 after the restart the customer asked the data to survive gives two expenses in one group the same number."
+  },
+  {
+   "id": "U-17",
+   "rating": "no",
+   "why": "The request only defines the group routes and 404 for an unknown group, so a generic 404 for other paths and methods is a reasonable choice."
+  },
+  {
+   "id": "U-18",
+   "rating": "no",
+   "why": "The request defines the JSON response bodies, and a reasonable builder can leave Content-Type unset without changing how those bodies are read by the clients this service needs."
+  },
+  {
+   "id": "U-19",
+   "rating": "no",
+   "why": "Group creation is specified only as 201, unlike the expense response which names a body, so an empty body and no Location header already match the request."
+  },
+  {
+   "id": "U-20",
+   "rating": "should",
+   "why": "The statuses already separate 400, 409, and 404, and a careful builder should add a short reason or say the body is empty because one 400 covers several refusals and callers will try to parse it."
+  },
+  {
+   "id": "U-21",
+   "rating": "must",
+   "why": "A retry that reuses an existing id with an invalid member list must not replace the stored members, whichever of 400 or 409 the builder returns, or the original group is destroyed."
+  },
+  {
+   "id": "U-22",
+   "rating": "should",
+   "why": "The request states 404 for an unknown group and 400 for a bad expense separately, so a careful builder should pick which check wins when both are true and keep that choice for clients that branch on status."
+  },
+  {
+   "id": "U-23",
+   "rating": "no",
+   "why": "A reasonable builder ignores fields the schema does not mention, and an equal split already means the expense is shared across all members."
+  },
+  {
+   "id": "U-24",
+   "rating": "no",
+   "why": "The request never mentions Content-Type, so accepting a JSON body without application/json is a reasonable choice."
+  },
+  {
+   "id": "U-25",
+   "rating": "must",
+   "why": "Balances and settlements are returned views of the ledger, and recording the payments on those GETs would wipe the debts whenever a client polls the plan."
+  },
+  {
+   "id": "U-26",
+   "rating": "must",
+   "why": "DATA_FILE exists so a restart keeps the ledger, and a group with one equal and one exact expense must come back with the same balances, settlements, and next expense number."
+  },
+  {
+   "id": "U-27",
+   "rating": "should",
+   "why": "The next maintainer is told to run node --test on a fresh checkout, and a careful builder should bind a free port and a temporary DATA_FILE so the suite does not need a live server or overwrite a real ledger."
+  },
+  {
+   "id": "U-28",
+   "rating": "must",
+   "why": "A caller who is told a write failed will retry, so a refused expense that still appears later is counted twice and a refused group id can no longer be created."
+  },
+  {
+   "id": "U-29",
+   "rating": "no",
+   "why": "Amounts past about 9.007e15 cents are far outside a shared-expense ledger, so special handling for them is over-engineering for this request."
+  },
+  {
+   "id": "U-30",
+   "rating": "no",
+   "why": "A cap on very large request bodies is generic server hardening that a reasonable builder of this small service can omit."
+  },
+  {
+   "id": "U-31",
+   "rating": "must",
+   "why": "The request promises that concurrent requests never lose an expense and that groups survive a restart, so a group create and an expense in another group sent at the same time must both still be there after restart."
+  },
+  {
+   "id": "U-32",
+   "rating": "no",
+   "why": "Member names such as __proto__, constructor, and toString are speculative inputs for this ledger, and a reasonable builder can ignore prototype-key hardening."
+  },
+  {
+   "id": "U-33",
+   "rating": "should",
+   "why": "JSON libraries in other languages write a whole cent as 1.0 or 1e2, and a careful builder should accept any parsed value that is a whole number of cents because refusing it fails an otherwise valid expense."
+  },
+  {
+   "id": "U-34",
+   "rating": "no",
+   "why": "Keeping a stored id reachable under a stricter create-time id rule added in a later version is speculation this request does not describe."
+  },
+  {
+   "id": "U-35",
+   "rating": "should",
+   "why": "A client disconnect mid-body is ordinary, and a careful builder should drop that partial request so the process stays up and no half-read expense is stored."
+  },
+  {
+   "id": "U-36",
+   "rating": "should",
+   "why": "The service is specified to run under node --test, which current Node 20 and later provide, and a careful builder should stay on that baseline or state the version because a newer-only API fails the first balances request on an operator's usual install."
+  }
+ ]
+}

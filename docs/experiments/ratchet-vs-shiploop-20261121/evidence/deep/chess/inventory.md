@@ -1,0 +1,71 @@
+# Inventory
+
+## Stated requirements
+
+- **S-1**: The chess rules engine is a Node.js module at src/chess.js.
+- **S-2**: src/chess.js is a CommonJS module (loadable with require).
+- **S-3**: The module has no dependencies.
+- **S-4**: npm test runs node --test.
+- **S-5**: A position is a FEN string.
+- **S-6**: startFen() returns the standard start position.
+- **S-7**: legalMoves(fen) returns an array of every legal move for the side to move.
+- **S-8**: legalMoves returns moves in UCI form (for example e2e4).
+- **S-9**: legalMoves writes a promotion in UCI form with the piece letter (for example e7e8q).
+- **S-10**: legalMoves returns its moves sorted alphabetically.
+- **S-11**: applyMove(fen, move) returns the FEN after the move.
+- **S-12**: The FEN applyMove returns has correct castling rights.
+- **S-13**: The FEN applyMove returns has the correct en-passant square.
+- **S-14**: The FEN applyMove returns has the correct halfmove clock.
+- **S-15**: The FEN applyMove returns has the correct fullmove number.
+- **S-16**: applyMove throws IllegalMoveError when the move is not legal.
+- **S-17**: IllegalMoveError is a class the module also exports.
+- **S-18**: The en-passant target square is set after every two-square pawn push, whether or not a capture is possible (the FEN-spec convention).
+- **S-19**: status(fen) returns ongoing, check, checkmate or stalemate for the side to move.
+- **S-20**: All piece moves are implemented (king, queen, rook, bishop, knight, pawn).
+- **S-21**: Castling is implemented on both sides (kingside and queenside).
+- **S-22**: Castling is never allowed out of check.
+- **S-23**: Castling is never allowed through check.
+- **S-24**: Castling is never allowed into check.
+- **S-25**: In UCI, castling is the king's two-square move: e1g1, e1c1, e8g8, e8c8.
+- **S-26**: En passant is implemented.
+- **S-27**: Promotion to q, r, b or n is implemented.
+- **S-28**: Check is implemented.
+- **S-29**: Checkmate is implemented.
+- **S-30**: Stalemate is implemented.
+- **S-31**: There are node --test tests in test/ covering the known game fool's mate.
+- **S-32**: There are node --test tests in test/ covering the known game scholar's mate.
+- **S-33**: There are node --test tests in test/ covering castling.
+- **S-34**: There are node --test tests in test/ covering en passant.
+- **S-35**: There are node --test tests in test/ covering promotion.
+- **S-36**: There are node --test tests in test/ covering stalemate.
+- **S-37**: There are node --test tests in test/ covering move counts from standard test positions.
+- **S-38**: legalMoves on a middlegame position takes under 50 ms.
+- **S-39**: A depth-2 legal-move count of the start position takes under 2 seconds.
+- **S-40**: npm test passes.
+
+## Conditions the request leaves unsaid
+
+- **U-1**: What legalMoves, applyMove and status do when the FEN argument is missing, not a string, malformed (empty, wrong number of ranks or squares in a rank, unknown piece letter, bad side-to-move or other field, trailing whitespace or newline) or syntactically valid but an impossible position (a side with no king or two kings, a pawn on the first or eighth rank, the side not to move already in check).
+  - Probe: From the directory that contains package.json: const c = require('./src/chess.js'). For each of: no argument, undefined, null, 42, '', 'not-a-fen', 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP w KQkq - 0 1' (7 ranks), 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR x KQkq - 0 1', c.startFen() + '\n', '8/8/8/8/8/8/8/8 w - - 0 1' (no kings), '4k3/8/8/8/8/8/8/4KK2 w - - 0 1' (two white kings), '4P3/8/8/8/8/8/8/4k2K w - - 0 1' (pawn on the eighth rank), '4k3/8/8/8/8/8/4R3/4K3 w - - 0 1' (side not to move in check), call c.legalMoves(f), c.status(f) and c.applyMove(f, 'e2e4') inside try/catch and record the returned value or the thrown value's constructor name and message.
+  - Outcomes that would be acceptable: Throwing a descriptive Error (a plain Error, a TypeError for a non-string, a distinct invalid-FEN error class, or IllegalMoveError) is fine; tolerating surrounding whitespace is fine; returning a value for an impossible position is compatible with the request's words. Not fine: a confident but wrong answer for a malformed FEN, or a hang. A consistent choice across the three functions is preferable.
+- **U-3**: How applyMove treats move values that are not exactly one of the lowercase UCI strings legalMoves returns: uppercase ('E2E4', 'e7e8Q'), surrounding spaces, SAN ('e4'), a hyphen or capture mark ('e2-e4', 'e2xe4'), a promotion with no piece letter ('e7e8'), a promotion letter on a non-promoting move ('e2e4q'), off-board squares ('e2e9'), a non-string value, and king-takes-rook castling ('e1h1').
+  - Probe: From startFen() call applyMove with 'e2e4', 'E2E4', ' e2e4', 'e4', 'e2-e4', 'e2xe4', 'e2e4q', 'e2e9' and 42, recording the returned FEN or the thrown value's class. On '4k3/4P3/8/8/8/8/8/4K3 w - - 0 1' call applyMove with 'e7e8q', 'e7e8Q', 'e7e8', 'e7e8r', 'e7e8b' and 'e7e8n', recording the piece now on e8 or the error. On 'r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1' call applyMove with 'e1h1'.
+  - Outcomes that would be acceptable: Rejecting everything that is not exactly in legalMoves(fen) with IllegalMoveError is fine. Also accepting SAN, a hyphen, a capture mark or a different letter case is compatible if documented. For a bare promotion, rejecting it or treating it as a queen promotion are both compatible, the latter if documented. Promotion with an explicit q, r, b or n must still give that piece.
+- **U-4**: What the exported IllegalMoveError looks like to a caller: whether it extends Error, its name, its message (whether it names the rejected move) and any properties it carries.
+  - Probe: try { c.applyMove(c.startFen(), 'e2e5') } catch (e) { console.log(e instanceof c.IllegalMoveError, e instanceof Error, e.constructor.name, e.name, e.message, !!e.stack, Object.keys(e)) }; repeat with 'a1a3'.
+  - Outcomes that would be acceptable: Extending Error with name 'IllegalMoveError' and a message that includes the move (optionally the FEN) is the usual shape; any message wording is fine; extra properties such as the move or the FEN are fine and so is none. A class that does not extend Error still matches the request's words.
+- **U-5**: Whether the FEN's castling-rights and en-passant fields are trusted when they cannot match the board (a rights letter whose king or rook is not on its home square; an en-passant square that no pawn could have produced with a two-square push).
+  - Probe: Call legalMoves and status on '4k3/8/8/8/8/8/8/4K3 w K - 0 1' (king on e1, rights K, no rook), on '4k3/8/8/8/8/8/8/R3K3 w KQ - 0 1' (no h1 rook) and on '4k3/8/8/8/8/8/4K3/7R w K - 0 1' (king on e2), and check whether e1g1 is listed; if it is, applyMove with 'e1g1' and print the FEN. Call legalMoves and status on 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e3 0 1' (white to move, en-passant square e3) and check for any capture onto e3. Record any thrown error.
+  - Outcomes that would be acceptable: Not offering the castle when the king or that rook is not on its home square, or rejecting the FEN as invalid, are both fine. Ignoring an en-passant square no pawn could have produced, or rejecting the FEN, are both fine. Not fine: moving a missing rook or capturing a missing pawn.
+- **U-7**: Whether move generation is correct beyond depth 2: counts on published perft positions at depth 3 or more, which exercise pins, discovered check by en passant, loss of castling rights when a rook is captured on its corner, and promotion captures.
+  - Probe: With a small perft helper built only on legalMoves and applyMove, count: start position depth 3 (expect 8902) and depth 4 (197281); Kiwipete 'r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1' depth 1 (48), 2 (2039), 3 (97862); position 3 '8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1' depth 4 (43238). Compare each with the published value.
+  - Outcomes that would be acceptable: Every count matching the published value is required for correctness; how deep the delivered tests go is a separate question.
+- **U-9**: What the test suite actually asserts for each named subject: the move lists or FENs for fool's mate and scholar's mate and whether a final checkmate is asserted; the fixtures and asserted results (FEN fields, UCI moves, status) for castling, en passant, promotion (q only or also r, b, n) and stalemate; and which standard positions, depths and counts the move-count tests check.
+  - Probe: Run npm test from the package root and record the exit code, the number of tests and their files. Read every file under test/. For fool's mate and scholar's mate record the moves or FENs and whether checkmate is asserted. For castling, en passant, promotion and stalemate record the fixtures and what is asserted. For move counts list each FEN, depth and asserted integer, and recompute that count with legalMoves and applyMove.
+  - Outcomes that would be acceptable: Any real line of each mate, and any castling, en passant, promotion and stalemate positions, are fine. Asserting final status, resulting FEN and numeric counts is a strong reading; a smaller set that still exercises each named subject is compatible. Any positions a chess programmer would call standard are fine for move counts, provided the asserted counts match the published values.
+- **U-11**: A saved FEN is enough to resume or branch play: results depend only on the FEN and move given, not on earlier calls, other games or a rejected move.
+  - Probe: Save F = the FEN after applying e2e4, a7a6, e4e5, d7d5 to startFen() (white can capture e5d6 en passant). Record legalMoves(F), status(F) and applyMove(F, 'e5d6'). Then, interleaving calls on startFen() for another game, apply e5d6 and separately g1f3 from F, attempt an illegal move such as 'e5e7' on F inside try/catch, and call legalMoves(F), status(F) and applyMove(F, 'e5d6') again. In a fresh Node.js process, given only F, make the same three calls. Compare all results.
+  - Outcomes that would be acceptable: The same FEN and move give the same legal moves, status and resulting FEN in every case and in a fresh process; a rejected move leaves the saved position usable.
+- **U-12**: Whether the delivered tests exercise the error paths: invalid FENs and illegal or malformed moves, asserting the error thrown.
+  - Probe: Read every file under test/ and list each test that passes an invalid FEN (malformed or impossible) or an illegal, malformed or non-string move, and what it asserts (error class, message or other). Note which of the two kinds of error path has no test.
+  - Outcomes that would be acceptable: At least one test for an invalid FEN and one for an illegal move, each asserting the thrown error's class or message, is a strong reading; asserting the class rather than exact message wording is preferable. Having none is compatible with the request's words but leaves the error contract unguarded.

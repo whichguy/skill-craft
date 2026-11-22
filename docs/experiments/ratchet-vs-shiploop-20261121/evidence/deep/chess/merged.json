@@ -1,0 +1,298 @@
+{
+ "stated": [
+  {
+   "id": "S-1",
+   "text": "The chess rules engine is a Node.js module at src/chess.js."
+  },
+  {
+   "id": "S-2",
+   "text": "src/chess.js is a CommonJS module (loadable with require)."
+  },
+  {
+   "id": "S-3",
+   "text": "The module has no dependencies."
+  },
+  {
+   "id": "S-4",
+   "text": "npm test runs node --test."
+  },
+  {
+   "id": "S-5",
+   "text": "A position is a FEN string."
+  },
+  {
+   "id": "S-6",
+   "text": "startFen() returns the standard start position."
+  },
+  {
+   "id": "S-7",
+   "text": "legalMoves(fen) returns an array of every legal move for the side to move."
+  },
+  {
+   "id": "S-8",
+   "text": "legalMoves returns moves in UCI form (for example e2e4)."
+  },
+  {
+   "id": "S-9",
+   "text": "legalMoves writes a promotion in UCI form with the piece letter (for example e7e8q)."
+  },
+  {
+   "id": "S-10",
+   "text": "legalMoves returns its moves sorted alphabetically."
+  },
+  {
+   "id": "S-11",
+   "text": "applyMove(fen, move) returns the FEN after the move."
+  },
+  {
+   "id": "S-12",
+   "text": "The FEN applyMove returns has correct castling rights."
+  },
+  {
+   "id": "S-13",
+   "text": "The FEN applyMove returns has the correct en-passant square."
+  },
+  {
+   "id": "S-14",
+   "text": "The FEN applyMove returns has the correct halfmove clock."
+  },
+  {
+   "id": "S-15",
+   "text": "The FEN applyMove returns has the correct fullmove number."
+  },
+  {
+   "id": "S-16",
+   "text": "applyMove throws IllegalMoveError when the move is not legal."
+  },
+  {
+   "id": "S-17",
+   "text": "IllegalMoveError is a class the module also exports."
+  },
+  {
+   "id": "S-18",
+   "text": "The en-passant target square is set after every two-square pawn push, whether or not a capture is possible (the FEN-spec convention)."
+  },
+  {
+   "id": "S-19",
+   "text": "status(fen) returns ongoing, check, checkmate or stalemate for the side to move."
+  },
+  {
+   "id": "S-20",
+   "text": "All piece moves are implemented (king, queen, rook, bishop, knight, pawn)."
+  },
+  {
+   "id": "S-21",
+   "text": "Castling is implemented on both sides (kingside and queenside)."
+  },
+  {
+   "id": "S-22",
+   "text": "Castling is never allowed out of check."
+  },
+  {
+   "id": "S-23",
+   "text": "Castling is never allowed through check."
+  },
+  {
+   "id": "S-24",
+   "text": "Castling is never allowed into check."
+  },
+  {
+   "id": "S-25",
+   "text": "In UCI, castling is the king's two-square move: e1g1, e1c1, e8g8, e8c8."
+  },
+  {
+   "id": "S-26",
+   "text": "En passant is implemented."
+  },
+  {
+   "id": "S-27",
+   "text": "Promotion to q, r, b or n is implemented."
+  },
+  {
+   "id": "S-28",
+   "text": "Check is implemented."
+  },
+  {
+   "id": "S-29",
+   "text": "Checkmate is implemented."
+  },
+  {
+   "id": "S-30",
+   "text": "Stalemate is implemented."
+  },
+  {
+   "id": "S-31",
+   "text": "There are node --test tests in test/ covering the known game fool's mate."
+  },
+  {
+   "id": "S-32",
+   "text": "There are node --test tests in test/ covering the known game scholar's mate."
+  },
+  {
+   "id": "S-33",
+   "text": "There are node --test tests in test/ covering castling."
+  },
+  {
+   "id": "S-34",
+   "text": "There are node --test tests in test/ covering en passant."
+  },
+  {
+   "id": "S-35",
+   "text": "There are node --test tests in test/ covering promotion."
+  },
+  {
+   "id": "S-36",
+   "text": "There are node --test tests in test/ covering stalemate."
+  },
+  {
+   "id": "S-37",
+   "text": "There are node --test tests in test/ covering move counts from standard test positions."
+  },
+  {
+   "id": "S-38",
+   "text": "legalMoves on a middlegame position takes under 50 ms."
+  },
+  {
+   "id": "S-39",
+   "text": "A depth-2 legal-move count of the start position takes under 2 seconds."
+  },
+  {
+   "id": "S-40",
+   "text": "npm test passes."
+  }
+ ],
+ "unstated": [
+  {
+   "id": "U-1",
+   "text": "What legalMoves, applyMove and status do when the FEN argument is missing, not a string, malformed (empty, wrong number of ranks or squares in a rank, unknown piece letter, bad side-to-move or other field, trailing whitespace or newline) or syntactically valid but an impossible position (a side with no king or two kings, a pawn on the first or eighth rank, the side not to move already in check).",
+   "why": "A caller passing a FEN typed by a person, read from a file or left over from an earlier bug needs a predictable failure it can catch or display, rather than a crash deep inside, a silently wrong move list or a hang; the maintainer needs to know which error type to expect.",
+   "probe": "From the directory that contains package.json: const c = require('./src/chess.js'). For each of: no argument, undefined, null, 42, '', 'not-a-fen', 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP w KQkq - 0 1' (7 ranks), 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR x KQkq - 0 1', c.startFen() + '\\n', '8/8/8/8/8/8/8/8 w - - 0 1' (no kings), '4k3/8/8/8/8/8/8/4KK2 w - - 0 1' (two white kings), '4P3/8/8/8/8/8/8/4k2K w - - 0 1' (pawn on the eighth rank), '4k3/8/8/8/8/8/4R3/4K3 w - - 0 1' (side not to move in check), call c.legalMoves(f), c.status(f) and c.applyMove(f, 'e2e4') inside try/catch and record the returned value or the thrown value's constructor name and message.",
+   "fine_answers": "Throwing a descriptive Error (a plain Error, a TypeError for a non-string, a distinct invalid-FEN error class, or IllegalMoveError) is fine; tolerating surrounding whitespace is fine; returning a value for an impossible position is compatible with the request's words. Not fine: a confident but wrong answer for a malformed FEN, or a hang. A consistent choice across the three functions is preferable.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ]
+  },
+  {
+   "id": "U-2",
+   "text": "Whether a FEN without the halfmove clock and fullmove number (the four-field form common in EPD test suites, boards and many tools) is accepted, and if so which clocks appear in the FEN applyMove returns.",
+   "why": "Standard test positions and many tools emit four fields; a user pasting one expects it to work or to get a clear message, and needs to know what the counters become.",
+   "probe": "Call legalMoves and status on 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -' and on startFen(). If the short form is accepted, call applyMove on it with 'e2e4' and applyMove(startFen(), 'e2e4'), and record both returned strings including the last two fields; otherwise record the error.",
+   "fine_answers": "Rejecting a FEN without all six fields with a clear error is fine. Accepting the four-field form and filling in the clocks (for example halfmove 0 and fullmove 1) and outputting all six fields is also fine.",
+   "sources": [
+    "a",
+    "b"
+   ]
+  },
+  {
+   "id": "U-3",
+   "text": "How applyMove treats move values that are not exactly one of the lowercase UCI strings legalMoves returns: uppercase ('E2E4', 'e7e8Q'), surrounding spaces, SAN ('e4'), a hyphen or capture mark ('e2-e4', 'e2xe4'), a promotion with no piece letter ('e7e8'), a promotion letter on a non-promoting move ('e2e4q'), off-board squares ('e2e9'), a non-string value, and king-takes-rook castling ('e1h1').",
+   "why": "A caller relaying user input or output from PGN or another library needs to know which spellings throw IllegalMoveError, which throw something else and which move a piece; auto-queening a bare 'e7e8' or accepting 'e2e4q' would change the game without the caller knowing.",
+   "probe": "From startFen() call applyMove with 'e2e4', 'E2E4', ' e2e4', 'e4', 'e2-e4', 'e2xe4', 'e2e4q', 'e2e9' and 42, recording the returned FEN or the thrown value's class. On '4k3/4P3/8/8/8/8/8/4K3 w - - 0 1' call applyMove with 'e7e8q', 'e7e8Q', 'e7e8', 'e7e8r', 'e7e8b' and 'e7e8n', recording the piece now on e8 or the error. On 'r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1' call applyMove with 'e1h1'.",
+   "fine_answers": "Rejecting everything that is not exactly in legalMoves(fen) with IllegalMoveError is fine. Also accepting SAN, a hyphen, a capture mark or a different letter case is compatible if documented. For a bare promotion, rejecting it or treating it as a queen promotion are both compatible, the latter if documented. Promotion with an explicit q, r, b or n must still give that piece.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ]
+  },
+  {
+   "id": "U-4",
+   "text": "What the exported IllegalMoveError looks like to a caller: whether it extends Error, its name, its message (whether it names the rejected move) and any properties it carries.",
+   "why": "Callers write catch blocks with instanceof IllegalMoveError or instanceof Error and log or show the message; a class that does not extend Error loses the stack trace and breaks generic error handling, and a maintainer writing tests needs to know which checks the class supports.",
+   "probe": "try { c.applyMove(c.startFen(), 'e2e5') } catch (e) { console.log(e instanceof c.IllegalMoveError, e instanceof Error, e.constructor.name, e.name, e.message, !!e.stack, Object.keys(e)) }; repeat with 'a1a3'.",
+   "fine_answers": "Extending Error with name 'IllegalMoveError' and a message that includes the move (optionally the FEN) is the usual shape; any message wording is fine; extra properties such as the move or the FEN are fine and so is none. A class that does not extend Error still matches the request's words.",
+   "sources": [
+    "a",
+    "b"
+   ]
+  },
+  {
+   "id": "U-5",
+   "text": "Whether the FEN's castling-rights and en-passant fields are trusted when they cannot match the board (a rights letter whose king or rook is not on its home square; an en-passant square that no pawn could have produced with a two-square push).",
+   "why": "Imported FENs often carry stale flags; a generator that trusts them can offer a castle that moves a missing rook, an en-passant capture of a pawn that is not there, or produce a corrupted board, giving wrong move lists and wrong counts.",
+   "probe": "Call legalMoves and status on '4k3/8/8/8/8/8/8/4K3 w K - 0 1' (king on e1, rights K, no rook), on '4k3/8/8/8/8/8/8/R3K3 w KQ - 0 1' (no h1 rook) and on '4k3/8/8/8/8/8/4K3/7R w K - 0 1' (king on e2), and check whether e1g1 is listed; if it is, applyMove with 'e1g1' and print the FEN. Call legalMoves and status on 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e3 0 1' (white to move, en-passant square e3) and check for any capture onto e3. Record any thrown error.",
+   "fine_answers": "Not offering the castle when the king or that rook is not on its home square, or rejecting the FEN as invalid, are both fine. Ignoring an en-passant square no pawn could have produced, or rejecting the FEN, are both fine. Not fine: moving a missing rook or capturing a missing pawn.",
+   "sources": [
+    "a",
+    "b"
+   ]
+  },
+  {
+   "id": "U-6",
+   "text": "How draws other than stalemate are handled: the fifty-move rule (halfmove clock at 100 or more), insufficient material (for example king against king) and repetition (which a FEN alone cannot see).",
+   "why": "status has only ongoing, check, checkmate and stalemate; a user building a game on this module wants to know whether status reports K v K as ongoing and whether legalMoves keeps generating moves past the fifty-move limit, and a caller switching on the four values would break if a new value such as 'draw' appeared.",
+   "probe": "Call status and legalMoves on '4k3/8/8/8/8/8/8/4K3 w - - 0 1' and on 'r3k3/8/8/8/8/8/8/4K2R w - - 100 80'; print the results.",
+   "fine_answers": "Keeping status to the four stated values and reporting these as ongoing (or check), with other draws documented as out of scope, is fine; a separate draw helper is fine; a fifth status value is a change the customer should be asked about.",
+   "sources": [
+    "a"
+   ]
+  },
+  {
+   "id": "U-7",
+   "text": "Whether move generation is correct beyond depth 2: counts on published perft positions at depth 3 or more, which exercise pins, discovered check by en passant, loss of castling rights when a rook is captured on its corner, and promotion captures.",
+   "why": "Subtle move-generation bugs usually show only at depth 3 or more or in positions like Kiwipete; a depth-2 check alone leaves them hidden, and the customer and the next maintainer rely on move counts as proof the engine is correct.",
+   "probe": "With a small perft helper built only on legalMoves and applyMove, count: start position depth 3 (expect 8902) and depth 4 (197281); Kiwipete 'r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1' depth 1 (48), 2 (2039), 3 (97862); position 3 '8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1' depth 4 (43238). Compare each with the published value.",
+   "fine_answers": "Every count matching the published value is required for correctness; how deep the delivered tests go is a separate question.",
+   "sources": [
+    "a",
+    "arm"
+   ]
+  },
+  {
+   "id": "U-8",
+   "text": "How the two speed limits are measured and guarded: which middlegame position the 50 ms budget refers to, whether it is one cold call or a warm repeated call, what procedure the depth-2 count follows, and whether npm test checks either limit.",
+   "why": "Without a named position, procedure and test, the limits can be missed silently, a slow CI machine can fail the suite intermittently, and an operator cannot tell a pass from a fail; the next maintainer needs to know what number is guarded.",
+   "probe": "Time one legalMoves call and an average over 100 calls on 'r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1' and on 'r1bqkbnr/1ppp1ppp/p1n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4', recording times and array lengths. From startFen(), time the walk that sums legalMoves(applyMove(start, m)).length over every legal move m (expect 400). Search test/ for timing assertions and note the position, procedure and threshold they use.",
+   "fine_answers": "Any middlegame position is a fair choice; a cold call or a warm loop is fine if stated; summing the replies to every first move is the usual reading of the depth-2 count. A timing assertion with headroom inside npm test is fine; leaving speed out of npm test is acceptable if the measured numbers are reported.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ]
+  },
+  {
+   "id": "U-9",
+   "text": "What the test suite actually asserts for each named subject: the move lists or FENs for fool's mate and scholar's mate and whether a final checkmate is asserted; the fixtures and asserted results (FEN fields, UCI moves, status) for castling, en passant, promotion (q only or also r, b, n) and stalemate; and which standard positions, depths and counts the move-count tests check.",
+   "why": "The next maintainer uses npm test as the safety net for the rules; a customer trusting a passing run needs to know whether the suite locks those rules or only mentions them, and the chosen standard positions and depths decide which move counts are guarded.",
+   "probe": "Run npm test from the package root and record the exit code, the number of tests and their files. Read every file under test/. For fool's mate and scholar's mate record the moves or FENs and whether checkmate is asserted. For castling, en passant, promotion and stalemate record the fixtures and what is asserted. For move counts list each FEN, depth and asserted integer, and recompute that count with legalMoves and applyMove.",
+   "fine_answers": "Any real line of each mate, and any castling, en passant, promotion and stalemate positions, are fine. Asserting final status, resulting FEN and numeric counts is a strong reading; a smaller set that still exercises each named subject is compatible. Any positions a chess programmer would call standard are fine for move counts, provided the asserted counts match the published values.",
+   "sources": [
+    "a",
+    "b",
+    "arm"
+   ]
+  },
+  {
+   "id": "U-10",
+   "text": "Whether there is any written description of the module's API, its error behaviour and how to run the tests (a README or doc comments).",
+   "why": "The next person using or maintaining the module needs the function signatures, the UCI and FEN conventions (including the always-set en-passant square) and the error contract without reading the source.",
+   "probe": "List the files in the delivered repository and read any README or the top of src/chess.js for a description of startFen, legalMoves, applyMove, status and IllegalMoveError.",
+   "fine_answers": "A short README, doc comments in src/chess.js, or both are fine.",
+   "sources": [
+    "a"
+   ]
+  },
+  {
+   "id": "U-11",
+   "text": "A saved FEN is enough to resume or branch play: results depend only on the FEN and move given, not on earlier calls, other games or a rejected move.",
+   "why": "A caller that keeps positions as strings, analyses several branches or runs several games in one process gets wrong answers if the module keeps hidden state between calls (for example a remembered en-passant chance or a board mutated by a failed move).",
+   "probe": "Save F = the FEN after applying e2e4, a7a6, e4e5, d7d5 to startFen() (white can capture e5d6 en passant). Record legalMoves(F), status(F) and applyMove(F, 'e5d6'). Then, interleaving calls on startFen() for another game, apply e5d6 and separately g1f3 from F, attempt an illegal move such as 'e5e7' on F inside try/catch, and call legalMoves(F), status(F) and applyMove(F, 'e5d6') again. In a fresh Node.js process, given only F, make the same three calls. Compare all results.",
+   "fine_answers": "The same FEN and move give the same legal moves, status and resulting FEN in every case and in a fresh process; a rejected move leaves the saved position usable.",
+   "sources": [
+    "arm"
+   ]
+  },
+  {
+   "id": "U-12",
+   "text": "Whether the delivered tests exercise the error paths: invalid FENs and illegal or malformed moves, asserting the error thrown.",
+   "why": "Without tests of the error contract, a later change can turn a clear rejection into a crash, a coercion or a silently wrong answer and npm test still passes.",
+   "probe": "Read every file under test/ and list each test that passes an invalid FEN (malformed or impossible) or an illegal, malformed or non-string move, and what it asserts (error class, message or other). Note which of the two kinds of error path has no test.",
+   "fine_answers": "At least one test for an invalid FEN and one for an illegal move, each asserting the thrown error's class or message, is a strong reading; asserting the class rather than exact message wording is preferable. Having none is compatible with the request's words but leaves the error contract unguarded.",
+   "sources": [
+    "arm"
+   ]
+  }
+ ]
+}

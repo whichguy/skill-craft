@@ -1,0 +1,35 @@
+{"pairs": [
+{"pair": "Y-X", "better": "Y-some",
+ "advantages": [
+  {"of": "Y", "what": "npm test guards the depth-2 timing limit (TC-8 fails when the count is slowed); X's only timing checks sit in acceptance/, which npm test does not run", "ref": "S-39", "matters_to": "maintainer"},
+  {"of": "Y", "what": "Move-count tests go to depth 3 and include position 3 (8902, 97862, 2812), guarding pins, ep discoveries and corner-rook rights that X's depth-2 suite would miss", "ref": "U-9", "matters_to": "maintainer"},
+  {"of": "Y", "what": "Invalid-FEN error path is tested; X has no invalid-FEN test", "ref": "U-12", "matters_to": "maintainer"},
+  {"of": "Y", "what": "Non-string FEN gives a deliberate TypeError 'Expected a FEN string' and two kings are rejected, where X gives an incidental internal TypeError message", "ref": "U-1", "matters_to": "operator"},
+  {"of": "X", "what": "README tells callers the move format, the error contract and that a saved FEN resumes play; Y has no customer-facing document", "ref": "U-3", "matters_to": "requester"},
+  {"of": "X", "what": "Y's tests pin its exact error wording and BigInt counters, which another correct build would fail", "ref": "U-12", "matters_to": "maintainer"}
+ ],
+ "lesser_lacks": ["Add a timing test for the 50 ms legalMoves and 2 s depth-2 limits to the npm test suite (or have npm test run acceptance/)", "Add depth-3 perft assertions (start 8902, Kiwipete 97862, position 3)", "Add tests that invalid FENs throw, asserting the error class", "Give non-string FEN input a deliberate TypeError message"],
+ "one_task_closes": "yes",
+ "why": "Both engines are fully correct on every stated requirement and every perft count, so the difference lies in what the delivered suite guards. Y's npm test guards timing, deeper move generation and invalid FENs, which X leaves unguarded, while X offers a README and avoids pinning wording. Y's guards matter more to whoever keeps the engine working, but an hour of tests would close the gap."},
+{"pair": "Y-Z", "better": "Y-some",
+ "advantages": [
+  {"of": "Y", "what": "npm test guards the depth-2 timing limit; Z has no timing test at all", "ref": "S-39", "matters_to": "maintainer"},
+  {"of": "Y", "what": "Move-count tests reach depth 3 and position 3; Z's stop at depth 2", "ref": "U-9", "matters_to": "maintainer"},
+  {"of": "Y", "what": "Invalid-FEN error path tested; Z has none", "ref": "U-12", "matters_to": "maintainer"},
+  {"of": "Y", "what": "Deliberate TypeError for non-string FEN and two kings rejected, where Z gives incidental parser errors", "ref": "U-1", "matters_to": "operator"},
+  {"of": "Z", "what": "README with an accurate API summary and example; Y has no customer-facing document", "ref": "Z extras: README.md", "matters_to": "requester"},
+  {"of": "Z", "what": "Y's tests pin its exact error wording and BigInt counters", "ref": "U-12", "matters_to": "maintainer"}
+ ],
+ "lesser_lacks": ["Add a timing test for the 50 ms and 2 s limits to npm test", "Add depth-3 perft assertions including position 3", "Add tests that invalid FENs throw, asserting the error class", "Give non-string FEN input a deliberate TypeError message"],
+ "one_task_closes": "yes",
+ "why": "The two products behave identically and correctly on everything audited. Y's suite guards timing, deeper perft and invalid FENs that Z's suite leaves open, against Z's README. The test gap is small and closes in one short task."},
+{"pair": "Z-X", "better": "same",
+ "advantages": [
+  {"of": "X", "what": "README also tells callers that a saved FEN resumes play and how illegal or non-string moves are rejected", "ref": "U-11", "matters_to": "requester"},
+  {"of": "X", "what": "Timing checks exist in a separate acceptance/ folder, though npm test does not run it and README does not mention it", "ref": "X extras: acceptance/", "matters_to": "no one"},
+  {"of": "Z", "what": "Z does not carry X's intricate conversion-hook test, which pins one builder's choice", "ref": "X extras: non-string moves", "matters_to": "maintainer"}
+ ],
+ "lesser_lacks": [],
+ "one_task_closes": "yes",
+ "why": "X and Z have the same behaviour, the same depth-2 suite, the same unguarded export, timing and invalid-FEN paths, and both ship a README. The remaining differences are small and offset each other."}
+]}

@@ -1,0 +1,309 @@
+{
+ "ratings": [
+  {
+   "id": "U-1",
+   "rating": "must",
+   "why": "Maya and Theo can both be connected with no passwords, so the current person has to be stored per browser or per tab or one server-wide person mixes their bots and messages."
+  },
+  {
+   "id": "U-2",
+   "rating": "should",
+   "why": "A careful builder binds every request to the person who continued, because a request that names another person's bot, memory, task, or proposal would break the separation the customer asked for."
+  },
+  {
+   "id": "U-3",
+   "rating": "should",
+   "why": "Setup and Continue as need one obvious recoverable order, and a reload while Continue as is showing should keep the person already chosen, but the request leaves the extra contents of that screen open."
+  },
+  {
+   "id": "U-4",
+   "rating": "no",
+   "why": "Setup appears only when no token is saved and the token belongs to the operator, so leaving replacement out of the product matches the request."
+  },
+  {
+   "id": "U-5",
+   "rating": "should",
+   "why": "The operator needs a stated rule for which token is used when PROVIDER_TOKEN and a saved token both exist, and whether the environment token remains after the variable is removed."
+  },
+  {
+   "id": "U-6",
+   "rating": "must",
+   "why": "A refused PROVIDER_TOKEN at start, or a saved token that later fails, has to show the alert and return to Setup, or Retry loops forever and setup is not recoverable."
+  },
+  {
+   "id": "U-7",
+   "rating": "must",
+   "why": "The token must never appear in a page, response, log, or error, because that exposes the operator's secret even though the saved copy lives under DATA_DIR."
+  },
+  {
+   "id": "U-8",
+   "rating": "must",
+   "why": "A new person has to land in an open empty Assistant, and New bot or New conversation has to open a clean thread, or they cannot type and a new bot can inherit another bot's memory."
+  },
+  {
+   "id": "U-9",
+   "rating": "should",
+   "why": "Bot buttons are named with the bot's name, so a blank, huge, or duplicate name makes the list and the screen reader ambiguous and a careful builder rejects or disambiguates it."
+  },
+  {
+   "id": "U-10",
+   "rating": "no",
+   "why": "A conversation belongs to one bot, so past messages can keep the old name or show the renamed bot and still be readable."
+  },
+  {
+   "id": "U-11",
+   "rating": "must",
+   "why": "Conversation buttons have to be named and ordered so empty threads and similar openings can be told apart, or the person cannot return to the right discussion."
+  },
+  {
+   "id": "U-12",
+   "rating": "no",
+   "why": "The request specifies delete for instructions, tasks, and memories and never asks to delete a bot or a conversation, so a list that only grows is acceptable."
+  },
+  {
+   "id": "U-13",
+   "rating": "must",
+   "why": "The open bot and conversation are the place the customer said to keep, so they have to return after reload, switch person and back, a later visit, and a restart, and a draft discarded there is lost work."
+  },
+  {
+   "id": "U-14",
+   "rating": "must",
+   "why": "Saved instructions and tasks are personal, so another person must never see them, and the owner has to know whether switching or creating a bot keeps that library."
+  },
+  {
+   "id": "U-15",
+   "rating": "should",
+   "why": "An empty name or a second Save under an existing name yields a blank or duplicate Use, Run, Edit, or Delete button, or a silent overwrite, and a careful builder defines that case."
+  },
+  {
+   "id": "U-16",
+   "rating": "should",
+   "why": "Edit is described as saving again under the same name, so a careful builder decides whether changing the name before save renames the entry or keeps the original."
+  },
+  {
+   "id": "U-17",
+   "rating": "should",
+   "why": "Use sets the open bot's instructions from the next reply, and the owner needs to be told whether a later edit or delete of the saved instruction changes that bot or leaves the text already applied."
+  },
+  {
+   "id": "U-18",
+   "rating": "no",
+   "why": "The person can ask who are you to hear the current instructions, and the request never asks for a separate viewer or a way to clear them."
+  },
+  {
+   "id": "U-19",
+   "rating": "no",
+   "why": "Run has already sent the request into its own long task, so deleting the saved task can leave that running work untouched."
+  },
+  {
+   "id": "U-20",
+   "rating": "must",
+   "why": "Sending again, switching conversation or person, reloading, or losing the response while a reply is in flight can duplicate the message or attach the reply to the wrong conversation or person."
+  },
+  {
+   "id": "U-21",
+   "rating": "must",
+   "why": "Retry has to keep the same failed message and raise its attempt across reload and restart, because a reset attempt makes [fail once] fail forever and a dropped or duplicated message loses the conversation."
+  },
+  {
+   "id": "U-22",
+   "rating": "must",
+   "why": "The stand-in detects [fail once] and [slow] from the stored message and quotes that text for what did I ask first, so stripping the markers changes both retry and the transcript."
+  },
+  {
+   "id": "U-23",
+   "rating": "should",
+   "why": "The stand-in always says it forgot or remembered, and that reply has to be shown, while a careful builder still avoids storing a duplicate fact or pretending a missing fact was removed from the list."
+  },
+  {
+   "id": "U-24",
+   "rating": "no",
+   "why": "Forget is an immediate button like the other deletes, and an empty Save memory is a small edge a builder can allow without confirmation or undo."
+  },
+  {
+   "id": "U-25",
+   "rating": "must",
+   "why": "Edit memory has to open with the current fact in Memory text, or the person cannot correct a mistake and can easily save the wrong text."
+  },
+  {
+   "id": "U-26",
+   "rating": "must",
+   "why": "Save, Use, Edit, Delete, Rename, and Forget must stay out of the transcript, because extra lines change the conversation and what did I ask first."
+  },
+  {
+   "id": "U-27",
+   "rating": "should",
+   "why": "A person watching a long task, or Memory just after remember that, needs the page to update or a clear statement that a reload is required."
+  },
+  {
+   "id": "U-28",
+   "rating": "no",
+   "why": "The step text, the stand-in's Done prefix, or both all let a person recognize a finished step, and the request only requires the finished steps to be visible."
+  },
+  {
+   "id": "U-29",
+   "rating": "should",
+   "why": "The stand-in will propose changes to readers, id, type, or owner, and a careful builder blocks or warns on those fields because applying them rewrites who may read the record."
+  },
+  {
+   "id": "U-30",
+   "rating": "should",
+   "why": "The stand-in will propose a word for a number, an unknown field, or an odd status, and a careful builder rejects a value the record cannot hold and says how to correct it."
+  },
+  {
+   "id": "U-31",
+   "rating": "must",
+   "why": "An undecided proposal has to survive reload, restart, and later messages without applying itself, and only Confirm changes or Reject changes may decide it, once, so a stale proposal cannot be applied by accident."
+  },
+  {
+   "id": "U-32",
+   "rating": "should",
+   "why": "A create has no arrow example, so the proposal wording has to match the order that will be stored, and a previewed ORD- id has to be the id that confirm will write."
+  },
+  {
+   "id": "U-33",
+   "rating": "must",
+   "why": "Maya and Theo both read ORD-1001, so Confirm must refuse a change whose from value is no longer current or it silently overwrites the other person's update."
+  },
+  {
+   "id": "U-34",
+   "rating": "must",
+   "why": "Each created order needs its own next free ORD- number, including when two creates are pending or two people confirm, or two orders share an id."
+  },
+  {
+   "id": "U-35",
+   "rating": "must",
+   "why": "Change result and the conversation have to keep the confirmed outcome across reload, or an awkward reload hides what actually happened."
+  },
+  {
+   "id": "U-36",
+   "rating": "must",
+   "why": "A confirmed change is in the shared working copy, so the other person allowed to read that record must get answers from the updated record."
+  },
+  {
+   "id": "U-37",
+   "rating": "should",
+   "why": "Tasks must stay with the person who started them, and a careful builder chooses whether the Tasks region lists this conversation, this bot, or all of that person's tasks so other work can still be found and cancelled."
+  },
+  {
+   "id": "U-38",
+   "rating": "should",
+   "why": "Steer refers to the running task in this conversation, so a careful builder decides whether a second long task runs, waits, or is refused and tells the person."
+  },
+  {
+   "id": "U-39",
+   "rating": "must",
+   "why": "The stand-in always claims the step was added, so the app must add it only to a real running task and identify which task, or the person is told that work changed when it did not."
+  },
+  {
+   "id": "U-40",
+   "rating": "should",
+   "why": "The start reply promises to say when the work is done, and a careful builder also leaves the finished, failed, or cancelled outcome in that conversation so a follow-up can see it."
+  },
+  {
+   "id": "U-41",
+   "rating": "must",
+   "why": "After a restart, steps whose completion was recorded have to stay done, and a step that was still running has to show as Interrupted or resume without being marked finished."
+  },
+  {
+   "id": "U-42",
+   "rating": "must",
+   "why": "Retry task has to resume at the failed step with a higher attempt, because starting over redoes finished steps and makes the stand-in's failing step fail again."
+  },
+  {
+   "id": "U-43",
+   "rating": "must",
+   "why": "Cancel has to say what already happened and what will not run, including a step already in progress that may still finish, because the request asks for that account."
+  },
+  {
+   "id": "U-44",
+   "rating": "should",
+   "why": "Since you were away has to be defined per person, list what finished, what is still running, and what needs attention, and then stop showing those items once they have been seen."
+  },
+  {
+   "id": "U-45",
+   "rating": "should",
+   "why": "A narrow window may fold regions, and a careful builder still provides a way back to bots, conversations, memory, tasks, and setup while the conversation and message box stay in view."
+  },
+  {
+   "id": "U-46",
+   "rating": "must",
+   "why": "An unwritable or damaged DATA_DIR has to stop with a clear error and leave the files untouched, because a crash or a silent reset loses conversations or presents fresh records as recovered work."
+  },
+  {
+   "id": "U-47",
+   "rating": "no",
+   "why": "Forget removes the stored fact, and the earlier messages remain the conversation the stand-in is given, so rewriting that history is extra."
+  },
+  {
+   "id": "U-48",
+   "rating": "no",
+   "why": "The request already shows Retry task only after Failed or Interrupted, so other states need no retry control."
+  },
+  {
+   "id": "U-49",
+   "rating": "should",
+   "why": "The provider text says capitals do not matter, but the stand-in looks up a field with the typed case, so a careful builder normalizes the field or Status misses status."
+  },
+  {
+   "id": "U-50",
+   "rating": "must",
+   "why": "The stand-in's id pattern is unanchored, so a lookup or change for ORD-1001A can answer about ORD-1001, which is a confidently wrong record."
+  },
+  {
+   "id": "U-51",
+   "rating": "no",
+   "why": "The request states no length limit, so a builder does not need a silent cutoff of the message, task, instruction, or memory."
+  },
+  {
+   "id": "U-52",
+   "rating": "should",
+   "why": "A recovered Run has to keep the request that was originally sent, even if that saved task was later edited or deleted, or the resumed work is a different task."
+  },
+  {
+   "id": "U-53",
+   "rating": "should",
+   "why": "Text typed while a send is being reconciled is a new draft, and a careful builder leaves it in the message box when the outcome arrives."
+  },
+  {
+   "id": "U-54",
+   "rating": "must",
+   "why": "A failed write has to be reported as not saved and left recoverable, because calling an instruction or reply saved when it was not committed loses work and misleads the person."
+  },
+  {
+   "id": "U-55",
+   "rating": "should",
+   "why": "Two processes on one DATA_DIR can lose writes or mint the same order id, so a careful builder locks the folder or refuses the second instance."
+  },
+  {
+   "id": "U-56",
+   "rating": "no",
+   "why": "Refusing other sites and unexpected Host names is a specialist hardening step this local request never asks for."
+  },
+  {
+   "id": "U-57",
+   "rating": "must",
+   "why": "One failing background task or write must not take down the process, or the person cannot read or recover the rest of their work."
+  },
+  {
+   "id": "U-58",
+   "rating": "should",
+   "why": "Keyboard use is required, and focus that lands on another proposal's Confirm changes button can approve the wrong change on the next keypress."
+  },
+  {
+   "id": "U-59",
+   "rating": "no",
+   "why": "If the port is taken, Node already exits with an address-in-use error, so a custom listen message is polish."
+  },
+  {
+   "id": "U-60",
+   "rating": "should",
+   "why": "An unexpected server error should be told to the person in plain language and recorded for the operator, or both are left guessing."
+  },
+  {
+   "id": "U-61",
+   "rating": "should",
+   "why": "A normal question that merely contains of still needs an ordinary reply with the records this person may read, and a careful builder demands a record id only when the message really is a lookup."
+  }
+ ]
+}

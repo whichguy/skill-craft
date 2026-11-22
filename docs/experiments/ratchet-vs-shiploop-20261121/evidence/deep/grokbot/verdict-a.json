@@ -1,0 +1,78 @@
+{"pairs": [
+{"pair": "X-Y", "better": "Y-much",
+ "advantages": [
+  {"of": "Y", "what": "Keyboard Confirm/Reject moves focus to that proposal's Change result, so a second Enter cannot decide another proposal (X confirms or rejects a second proposal the person never chose)", "ref": "D-1", "matters_to": "requester"},
+  {"of": "Y", "what": "Field names are case-insensitive; in X a capitalised field name silently creates a second field on the record", "ref": "D-2", "matters_to": "requester"},
+  {"of": "Y", "what": "A storage write failure puts the app into a reported unavailable mode with a recovery step; X leaves a pending reply stuck and the conversation blocked, and a running task showing Running with no progress, until restart", "ref": "D-5", "matters_to": "operator"},
+  {"of": "Y", "what": "Storage failure during a task step is reported rather than leaving the task silently Running", "ref": "D-6", "matters_to": "operator"},
+  {"of": "Y", "what": "Saving under an existing name is refused with a message; X silently overwrites, and after a refused rename the form stays bound to the edited entry so the next new instruction replaces it", "ref": "D-7", "matters_to": "requester"},
+  {"of": "Y", "what": "Duplicate-name save of instructions and tasks refused instead of silent overwrite", "ref": "D-9", "matters_to": "requester"},
+  {"of": "Y", "what": "Conversations get distinct labels (Chat n, distinguishing excerpt) and same-named bots get a stable Bot #n", "ref": "D-3", "matters_to": "requester"},
+  {"of": "Y", "what": "Same-named bots can be told apart before selecting", "ref": "D-8", "matters_to": "requester"},
+  {"of": "Y", "what": "Damaged or unreadable data folder refuses start with a plain recovery message instead of a raw stack trace", "ref": "D-10", "matters_to": "operator"},
+  {"of": "Y", "what": "ORD-1001A gets a notice that the identifier could not be used instead of ORD-1001's value", "ref": "D-11", "matters_to": "requester"},
+  {"of": "Y", "what": "add step feedback names the task by number, so same-titled tasks are told apart", "ref": "D-13", "matters_to": "requester"},
+  {"of": "Y", "what": "Invalid values (a word into total, unknown fields, inexact amounts) are refused with correction guidance before Confirm", "ref": "U-30", "matters_to": "requester"},
+  {"of": "Y", "what": "Its tests catch DATA_DIR being ignored (S-5); X's suite stays green when DATA_DIR is ignored", "ref": "S-5", "matters_to": "maintainer"},
+  {"of": "X", "what": "Since you were away still reports finished and failed work when returning in a browser without the stored baseline", "ref": "D-14", "matters_to": "requester"},
+  {"of": "X", "what": "Saved instructions shows 'Active on <bot>: <text>', so the copied instruction the bot uses stays visible", "ref": "U-17", "matters_to": "requester"},
+  {"of": "Y", "what": "Builder harness (acceptance/ scripts) and a cross-tier receipt protocol a maintainer must carry", "ref": "Y extras", "matters_to": "maintainer"}
+ ],
+ "lesser_lacks": [
+  "Move focus after Confirm/Reject to that proposal's Change result instead of the next same-named button",
+  "Match record field names without regard to capitals in lookups and changes",
+  "Mark a pending reply failed and a running task Interrupted/Failed when progress cannot be saved, with a storage error the person can act on",
+  "Refuse saving an instruction or task under an existing name without Edit, and clear the edit binding after a refused rename",
+  "Give empty and similarly-opened conversations distinct labels, and make same-named bots distinguishable",
+  "Refuse to start on a damaged or unwritable data folder with a plain message and recovery step",
+  "Tell the person a suffixed id such as ORD-1001A cannot be found",
+  "Identify which of two same-titled tasks received an added step",
+  "Validate proposed values and say how to correct them"
+ ],
+ "one_task_closes": "no",
+ "why": "Both meet every stated requirement, but X carries ten more defects, two of them in the confirm path the request stresses: a second keyboard Enter decides a proposal the person did not choose, and a capitalised field name silently adds a field. X also hangs replies and tasks on storage failure and silently loses saved entries, while Y handles each of these; X's only real edges are the browser-independent away summary and the visible active instruction text. Closing that list takes several separate fixes across the client, records and storage layers, well over an hour."},
+{"pair": "X-Z", "better": "Z-much",
+ "advantages": [
+  {"of": "Z", "what": "Keyboard Confirm/Reject moves focus to that proposal's Change result; X's second Enter decides another proposal", "ref": "D-1", "matters_to": "requester"},
+  {"of": "Z", "what": "A capitalised field in a change request opens no proposal (with a notice) rather than creating a second field", "ref": "D-2", "matters_to": "requester"},
+  {"of": "Z", "what": "Storage write failure switches to a reported unavailable mode with a restart instruction; X leaves a pending reply blocking the conversation until restart", "ref": "D-5", "matters_to": "operator"},
+  {"of": "Z", "what": "Storage failure during a task step is reported instead of leaving the task shown Running forever", "ref": "D-6", "matters_to": "operator"},
+  {"of": "Z", "what": "A refused rename cannot silently bind the form to an entry and lose it on the next save", "ref": "D-7", "matters_to": "requester"},
+  {"of": "Z", "what": "Saving under an existing name is refused with a message instead of silently overwriting", "ref": "D-9", "matters_to": "requester"},
+  {"of": "Z", "what": "Damaged or unwritable data folder refuses start with an actionable message instead of a raw stack trace", "ref": "D-10", "matters_to": "operator"},
+  {"of": "Z", "what": "A word into total or an unknown field opens no proposal rather than applying a nonsense value", "ref": "U-30", "matters_to": "requester"},
+  {"of": "X", "what": "Since you were away still reports finished and failed work when returning in a browser without the stored baseline", "ref": "D-14", "matters_to": "requester"},
+  {"of": "X", "what": "Saved instructions shows the text the bot actually uses ('Active on <bot>: <text>'); Z only says custom instructions are active", "ref": "U-17", "matters_to": "requester"},
+  {"of": "X", "what": "Its tests catch a new bot not opening (S-72), which Z's suite does not", "ref": "S-72", "matters_to": "maintainer"}
+ ],
+ "lesser_lacks": [
+  "Move focus after Confirm/Reject to that proposal's Change result instead of the next same-named button",
+  "Stop a capitalised field name from creating a second field (match case-insensitively or refuse with a notice)",
+  "Mark a pending reply failed and a running task Failed/Interrupted when progress cannot be saved, and report the storage error",
+  "Refuse saving under an existing name without Edit, and clear the edit binding after a refused rename",
+  "Refuse to start on a damaged or unwritable data folder with a plain message and recovery step",
+  "Refuse or warn on non-numeric totals and unknown fields before Confirm"
+ ],
+ "one_task_closes": "no",
+ "why": "Z avoids seven of X's defects, including the two in the confirm path (keyboard focus deciding another proposal, a capitalised field silently adding a field) and the stuck reply and task after a storage failure. X's edges over Z are small: a browser-independent away summary and showing the active instruction text. The fixes X needs reach the client focus handling, the records layer, storage error paths and startup, too much for one short task."},
+{"pair": "Z-Y", "better": "Y-some",
+ "advantages": [
+  {"of": "Y", "what": "Conversations get distinct labels (Chat n and a distinguishing excerpt) so empty or similar ones can be told apart before opening", "ref": "D-3", "matters_to": "requester"},
+  {"of": "Y", "what": "Same-named bots carry a stable Bot #n, visible and in the accessible description", "ref": "D-8", "matters_to": "requester"},
+  {"of": "Y", "what": "ORD-1001A gets a notice that the identifier could not be used; Z answers with ORD-1001's value", "ref": "D-11", "matters_to": "requester"},
+  {"of": "Y", "what": "add step feedback names the task by number, so the person knows which same-titled task got the step", "ref": "D-13", "matters_to": "requester"},
+  {"of": "Y", "what": "Field names are matched case-insensitively with identical previews; Z refuses a capitalised set with a notice", "ref": "U-49", "matters_to": "requester"},
+  {"of": "Y", "what": "Refused values come with correction guidance (e.g. use a number in digits, the editable fields are customer, status, total); Z gives a generic notice", "ref": "U-30", "matters_to": "requester"},
+  {"of": "Y", "what": "Its tests catch DATA_DIR being ignored and a new bot replacing the others; Z's suite misses DATA_DIR and a new bot not opening", "ref": "S-5", "matters_to": "maintainer"},
+  {"of": "Y", "what": "Ships builder acceptance scripts and a receipt/recovery protocol and record-grammar re-parsing a maintainer must keep in step", "ref": "Y maintainer", "matters_to": "maintainer"}
+ ],
+ "lesser_lacks": [
+  "Give empty and similarly-opened conversations distinct labels (number or distinguishing excerpt)",
+  "Show a stable number or other cue for same-named bots",
+  "Tell the person a suffixed id such as ORD-1001A cannot be found instead of answering for ORD-1001",
+  "Name the receiving task by number in add step feedback",
+  "Match field names case-insensitively and give correction guidance on refused values"
+ ],
+ "one_task_closes": "yes",
+ "why": "The two share the same core behaviour and handle storage failure, damaged data and the confirm flow equally well; Y adds a set of naming and identification fixes (conversation labels, bot numbers, task numbers in steer feedback, suffixed ids) and friendlier record-request handling. Each gap in Z is a small, local labelling or parsing change, so one short follow-up would close them. Y carries somewhat more code and shipped harness for a maintainer, which tempers the margin."}
+]}

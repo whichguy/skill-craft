@@ -1,0 +1,14 @@
+{"ratings": [
+{"id": "U-1", "rating": "should", "why": "Bad FEN input is likely in real use and a careful builder gives a predictable, catchable error rather than a crash or wrong move list, but nothing that worked breaks and no data is lost."},
+{"id": "U-2", "rating": "no", "why": "The request defines a position as a FEN string, which has six fields; accepting the four-field EPD form is a convenience a reasonable builder could skip."},
+{"id": "U-3", "rating": "should", "why": "Rejecting anything that is not one of the listed UCI strings is the natural reading, and silently auto-queening 'e7e8' or accepting 'e2e4q' would change games unseen, so a careful builder pins this down."},
+{"id": "U-4", "rating": "must", "why": "An exported error class that does not extend Error, or cannot be caught with instanceof, breaks ordinary error handling and is a plain defect anyone would report."},
+{"id": "U-5", "rating": "should", "why": "Stale castling or en-passant flags in imported FENs can yield moves of missing pieces and corrupted boards, a real cost a careful builder guards against or documents."},
+{"id": "U-6", "rating": "no", "why": "The request fixes status to four values and names only stalemate as a draw, so leaving the fifty-move rule, insufficient material and repetition out is a faithful reading, not a defect."},
+{"id": "U-7", "rating": "must", "why": "The request asks for correct move generation for all rules, and pin, en-passant discovered-check, castling-rights-on-capture or promotion-capture bugs are plain defects whatever depth exposes them."},
+{"id": "U-8", "rating": "should", "why": "The speed limits are stated requirements, so a careful builder names the position and procedure and guards them, though an unguarded limit costs less than a wrong rule."},
+{"id": "U-9", "rating": "must", "why": "The request explicitly asks the tests to cover these named games and rules, so a suite that mentions them without asserting the results (for example the final checkmate) fails the request and leaves the rules unguarded."},
+{"id": "U-10", "rating": "no", "why": "The request asks for no documentation and the API is four small functions plus an error class, so a README or doc comments is nice but optional."},
+{"id": "U-11", "rating": "must", "why": "The API takes a FEN and returns a FEN, so any hidden state between calls or a board mutated by a rejected move would give wrong answers, a plain defect."},
+{"id": "U-12", "rating": "should", "why": "Tests of the error contract keep IllegalMoveError and invalid-input behaviour from regressing silently, a real but secondary safety net beyond the requested rule tests."}
+]}
