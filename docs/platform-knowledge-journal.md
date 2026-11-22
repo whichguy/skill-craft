@@ -986,11 +986,15 @@ It was followed in 8 of 8, where a card that is only named in the knowledge home
 23). The owner's condition for a wiki ("requires key identifiers and pointers in order to pick up the other items")
 is met by a pointer the script chooses and places, and not by one the model has to find.
 
-**What it costs against printing.** Not measured in characters by the reader. From the calls: Sol read the lines it
-was given (`sed -n '25,40p' .../node-express.md`); Sonnet read the whole card file in all four of its samples
-(about 10,000 characters for the Node card and 15,000 for the Salesforce one, against 1,600 for the three
-entries printed). So a pointer saves characters in the packet and can cost more in the context than printing, unless the
-thing pointed at is itself small. That is the practical case for small pages if a reference grows.
+**What it costs against printing.** Not measured in characters by the reader. From the calls, read again after the
+second review: Sonnet read the lines it was pointed to in all four of its samples (`sed -n` with the range, ending
+`,40p .../node-express.md` and `108p .../salesforce.md`); Sol read the range in one sample and searched or printed
+more of the card in the others. So a pointer costs the packet about 300 characters and the context about what the
+printed entries cost, plus one call.
+*Corrected 2026-11-22 after the second review (section 29):* I first wrote that Sonnet "read the whole card file in
+all four of its samples" and drew from it that a pointer can cost more context than printing. That was read from
+call excerpts cut to the end of each command, where the card's path stands; the commands are range reads. The
+conclusion I drew from it is withdrawn, and the owner was told.
 
 ## 25. Rung 6 launched: the whole chain on a familiar platform, nothing seeded (2026-11-22, 13:01)
 
@@ -1014,4 +1018,186 @@ both), one without (fails both) and the untouched fixture (route missing).
 Known before any result: the experiment's pattern for the Node card is `package.json`, far too wide for real use;
 and the printed entries include two real ones (authorization, shared state) that a model may act on in ways the
 header check does not expect.
+
+## 26. Rung 6: the whole chain holds on Sonnet and breaks on Sol at one identified step (2026-11-22, 13:01 to 13:17)
+
+Four whole deliveries from the fresh Node repository (`~/e2e-runs-pk/20261122-n/n01` to `n04`), launched from the
+candidate commit e1b2ad72284c298cc1254ca2a78b53b6aa580b35. Readings: `product_token.py` and `header_check.js`
+(their output is kept as `familiar/readings/rung6-product-token.txt` and `rung6-header-check.txt` on the candidate
+branch).
+
+| Sample | Driver | Build | Card selected by the script | Entry in the plan packet | Entry shown to the model at plan | Token in the product (source / tests / knowledge home) | Header check | Minutes | Cost |
+|---|---|---|---|---|---|---|---|---|---|
+| n01 | Sol medium | released | no | no | no | 0 / 0 / 0 | fails | 10.0 | |
+| n04 | Sonnet medium | released | no | no | no | 0 / 0 / 0 | fails | 15.9 | $5.19 |
+| n02 | Sonnet medium | candidate | yes | yes | **yes** | 3 / 14 / 12 | **passes** | 16.4 | $5.94 |
+| n03 | Sol medium | candidate | yes | yes | **no** | 0 / 0 / 0 | fails | 10.1 | |
+
+**By the rule of section 22:** the chain holds on Sonnet and does not hold on Sol. **Predictions:** "released 0 of
+2" right; "candidate 2 of 2" wrong, 1 of 2.
+
+**Selection worked as built, with no model.** In both candidate runs the script selected the Node card from the
+repository's files and printed the three entries in the plan packet, although the repository had no knowledge home
+and neither model ever named the card (neither delivered `environment.md` names it at the end).
+
+**Where it broke on Sol, read from the Codex session record.** The plan packet of n03 is 284 lines; the block
+stands at lines 35 to 52. The model showed itself 42 of the packet's 162 instruction lines (lines 1 to 11, 14, 17
+and 18, 24, 28, 55, 63, 66 to 68 and scattered others) and none of the block's 18 lines. So the fact was printed
+and never read. This is the behaviour of section 8 (the plan packet shown at under a third in 4 of 26 saved Sol
+runs) met in a live run. In the plan-stage slices of rung 4 Sol was shown the block 4 of 4: there the plan packet
+was the session's first packet.
+
+**What Sol does read in a whole delivery.** In both Sol runs of this rung the intake packet (77 of 77 instruction
+lines) and the discovery packet (93 of 93) were shown whole; research, spec, test-strategy and plan were shown at
+34 to 135 lines of 59 to 162, differently in the two runs (n01 was shown 135 of 147 plan lines, n03 42 of 162). In
+the 50 saved Sol runs intake was shown whole in 50 and discovery at four fifths or more in 46.
+
+**Cost of the candidate on the driver where it worked:** 16.4 minutes and $5.94 against 15.9 and $5.19 for the
+released build, one sample each: no difference this can show.
+
+**Reading (interim).** Printing in the plan packet is the right content in the wrong place for a Codex model in a
+whole delivery. Two places are read: the first packets, and a refusal. The first is cheaper to try.
+
+## 27. Amendment 5, registered before its runs: the entries printed at discovery (2026-11-22, 13:19)
+
+**Rung 6b.** The same candidate with one more switch: the entries are printed at the discovery stage as well as at
+the plan stage, inside the discovery duty that asks for the knowledge home's record, with the sentence "record each
+one that bears on this request under KNOWLEDGE/environment.md ## Platform facts, with its decision and its proof,
+so the spec and the plan can use it". That puts the fact in a packet a Codex model reads whole, and writes it into
+the project's own knowledge home, the place section 7 names for what is true of one project's target. Selection
+stays by the card's declared files. Whole deliveries from the same fresh repository: two on Sol medium, one on
+Sonnet medium (n05, n06, n07). Readings as in rung 6.
+
+**Rule.** The chain **holds** on Sol when both Sol products pass the header check. **Predictions:** the entry is
+shown to the model at discovery in 3 of 3; the header check passes in at least 2 of 3, both Sol runs among them or
+one of them.
+
+If it holds, the place for a card's planning entries is discovery, with the plan stage as a second showing. If the
+entry is shown at discovery and the product still lacks the header on Sol, the remaining route is a check: the
+script refuses a plan that does not account for each printed entry.
+
+**Rung 6b launched at 13:32.** The switch is built by an Opus subagent and committed on the candidate branch as
+2e4aecc1efe0c4a093b6eba80c810b206cab6a0d (6 new contract tests, all erroring before the change; the navigator
+contract suite, domain-words and the quick tier for the change pass with every switch at its default). Without a
+model: the discovery packet of a fresh run on the prepared repository goes from 17,769 to 19,458 characters; the
+block is lines 33 to 47, well before "Result template:" at line 117, and is the only difference. Runs n05 and n06
+(Sol medium) and n07 (Sonnet medium) in `~/e2e-runs-pk/20261122-n/`, allocation `familiar/runs/rung6b.tsv`.
+
+## 28. Rung 6b: printed at discovery, the whole chain holds on both drivers (2026-11-22, 13:32 to 13:54)
+
+Three whole deliveries from the fresh Node repository with the candidate at
+2e4aecc1efe0c4a093b6eba80c810b206cab6a0d: the card selected by its declared files, its entries printed at
+discovery and at plan. Runs n05 to n07 beside rung 6's; readings `familiar/readings/rung6b-product-token.txt` and
+`rung6b-header-check.txt` on the candidate branch.
+
+| Sample | Driver | Block shown at discovery | Discovery packet shown | Token in the product (source / tests / knowledge home) | Header check, valid call | Header check, 400 path | Minutes | Cost |
+|---|---|---|---|---|---|---|---|---|
+| n05 | Sol medium | 15 of 15 lines | 108 of 108 instruction lines | 2 / 8 / 1 | header, id echoed | header | 12.1 | |
+| n06 | Sol medium | 15 of 15 | 108 of 108 | 1 / 4 / 2 | header, id echoed | header | 9.5 | |
+| n07 | Sonnet medium | 15 of 15 | 108 of 108 | 1 / 18 / 12 | header, id echoed | header | 21.7 | $7.95 |
+
+**By the rule of section 27:** the chain holds on Sol (both Sol products pass) and on Sonnet. **Predictions:** shown
+at discovery in 3 of 3: right. The header check passes in at least 2 of 3: right, 3 of 3.
+
+Against rung 6: with the entries at the plan stage only, Sol's product failed the check (0 of 1) and Sonnet's
+passed (1 of 1); with the entries at discovery too, 3 of 3 pass; with the released build, 0 of 2.
+
+**What was not asked for and happened anyway.** n06 read the plan packet at 64 of 162 instruction lines, as n03
+did, and its product still carries the header.
+*Qualified 2026-11-22 after the second review (section 29):* I first added "the fact was already in the session
+from discovery". That is one explanation of three. This arm prints at discovery and at plan; n06 also read lines
+of the card by a call of its own; and the reader's "given" test is over the whole session. Which showing did the
+work is not separated by this rung. And only two
+of the three knowledge homes hold the token in `environment.md`, where the lead line asks for it; the third (n05)
+carries it in the other knowledge files. The record in the project's own file is therefore likely, not certain.
+
+**Time and cost.** Sol 12.1 and 9.5 minutes against 10.0 released; Sonnet 21.7 minutes and $7.95 against 15.9 and
+$5.19 released and 16.4 and $5.94 with the plan-only candidate. One or two samples a cell: no difference this can
+show, and the Sonnet figure is one run.
+
+**Limits.** Three deliveries, one small service, one request, one hidden fact. The selecting pattern is
+`package.json`, which a real card could not use. The two real entries printed beside the hidden one (authorization,
+shared state) were not graded: whether printing them changed those deliveries for better or worse is not read here.
+
+**The owner, about 14:00, after rung 6b:** "I'm looking to optimize for Sol and for Sonnet. I don't need optimization
+for Grok." Every live run of this study was on Sol 6.2 medium or Sonnet 5.5 medium; Grok appears only in the count
+of saved runs (section 3), as the one family that names and reads cards by itself. The recommendation is therefore
+judged on those two drivers alone, and nothing is kept or added for Grok's sake.
+
+## 29. The second Sol max review, on the results and on the change I was about to recommend (2026-11-22, sent 13:56, returned 14:05)
+
+Asked of `gpt-6.2-sol` at max, read-only, on a neutral copy of this journal through section 28, the candidate
+applied to ShipLoop with its diff, the benches and every reading. Served as asked, no fallback. Question:
+`review/QUESTION-2.md`; answer, word for word: `review/sol-max-answer-2.md` (3,200 words).
+
+**Its verdict, in its words.** "Keep the ShipLoop runtime candidate off `main`. Correct the Salesforce reporter
+guidance and test the judge behavior in a separate change. The experiments show that a precise duty can carry a
+planted deployment fact into a plan and, on one Node fixture, into a product. Rung 6b makes discovery a promising
+delivery point. Cold handoff, correct selection, and decision quality remain open. Run a paired cold-handoff test
+against the existing project-knowledge route before deciding whether ShipLoop needs a change."
+
+**Corrections it made, each checked before it was accepted.**
+
+1. *Section 24, the look-up's cost:* my claim that Sonnet read the whole card was wrong. Checked in the runs'
+   event streams and corrected in place above.
+2. *Section 28:* three routes could explain the three passes; my sentence attributing n06's pass to discovery is
+   qualified in place above.
+3. *Section 23, the hand reading:* the credits I gave to f22 (and, in section 24, to g03 and g07) rest on the word
+   "group" without the group's name. They show a direction, not a commitment to the fact. The registered token
+   counts stand as the reading of record: 0, 1, 7 and 8 of 8 for none, named, printed and request, and 6 of 8 for
+   the look-up.
+4. *What rung 4 isolates:* placement, content and the sentence asking for use were changed together. "Putting the
+   same claim inside a duty may give it more weight as well as more visibility." And the Sonnet plan that asked for
+   evidence before changing access "was exercising sound judgment". A printed entry is obeyed; so a wrong or stale
+   entry would be obeyed too, and section 16 shows a card going stale within a week.
+
+**On the change itself.**
+
+- Selection as built is not fit for a product: it loses which target a card belongs to, a reasoned "none" cannot
+  override a file match, it matches untracked files, the same selection also feeds the testing link, and the
+  pattern used here selects the Express card for a service that does not use Express. A card should declare
+  positive conditions over bounded evidence (a runtime dependency and evidence that the affected service starts
+  through it), attached to the package and target they were found in.
+- Discovery plus plan is not a design for a host that clears context: spec and test-strategy sit between them,
+  nothing hands a discovery fact to spec by value, and "a recorded fact is retrievable; receipt at the next decision
+  still needs evidence". Put the fact at the first decision that needs it and then carry the decision, in the
+  records ShipLoop already has (a requirement, an architecture decision, a check).
+- No result field, no refusal and no new stage: a field rewards copying, a refusal turns uncertain applicability
+  into a retry, and a token match would have accepted the plan that named the group only to decline it.
+- The stale sentence in the Salesforce card is confirmed from the source and should be corrected on its own, with a
+  test of the judging behaviour.
+
+**The experiment it asks for, and the gap in mine that it names.** I registered the project's own knowledge file as
+a route (arm K, section 10), dropped it in amendment 2 because on the invented platform every route was read, and
+never ran it on the platforms the models know. So the study cannot yet say whether released ShipLoop already
+carries a fact that is written in the project's `docs/shiploop/environment.md`. If it does, no runtime change is
+needed for facts of that kind.
+
+**Not followed, and why.** It asks for the Ratchet cell to be run; it stays not run today, and the recommendation
+will say so. It asks for cold-handoff sessions stage by stage; the first form run here is cheaper (section 30) and
+the stage-by-stage form is named as the next step if that leaves the question open.
+
+## 30. Amendment 6, registered before its runs: the project's own knowledge file, on the platforms the models know (2026-11-22, 14:07)
+
+**Rung 7a, plan stage.** Arm K on the two familiar fixtures: the knowledge home says "Platform guide: none" and its
+`## Platform facts` section states the hidden fact as a fact observed for this project's target, with where it was
+observed; no card entry is printed; released behaviour. Plan-stage slices as in rung 4, both drivers, two samples
+a cell = 8. Reading: the token in the accepted plan or in the knowledge files the plan stage wrote (the registered
+reading), and by hand whether the fact is followed or declined. Prediction: the token reaches the plan in at least
+6 of 8.
+
+**Rung 7b, whole deliveries.** The Node repository of rung 6 with a knowledge home whose `environment.md` holds
+the same fact under `## Platform facts`; the released build; two deliveries on Sol medium and one on Sonnet medium.
+Reading: the product check, tightened as the review asks (the header on the valid call and on the 400 path, the
+sent id echoed, an id generated when none is sent, the existing routes still answering as before). Rule: the
+existing route **holds** on Sol when both Sol products pass. Prediction: at least 2 of 3 pass.
+
+**A free reading alongside:** what the candidate's deliveries did beyond the hidden fact (n02, n05, n06, n07
+against n01, n04): which files changed, whether the header was put on every route or on the new one, whether
+anything was added for the two real entries (authorization, shared state), whether the original tests still pass.
+
+**What each outcome would mean.** If the existing route holds, a fact that belongs to one project needs no change
+to ShipLoop: it needs to be written in that project's knowledge file, and the question becomes how a platform's
+reusable facts get there. If it fails where the printed arm passed, printing earns its place and the next step is
+the stage-by-stage cold test the review describes.
 
