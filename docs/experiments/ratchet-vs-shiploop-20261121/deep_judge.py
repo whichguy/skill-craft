@@ -16,6 +16,8 @@ joins their JSON answers, and computes the readings. Everything lives under ROOT
     deep_judge.py fixed ROOT CASE              CASE-fixed: the looked-at and fixed product beside the two it is compared with
     deep_judge.py clean ROOT FRESH CASE        CASE-clean: a fresh run's delivery, the same after look and fix, and Ratchet's final
     deep_judge.py fresh ROOT FRESH RATCHET CASE  CASE-fresh: as CASE-clean, but L is the final of RATCHET/CASE-2 (after measure.py)
+    deep_judge.py cand ROOT FRESH RATCHET CAND CASE  CASE-cand: as CASE-fresh, but S is the delivery of CAND/CASE-1, a ShipLoop
+                                               candidate's run (after measure.py), and F is FRESH/delivered/CASE
     deep_judge.py grab IN.json OUT.json        the first JSON object in an `ask` answer's text
     deep_judge.py score ROOT OUT_DIR           D1 to D6, the gate, the pairs, deep.json and deep.md
 
@@ -41,6 +43,8 @@ CLEAN_NAMES = {"S": "a fresh ShipLoop delivery after one look and one fix", "F":
                "L": "Ratchet's final, audited again"}
 FRESH_NAMES = {"S": "a fresh ShipLoop delivery after one look and one fix", "F": "the fresh ShipLoop delivery",
                "L": "a fresh Ratchet final"}
+CAND_NAMES = {"S": "a ShipLoop candidate's delivery (the look inside product-acceptance)", "F": "the fresh ShipLoop delivery",
+              "L": "a fresh Ratchet final"}
 CALIBRATION_NAMES = {"S": "the correct reference", "F": "the reference, padded", "L": "a stated requirement broken"}
 PAIRS = (("S", "L"), ("S", "F"), ("F", "L"))
 JUDGES = ("a", "b")
@@ -709,31 +713,53 @@ def clean(root: Path, fresh: Path, case: str) -> None:
                                   ("L", case_dir / "products" / old, "ratchet/spec.md", None)))
 
 
-def ratchet_final(ratchet: Path, case: str) -> tuple:
-    """A Ratchet run's final as `prepare` takes it: the commit measure.py records as the point `final` (run.json's
-    last snapshot), in the run's work repository. `prepare` copies measure.py's clone checked out at that commit; the
-    clone is made only by the parts that read it, so the commit is exported from the run's own repository instead.
-    On last night's four runs both give the same files."""
-    label = f"{case}-2"  # the Ratchet arm's run, as in POINTS
-    path = ratchet / "measure" / label / "measures.json"
+ARMS = {"shiploop": ("ShipLoop", "1"), "ratchet": ("Ratchet", "2")}  # an arm's name, and its run's label number in POINTS
+
+
+def run_final(runs: Path, arm: str, case: str) -> tuple:
+    """A run's final, the point `final` measure.py records in RUNS/measure/LABEL/measures.json (LABEL is CASE-1 for
+    ShipLoop, CASE-2 for Ratchet), as (the run's work repository, the commit). ShipLoop's `final` is its delivered head
+    (result.json's committed head), Ratchet's its last snapshot (run.json). The repository is measure.py's `self.work`,
+    the launch record's output (launch.py sets it to RUNS/LABEL) and its `work` folder. Exported there with git archive,
+    the commit is the product without its history: for a ShipLoop run the files look.py's `prepare-clean` exports to
+    FRESH/delivered/CASE. `prepare` instead copies measure.py's clone checked out at the commit; the clone is made only
+    by the parts that read it. On last night's four Ratchet runs both give the same files."""
+    name, number = ARMS[arm]
+    label = f"{case}-{number}"
+    path = runs / "measure" / label / "measures.json"
     if not path.exists():
-        raise SystemExit(f"{path} is missing: run `measure.py {ratchet} {label}` first (any part); it records the "
+        raise SystemExit(f"{path} is missing: run `measure.py {runs} {label}` first (any part); it records the "
                          "run's final commit")
     record = load(path)
     commit = (record.get("points") or {}).get("final")
-    if record.get("arm") != "ratchet" or record.get("case") != CASES[case] or not commit:
-        raise SystemExit(f"{path} records no final point of a Ratchet run of {CASES[case]}")
-    return ratchet / label / "work", commit
+    if record.get("arm") != arm or record.get("case") != CASES[case] or not commit:
+        raise SystemExit(f"{path} records no final point of a {name} run of {CASES[case]} (it records arm "
+                         f"{record.get('arm')!r}, case {record.get('case')!r}, final {commit!r})")
+    return runs / label / "work", commit
 
 
 def fresh_runs(root: Path, fresh: Path, ratchet: Path, case: str) -> None:
     """Lay out CASE-fresh (journal section 16.1): three products, all to be audited afresh under new code names. S and
     F are CASE-clean's (FRESH/fix/CASE/work and FRESH/delivered/CASE); L is the final of a fresh Ratchet run,
     RATCHET/CASE-2, exported at the commit its measure record names."""
-    work, commit = ratchet_final(ratchet, case)
+    work, commit = run_final(ratchet, "ratchet", case)
     lay_out(root, case, "fresh", (("S", fresh / "fix" / case / "work", "docs/shiploop/spec.md", None),
                                   ("F", fresh / "delivered" / case, "docs/shiploop/spec.md", None),
                                   ("L", work, "ratchet/spec.md", commit)))
+
+
+def cand(root: Path, fresh: Path, ratchet: Path, candidate: Path, case: str) -> None:
+    """Lay out CASE-cand (journal sections 16.2 and 16.3, the trial of the look as a ShipLoop candidate): three
+    products, all to be audited afresh under new code names, so the comparisons with N and with the fresh Ratchet
+    final are read from one round of audits. S is the candidate's delivery, the final of CAND/CASE-1 exported from its
+    work repository the way look.py's `prepare-clean` exported F; F is that fresh delivery of unchanged ShipLoop,
+    FRESH/delivered/CASE (N); L is CASE-fresh's, the final of RATCHET/CASE-2. Both measure records are read before
+    anything is made."""
+    work, commit = run_final(candidate, "shiploop", case)
+    ratchet_work, ratchet_commit = run_final(ratchet, "ratchet", case)
+    lay_out(root, case, "cand", (("S", work, "docs/shiploop/spec.md", commit),
+                                 ("F", fresh / "delivered" / case, "docs/shiploop/spec.md", None),
+                                 ("L", ratchet_work, "ratchet/spec.md", ratchet_commit)))
 
 
 def grade_class(kind: str, grade: str | None) -> str:
@@ -940,9 +966,9 @@ def facts_of(case_dir: Path, code: str, inv: dict, probed: list, primary: bool) 
 
 def judges_of(case: str) -> tuple:
     """The judges whose verdicts count for a case. The owner, 2026-11-22, after the twelve products were judged by
-    both families: "just use opus for the judge to speed things up". The derived cases (fixed, clean and fresh) are
-    judged by Opus."""
-    return ("a",) if case.endswith(("-fixed", "-clean", "-fresh")) else JUDGES
+    both families: "just use opus for the judge to speed things up". The derived cases (fixed, clean, fresh and cand)
+    are judged by Opus."""
+    return ("a",) if case.endswith(("-fixed", "-clean", "-fresh", "-cand")) else JUDGES
 
 
 def judged(case_dir: Path, case: str, key: dict) -> dict:
@@ -970,6 +996,7 @@ def score(root: Path, out_dir: Path) -> None:
     fixes = {f"{case}-fixed": f"{name}, after one look and one fix" for case, name in CASES.items()}
     fixes.update({f"{case}-clean": f"{name}, clean ShipLoop run with one look and one fix" for case, name in CASES.items()})
     fixes.update({f"{case}-fresh": f"{name}, fresh runs of both tools" for case, name in CASES.items()})
+    fixes.update({f"{case}-cand": f"{name}, the look candidate's trial" for case, name in CASES.items()})
     for case, full_name in {**CASES, **fixes, **rounds}.items():
         case_dir = root / "deep" / case
         if not (case_dir / "defects-probed.json").exists():
@@ -979,7 +1006,8 @@ def score(root: Path, out_dir: Path) -> None:
             continue
         key, inv = load(case_dir / "key.json"), load(case_dir / "inventory.json")
         names = (CALIBRATION_NAMES if case.startswith("calibration") else FIXED_NAMES if case.endswith("-fixed")
-                 else CLEAN_NAMES if case.endswith("-clean") else FRESH_NAMES if case.endswith("-fresh") else NAMES)
+                 else CLEAN_NAMES if case.endswith("-clean") else FRESH_NAMES if case.endswith("-fresh")
+                 else CAND_NAMES if case.endswith("-cand") else NAMES)
         code_of = {entry["point"]: code for code, entry in key.items()}
         probed = load(case_dir / "defects-probed.json")["defects"]
         facts = {point: facts_of(case_dir, code, inv, probed, True) for point, code in code_of.items()}
@@ -1089,8 +1117,12 @@ def main(argv=None) -> int:
         fresh_runs(Path(rest[0]).expanduser().resolve(), Path(rest[1]).expanduser().resolve(),
                    Path(rest[2]).expanduser().resolve(), rest[3])
         return 0
+    if command == "cand" and len(rest) == 5 and rest[4] in CASES:
+        cand(*(Path(path).expanduser().resolve() for path in rest[:4]), rest[4])
+        return 0
     derived = rest[1:] and (rest[1].startswith("calibration") or rest[1].removesuffix("-fixed") in CASES
-                            or rest[1].removesuffix("-clean") in CASES or rest[1].removesuffix("-fresh") in CASES)
+                            or rest[1].removesuffix("-clean") in CASES or rest[1].removesuffix("-fresh") in CASES
+                            or rest[1].removesuffix("-cand") in CASES)
     if command in steps and len(rest) == 2 and (rest[1] in CASES or (derived and command in late)):
         steps[command](Path(rest[0]).expanduser().resolve(), rest[1])
         return 0
