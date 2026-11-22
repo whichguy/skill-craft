@@ -3662,3 +3662,118 @@ of the product's own tests in files the change happened to edit. So Y2 has littl
 change ought to fill, and a run that did catch them would be testing code the request does not concern. RC.1 is
 read as registered; this note says beforehand that "not shown" on Y2 would not mean a lever failed to protect what
 the change touched, and that the defect a change can plausibly cause (RC.2) is the better reading of protection.
+
+### Part D3, result (18:36; its fourth reading follows when the test passes end): the answer is carried into the specification, the plan and the build
+
+Launched from daf3fe89d032747df17d8fd8acabaf9abefb51a1. Six revise sessions (21 to 63 seconds), three plans for the
+limit, three answered runs through plan, build and test pass, three plain runs through plan and build.
+
+| Reading | The limit (`h1` to `h3`, `j1` to `j3`) | The due times (`h7` to `h9`, `b7` to `b9`, against `p7` to `p9`) |
+|---|---|---|
+| RD3.1, in the specification, `Source: answer` | 3 of 3: one new clause each, accepted at 40 and refused at 41 | 3 of 3: the use case and the preparation clause rewritten ("Missing due times alone never cause startup to fail"), the open line about refusing removed |
+| What else the revise session changed | nothing (5 lines added, 1 removed, each time) | nothing outside the use case and the clauses about preparing and starting: 6, 3 and 3 items touched, 13, 8 and 6 lines added |
+| RD3.2, in the plan | 3 of 3 take 40 | 3 of 3 fill at start; the three plain plans again take a separate command and a refusal |
+| RD3.3, held-out checks on the first build | not built | answered 8, 8 and 8 of 8; plain 3, 3 and 3 of 8 (`cli`, `migrate`, `restart`, `rollback`, `switch` fail each time) |
+
+- **RD3.1 and RD3.2: carried, six of six**, with no other change to the specification.
+- **RD3.3: an answer reaches the product.** All three answered builds pass every held-out check; all three plain
+  builds, made from the same three specifications by the same stages, fail the same five. The plain runs' own gate
+  is green each time.
+- With part D1's three plans, **six of six plans made without the answer take the refusal** on Sol at medium.
+
+**F52. One sentence from the requester is worth five of eight held-out checks here, and nothing else tried in this
+pilot moved them.** The specification text, the plan stage and the build stage are the same in both arms. What
+differs is one use case and a few clauses of the specification, 6 to 13 lines that say what the requester wants.
+The cost of carrying it is one session of about a minute. So the lever on this failure is neither wording nor effort but getting the answer, and
+F50 says a single question chosen by cost does not get it while the plan's decisions table shows where to ask.
+
+**One session record holds a held-out mark, and it is not held-out material.** The build session of `b9` listed
+the machine's processes, and the listing held the command line of another session's consultation, whose question
+names the harness's folder. Codex's own record shows the model was given that listing. Nothing of the held-out
+checks is in it, and no other plan or build session of the `b` and `p` runs holds a mark.
+
+**Limits.** The question was mine and named both alternatives; a real requester has to notice the row. One
+request, three specifications, one model at one effort. A build session took 341 to 519 seconds with the answer
+and 359 to 419 without.
+
+### Part R, result (18:36): a fresh reviewer finds the planted defect six times of six, every finding it reports is true, and its verdict cannot be used as a gate
+
+Twenty-four sessions, 91 to 320 seconds each, launched from f413b280a06c6c20616b2e5c04ccf06ac21bb8dc. Every one
+wrote `ratchet/review.md` in the form asked and changed nothing else; none changed the starting product. Two
+session records hold the repository's name: it is the path of the harness's own Python shim inside the session's
+home, printed by a `which`, and no held-out file.
+
+| Delivery | Arm | Verdicts | Findings | Names the planted defect | Lists the start-up decision | Seconds |
+|---|---|---|---|---|---|---|
+| `ka`, wrong | from the record | reject, reject, reject | 4, 4, 3 | 3 of 3 | | 94 to 136 |
+| | from the request first | reject, reject, reject | 2, 3, 2 | 3 of 3 | | 183 to 227 |
+| `kb`, classed right | from the record | reject, reject, reject | 4, 4, 2 | has none: 0 of 3 | | 91 to 127 |
+| | from the request first | reject, reject, reject | 1, 2, 3 | 0 of 3 | | 191 to 211 |
+| `kc`, refuses at start | from the record | reject, reject, reject | 5, 4, 4 | | 3 of 3 | 215 to 262 |
+| | from the request first | reject, reject, reject | 3, 2, 4 | | 3 of 3 | 242 to 320 |
+| `kd`, fills at start | from the record | accept, reject, accept | 0, 1, 0 | | 3 of 3 | 114 to 128 |
+| | from the request first | reject, reject, reject | 1, 2, 2 | | 3 of 3 | 231 to 312 |
+
+**Every finding was checked by running the products** (two Sonnet subagents, one for each case, given the reviews,
+the four deliveries and the starting product; `evidence/program/fresh-review/findings-checked.md`): the 24 reviews
+make 62 findings, 17 of them distinct, and **all 62 reproduce**. Nothing could not be run.
+
+- **RR.1, the wrong build.** Both arms reject `ka` with a finding that names the refused edit of a resolved
+  ticket, three of three each (the second reading agrees on all six; no review of `kb` reports it, and `kb` does
+  not have it). But no session accepts `kb`, so **by the registered rule "a fresh review catches it" is not met**:
+  the rule asked for the right build to be accepted in two of three. *Starting from the request does not matter*:
+  three against three.
+- **RR.2, the build I had classed as right.** `kb` is rejected six times of six, and each time for something
+  true. The reference delivery changes the shared matcher in `src/tickets/query.js` from `some` to `every`, so the
+  command line's `list --status S --priority P` now shows tickets that match both where it showed tickets that
+  match either: all twelve reviews of `ka` and `kb` report it. The other five (a fifth field in `list --raw`; `-`
+  shown both for no assignee and for an agent named `-`; a hand-edited 65-character assignee loaded; a second
+  notice to the same agent not queued while the first is pending; a repeated `assignee` parameter read by its
+  first value) are true as well. **My classification of `kb`, frozen before the reviews, was wrong by the rule
+  the reviewers were given.** The held-out checks do not look at the command line's filters, so the reference
+  passes them.
+- **RR.3, the open decision.** All twelve due-times reviews list how the existing tickets get their due times
+  under "Decisions made for the requester", for both builds and in both arms. I predicted at most three of six
+  for the build that fills at start. No review rejects `kc` for refusing to start.
+
+**The seventeen distinct findings by kind**, sorted by me before the second reader's sorting came back and by a
+Sonnet subagent (`evidence/program/fresh-review/kinds.md`); the two agree on the letter for 11 and on break against
+no break for 16 of 17:
+
+| Kind | Findings | In ordinary use | Only with hand-edited data, a failing disk or a number at the edge |
+|---|---|---|---|
+| A break: the request's own words, or existing behaviour it does not ask to change (both readers) | 7 | 3: the planted defect; the command line's filters (`ka`, `kb`); the HTTP list's filters with the switch on (`kc`) | 4, all in `kc` with the switch off |
+| No break: a choice on an open point, or a gap in new behaviour (both readers) | 9 | 5 | 4 |
+| Disputed | 1 (the second notice not queued: a break of "the agent ... is notified" to me, satisfied by the pending notice to the second reader) | 1 | |
+
+Read with the verdicts: the 18 rejections of `ka`, `kb` and `kc` each rest on at least one finding both readers
+class as a break. The four rejections of `kd` rest on none: on a ticket created while the switch is off taking its
+due time from the priority it has when the switch goes on (three reviews), on an hours setting too large to
+represent (two), on due times lost when release 1.4.0 saves the file (one). `kd` is the only delivery with no
+break found, and it is accepted twice in six, both times by the arm that starts from the record.
+
+**F53. A fresh reviewer is a sharp finder and a poor gate.** In one and a half to five minutes a session that
+built nothing reports what the delivery's own gate, its 29 or more acceptance checks and the held-out checks all
+passed: the planted defect six times of six (six of seven acceptance suites had missed it), and a change to
+existing behaviour in the reference delivery itself. Not one of 62 findings is false. But the verdict follows the
+findings without weighing them: a delivery with no break is still rejected four times of six, for a choice the
+request leaves open read as a requirement. The findings are the product of a review; the accept or reject line is
+not.
+
+**F54. Starting from the request first did not help, and cost more.** It caught the planted defect as often
+(three of three in each arm), reported fewer findings (27 against 35), took longer (235 seconds on average
+against 149), and on the one delivery with no break it rejected three times of three where the other arm rejected
+once: having written down what must be true, it held the build to its own reading. The first review expected the
+opposite; three sessions an arm on four deliveries is what this rests on.
+
+**F55. The same quirk of the starting product was changed, unasked, by two deliveries from different runs, and no
+suite or held-out check noticed.** The product's documents say a listing matches every filter given; its code
+matches either. The ticket-assignment reference changes it everywhere, the due-times build `kc` changes it when
+the switch is on, and `kd` leaves it. Part D1's specifications mark exactly this as open ("the requester would
+resolve the discrepancy"). A place where the documents and the code of the starting product disagree is a
+decision, and it is being made by whoever touches the file.
+
+**Limits.** Four deliveries, curated; one planted defect, chosen because suites miss it; the reviewer and the
+builders are one model family, and the checkers and second readers another; "no break" for `kd` means none was
+found by six reviews and two readers, not that none exists. Whether the reference's change to the command line is
+a defect of the E2E harness's reference or a welcome fix is its owner's to say.

@@ -1,0 +1,403 @@
+[
+ {
+  "run": "h1",
+  "what": "specification revised with the answer",
+  "case": "ticket-assignment-name-limit-unsaid",
+  "seconds": 24.9,
+  "changed": [
+   "ratchet/spec.md"
+  ],
+  "put_back": [],
+  "source_answer_items": [
+   "C-38"
+  ],
+  "lines_added": 5,
+  "lines_removed": 1,
+  "launched_from": "daf3fe89d032747df17d8fd8acabaf9abefb51a1"
+ },
+ {
+  "run": "h2",
+  "what": "specification revised with the answer",
+  "case": "ticket-assignment-name-limit-unsaid",
+  "seconds": 22.3,
+  "changed": [
+   "ratchet/spec.md"
+  ],
+  "put_back": [],
+  "source_answer_items": [
+   "C-45"
+  ],
+  "lines_added": 5,
+  "lines_removed": 1,
+  "launched_from": "daf3fe89d032747df17d8fd8acabaf9abefb51a1"
+ },
+ {
+  "run": "h3",
+  "what": "specification revised with the answer",
+  "case": "ticket-assignment-name-limit-unsaid",
+  "seconds": 20.9,
+  "changed": [
+   "ratchet/spec.md"
+  ],
+  "put_back": [],
+  "source_answer_items": [
+   "C-46"
+  ],
+  "lines_added": 5,
+  "lines_removed": 1,
+  "launched_from": "daf3fe89d032747df17d8fd8acabaf9abefb51a1"
+ },
+ {
+  "run": "h7",
+  "what": "specification revised with the answer",
+  "case": "ticket-due-times",
+  "seconds": 62.7,
+  "changed": [
+   "ratchet/spec.md"
+  ],
+  "put_back": [],
+  "source_answer_items": [
+   "U-4",
+   "C-17"
+  ],
+  "lines_added": 13,
+  "lines_removed": 14,
+  "launched_from": "daf3fe89d032747df17d8fd8acabaf9abefb51a1"
+ },
+ {
+  "run": "h8",
+  "what": "specification revised with the answer",
+  "case": "ticket-due-times",
+  "seconds": 42.9,
+  "changed": [
+   "ratchet/spec.md"
+  ],
+  "put_back": [],
+  "source_answer_items": [
+   "U-4",
+   "C-16"
+  ],
+  "lines_added": 8,
+  "lines_removed": 8,
+  "launched_from": "daf3fe89d032747df17d8fd8acabaf9abefb51a1"
+ },
+ {
+  "run": "h9",
+  "what": "specification revised with the answer",
+  "case": "ticket-due-times",
+  "seconds": 37.4,
+  "changed": [
+   "ratchet/spec.md"
+  ],
+  "put_back": [],
+  "source_answer_items": [
+   "U-4",
+   "C-15"
+  ],
+  "lines_added": 6,
+  "lines_removed": 8,
+  "launched_from": "daf3fe89d032747df17d8fd8acabaf9abefb51a1"
+ },
+ {
+  "run": "j1",
+  "case": "ticket-assignment-name-limit-unsaid",
+  "spec_from": "~/e2e-runs/ratchet-program-20261121-8fc670/h1",
+  "sessions": [
+   [
+    "plan-1",
+    191.9,
+    "exited"
+   ]
+  ],
+  "held_out_marks": [],
+  "launched_from": "daf3fe89d032747df17d8fd8acabaf9abefb51a1",
+  "stop_so_far": "stop-after-plan"
+ },
+ {
+  "run": "j2",
+  "case": "ticket-assignment-name-limit-unsaid",
+  "spec_from": "~/e2e-runs/ratchet-program-20261121-8fc670/h2",
+  "sessions": [
+   [
+    "plan-1",
+    180.8,
+    "exited"
+   ]
+  ],
+  "held_out_marks": [],
+  "launched_from": "daf3fe89d032747df17d8fd8acabaf9abefb51a1",
+  "stop_so_far": "stop-after-plan"
+ },
+ {
+  "run": "j3",
+  "case": "ticket-assignment-name-limit-unsaid",
+  "spec_from": "~/e2e-runs/ratchet-program-20261121-8fc670/h3",
+  "sessions": [
+   [
+    "plan-1",
+    171.8,
+    "exited"
+   ]
+  ],
+  "held_out_marks": [],
+  "launched_from": "daf3fe89d032747df17d8fd8acabaf9abefb51a1",
+  "stop_so_far": "stop-after-plan"
+ },
+ {
+  "run": "b7",
+  "case": "ticket-due-times",
+  "spec_from": "~/e2e-runs/ratchet-program-20261121-8fc670/h7",
+  "sessions": [
+   [
+    "plan-1",
+    213.1,
+    "exited"
+   ],
+   [
+    "build-1",
+    341.2,
+    "exited"
+   ]
+  ],
+  "held_out_marks": [],
+  "launched_from": "daf3fe89d032747df17d8fd8acabaf9abefb51a1",
+  "stop_so_far": null,
+  "held_out": {
+   "build-1": {
+    "passed": [
+     "suite",
+     "pristine",
+     "migrate",
+     "restart",
+     "switch",
+     "rollback",
+     "off",
+     "cli"
+    ],
+    "failed": {}
+   }
+  }
+ },
+ {
+  "run": "b8",
+  "case": "ticket-due-times",
+  "spec_from": "~/e2e-runs/ratchet-program-20261121-8fc670/h8",
+  "sessions": [
+   [
+    "plan-1",
+    275.6,
+    "exited"
+   ],
+   [
+    "build-1",
+    370.8,
+    "exited"
+   ]
+  ],
+  "held_out_marks": [],
+  "launched_from": "daf3fe89d032747df17d8fd8acabaf9abefb51a1",
+  "stop_so_far": null,
+  "held_out": {
+   "build-1": {
+    "passed": [
+     "suite",
+     "pristine",
+     "migrate",
+     "restart",
+     "switch",
+     "rollback",
+     "off",
+     "cli"
+    ],
+    "failed": {}
+   }
+  }
+ },
+ {
+  "run": "b9",
+  "case": "ticket-due-times",
+  "spec_from": "~/e2e-runs/ratchet-program-20261121-8fc670/h9",
+  "sessions": [
+   [
+    "plan-1",
+    172.2,
+    "exited"
+   ],
+   [
+    "build-1",
+    519.9,
+    "exited"
+   ]
+  ],
+  "held_out_marks": [
+   "shiploop_e2e"
+  ],
+  "launched_from": "daf3fe89d032747df17d8fd8acabaf9abefb51a1",
+  "stop_so_far": null,
+  "held_out": {
+   "build-1": {
+    "passed": [
+     "suite",
+     "pristine",
+     "migrate",
+     "restart",
+     "switch",
+     "rollback",
+     "off",
+     "cli"
+    ],
+    "failed": {}
+   }
+  }
+ },
+ {
+  "run": "p7",
+  "case": "ticket-due-times",
+  "spec_from": "~/e2e-runs/ratchet-program-20261121-8fc670/specs/s7",
+  "sessions": [
+   [
+    "plan-1",
+    225.6,
+    "exited"
+   ],
+   [
+    "build-1",
+    373.3,
+    "exited"
+   ]
+  ],
+  "held_out_marks": [],
+  "launched_from": "daf3fe89d032747df17d8fd8acabaf9abefb51a1",
+  "stop_so_far": "stop-after-build",
+  "held_out": {
+   "build-1": {
+    "passed": [
+     "suite",
+     "pristine",
+     "off"
+    ],
+    "failed": {
+     "migrate": "FAIL: the candidate exited (rc 2) before it listened on PORT=52405: 2026-11-22T02:30:04.095Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p7/due-times-probe-yjnp4txd/tickets.json: ticket T-0001 is mi",
+     "restart": "FAIL: the candidate exited (rc 2) before it listened on PORT=52432: 2026-11-22T02:30:04.351Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p7/due-times-probe-hmbmjm87/tickets.json: ticket T-0001 is mi",
+     "switch": "FAIL: the candidate exited (rc 2) before it listened on PORT=52466: 2026-11-22T02:30:04.896Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p7/due-times-probe-y4i31gj2/tickets.json: ticket T-0001 is mi",
+     "rollback": "FAIL: the candidate exited (rc 2) before it listened on PORT=52564: 2026-11-22T02:30:05.735Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p7/due-times-probe-_e7rqf63/on/tickets.json: ticket T-0001 is",
+     "cli": "FAIL: the candidate exited (rc 2) before it listened on PORT=52798: 2026-11-22T02:30:07.257Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p7/due-times-probe-rxn5oxha/tickets.json: ticket T-0001 is mi"
+    }
+   },
+   "final": {
+    "passed": [
+     "suite",
+     "pristine",
+     "off"
+    ],
+    "failed": {
+     "migrate": "FAIL: the candidate exited (rc 2) before it listened on PORT=52405: 2026-11-22T02:30:04.095Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p7/due-times-probe-yjnp4txd/tickets.json: ticket T-0001 is mi",
+     "restart": "FAIL: the candidate exited (rc 2) before it listened on PORT=52432: 2026-11-22T02:30:04.351Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p7/due-times-probe-hmbmjm87/tickets.json: ticket T-0001 is mi",
+     "switch": "FAIL: the candidate exited (rc 2) before it listened on PORT=52466: 2026-11-22T02:30:04.896Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p7/due-times-probe-y4i31gj2/tickets.json: ticket T-0001 is mi",
+     "rollback": "FAIL: the candidate exited (rc 2) before it listened on PORT=52564: 2026-11-22T02:30:05.735Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p7/due-times-probe-_e7rqf63/on/tickets.json: ticket T-0001 is",
+     "cli": "FAIL: the candidate exited (rc 2) before it listened on PORT=52798: 2026-11-22T02:30:07.257Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p7/due-times-probe-rxn5oxha/tickets.json: ticket T-0001 is mi"
+    }
+   }
+  }
+ },
+ {
+  "run": "p8",
+  "case": "ticket-due-times",
+  "spec_from": "~/e2e-runs/ratchet-program-20261121-8fc670/specs/s8",
+  "sessions": [
+   [
+    "plan-1",
+    204.1,
+    "exited"
+   ],
+   [
+    "build-1",
+    359.9,
+    "exited"
+   ]
+  ],
+  "held_out_marks": [],
+  "launched_from": "daf3fe89d032747df17d8fd8acabaf9abefb51a1",
+  "stop_so_far": "stop-after-build",
+  "held_out": {
+   "build-1": {
+    "passed": [
+     "suite",
+     "pristine",
+     "off"
+    ],
+    "failed": {
+     "migrate": "FAIL: the candidate exited (rc 2) before it listened on PORT=53332: 2026-11-22T02:30:10.299Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p8/due-times-probe-ku5sam8c/tickets.json: ticket T-0001 has n",
+     "restart": "FAIL: the candidate exited (rc 2) before it listened on PORT=53348: 2026-11-22T02:30:10.552Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p8/due-times-probe-1yr_ew64/tickets.json: ticket T-0001 has n",
+     "switch": "FAIL: the candidate exited (rc 2) before it listened on PORT=53403: 2026-11-22T02:30:11.130Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p8/due-times-probe-nun58u1l/tickets.json: ticket T-0001 has n",
+     "rollback": "FAIL: the candidate exited (rc 2) before it listened on PORT=53497: 2026-11-22T02:30:11.936Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p8/due-times-probe-0ac_obdk/on/tickets.json: ticket T-0001 ha",
+     "cli": "FAIL: the candidate exited (rc 2) before it listened on PORT=53668: 2026-11-22T02:30:13.369Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p8/due-times-probe-k54eztcb/tickets.json: ticket T-0001 has n"
+    }
+   },
+   "final": {
+    "passed": [
+     "suite",
+     "pristine",
+     "off"
+    ],
+    "failed": {
+     "migrate": "FAIL: the candidate exited (rc 2) before it listened on PORT=53332: 2026-11-22T02:30:10.299Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p8/due-times-probe-ku5sam8c/tickets.json: ticket T-0001 has n",
+     "restart": "FAIL: the candidate exited (rc 2) before it listened on PORT=53348: 2026-11-22T02:30:10.552Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p8/due-times-probe-1yr_ew64/tickets.json: ticket T-0001 has n",
+     "switch": "FAIL: the candidate exited (rc 2) before it listened on PORT=53403: 2026-11-22T02:30:11.130Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p8/due-times-probe-nun58u1l/tickets.json: ticket T-0001 has n",
+     "rollback": "FAIL: the candidate exited (rc 2) before it listened on PORT=53497: 2026-11-22T02:30:11.936Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p8/due-times-probe-0ac_obdk/on/tickets.json: ticket T-0001 ha",
+     "cli": "FAIL: the candidate exited (rc 2) before it listened on PORT=53668: 2026-11-22T02:30:13.369Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p8/due-times-probe-k54eztcb/tickets.json: ticket T-0001 has n"
+    }
+   }
+  }
+ },
+ {
+  "run": "p9",
+  "case": "ticket-due-times",
+  "spec_from": "~/e2e-runs/ratchet-program-20261121-8fc670/specs/s9",
+  "sessions": [
+   [
+    "plan-1",
+    207.9,
+    "exited"
+   ],
+   [
+    "build-1",
+    419.1,
+    "exited"
+   ]
+  ],
+  "held_out_marks": [],
+  "launched_from": "daf3fe89d032747df17d8fd8acabaf9abefb51a1",
+  "stop_so_far": "stop-after-build",
+  "held_out": {
+   "build-1": {
+    "passed": [
+     "suite",
+     "pristine",
+     "off"
+    ],
+    "failed": {
+     "migrate": "FAIL: the candidate exited (rc 2) before it listened on PORT=54097: 2026-11-22T02:30:16.817Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p9/due-times-probe-tptwerq9/tickets.json: ticket T-0001 is mi",
+     "restart": "FAIL: the candidate exited (rc 2) before it listened on PORT=54114: 2026-11-22T02:30:17.058Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p9/due-times-probe-r7un65ir/tickets.json: ticket T-0001 is mi",
+     "switch": "FAIL: the candidate exited (rc 2) before it listened on PORT=54147: 2026-11-22T02:30:17.588Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p9/due-times-probe-c5e73hpy/tickets.json: ticket T-0001 is mi",
+     "rollback": "FAIL: the candidate exited (rc 2) before it listened on PORT=54343: 2026-11-22T02:30:18.469Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p9/due-times-probe-sege801b/on/tickets.json: ticket T-0001 is",
+     "cli": "FAIL: the candidate exited (rc 2) before it listened on PORT=54573: 2026-11-22T02:30:19.995Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p9/due-times-probe-evtetcjm/tickets.json: ticket T-0001 is mi"
+    }
+   },
+   "final": {
+    "passed": [
+     "suite",
+     "pristine",
+     "off"
+    ],
+    "failed": {
+     "migrate": "FAIL: the candidate exited (rc 2) before it listened on PORT=54097: 2026-11-22T02:30:16.817Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p9/due-times-probe-tptwerq9/tickets.json: ticket T-0001 is mi",
+     "restart": "FAIL: the candidate exited (rc 2) before it listened on PORT=54114: 2026-11-22T02:30:17.058Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p9/due-times-probe-r7un65ir/tickets.json: ticket T-0001 is mi",
+     "switch": "FAIL: the candidate exited (rc 2) before it listened on PORT=54147: 2026-11-22T02:30:17.588Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p9/due-times-probe-c5e73hpy/tickets.json: ticket T-0001 is mi",
+     "rollback": "FAIL: the candidate exited (rc 2) before it listened on PORT=54343: 2026-11-22T02:30:18.469Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p9/due-times-probe-sege801b/on/tickets.json: ticket T-0001 is",
+     "cli": "FAIL: the candidate exited (rc 2) before it listened on PORT=54573: 2026-11-22T02:30:19.995Z error cannot start: ~/e2e-runs/ratchet-program-20261121-8fc670/tmp-grade-p9/due-times-probe-evtetcjm/tickets.json: ticket T-0001 is mi"
+    }
+   }
+  }
+ }
+]

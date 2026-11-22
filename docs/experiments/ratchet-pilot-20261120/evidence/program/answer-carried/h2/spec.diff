@@ -1,0 +1,21 @@
+diff --git a/ratchet/spec.md b/ratchet/spec.md
+index f1e102f..780b77c 100644
+--- a/ratchet/spec.md
++++ b/ratchet/spec.md
+@@ -71,7 +71,7 @@ Source: existing: docs/api.md
+ ### C-9: The assignment field accepts a non-empty agent name or JSON `null`
+ Observable: A name such as `"Dana Lee"` and the value `null` are accepted for an eligible ticket. The empty string `""`, numbers, booleans, arrays, and objects receive HTTP 400 with `error.code` equal to `invalid`.
+ Source: request
+-Open: The requester decides whitespace-only validity, treatment of surrounding whitespace and control characters, and any name-specific maximum. The existing request-wide byte limit applies independently.
++Open: The requester decides whitespace-only validity and treatment of surrounding whitespace and control characters. The existing request-wide byte limit applies independently.
+ 
+ ### C-10: Assignment requests obey the service's JSON body size limit
+ Observable: With `MAX_BODY_BYTES` unset, a valid assignment JSON object padded with JSON whitespace to 65,536 UTF-8 bytes is within the limit. Adding one byte receives HTTP 400 with `error.code` equal to `invalid`. With `MAX_BODY_BYTES` configured, the same inclusive boundary applies at the configured byte count.
+@@ -218,3 +218,7 @@ Source: request
+ ### C-44: Assignment behavior has `node:test` coverage under `test/`
+ Observable: Run `npm test` and see new cases under `test/` execute through `node:test` for assignment, unassignment, state eligibility, repeated assignment, ticket representations, notifications, filtering, and CLI listing as part of the same run as the existing suite.
+ Source: request
++
++### C-45: An agent name supplied for assignment is at most 40 characters long
++Observable: On an eligible ticket, send an otherwise valid assignment request with a name consisting of 40 `A` characters. The request succeeds. Adding one more `A` to the name results in HTTP 400 with `error.code` equal to `invalid`.
++Source: answer
