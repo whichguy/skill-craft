@@ -1,0 +1,155 @@
+{
+ "slot": "requester-reminders__K1__medium",
+ "case": "requester-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1, A-1.5",
+   "quote": "A ticket is *waiting on its requester* while its status is `resolved`."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1, A-1.4 and R-4",
+   "quote": "at least REMIND_AFTER_HOURS hours after the time it last became `resolved` (the `at` of its latest transition to resolved) \u2026 `REMIND_AFTER_HOURS` sets the threshold: whole hours, default 72"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A requester is reminded at most once for each time the ticket became `resolved`. \u2026 that later resolve starts a new waiting period and may produce one new reminder"
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1, A-1.3\u2013A-1.5 and R-3",
+   "quote": "tickets in `open`, `in_progress` or `closed` are never reminded \u2026 a resolved ticket whose title was updated 10 hours after the resolve is still reminded at 72 hours after the resolve",
+   "missing": "What observable action counts as the requester's reply and causes the ticket to reopen."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-3 and Non-functional requirements",
+   "quote": "subject `[T-0001] Waiting for your reply`, body naming the ticket and its title and saying the ticket was resolved and that replying reopens it. \u2026 the reminder goes only to the ticket's own requester",
+   "missing": "How to obtain a delivery address or handle an undeliverable reminder when the requester field contains free text."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-3 and Open gaps",
+   "quote": "saying the ticket was resolved and that replying reopens it. \u2026 \"Reply within 7 days to reopen it\" in the resolved notice is not enforced by the service and is untouched."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-4 and Non-functional requirements",
+   "quote": "The reminder runs only as a job of the worker, in order after the outbox job's registration, and never inside a request \u2026 the job's work is a scan of the tickets once per worker tick"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2 and Non-functional requirements",
+   "quote": "including after the first reminder was sent, after the service restarted from its data file \u2026 the relay drops a repeated line by `key` and `id`"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-1, A-1.5",
+   "quote": "When that holds and the requester has not yet been reminded since that transition, the service enqueues one notification \u2026 72 hours after the resolve the job enqueues nothing.",
+   "missing": "Whether enqueueing rechecks the current status and resolution period if the ticket changes after the scan selects it."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-2 and R-3",
+   "quote": "Running the job again, any number of times, adds no second reminder \u2026 Without that template the delivery would go dead, so the template is required.",
+   "missing": "Whether enqueueing must check that the template exists, and how delivery retries proceed before a failed reminder goes dead."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "Open gaps",
+   "quote": "tickets already `resolved` for longer than the threshold when the feature is first deployed (nothing closes a resolved ticket automatically) are all reminded once, on the first worker ticks, so a backlog produces one burst of mail."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1, A-1.5 and R-2, A-2.4",
+   "quote": "the 72 hours count from that later resolve \u2026 then 72 hours after that second resolve: exactly one further reminder, two in total, the second newer than the first.",
+   "missing": "Whether successive resolution periods use distinct outbox keys, including when the earlier reminder is still pending."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-1, A-1.2 and A-1.5",
+   "quote": "clock = manualClock starting 2025-09-01T08:00:00.000Z \u2026 at exactly 72 hours it enqueues the reminder \u2026 nothing at 2025-09-07T08:59:59, one reminder at 2025-09-07T09:00:00"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1, R-2, A-2.3 and R-3",
+   "quote": "the `at` of its latest transition to resolved \u2026 it appends an audit entry for the ticket with action `ticket.reminded`, actor `system`, `at` the time of the change, and enqueues the event, saved together.",
+   "missing": "Whether the saved audit history is the source for determining that a period was reminded, or whether a separate named field must be saved and loaded."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-2, A-2.3 and R-5",
+   "quote": "a data file written by the current version (without any reminder data) still loads, and its resolved tickets past the threshold are reminded once.",
+   "missing": "Which malformed reminder data causes loading to fail and whether the error identifies the offending field."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "it appends an audit entry for the ticket with action `ticket.reminded`, actor `system`, `at` the time of the change, and enqueues the event, saved together. It does not change the ticket's status, title, priority or `updated`."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "Open gaps, R-3, A-3.4 and R-4, A-4.4",
+   "quote": "an operator can set REMIND_AFTER_HOURS=0 first and close stale tickets \u2026 no endpoint is added \u2026 enqueues no reminder until a job is run explicitly",
+   "missing": "Who is authorized to invoke the job by hand or suppress an individual reminder through a ticket transition."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "`REMIND_AFTER_HOURS` sets the threshold: whole hours, default 72, from 0 to 8760 (0 turns reminders off). \u2026 stops the service at start with a message naming the variable \u2026 `WORKER_INTERVAL_MS=0` stops it."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-1, A-1.1, R-2, A-2.2, R-3, A-3.1 and R-5",
+   "quote": "status pending. Confirmed by a store/service test reading `GET /admin/outbox` or `store.outboxReport()`. \u2026 after the reminder is delivered (event status `sent`) \u2026 `bin/tickets.js list --raw` columns and the weekly report are unchanged.",
+   "missing": "Whether and how operators can identify the next reminders due before the worker queues them."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "Non-functional requirements and Open gaps",
+   "quote": "the job's work is a scan of the tickets once per worker tick \u2026 no bound is stated \u2026 a backlog produces one burst of mail.",
+   "missing": "The maximum delay after eligibility, the maximum enqueued per tick, and how a large scan affects outbox delivery time."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "Opening paragraph, R-1 and R-5",
+   "quote": "is preserved unless a requirement below says otherwise \u2026 Preserved: created and resolved notifications, the lifecycle table, `updated` semantics. Changed: none of the existing behaviour. \u2026 `bin/tickets.js list --raw` columns and the weekly report are unchanged."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-1 and R-4, A-4.6",
+   "quote": "clock = manualClock starting 2025-09-01T08:00:00.000Z \u2026 README.md's table and docs/operations.md (including the first-start burst above) and docs/api.md's list of audit actions and notification types \u2026 the release's CHANGELOG entry and version bump to 1.5.0.",
+   "missing": "Whether changing a rule that other code relies on requires a decision record."
+  }
+ ]
+}

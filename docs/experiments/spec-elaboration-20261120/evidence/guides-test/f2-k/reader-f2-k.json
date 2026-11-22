@@ -1,0 +1,15 @@
+{
+ "from_folder": "reader-authors-remind-e7889c",
+ "capabilities": [
+  {
+   "capability": "New ticket status waiting_on_requester with its own transitions",
+   "found": [
+    {
+     "spec": "K1",
+     "requirement": "R-1",
+     "quote": "From waiting_on_requester the agent can return to in_progress when a response arrives, or resolve the ticket."
+    }
+   ]
+  }
+ ]
+}

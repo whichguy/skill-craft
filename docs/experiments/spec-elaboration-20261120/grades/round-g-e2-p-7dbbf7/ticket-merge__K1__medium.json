@@ -1,0 +1,151 @@
+{
+ "slot": "ticket-merge__K1__medium",
+ "case": "ticket-merge",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.21573900000000001,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "`POST /tickets/:id/merge`, body `{\"into\": \"T-xxxx\"}` ... returns 200 with the duplicate ticket ... a body that is not exactly `{into: <ticket id>}` (missing, extra field, malformed id such as `T-7`) is 400 `invalid`"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "An agent merges ticket A (the duplicate) into ticket B (the target) with `POST /tickets/:id/merge`, body `{\"into\": \"T-xxxx\"}`"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Evidence limit: \"duplicate\" is not detected automatically; an agent names both tickets."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1, R-2",
+   "quote": "now `closed` with `mergedInto` = target id (reached by the merge, not by the lifecycle table ...); A merged ticket then refuses `PATCH` and `transition` with 409 (closed is final)."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1, R-3",
+   "quote": "the target ticket's fields and `updated` are unchanged ... on the target a `ticket.merge_received` entry with `changes: {mergedFrom: {from: null, to: <source id>}}`"
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "ticket JSON carries `mergedInto` only for a merged ticket; `GET /tickets/:id` and the listing show it; ... a merged ticket lists as `closed`"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "a source equal to its target (R-1 boundary), a closed source or a closed target is 409 `conflict` (a merged ticket is closed, so a source already merged, or a target that is itself merged, is covered"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "(1) a body that is not exactly `{into: <ticket id>}` (missing, extra field, malformed id such as `T-7`) is 400 `invalid`; (2) unknown source is 404 `not_found`; (3) unknown target is 404 `not_found`",
+   "missing": "Which id the error message names in each case."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "a closed target is 409 `conflict` (a merged ticket is closed, so a source already merged, or a target that is itself merged, is covered",
+   "missing": "What happens when the source has itself absorbed others (allowed? do earlier links get followed or rewritten to the new survivor)."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "a closed source ... is 409 `conflict` (a merged ticket is closed, so a source already merged ... is covered; the message says it was merged); the failed merge changes nothing (no audit entry, no notification)"
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "on the target a `ticket.merge_received` entry ... (an audit-only record: the target's ticket fields and `updated` do not change"
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "Non-functional",
+   "quote": "Security: internal network, no new authentication; X-Actor only (default Q5).",
+   "missing": "Whether a merge with no X-Actor (actor `system`) is accepted or refused, and whether requesters are kept from merging."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "a data file written before this feature loads unchanged (no `mergedInto`, still version 1); ... `src/persistence.js` `ticketRecord`/`readTicket` ... must learn `mergedInto`, validated as a ticket id when present"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "must learn `mergedInto`, validated as a ticket id when present",
+   "missing": "Whether loading checks that the target exists, that there are no cycles, that status is closed when mergedInto is set, and the refusal message naming the record."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-3, R-1",
+   "quote": "audit entry `ticket.merged` on the source (changes: status and mergedInto) and on the target a `ticket.merge_received` entry ... `GET /tickets/:id/audit` shows them; actor from `X-Actor`"
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-3, R-2",
+   "quote": "one store call appends an audit entry ... the data file saves once; the failed merge changes nothing (no audit entry, no notification)",
+   "missing": "That both tickets, audit entries and notification succeed or fail together and a crash/save failure leaves state before or after, never between."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "a `ticket.merged` outbox event for the source's requester, naming the target, with a template in `src/templates.js` ... key `ticket.merged:<source id>`",
+   "missing": "The template wording, and what happens to still-pending notifications about the absorbed ticket."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "the CLI `show` prints it; `list --raw` columns keep their positions (a merged ticket lists as `closed`"
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1, R-5",
+   "quote": "Preserved: all existing endpoints, CLI, weekly-report columns. ... unmerged tickets' JSON is byte-identical to before."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "`list --raw` columns keep their positions (a merged ticket lists as `closed`, so the weekly report counts it under closed; accepted, not separately reported)"
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-1, R-3, R-5, Non-functional",
+   "quote": "Confirmed by api test, one case per step ... the data-file change gets a decision record in docs/decisions/ ... docs/api.md documents the endpoint and errors; CHANGELOG and version updated. ... No new dependencies.",
+   "missing": "A test for atomicity (no partial state on failure mid-merge) is not stated."
+  }
+ ]
+}

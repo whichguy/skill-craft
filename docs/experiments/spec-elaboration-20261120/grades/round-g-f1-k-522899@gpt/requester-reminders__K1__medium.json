@@ -1,0 +1,158 @@
+{
+ "slot": "requester-reminders__K1__medium",
+ "case": "requester-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Add `waiting_on_requester` as an active status. Allow `in_progress \u2192 waiting_on_requester`, and from waiting allow `in_progress` or `resolved`."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2, R-2.a",
+   "quote": "At the first enabled worker tick at or after 72 elapsed hours in `waiting_on_requester`, send a reminder through the existing outbox and notifier to the requester's stored address."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "One reminder per continuous waiting period is the default policy."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1, R-2.b\u2013c, R-2 closing paragraph",
+   "quote": "Leaving waiting cancels an outstanding reminder so that the worker cannot send it later, even after re-entry.",
+   "missing": "Status exits stop reminders and reply ingestion is out of scope. The specification leaves open who recognizes an external reply and which transition records it."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "The message includes ticket ID and title and asks the requester to reply with needed information.",
+   "missing": "The subject, body, and inclusion of elapsed wait time are undecided. Delivery uses the stored address, but handling of a requester value that is only a name is unspecified."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-1, R-2",
+   "quote": "asks the requester to reply with needed information.",
+   "missing": "The specification preserves the resolution notice but leaves open whether the reminder should mention its seven-day deadline or explain what replying does to a waiting ticket."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Use Node.js 22+, no additional dependencies and the single existing worker loop per CONTRIBUTING. When enabled and healthy, the first tick at or after expiry queues and attempts delivery."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2.a\u2013c, R-2 closing paragraph",
+   "quote": "With DATA_FILE enabled, reopening the service preserves wait entry and the prior reminder's identity. A failed delivery uses existing backoff and retry limits. Sent, exhausted or cancelled reminders do not generate a new event for the same wait."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2.a, Non-functional requirements",
+   "quote": "A nonwaiting ticket never qualifies."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-2.c",
+   "quote": "A failed delivery uses existing backoff and retry limits. Sent, exhausted or cancelled reminders do not generate a new event for the same wait.",
+   "missing": "Whether enqueueing requires an existing reminder template is unspecified."
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2, R-2.b",
+   "quote": "Re-enter waiting and the clock starts again. Two eligible periods have distinct reminder keys."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-2, R-2.a, Non-functional requirements",
+   "quote": "At the first enabled worker tick at or after 72 elapsed hours in `waiting_on_requester`, send a reminder through the existing outbox and notifier to the requester's stored address.",
+   "missing": "Elapsed time and the first eligible tick settle the equality and calendar boundaries. The test clock is specified, but the production clock used to compare timestamps is unspecified."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-2.c",
+   "quote": "With DATA_FILE enabled, reopening the service preserves wait entry and the prior reminder's identity.",
+   "missing": "The persisted field names and the records from which the service restores the waiting-period start and reminder identity are unspecified."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-1.b",
+   "quote": "Version 1 data files created before this feature remain readable.",
+   "missing": "The defaults for missing fields and the requirement to reject an invalid stored field with an error naming it are unspecified."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-2.b",
+   "quote": "An already-sent message remains recorded. Verify through the service worker and outbox readback.",
+   "missing": "The outbox records delivery. Whether delivery also appends a ticket audit entry, which action and actor it uses, and whether it updates the ticket timestamp are unspecified."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-2 closing paragraph",
+   "quote": "Existing caller access governs API reads and mutations.",
+   "missing": "The specification leaves open who controls reminder configuration and whether anyone can manually send or cancel a reminder independently of a status change."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2, R-2.c\u2013d",
+   "quote": "An unset or empty threshold uses 259200000. Invalid input causes a startup configuration error naming the variable.",
+   "missing": "Worker shutdown stops scheduled work, but the specification does not identify zero as the worker interval setting that disables reminders."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-2.b\u2013c, Non-functional requirements",
+   "quote": "An already-sent message remains recorded. Verify through the service worker and outbox readback.",
+   "missing": "Operators can inspect recorded messages, and raw CLI column order is preserved. The specification leaves open how operators identify the next reminder due."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "When enabled and healthy, the first tick at or after expiry queues and attempts delivery.",
+   "missing": "The maximum number enqueued per tick and a bound on scanning cost or delivery delay with thousands of tickets are unspecified."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1, R-1.b, Non-functional requirements",
+   "quote": "Preserve all existing transitions and ordinary resolution notification.",
+   "missing": "The specification protects several existing outputs, but does not require preservation of received notifications, existing API responses and error codes, or the audit entries for existing actions."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-1.b, R-2.a\u2013d, Non-functional requirements",
+   "quote": "Check with the injected clock, temporary data file and local transport.",
+   "missing": "The specification calls for tests but omits updates to the API and operations docs, README settings table, changelog and version, and a decision record when a shared rule changes."
+  }
+ ]
+}

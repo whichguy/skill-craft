@@ -1,0 +1,32 @@
+{
+ "study": "remind",
+ "arms": [
+  "A"
+ ],
+ "checkout": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/e8ec9342-8948-4b96-8256-d168e70e5f09/scratchpad/wt-d-4166f9",
+ "head": "7e3d493a89bf403712bf986a8a8b081a249e7e97",
+ "checkout_status_lines": 0,
+ "base": {
+  "fixture": "node-tickets",
+  "digest": "5652a97375d0",
+  "start_head": "dd154023b26a4270bae70ef3db410fb9a9749c1b",
+  "files": 60
+ },
+ "plugins": {
+  "A": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-authors-remind-4166f9/arm-A/build/plugins/skill-craft"
+ },
+ "build_sha256": {
+  "A": {
+   "shiploop_prompts.py": "39ea13ebce9e4a39aa7b3e3415af7371f286fcef3772f7228875830c18913b33",
+   "shiploop_stage_spec.py": "470d2bc8f93d7452120e29b40f5f7a5afaf8c48dde0c0d6c1ad90388e2c82429"
+  }
+ },
+ "spec_prompt_sha256": {
+  "A": "1d01d54fbca2"
+ },
+ "spec_prompt_characters": {
+  "A": 8786
+ },
+ "delta_lines": {},
+ "problems": []
+}

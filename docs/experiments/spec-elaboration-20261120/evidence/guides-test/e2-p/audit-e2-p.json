@@ -1,0 +1,39 @@
+{
+ "reader_file_sha256": "41f28e228831bd810d9f4565e9b45248d1762bb55fdaffb498821f4047dc7d13",
+ "prompt_sha256": "30e7660c897ae23cd99904ee320af861d0e376c0e45a9fb9cd21f79d9b348d05",
+ "capabilities": [
+  {
+   "capability": "Merge notification to the duplicate's requester",
+   "found": [
+    {
+     "spec": "K1",
+     "requirement": "R-4",
+     "quote": "a `ticket.merged` outbox event for the source's requester, naming the target",
+     "quote_is_in_the_file": true
+    }
+   ]
+  },
+  {
+   "capability": "Audit entry recorded on the surviving ticket",
+   "found": [
+    {
+     "spec": "K1",
+     "requirement": "R-3",
+     "quote": "on the target a `ticket.merge_received` entry",
+     "quote_is_in_the_file": true
+    }
+   ]
+  },
+  {
+   "capability": "Operator CLI shows the merge link",
+   "found": [
+    {
+     "spec": "K1",
+     "requirement": "R-5",
+     "quote": "the CLI `show` prints it",
+     "quote_is_in_the_file": true
+    }
+   ]
+  }
+ ]
+}

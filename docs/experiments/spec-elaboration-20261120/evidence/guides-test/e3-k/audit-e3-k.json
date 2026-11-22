@@ -1,0 +1,17 @@
+{
+ "reader_file_sha256": "2b83e98b04b0786f976730131c87f75ae5a411e8d6d6872feb0f90a51bbe3052",
+ "prompt_sha256": "30e7660c897ae23cd99904ee320af861d0e376c0e45a9fb9cd21f79d9b348d05",
+ "capabilities": [
+  {
+   "capability": "Operator CLI shows the merge link",
+   "found": [
+    {
+     "spec": "K1",
+     "requirement": "R-3",
+     "quote": "Ticket detail and audit display the link.",
+     "quote_is_in_the_file": true
+    }
+   ]
+  }
+ ]
+}

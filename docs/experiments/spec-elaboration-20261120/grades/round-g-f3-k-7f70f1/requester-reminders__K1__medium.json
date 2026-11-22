@@ -1,0 +1,157 @@
+{
+ "slot": "requester-reminders__K1__medium",
+ "case": "requester-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.2226428,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "A ticket in progress may enter `waiting_on_requester`; it may then resume in progress or resolve. Waiting is active and listable via the existing status filter."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "one reminder per continuous wait at or after 72 elapsed hours by default... A normal edit during the wait leaves its start unchanged."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Assumed policy: one reminder per continuous wait at or after 72 elapsed hours by default."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1, R-2 A2",
+   "quote": "it may then resume in progress or resolve... A pending failed attempt follows existing backoff while waiting and becomes canceled when the ticket leaves.",
+   "missing": "What counts as the requester responding when there is no reply endpoint, and whether closing or other agent changes end the wait."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-2 A1, State",
+   "quote": "one reminder addressed to the ticket requester. The rendered message identifies the ticket and requests a reply... The requester receives the existing notification fields.",
+   "missing": "Subject and body text, whether title and waited duration are included, and what address is used when the requester field is free text."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-2 A1",
+   "quote": "The rendered message identifies the ticket and requests a reply.",
+   "missing": "How the requester replies and whether the wording is consistent with the resolved notice's 'reply within 7 days to reopen it'."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2, Non-functional Scheduling",
+   "quote": "When the worker is off, it performs no scheduled work... Scheduling: use the configured worker interval and avoid writing state on idle ticks."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2 A2, State",
+   "quote": "After a successful reminder, repeat ticks and reopen the persisted service. No second event for that wait appears... Reminder retries preserve event identity for relay deduplication."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2 A1, A2",
+   "quote": "Other ticket states send no reminder... becomes canceled when the ticket leaves. A canceled reminder never sends after reentry.",
+   "missing": "An explicit re-check of waiting status at the moment of enqueueing, for tickets that changed since the last tick."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-2 A2",
+   "quote": "A pending failed attempt follows existing backoff while waiting and becomes canceled when the ticket leaves.",
+   "missing": "Whether a dead reminder leads to another later, and whether the template must exist before the event type can be enqueued."
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2 A2",
+   "quote": "After exit and reentry, the next wait can send once... A canceled reminder never sends after reentry."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-2 A1",
+   "quote": "at or after 72 elapsed hours... Enter waiting at 08:00:00 UTC and run the worker one millisecond before the configured delay, then at the delay.",
+   "missing": "Whether reminders are held outside business hours, weekends or holidays, and the production clock source."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-2 State",
+   "quote": "the single store owns tickets, lifecycle history and outbox in the existing file.",
+   "missing": "The names and placement of new stored fields (waiting-since, reminder state) and their persistence naming."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "Non-functional Reliability",
+   "quote": "Reliability: load version-1 legacy data",
+   "missing": "Defaults for the new fields and refusal of a file with a bad new field with a message naming it."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "Non-functional Privacy and observability",
+   "quote": "reuse existing file and operator visibility, and avoid expanding access.",
+   "missing": "Who may configure the threshold and who may stop or manually send a reminder."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "A positive whole-number `WAITING_REMINDER_MS` overrides the delay. When the worker is off, it performs no scheduled work.",
+   "missing": "Validation errors naming the variable, a way to disable the feature alone, and explicit worker-interval-0 behaviour."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-2 State",
+   "quote": "Operators can see canceled reminders in the existing outbox report.",
+   "missing": "How operators see sent and upcoming reminders, and preservation of the command line's raw column positions."
+  },
+  {
+   "id": "N-20",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1, Non-functional Reliability",
+   "quote": "Existing tickets and transitions are preserved... preserve request/response contracts other than the new status and operator outbox state. Verify baseline suite",
+   "missing": "Preservation of received/resolved notifications, existing audit entries, CLI and weekly report output."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-2 A1, Non-functional Scheduling",
+   "quote": "Confirm via a clock-driven service check... Verify at the threshold and after repeated ticks with an injected clock or persistence spy.",
+   "missing": "Updated API doc, operations doc, README settings table, changelog, version bump and decision record."
+  }
+ ]
+}

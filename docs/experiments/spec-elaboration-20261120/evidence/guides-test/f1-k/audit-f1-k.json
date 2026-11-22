@@ -1,0 +1,28 @@
+{
+ "reader_file_sha256": "595ad6c7b1ae371777c3e9472bd790568abd6afb87e5319fa4d0a7d384880b63",
+ "prompt_sha256": "30e7660c897ae23cd99904ee320af861d0e376c0e45a9fb9cd21f79d9b348d05",
+ "capabilities": [
+  {
+   "capability": "New ticket status waiting_on_requester with its own transitions",
+   "found": [
+    {
+     "spec": "K1",
+     "requirement": "R-1",
+     "quote": "Add `waiting_on_requester` as an active status.",
+     "quote_is_in_the_file": true
+    }
+   ]
+  },
+  {
+   "capability": "Canceled reminder state in the outbox, shown to operators",
+   "found": [
+    {
+     "spec": "K1",
+     "requirement": "R-2.c",
+     "quote": "The outbox exposes the cancelled records.",
+     "quote_is_in_the_file": true
+    }
+   ]
+  }
+ ]
+}

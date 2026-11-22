@@ -1,0 +1,64 @@
+{
+ "capabilities": [
+  {
+   "capability": "Merge notification to the duplicate's requester",
+   "found": [
+    {
+     "spec": "S2",
+     "requirement": "R-4",
+     "quote": "one `ticket.merged` outbox notification to the duplicate's requester"
+    },
+    {
+     "spec": "S3",
+     "requirement": "R-4",
+     "quote": "a `ticket.merged` outbox event for the source's requester, naming the target"
+    },
+    {
+     "spec": "S6",
+     "requirement": "R-4",
+     "quote": "its rendered text (src/templates.js) names both ids."
+    }
+   ]
+  },
+  {
+   "capability": "Audit entry recorded on the surviving ticket",
+   "found": [
+    {
+     "spec": "S2",
+     "requirement": "R-3",
+     "quote": "`GET /tickets/T-0001/audit` with a `ticket.merge_received` entry by `dana`"
+    },
+    {
+     "spec": "S3",
+     "requirement": "R-3",
+     "quote": "on the target a `ticket.merge_received` entry"
+    }
+   ]
+  },
+  {
+   "capability": "Operator CLI shows the merge link",
+   "found": [
+    {
+     "spec": "S1",
+     "requirement": "R-3",
+     "quote": "Ticket detail and audit display the link."
+    },
+    {
+     "spec": "S2",
+     "requirement": "R-7",
+     "quote": "with one extra detail line after `updated`, only when `mergedInto` is present"
+    },
+    {
+     "spec": "S3",
+     "requirement": "R-5",
+     "quote": "the CLI `show` prints it"
+    },
+    {
+     "spec": "S6",
+     "requirement": "R-7",
+     "quote": "`bin/tickets.js show T-0002` displays the merge target"
+    }
+   ]
+  }
+ ]
+}

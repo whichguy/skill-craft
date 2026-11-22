@@ -1,0 +1,50 @@
+{
+ "set": "f3-p",
+ "cell": "medium",
+ "complete": true,
+ "round": "round-g-f3-p-553f2f",
+ "slots": {
+  "K1": {
+   "arm": "A",
+   "sample": "f3-p-A",
+   "spec_sha256": "8c7bfef6740167bfc096184db69d721af602a75a65320ef34f87797e6cf14ca3"
+  }
+ },
+ "delivered": {
+  "A": true
+ },
+ "items": {
+  "applies": [
+   "N-1",
+   "N-2",
+   "N-3",
+   "N-5",
+   "N-6",
+   "N-7",
+   "N-8",
+   "N-9",
+   "N-10",
+   "N-11",
+   "N-12",
+   "N-14",
+   "N-15",
+   "N-16",
+   "N-18",
+   "N-19",
+   "N-20",
+   "N-21",
+   "N-22"
+  ],
+  "capability": [],
+  "other": [
+   "N-4",
+   "N-13",
+   "N-17"
+  ],
+  "label_files_sha256": {
+   "opus": "fcf7fa2e4d9d3c32c8c5572ff71349e99ffa9589fb6f3c6645683e449c6af1b8",
+   "astra": "acd33b7c08a11e7b808be1780f3001425a699f41ff928b663aa91670b12010a4"
+  },
+  "fixture_digest": "5652a97375d0"
+ }
+}

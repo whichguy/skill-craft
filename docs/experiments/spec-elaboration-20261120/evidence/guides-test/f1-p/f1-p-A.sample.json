@@ -1,0 +1,21 @@
+{
+ "name": "f1-p-A",
+ "set": "f1-p",
+ "arm": "A",
+ "driver": "p",
+ "pid": 81674,
+ "started_at": 1795312147.374434,
+ "limit_minutes": 20.0,
+ "decided_at": 1795312312.1009989,
+ "watcher": "saw the acceptance",
+ "stop_written": true,
+ "seen": {
+  "run_dir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-authors-remind-4166f9/samples/f1-p-A/.shiploop-runs/work-20261122-014914-3b64c2/run",
+  "spec_action": "nav-0293ceb172024a60b164be0bdadd9620",
+  "at": "2026-11-22T01:51:51Z",
+  "ts": 1795312311.458,
+  "spec_sha256": "0dca1ce915dd3cdc6d93aa4b9921d9cff9f96a00051e2289d5538f69b61155d6",
+  "head": "8bb7403c29e66e9c1ae52ae750d0b08df7405922"
+ },
+ "returncode": 1
+}

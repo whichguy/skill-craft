@@ -1,0 +1,21 @@
+{
+ "name": "f2-p-A",
+ "set": "f2-p",
+ "arm": "A",
+ "driver": "p",
+ "pid": 1855,
+ "started_at": 1795312362.068387,
+ "limit_minutes": 20.0,
+ "decided_at": 1795312560.2485812,
+ "watcher": "saw the acceptance",
+ "stop_written": true,
+ "seen": {
+  "run_dir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-authors-remind-4166f9/samples/f2-p-A/.shiploop-runs/work-20261122-015248-4c5fcd/run",
+  "spec_action": "nav-540945624c2046d88f2dc696818ceb67",
+  "at": "2026-11-22T01:55:59Z",
+  "ts": 1795312559.551,
+  "spec_sha256": "615599c789ca6cddb03128031f6999697b38d08d4a516996a16fd6c8a42cc916",
+  "head": "ce2095a0a2bad8db7f909d8e77c93a7825a2a0cb"
+ },
+ "returncode": 1
+}

@@ -1,0 +1,155 @@
+{
+ "slot": "ticket-merge__K1__medium",
+ "case": "ticket-merge",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "partial",
+   "where": "R-1.a",
+   "quote": "POST /tickets/T-0001/merge with {\"into\":\"T-0002\"} and X-Actor: dana. Expect 200 and T-0001 closed with mergedInto T-0002.",
+   "missing": "The source ID comes from the path and the destination from the body. The initial success response body and whether extra body fields are rejected are unspecified."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1 and R-1.a",
+   "quote": "The operation uses explicit IDs selected by the agent \u2026 POST /tickets/T-0001/merge with {\"into\":\"T-0002\"} \u2026 T-0001 closed with mergedInto T-0002. GET and the closed-ticket list expose the link. GET T-0002 returns the same ticket as before"
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "The operation uses explicit IDs selected by the agent, with the current internal API and X-Actor convention. No other actor roles or automated matching are in scope.",
+   "missing": "It leaves open whether the service validates the agent\u2019s selected pair by comparing requester, title or priority."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1.a and R-1.b",
+   "quote": "T-0001 closed with mergedInto T-0002. \u2026 The duplicate cannot transition or be edited."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1.a",
+   "quote": "GET T-0002 returns the same ticket as before, including its timestamp. The duplicate keeps its title, requester, priority, creation time and ID."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-1.a",
+   "quote": "T-0001 closed with mergedInto T-0002. GET and the closed-ticket list expose the link.",
+   "missing": "The unfiltered list\u2019s treatment of the duplicate and its inclusion or exclusion under the other status filters are unstated."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-1.a and R-1.b",
+   "quote": "The merge action may close an open, in-progress or resolved source. \u2026 Self-merge, a closed source or target, and changing a previously merged ticket's destination return 409 conflict. An exact retry returns the current duplicate",
+   "missing": "It does not say whether a resolved survivor is eligible or which error applies if it is refused."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-1.b",
+   "quote": "Local HTTP returns 400 invalid for malformed IDs or request body and 404 not_found for an unknown ticket.",
+   "missing": "The treatment of an omitted destination ID is only implicit in the body rule. The error text does not specify how to identify the offending source or destination."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1.a and R-1.b",
+   "quote": "T-0001 closed with mergedInto T-0002. \u2026 Self-merge, a closed source or target, and changing a previously merged ticket's destination return 409 conflict. \u2026 If the surviving ticket later merges, the earlier link remains followable through the next ticket."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-1.b",
+   "quote": "An exact retry returns the current duplicate with its original merge timestamp and adds no events, including after restart."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1.a and R-2.a",
+   "quote": "GET T-0002 returns the same ticket as before, including its timestamp. \u2026 A target's history remains unchanged."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "The operation uses explicit IDs selected by the agent, with the current internal API and X-Actor convention. No other actor roles or automated matching are in scope.",
+   "missing": "It leaves open whether a missing actor may default to system and whether anything beyond internal network access prevents a requester from merging."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-1.a and R-3.a",
+   "quote": "T-0001 closed with mergedInto T-0002. \u2026 The file-backed test opens a version 1 file without merge fields, merges via HTTP, and restarts. The subsequent GET and audit return the same merge result. Existing unmerged JSON retains its original shape."
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-2.a",
+   "quote": "Local HTTP audit shows exactly one ticket.merged entry for the duplicate, with dana, the old/new status and the old/new link. A target's history remains unchanged."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-3 and R-3.b",
+   "quote": "Clients on the internal API observe committed state. \u2026 A synchronous save failure leaves live ticket and audit state unchanged. Retry after recovery produces one merge.",
+   "missing": "It does not require one atomic file save for the entire merge or specify that recovery from a crash during that save yields the complete pre-merge or post-merge state."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-2.b",
+   "quote": "Merge does not resolve the underlying issue and queues no requester notification. The HTTP outbox retains the original creation events; existing transition tests confirm resolution notices still work.",
+   "missing": "Queuing no merge notice settles the template and key. The spec leaves open what happens to a previously queued resolution notice for the absorbed ticket."
+  },
+  {
+   "id": "N-18",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-1.b",
+   "quote": "changing a previously merged ticket's destination return 409 conflict. \u2026 The duplicate cannot transition or be edited.",
+   "missing": "The ordinary operations prevent reversal or redirection. Whether there is a dedicated undo operation and how an operator corrects a mistaken merge are unstated."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-1.a, R-2.b and R-3.a",
+   "quote": "Ordinary transition rules remain in effect. \u2026 existing transition tests confirm resolution notices still work. \u2026 Existing unmerged JSON retains its original shape.",
+   "missing": "Compatibility for ordinary creation and edits, listing filters, ID order, cursors and the audit endpoint for uninvolved tickets is unspecified."
+  },
+  {
+   "id": "N-21",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-3.b and Non-functional requirements",
+   "quote": "A synchronous save failure leaves live ticket and audit state unchanged. \u2026 Check at the store and local HTTP boundaries. \u2026 The API has no new UI, identity mechanism, retention partition or external dependency.",
+   "missing": "The spec gives verification scenarios and rules out new dependencies. It does not require updating docs/api.md and CHANGELOG, bumping the version, writing a decision record or implementing the merge through a TicketStore method."
+  }
+ ]
+}

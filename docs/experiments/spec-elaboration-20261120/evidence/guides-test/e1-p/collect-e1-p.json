@@ -1,0 +1,139 @@
+[
+ {
+  "name": "e1-p-A",
+  "set": "e1-p",
+  "arm": "A",
+  "driver": "p",
+  "pid": 69616,
+  "started_at": 1795311884.674942,
+  "limit_minutes": 20.0,
+  "decided_at": 1795312084.9908879,
+  "watcher": "saw the acceptance",
+  "stop_written": true,
+  "seen": {
+   "run_dir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-authors-merge-4166f9/samples/e1-p-A/.shiploop-runs/work-20261122-014450-839c30/run",
+   "spec_action": "nav-d60ec71352a144b090a5e9e362722b93",
+   "at": "2026-11-22T01:48:04Z",
+   "ts": 1795312084.417,
+   "spec_sha256": "0a94919732bfb84db61e018a178ba46ccc64d1dc495db111c3e134420437114f",
+   "head": "c8273125e4a8446a3cf8e4a0bafcb83d7640c537"
+  },
+  "returncode": -9,
+  "host_ending": "the stop file",
+  "process_status": "stopped",
+  "host_stop": null,
+  "resume_stop": "stopped by /Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-authors-merge-4166f9/samples/e1-p-A/stop",
+  "outcome_class": "STOPPED",
+  "host_sessions": 1,
+  "harness_last_accepted": {
+   "stage": "spec",
+   "action": "nav-d60ec71352a144b090a5e9e362722b93"
+  },
+  "run_dir": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-authors-merge-4166f9/samples/e1-p-A/.shiploop-runs/work-20261122-014450-839c30/run",
+  "spec_action": "nav-d60ec71352a144b090a5e9e362722b93",
+  "snapshot": "pinned",
+  "acceptance_action": "nav-dfe7b9fbe9884dc6aee9dc505f923f29",
+  "accepted_at": "2026-11-22T01:48:04Z",
+  "accepted_ts": 1795312084.417,
+  "submitted_ts": 1795311973.134,
+  "author_submissions": 1,
+  "commands_after_acceptance": 0,
+  "spec_commits_after_acceptance": 0,
+  "spec_commit": "c8273125e4a8446a3cf8e4a0bafcb83d7640c537",
+  "spec_commit_subject": "docs(spec): pin the CLI show layout for a merged ticket",
+  "witness": "the working file as copied at acceptance",
+  "spec_sha256": "0a94919732bfb84db61e018a178ba46ccc64d1dc495db111c3e134420437114f",
+  "reviewed": true,
+  "bind_read_from": "the copy kept when the bind first appeared",
+  "as_bound_for_review": {
+   "words": 754,
+   "requirement_ids": 7,
+   "key_question_entries": 0,
+   "key_questions_words": 0,
+   "questions_entries": 0,
+   "questions_not_applying": 0,
+   "questions_words": 0
+  },
+  "packet_ts": 1795311951.623,
+  "shiploop_printed_the_whole_packet": true,
+  "prompt_is_the_request": true,
+  "case_recorded": "custom",
+  "start_head": "6aa51a65c6b9ca02224447e85464f8fbfc6299a2",
+  "start_route": "workspace",
+  "planning_review": "stage",
+  "plugin_wanted": "/Users/dadleet/e2e-runs/spec-elaboration-20261120/guides-authors-merge-4166f9/arm-A/build/plugins/skill-craft",
+  "plugin_check_passed": true,
+  "loaded_sha256": {
+   "shiploop_prompts.py": [
+    "39ea13ebce9e4a39aa7b3e3415af7371f286fcef3772f7228875830c18913b33"
+   ],
+   "shiploop_stage_spec.py": [
+    "470d2bc8f93d7452120e29b40f5f7a5afaf8c48dde0c0d6c1ad90388e2c82429"
+   ]
+  },
+  "exposure": {
+   "read_from": "the host's own session record: what the model was given",
+   "outputs_given": 32,
+   "instructions_lines_shown": [
+    58,
+    102
+   ],
+   "references_lines_shown": [
+    10,
+    53
+   ],
+   "instructions_shown_whole": false,
+   "cue_shown": false,
+   "read_all_shown": false,
+   "section_shown": false,
+   "questions_shown": false,
+   "guide_block_lines_shown": [
+    0,
+    81
+   ],
+   "guide_block_shown_whole": false,
+   "guide_lines_returned": {
+    "before the spec packet": {},
+    "while writing the spec": {},
+    "during its review": {},
+    "after the acceptance": {}
+   },
+   "guide_passage_before_acceptance": false
+  },
+  "accepted": {
+   "words": 1077,
+   "requirement_ids": 7,
+   "key_question_entries": 0,
+   "key_questions_words": 0,
+   "questions_entries": 0,
+   "questions_not_applying": 0,
+   "questions_words": 0
+  },
+  "spec_seconds": 133.0,
+  "spec_review_seconds": 110.9,
+  "spec_author_seconds": 22.1,
+  "turns": 55,
+  "tokens": {
+   "input_peak": 146831,
+   "processed": null,
+   "output": null
+  },
+  "cost_usd": null,
+  "refusals": 0,
+  "usable": true,
+  "usable_checks": {
+   "accepted inside the limit": true,
+   "the specification pinned to its commit": true,
+   "the acceptance the watcher saw": true,
+   "the registered sentence": true,
+   "the prepared base": true,
+   "the arm's build": true
+  },
+  "delivered": true,
+  "delivery_checks": {
+   "at least half of the stage's instructions given to the model": true,
+   "the arm's own sentence given, and no other arm's": true,
+   "four fifths or more of the guide block given": true
+  }
+ }
+]

@@ -1,0 +1,158 @@
+{
+ "slot": "requester-reminders__K1__medium",
+ "case": "requester-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1, Basis",
+   "quote": "a ticket waits on its requester while it is `resolved`"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1, Behaviour",
+   "quote": "every ticket that is `resolved`, whose latest resolve time (`at` of its latest audit entry with `changes.status.to = 'resolved'`; not `ticket.updated`) is at least 7 days (604800000 ms) before the clock's now"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1.3 and R-1.6",
+   "quote": "running the job again (also after the reminder is delivered/sent, and at 30 days) enqueues nothing more and appends no second `ticket.reminded`. \u2026 one reminder at day 11, counted from the new resolve"
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1.5, R-1.6 and R-1.9",
+   "quote": "a PATCH of the title of a resolved ticket at day 6 does not delay the reminder \u2026 reopened (resolved -> open) \u2026 Reply to reopen it.",
+   "missing": "The status rule and edit example settle when waiting ends, but the spec does not identify what observable requester action counts as a reply and triggers reopening."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1, Behaviour and R-1.9",
+   "quote": "to the ticket's `requester` \u2026 [T-0001] Waiting for your reply \u2026 Ticket T-0001 \"VPN drops every hour\" has been waiting for your reply for 7 days since it was resolved. Reply to reopen it.",
+   "missing": "The outbox recipient is specified. If that value is a name or other non-address, the builder must decide how to obtain a deliverable address or handle the lack of one."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-1, Basis and R-1.9",
+   "quote": "Reply within 7 days to reopen it \u2026 Reply to reopen it. \u2026 a worker that first ticks at 10.5 days says 10",
+   "missing": "The reminder asks for a reply even after the original seven-day window. The spec leaves open whether a reply then can still reopen the ticket and how it reaches the service."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1, Behaviour, R-1.8 and R-1.10",
+   "quote": "the worker, on each tick, finds every ticket \u2026 no timer, no side effect of a request or of a GET /admin/outbox \u2026 the job (named `remind-requesters`) is listed before `deliver-outbox`"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-1.3 and R-1.7",
+   "quote": "running the job again (also after the reminder is delivered/sent, and at 30 days) enqueues nothing more \u2026 a ticket reminded before a restart is not reminded again after reloading",
+   "missing": "The persistent marker prevents another enqueue. The spec leaves duplicate delivery undecided if a send succeeds but the worker retries before success is recorded."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-1, Behaviour",
+   "quote": "on each tick, finds every ticket that is `resolved` \u2026 in the same store step (saved together)",
+   "missing": "Enqueue and audit are saved together. The spec does not say that eligibility is checked in that same step if the ticket changes after selection."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1.9 and R-1, Left out (bounds)",
+   "quote": "an event of this type is never dead for want of a template \u2026 no repeat reminders",
+   "missing": "The retry and dead-state rules for delivery failures are unspecified, as is whether enqueue itself must check template availability."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1, Behaviour and R-1.9",
+   "quote": "on each tick, finds every ticket that is `resolved`, whose latest resolve time \u2026 is at least 7 days (604800000 ms) before the clock's now \u2026 a worker that first ticks at 10.5 days says 10"
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1.1 and R-1.6",
+   "quote": "key: 'ticket.reminder:T-0001' \u2026 one reminder at day 11, counted from the new resolve; none more after that",
+   "missing": "The example gives the first reminder a ticket-only key. It leaves key reuse and enqueue behaviour undecided when a prior cycle\u2019s reminder is still pending."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-1, Behaviour",
+   "quote": "the worker, on each tick, finds every ticket that is `resolved`, whose latest resolve time \u2026 is at least 7 days (604800000 ms) before the clock's now"
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-1, Behaviour and R-1.7",
+   "quote": "latest audit entry with `changes.status.to = 'resolved'` \u2026 appends one audit entry `ticket.reminded`, actor `system`, empty `changes` \u2026 the audit entry persists; no data-file format change, `VERSION` stays 1"
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-1.7 and R-2",
+   "quote": "no data-file format change, `VERSION` stays 1 \u2026 the data file's version and readability of existing data files",
+   "missing": "The design introduces no field needing a migration default. It gives no load-time rejection rule or field-specific error message for malformed persisted reminder data."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-1, Behaviour",
+   "quote": "appends one audit entry `ticket.reminded`, actor `system`, empty `changes`, in the same store step (saved together)",
+   "missing": "The audit entry records enqueueing. The spec does not say whether recording the reminder advances ticket.updated."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1, Left out (bounds) and R-1.8",
+   "quote": "no new ticket status, field, API endpoint or configuration variable \u2026 an explicit `worker.tick()` then enqueues exactly one reminder",
+   "missing": "The spec fixes the threshold and describes an internal trigger, but gives no actor or access rule for manually triggering or suppressing reminders."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-1.8 and R-1, Left out (bounds)",
+   "quote": "a service built with `WORKER_INTERVAL_MS=0` holding a ticket resolved 30 days ago: `worker.start()` returns false and the outbox stays empty \u2026 no new ticket status, field, API endpoint or configuration variable",
+   "missing": "The spec omits the default worker interval and the validation behaviour and error message for an invalid WORKER_INTERVAL_MS value."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-1.1 and R-2",
+   "quote": "Observed in `store.outboxReport()` / GET /admin/outbox and `store.history`. \u2026 a ticket's audit list gains `ticket.reminded` entries only \u2026 `list --raw` column positions, the weekly report"
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-1, Behaviour, R-1.10 and Non-functional requirements",
+   "quote": "on each tick, finds every ticket \u2026 the enqueued event is due immediately \u2026 the work has no interface and no stated bound",
+   "missing": "Each tick takes all eligible tickets. There is no maximum delivery delay or requirement limiting scan cost or delivery blocking with thousands of tickets."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Every existing API response (a ticket's audit list gains `ticket.reminded` entries only), the lifecycle, `list --raw` column positions, the weekly report \u2026 the `ticket.created` / `ticket.resolved` notifications are unchanged.",
+   "missing": "R-2 preserves raw column positions but does not promise preservation of other command-line output beyond what the baseline tests exercise."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-1, Acceptance lines and Open gaps",
+   "quote": "confirmed by tests in test/ with `manualClock`, worker off \u2026 Pending: implementation, tests, decision record 0009, CHANGELOG 1.5.0.",
+   "missing": "The spec does not require updating the API documentation, operations documentation, or README settings table."
+  }
+ ]
+}

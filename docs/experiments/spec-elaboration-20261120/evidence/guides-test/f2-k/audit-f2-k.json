@@ -1,0 +1,17 @@
+{
+ "reader_file_sha256": "24c38bb2610373523f611ba7e2a9e2ea6f27afbfd931de184025249ff1a3921c",
+ "prompt_sha256": "30e7660c897ae23cd99904ee320af861d0e376c0e45a9fb9cd21f79d9b348d05",
+ "capabilities": [
+  {
+   "capability": "New ticket status waiting_on_requester with its own transitions",
+   "found": [
+    {
+     "spec": "K1",
+     "requirement": "R-1",
+     "quote": "From waiting_on_requester the agent can return to in_progress when a response arrives, or resolve the ticket.",
+     "quote_is_in_the_file": true
+    }
+   ]
+  }
+ ]
+}

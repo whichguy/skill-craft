@@ -1,0 +1,6 @@
+set e2-k: items that apply here for both sorters (21): ['N-1', 'N-2', 'N-3', 'N-4', 'N-5', 'N-6', 'N-7', 'N-8', 'N-9', 'N-10', 'N-11', 'N-13', 'N-14', 'N-15', 'N-16', 'N-17', 'N-18', 'N-19', 'N-20', 'N-21', 'N-22']
+  A opus: covered 12, partly 6, absent 3
+  A astra: covered 8, partly 10, absent 3
+  not in the rule (mixed, unclear or the sorters differ), as states under the two judges:
+    N-12: A 1/1
+  delivered as each arm intends: {'A': True}

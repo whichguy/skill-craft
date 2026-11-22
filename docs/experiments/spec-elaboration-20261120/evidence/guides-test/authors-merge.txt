@@ -1,0 +1,17 @@
+  e1-p: the stop file; usable True; delivered True; 1077 words; 7 requirement ids; instructions given [58, 102]; references [10, 53]; spec stage 133.0 s, of them review 110.9; cost None; covered under both judges 11 of 21; at least partly 19; capability the reader verified: ["Merge notification to the duplicate's requester", 'Audit entry recorded on the surviving ticket', 'Operator CLI shows the merge link']
+  e1-k: the stop file; usable True; delivered True; 768 words; 4 requirement ids; instructions given [101, 102]; references [8, 58]; spec stage 71.0 s, of them review 37.1; cost None; covered under both judges 13 of 21; at least partly 20; capability the reader verified: none
+  e2-p: the stop file; usable True; delivered False; 698 words; 5 requirement ids; instructions given [44, 102]; references [8, 52]; spec stage 83.0 s, of them review 67.1; cost None; covered under both judges 13 of 21; at least partly 20; capability the reader verified: ["Merge notification to the duplicate's requester", 'Audit entry recorded on the surviving ticket', 'Operator CLI shows the merge link']
+  e2-k: the stop file; usable True; delivered True; 474 words; 3 requirement ids; instructions given [99, 102]; references [8, 54]; spec stage 55.0 s, of them review 31.8; cost None; covered under both judges 8 of 21; at least partly 18; capability the reader verified: none
+  e3-p: the stop file; usable True; delivered True; 768 words; 7 requirement ids; instructions given [102, 102]; references [24, 55]; spec stage 91.0 s, of them review 59.3; cost None; covered under both judges 11 of 21; at least partly 20; capability the reader verified: ["Merge notification to the duplicate's requester", 'Operator CLI shows the merge link']
+  e3-k: the stop file; usable True; delivered True; 657 words; 3 requirement ids; instructions given [101, 102]; references [8, 56]; spec stage 67.0 s, of them review 33.4; cost None; covered under both judges 14 of 21; at least partly 20; capability the reader verified: ['Operator CLI shows the merge link']
+counts of items covered under both judges: p [11, 13, 11]; k [13, 8, 14]
+  e1-p over e1-k: net -3 (higher ['N-18'], lower ['N-4', 'N-16', 'N-17', 'N-19'])
+  e1-p over e2-k: net 1 (higher ['N-1', 'N-14', 'N-18', 'N-21'], lower ['N-3', 'N-4', 'N-19'])
+  e1-p over e3-k: net -3 (higher ['N-18'], lower ['N-4', 'N-7', 'N-16', 'N-17'])
+  e2-p over e1-k: net 1 (higher ['N-3', 'N-7', 'N-20'], lower ['N-16', 'N-17'])
+  e2-p over e2-k: net 6 (higher ['N-1', 'N-7', 'N-14', 'N-18', 'N-20', 'N-21'], lower [])
+  e2-p over e3-k: net 0 (higher ['N-3', 'N-20'], lower ['N-16', 'N-17'])
+  e3-p over e1-k: net -1 (higher ['N-7', 'N-20'], lower ['N-6', 'N-16', 'N-17'])
+  e3-p over e2-k: net 6 (higher ['N-1', 'N-7', 'N-14', 'N-18', 'N-20', 'N-21'], lower [])
+  e3-p over e3-k: net -2 (higher ['N-20'], lower ['N-6', 'N-16', 'N-17'])
+READING (p over k): not shown

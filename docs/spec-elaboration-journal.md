@@ -4266,3 +4266,136 @@ authors apart by style. The two hosts differ in more than the model: the Claude 
 own settings in the owner's home and gives the model each tool result nearly whole, where Codex runs in a
 throwaway home and its model chooses what to show itself (section 43). That difference comes with the drivers
 and is part of what is compared.
+
+## 55. The fifth experiment: on the same stage Sonnet writes more, and is fuller on one sentence and not on the other; not shown by the rule (18:03, 2026-11-21)
+
+**The runs.** Twelve real runs of the released stage, 17:44 to 17:59, from a clean checkout at the commit that
+holds section 54: three sets a sentence, each one run on Claude Sonnet 5.5 at medium and one on GPT 6.2 Sol at
+medium. All twelve reached the specification's acceptance and pass the six checks. The first Sonnet run went
+alone: the harness's stop file ends a Claude run as it ends a Codex one, and the driver's checks read it. The
+two judges read all twelve (24 readings), and one blind reader a sentence read its six specifications under new
+codes.
+
+| Set | Author | Minutes to acceptance | Author's seconds, then the review's | Words submitted, then accepted | Requirement ids | Instruction lines given, of 102 | Items covered by both judges |
+|---|---|---|---|---|---|---|---|
+| e1 | Sonnet | 3.3 | 22, 111 | 754, 1,077 | 7 | 58 | 11 of 21 |
+| e1 | Sol | 3.3 | 34, 37 | 768, 768 | 4 | 101 | 13 of 21 |
+| e2 | Sonnet | 2.2 | 16, 67 | 500, 698 | 5 | 44 | 13 of 21 |
+| e2 | Sol | 2.9 | 23, 32 | 474, 474 | 3 | 99 | 8 of 21 |
+| e3 | Sonnet | 2.5 | 32, 59 | 703, 768 | 7 | 102 | 11 of 21 |
+| e3 | Sol | 3.1 | 34, 33 | 657, 657 | 3 | 101 | 14 of 21 |
+| f1 | Sonnet | 2.7 | 21, 65 | 762, 865 | 5 | 102 | 9 of 19 |
+| f1 | Sol | 3.5 | 36, 43 | 693, 706 | 2 | 83 | 7 of 19 |
+| f2 | Sonnet | 3.3 | 38, 76 | 1,439, 1,572 | 5 | 102 | 10 of 19 |
+| f2 | Sol | 3.0 | 28, 31 | 533, 533 | 2 | 102 | 6 of 19 |
+| f3 | Sonnet | 3.3 | 26, 96 | 712, 928 | 2 | 100 | 6 of 19 |
+| f3 | Sol | 2.9 | 24, 29 | 434, 434 | 2 | 99 | 6 of 19 |
+
+Sets e are the merge sentence and sets f the reminders sentence.
+
+**The rule of section 54** (`evidence/guides-test/authors-merge.txt`, `authors-remind.txt`):
+
+| Sentence | Sonnet's counts | Sol's counts | Reading |
+|---|---|---|---|
+| merge, 21 items | 11, 13, 11 | 13, 8, 14 | not shown |
+| remind, 19 items | 9, 10, 6 | 7, 6, 6 | not shown |
+
+Sonnet over Sol is not shown on either sentence, so the comparison is not shown. On merge the two means are the
+same, 11.7. On remind two of Sonnet's three counts are above every one of Sol's and the third, 6, is level with
+two of them.
+
+**The predictions.** 33 held: all six Sonnet runs reached the acceptance. 34 failed: every Sonnet specification
+is the longer on remind, and on merge one is shorter than one of Sol's and one is level with it. 35 failed: two
+Sonnet authors gave themselves 58 and 44 of the stage's 102 instruction lines before they submitted, where
+Sol's six were given 83 to 102. 36 failed. 37 failed: Sonnet's mean count is two items higher on remind and
+equal on merge. 38 held, with more than was predicted (below).
+
+**As a description.** These are observations on three specifications a side. None is a finding of the rule.
+
+- *Sonnet writes more.* Its six specifications average 985 words and 5.2 requirement ids against Sol's 595 and
+  2.7. It takes no longer: 2.2 to 3.3 minutes to the acceptance against 2.9 to 3.5.
+- *On Sonnet the stage's review is a real step; on Sol it is not.* Sonnet's review took 59 to 111 seconds and
+  changed the specification in all six runs, adding 65 to 323 words (9% to 43%). Sol's took 29 to 43 seconds and
+  changed nothing in five of six (the accepted text is the submitted text, byte for byte), 13 words in the sixth.
+  This is the SDLC study's finding on whole deliveries (its round 7), seen again at this one stage. In e1 the
+  review added worked examples with concrete ticket ids, the order in which the refusals are checked, a rule and
+  an example for chains of merges, what loading refuses, and the command line's layout for a merged ticket.
+- *On remind Sonnet is ahead in every pairing.* The net of items higher under both judges, Sonnet over Sol, is 3
+  to 5 in all nine pairings of the six specifications. The items: what the requester does on getting a reminder,
+  given the existing "reply within 7 days to reopen it" wording (N-6: covered in 5 of Sonnet's 6 readings and
+  none of Sol's); tickets already past the threshold when the feature is switched on (N-11: 5 of 6 against none;
+  both judges call it absent in all three of Sol's); whether a reminder is recorded in the audit log (N-16: 4 of
+  6 against none); the settings (N-18: 5 against 1). Sol is ahead on two: a reminder is never sent twice (N-8)
+  and a ticket resolved, reopened and resolved again (N-12), 6 of 6 against 4 each. Sonnet leaves no item absent
+  under both judges; Sol leaves one or two.
+- *On merge there is no difference.* The nets run from minus 3 to 6 (minus 3, 1, minus 3, 1, 6, 0, minus 1, 6,
+  minus 2), and both sixes are against Sol's one short specification. Sonnet is ahead on what stays as it was
+  (N-20: 5 of 6 readings against none) and on the command line's view (N-18: 3 against none). Sol is ahead on
+  the merge being all or nothing (N-16: 5 of 6 against none) and on whether anyone is notified (N-17: 5 of 6
+  against none).
+- *The judges agree on Sol's specifications and part on Sonnet's.* On remind the registered judge counts 13, 12
+  and 13 items covered in Sonnet's and 7, 7 and 6 in Sol's; the second judge counts 9, 10 and 7, and 7, 7 and 6.
+  Under the registered judge alone the remind counts separate completely; under the second alone they do not (7
+  is level with 7). The registered judge is of Sonnet's family, which is why section 54 made a count need both.
+  The size of Sonnet's lead on remind is therefore less sure than its direction.
+- *Each author adds product on one sentence, and they are different sentences.* The reader verified, on merge:
+  a notification to the absorbed ticket's requester in all three of Sonnet's specifications and none of Sol's,
+  an audit entry on the surviving ticket in two of Sonnet's, and the command line showing the merge link in all
+  three of Sonnet's and one of Sol's. On remind: a new ticket status, `waiting_on_requester`, in all three of
+  Sol's specifications and none of Sonnet's, and a cancelled state for a reminder in two of Sol's. By section
+  54's guard Sonnet's merge result and Sol's remind result are both "with added scope".
+- *How each read the reminders sentence.* All three of Sonnet's specifications take a ticket to be waiting on
+  its requester while it is `resolved`, citing the program's own resolved notice, which asks the requester to
+  reply to reopen it, and record "no new status" as an assumption. All three of Sol's add a status, as all five
+  accepted specifications of section 53 did. This is the question on which one run of section 53 stopped and
+  asked the owner.
+- *The earlier Sol specifications agree with these.* Section 53's five counted 12, 10 and 14 on merge and 8 and
+  7 on remind; today's count 13, 8 and 14, and 7, 6 and 6.
+- *Why Sonnet loses the two merge items.* Both follow from the notification it added. A specification that
+  decides to notify has more to state than one that decides not to: the judges read Sonnet's as partly on N-17
+  because it does not say what becomes of messages still pending for the absorbed ticket, and as partly on N-16
+  because it does not put the new message inside the all-or-nothing change. Sol's say no one is notified and are
+  read as covered on both. Adding product made the specification less complete by this count.
+
+**The five experiments together** (68 real runs, 67 specifications).
+
+| What was changed | Where | Items covered by both judges, with it | Without | By the rule |
+|---|---|---|---|---|
+| a cue sentence (C) | user service; ticket service | 30 of 45; 21 of 45 | 29; 20 | not shown |
+| a sentence to read the whole packet (R) | the same | 35 of 45; 21 of 45 | 29; 20 | not shown |
+| the cue and two guide sections (X) | the same | 38 of 45; 18 of 45 | 29; 20 | not shown; the opposite against C on tickets |
+| a section answering K1 to K12 (S) | the same | 21 of 27; 21 of 45 | 18; 20 | not shown |
+| a section answering five particular questions (Q) | merge; remind | 34 of 63; 14 of 38 | 36; 15 | not shown |
+| the author: Sonnet in place of Sol | merge; remind | 35 of 63; 25 of 57 | 35; 19 | not shown |
+
+1. The author matters more than anything written into the packet, and it does not matter evenly. On the
+   sentence that names a thing the program has no word for, Sonnet's specification is fuller in every pairing
+   and stays inside the program as it is. On the plainer sentence the two are level, and Sonnet's adds a feature
+   nobody asked for.
+2. On Sonnet the stage's review is where the specification grows. It runs twice to three times as long as Sol's
+   and changes the text every time; Sol's changes nothing. Section 53's guess that the lever is who writes and
+   who checks is half supported: who writes, on one sentence; and the checking is done by the same model, so the
+   two cannot be told apart here.
+3. Neither author is the careful one. Each added product on one sentence, and the count used here punished it
+   once.
+4. Nothing here shows that a fuller specification makes a better delivery. The SDLC study reads whole deliveries
+   on both drivers, and that is where a choice of driver should be made.
+
+**Why this stops here.** Section 54 said the result would be reported as it is. It is reported, and nothing
+further is run unasked.
+
+**What it cost.** Six Sonnet runs, about $3.50 in all: the harness records no cost for a run it stops, so each
+run's cost is estimated from its token use, scaled by a whole Sonnet delivery whose cost it did record ($0.47 to
+$0.72 a run; the same scaling puts a second recorded delivery at $5.58 against its recorded $5.77). Twelve
+readings by the registered judge, $2.89. The rest on subscription. Wall clock 17:29 to 18:05.
+
+**Limits.** As section 54's, and:
+
+- Three specifications a side. The lead on remind is consistent across pairings and rests on one sentence.
+- The two judges differ most on Sonnet's specifications, and the one that favours them is of its family.
+- The reader of added capability is a Sonnet session and half of what it read was written by Sonnet. It was
+  not told who wrote what, and it found added product on both sides.
+- A reader's line between a needed part and an added one moves: section 53's readers did not count the new
+  status as added, and this one did, having seen three specifications that do without it.
+- Coverage of a checklist is not quality. A specification can be longer, more exact and still wrong for the
+  owner, and none of these was built.

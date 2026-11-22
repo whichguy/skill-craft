@@ -1,0 +1,39 @@
+{
+ "reader_file_sha256": "d07747e7bd0fd8c78e0f8a62a466012073247be8891dd3a5e611be17f22f3c23",
+ "prompt_sha256": "30e7660c897ae23cd99904ee320af861d0e376c0e45a9fb9cd21f79d9b348d05",
+ "capabilities": [
+  {
+   "capability": "Merge notification to the duplicate's requester",
+   "found": [
+    {
+     "spec": "K1",
+     "requirement": "R-4",
+     "quote": "one `ticket.merged` outbox notification to the duplicate's requester",
+     "quote_is_in_the_file": true
+    }
+   ]
+  },
+  {
+   "capability": "Audit entry recorded on the surviving ticket",
+   "found": [
+    {
+     "spec": "K1",
+     "requirement": "R-3",
+     "quote": "`GET /tickets/T-0001/audit` with a `ticket.merge_received` entry by `dana`",
+     "quote_is_in_the_file": true
+    }
+   ]
+  },
+  {
+   "capability": "Operator CLI shows the merge link",
+   "found": [
+    {
+     "spec": "K1",
+     "requirement": "R-7",
+     "quote": "with one extra detail line after `updated`, only when `mergedInto` is present",
+     "quote_is_in_the_file": true
+    }
+   ]
+  }
+ ]
+}
