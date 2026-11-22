@@ -1,0 +1,87 @@
+CLAIM 1: judge() passes a check row with exit 0 and empty output; no-tests only on a recognised zero tally
+  call:    judge({'suite':'check'}, 0, '')
+  returned: {'counts': None, 'ids_missing': [], 'status': 'passed'}
+  verdict: claim holds
+  call:    judge({'suite':'check'}, 0, <node TAP zero summary>)
+  returned: {'counts': {'ran': 0, 'failed': 0, 'runners': ['node']}, 'ids_missing': [], 'status': 'no-tests'}
+  verdict: claim holds (zero-test summary judged no-tests)
+  call:    judge({'suite':'check'}, 0, <pytest 'no tests ran'>)
+  returned: {'counts': {'ran': 0, 'failed': 0, 'runners': ['pytest']}, 'ids_missing': [], 'status': 'no-tests'}
+  verdict: claim holds (zero-test summary judged no-tests)
+  call:    judge({'suite':'check'}, 0, <unittest 'Ran 0 tests'>)
+  returned: {'counts': {'ran': 0, 'failed': 0, 'runners': ['unittest']}, 'ids_missing': [], 'status': 'no-tests'}
+  verdict: claim holds (zero-test summary judged no-tests)
+  call:    judge({'suite':'check'}, 0, 'free text, no runner summary')
+  returned: {'counts': None, 'ids_missing': [], 'status': 'passed'}
+  verdict: (extra) any exit-0 check with unrecognised output passes: passed
+  call:    judge({'suite':'focused','ids':['T-1','T-2']}, 0, 'T-1 ...\nT-2 ...' (names ids, no tally))
+  returned: {'counts': None, 'ids_missing': [], 'status': 'passed'}
+  verdict: claim holds
+  call:    judge(focused ids T-1,T-2, 0, '')
+  returned: {'counts': None, 'ids_missing': ['T-1', 'T-2'], 'status': 'ids-missing'}
+  verdict: (extra control) same row with empty output: ids-missing
+  call:    judge(focused, 0, 'T-2 FAILED ...' no tally)
+  returned: {'counts': None, 'ids_missing': [], 'status': 'failed'}
+  verdict: (extra control) a failure mark on a listed ID: failed
+
+CLAIM 2: check_test_cases accepts cases whose criterion differs from the one their focused command declares
+  call:    check_test_cases(repo, state, result: T-1->AC-1, T-2->AC-1 (T-2's command declares AC-2))
+  returned: None
+  verdict: claim holds (None = accepted)
+  call:    coverage_notices(state, same result)
+  returned: ['ShipLoop coverage notice: Criterion AC-2 has no test case and no recorded non-focused command lists it in criteria: add a case, add the command to the step plan, or record an assumptions open item naming the inspection that confirms it (this result is accepted).']
+  verdict: AC-2 flagged by a notice only (never a refusal)
+  call:    (control) check_test_cases with T-2->AC-2
+  returned: None
+  verdict: control: accepted as expected
+  call:    (control) coverage_notices with T-2->AC-2
+  returned: []
+  verdict: control: no notice
+  call:    (control) check_test_cases with T-2->AC-9 (not a criterion of the plan)
+  returned: 'Fix the case criteria in {result}'
+  verdict: control: refused only when the criterion is not in the plan at all
+
+CLAIM 3: intake key-question ledger is optional; a malformed ledger is refused
+  call:    _check_intake_questions('intake', {'outcome':'done'})
+  returned: ('ok', None)
+  verdict: claim holds (returns None, no refusal)
+  call:    _check_intake_questions('intake', {'outcome':'done','summary':'x'})
+  returned: ('ok', None)
+  verdict: same: no ledger keys, accepted
+  call:    _check_intake_questions('intake', {question_categories: [K1 only]})
+  raised: ('raised', 'NavigatorError: question_categories names each of K1, K2, K3, K4, K5, K6, K7, K8, K9, K10, K11, K12 exactly once (found: K1); the shape is [{"id": "K1", "applies": "yes"}, {"id": "K10", "applies": "no", "reason": "<why not, in a few words>"}] with each of K1, K2, K3, K4, K5, K6, K7, K8, K9, K10, K11, K12 once')
+  verdict: malformed ledger refused (claim's second half holds)
+  call:    _check_intake_questions('intake', {questions: [route 'bogus']})
+  raised: ('raised', "NavigatorError: question Q1's route is one of inspect, research, experiment, default, person (found bogus)")
+  verdict: malformed ledger refused
+  call:    _check_intake_questions('intake', {question_categories: [], questions: []})
+  raised: ('raised', 'NavigatorError: question_categories names each of K1, K2, K3, K4, K5, K6, K7, K8, K9, K10, K11, K12 exactly once (found: none); the shape is [{"id": "K1", "applies": "yes"}, {"id": "K10", "applies": "no", "reason": "<why not, in a few words>"}] with each of K1, K2, K3, K4, K5, K6, K7, K8, K9, K10, K11, K12 once')
+  verdict: empty ledger refused
+
+CLAIM 4: plan concern rows accept arbitrary non-blank decision/anchor; 'no' accepts a one-word reason
+  call:    canonical_plan({W1: [ui yes decision='x' anchor='x' ...]+14 'no' rows 'n/a'})
+  returned: ('ok', {'id': 'ui', 'applies': 'yes', 'decision': 'x', 'anchor': 'x', 'owner_stage': 'step-plan'})
+  verdict: claim holds (accepted)
+  call:    canonical_plan(... ui applies:'no' reason='n/a')
+  returned: ('ok', {'id': 'ui', 'applies': 'no', 'reason': 'n/a'})
+  verdict: claim holds (one-word reason accepted)
+  call:    canonical_plan(... ui applies:'no' reason='no')
+  returned: ('ok', {'id': 'ui', 'applies': 'no', 'reason': 'no'})
+  verdict: accepted
+  call:    (control) reason is blank
+  raised: ('raised', 'ConcernError: W1 ui reason must be a nonempty string')
+  verdict: control: blank refused
+  call:    check_plan(canonical_plan(...), ['W1']) (the CLI gate's second step)
+  returned: ('ok', None)
+  verdict: gate accepts
+
+CLAIM 5: an empty unverified list satisfies the product-acceptance presence requirement
+  call:    check_submitted('product-acceptance', {'outcome':'done','unverified':[]})
+  returned: ('ok', None)
+  verdict: claim holds (accepted)
+  call:    (control) key missing
+  raised: ('raised', 'UnverifiedError: a done product-acceptance result must list unverified: a list, empty when no request outcome remains unverified; each entry is {outcome, requirement, reason, lower_layer_check, settle, owner, due_stage}: the request outcome no executed check observed, the R-<n> it maps to, why, the passed unit or component test of its logic (for a requirement not in primary, that or why none exists), what the owner does and reports to settle it, who the owner is, and the later stage that reports it; due_stage is one of release-plan, release-check, release, release-verify, operations, handoff')
+  verdict: control: missing key refused
+  call:    canonical([])
+  returned: ('ok', [])
+  verdict: shape-only canonicalisation accepts []

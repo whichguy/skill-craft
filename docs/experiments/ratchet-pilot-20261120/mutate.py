@@ -2,7 +2,7 @@
 """How well does a delivery's own test suite protect the delivery's own change? Seeded faults on the lines a delivery
 changed, run against that delivery's tests. No model is called.
 
-    python3 mutate.py LABEL TREE FIXTURE OUT.json [--sample N] [--manifest] [--workers N]
+    python3 mutate.py LABEL TREE FIXTURE OUT.json [--sample N] [--manifest] [--unchanged] [--workers N]
 
 TREE is a delivered product (a Git work folder); FIXTURE is the folder it started from. The faults are the E2E
 harness's own catalog (test/shiploop_e2e/quality.py, `sites`: flipped comparisons, moved bounds, flipped logic and
@@ -14,6 +14,9 @@ checks that the file still parses, and runs
 
   own         `npm test`: the tests the delivery itself ships under test/
   acceptance  with --manifest, every command of ratchet/acceptance.json in order, stopping at the first that fails
+
+With --unchanged the faults go the other way round: only on lines of product source that TREE left as FIXTURE has
+them, in the files TREE changed. That reads how well the suites protect the existing code a change touches.
 
 A command counts as failing when it fails twice in a row. A fault is caught by a suite when a command of that suite
 fails on it that passes on the untouched copy; a command that already fails on the untouched copy is left out and
@@ -172,6 +175,7 @@ def one(tree, scratch, number, name, site, manifest, skip):
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     manifest = "--manifest" in argv
+    unchanged = "--unchanged" in argv
     sample = 60
     if "--sample" in argv:
         sample = int(argv[argv.index("--sample") + 1])
@@ -180,7 +184,7 @@ def main(argv=None):
     if "--workers" in argv:
         workers = int(argv[argv.index("--workers") + 1])
         del argv[argv.index("--workers"):argv.index("--workers") + 2]
-    argv = [arg for arg in argv if arg != "--manifest"]
+    argv = [arg for arg in argv if arg not in ("--manifest", "--unchanged")]
     if len(argv) != 4:
         raise SystemExit(__doc__)
     signal.signal(signal.SIGTERM, stop_children)
@@ -198,7 +202,12 @@ def main(argv=None):
         lines = changed_lines(clean, fixture, name)
         if not lines:
             continue
-        found = [site for site in quality.sites((clean / name).read_bytes().decode("utf-8", "surrogateescape")) if site["line"] in lines]
+        text = (clean / name).read_bytes().decode("utf-8", "surrogateescape")
+        if unchanged:  # the existing lines of a file the delivery touched; a file it added has none
+            if not (fixture / name).is_file():
+                continue
+            lines = set(range(1, len(text.splitlines()) + 1)) - lines
+        found = [site for site in quality.sites(text) if site["line"] in lines]
         if found:
             per_file[name] = found
     order = quality.round_robin(per_file)
@@ -207,7 +216,8 @@ def main(argv=None):
         rows = list(pool.map(lambda item: one(tree, scratch, item[0], item[1][0], item[1][1], manifest, set(skip)), enumerate(chosen)))
     shutil.rmtree(scratch, ignore_errors=True)
     valid = [row for row in rows if not row.get("invalid")]
-    report = {"label": label, "tree": str(tree), "sites_on_changed_lines": len(order), "files": {name: len(found) for name, found in per_file.items()},
+    where = "unchanged lines of the files the delivery touched" if unchanged else "changed lines"
+    report = {"label": label, "tree": str(tree), "where": where, "sites_on_changed_lines": len(order), "files": {name: len(found) for name, found in per_file.items()},
               "sampled": len(chosen), "invalid": len(rows) - len(valid), "commands_failing_on_the_untouched_copy": skip, "untouched_failures": reasons, "faults": rows}
     for suite in (["own", "acceptance"] if manifest else ["own"]):
         caught = sum(1 for row in valid if row.get(suite) is True)
@@ -221,7 +231,7 @@ def main(argv=None):
         survived = sum(1 for verdicts in both if True not in verdicts and None not in verdicts and False in verdicts)
         report["either"] = {"caught": caught, "survived": survived, "share": round(caught / (caught + survived), 3) if caught + survived else None}
     out.write_text(json.dumps(report, indent=1) + "\n")
-    print(f"{label}: {len(order)} fault sites on changed lines in {len(per_file)} files; {len(chosen)} sampled, {report['invalid']} invalid; "
+    print(f"{label}: {len(order)} fault sites on {where} in {len(per_file)} files; {len(chosen)} sampled, {report['invalid']} invalid; "
           + "; ".join((f"{suite} not measured" if report[suite].get("not_measured") else
                        f"{suite} {report[suite]['caught']} caught, {report[suite]['survived']} survived"
                        + (f" ({report[suite]['share']:.0%})" if report[suite]["share"] is not None else ""))

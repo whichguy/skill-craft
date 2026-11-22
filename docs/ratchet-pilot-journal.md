@@ -3193,3 +3193,53 @@ D-refuse in at most one.
 
 **Limits known before the runs.** Three points on two products that are one code base; one model at one effort;
 three runs a request; the specification and the plan only, so what a build would do is not seen.
+
+### Part E, registered 17:36: faults seeded in the existing code a change touches (no model session)
+
+**What it asks.** Amendment 12 could not say whether writing down what must not change protects existing behaviour:
+the pool of 27 planted defects holds one that only such a clause can catch. This part gives that question an
+instrument with room.
+
+**The instrument.** `mutate.py --unchanged` (new): the harness's own fault catalog, placed only on lines of product
+source that a delivery left as the starting product has them, in the files it changed. On the ticket-assignment
+reference build that is 52 sites in six files (26 in `src/persistence.js`, 7 each in `src/store.js`,
+`src/tickets/query.js` and `src/tickets/validate.js`, 3 in `src/format.js`, 2 in `src/app.js`), against 6 on the
+lines the change added. The first 40 in the catalog's own order are used, the same 40 for every suite, since every
+cell of amendment 12 tested the same reference build. For each fault the script runs the product's own tests and
+every command of the suite's manifest.
+
+**What is read.** The seven suites of amendment 12 (three baseline, two with the question in the specification,
+two with it in the plan), all written by Sonnet at medium.
+
+- **RE.1, room.** Of the 40 faults, how many the product's own tests catch and how many survive them.
+- **RE.2, what a suite adds.** Of the faults that survive the product's own tests, how many each acceptance suite
+  catches. *The plan's question protects existing code* if both plan suites catch more of them than the best
+  baseline suite, by 3 or more. *It does not* if neither does. Otherwise not shown.
+- Reported: for each suite the faults it catches at all, since a suite whose run of the product's tests runs
+  nothing (F42) catches fewer of the 40 than the product's own tests do.
+
+**Predictions.** The product's own tests catch 25 to 35 of 40. Of the survivors a baseline suite catches 0 to 2 and
+each plan suite 2 or more above the best baseline, so "not shown" by the bar of 3 is the likeliest reading.
+
+**Limits known before the run.** One build and one case; seeded faults are mechanical edits, not the defects a
+person would plant; a fault can leave behaviour unchanged, and such a fault counts as surviving for every suite
+alike. The two specification-question suites are slow (156 and 276 seconds a pass).
+
+### Part G, recorded 17:36: tests that pin five gaps in ShipLoop's own checks (no model session)
+
+The second review of section 25 named five places where a released check accepts less than its duty asks. A Sonnet
+subagent wrote `shiploop-gaps/gap_checks.py`, which calls the real functions with made-up inputs and prints what
+they return; it changes nothing under `skills/`. All five are shown (`shiploop-gaps/gap_checks-output.txt`):
+
+1. `judge` passes a `check` row that exits 0 with empty output, or with any output that holds no runner summary. It
+   does fail one whose summary says no test ran, and it catches a listed id marked failed.
+2. `check_test_cases` accepts a case that names a criterion other than the one its own focused command declares, as
+   long as the criterion is one of the plan's; `coverage_notices` then prints one notice for the orphaned criterion
+   and the result is accepted.
+3. `_check_intake_questions` accepts an intake result with no question ledger at all, and refuses a malformed one.
+4. A plan's concern row is accepted with `decision` and `anchor` of any non-blank text, and a `no` row with a
+   one-word reason.
+5. `check_submitted` accepts `unverified: []` for product acceptance.
+
+These are today's behaviours pinned as tests, three of them deliberate choices recorded in the code's own comments.
+Whether any should change is a product decision for ShipLoop's owner; nothing here changes it.
