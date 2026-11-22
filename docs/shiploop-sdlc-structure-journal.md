@@ -2973,6 +2973,62 @@ F23 says they changed no held-out verdict); the stage structure and the packet w
 - The bill is the figure the host reports; whether it is what the owner pays depends on the owner's plan.
 - Evidence: `evidence/where-it-goes.txt`, `evidence/context-origin.txt`, `evidence/reset-ceiling.txt`.
 
+## Round 13 (2026-11-21): a blind reading of the code of medium and high deliveries
+
+### Owner decision, 2026-11-21
+
+Of round 12's five candidates the owner chose the first ("1"): a blind reading of the code of the medium and high
+pairs already on disk.
+
+### Registered design (written and committed before any judge ran)
+
+**Question.** The owner's condition for the cheaper drivers was "as long as the quality comes out the same".
+Rounds 8 and 10 answered it with checks (case checks, held-out probes). Does a reader who does not know which is
+which find the medium product worse than the high one?
+
+**Material (existing deliveries; no delivery is run).** The four complete Sonnet 5.5 pairs of round 10: in
+`e2e-runs-sdlc12/20261121`, `sonnet-medium-due` with `sonnet-high-due` and `sonnet-medium-expenses` with
+`sonnet-high-expenses`; in `e2e-runs-sdlc13/20261121`, `due-medium-2` with `due-high-2` and `expenses-medium-2`
+with `expenses-high-2`. Two cases: `ticket-due-times` (a change to an existing service) and `shared-expenses` (a
+product built from nothing).
+
+**Packets.** `quality_packets.py <out> 20261121 <pairs>` writes, for each pair and each of two judges, a folder
+with the request, the base tree when there was one, the two delivered trees as `X` and `Y`, and each one's diff
+against the base. Which run is `X` is drawn from the seeded generator for judge A and reversed for judge B.
+ShipLoop's own knowledge files (`docs/shiploop`) and git data are left out; any path naming a run folder is
+replaced. The key stays outside the packets.
+
+**Judges.** Two independent Claude Opus agents per pair (the Agent tool's `opus`), each given only its packet and
+`evidence/quality-judge-brief.txt`. They read only: no command is run by a judge, so no judge can start or stop a
+process (F47). Each returns, per side, a list of defects with file, line, kind (functional, test, maintainability,
+scope), severity and a way to confirm it; four ratings from 1 to 5; and an overall choice of `X`, `Y` or no
+material difference.
+
+**Verification (mine, in the main session).** A judge's defect is a claim. I mark every claim from the blind
+labels before opening the key:
+- functional: I run the stated check against a fresh clone of that delivery. Reproduced, not reproduced, or cannot
+  be checked.
+- test, maintainability, scope: I read the cited lines (and for a test claim, break the code where that is cheap
+  and see whether the test still passes). Confirmed or not confirmed.
+The same defect from both judges counts once.
+
+**Registered reading.**
+- Primary measure: confirmed functional defects per delivery.
+- A drop at medium is shown if medium has more confirmed functional defects than its high partner in at least 3
+  of the 4 pairs, or if a confirmed functional defect of high severity is in at least two medium deliveries and
+  in no high delivery. Otherwise: no drop seen by reading. Four pairs can show only a large difference, and the
+  result will be stated that way.
+- Described, not tested: the eight overall choices and whether the two judges of a pair agree; the ratings; the
+  confirmed test, maintainability and scope findings; lines of source and tests.
+
+**Known weaknesses, stated in advance.** The high deliveries are larger (round 10, F65), so a judge may tell the
+sides apart by size; the brief says that more code is not better. Readers find what reading can find: a defect
+that only shows under load or over time is out of reach. Opus judges share a model family with the builder.
+
+**Extension, decided at the milestone.** The four Sol 6.2 pairs of round 8's paired redo
+(`e2e-runs-sdlc10/20261121-paired`) can be read the same way with the same script, brief and reading. Whether to
+run them is decided when the Sonnet pairs are read and their cost is known.
+
 ## Evidence (all rounds)
 
 | File | Holds |

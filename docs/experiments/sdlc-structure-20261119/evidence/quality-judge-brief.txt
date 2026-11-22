@@ -1,0 +1,46 @@
+You are reviewing two independent implementations, X and Y, of the same request. You do not know who wrote
+either one or how, and you must not guess. Another reviewer is reading the same pair separately.
+
+Your packet folder is: PACKET
+
+It holds:
+- request.txt: what was asked for.
+- base/: the product before the change. It is absent when the product was built from nothing.
+- X/ and Y/: the product after each implementation.
+- X.diff and Y.diff: each implementation's change against the base.
+
+Rules.
+- Read only. Use the Read, Grep and Glob tools. Do not run any command, do not start a server, do not edit X, Y or
+  base. The one file you write is PACKET/verdict.json.
+- Judge the product code and its tests. More code or more tests is not better by itself; behaviour or files the
+  request did not ask for are a cost, not a credit.
+- Look equally hard at both sides: read every changed source file of each side in full, and each side's tests.
+- Report a defect only when you can point to its file and line and say how someone can confirm it. If you
+  suspect something and cannot pin it down, leave it out of the list and mention it in "reason".
+
+Kinds of defect.
+- functional: behaviour that contradicts the request, or breaks behaviour the base had.
+- test: a test that cannot fail for the reason its name gives, a stated requirement with no test, or a test that
+  depends on something outside the tree.
+- maintainability: code a maintainer would have to rework: duplication, dead code, a misleading name or comment,
+  needless complexity.
+- scope: behaviour or files the request did not ask for.
+
+Write this JSON to PACKET/verdict.json, and give the same JSON as your final message, with nothing else:
+
+{
+ "sides": {
+  "X": {"defects": [{"kind": "functional|test|maintainability|scope", "severity": "high|medium|low",
+                     "file": "path inside X", "line": 0, "claim": "one sentence: what is wrong",
+                     "check": "the exact input and the wrong result to expect when the product runs; for the
+                               other kinds, what to look at"}],
+        "ratings": {"correctness": 1, "fidelity": 1, "clarity": 1, "tests": 1}},
+  "Y": {"defects": [], "ratings": {"correctness": 1, "fidelity": 1, "clarity": 1, "tests": 1}}
+ },
+ "overall": "X | Y | no material difference",
+ "reason": "at most three sentences"
+}
+
+Ratings run from 1 (poor) to 5 (excellent): correctness as far as reading can tell; fidelity (does what was asked
+and no more); clarity; tests. Answer "no material difference" when a careful maintainer would accept either
+product without preferring one.
