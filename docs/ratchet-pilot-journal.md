@@ -3848,3 +3848,42 @@ own build and on the first build of the plain run made from the same specificati
 So the answer is carried through every stage that exists here: specification, plan, build, and the delivery's own
 acceptance checks. The first review's third experiment asked for exactly this chain ("carry the reply into
 acceptance"); it holds, given the answer.
+
+### Part E, result (18:50): an acceptance suite adds almost nothing to what the product's own tests catch in existing code, and what survives is not what the change touches
+
+The replay ran from 17:36 to 18:49 (the two suites with the question in the specification take 156 and 276
+seconds a pass), from f83631bc5ff33238ab7fd553524d35e226b2dbad; `evidence/program/existing-code-faults/replay.json`
+holds every fault with its outcome for each suite.
+
+| Suite | Cell of amendment 12 | The product's own tests catch | The acceptance checks catch | Caught by the checks and missed by the own tests | Survive both |
+|---|---|---|---|---|---|
+| q-base-1 | baseline | 31 of 40 | 31 | 0 | 9 |
+| q-base-2 | baseline | 31 | 31 | 0 | 9 |
+| p1S-ticket-assignment-medium | baseline | 30 (one run did not end) | 30 | 0 | 9 |
+| q-spec-1 | question in the specification | 31 | 31 | 0 | 9 |
+| q-spec-2 | question in the specification | 30 (one run did not end) | 31 | 0 | 9 |
+| q-plan-1 | question in the plan | 30 (one run did not end) | 28 | 1 (`src/format.js` line 43) | 9 |
+| q-plan-2 | question in the plan | 31 | 32 | 1 (`src/format.js` line 36) | 8 |
+
+Where a run of the own tests did not end, the fault it was on is caught by the own tests in every other replay, so
+it is not counted as missed by them.
+
+- **RE.1, room.** The product's own tests catch 31 of the 40 faults and 9 survive them.
+- **RE.2: not shown.** Each plan suite catches one fault the own tests miss and no baseline suite catches any, so
+  the plan suites are ahead, by one where the bar was three. My prediction was two or more above the best
+  baseline, and "not shown".
+- **What survives.** Seven faults survive every suite: two in the request log, one in the table formatter, four in
+  the checks a data file gets when it is loaded. The two that one plan suite each catches are in the table
+  formatter. None is behaviour that ticket assignment changes.
+- q-plan-1's checks catch fewer faults than the product's own tests (28 against 30): its two checks that run those
+  tests run nothing (F42).
+
+**F56. Seeded faults on the existing lines of touched files measure the product's old test gaps, not the change's
+care.** An acceptance suite written for a change mirrors the product's own tests on existing code (31 against 31)
+because it tests the change and runs those tests; the faults nobody catches sit in code the request does not
+concern. A lever that raised this number would be buying tests of the request log and of file validation in a
+delivery of ticket assignment. The hand-planted defects that a change can plausibly cause (a guard tightened, a
+default moved, a notice replaced) remain the better yardstick of protection, and a fresh review found the one of
+them that suites miss (F53).
+
+**Limits.** One build, one case, forty mechanical faults; suites by one model at one effort.
