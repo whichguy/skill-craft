@@ -23,7 +23,8 @@ from pathlib import Path
 def arm_of(record):
     if record.get("prove_fail_asked") or record.get("prove_fail"):
         return "proof of failure"
-    return {"general": "question, general", "grounded": "question, grounded"}.get(record.get("tests_question"), "plain")
+    return {"general": "question, general", "grounded": "question, grounded",
+            "neighbour": "question, refusals and neighbours"}.get(record.get("tests_question"), "plain")
 
 
 def faults_row(path):

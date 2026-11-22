@@ -1,0 +1,1350 @@
+[
+ {
+  "run": "ta1",
+  "arm": "plain",
+  "stop": "stop-after-tests",
+  "final_gate": false,
+  "test_sessions": 1,
+  "test_seconds": 834,
+  "proof": null,
+  "checks": 51,
+  "caught": 26,
+  "pool": 27,
+  "missed": [
+   "update-rejects-resolved"
+  ],
+  "update_rejects_resolved_caught": false,
+  "failing_on_reference": [
+   "C-34",
+   "C-44",
+   "C-45"
+  ],
+  "failing_on_second_correct": [
+   "C-26",
+   "C-34",
+   "C-44",
+   "C-45",
+   "U-2"
+  ],
+  "existing": {
+   "all_lines": {
+    "faults": 40,
+    "own": 31,
+    "acceptance": 31,
+    "acceptance_beyond_own": 0,
+    "survive_both": 9
+   },
+   "odd_lines": {
+    "faults": 22,
+    "own": 20,
+    "acceptance": 20,
+    "acceptance_beyond_own": 0,
+    "survive_both": 2
+   },
+   "even_lines": {
+    "faults": 18,
+    "own": 11,
+    "acceptance": 11,
+    "acceptance_beyond_own": 0,
+    "survive_both": 7
+   },
+   "left_out": 3
+  },
+  "sabotage": "noticed",
+  "failing_on_the_build_at_the_end": [
+   "C-34",
+   "C-44",
+   "C-45"
+  ],
+  "launched_from": "f413b280a06c6c20616b2e5c04ccf06ac21bb8dc",
+  "held_out_marks": [],
+  "sessions": [
+   [
+    "tests-1-1",
+    833.6,
+    "exited"
+   ]
+  ],
+  "graded_with": "f413b280a06c6c20616b2e5c04ccf06ac21bb8dc",
+  "did_not_end_in_grading": {},
+  "unstable_in_grading": {
+   "update-rejects-resolved": [
+    "C-21"
+   ]
+  },
+  "update_rejects_resolved_caught_by": []
+ },
+ {
+  "run": "ta2",
+  "arm": "plain",
+  "stop": "stop-after-tests",
+  "final_gate": false,
+  "test_sessions": 1,
+  "test_seconds": 861,
+  "proof": null,
+  "checks": 51,
+  "caught": 26,
+  "pool": 27,
+  "missed": [
+   "update-rejects-resolved"
+  ],
+  "update_rejects_resolved_caught": false,
+  "failing_on_reference": [
+   "C-34",
+   "C-40",
+   "C-44",
+   "C-45"
+  ],
+  "failing_on_second_correct": [
+   "C-34",
+   "C-40",
+   "C-44",
+   "C-45"
+  ],
+  "existing": {
+   "all_lines": {
+    "faults": 40,
+    "own": 31,
+    "acceptance": 31,
+    "acceptance_beyond_own": 0,
+    "survive_both": 9
+   },
+   "odd_lines": {
+    "faults": 22,
+    "own": 20,
+    "acceptance": 20,
+    "acceptance_beyond_own": 0,
+    "survive_both": 2
+   },
+   "even_lines": {
+    "faults": 18,
+    "own": 11,
+    "acceptance": 11,
+    "acceptance_beyond_own": 0,
+    "survive_both": 7
+   },
+   "left_out": 4
+  },
+  "sabotage": "noticed",
+  "failing_on_the_build_at_the_end": [
+   "C-34",
+   "C-40",
+   "C-44",
+   "C-45"
+  ],
+  "launched_from": "f413b280a06c6c20616b2e5c04ccf06ac21bb8dc",
+  "held_out_marks": [],
+  "sessions": [
+   [
+    "tests-1-1",
+    860.9,
+    "exited"
+   ]
+  ],
+  "graded_with": "cdf378c38691e48f8b1ee9d2538ff9e3eda74fe4",
+  "did_not_end_in_grading": {},
+  "unstable_in_grading": {
+   "empty-filter-ignored": [
+    "C-28"
+   ]
+  },
+  "update_rejects_resolved_caught_by": []
+ },
+ {
+  "run": "ta3",
+  "arm": "plain",
+  "stop": "stop-after-tests",
+  "final_gate": false,
+  "test_sessions": 1,
+  "test_seconds": 862,
+  "proof": null,
+  "checks": 51,
+  "caught": 26,
+  "pool": 27,
+  "missed": [
+   "update-rejects-resolved"
+  ],
+  "update_rejects_resolved_caught": false,
+  "failing_on_reference": [
+   "C-34",
+   "C-40",
+   "C-44",
+   "C-45"
+  ],
+  "failing_on_second_correct": [
+   "C-26",
+   "C-34",
+   "C-44",
+   "C-45",
+   "U-2"
+  ],
+  "existing": {
+   "all_lines": {
+    "faults": 40,
+    "own": 31,
+    "acceptance": 31,
+    "acceptance_beyond_own": 0,
+    "survive_both": 9
+   },
+   "odd_lines": {
+    "faults": 22,
+    "own": 20,
+    "acceptance": 20,
+    "acceptance_beyond_own": 0,
+    "survive_both": 2
+   },
+   "even_lines": {
+    "faults": 18,
+    "own": 11,
+    "acceptance": 11,
+    "acceptance_beyond_own": 0,
+    "survive_both": 7
+   },
+   "left_out": 4
+  },
+  "sabotage": "noticed",
+  "failing_on_the_build_at_the_end": [
+   "C-34",
+   "C-40",
+   "C-44",
+   "C-45"
+  ],
+  "launched_from": "f413b280a06c6c20616b2e5c04ccf06ac21bb8dc",
+  "held_out_marks": [],
+  "sessions": [
+   [
+    "tests-1-1",
+    861.7,
+    "exited"
+   ]
+  ],
+  "graded_with": "ac93c95b74c188a50741a3fc733691aa55f7d296",
+  "did_not_end_in_grading": {},
+  "unstable_in_grading": {
+   "old-data-refused": [
+    "C-3"
+   ]
+  },
+  "update_rejects_resolved_caught_by": []
+ },
+ {
+  "run": "tb1",
+  "arm": "proof of failure",
+  "stop": "stop-after-tests",
+  "final_gate": false,
+  "test_sessions": 3,
+  "test_seconds": 1323,
+  "proof": [
+   {
+    "label": "1-1",
+    "seconds": 331.9,
+    "items": 51,
+    "failing_on_the_build": [
+     "C-34",
+     "C-44",
+     "C-45"
+    ],
+    "never_seen_failing": [
+     "C-8"
+    ],
+    "copies_unnoticed": [],
+    "faults_unnoticed": [
+     "fault-4",
+     "fault-5",
+     "fault-9",
+     "fault-15",
+     "fault-17",
+     "fault-18",
+     "fault-19",
+     "fault-23",
+     "fault-25",
+     "fault-26"
+    ],
+    "error": null,
+    "copies": 29
+   },
+   {
+    "label": "1-3",
+    "seconds": 357.7,
+    "items": 51,
+    "failing_on_the_build": [
+     "C-34",
+     "C-44",
+     "C-45"
+    ],
+    "never_seen_failing": [],
+    "copies_unnoticed": [],
+    "faults_unnoticed": [
+     "fault-4",
+     "fault-5",
+     "fault-9",
+     "fault-15",
+     "fault-17",
+     "fault-18",
+     "fault-19",
+     "fault-23",
+     "fault-25",
+     "fault-26"
+    ],
+    "error": null,
+    "copies": 29
+   }
+  ],
+  "checks": 51,
+  "caught": 26,
+  "pool": 27,
+  "missed": [
+   "update-rejects-resolved"
+  ],
+  "update_rejects_resolved_caught": false,
+  "failing_on_reference": [
+   "C-34",
+   "C-44",
+   "C-45"
+  ],
+  "failing_on_second_correct": [
+   "C-26",
+   "C-34",
+   "C-44",
+   "C-45",
+   "U-2"
+  ],
+  "existing": {
+   "all_lines": {
+    "faults": 40,
+    "own": 31,
+    "acceptance": 31,
+    "acceptance_beyond_own": 0,
+    "survive_both": 9
+   },
+   "odd_lines": {
+    "faults": 22,
+    "own": 20,
+    "acceptance": 20,
+    "acceptance_beyond_own": 0,
+    "survive_both": 2
+   },
+   "even_lines": {
+    "faults": 18,
+    "own": 11,
+    "acceptance": 11,
+    "acceptance_beyond_own": 0,
+    "survive_both": 7
+   },
+   "left_out": 3
+  },
+  "sabotage": "noticed",
+  "failing_on_the_build_at_the_end": [
+   "C-34",
+   "C-44",
+   "C-45"
+  ],
+  "launched_from": "f413b280a06c6c20616b2e5c04ccf06ac21bb8dc",
+  "held_out_marks": [],
+  "sessions": [
+   [
+    "tests-1-1",
+    1033.9,
+    "exited"
+   ],
+   [
+    "tests-1-2",
+    232.9,
+    "exited"
+   ],
+   [
+    "tests-1-3",
+    55.9,
+    "exited"
+   ]
+  ],
+  "graded_with": "cdf378c38691e48f8b1ee9d2538ff9e3eda74fe4",
+  "did_not_end_in_grading": {},
+  "unstable_in_grading": {},
+  "update_rejects_resolved_caught_by": [],
+  "report_sections": {
+   "Faults that change nothing": 1,
+   "Checks nothing here can break": 1
+  }
+ },
+ {
+  "run": "tb2",
+  "arm": "proof of failure",
+  "stop": "stop-after-tests",
+  "final_gate": false,
+  "test_sessions": 3,
+  "test_seconds": 904,
+  "proof": [
+   {
+    "label": "1-1",
+    "seconds": 440.2,
+    "items": 51,
+    "failing_on_the_build": [
+     "C-34",
+     "C-44",
+     "C-45",
+     "C-6"
+    ],
+    "never_seen_failing": [
+     "C-8"
+    ],
+    "copies_unnoticed": [],
+    "faults_unnoticed": [
+     "fault-4",
+     "fault-5",
+     "fault-9",
+     "fault-15",
+     "fault-17",
+     "fault-18",
+     "fault-19",
+     "fault-23",
+     "fault-25",
+     "fault-26"
+    ],
+    "error": null,
+    "copies": 29
+   },
+   {
+    "label": "1-3",
+    "seconds": 443.4,
+    "items": 51,
+    "failing_on_the_build": [
+     "C-34",
+     "C-44",
+     "C-45",
+     "C-6"
+    ],
+    "never_seen_failing": [],
+    "copies_unnoticed": [],
+    "faults_unnoticed": [
+     "fault-4",
+     "fault-5",
+     "fault-9",
+     "fault-15",
+     "fault-17",
+     "fault-18",
+     "fault-19",
+     "fault-23",
+     "fault-25",
+     "fault-26"
+    ],
+    "error": null,
+    "copies": 29
+   }
+  ],
+  "checks": 51,
+  "caught": 26,
+  "pool": 27,
+  "missed": [
+   "update-rejects-resolved"
+  ],
+  "update_rejects_resolved_caught": false,
+  "failing_on_reference": [
+   "C-2",
+   "C-34",
+   "C-44",
+   "C-45",
+   "C-6"
+  ],
+  "failing_on_second_correct": [
+   "C-2",
+   "C-34",
+   "C-44",
+   "C-45"
+  ],
+  "existing": {
+   "all_lines": {
+    "faults": 40,
+    "own": 31,
+    "acceptance": 31,
+    "acceptance_beyond_own": 0,
+    "survive_both": 9
+   },
+   "odd_lines": {
+    "faults": 22,
+    "own": 20,
+    "acceptance": 20,
+    "acceptance_beyond_own": 0,
+    "survive_both": 2
+   },
+   "even_lines": {
+    "faults": 18,
+    "own": 11,
+    "acceptance": 11,
+    "acceptance_beyond_own": 0,
+    "survive_both": 7
+   },
+   "left_out": 4
+  },
+  "sabotage": "noticed",
+  "failing_on_the_build_at_the_end": [
+   "C-6",
+   "C-34",
+   "C-44",
+   "C-45"
+  ],
+  "launched_from": "f413b280a06c6c20616b2e5c04ccf06ac21bb8dc",
+  "held_out_marks": [
+   "shiploop_e2e"
+  ],
+  "sessions": [
+   [
+    "tests-1-1",
+    633.1,
+    "exited"
+   ],
+   [
+    "tests-1-2",
+    219.6,
+    "exited"
+   ],
+   [
+    "tests-1-3",
+    51.5,
+    "exited"
+   ]
+  ],
+  "graded_with": "ac93c95b74c188a50741a3fc733691aa55f7d296",
+  "did_not_end_in_grading": {},
+  "unstable_in_grading": {
+   "old-data-refused": [
+    "U-6"
+   ],
+   "listing-hides-assignee": [
+    "C-9"
+   ]
+  },
+  "update_rejects_resolved_caught_by": [],
+  "report_sections": {
+   "Faults that change nothing": 1,
+   "Checks nothing here can break": 1,
+   "Regression checks": 2
+  }
+ },
+ {
+  "run": "tb3",
+  "arm": "proof of failure",
+  "stop": "stop-after-tests",
+  "final_gate": false,
+  "test_sessions": 3,
+  "test_seconds": 989,
+  "proof": [
+   {
+    "label": "1-1",
+    "seconds": 457.6,
+    "items": 51,
+    "failing_on_the_build": [
+     "C-34",
+     "C-44",
+     "C-45"
+    ],
+    "never_seen_failing": [
+     "C-8"
+    ],
+    "copies_unnoticed": [],
+    "faults_unnoticed": [
+     "fault-4",
+     "fault-5",
+     "fault-9",
+     "fault-15",
+     "fault-17",
+     "fault-18",
+     "fault-19",
+     "fault-23",
+     "fault-25",
+     "fault-26"
+    ],
+    "error": null,
+    "copies": 29
+   },
+   {
+    "label": "1-3",
+    "seconds": 483.9,
+    "items": 51,
+    "failing_on_the_build": [
+     "C-34",
+     "C-44",
+     "C-45"
+    ],
+    "never_seen_failing": [],
+    "copies_unnoticed": [],
+    "faults_unnoticed": [
+     "fault-4",
+     "fault-5",
+     "fault-9",
+     "fault-15",
+     "fault-17",
+     "fault-18",
+     "fault-19",
+     "fault-23",
+     "fault-25",
+     "fault-26"
+    ],
+    "error": null,
+    "copies": 29
+   }
+  ],
+  "checks": 51,
+  "caught": 26,
+  "pool": 27,
+  "missed": [
+   "update-rejects-resolved"
+  ],
+  "update_rejects_resolved_caught": false,
+  "failing_on_reference": [
+   "C-34",
+   "C-44",
+   "C-45"
+  ],
+  "failing_on_second_correct": [
+   "C-26",
+   "C-34",
+   "C-44",
+   "C-45",
+   "U-2"
+  ],
+  "existing": {
+   "all_lines": {
+    "faults": 40,
+    "own": 31,
+    "acceptance": 31,
+    "acceptance_beyond_own": 0,
+    "survive_both": 9
+   },
+   "odd_lines": {
+    "faults": 22,
+    "own": 20,
+    "acceptance": 20,
+    "acceptance_beyond_own": 0,
+    "survive_both": 2
+   },
+   "even_lines": {
+    "faults": 18,
+    "own": 11,
+    "acceptance": 11,
+    "acceptance_beyond_own": 0,
+    "survive_both": 7
+   },
+   "left_out": 3
+  },
+  "sabotage": "noticed",
+  "failing_on_the_build_at_the_end": [
+   "C-34",
+   "C-44",
+   "C-45"
+  ],
+  "launched_from": "f413b280a06c6c20616b2e5c04ccf06ac21bb8dc",
+  "held_out_marks": [],
+  "sessions": [
+   [
+    "tests-1-1",
+    757.5,
+    "exited"
+   ],
+   [
+    "tests-1-2",
+    157.0,
+    "exited"
+   ],
+   [
+    "tests-1-3",
+    74.6,
+    "exited"
+   ]
+  ],
+  "graded_with": "ac93c95b74c188a50741a3fc733691aa55f7d296",
+  "did_not_end_in_grading": {},
+  "unstable_in_grading": {},
+  "update_rejects_resolved_caught_by": [],
+  "report_sections": {
+   "Faults that change nothing": 3
+  }
+ },
+ {
+  "run": "tc1",
+  "arm": "question, general",
+  "stop": "stop-after-tests",
+  "final_gate": false,
+  "test_sessions": 1,
+  "test_seconds": 938,
+  "proof": null,
+  "checks": 51,
+  "caught": 26,
+  "pool": 27,
+  "missed": [
+   "update-rejects-resolved"
+  ],
+  "update_rejects_resolved_caught": false,
+  "failing_on_reference": [
+   "C-34",
+   "C-40",
+   "C-44",
+   "C-45",
+   "C-6"
+  ],
+  "failing_on_second_correct": [
+   "C-26",
+   "C-34",
+   "C-44",
+   "C-45",
+   "U-2"
+  ],
+  "existing": {
+   "all_lines": {
+    "faults": 40,
+    "own": 31,
+    "acceptance": 31,
+    "acceptance_beyond_own": 0,
+    "survive_both": 9
+   },
+   "odd_lines": {
+    "faults": 22,
+    "own": 20,
+    "acceptance": 20,
+    "acceptance_beyond_own": 0,
+    "survive_both": 2
+   },
+   "even_lines": {
+    "faults": 18,
+    "own": 11,
+    "acceptance": 11,
+    "acceptance_beyond_own": 0,
+    "survive_both": 7
+   },
+   "left_out": 5
+  },
+  "sabotage": "noticed",
+  "failing_on_the_build_at_the_end": [
+   "C-6",
+   "C-34",
+   "C-40",
+   "C-44",
+   "C-45"
+  ],
+  "launched_from": "f413b280a06c6c20616b2e5c04ccf06ac21bb8dc",
+  "held_out_marks": [],
+  "sessions": [
+   [
+    "tests-1-1",
+    937.6,
+    "exited"
+   ]
+  ],
+  "graded_with": "ac93c95b74c188a50741a3fc733691aa55f7d296",
+  "did_not_end_in_grading": {},
+  "unstable_in_grading": {
+   "notify-key-per-ticket": [
+    "C-43"
+   ]
+  },
+  "update_rejects_resolved_caught_by": [],
+  "report_sections": {
+   "Preserved behaviour": 15
+  }
+ },
+ {
+  "run": "tc2",
+  "arm": "question, general",
+  "stop": "stop-after-tests",
+  "final_gate": false,
+  "test_sessions": 1,
+  "test_seconds": 795,
+  "proof": null,
+  "checks": 51,
+  "caught": 26,
+  "pool": 27,
+  "missed": [
+   "update-rejects-resolved"
+  ],
+  "update_rejects_resolved_caught": false,
+  "failing_on_reference": [
+   "C-34",
+   "C-40",
+   "C-44",
+   "C-45",
+   "C-6"
+  ],
+  "failing_on_second_correct": [
+   "C-34",
+   "C-40",
+   "C-44",
+   "C-45"
+  ],
+  "existing": {
+   "all_lines": {
+    "faults": 40,
+    "own": 31,
+    "acceptance": 31,
+    "acceptance_beyond_own": 0,
+    "survive_both": 9
+   },
+   "odd_lines": {
+    "faults": 22,
+    "own": 20,
+    "acceptance": 20,
+    "acceptance_beyond_own": 0,
+    "survive_both": 2
+   },
+   "even_lines": {
+    "faults": 18,
+    "own": 11,
+    "acceptance": 11,
+    "acceptance_beyond_own": 0,
+    "survive_both": 7
+   },
+   "left_out": 5
+  },
+  "sabotage": "noticed",
+  "failing_on_the_build_at_the_end": [
+   "C-6",
+   "C-34",
+   "C-40",
+   "C-44",
+   "C-45"
+  ],
+  "launched_from": "f413b280a06c6c20616b2e5c04ccf06ac21bb8dc",
+  "held_out_marks": [
+   "skill-craft"
+  ],
+  "sessions": [
+   [
+    "tests-1-1",
+    794.9,
+    "exited"
+   ]
+  ],
+  "graded_with": "ac93c95b74c188a50741a3fc733691aa55f7d296",
+  "did_not_end_in_grading": {},
+  "unstable_in_grading": {
+   "notify-no-template": [
+    "C-32"
+   ],
+   "memory-only-assignee": [
+    "U-6"
+   ],
+   "cli-no-assignee": [
+    "C-32"
+   ],
+   "backoff-linear": [
+    "C-39"
+   ]
+  },
+  "update_rejects_resolved_caught_by": [],
+  "report_sections": {
+   "Preserved behaviour": 15
+  }
+ },
+ {
+  "run": "tc3",
+  "arm": "question, general",
+  "stop": "stop-after-tests",
+  "final_gate": false,
+  "test_sessions": 1,
+  "test_seconds": 956,
+  "proof": null,
+  "checks": 51,
+  "caught": 26,
+  "pool": 27,
+  "missed": [
+   "update-rejects-resolved"
+  ],
+  "update_rejects_resolved_caught": false,
+  "failing_on_reference": [
+   "C-34",
+   "C-40",
+   "C-44",
+   "C-45"
+  ],
+  "failing_on_second_correct": [
+   "C-26",
+   "C-34",
+   "C-44",
+   "C-45",
+   "U-2"
+  ],
+  "existing": {
+   "all_lines": {
+    "faults": 40,
+    "own": 31,
+    "acceptance": 31,
+    "acceptance_beyond_own": 0,
+    "survive_both": 9
+   },
+   "odd_lines": {
+    "faults": 22,
+    "own": 20,
+    "acceptance": 20,
+    "acceptance_beyond_own": 0,
+    "survive_both": 2
+   },
+   "even_lines": {
+    "faults": 18,
+    "own": 11,
+    "acceptance": 11,
+    "acceptance_beyond_own": 0,
+    "survive_both": 7
+   },
+   "left_out": 4
+  },
+  "sabotage": "noticed",
+  "failing_on_the_build_at_the_end": [
+   "C-34",
+   "C-40",
+   "C-44",
+   "C-45"
+  ],
+  "launched_from": "f413b280a06c6c20616b2e5c04ccf06ac21bb8dc",
+  "held_out_marks": [],
+  "sessions": [
+   [
+    "tests-1-1",
+    955.6,
+    "exited"
+   ]
+  ],
+  "graded_with": "ac93c95b74c188a50741a3fc733691aa55f7d296 (with uncommitted changes to the pilot folder)",
+  "did_not_end_in_grading": {},
+  "unstable_in_grading": {
+   "default-limit-changed": [
+    "U-5"
+   ]
+  },
+  "update_rejects_resolved_caught_by": [],
+  "report_sections": {
+   "Preserved behaviour": 15
+  }
+ },
+ {
+  "run": "td1",
+  "arm": "question, grounded",
+  "stop": "stop-after-tests",
+  "final_gate": false,
+  "test_sessions": 1,
+  "test_seconds": 931,
+  "proof": null,
+  "checks": 51,
+  "caught": 26,
+  "pool": 27,
+  "missed": [
+   "update-rejects-resolved"
+  ],
+  "update_rejects_resolved_caught": false,
+  "failing_on_reference": [
+   "C-34",
+   "C-40",
+   "C-44",
+   "C-45"
+  ],
+  "failing_on_second_correct": [
+   "C-26",
+   "C-34",
+   "C-44",
+   "C-45",
+   "U-2"
+  ],
+  "existing": {
+   "all_lines": {
+    "faults": 40,
+    "own": 31,
+    "acceptance": 32,
+    "acceptance_beyond_own": 1,
+    "survive_both": 8
+   },
+   "odd_lines": {
+    "faults": 22,
+    "own": 20,
+    "acceptance": 21,
+    "acceptance_beyond_own": 1,
+    "survive_both": 1
+   },
+   "even_lines": {
+    "faults": 18,
+    "own": 11,
+    "acceptance": 11,
+    "acceptance_beyond_own": 0,
+    "survive_both": 7
+   },
+   "left_out": 4
+  },
+  "sabotage": "noticed",
+  "failing_on_the_build_at_the_end": [
+   "C-34",
+   "C-40",
+   "C-44",
+   "C-45"
+  ],
+  "launched_from": "f413b280a06c6c20616b2e5c04ccf06ac21bb8dc",
+  "held_out_marks": [],
+  "sessions": [
+   [
+    "tests-1-1",
+    931.4,
+    "exited"
+   ]
+  ],
+  "graded_with": "1f8e4ebcb28a3785a831ab86149779026b5e7368 (with uncommitted changes to the pilot folder)",
+  "did_not_end_in_grading": {},
+  "unstable_in_grading": {
+   "filter-or": [
+    "C-35"
+   ]
+  },
+  "update_rejects_resolved_caught_by": [],
+  "report_sections": {
+   "Preserved behaviour": 57
+  }
+ },
+ {
+  "run": "td2",
+  "arm": "question, grounded",
+  "stop": "stop-after-tests",
+  "final_gate": false,
+  "test_sessions": 1,
+  "test_seconds": 902,
+  "proof": null,
+  "checks": 51,
+  "caught": 26,
+  "pool": 27,
+  "missed": [
+   "update-rejects-resolved"
+  ],
+  "update_rejects_resolved_caught": false,
+  "failing_on_reference": [
+   "C-34",
+   "C-40",
+   "C-44",
+   "C-45",
+   "C-6",
+   "U-6"
+  ],
+  "failing_on_second_correct": [
+   "C-26",
+   "C-34",
+   "C-44",
+   "C-45",
+   "U-2",
+   "U-6"
+  ],
+  "existing": {
+   "all_lines": {
+    "faults": 40,
+    "own": 31,
+    "acceptance": 35,
+    "acceptance_beyond_own": 4,
+    "survive_both": 5
+   },
+   "odd_lines": {
+    "faults": 22,
+    "own": 20,
+    "acceptance": 21,
+    "acceptance_beyond_own": 1,
+    "survive_both": 1
+   },
+   "even_lines": {
+    "faults": 18,
+    "own": 11,
+    "acceptance": 14,
+    "acceptance_beyond_own": 3,
+    "survive_both": 4
+   },
+   "left_out": 6
+  },
+  "sabotage": "noticed",
+  "failing_on_the_build_at_the_end": [
+   "U-6",
+   "C-6",
+   "C-34",
+   "C-40",
+   "C-44",
+   "C-45"
+  ],
+  "launched_from": "f413b280a06c6c20616b2e5c04ccf06ac21bb8dc",
+  "held_out_marks": [],
+  "sessions": [
+   [
+    "tests-1-1",
+    901.5,
+    "exited"
+   ]
+  ],
+  "graded_with": "705581df4116da1fdf769929cca0e8a9543ab14e",
+  "did_not_end_in_grading": {},
+  "unstable_in_grading": {
+   "resolved-template-replaced": [
+    "C-13"
+   ]
+  },
+  "update_rejects_resolved_caught_by": [],
+  "report_sections": {
+   "Preserved behaviour": 95
+  }
+ },
+ {
+  "run": "td3",
+  "arm": "question, grounded",
+  "stop": "stop-after-tests",
+  "final_gate": false,
+  "test_sessions": 1,
+  "test_seconds": 899,
+  "proof": null,
+  "checks": 51,
+  "caught": 26,
+  "pool": 27,
+  "missed": [
+   "update-rejects-resolved"
+  ],
+  "update_rejects_resolved_caught": false,
+  "failing_on_reference": [
+   "C-34",
+   "C-40",
+   "C-44",
+   "C-45",
+   "C-6"
+  ],
+  "failing_on_second_correct": [
+   "C-2",
+   "C-26",
+   "C-34",
+   "C-44",
+   "C-45",
+   "U-2"
+  ],
+  "existing": {
+   "all_lines": {
+    "faults": 40,
+    "own": 31,
+    "acceptance": 32,
+    "acceptance_beyond_own": 1,
+    "survive_both": 8
+   },
+   "odd_lines": {
+    "faults": 22,
+    "own": 20,
+    "acceptance": 21,
+    "acceptance_beyond_own": 1,
+    "survive_both": 1
+   },
+   "even_lines": {
+    "faults": 18,
+    "own": 11,
+    "acceptance": 11,
+    "acceptance_beyond_own": 0,
+    "survive_both": 7
+   },
+   "left_out": 5
+  },
+  "sabotage": "noticed",
+  "failing_on_the_build_at_the_end": [
+   "C-6",
+   "C-34",
+   "C-40",
+   "C-44",
+   "C-45"
+  ],
+  "launched_from": "f413b280a06c6c20616b2e5c04ccf06ac21bb8dc",
+  "held_out_marks": [],
+  "sessions": [
+   [
+    "tests-1-1",
+    899.2,
+    "exited"
+   ]
+  ],
+  "graded_with": "ac93c95b74c188a50741a3fc733691aa55f7d296 (with uncommitted changes to the pilot folder)",
+  "did_not_end_in_grading": {},
+  "unstable_in_grading": {
+   "no-envelope": [
+    "C-43"
+   ],
+   "old-assignee-undefined": [
+    "C-12"
+   ],
+   "update-rejects-resolved": [
+    "C-23"
+   ]
+  },
+  "update_rejects_resolved_caught_by": [],
+  "report_sections": {
+   "Preserved behaviour": 105
+  }
+ },
+ {
+  "run": "te1",
+  "arm": "question, refusals and neighbours",
+  "stop": "stop-after-tests",
+  "final_gate": false,
+  "test_sessions": 1,
+  "test_seconds": 1150,
+  "proof": null,
+  "checks": 51,
+  "caught": 27,
+  "pool": 27,
+  "missed": [],
+  "update_rejects_resolved_caught": true,
+  "failing_on_reference": [
+   "C-34",
+   "C-40",
+   "C-44",
+   "C-45"
+  ],
+  "failing_on_second_correct": [
+   "C-34",
+   "C-40",
+   "C-44",
+   "C-45"
+  ],
+  "existing": null,
+  "sabotage": "noticed",
+  "failing_on_the_build_at_the_end": [
+   "C-34",
+   "C-40",
+   "C-44",
+   "C-45"
+  ],
+  "launched_from": "ac93c95b74c188a50741a3fc733691aa55f7d296",
+  "held_out_marks": [],
+  "sessions": [
+   [
+    "tests-1-1",
+    1149.7,
+    "exited"
+   ]
+  ],
+  "graded_with": "ac93c95b74c188a50741a3fc733691aa55f7d296 (with uncommitted changes to the pilot folder)",
+  "did_not_end_in_grading": {},
+  "unstable_in_grading": {},
+  "update_rejects_resolved_caught_by": [
+   "C-43"
+  ],
+  "report_sections": {
+   "Refusals and their allowed neighbours": 58
+  }
+ },
+ {
+  "run": "te2",
+  "arm": "question, refusals and neighbours",
+  "stop": "stop-after-tests",
+  "final_gate": false,
+  "test_sessions": 1,
+  "test_seconds": 881,
+  "proof": null,
+  "checks": 51,
+  "caught": 26,
+  "pool": 27,
+  "missed": [
+   "update-rejects-resolved"
+  ],
+  "update_rejects_resolved_caught": false,
+  "failing_on_reference": [
+   "C-34",
+   "C-40",
+   "C-44",
+   "C-45"
+  ],
+  "failing_on_second_correct": [
+   "C-26",
+   "C-34",
+   "C-44",
+   "C-45",
+   "U-2"
+  ],
+  "existing": null,
+  "sabotage": "noticed",
+  "failing_on_the_build_at_the_end": [
+   "C-34",
+   "C-40",
+   "C-44",
+   "C-45"
+  ],
+  "launched_from": "ac93c95b74c188a50741a3fc733691aa55f7d296",
+  "held_out_marks": [
+   "skill-craft"
+  ],
+  "sessions": [
+   [
+    "tests-1-1",
+    880.6,
+    "exited"
+   ]
+  ],
+  "graded_with": "ac93c95b74c188a50741a3fc733691aa55f7d296 (with uncommitted changes to the pilot folder)",
+  "did_not_end_in_grading": {},
+  "unstable_in_grading": {
+   "filter-after-page": [
+    "C-43"
+   ],
+   "resolved-template-replaced": [
+    "C-12"
+   ],
+   "backoff-linear": [
+    "C-27"
+   ]
+  },
+  "update_rejects_resolved_caught_by": [],
+  "report_sections": {
+   "Refusals and their allowed neighbours": 42
+  }
+ },
+ {
+  "run": "te3",
+  "arm": "question, refusals and neighbours",
+  "stop": "stop-after-tests",
+  "final_gate": false,
+  "test_sessions": 1,
+  "test_seconds": 1073,
+  "proof": null,
+  "checks": 51,
+  "caught": 26,
+  "pool": 27,
+  "missed": [
+   "update-rejects-resolved"
+  ],
+  "update_rejects_resolved_caught": false,
+  "failing_on_reference": [
+   "C-34",
+   "C-40",
+   "C-44",
+   "C-45"
+  ],
+  "failing_on_second_correct": [
+   "C-2",
+   "C-34",
+   "C-40",
+   "C-44",
+   "C-45"
+  ],
+  "existing": null,
+  "sabotage": "noticed",
+  "failing_on_the_build_at_the_end": [
+   "C-34",
+   "C-40",
+   "C-44",
+   "C-45"
+  ],
+  "launched_from": "ac93c95b74c188a50741a3fc733691aa55f7d296",
+  "held_out_marks": [
+   "skill-craft"
+  ],
+  "sessions": [
+   [
+    "tests-1-1",
+    1072.6,
+    "exited"
+   ]
+  ],
+  "graded_with": "ac93c95b74c188a50741a3fc733691aa55f7d296 (with uncommitted changes to the pilot folder)",
+  "did_not_end_in_grading": {},
+  "unstable_in_grading": {
+   "conflict-as-invalid": [
+    "C-12"
+   ],
+   "no-unassign": [
+    "C-13"
+   ]
+  },
+  "update_rejects_resolved_caught_by": [],
+  "report_sections": {
+   "Refusals and their allowed neighbours": 45
+  }
+ }
+]

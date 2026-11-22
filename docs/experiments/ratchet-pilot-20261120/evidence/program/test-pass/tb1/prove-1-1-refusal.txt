@@ -1,0 +1,20 @@
+## The script could not make these checks fail
+Each of these checks passes on the build, and still passes on the starting product, on a copy of the build in which one of the product's own existing tests was made to fail (`test/api.test.js`), and on 27 copies of the build that each carry one small fault. A check that nothing makes fail proves nothing.
+- C-8
+For each one: change the check so that it fails when the behaviour it names is broken (a check that runs other tests must show that they ran), or say under a heading `## Checks nothing here can break` in your tests report which fault would break it and why none of these did.
+
+## Faults no check noticed
+Every check still passes when the build carries any one of these single faults:
+- `src/app.js` line 16 (existing code): `false` became `true`
+- `src/format.js` line 36 (existing code): `===` became `!==`
+- `src/format.js` line 36 (existing code): `-` became `+`
+- `src/persistence.js` line 92 (existing code): `>=` became `>`
+- `src/persistence.js` line 160 (existing code): `||` became `&&`
+- `src/persistence.js` line 160 (existing code): `||` became `&&`
+- `src/persistence.js` line 170 (existing code): `||` became `&&`
+- `src/persistence.js` line 180 (existing code): `&&` became `||`
+- `src/persistence.js` line 180 (existing code): `&&` became `||`
+- `src/persistence.js` line 194 (existing code): `||` became `&&`
+For each one: add or strengthen a check so that it fails on that fault, or say under a heading `## Faults that change nothing` in your tests report why the edit does not alter behaviour.
+
+Keep the rest of your work. Never weaken a check to make this list shorter.

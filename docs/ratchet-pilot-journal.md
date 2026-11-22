@@ -4045,3 +4045,151 @@ code, and name or write one test for each side.
 
 **Predictions.** It catches `update-rejects-resolved` in two of three; 26 or 27 of 27; one or two more checks fail
 on the second correct delivery than in the plain runs.
+
+### Parts C and T, result (20:24): fifteen test passes on one base; three levers move nothing that matters, and the fourth catches the missed defect once in three
+
+Every run starts from `c0`'s specification and plan (45 clauses, 6 use cases, Sol at medium) and the reference build,
+and ends after its test pass. Launched from f413b280a06c6c20616b2e5c04ccf06ac21bb8dc (`ta`, `tb`, `tc`, `td`) and
+from ac93c95b74c188a50741a3fc733691aa55f7d296 (`te`). Graded with the working copy at
+705581df4116da1fdf769929cca0e8a9543ab14e: planted defects by `grade.py strength`; seeded faults on existing lines
+on part E's 40 faults (see the note of 19:03); the sabotaged copy by `prove_fail.py`. No check failed to end in any
+grading; a check that failed once and passed when run again is counted as passing, as the gate counts it.
+`evidence/program/test-pass/table.json` holds every row, with each run's own report.
+
+| Arm | Runs | Seconds of test sessions | Planted defects caught of 27 | `update-rejects-resolved` | Checks failing on the reference | on the second correct delivery | Odd-line faults caught, of 22 (the own tests: 20) | All 40 (the own tests: 31) |
+|---|---|---|---|---|---|---|---|---|
+| plain | ta1 to ta3 | 834, 861, 862 | 26, 26, 26 | missed, 3 of 3 | 3, 4, 4 | 5, 4, 5 | 20, 20, 20 | 31, 31, 31 |
+| proof of failure | tb1 to tb3 | 1,323, 904, 989 in three sessions each, and two script proofs of 330 to 480 seconds | 26, 26, 26 | missed, 3 of 3 | 3, 5, 3 | 5, 4, 5 | 20, 20, 20 | 31, 31, 31 |
+| question, general | tc1 to tc3 | 938, 795, 956 | 26, 26, 26 | missed, 3 of 3 | 5, 5, 4 | 5, 4, 5 | 20, 20, 20 | 31, 31, 31 |
+| question, grounded | td1 to td3 | 931, 902, 899 | 26, 26, 26 | missed, 3 of 3 | 4, 6, 5 | 5, 6, 6 | 21, 21, 21 | 32, 35, 32 |
+| question, refusals and neighbours | te1 to te3 | 1,150, 881, 1,073 | 27, 26, 26 | caught once, missed twice | 4, 4, 4 | 4, 5, 5 | not measured | not measured |
+
+The sabotaged copy is noticed in every run. Every suite has 51 checks.
+
+- **RC.0, room.** The plain runs miss one planted defect of 27, the same one each time; two odd-line faults of 22
+  survive their checks; no plain suite fails to notice a broken existing test (I predicted one of three would).
+- **RC.1, existing code.** The proof of failure: *does not* (20, 20, 20 against a best plain run of 20). The general
+  question: *does not* (20, 20, 20). The grounded question: *not shown* (21 each, one more than the plain runs, where the bar was
+  two more in every run).
+- **RC.2, the defect the suites miss.** None of the three registered arms catches it in any run. The fourth:
+  catches it in one run of three (te1), so by the bar of all three *the question catches it* is not met. I
+  predicted two of three for it, two of three for the grounded question and one of three for the general one; the
+  last two caught it in none.
+- **RC.3, harm.** No arm is over-tight by the rule: the worst plain run fails five checks on the second correct
+  delivery, and no arm fails more than that in every run.
+
+**What each lever did.**
+
+- *The proof of failure.* In all three runs the script found the same check that nothing made fail (C-8: an
+  assignment to a ticket that does not exist answers 404, which the starting product's handler for an unknown
+  route answers too) and ten faults no check noticed, all on existing code. Each session then strengthened or
+  explained C-8, explained one fault as unreachable, and wrote regression checks for the others in a new file. The
+  bench's rule that every manifest entry names a clause kept those checks out of the manifest (entries named
+  `R-1`, `R-2`, `R-cli-table` and `R-data-file` were refused, in all three runs), and my refusal text had not said
+  where such a check may live. So the second proof found the same ten
+  faults unnoticed, and nothing moved on any yardstick, for 904 to 1,323 seconds of sessions against about 850, and
+  690 to 940 seconds of script time.
+- *The general question.* A table of 14 rows of preserved behaviour in each run, each row with its evidence and a
+  test. No reading moved.
+- *The grounded question.* 57, 95 and 105 entries, one for each route, command, field and message that passes
+  through a touched file. Its suites catch one to four seeded faults that the product's own
+  tests miss, in the table formatter and in the checks a data file gets on load: code the request does not
+  concern (F56). It lists "closed tickets refuse edits" and never that a resolved ticket can still be edited.
+- *Refusals and their allowed neighbours.* 58, 42 and 45 entries. te1 lists the existing guard on edits ("Existing edit
+  validation refuses a closed ticket. It allows the same edit while resolved.") with one test for each side, and its
+  suite catches all 27. te2 and te3 list the refusals the change itself adds (assignment while resolved or closed,
+  an assignee field in an edit, the limits on text) with their neighbours, and not the edit guard, which the
+  change's diff does not touch.
+
+**F59. A list of what must not change does not test the boundary; a list of refusals with their allowed
+neighbours can, when it reaches the right guard.** The twelve suites of the plain runs and the three registered
+arms all miss the defect that tightens an existing guard by one state: they test that a closed ticket refuses an
+edit and that an open one accepts it, and nothing in between. Of the thirteen suites graded for this request before today, four
+catch it: three written by Sol at high from the longer specification texts (164 to 209 checks) and one whose plan
+listed preserved behaviour; of the nine written from the reworded text, one (F36). Asked for each refusal's nearest
+allowed case, one session of three found that guard, tested its allowed side, and caught the defect; the other two
+looked at the refusals in the change's own diff. So the rule has the right shape, and its reach depends on which
+guards a session takes the change to touch: this defect sits on a guard beside the change, not in it. A fresh
+review of the built product found it six times of six (F53), because there the defect is in front of the reader.
+
+**F60. Feeding a test author what the script could not break buys tests of whatever the faults happened to
+touch.** The proof of failure did find a real do-nothing check in every run, and that half is worth keeping. Its
+other half, the list of unnoticed faults, sent three sessions to write checks of the request log and of file
+validation in a delivery of ticket assignment, for a quarter more session time on average and eleven to sixteen
+minutes of the script's own time in each run. As a gate it needs two
+things this bench did not give it: faults confined to what the change touches, and a place for a check that no
+clause covers.
+
+**Five session records hold a held-out mark, none of them held-out material.** Each of those test sessions listed
+the machine's processes and so saw the command line of another session's run (a consultation that names the
+harness's folder; a ShipLoop run started with its request). Nothing of the held-out checks or of the planted
+defects is in them.
+
+**Limits.** One case, one specification and plan, one reference build that is not itself clean (F55), three runs an
+arm, and a machine that was overloaded during part of the wave; the fourth arm was written knowing which defect
+the suites miss, and the seeded faults were not replayed on it.
+
+### What the program says, taken together (20:25, when its last part was read)
+
+131 model sessions in 106 runs, every one on Codex with `gpt-6.2-sol` at medium, and no rescoring of a registered
+reading. Where a registered reading was not met, or a registration turned out to rest on a wrong classification
+(part R's "right" build), the entry of that part says so. Each finding below has its evidence under `evidence/program/`.
+
+| Idea | Verdict on this bench | Finding |
+|---|---|---|
+| A point the request leaves out is carried, not decided silently | already done by the reworded text: marked 12 of 12 | F46, F48 |
+| The answer reaches the build | holds: 8 of 8 held-out checks three times against 3 of 8 three times; into the delivery's own check 3 of 3 | F52 |
+| A session chooses what to ask the requester | does not hold: the request's point asked 0 of 18; a disagreement inside the product found 9 of 9 | F50 |
+| A fresh reader of the specification | holds on the one specification with a ground truth: exactly the two over-decided clauses, 3 of 3 | F57 |
+| A fresh reviewer of the finished product | holds as a finder (planted defect 6 of 6, 62 of 62 findings true), not as a gate (a delivery with no break rejected 4 of 6); starting from the request first does not help | F53, F54 |
+| The instruction arrives | holds at this size (18 of 18); ShipLoop loses the tail of long packets, not instructions | F51 |
+| Existing code is protected | the instrument measures the product's old test gaps; suites mirror the own tests (31 against 31) | F56 |
+| A check must be able to fail | the unit is the test and the tool is a counterexample copy; do-nothing checks of "the existing tests pass" are rare here (1 suite in 39) | F49, F58 |
+| A question at test design | a general or a file-grounded question moves nothing (26 of 27 in all six runs); asking for each refusal's allowed neighbour catches the missed defect once in three | F59 |
+| The proof of failure shown to the test owner | finds a real do-nothing check in every run; its list of unnoticed faults buys tests of unrelated code and moved no reading | F49, F60 |
+| Ask after reading | nothing to fix: answers are on record (14 of 15) | part A |
+| Gaps in ShipLoop's own checks | five pinned as tests | part G |
+
+**The shape of it.** Three results point the same way. A session that did not write a thing, given one narrow
+question and sent to the files, is right where the author is not: about clauses that decide too much (F57) and
+about a finished build (F53). And the one input no session can supply
+is the requester's own preference: it cannot be guessed (F48), cannot be chosen as a question (F50), and when it
+is given it goes through every stage untouched (F52). More text in the author's packet moved nothing in this
+pilot; a second pair of eyes and one sentence from the requester each moved a great deal.
+
+**What I would try in ShipLoop, for its owner to decide.** None of these is tested in ShipLoop itself.
+
+1. *Put the plan's decisions in front of the requester.* The plan already lists each answer it takes for an open
+   point with the alternatives set aside. Attended, show that table before the build; unattended, put it at the top
+   of the final report as "decided for you; one sentence changes it". On the due-times request this is the
+   difference between 3 and 8 of 8.
+2. *Ask one thing at intake that a session finds every time:* where the product's documents and its code disagree,
+   and which the requester wants kept.
+3. *A second reading of the specification* by a fresh session, one question (which clauses require what the
+   request does not ask and the product does not do), each claim checked in the files. About a minute.
+4. *A fresh review after the gate, for its findings.* Each finding with a probe, sorted into "breaks the request or
+   existing behaviour" and "decides an open point"; no accept or reject line.
+5. *For every guard in the code a change touches, test the nearest allowed case as well as the refusal.* The one
+   planted defect the suites miss is a guard tightened by one state. Every inventory of preserved behaviour
+   written here lists "closed tickets refuse edits"; the one suite that also tested "a resolved ticket can still
+   be edited" caught all 27 (F59). The wording has to reach guards beside the change, not only in its diff.
+6. *Keep what must be read inside a packet's instructions,* not only in the references after the result template.
+
+**What I would not spend more on.** Wording of the specification text. A general question about preserved
+behaviour, at any stage. A verdict from a reviewer. Seeded faults on existing lines, as a measure of a delivery or
+as feedback to a test author.
+
+**Limits of the whole program.** One evening, one model at one effort, three requests on one fixture family, three
+runs a cell. The requester was a file. Several readings rest on a build I had classed as right and that was not
+clean (F55). The machine was shared and at times overloaded; gradings were checked for checks that did not end.
+
+**Received from the session "Spec elaboration" at 19:57, not checked by me.** It reran its reader over the same 62
+runs and reproduces the packet figures above (its journal, section 58). It adds two results of its own: on one
+one-sentence request the released spec stage decides silently in a different direction on each model (all three
+Sol specifications add a new ticket status, all three Sonnet ones reuse an existing state and record that as an
+assumption), and two judges reading five texts twice give an item the same state on 97 of 101 items, with nets
+steadier than counts. The first is the same thing as F48 seen from the other side: what is decided when nobody
+answers moves with the model.
+
+**Not delivered.** My note on F55, on the plain builds failing five held-out checks and on part G was sent to the
+session "Shiploop SDLC"; that session held it and it expired unread. The content is in this section.
