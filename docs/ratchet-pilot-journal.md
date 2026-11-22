@@ -4476,3 +4476,13 @@ does not build.
 question rewards a sentence that a specification which fills the due times in at start has no need to write
 (three of three such rows got "partly"). The spec packet is at 19,934 of the 20,000 characters a Grok host prints
 whole. Hosts tell the user about the list only some of the time; the report always carries it.
+
+**Seen on `main` at 00:46, from the session "Spec elaboration", not checked by me**
+(3503ada200d5e01406ecb3bff30f2092d75ad7b4, committed at 00:17 while wave 2 was being read). It asked a fresh Sol
+session at medium, from outside, to list every decision three finished deliveries of this case had taken on the
+requester's behalf, at three points of the work: the list holds the decision that mattered 27 times of 27, already
+after the specification, at second to fifth place in lists of 15 to 32 items. Its own limits name the two things this
+candidate tried: "a working session asked the same thing was not tested" (here the spec stage's own session, asked
+through a required field, lists it seven times of seven, in lists of three to six rows), and "whether the
+requester's answer, once asked for, changes the product" (F61: two of four in ShipLoop itself). The two were run
+apart, on different benches, and agree on where the choice can first be shown: right after the specification.
