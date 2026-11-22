@@ -1664,3 +1664,34 @@ and the Drive results are about other things. As a matter of the harness it is a
 test sessions should run with the connectors off. Not changed here: it is a harness default, and every earlier Sol
 run had them on. No memory note recorded this before today.
 
+## 41. The owner's answer on the two sessions, and one more reading for rung 10, registered before any of its results is opened (2026-11-22, 15:48)
+
+**Who writes this journal.** At 15:27 the first session handed the study to the copy (the note in section 39).
+Asked whether it should stop, the owner answered the first session at about 15:43, word for word: "No, I really,
+the Wiki was looking into how we basically have a separation between a common repo and a local repo Wiki
+reference, just to be able to keep scope separated out." My reading: the copy was a side look at the common and
+the local repository, kept apart from the study on purpose, and the study continues in the first session. From
+15:45 the first session is again the only writer of this journal and of the two study branches, and has told the
+copy so. The copy keeps the question the owner gave it next (keeping test sessions out of connected accounts,
+section 40) and records it elsewhere. "I" from here on is the first session; sections 36 to 38 and 40 were written
+by the copy, and rung 10 was built and launched by it at the owner's "Read live".
+
+**What the owner's sentence adds to section 38.** The two repositories exist to keep scope apart: what is common to
+every project on a platform lives in the repository shipped with ShipLoop, and what is one project's lives in that
+project. A design that copies common facts into the project mixes the two. That is the reason behind "Read live",
+and it makes the copying itself something to read.
+
+**A reading added to rung 10 for that purpose.** The six deliveries were launched at 15:38; when this is written
+one has finished and neither session has opened a result. The arm's printed lead ends "Copy none of them into
+KNOWLEDGE/environment.md." Reading: a delivered product's `docs/shiploop/environment.md` is **copied into** when it
+holds one of the three entry ids (N-INSTANCES, N-AUTHZ, N-GATEWAY) or a whole line of the three entries as they
+were printed (40 characters or more, spaces collapsed). Reported beside it and outside the rule: how often the
+shared header's name occurs in that file against the count in the file the delivery started from, since a delivery
+may rightly record what the service now does. Rule: the scopes **stay apart** when none of the six is copied into.
+Prediction: at most 1 of 6 is.
+
+**What it would mean.** If the scopes stay apart, a printed sentence is enough to keep common facts out of a
+project's record. If deliveries copy anyway, the duties that fill the knowledge home pull harder than the sentence,
+and keeping scope apart needs the script: a check when the work is returned, or a marked place for "from the shared
+guide" that is not the project's own facts.
+
