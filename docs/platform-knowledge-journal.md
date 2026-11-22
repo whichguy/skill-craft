@@ -763,3 +763,255 @@ left its progress observer running, and the harness starts no host beside a run 
 They were my own processes; the harness's own `lifecycle.py cleanup <folder>` stopped all twelve and deleted no
 file, and the slice launcher now runs it after each sample. An apparatus lesson, not a ShipLoop one.
 
+## 19. Rung 3, first sample of each cell: whole deliveries on the invented platform (2026-11-22, 11:05 to 11:31)
+
+Six whole deliveries from the request to the end, released behaviour (the candidate build with its route off),
+default planning review, each product graded by `harbor_grade.py` under the strict stand-in. Runs:
+`~/e2e-runs-pk/20261122-d/d01` to `d06`; readings `harbor/readings/rung3a-grades.txt` and `rung3a-card-reads.txt`
+on the candidate branch.
+
+| Sample | Driver | Arm | Platform checks | Own tests | Card read | Name written at discovery | Minutes | Output tokens | Cost |
+|---|---|---|---|---|---|---|---|---|---|
+| d01 | Sol medium | R, card named in the knowledge home | 6 of 6 | pass | whole, at discovery | already there | 9.3 | 20,958 | |
+| d02 | Sonnet medium | R | 6 of 6 | pass | whole, at intake | already there | 25.9 | 203,977 | $9.48 |
+| d03 | Sol medium | F, fresh repository | 6 of 6 | pass | whole, at discovery | **no** | 9.9 | 20,370 | |
+| d04 | Sonnet medium | F | 6 of 6 | pass | whole, at discovery | yes | 21.4 | 164,760 | $7.74 |
+| d05 | Sol medium | Q, rules in the request | 6 of 6 | pass | not opened | no | 7.9 | 16,805 | |
+| d06 | Sonnet medium | Q | 6 of 6 | pass | not opened | no | 16.6 | 125,537 | $5.85 |
+
+**By the rules of section 15** (one pair a driver so far, where the rules ask for two): the named card and the
+fresh repository are each **as good as the request** on both drivers (6 against 6). R does **not** hold over F:
+the fresh repository reached the same score, because the model found the card by itself.
+
+**Predictions, scored as written.** "Q passes 6 of 6": right. "R at least 5": right. "F at most 2, because
+discovery does not name the card": wrong, 6 and 6. Sol did not write the name and read the card anyway; Sonnet
+wrote the name.
+
+**What it shows (firm for this bench, one sample a cell).**
+
+- **Once a card's facts are read they reach the product.** Four deliveries read the card and all four products
+  follow all five rules, as well as the two whose request stated them. Nothing was lost between reading at
+  discovery and the code, on either driver, with released ShipLoop.
+- **On a platform it does not know, a model finds the card in a whole delivery too**, from a repository with no
+  knowledge home, with no change to ShipLoop.
+- **Stating the rules in the request is the cheapest route here**: 7.9 minutes against 9.3 and 9.9 on Sol, 16.6
+  against 25.9 and 21.4 on Sonnet, $5.85 against $9.48 and $7.74. One sample a cell, so a lean, not a measure.
+- **Sol still does not write the card's name** (d03), as in every saved run, and it cost nothing here.
+
+**Enough to conclude on this bench?** Yes for what it can show: on an unfamiliar platform released ShipLoop needs no
+change. The second sample of each cell is not run: six of six at the ceiling leaves no difference for a second
+sample to confirm, and the open question is the other kind of platform (section 18). That is a departure from the
+two samples registered, made after seeing the first six, and stated as such.
+
+**Limits.** One sample a cell. A small product and one request. The platform is invented, which is exactly what
+makes a model look it up.
+
+## 20. Rung 4, first sample of each cell: launched 11:41 (2026-11-22)
+
+The cases of section 18 are built and committed on the candidate branch as
+8a703845d2e9c39fa8d078021efad4a3470f999b, and the 16 slices of `familiar/runs/rung4a.tsv` are launched from that
+commit into `~/e2e-runs-pk/20261122-f/` (f01 to f16; `familiar/runs/arms.tsv` says which is which).
+
+What was checked without a model before the launch: the two new `## Planning` sections and the four requests, read
+by me; neither token is in any fixture or plain request; the plan packet of each "named" case with the route off
+is the released packet, and with the route on the three entries stand before the result template (1,595 and 1,667
+characters added).
+
+Two things the readings must allow for, both known before any result:
+
+- **The two platforms are not alike in the "named" arm.** The Salesforce card has a `## Testing` section, so the
+  released packet already lists that card's file among its guides; the Node card has none, so only the knowledge
+  home names it.
+- **The hidden entries:** N-GATEWAY, "This deployment's gateway drops any response that lacks the header
+  `X-Org-Request-Id`", and S-ACCESS-GROUP, "In this org a new tab or app reaches its users only through the
+  permission set group `SLX_Feature_Access`". The Salesforce request asks for a tab for twelve dispatchers only, so
+  a plan has to decide how they get access; the Node request asks for a new route.
+
+## 21. Rung 4, first sample of each cell: on platforms the models know, only printing or the request gets the fact in (2026-11-22, 11:41 to 12:02)
+
+Sixteen plan-stage slices (`~/e2e-runs-pk/20261122-f/f01` to `f16`), all ended by the harness at the plan's
+acceptance. Read by `familiar/fact_reading.py`; its output is kept in `familiar/readings/rung4a-node.txt` and
+`rung4a-sf.txt` on the candidate branch.
+
+| Platform | Arm | Driver | Card opened by the model | Hidden entry shown | Token reached the plan |
+|---|---|---|---|---|---|
+| Node | none | Sol (f05) | no | no | no |
+| Node | none | Sonnet (f02) | no | no | no |
+| Node | named, released | Sol (f01) | no | no | no |
+| Node | named, released | Sonnet (f14) | no | no | no |
+| Node | printed | Sol (f09) | printed | yes | yes (in `architecture.md` and `spec.md`) |
+| Node | printed | Sonnet (f06) | printed | yes | yes |
+| Node | request | Sol (f13) | no | in the request | yes |
+| Node | request | Sonnet (f10) | no | in the request | yes |
+| Salesforce | none | Sol (f15) | no | no | no |
+| Salesforce | none | Sonnet (f12) | no | no | no |
+| Salesforce | named, released | Sol (f11) | no | no | no |
+| Salesforce | named, released | Sonnet (f08) | **yes, three reads** | yes | **no** |
+| Salesforce | printed | Sol (f03) | printed | yes | yes |
+| Salesforce | printed | Sonnet (f16) | printed | yes | yes |
+| Salesforce | request | Sol (f07) | no | in the request | yes |
+| Salesforce | request | Sonnet (f04) | no | in the request | yes |
+
+| Arm | Token reached the plan |
+|---|---|
+| The knowledge home says "none" | 0 of 4 |
+| The card is named, released ShipLoop | 0 of 4 |
+| The card is named and its entries are printed by the script | 4 of 4 |
+| The fact is in the request | 4 of 4 |
+
+**What the released plans did instead** (read by hand). f11 (Sol, Salesforce) plans a dedicated permission set
+whose assignment the release owner settles: the org's rule is broken without anyone knowing. f14 (Sonnet, Node)
+plans the route with no word about a request id. f08 is the instructive one: Sonnet opened the Salesforce card by
+itself, saw the entry, and recorded it as an open assumption, "The org may route new tabs only through a permission
+set group (platform guide S-ACCESS-GROUP); the group is not in this repo [...] W3 ships the permission set alone;
+W4's hand-off asks the service team which route applies". It read the fact and chose not to act on it.
+
+**Reading (interim until the second samples are in).**
+
+- On a platform a model knows, naming the card in the knowledge home is not enough: the card was opened in 1 of 4
+  released samples, against 4 of 4 on the invented platform. This is the saved runs' picture, now under control.
+- The same entry, printed inside the plan duty with the sentence that asks for it to be used, was used in 4 of 4,
+  as often as when the requester wrote the fact into the request.
+- Being shown a fact and being asked to use it are different things (f08 against the four printed samples).
+- A limit the f08 plan itself points at: both hidden facts are about one deployment ("in this org", "this
+  deployment's gateway"), written into a platform card so that no model could guess them. A fact about one
+  project's target belongs in that project's `environment.md` (section 7), and a model that doubts such a line in a
+  general card is not wrong. The test measures whether a route carries a fact, not where the fact should live.
+
+**Predictions so far** (they are for 8 samples; these are the first 4 of each): none 0 of 4, as predicted; the named
+card opened in 1 of 4, within "at most half"; printed 4 of 4 and request 4 of 4, as predicted.
+
+The second sample of every cell (`familiar/runs/rung4b.tsv`, f17 to f32) was launched at 12:03.
+
+## 22. Amendment 4, registered before any of its runs: a look-up line, and the whole chain end to end (2026-11-22, 12:04)
+
+Two questions remain that a model has to answer, and one that a script answers.
+
+**Rung 4L: is a pointer enough when it stands where the printed entries stand?** This is the owner's wiki idea in
+its strongest form: no text in the packet, one line in the plan duty that names the card's file and the lines of its
+`## Planning` section, with the same sentence. The route exists (`route-lookup.json`); on the invented platform it
+could show nothing, because everything was read there anyway. Cases: the two "named" fixtures of rung 4, both
+drivers, 2 samples a cell = 8 slices. Readings and rule as in section 18. Predictions: the hidden entry is shown in
+at least 6 of 8 and the token reaches the plan in at least 5 of 8. If it does as well as printing, a reference can
+grow into pages that a line points into, at the price of one read a section; if it does worse, printing is the
+route.
+
+**Rung 6: the whole chain on a familiar platform, with nothing seeded.** Rung 4 put the card's name in the knowledge
+home by hand, and no Sol, Terra or Sonnet run has ever written it. So the candidate gets one more piece: a card
+declares what makes it apply (a list of files, as a card already declares its remote test commands), and the script
+selects a card whose files are in the repository, with no judgment by a model. Whole deliveries from a fresh
+repository with no knowledge home, on a small Node service that needs no package installed, the request without
+the fact: the released build against the candidate (selection by declared files, entries printed at the plan
+stage), both drivers, one sample a cell = 4 deliveries. Reading, by script: is the token in the delivered product's
+source, and was the entry in the plan packet. Rule: the chain **holds** on a driver when the candidate's product
+holds the token and the released one's does not. Predictions: released 0 of 2; candidate 2 of 2.
+
+**Not run, and why.** Rung 5 (the reference at wiki size): when a script selects entries by key, what the model is
+given does not depend on how large the reference is, so there is nothing for a model run to measure; and a
+reference the model has to go and search is the route rungs 2 and 4 show working only on a platform the model does
+not know. A Ratchet cell: its stage texts are prompts, so entries added to its plan text arrive as the "request"
+and "printed" arms arrived here; it is described in the recommendation and marked as not run.
+
+## 23. Rung 4, both samples: the result on familiar platforms (2026-11-22, 11:41 to 12:23; firm)
+
+Thirty-two plan-stage slices (f01 to f32), two samples of each of sixteen cells. Readings:
+`familiar/readings/rung4a-*.txt` and `rung4b-*.txt` on the candidate branch.
+
+| Arm | Card opened by the model | Hidden entry shown | Token in the plan (the registered reading) | Fact followed (read by hand) |
+|---|---|---|---|---|
+| The knowledge home says "none" | 0 of 8 | 0 of 8 | 0 of 8 | 0 of 8 |
+| The card is named, released ShipLoop | 3 of 8 | 3 of 8 | 1 of 8 | 0 of 8 |
+| The card is named and its entries are printed in the plan duty | (printed) | 8 of 8 | 7 of 8 | 8 of 8 |
+| The fact is in the request | 0 of 8 | (in the request) | 8 of 8 | 8 of 8 |
+
+**By the rule of section 18** (the token in both samples of a platform and driver): the request arm reaches the
+plan in all four cells; the printed arm in three of four (Sol on Salesforce has it in one sample of two); the named
+arm and the "none" arm in none.
+
+**Predictions, all four right this time:** none 0 of 8; the named card opened in at most half (3 of 8); printed at
+least 7 of 8 (7); request 8 of 8.
+
+**The hand reading, where it differs from the token.**
+
+- *Named, token present, fact declined* (f25, Sonnet, Salesforce): "The org's permission set group
+  SLX_Feature_Access (platform guide S-ACCESS-GROUP) is not evidenced for this org, so the project does not touch
+  it; a dedicated permission set is used and assigned to the twelve by the service team". With f08 that is twice
+  that Sonnet read the fact in the card by itself and decided against it.
+- *Printed, token absent, fact followed* (f22, Sol, Salesforce): the security row's decision reads "Group, custom
+  permission, CRUD/FLS and sharing". Sol's short form again, and the reason the registered count is 7 and not 8.
+- *Printed, and better than obedient* (f16 and f17, Sonnet, Salesforce): both use the group and open the point the
+  entry and the request leave between them, "SLX_Feature_Access is not shared with non-dispatchers [...] service
+  team confirms membership". The request asked that only twelve dispatchers get the tab.
+
+**The card was opened only where the packet also listed it.** All three opens in the named arm are on Salesforce,
+where the released packet lists the card's Testing section among its guides; on Node, where only the knowledge
+home names the card, none of four. And an open is not a use: 3 opens, the fact followed in none.
+
+**What it establishes.**
+
+1. On a platform a model knows, a fact that sits in the card reaches the plan when the script prints it inside the
+   duty that needs it, and not when the card is merely named or linked. Printed and request are level; named and
+   absent are level.
+2. The sentence and the place matter, not only the text: the same entry read in the card was doubted and declined,
+   and printed in the duty with "use them in the decisions and proving checks this plan already owes" it was used,
+   twice with the right open question attached.
+3. This is the mechanism behind section 11: the saved Salesforce deliveries went well because the requester wrote
+   the facts into the request. Printing a card's entries does the same work without the requester writing them.
+
+**Limits.** A plan-stage slice with the card's name put in the knowledge home by hand: selection is not tested here
+(rung 6 is for that). One hidden fact a platform, about one deployment, in a general card. Two samples a cell. The
+plan's review was off. Whether a fact that reaches the plan this way reaches the product on a familiar platform is
+shown only for the invented one (section 19) until rung 6 is read.
+
+## 24. Rung 4L: one line that points to the section, in the place of the printed entries (2026-11-22, 12:23 to 12:36)
+
+Eight plan-stage slices on the two "named" fixtures of rung 4 with the look-up route (`~/e2e-runs-pk/20261122-g/g01`
+to `g08`, launched from a frozen checkout of the candidate commit so that work on the branch could not reach
+them). The packet holds no entry. Inside the plan duty stands one line: "Platform planning facts: read
+<the card's file>#planning (lines a-b) before the concern rows; use them in the decisions and proving checks this
+plan already owes."
+
+| Platform | Driver | Section read before the plan was submitted | Token in the plan | Fact followed (read by hand) |
+|---|---|---|---|---|
+| Node | Sol (g01, g05) | yes, yes | yes, yes | yes, yes |
+| Node | Sonnet (g04, g08) | yes, yes | yes, yes | yes, yes |
+| Salesforce | Sonnet (g02, g06) | yes, yes | yes, yes | yes, yes |
+| Salesforce | Sol (g03, g07) | yes, yes | no, no | yes, yes ("restricted group assignment"; "permission-group membership") |
+
+**Predictions:** the entry shown in at least 6 of 8: right (8). The token in at least 5 of 8: right (6; by hand the
+fact is followed in all 8, the two without the token being Sol's short form again).
+
+**So a pointer is enough, when the script puts it inside the duty, names the exact section and asks for its use.**
+It was followed in 8 of 8, where a card that is only named in the knowledge home was followed in 0 of 8 (section
+23). The owner's condition for a wiki ("requires key identifiers and pointers in order to pick up the other items")
+is met by a pointer the script chooses and places, and not by one the model has to find.
+
+**What it costs against printing.** Not measured in characters by the reader. From the calls: Sol read the lines it
+was given (`sed -n '25,40p' .../node-express.md`); Sonnet read the whole card file in all four of its samples
+(about 10,000 characters for the Node card and 15,000 for the Salesforce one, against 1,600 for the three
+entries printed). So a pointer saves characters in the packet and can cost more in the context than printing, unless the
+thing pointed at is itself small. That is the practical case for small pages if a reference grows.
+
+## 25. Rung 6 launched: the whole chain on a familiar platform, nothing seeded (2026-11-22, 13:01)
+
+The last piece of the candidate is built and committed on the candidate branch as
+e1b2ad72284c298cc1254ca2a78b53b6aa580b35: a second switch, `PLATFORM_SELECT_ROUTE`, default "named" (released
+behaviour). With "declared", `platform_cards()` also returns every card whose `## Applies when` section lists a
+file pattern that matches a file of the product repository, so a card is selected with no model and with no
+knowledge home. The Opus subagent that built it reports 8 new contract tests (all erroring before the change), the
+navigator contract suite, the domain-words suite and the quick tier (84 suites) passing with both switches at
+their defaults; I checked that the prepared builds select as intended (`platform_cards()` returns the Node card for
+the fresh repository with the candidate build and nothing with the released one).
+
+The case: `pk-nodeplain`, the parts-catalog service with no installed package and no `docs/shiploop/` at all; the
+request of rung 4 unchanged (64 words, no word about a request id). Four whole deliveries in
+`~/e2e-runs-pk/20261122-n/`: n01 Sol released, n02 Sonnet candidate, n03 Sol candidate, n04 Sonnet released
+(`familiar/runs/rung6.tsv`). Readings, by script: `product_token.py` (the token in the delivered source, tests and
+knowledge home; the entry in a plan packet) and `header_check.js`, which starts the delivered service and asks
+the new route once validly and once so that it must answer 400; calibrated on a product with the header (passes
+both), one without (fails both) and the untouched fixture (route missing).
+
+Known before any result: the experiment's pattern for the Node card is `package.json`, far too wide for real use;
+and the printed entries include two real ones (authorization, shared state) that a model may act on in ways the
+header check does not expect.
+
