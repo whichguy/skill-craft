@@ -24,6 +24,8 @@ commit that held it at acceptance, with a witness that the commit's text is the 
   audit-pack-sets ROOT DEST SETID.. no model: one reader's folder for several sets, every copy under a new code
   audit-check-sets ROOT DEST        no model: split that reader's file over its sets and verify each part's quotes
   drivers ROOT SET ...              no model: the released stage under drivers p and k, set by set (section 54)
+  draft-pack ROOT NAME SETID ...    no model: a new set NAME of those sets' specifications as first submitted (section 56)
+  drafts ROOT NAME [ROOT NAME ...]  no model: each submitted text beside its accepted one, and section 56's reading
 
 SETID is SET-DRIVER, for example s1-sol.
 """
@@ -1562,8 +1564,13 @@ def cmd_collect(root: Path, set_id: str) -> int:
     return 0 if complete else 1
 
 
+# The bench judge's text as imported. `judge` replaces the module's text with the live rubric, so the rubric is always
+# derived from this copy: a second set judged in the same process gets the same text.
+BENCH_RUBRIC = grade.JUDGE_PROMPT
+
+
 def live_rubric() -> str:
-    text = grade.JUDGE_PROMPT
+    text = BENCH_RUBRIC
     for old, new in LIVE_RUBRIC:
         if text.count(old) != 1:
             raise SystemExit(
@@ -2007,6 +2014,154 @@ def cmd_drivers(root: Path, names: list[str]) -> int:
     return 0
 
 
+def cmd_draft_pack(root: Path, name: str, set_ids: list[str]) -> int:
+    """A set made of earlier sets' specifications as their authors first submitted them, before the stage's review:
+    one blind copy each under a new round, to be judged like any other set (section 56)."""
+    if (root / f"set-{name}.json").is_file():
+        raise SystemExit(f"set-{name}.json exists: a set is made once")
+    picked = []
+    for set_id in set_ids:
+        for row in json.loads((root / f"collect-{set_id}.json").read_text()):
+            sample = root / "samples" / row["name"]
+            draft, accepted = (
+                sample / "spec-as-bound-for-review.md",
+                sample / "spec-accepted.md",
+            )
+            if (
+                row.get("usable") is not True
+                or not draft.is_file()
+                or not accepted.is_file()
+            ):
+                raise SystemExit(
+                    f"{row['name']}: not usable, or its submitted or its accepted text was not kept"
+                )
+            picked.append((set_id, row, draft, accepted))
+    manifest = {
+        "set": name,
+        "cell": "medium",
+        "complete": True,
+        "round": f"round-g-{name}-{uuid.uuid4().hex[:6]}",
+        "made_of": "each named set's specification as first submitted to the stage's review",
+        "slots": {},
+        "items": frozen_items(root),
+    }
+    codes = [f"K{n}" for n in range(1, len(picked) + 1)]
+    random.SystemRandom().shuffle(codes)
+    for (set_id, row, draft, accepted), code in zip(picked, codes, strict=True):
+        slot = slot_dir(manifest, code)
+        slot.mkdir(parents=True)
+        shutil.copyfile(draft, slot / "spec.md")
+        (slot / "meta.json").write_text(
+            json.dumps({"case": CASE, "code": code}, indent=1) + "\n"
+        )
+        manifest["slots"][code] = {
+            "arm": row["arm"],
+            "sample": row["name"],
+            "of_set": set_id,
+            "spec_sha256": sha256(slot / "spec.md"),
+            "same_as_accepted": draft.read_bytes() == accepted.read_bytes(),
+        }
+    (root / f"set-{name}.json").write_text(json.dumps(manifest, indent=1) + "\n")
+    unchanged = sum(
+        1 for info in manifest["slots"].values() if info["same_as_accepted"]
+    )
+    print(
+        f"set {name}: {len(picked)} submitted texts as blind copies in results/{manifest['round']}; {unchanged} of them are the accepted text unchanged"
+    )
+    return 0
+
+
+def slot_states(root: Path, manifest: dict, code: str) -> list[dict]:
+    """The two judges' states for one blind copy, only from the grade files sealed after judging."""
+    sealed = (load(root / f"judged-{manifest['set']}.json").get("slots") or {}).get(
+        code
+    ) or {}
+    both = []
+    for judge_name, tag in JUDGE_TAGS:
+        reading = verdicts(manifest, code, tag)
+        if reading is None or (sealed.get("grades") or {}).get(judge_name) != sha256(
+            grades_file(manifest, tag, code)
+        ):
+            raise SystemExit(
+                f"set {manifest['set']} slot {code} has no complete, sealed reading from {judge_name}: nothing is compared"
+            )
+        both.append(reading)
+    return both
+
+
+def gain(reviewed: list[int], unchanged: list[int]) -> str:
+    """Section 56's reading, from nets of the accepted text over the submitted one. The swing is the largest net,
+    either way, between two readings of a text the review left unchanged. A review's gain is seen in a run when its net
+    is above the swing. Shown when it is seen in all but at most one of the reviewed texts and none of them is below
+    zero; not shown otherwise. It needs three texts of each kind."""
+    if len(reviewed) < 3 or len(unchanged) < 3:
+        return "not shown: fewer than three texts of a kind"
+    swing = max(abs(net) for net in unchanged)
+    seen = sum(1 for net in reviewed if net > swing)
+    return (
+        "shown" if seen >= len(reviewed) - 1 and min(reviewed) >= 0 else "not shown"
+    ) + f" (swing {swing}; seen in {seen} of {len(reviewed)})"
+
+
+def cmd_drafts(pairs: list[str]) -> int:
+    """Each submitted text beside its accepted one, for the draft sets given as ROOT NAME: the two counts, the net of
+    the accepted over the submitted, how often each judge gives an item the same state, and section 56's reading over
+    the first driver's texts against the texts the review left unchanged."""
+    reviewed, unchanged = [], []
+    for root, name in zip(map(Path, pairs[0::2]), pairs[1::2], strict=True):
+        use(load(root / "prepare.json").get("study") or "users")
+        manifest = manifest_of(root, name)
+        applies = manifest["items"]["applies"]
+        print(f"set {name} ({STUDY}): {len(applies)} items")
+        for code, info in sorted(
+            manifest["slots"].items(), key=lambda kv: kv[1]["of_set"]
+        ):
+            earlier = manifest_of(root, info["of_set"])
+            its = next(
+                c
+                for c, slot in earlier["slots"].items()
+                if slot["sample"] == info["sample"]
+            )
+            states = {
+                "submitted": slot_states(root, manifest, code),
+                "accepted": slot_states(root, earlier, its),
+            }
+            pair = compare(states, applies, "accepted", "submitted")
+            counts = {
+                which: sum(
+                    1 for i in applies if all(reading[i] == 2 for reading in both)
+                )
+                for which, both in states.items()
+            }
+            alike = [
+                sum(
+                    1
+                    for i in applies
+                    if states["submitted"][j][i] == states["accepted"][j][i]
+                )
+                for j in (0, 1)
+            ]
+            kind = (
+                "the same text read twice"
+                if info["same_as_accepted"]
+                else "changed by the review"
+            )
+            print(
+                f"  {info['of_set']} ({kind}): covered under both judges {counts['submitted']} submitted, {counts['accepted']} accepted; net {pair['net']} (higher {pair['higher']}, lower {pair['lower']}); same state from {JUDGE_TAGS[0][0]} on {alike[0]} of {len(applies)} items, from {JUDGE_TAGS[1][0]} on {alike[1]}"
+            )
+            if info["same_as_accepted"]:
+                unchanged.append(pair["net"])
+            elif info["of_set"].endswith("-" + PAIR[0]):
+                reviewed.append(pair["net"])
+    print(
+        f"nets, accepted over submitted: driver {PAIR[0]}'s reviewed texts {reviewed}; texts left unchanged {unchanged}"
+    )
+    print(
+        f"READING (the review's gain on driver {PAIR[0]}): {gain(reviewed, unchanged)}"
+    )
+    return 0
+
+
 def both_mixed() -> list[str]:
     """The items both sorters labelled mixed: part of each applies to this program."""
     rows = [
@@ -2130,6 +2285,8 @@ def main() -> int:
         "drivers",
         "audit-pack-sets",
         "audit-check-sets",
+        "draft-pack",
+        "drafts",
     )
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -2178,11 +2335,15 @@ def main() -> int:
         return cmd_overlays()
     if command == "sets":
         return cmd_sets([name for name in args.rule.split(",") if name], rest)
+    if command == "drafts":
+        return cmd_drafts(rest)
     if command == "sort":
         return cmd_sort(rest[0], args.timeout)
     root = Path(rest[0]).resolve()
     if command == "drivers":
         return cmd_drivers(root, rest[1:])
+    if command == "draft-pack":
+        return cmd_draft_pack(root, rest[1], rest[2:])
     if command == "audit-pack-sets":
         return cmd_audit_pack_sets(root, Path(rest[1]).resolve(), rest[2:])
     if command == "audit-check-sets":

@@ -971,6 +971,73 @@ def main() -> int:
         else:
             (root / f"audit-{set_id}.json").write_text(kept_text)
 
+    print("== section 56: the texts as first submitted, judged as a set of their own")
+    expect(
+        "the reading of a review's gain: above the swing in all but one text, and none below zero",
+        [
+            g.gain(reviewed, unchanged).split(" (")[0]
+            for reviewed, unchanged in (
+                ([3, 2, 4, 2, 5, 2], [0, 1, -1, 0, 0]),
+                ([3, 2, 1, 2, 5, 0], [0, 1, 0]),
+                ([3, 2, 4, 2, 5, -1], [0, 0, 0]),
+                ([3, 2], [0, 0, 0]),
+            )
+        ]
+        == [
+            "shown",
+            "not shown",
+            "not shown",
+            "not shown: fewer than three texts of a kind",
+        ],
+    )
+    packed = g.cmd_draft_pack(root, "d9-z", ["r1-sol"])
+    made = json.loads((root / "set-d9-z.json").read_text())
+    expect(
+        "a set is made of r1's four texts as first submitted, each a copy of the text its run kept",
+        packed == 0
+        and made["complete"] is True
+        and len(made["slots"]) == 4
+        and all(
+            g.sha256(root / "samples" / info["sample"] / "spec-as-bound-for-review.md")
+            == info["spec_sha256"]
+            and info["same_as_accepted"]
+            == (
+                (
+                    root / "samples" / info["sample"] / "spec-as-bound-for-review.md"
+                ).read_bytes()
+                == (root / "samples" / info["sample"] / "spec-accepted.md").read_bytes()
+            )
+            for info in made["slots"].values()
+        ),
+        made,
+    )
+    refuses(
+        "making the same set a second time", g.cmd_draft_pack, root, "d9-z", ["r1-sol"]
+    )
+    before = len(prompts)
+    expect(
+        "the submitted texts are judged and sealed like any set",
+        g.cmd_judge(root, "d9-z", 60) == 0 and len(prompts) == before + 8,
+    )
+    with contextlib.redirect_stdout(io.StringIO()) as printed:
+        compared = g.cmd_drafts([str(root), "d9-z"])
+    expect(
+        "each submitted text is set beside its accepted one, and a reading is given",
+        compared == 0
+        and printed.getvalue().count("covered under both judges") == 4
+        and "READING" in printed.getvalue(),
+        printed.getvalue(),
+    )
+    kept_grade = g.grades_file(made, None, next(iter(made["slots"])))
+    kept_text = kept_grade.read_text()
+    kept_grade.write_text(kept_text.replace("covered", "absent", 1))
+    refuses(
+        "comparing after a grade file of the submitted texts was changed",
+        g.cmd_drafts,
+        [str(root), "d9-z"],
+    )
+    kept_grade.write_text(kept_text)
+
     print(f"\n{len(FAILED)} failed" if FAILED else "\nall held")
     return 1 if FAILED else 0
 

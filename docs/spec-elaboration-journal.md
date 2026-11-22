@@ -4399,3 +4399,71 @@ readings by the registered judge, $2.89. The rest on subscription. Wall clock 17
   status as added, and this one did, having seen three specifications that do without it.
 - Coverage of a checklist is not quality. A specification can be longer, more exact and still wrong for the
   owner, and none of these was built.
+
+## 56. A reading registered before any judging: what the stage's review adds on Sonnet, from the texts as first submitted (18:16, 2026-11-21)
+
+**The owner's word.** Section 55's report offered a choice: stop, or judge Sonnet's specifications as first
+submitted to see what its review adds. He answered "2", the second (18:11).
+
+**Why.** Section 55 could not tell who writes from who checks. On Sonnet the stage's review lengthened every
+specification by 9% to 43%; on Sol it changed nothing in five of six. Each run kept its specification as it was
+bound for the review, which is the text its author first submitted. Judging those texts separates the two, with
+no new run.
+
+**What is judged.** Twelve texts: the specification as first submitted in each of section 55's twelve runs.
+Six are Sonnet's, and the review changed every one of them afterwards. Six are Sol's: five are the accepted
+text byte for byte, and one (f1) is 13 words shorter than its accepted text. The five unchanged ones are the
+control. The same text read a second time by the same two judges shows how far two readings of one text differ,
+and that swing has never been measured in this study. Without it a difference between a draft and its accepted
+text cannot be read.
+
+They also double the bill. I told the owner twelve readings and about $1.50; this is 24 readings and about
+$2.90 for the registered judge's twelve. I decided it on the standing word of section 44, because the answer he
+asked for cannot be read without the control, and it is reported here and in the result.
+
+**How.** The driver's new `draft-pack` makes one set a sentence (g1-z for merge, h1-z for remind): a blind copy
+of each of the six submitted texts under a shuffled code, in a round and a cell whose names say nothing. `judge`
+then reads them as it reads any set: the same two judges and the same rubric, whose hash is the one all 31
+judged sets of the guides test were sealed with. A judge reads one text in its own session and cannot know that it is a draft,
+or whose. There is no reader for added capability: the question here is coverage.
+
+**How it is read, fixed now.**
+
+- For each text, the net of the accepted text over the submitted one: the items higher under both judges less
+  the items lower under both, the measure of sections 46 to 55. The accepted text's readings are section 55's.
+- The swing is the largest net, either way, among the five unchanged texts' two readings.
+- The review's gain is seen in a Sonnet run when its net is above the swing.
+- The gain is **shown** when it is seen in at least five of the six Sonnet runs and no Sonnet net is below zero.
+  Not shown otherwise.
+
+Described beside the rule: each text's count of items covered under both judges, submitted and accepted; the
+items the review raises, by name; how often each judge gives an item the same state when it reads one text
+twice; and the two authors' first drafts against each other as counts in this one judging round, which is "who
+writes" with the review taken out. Sol's f1 text, changed by 13 words, is listed and belongs to neither group.
+
+**Predictions, before any judging.**
+
+39. The swing is 0 or 1.
+40. Each judge gives the same state to at least 85% of the items when it reads the same text twice.
+41. The review's gain is seen in at least four of the six Sonnet runs. I hold "shown", five of six, at about two
+    in five: a review that added 65 words may add no item.
+42. On remind the mean count of Sonnet's drafts is already above Sol's: most of section 55's lead there is the
+    first draft's and not the review's.
+
+**What it costs.** Twenty-four judge readings, about $2.90 for the registered judge's twelve, about ten minutes.
+No run.
+
+**Where it stops.** After the reading the result is reported as it is.
+
+**Checked, no model called.** The rehearsal holds at 109 checks, none failed (it was 103). The six new ones:
+the reading from made-up nets (shown, too few above the swing, one below zero, too few texts); a set made of
+four submitted texts, each a copy of the text its run kept; making the same set twice refused; the set judged
+and sealed like any other; each submitted text set beside its accepted one; a changed grade file refused. The
+rehearsal also found that the driver could not judge two sets in one process, because the live rubric was
+derived from text the first judging had already replaced. It is now derived from the bench text kept when the
+driver starts, and its hash is unchanged: `e189dc7b9046d48fa9dc418fd8fd920d8c7b1f933d523e9875c1645ed831c27c`.
+
+**Limits, known before the judging.** Six reviewed texts and five unchanged ones, in one judging round. The
+unchanged texts are all Sol's, so the swing is measured on Sol's kind of text; section 55 saw the two judges
+part more on Sonnet's, so the swing on Sonnet's texts may be larger than the one measured. The accepted texts
+were read about half an hour before the drafts. A specification's coverage of a checklist is not its quality.
