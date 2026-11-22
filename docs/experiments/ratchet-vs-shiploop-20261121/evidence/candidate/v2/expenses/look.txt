@@ -1,0 +1,4 @@
+expenses-1 total min 9.0 | stages: step-plan:43 implement:59 test:88 document:23 system-test-author:21 system-test:6 product-acceptance:14
+  pass True | PASS | every verdict passed
+  --- product-acceptance done nav-cf1d93fe191d4977a3cbf88eb3886c40.md
+      {'did': 'node --test', 'id': 'L-1', 'kind': 'works', 'saw': 'Both HTTP integration cases passed. TC-1 checked the specified status codes and transfer order. TC-2 recovered all acknowledged state after restart.'}

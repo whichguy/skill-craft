@@ -1,0 +1,82 @@
+{
+ "recheck": [
+  {
+   "id": "U-1",
+   "kind": "unstated",
+   "text": "What legalMoves, applyMove and status do when the FEN argument is missing, not a string, malformed (empty, wrong number of ranks or squares in a rank, unknown piece letter, bad side-to-move or other field, trailing whitespace or newline) or syntactically valid but an impossible position (a side with no king or two kings, a pawn on the first or eighth rank, the side not to move already in check).",
+   "audits_said": {
+    "p246486": "poor",
+    "pb83679": "poor",
+    "pdc6d39": "sound"
+   }
+  }
+ ],
+ "defects": [
+  {
+   "from": "p246486",
+   "n": "p246486#1",
+   "title": "FEN with the wrong number of ranks is accepted and answered as if valid",
+   "severity": "medium",
+   "repro": "const c=require('./src/chess.js'); const f='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP w KQkq - 0 1'; c.legalMoves(f); c.status(f); c.applyMove(f,'e2e4')",
+   "observed": "16 moves, 'ongoing', and 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/8 b KQkq e3 0 1' (an empty eighth-from-top rank invented)",
+   "expected": "A thrown descriptive error (Error, TypeError, invalid-FEN class or IllegalMoveError) from all three functions",
+   "basis": "unstated",
+   "item": "U-1"
+  },
+  {
+   "from": "p246486",
+   "n": "p246486#2",
+   "title": "Invalid side-to-move field reported as stalemate",
+   "severity": "medium",
+   "repro": "const c=require('./src/chess.js'); const f='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR x KQkq - 0 1'; c.status(f); c.legalMoves(f)",
+   "observed": "'stalemate' and []",
+   "expected": "A thrown error for the invalid 'x' field, not a game result",
+   "basis": "unstated",
+   "item": "U-1"
+  },
+  {
+   "from": "p246486",
+   "n": "p246486#3",
+   "title": "Unknown piece letters, over-long ranks and bad castling fields pass through into returned FENs; the three functions disagree",
+   "severity": "medium",
+   "repro": "const c=require('./src/chess.js'); c.applyMove('rnbqkbnr/ppppxppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','e2e4'); const g='rnbqkbnr/pppppppp/9/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'; c.legalMoves(g); c.status(g); c.applyMove(g,'e2e4'); c.applyMove('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w XYZ - 0 1','e2e4')",
+   "observed": "'rnbqkbnr/ppppxppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1'; for g legalMoves throws TypeError 'PIECE_STEPS[type] is not iterable' while status returns 'ongoing' and applyMove returns 'rnbqkbnr/pppppppp/97/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1'; the XYZ field is echoed as '... b XYZ e3 0 1'",
+   "expected": "A consistent thrown error for each malformed FEN",
+   "basis": "unstated",
+   "item": "U-1"
+  },
+  {
+   "from": "pb83679",
+   "n": "pb83679#1",
+   "title": "An invalid side-to-move field is reported as stalemate",
+   "severity": "medium",
+   "repro": "const c=require('./src/chess.js'); c.status('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR x KQkq - 0 1'); c.legalMoves(same); also with 'W' instead of 'w'",
+   "observed": "status -> 'stalemate'; legalMoves -> []; applyMove(...,'e2e4') -> IllegalMoveError",
+   "expected": "An error saying the FEN is invalid (or the side read case-insensitively), not a confident 'stalemate' for a malformed FEN",
+   "basis": "unstated",
+   "item": "U-1"
+  },
+  {
+   "from": "pb83679",
+   "n": "pb83679#2",
+   "title": "Malformed piece placement and castling fields are accepted and echoed into the returned FEN",
+   "severity": "medium",
+   "repro": "c.applyMove('rnbqkbnr/pppppppp/9/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','e2e4'); c.applyMove('rnbqkbnr/ppppxppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','e2e4'); c.applyMove('rnbqkbnr/ppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','e2e4'); c.applyMove('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w XYZ - 0 1','e2e4'); c.legalMoves('rnbqkbnr/pppppppp/8/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1')",
+   "observed": "Returned '.../97/...', '.../ppppxppp/...', '.../ppppppp1/...' (missing square silently filled), '... b XYZ e3 0 1'; the 9-rank FEN returns ['a1a2','b1b2',...] as if valid",
+   "expected": "An error naming the malformed FEN rather than a confident result or a corrupted FEN",
+   "basis": "unstated",
+   "item": "U-1"
+  },
+  {
+   "from": "pb83679",
+   "n": "pb83679#3",
+   "title": "Missing or garbled FEN fails with internal TypeErrors, inconsistent across functions",
+   "severity": "low",
+   "repro": "c.legalMoves(''); c.legalMoves('not-a-fen'); c.status(undefined); c.legalMoves('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -'); c.applyMove()",
+   "observed": "TypeError 'ranks[rank] is not iterable'; TypeError \"Cannot read properties of undefined (reading 'trim')\"; TypeError 'Cannot convert undefined to a BigInt'; but applyMove() throws IllegalMoveError 'Expected a legal UCI move string'",
+   "expected": "A descriptive invalid-FEN error, the same kind from all three functions",
+   "basis": "unstated",
+   "item": "U-1"
+  }
+ ]
+}

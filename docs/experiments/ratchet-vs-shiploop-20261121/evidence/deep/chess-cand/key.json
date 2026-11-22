@@ -1,0 +1,19 @@
+{
+ "p246486": {
+  "point": "S",
+  "tree": "/Users/dadleet/e2e-runs/d20261122-ccc2ff/chess-1/work",
+  "commit": "a7a09852ace533bed7fc94b72c85bddfbc717c86",
+  "spec": "docs/shiploop/spec.md"
+ },
+ "pb83679": {
+  "point": "F",
+  "tree": "/Users/dadleet/e2e-runs/d20261122-b54ea4/delivered/chess",
+  "spec": "docs/shiploop/spec.md"
+ },
+ "pdc6d39": {
+  "point": "L",
+  "tree": "/Users/dadleet/e2e-runs/d20261122-ac4afc/chess-2/work",
+  "commit": "68d2e1bbbfa5ca32136a1ca5d757268eb296dd27",
+  "spec": "ratchet/spec.md"
+ }
+}

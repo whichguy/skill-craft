@@ -4586,6 +4586,565 @@
    "arm_only_kept": 6
   }
  },
+ "chess-cand": {
+  "facts": {
+   "S": {
+    "stated": 40,
+    "built": 40,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 37,
+    "unstated": 6,
+    "handled": 5,
+    "short": [
+     "U-1"
+    ],
+    "told": 0,
+    "told_or_marked": 0,
+    "unstated_strong_test_read": 2,
+    "defects": 3,
+    "defects_high": [],
+    "defects_low": 1,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 1,
+     "neutral": 3,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 40,
+    "built": 40,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 37,
+    "unstated": 6,
+    "handled": 5,
+    "short": [
+     "U-1"
+    ],
+    "told": 0,
+    "told_or_marked": 0,
+    "unstated_strong_test_read": 3,
+    "defects": 3,
+    "defects_high": [],
+    "defects_low": 1,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 1,
+     "neutral": 3,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 40,
+    "built": 40,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 37,
+    "unstated": 6,
+    "handled": 6,
+    "short": [],
+    "told": 2,
+    "told_or_marked": 3,
+    "unstated_strong_test_read": 1,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 0,
+    "defect_ids": [],
+    "serious": 0,
+    "extras": {
+     "value": 2,
+     "neutral": 3,
+     "liability": 0
+    }
+   }
+  },
+  "facts_with_arm_items": {
+   "S": {
+    "stated": 40,
+    "built": 40,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 37,
+    "unstated": 8,
+    "handled": 7,
+    "short": [
+     "U-1"
+    ],
+    "told": 0,
+    "told_or_marked": 0,
+    "unstated_strong_test_read": 2,
+    "defects": 3,
+    "defects_high": [],
+    "defects_low": 1,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 1,
+     "neutral": 3,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 40,
+    "built": 40,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 37,
+    "unstated": 8,
+    "handled": 7,
+    "short": [
+     "U-1"
+    ],
+    "told": 0,
+    "told_or_marked": 0,
+    "unstated_strong_test_read": 3,
+    "defects": 3,
+    "defects_high": [],
+    "defects_low": 1,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 1,
+     "neutral": 3,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 40,
+    "built": 40,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 5,
+    "strong_test_read": 37,
+    "unstated": 8,
+    "handled": 8,
+    "short": [],
+    "told": 3,
+    "told_or_marked": 4,
+    "unstated_strong_test_read": 2,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 0,
+    "defect_ids": [],
+    "serious": 0,
+    "extras": {
+     "value": 2,
+     "neutral": 3,
+     "liability": 0
+    }
+   }
+  },
+  "pairs": {
+   "S-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": "second",
+     "D5": "second",
+     "D6": "second"
+    },
+    "gate": null,
+    "better": "L",
+    "verdicts": {
+     "a": {
+      "side": "L",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "Both engines are fully correct on every stated rule and every perft count, so the only difference that matters in use is Z's FEN validation: Y gives confident wrong answers or raw TypeErrors on malformed input (D-1 to D-4). Y's deeper count tests and lack of Z's extra harness count a little the other way, but they do not outweigh wrong game results. Adding validation and its tests to Y is a contained parser change of about an hour.",
+      "lesser_lacks": [
+       "Add FEN validation in Y's readFen that throws one descriptive error kind from legalMoves, status and applyMove for missing or non-string input, wrong rank count or width, unknown piece letters, bad side, castling, en-passant and clock fields, and a wrong number of kings",
+       "Add tests that pass invalid FENs and assert the thrown error class",
+       "Say in the README what a malformed FEN does"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   },
+   "S-F": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": null,
+     "D5": null,
+     "D6": null
+    },
+    "gate": null,
+    "better": null,
+    "verdicts": {
+     "a": {
+      "side": null,
+      "strength": "same",
+      "one_task_closes": "yes",
+      "why": "X and Y are the same product in practice: both are correct on every rule and perft count, both lack FEN validation with the same defects D-1 to D-4, and both handle move input and the error class the same way. The small differences (X's slightly deeper and less opinionated tests, Y's README note on malformed FEN) are slight and point both ways.",
+      "lesser_lacks": []
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   },
+   "F-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": "second",
+     "D5": "second",
+     "D6": "second"
+    },
+    "gate": null,
+    "better": "L",
+    "verdicts": {
+     "a": {
+      "side": "L",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "Both are correct chess engines on every stated rule and published perft count, but X answers malformed FENs with confident wrong results or internal TypeErrors, and Z rejects them consistently (D-1 to D-4). X's deeper count tests and leaner delivery are real but smaller advantages. Adding validation to X's parser, with tests, is about an hour's work.",
+      "lesser_lacks": [
+       "Add FEN validation in X's parseFen that throws one descriptive error kind from legalMoves, status and applyMove for missing or non-string input, wrong rank count or width, unknown piece letters, bad side, castling, en-passant and clock fields, and a wrong number of kings",
+       "Add tests that pass invalid FENs and assert the thrown error class",
+       "Document malformed-FEN behaviour in the README"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   }
+  },
+  "nearly_competitive": true,
+  "rechecked_items": [
+   "U-1"
+  ],
+  "inventory": {
+   "stated": 40,
+   "proved": [
+    "S-5",
+    "S-7",
+    "S-17",
+    "S-19",
+    "S-30",
+    "S-39"
+   ],
+   "unstated_rated": 12,
+   "independent": 10,
+   "independent_kept": 6,
+   "arm_only": 2,
+   "arm_only_kept": 2
+  }
+ },
+ "tickets-cand": {
+  "facts": {
+   "S": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 19,
+    "unstated": 19,
+    "handled": 18,
+    "short": [
+     "U-22"
+    ],
+    "told": 16,
+    "told_or_marked": 16,
+    "unstated_strong_test_read": 17,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 4,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 3,
+     "neutral": 1,
+     "liability": 1
+    }
+   },
+   "F": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 16,
+    "unstated": 19,
+    "handled": 18,
+    "short": [
+     "U-22"
+    ],
+    "told": 15,
+    "told_or_marked": 15,
+    "unstated_strong_test_read": 14,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 3,
+    "defect_ids": [
+     "D-2",
+     "D-3",
+     "D-4"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 0,
+     "neutral": 0,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 15,
+    "unstated": 19,
+    "handled": 19,
+    "short": [],
+    "told": 19,
+    "told_or_marked": 19,
+    "unstated_strong_test_read": 18,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 0,
+    "defect_ids": [],
+    "serious": 0,
+    "extras": {
+     "value": 5,
+     "neutral": 2,
+     "liability": 0
+    }
+   }
+  },
+  "facts_with_arm_items": {
+   "S": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 19,
+    "unstated": 21,
+    "handled": 20,
+    "short": [
+     "U-22"
+    ],
+    "told": 17,
+    "told_or_marked": 17,
+    "unstated_strong_test_read": 17,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 4,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 3,
+     "neutral": 1,
+     "liability": 1
+    }
+   },
+   "F": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 16,
+    "unstated": 21,
+    "handled": 20,
+    "short": [
+     "U-22"
+    ],
+    "told": 16,
+    "told_or_marked": 16,
+    "unstated_strong_test_read": 14,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 3,
+    "defect_ids": [
+     "D-2",
+     "D-3",
+     "D-4"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 0,
+     "neutral": 0,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 21,
+    "built": 21,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 6,
+    "strong_test_read": 15,
+    "unstated": 21,
+    "handled": 21,
+    "short": [],
+    "told": 21,
+    "told_or_marked": 21,
+    "unstated_strong_test_read": 20,
+    "defects": 0,
+    "defects_high": [],
+    "defects_low": 0,
+    "defect_ids": [],
+    "serious": 0,
+    "extras": {
+     "value": 5,
+     "neutral": 2,
+     "liability": 0
+    }
+   }
+  },
+  "pairs": {
+   "S-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": "second",
+     "D5": null,
+     "D6": "second"
+    },
+    "gate": null,
+    "better": "L",
+    "verdicts": {
+     "a": {
+      "side": "L",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "X has none of the four defects while Y has all four, the most consequential being D-1, an undocumented change to how existing list queries behave. Y's raw assignee column and leaner code are real but small, and X's extra parsing code and builder leftovers are a modest maintenance cost. Each of Y's gaps is a small, local fix, so one short task closes them.",
+      "lesser_lacks": [
+       "Restore first-value handling for repeated status and priority parameters (or document the change in the changelog)",
+       "Add a CHANGELOG section for the assignment feature with a version bump",
+       "Make an assigned agent distinguishable from unassigned in the table and show (refuse '-'/'null' as names or quote names)",
+       "Decode the assignment body strictly and refuse invalid UTF-8 with 400 invalid"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   },
+   "S-F": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": null,
+     "D5": null,
+     "D6": "second"
+    },
+    "gate": null,
+    "better": null,
+    "verdicts": {
+     "a": {
+      "side": "F",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "The two deliveries share the changelog, marker and UTF-8 defects; the difference that matters is Y's undocumented change to repeated status/priority filters, which breaks 'everything keeps working' for existing callers. Y's save rollback and decision record are worth something but cover a rare failure and documentation only. Y's extra gaps are small fixes in query.js and format.js.",
+      "lesser_lacks": [
+       "Restore first-value handling for repeated status and priority parameters (and decide the same for assignee)",
+       "Print the same unassigned marker in show as in the table",
+       "Count the 64-character limit the way the requester limit is counted"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   },
+   "F-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": "second",
+     "D5": null,
+     "D6": "second"
+    },
+    "gate": null,
+    "better": "L",
+    "verdicts": {
+     "a": {
+      "side": "L",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "Z is a sound, lean delivery, but it carries three low defects that X avoids and lacks X's save rollback and its operator documentation. X costs more to maintain (a second query decoder, builder leftovers) and Z's raw column is a small plus, so the gap is real but not large. Each missing item is small and local, so about an hour of work closes it.",
+      "lesser_lacks": [
+       "Add a CHANGELOG section for the assignment feature with a version bump",
+       "Refuse '-' as an agent name or use a marker no name can take",
+       "Refuse invalid UTF-8 in the assignment body with 400 invalid",
+       "Roll back the in-memory ticket, audit and outbox when saving an assignment fails",
+       "Document legacy data-file loading and assignee retention through transitions in docs/operations.md and docs/api.md"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   }
+  },
+  "nearly_competitive": true,
+  "rechecked_items": [
+   "U-22"
+  ],
+  "inventory": {
+   "stated": 21,
+   "proved": [
+    "S-4",
+    "S-8",
+    "S-9",
+    "S-10",
+    "S-14",
+    "S-15"
+   ],
+   "unstated_rated": 28,
+   "independent": 22,
+   "independent_kept": 19,
+   "arm_only": 6,
+   "arm_only_kept": 2
+  }
+ },
  "calibration": {
   "facts": {
    "S": {

@@ -1,0 +1,124 @@
+{
+ "rechecks": [
+  {
+   "id": "U-22",
+   "results": {
+    "p28273b": {
+     "grade": "poor",
+     "observed": "docs/api.md documents the assignee field, the PUT /tickets/:id/assignee endpoint (200/400/404/409, trimming, 64 code points), the assignee filter, the ticket.assigned audit action and the outbox notification to each new assignee, and the changed repeated-filter rule; README describes the ASSIGNEE table column (dash = unassigned) and the fifth raw column; decision record 0009-ticket-assignment.md (Accepted) is added and indexed. But CHANGELOG.md newest section is still 1.4.0 (2025-09-15) with nothing on assignment, and package.json version is still 1.4.0: no release record."
+    },
+    "p097740": {
+     "grade": "poor",
+     "observed": "docs/api.md documents the assignee field (also null on create), the PUT endpoint (200, 404 not_found, 409 conflict, trimming, 1-64 characters, no-op), the assignee filter, the ticket.assigned audit action and the notification to the new agent; README describes the ASSIGNEE column (- for unassigned) and the fifth raw column. CHANGELOG.md newest section is still 1.4.0 (2025-09-15), package.json version 1.4.0, and no decision record although the data file now carries and validates an assignee on every ticket (src/persistence.js)."
+    },
+    "pe7fbf9": {
+     "grade": "acceptable",
+     "observed": "docs/api.md documents the field, the PUT endpoint (trimming, 1-64 UTF-16 code units, control characters, 409 on resolved/closed, no-op, ticket.assigned audit entry, notice to each new named assignee), the filter (first value of a repeated parameter, malformed UTF-8 400) and assignee retention through transitions; README gains an Assignment section and the CLI column notes (raw stays four columns); CHANGELOG.md has a new \"Unreleased\" section describing the endpoint, field, filter, notices, CLI display and UTF-8 rules; decision record 0009-ticket-assignments.md (Proposed) is added and indexed. Shortfall: package.json version is still 1.4.0 (the section is unversioned)."
+    }
+   }
+  }
+ ],
+ "defects": [
+  {
+   "id": "D-1",
+   "title": "Repeated status or priority parameters changed meaning: a second value now narrows to nothing or is refused, where the service used the first value",
+   "severity": "low",
+   "merged_from": [
+    "p28273b#1"
+   ],
+   "repro": "Start the service; POST /tickets {\"title\":\"a\",\"requester\":\"r@x\"}; GET /tickets?status=open&status=closed; GET /tickets?status=open&status=bogus; also GET /tickets?priority=normal&priority=high and ?priority=normal&priority=bogus. Compared with the base tree run the same way.",
+   "expected": "As before the change: the open ticket in each case (the first value is used), or a documented change in the changelog.",
+   "note": "Base tree run the same way returns T-0001 for all four queries (200). p28273b documents the new rule in docs/api.md but not in CHANGELOG.md.",
+   "results": {
+    "p28273b": {
+     "result": "present",
+     "observed": "status=open&status=closed -> 200 {\"items\":[],\"next\":null}; status=open&status=bogus -> 400 invalid \"status must be one of open, in_progress, resolved, closed\"; priority=normal&priority=high -> 200 empty; priority=normal&priority=bogus -> 400 invalid. Base returns T-0001 (200) for all four."
+    },
+    "p097740": {
+     "result": "absent",
+     "observed": "All four queries -> 200 with T-0001, same as base."
+    },
+    "pe7fbf9": {
+     "result": "absent",
+     "observed": "All four queries -> 200 with T-0001, same as base."
+    }
+   }
+  },
+  {
+   "id": "D-2",
+   "title": "No changelog entry or version bump for the assignment feature",
+   "severity": "low",
+   "merged_from": [
+    "p28273b#2",
+    "p097740#3"
+   ],
+   "repro": "Read CHANGELOG.md and package.json in the delivered tree.",
+   "expected": "A new CHANGELOG section describing the assignee endpoint, field, filter, notification and CLI column (and any changed filter behaviour), with a matching version in package.json.",
+   "note": "",
+   "results": {
+    "p28273b": {
+     "result": "present",
+     "observed": "CHANGELOG.md newest section is 1.4.0 (2025-09-15), nothing on assignment, the filter, the CLI column or the repeated-filter change; package.json version 1.4.0."
+    },
+    "p097740": {
+     "result": "present",
+     "observed": "CHANGELOG.md newest section is 1.4.0 (2025-09-15), nothing on assignment; package.json version 1.4.0."
+    },
+    "pe7fbf9": {
+     "result": "absent",
+     "observed": "CHANGELOG.md has a new \"Unreleased\" section listing the PUT endpoint, audit entries, outbox notice, assignee field and filter, all-filters-match, CLI display and UTF-8 rules. package.json version is still 1.4.0, so the version half is missing, but the change is recorded."
+    }
+   }
+  },
+  {
+   "id": "D-3",
+   "title": "An agent named '-' is shown exactly like an unassigned ticket in the CLI table and show",
+   "severity": "low",
+   "merged_from": [
+    "p097740#1"
+   ],
+   "repro": "Start the service with DATA_FILE=FILE; POST /tickets {\"title\":\"t\",\"requester\":\"r\"}; PUT /tickets/T-0001/assignee {\"assignee\":\"-\"}; POST a second ticket left unassigned (and a third assigned to \"unassigned\"); stop the service; run `node bin/tickets.js --data FILE list` and `show` for each.",
+   "expected": "An assigned ticket and an unassigned one are distinguishable in the listing (either refuse '-' as a name or use a marker no valid name can take).",
+   "note": "p28273b's show prints 'null' for an unassigned ticket, so only its table collides; its table is the listing the request names.",
+   "results": {
+    "p28273b": {
+     "result": "present",
+     "observed": "PUT '-' -> 200. list: T-0001 and T-0002 both show '-' in ASSIGNEE. show T-0001 prints 'assignee   -', show T-0002 (unassigned) prints 'assignee   null' (so show differs, the table does not)."
+    },
+    "p097740": {
+     "result": "present",
+     "observed": "PUT '-' -> 200. list: T-0001 and T-0002 both show '-'; show T-0001 and show T-0002 both print 'assignee   -'."
+    },
+    "pe7fbf9": {
+     "result": "absent",
+     "observed": "PUT '-' -> 200. list shows T-0001 as \"-\" (quoted), T-0002 as unassigned, and a ticket assigned to the name 'unassigned' as \"unassigned\" (quoted); show likewise, and history reads 'assignee unassigned -> \"-\"'."
+    }
+   }
+  },
+  {
+   "id": "D-4",
+   "title": "A name holding an invalid UTF-8 byte is accepted and stored with a replacement character",
+   "severity": "low",
+   "merged_from": [
+    "p097740#2"
+   ],
+   "repro": "POST /tickets {\"title\":\"t\",\"requester\":\"r\"}; PUT /tickets/T-0001/assignee with body bytes {\"assignee\":\"da<0xFF>na\"}; GET the ticket, its audit and /admin/outbox.",
+   "expected": "400 invalid with the ticket unchanged and no audit entry or notification.",
+   "note": "Inherited from readJson: on all three products POST /tickets with a 0xFF byte in the title still answers 201 with \"x\\uFFFDy\"; pe7fbf9 applies strict UTF-8 only to the assignment request.",
+   "results": {
+    "p28273b": {
+     "result": "present",
+     "observed": "PUT -> 200 with assignee \"da\\uFFFDna\"; GET shows it; audit has a second entry; outbox has a pending ticket.assigned to \"da\\uFFFDna\"."
+    },
+    "p097740": {
+     "result": "present",
+     "observed": "PUT -> 200 with assignee \"da\\uFFFDna\"; GET shows it; audit has a second entry; outbox has a pending ticket.assigned to \"da\\uFFFDna\"."
+    },
+    "pe7fbf9": {
+     "result": "absent",
+     "observed": "PUT -> 400 {\"error\":{\"code\":\"invalid\",\"message\":\"request body is not valid UTF-8\"}}; GET shows assignee null and the original updated; audit has only ticket.created; outbox has only the ticket.created notice."
+    }
+   }
+  }
+ ]
+}

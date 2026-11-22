@@ -300,6 +300,46 @@
 - **F-L**: better feature: L. Ahead: D3 L, D4 L, D5 L, D6 L. judge a: L (much). One short task closes the gap, both judges: no.
 - **S nearly competitive with L: yes**
 
+## node-chess-engine, the look candidate's trial
+
+| | S: a ShipLoop candidate's delivery (the look inside product-acceptance) | F: the fresh ShipLoop delivery | L: a fresh Ratchet final |
+|---|---|---|---|
+| D1 stated items built | 40 of 40 | 40 of 40 | 40 of 40 |
+| D2 tests proved by breaking the behaviour | 5 of 6 | 5 of 6 | 5 of 6 |
+| D3 unstated items handled | 5 of 6 | 5 of 6 | 6 of 6 |
+| D4 unstated items told in the delivered documents | 0 of 6 | 0 of 6 | 2 of 6 |
+| D5 reproducing defects, high or medium (of them high; low) | 3 (0; 1) | 3 (0; 1) | 0 (0; 0) |
+| Serious: high defects and stated items not built | 0 | 0 | 0 |
+| Reported: told, or marked in the specification | 0 of 6 | 0 of 6 | 3 of 6 |
+| Reported: stated items with a strong test, by reading | 37 of 40 | 37 of 40 | 37 of 40 |
+| Reported: beyond the request, value / neutral / liability | 1 / 3 / 0 | 1 / 3 / 0 | 2 / 3 / 0 |
+| Reported: D3 with the items only an arm raised | 7 of 8 | 7 of 8 | 8 of 8 |
+
+- **S-L**: better feature: L. Ahead: D4 L, D5 L, D6 L. judge a: L (some). One short task closes the gap, both judges: yes.
+- **S-F**: better feature: no difference shown. Ahead: nowhere. judge a: same. One short task closes the gap, both judges: yes.
+- **F-L**: better feature: L. Ahead: D4 L, D5 L, D6 L. judge a: L (some). One short task closes the gap, both judges: yes.
+- **S nearly competitive with L: yes**
+
+## ticket-assignment, the look candidate's trial
+
+| | S: a ShipLoop candidate's delivery (the look inside product-acceptance) | F: the fresh ShipLoop delivery | L: a fresh Ratchet final |
+|---|---|---|---|
+| D1 stated items built | 21 of 21 | 21 of 21 | 21 of 21 |
+| D2 tests proved by breaking the behaviour | 6 of 6 | 6 of 6 | 6 of 6 |
+| D3 unstated items handled | 18 of 19 | 18 of 19 | 19 of 19 |
+| D4 unstated items told in the delivered documents | 16 of 19 | 15 of 19 | 19 of 19 |
+| D5 reproducing defects, high or medium (of them high; low) | 0 (0; 4) | 0 (0; 3) | 0 (0; 0) |
+| Serious: high defects and stated items not built | 0 | 0 | 0 |
+| Reported: told, or marked in the specification | 16 of 19 | 15 of 19 | 19 of 19 |
+| Reported: stated items with a strong test, by reading | 19 of 21 | 16 of 21 | 15 of 21 |
+| Reported: beyond the request, value / neutral / liability | 3 / 1 / 1 | 0 / 0 / 0 | 5 / 2 / 0 |
+| Reported: D3 with the items only an arm raised | 20 of 21 | 20 of 21 | 21 of 21 |
+
+- **S-L**: better feature: L. Ahead: D4 L, D6 L. judge a: L (some). One short task closes the gap, both judges: yes.
+- **S-F**: better feature: no difference shown. Ahead: D6 F. judge a: F (some). One short task closes the gap, both judges: yes.
+- **F-L**: better feature: L. Ahead: D4 L, D6 L. judge a: L (some). One short task closes the gap, both judges: yes.
+- **S nearly competitive with L: yes**
+
 ## the instrument check, calibration (ticket assignment)
 
 | | S: the correct reference | F: the reference, padded | L: a stated requirement broken |

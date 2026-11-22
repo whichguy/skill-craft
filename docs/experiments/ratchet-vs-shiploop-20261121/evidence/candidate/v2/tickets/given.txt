@@ -1,0 +1,1 @@
+d20261122-ccc2ff/tickets-1 | rollouts 2 | outputs 96 | median chars 4930 | largest 42197 | {'Look before you assess': 2, 'have a fresh worker look': 1, 'fresh native worker': 1, 'Product look guide': 2, 'no look is recorded': 2}

@@ -1566,3 +1566,68 @@ Grokbot's place (ahead of unchanged ShipLoop on told or on defects there), and G
 the confirmation. Limits known now: the case has no held-out checks of this study's kind (what the harness has is
 recorded when the apparatus is built); it has no earlier run of either tool here, so nothing about it is known in
 advance; one run of each tool.
+
+## 20. Version two, audited on the two cases where its worker looked: no gain over unchanged ShipLoop (15:36)
+
+Status: firm for these two deliveries (one run a case); the reading of *why* in 20.2 is mine and is marked.
+
+One judging round a case, as 16.3 and 18.4 registered: the candidate's delivery (S), this morning's unchanged
+ShipLoop delivery (N) and the fresh Ratchet final (L2), all three audited by new sessions, one cross-probe, the
+single reader, the Opus judge. Layouts `deep/chess-cand` and `deep/tickets-cand`.
+
+### 20.1 The readings (candidate / unchanged ShipLoop / fresh Ratchet)
+
+| | chess | ticket assignment |
+|---|---|---|
+| D1 stated items built | 40 / 40 / 40 of 40 | 21 / 21 / 21 of 21 |
+| D2 tests proved | 5 / 5 / 5 of 6 | 6 / 6 / 6 of 6 |
+| D3 unsaid points handled | 5 / 5 / 6 of 6 | 18 / 18 / 19 of 19 |
+| D4 told in the delivered documents | 0 / 0 / 2 of 6 | 16 / 15 / 19 of 19 |
+| D5 medium defects; low | 3 / 3 / 0; 1 / 1 / 0 | 0 / 0 / 0; 4 / 3 / 0 |
+| The judge, candidate against unchanged ShipLoop | same | unchanged ShipLoop "somewhat" better |
+| **Candidate against unchanged ShipLoop, by the rule** | no difference shown | no difference shown |
+| Candidate against Ratchet, by the rule | Ratchet better (D4, D5, D6) | Ratchet better (D4, D6) |
+| Minutes, candidate / unchanged | 15.4 / 10.7 | 20.9 / 10.5 |
+
+**By 16.3's rule version two is not worth proposing:** on neither audited case is the candidate ahead of unchanged
+ShipLoop on any reading, at 1.4 and 2.0 times its minutes. (Expenses did nothing because its instruction did not
+arrive, 19.2; Grokbot's run is read by script only.)
+
+### 20.2 What happened in each, from the records
+
+- **Chess.** The worker found the real weakness (confident wrong answers on malformed positions: a side to move of
+  `x` reported as stalemate, a seven-rank position played as valid). It recorded it as an *untold choice*, not a
+  shortfall. The routing rule did its job; the corrective item added one README line, "Malformed-position behavior
+  is outside the API contract"; the answer pass was accepted on that quote. The behaviour did not change (the same
+  three medium defects as the unchanged delivery), and the independent reader did not count the line as telling
+  the customer what the product does. The script's `told` check holds that a quote is in a delivered file; it
+  cannot hold that the quote tells anything.
+- **Tickets.** The worker's two medium shortfalls were real observations, and the corrective item fixed both with
+  tests. One of them (contradictory repeated values of one filter) was fixed by changing how *every* repeated
+  filter behaves, including `status` and `priority`, which worked before and which nobody asked to change; the
+  audit records that as a defect of the candidate's delivery (D-1, low, not in the changelog), and it is why the
+  judge prefers the unchanged delivery. The third finding, the `-` look-alike, was `low`, so it was shown and not
+  routed, and it is still there.
+
+*My reading:* the fresh worker does see more than the builder (it found in two runs what the builder's own look
+found in none), so version two fixes what version one lacked. What it does not have is the other half of section
+15's result. There the fix was made by Opus at xhigh, which closed the behaviour and wrote a README of the
+product's choices that took "told" from 0 to 13 of 16 on expenses; here the fix is made by the session that built
+the product, Sol at medium, which did the least that satisfied each row. **Section 15's gain was mostly the
+stronger fixer and the document it wrote, not the look.** The looks themselves, this morning's and the worker's,
+list few untold choices (this morning's matched 5, 1, 1 and 8 of the inventory's; the worker's listed 1 and 0);
+the telling came from the fixer.
+
+### 20.3 What this changes
+
+- **Version three** (already in hand, 19.2) also takes two wording rules from the chess record: a wrong or
+  misleading answer is a shortfall, never an untold choice; and a `told` line must say what the product does, not
+  that the point is unsupported. Whether those are enough is what its round tests; I do not expect them to supply
+  the stronger fixer.
+- **A simpler candidate this result points to, not built:** the largest and steadiest gap between unchanged
+  ShipLoop and Ratchet across every round is what the delivered documents tell (0, 0, 10 to 15 and 1 to 2 against
+  12, 1 to 2, 17 to 19 and 15 to 18). Unchanged ShipLoop writes no user document on a new build, and its released
+  list of the choices it made (`defaults`, "Decided for you") goes to the run's report, not into the product. A
+  duty of the `document` stage to keep a user-facing document that states those choices would aim at that gap
+  directly, with no worker and no extra stage. It is recorded here as the next thing to try if version three's
+  round also shows no gain.

@@ -1,0 +1,140 @@
+{
+ "told": [
+  {
+   "id": "U-1",
+   "results": {
+    "p246486": {
+     "told": "no",
+     "where": ""
+    },
+    "pb83679": {
+     "told": "no",
+     "where": ""
+    },
+    "pdc6d39": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-3",
+   "results": {
+    "p246486": {
+     "told": "no",
+     "where": ""
+    },
+    "pb83679": {
+     "told": "no",
+     "where": ""
+    },
+    "pdc6d39": {
+     "told": "yes",
+     "where": "README.md: \"Use lowercase UCI coordinates such as `e2e4`. For castling use `e1g1`, `e1c1`, `e8g8`, or `e8c8`. A promotion appends `q`, `r`, `b`, or `n`, as in `e7e8q`.\" with \"Throws `IllegalMoveError` if the move is illegal in the supplied position.\""
+    }
+   }
+  },
+  {
+   "id": "U-4",
+   "results": {
+    "p246486": {
+     "told": "no",
+     "where": ""
+    },
+    "pb83679": {
+     "told": "no",
+     "where": ""
+    },
+    "pdc6d39": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-5",
+   "results": {
+    "p246486": {
+     "told": "no",
+     "where": ""
+    },
+    "pb83679": {
+     "told": "no",
+     "where": ""
+    },
+    "pdc6d39": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-7",
+   "results": {
+    "p246486": {
+     "told": "no",
+     "where": ""
+    },
+    "pb83679": {
+     "told": "no",
+     "where": ""
+    },
+    "pdc6d39": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-9",
+   "results": {
+    "p246486": {
+     "told": "no",
+     "where": ""
+    },
+    "pb83679": {
+     "told": "no",
+     "where": ""
+    },
+    "pdc6d39": {
+     "told": "yes",
+     "where": "README.md: \"Run `npm test` with Node.js and npm. This invokes `node --test` and includes played games, special moves, and move counts for the starting position and Kiwipete.\""
+    }
+   }
+  },
+  {
+   "id": "U-11",
+   "results": {
+    "p246486": {
+     "told": "no",
+     "where": ""
+    },
+    "pb83679": {
+     "told": "no",
+     "where": ""
+    },
+    "pdc6d39": {
+     "told": "yes",
+     "where": "README.md: \"Each call takes the complete position as a six-field FEN string, so callers can keep and reuse earlier positions.\""
+    }
+   }
+  },
+  {
+   "id": "U-12",
+   "results": {
+    "p246486": {
+     "told": "no",
+     "where": ""
+    },
+    "pb83679": {
+     "told": "no",
+     "where": ""
+    },
+    "pdc6d39": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  }
+ ]
+}

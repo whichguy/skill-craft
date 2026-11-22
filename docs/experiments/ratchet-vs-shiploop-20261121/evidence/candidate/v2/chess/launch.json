@@ -1,0 +1,39 @@
+{
+ "arm": "shiploop",
+ "case": "node-chess-engine",
+ "label": "chess-1",
+ "output": "/Users/dadleet/e2e-runs/d20261122-ccc2ff/chess-1",
+ "commit": "9ca27527082cd12665af3d2401acf183813adb87",
+ "shiploop_version": "2.6.0",
+ "host": "codex",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "argv": [
+  "/opt/homebrew/opt/python@3.15/bin/python3.15",
+  "/Users/dadleet/e2e-runs/d20261122-ccc2ff/source-9ca27527082c/test/shiploop_e2e/run.py",
+  "--source",
+  "checkout",
+  "--case",
+  "node-chess-engine",
+  "--host",
+  "codex",
+  "--model",
+  "gpt-6.2-sol",
+  "--effort",
+  "medium",
+  "--output",
+  "/Users/dadleet/e2e-runs/d20261122-ccc2ff/chess-1",
+  "--baseline",
+  "/Users/dadleet/e2e-runs/d20261122-ccc2ff/baselines.jsonl",
+  "--quiet"
+ ],
+ "attempts": [
+  {
+   "started": 1795388256.718506,
+   "ended": 1795389236.773043,
+   "returncode": 0,
+   "refused_by_lease": false
+  }
+ ],
+ "log": "/Users/dadleet/e2e-runs/d20261122-ccc2ff/chess-1.log"
+}
