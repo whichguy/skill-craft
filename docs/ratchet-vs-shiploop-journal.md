@@ -391,3 +391,70 @@ the judge.
 - A case where a first build falls short is still missing; breadth has now sat at the ceiling in the pilot and here.
 - Give Ratchet's first builds to the blind judge: that says whether the code readings it won (shared expenses,
   Grokbot) come from its build or from the later cycles.
+
+## 9. Unstated requirements: who finds them (2026-11-22, the owner's second follow-up)
+
+The owner: "I do wonder if [Ratchet] is better about detecting implicit or unidentified requirements or spec
+conditions. Is this the case and should we consider that in both the judge and implemention? Shiploop may do better
+at re-planning spec requirements after a pass of the build?"
+
+Status: exploratory. Counts read from the eight runs' own files after the fact, plus one probe of one delivered
+product. Nothing registered beforehand; no model ran. Sources under the runs root: `LABEL/work/ratchet/spec.md` and
+`delta-N.md` (Ratchet), `LABEL/work/docs/shiploop/spec.md` (ShipLoop).
+
+| Case | Specification words: ShipLoop / Ratchet | Ratchet: points marked `Open:` | Ratchet: clauses it labels implied | Ratchet's after-build looks: clauses added | of those, its own product did not meet |
+|---|---|---|---|---|---|
+| Shared expenses | 486 / 3,759 | 10 | 11 | 8 | 1 |
+| Chess | 336 / 3,172 | 4 | 19 | 4 | 1 |
+| Ticket assignment | 310 / 3,794 | 5 | 9 | 10 | 5 |
+| Grokbot | 785 / 6,996 | 23 | 11 | 15 | 10 |
+
+ShipLoop's four specifications mark no point as open or as its own choice.
+
+- **L7. Ratchet writes down what the request leaves unsaid; ShipLoop decides it in passing.** On ticket assignment
+  Ratchet's specification marks five points for the requester. ShipLoop's specification settles four of them inside
+  ordinary requirement lines with no mark ("trimmed single-line agent name of up to 64 characters"; "matches an
+  explicit name exactly"; a repeat after an intervening change is news; "Raw output appends the assignee column")
+  and does not mention the fifth (what a filter value outside the name rules does; the judge notes the filter value
+  is unchecked). Two of the five are the choices the blind judge later picked on (how a name is trimmed and
+  counted; the raw column).
+- **L8. Marking a point did not make the build better.** No one answers an `Open:` line in an unattended run, so
+  Ratchet's builder chose as well. On the name rule the judge preferred ShipLoop's unmarked choice (it follows the
+  product's own convention for requesters) to Ratchet's (untrimmed, UTF-16 units). The gain from marking is that a
+  requester could answer; these runs had no requester.
+- **L9. The after-build looks find shortfalls in a product that passes every held-out check.** Of 37 clauses the
+  looks added, Ratchet's own product did not meet 17, by the look's own probe of the running product. Several read
+  as defects to me (Grokbot: reloading after a send leaves the draft, and sending it starts a second task;
+  asking for `ORD-1001A` answers with `ORD-1001`; two processes on one data folder each confirm `ORD-1005` and one
+  is lost. Tickets: a body with a malformed UTF-8 byte is saved as a name). Others are finer than a requester may
+  care about (a 20,000-letter ID; a move passed as an object with `toString`). This corrects L2's wording: about
+  half of what the later cycles added named something the product did not do. Not judged by an outside reader
+  here; the pilot's outside judges accepted 10 of 59 additions written under the earlier specification text.
+- **L10. The look is cheap; the cycle it starts is not.** The three looks of a run took 4.8 to 11.0 minutes
+  together (`seconds_by_role.delta`: 289 to 662 seconds), 1.6 to 3.7 minutes a look. The 29 to 142 minutes after
+  the first build went to the rebuilds and the test passes the looks set off.
+- **Probe, ShipLoop's delivered ticket product against Ratchet's ticket finds** (a copy in the scratchpad, started
+  on a free port, 2026-11-22 13:44 UTC): the detail view shows the current assignee (Ratchet's C-45: ShipLoop
+  already right); a clear is logged as `ticket.unassigned` (C-49: already right); a body holding byte `0xFF` in the
+  name returns 200 and saves the name with a replacement character (C-50: same gap); `?assignee=Da%FFna` returns
+  200 and matches that ticket (C-52: same gap). C-51 (a name containing the handoff separator) was not tried. So of
+  four finds tried, ShipLoop's product shares two.
+
+### What this means for the measures
+
+Neither instrument here can see any of this. The held-out checks cover what the request states and sit at the
+ceiling; the judge read code and tests and was not asked what the product does where the request is silent, nor
+whether a choice was told to anyone. A tool earns nothing for marking a point and loses nothing for choosing
+silently. A measure that could see it: per case, a list of conditions the request leaves unsaid, fixed before the
+runs from sources independent of both arms, each probed on the running product and scored handled / chosen and
+told / chosen silently / not handled. It is scored on the product and on what the requester is told, never on the
+length of a specification (the spec-elaboration study's lesson: a count over a specification rewards deciding).
+The 42 `Open:` lines and 17 shortfalls above could seed such a list for these four cases only after an outside
+reader has kept the ones a requester would care about, since a list written by one arm favours that arm.
+
+### Not shown
+
+Whether a requester would want any of the 17; whether ShipLoop's other three products share Ratchet's finds (one
+case probed, four finds); whether one look after ShipLoop's build, reported to the requester and not rebuilt
+automatically, finds as much on ShipLoop's products. That last is the cheapest next test: four sessions of a few
+minutes on the four delivered ShipLoop products, then two outside judges on the findings.
